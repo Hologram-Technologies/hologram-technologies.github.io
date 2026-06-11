@@ -1,0 +1,36 @@
+{
+  "head": "did:holo:sha256:def0ccbdfd030e9a8bae803cbcaa12c208f3ca20cff6e8c5d90255b16ce87e52",
+  "@graph": [
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hcon": "https://hologram.os/ns/constitution#",
+          "odrl": "http://www.w3.org/ns/odrl/2/"
+        }
+      ],
+      "@type": [
+        "prov:Activity",
+        "schema:CreativeWork"
+      ],
+      "dcterms:references": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+      "dcterms:title": "Genesis — founding ratification of the Holo Constitution",
+      "hcon:coolingOffDays": 0,
+      "hcon:ratified": true,
+      "id": "did:holo:sha256:def0ccbdfd030e9a8bae803cbcaa12c208f3ca20cff6e8c5d90255b16ce87e52",
+      "prov:wasAssociatedWith": "operator",
+      "schema:dateCreated": "2026-06-09"
+    }
+  ]
+}

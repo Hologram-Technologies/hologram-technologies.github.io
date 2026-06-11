@@ -1,0 +1,58 @@
+# Holo Fade-In — a different 'script' theme proving interpreter generality.
+# Uses the SHARED Hologram background (same for every Holo Splash theme).
+W = Window.GetWidth(0);
+H = Window.GetHeight(0);
+Window.SetBackgroundTopColor(0.043, 0.027, 0.118);
+Window.SetBackgroundBottomColor(0.043, 0.027, 0.118);
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(W / 2 - logo.image.GetWidth() / 2);
+logo.sprite.SetY(H / 2 - logo.image.GetHeight() / 2);
+logo.opacity = 0;
+
+NDOTS = 12;
+for (i = 0; i < NDOTS; i++) {
+  dot.sprite[i] = Sprite(Image("dot.png"));
+  dot.phase[i] = i * 0.5;
+}
+t = 0;
+
+fun refresh () {
+  t = t + 0.02;
+  for (i = 0; i < NDOTS; i++) {
+    a = t + dot.phase[i];
+    x = W / 2 + Math.Sin(a) * (60 + i * 6);
+    y = H / 2 + logo.image.GetHeight() + 20 + Math.Cos(a * 1.3) * 14;
+    dot.sprite[i].SetX(x);
+    dot.sprite[i].SetY(y);
+    dot.sprite[i].SetOpacity(0.3 + 0.5 * Math.Abs(Math.Sin(a)));
+  }
+  if (logo.opacity < 1) logo.opacity = logo.opacity + 0.008;
+  logo.sprite.SetOpacity(logo.opacity);
+}
+Plymouth.SetRefreshFunction(refresh);
+
+fun progress (time, p) { logo.sprite.SetOpacity(p); }
+Plymouth.SetBootProgressFunction(progress);
+
+msg.sprite = Sprite();
+fun message (text) {
+  msg.image = Image.Text(text, 1, 1, 1);
+  msg.sprite.SetImage(msg.image);
+  msg.sprite.SetX(W / 2 - msg.image.GetWidth() / 2);
+  msg.sprite.SetY(H * 0.9);
+}
+Plymouth.SetMessageFunction(message);
+Plymouth.SetDisplayMessageFunction(message);
+
+pw.sprite = Sprite();
+fun password (prompt, bullets) {
+  stars = "";
+  for (i = 0; i < bullets; i++) stars = stars + "*";
+  pw.image = Image.Text(prompt + "  " + stars, 0.7, 0.95, 0.85);
+  pw.sprite.SetImage(pw.image);
+  pw.sprite.SetX(W / 2 - pw.image.GetWidth() / 2);
+  pw.sprite.SetY(H * 0.82);
+}
+Plymouth.SetDisplayPasswordFunction(password);

@@ -1,0 +1,30 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": ".well-known",
+  "hosfs:fhs": "/.well-known",
+  "hosfs:fhsRole": "RFC 8615 — the interop & agent doors (agents.json · mcp.json · did.json)",
+  "hosfs:kind": "content",
+  "id": "did:holo:sha256:48c5a5af8df76e5b335ab3a2432ee4bb594e13d18e1310c4a728727753335967"
+}

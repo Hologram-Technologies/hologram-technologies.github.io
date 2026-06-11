@@ -1,0 +1,65 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "usr",
+  "hosfs:fhs": "/usr",
+  "hosfs:fhsRole": "shareable, READ-ONLY data ≡ the content-addressed (κ) hierarchy — identical on any peer",
+  "hosfs:kind": "content",
+  "links": [
+    {
+      "id": "did:holo:sha256:64553fd38c6cebc20306b76115c632c6a3f0570a55d450b46401908eb04f4d61",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-/p910nMDYj84dqVjMVkAqoXcnZKrW8tvy2Eme/psohA=",
+      "digestMultibase": "uEiD-n3XScwNiPzh2pWMxWQCqhdydkqtby2_LYSZ7-myiEA"
+    },
+    {
+      "id": "did:holo:sha256:870c06f23cf446ce19036ee6412fc4a9b10c7f6fb265da5e3ff593f85beb6c75",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-skepKK6OIiu+MsD/0qm8BQHRH+4pl96A4qYFLFAw8aI=",
+      "digestMultibase": "uEiCyR6koro4iK74ywP_SqbwFAdEf7imX3oDipgUsUDDxog"
+    },
+    {
+      "id": "did:holo:sha256:40fcae227bde9bd292b6f7d7fd3e62281c1f50a611704bee3ec159eac9467c55",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-BzEtQphphPEDX3gTH7QTr7CB6YT6jI7H26FGXwadQB0=",
+      "digestMultibase": "uEiAHMS1CmGmE8QNfeBMftBOvsIHphPqMjsfboUZfBp1AHQ"
+    }
+  ],
+  "id": "did:holo:sha256:864f45f14f70f9ab26242889dbbf8677950a08e8de11f73b2c58f873ef17bbb1"
+}

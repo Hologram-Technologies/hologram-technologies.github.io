@@ -1,0 +1,202 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "opt",
+  "hosfs:fhs": "/opt",
+  "hosfs:fhsRole": "add-on application packages → optional holospaces, installed BY κ on demand (not shipped)",
+  "hosfs:kind": "pin",
+  "dcat:dataset": [
+    {
+      "@id": "did:holo:sha256:a2460476662fff16a7c9cee05b120545e47ede01ef73c0f159c10c355432b2cd",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo BRC",
+      "schema:identifier": "org.hologram.HoloBrc",
+      "hosfs:fhs": "/opt/brc"
+    },
+    {
+      "@id": "did:holo:sha256:1c03eb820ca8e2cc1cd1515e6f88afc25ba298c274ae46f6a988edcc565f40ff",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo BTC",
+      "schema:identifier": "org.hologram.HoloBtc",
+      "hosfs:fhs": "/opt/btc"
+    },
+    {
+      "@id": "did:holo:sha256:1587a5bb218c2a7e8c8f6ad1222508d1360b71da25b5653bbbc2c1e3558d5606",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Capture",
+      "schema:identifier": "org.hologram.HoloCapture",
+      "hosfs:fhs": "/opt/capture"
+    },
+    {
+      "@id": "did:holo:sha256:efc6e3a8f992e81534628902c29a9f8fd8f50f1b4c3655f6836a6efbcbc8a9c0",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Cloud",
+      "schema:identifier": "org.hologram.HoloCloud",
+      "hosfs:fhs": "/opt/cloud"
+    },
+    {
+      "@id": "did:holo:sha256:c3cdb2908ba03fc6df337934365ee23d1c6457fcd5d71fbd77b3ece4ce7a1c6f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo EVM",
+      "schema:identifier": "org.hologram.HoloEVM",
+      "hosfs:fhs": "/opt/evm"
+    },
+    {
+      "@id": "did:holo:sha256:137007e581fe97e5f74c54884fb11a239ca28d7420a9bb64e25bbeb66495fce5",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Etherscan",
+      "schema:identifier": "org.hologram.HoloEtherscan",
+      "hosfs:fhs": "/opt/etherscan"
+    },
+    {
+      "@id": "did:holo:sha256:abf78931ca04a5a00eff1961287a5f35186e7071ebc3817f948172db696f87dc",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Git",
+      "schema:identifier": "org.hologram.HoloGit",
+      "hosfs:fhs": "/opt/git"
+    },
+    {
+      "@id": "did:holo:sha256:b43aa2c9c0ba0b35b0201da7afbc1a51a9839b2f583b3d9417b06c9741ec0d53",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Music",
+      "schema:identifier": "org.hologram.HoloMusic",
+      "hosfs:fhs": "/opt/music"
+    },
+    {
+      "@id": "did:holo:sha256:4f17cac17cb50322a96ec428fcfdddae09dc8cde0f4f6a6d784d1fcaffba96df",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Player",
+      "schema:identifier": "org.hologram.HoloPlayer",
+      "hosfs:fhs": "/opt/player"
+    },
+    {
+      "@id": "did:holo:sha256:c59f58167d1aace0237b9d71d919d127838908879df1d16b5732920485a7279e",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Privacy",
+      "schema:identifier": "org.hologram.HoloPrivacy",
+      "hosfs:fhs": "/opt/privacy"
+    },
+    {
+      "@id": "did:holo:sha256:5ef837959e8366dd351ab45e23398fd69bd8ada7270d4639fac0cc7fe8dfdb5d",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Stream",
+      "schema:identifier": "org.hologram.HoloStream",
+      "hosfs:fhs": "/opt/stream"
+    },
+    {
+      "@id": "did:holo:sha256:651d2e10a5c6b8e18025081e341f3e44249113b0b64f897f3084acefa789618c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Terms",
+      "schema:identifier": "org.hologram.HoloTerms",
+      "hosfs:fhs": "/opt/terms"
+    },
+    {
+      "@id": "did:holo:sha256:09b8f9023a8be3115a3bd6fe3b6973ce1144b1f1024c3b8a8ea10ba4958c19cf",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Video",
+      "schema:identifier": "org.hologram.HoloVideo",
+      "hosfs:fhs": "/opt/video"
+    },
+    {
+      "@id": "did:holo:sha256:012533c9f246ef522a5c104e5d88206345cf6b7cbbb9b577e1e5ff93eda93ad0",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Winamp",
+      "schema:identifier": "org.hologram.HoloWinamp",
+      "hosfs:fhs": "/opt/winamp"
+    },
+    {
+      "@id": "did:holo:sha256:e8e6717757c65f23993a6fac4a12fb23a9792bbbdf9ae2edc61c31c669d5118a",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Hologram Meet",
+      "schema:identifier": "org.hologram.HologramMeet",
+      "hosfs:fhs": "/opt/meet"
+    },
+    {
+      "@id": "did:holo:sha256:e37e0157561c8a77dc5f3f7f5591ceac126f9144212169b657ebdfbca3d74b2a",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Plasma Desktop",
+      "schema:identifier": "org.kde.PlasmaDesktop",
+      "hosfs:fhs": "/opt/plasma"
+    },
+    {
+      "@id": "did:holo:sha256:bdde3b1b466acb14e4033c79e8c70c5fa8c62e9f8bc5938f92b4816046c4a2d1",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "QEMU",
+      "schema:identifier": "org.qemu.QEMU",
+      "hosfs:fhs": "/opt/qemu"
+    }
+  ],
+  "id": "did:holo:sha256:176f2cce113ac50abfb14611eae4378f3ba30665d0f949cd044b51caaaf07efd"
+}

@@ -1,0 +1,37 @@
+{
+  "spec": "Hologram OS — canonical login gateway: rEFInd → Plymouth → SDDM (real theme run by the Holo QML engine) → PrimeOS, authenticated by a self-sovereign key bound to local hardware (holospaces docs/08; Laws L1/L4/L5), 100% serverless",
+  "witnessed": false,
+  "covers": [],
+  "results": [
+    {
+      "name": "every login-chain resource resolves (rEFInd · SDDM theme · components · runtime)",
+      "ok": true,
+      "detail": "11/11"
+    },
+    {
+      "name": "rEFInd boots (Secure-Boot verified) → hands off to Plymouth with SDDM interposed",
+      "ok": true,
+      "detail": "splash.html?next=login.html?next=apps%2Fsdk%2Findex.html&label=Hologram+OS&logo="
+    },
+    {
+      "name": "the QML ENGINE runs the real Main.qml → DOM (welcome · username · password · Login/Shutdown/Restart)",
+      "ok": false,
+      "detail": "welcome=\"\" buttons=Access"
+    },
+    {
+      "name": "the real theme's images paint (wallpaper Background + rectangle.png panel)",
+      "ok": true,
+      "detail": "bg=true panel=true"
+    },
+    {
+      "name": "the greeter is rooted in this machine (hostName derived from the machine-id κ)",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "browser login flow completed without throwing",
+      "ok": false,
+      "detail": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"text\"]')\u001b[22m\n\u001b[2m    - locator resolved to <input type=\"text\" placeholder=\"\" autocomplete=\"off\"/>\u001b[22m\n\u001b[2m    - fill(\"ilya\")\u001b[22m\n\u001b[2m  - attempting fill action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying fill action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    59 × waiting for element to be visible, enabled and editable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying fill action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    }
+  ]
+}

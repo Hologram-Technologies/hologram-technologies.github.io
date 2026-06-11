@@ -1,0 +1,87 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "share",
+  "hosfs:fhs": "/usr/share",
+  "hosfs:fhsRole": "architecture-independent data → the apps + assets as κ-containers",
+  "hosfs:kind": "content",
+  "links": [
+    {
+      "id": "did:holo:sha256:17dafed63716e0c308dfd7353b00fd2b8a53dd10cc296c34602dc9b6cb720d11",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-ka23vjJfL7lQjOCUDLXXk+rvX8JOYYNp35GYXWRtmu4=",
+      "digestMultibase": "uEiCRrbe-Ml8vuVCM4JQMtdeT6u9fwk5hg2nfkZhdZG2a7g"
+    },
+    {
+      "id": "did:holo:sha256:92dfce4d3cea5c284a6f95bf8a89fea095521e984315c58ddfa903023715f1e3",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-xJQ067huV+t4VAHuyPJaKXw2dKOs2Zt2F7lzL8IH9yw=",
+      "digestMultibase": "uEiDElDTruG5X63hUAe7I8lopfDZ0o6zZm3YXuXMvwgf3LA"
+    },
+    {
+      "id": "did:holo:sha256:7dff1cdc4d83d8ce567b0a97a3288b0a7141d6f181a810c69f0ac50e74997d44",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-TufGhFP+N99dAwky9Uf5b141bGCuKTXZdYarYZA2Q4w=",
+      "digestMultibase": "uEiBO58aEU_43310DCTL1R_lvXjVsYK4pNdl1hqthkDZDjA"
+    },
+    {
+      "id": "did:holo:sha256:64617f087387cd2990c9b785f025323962ba26682ced4f3c579e41d786b076c7",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-spqSce0RdUQYIQ5YR5rxCGcuQsWL0rk5Gw+aXNdOLPY=",
+      "digestMultibase": "uEiCympJx7RF1RBghDlhHmvEIZy5CxYvSuTkbD5pc104s9g"
+    },
+    {
+      "id": "did:holo:sha256:34bf812807f0b3ca9a8715d60e4acff50919f3cec1c75a3df58ffb665920d177",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-L4saY2j1ufzrSJUPrLxQjGFl9d7lMfcTNx5kYkBCI54=",
+      "digestMultibase": "uEiAvixpjaPW5_OtIlQ-svFCMYWX13uUx9xM3HmRiQEIjng"
+    }
+  ],
+  "id": "did:holo:sha256:40fcae227bde9bd292b6f7d7fd3e62281c1f50a611704bee3ec159eac9467c55"
+}

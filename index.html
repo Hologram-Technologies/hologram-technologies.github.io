@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hologram OS — boot a sovereign computer</title>
+<meta name="description" content="A sovereign, serverless internet computer. A content-addressable storage · compute · networking substrate that boots entirely in your browser, rooted in your own hardware. No server. No install. Open one file; a whole operating system unfolds from a single seed." />
+<meta name="theme-color" content="#000000" />
+<meta property="og:title" content="Hologram OS — a sovereign internet computer" />
+<meta property="og:description" content="Boots entirely in your browser, rooted in your own hardware. No server, no install." />
+<link rel="manifest" href="os/etc/manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="os/usr/share/icons/hologram-dark.svg" />
+<link rel="alternate icon" href="os/usr/share/icons/icon-192.png" />
+<!-- Agent-discoverable substrate endpoints (also enumerated in the JSON-LD below + llms.txt). -->
+<link rel="alternate" type="application/ld+json" href="os/.well-known/agents.json" title="Agent capabilities" />
+<link rel="alternate" type="application/json" href="os/.well-known/mcp.json" title="MCP tools" />
+
+<!-- ════════════════════════════════════════════════════════════════════════════════════════
+     THE GATEWAY. One file, three readers:
+       • a HUMAN sees a thin window and boots a sovereign computer;
+       • an AGENT reads the JSON-LD below and operates the substrate (resolve · search · compute);
+       • the SUBSTRATE addresses this page by content — booting IS resolve-by-content (Law L5).
+     It contains no OS. It RESOLVES one: it brings up the κ Service Worker (the storage/compute/
+     networking gateway) and enters the boot chain — rEFInd → Plymouth → SDDM → PrimeOS — which
+     unlocks a self-sovereign key bound to THIS device. 100% serverless.
+     ════════════════════════════════════════════════════════════════════════════════════════ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Hologram OS",
+  "alternateName": "A sovereign internet computer",
+  "applicationCategory": "OperatingSystem",
+  "operatingSystem": "Any modern browser",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "license": "https://spdx.org/licenses/MIT",
+  "description": "A sovereign, serverless internet computer: a content-addressable storage, compute and networking substrate that boots entirely in the browser, rooted in the user's local hardware. No server, no install. A thin window onto an object universe where every object is self-verifying (its identity is the hash of its content; Law L5).",
+  "url": "./",
+  "softwareHelp": { "@type": "CreativeWork", "name": "Agent map", "url": "system/llms.txt" },
+  "usageInfo": { "@type": "CreativeWork", "name": "Constitution — the fail-closed conscience every action is checked against (ADR-033)", "url": "CONSTITUTION.md" },
+  "potentialAction": [
+    { "@type": "ViewAction", "name": "Boot Hologram OS", "target": "os/boot.html" },
+    { "@type": "Action", "name": "Resolve any object by content (storage)", "target": "os/.well-known/mcp.json#resolve_object" },
+    { "@type": "SearchAction", "name": "Search the open web (knowledge)", "target": "os/find.html?q={query}", "query-input": "required name=query" },
+    { "@type": "Action", "name": "Answer a question (compute)", "target": "os/.well-known/mcp.json#answer" }
+  ],
+  "featureList": [
+    "Storage: content-addressed κ-route — resolve any object by its hash, verified on receipt (Law L5)",
+    "Compute: the OS runs in your browser on your hardware (WASM VMs, GPU via WebGPU)",
+    "Networking: a serverless peer mesh; the origin is one CDN among peers, not an authority",
+    "Identity: sign in by unlocking a self-sovereign key bound to this device — never a server account"
+  ],
+  "hasPart": [
+    { "@type": "WebAPI", "name": "Agent capabilities", "url": "os/.well-known/agents.json" },
+    { "@type": "WebAPI", "name": "MCP tools (resolve · search · answer · verify)", "url": "os/.well-known/mcp.json" },
+    { "@type": "WebAPI", "name": "Agent facts / passport", "url": "os/.well-known/agent-facts.json" },
+    { "@type": "CreativeWork", "name": "Constitution (the fail-closed conscience)", "url": "os/.well-known/constitution.json" },
+    { "@type": "CreativeWork", "name": "Constitution — full text, front and centre (governs every action)", "url": "CONSTITUTION.md" },
+    { "@type": "CreativeWork", "name": "AGENTS.md — how AI agents discover + operate this substrate", "url": "AGENTS.md" }
+  ]
+}
+</script>
+<style>
+  /* ─────────────────────────────────────────────────────────────────────────────────────────
+     The gateway face — a clean welcome on pure black. The ENTIRE layout is built from ONE fluid
+     golden unit (--u) and powers of φ (1.618), so every size and gap is a golden relationship and
+     the composition holds its proportions from a phone to an 8K wall. Everything on screen is
+     vector (the SVG mark + system text), so it stays razor-sharp at any pixel density.
+     ───────────────────────────────────────────────────────────────────────────────────────── */
+  :root{
+    --phi:1.618;
+    --u: clamp(15px, 1.3vmin, 54px);            /* the golden unit — scales with the viewport's short side */
+    --u1: calc(var(--u) * 1.618);               /* φ¹ */
+    --u2: calc(var(--u) * 2.618);               /* φ² */
+    --u3: calc(var(--u) * 4.236);               /* φ³ */
+    --word: clamp(24px, 8vw, calc(var(--u) * 6)); /* wordmark cap — golden, fluid; grander on big screens, the vw term keeps the whole lockup inside the frame on the narrowest phone */
+    --mark: calc(var(--word) * var(--phi));     /* the dot-mark is φ× the wordmark cap — a golden pair */
+    --ink:#f5f5f7;
+    color-scheme:dark;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{ background:#000; color:var(--ink); overflow:hidden;
+    font:500 var(--u)/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+
+  /* two quiet doors, top-right (golden-spaced) */
+  .nav{ position:fixed; top:0; right:0; z-index:3; display:flex; align-items:center; gap:var(--u1);
+    padding:var(--u1) calc(var(--u) * 1.7); }
+  .nav a{ display:inline-flex; align-items:center; gap:.5em; text-decoration:none; color:#c7c7cd;
+    font-size:clamp(15px, calc(var(--u) * .98), calc(var(--u) * 1.12)); font-weight:500; transition:color .15s; }
+  .nav a:hover{ color:#fff; }
+  .nav svg{ width:1.25em; height:1.25em; }
+
+  /* the composition, balanced in the centre of the frame — the nav above and the signature below
+     frame it with even breathing room. Golden still governs every SIZE and GAP; only the vertical
+     anchor is centred (rather than on the 38.2% line) so the whole experience feels balanced. */
+  .cluster{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    max-width:92vw; display:flex; flex-direction:column; align-items:center; gap:var(--u2); }
+  /* hero wordmark — a custom VECTOR logotype in the Caslon's Egyptian style (the first sans, 1816),
+     built by tools/gen-wordmark.mjs. GOLDEN sizing: svg height = --word·1.2 so its cap height ≈ --word,
+     making the dot-mark button (height --word·φ) and the wordmark cap a clean φ:1 pair. White. */
+  .word{ height:calc(var(--word) * 1.2); width:auto; display:block; color:#fff; }
+
+  /* the BOOT CONTROL + its label — the Hologram dot-mark IS the entry button (press the brand to
+     enter). Floats a golden gap below the hero, out of flow so the hero holds the golden line. */
+  .act{ display:flex; flex-direction:column; align-items:center; gap:calc(var(--u) * .85); }
+  .enter{ -webkit-appearance:none; appearance:none; border:0; background:none; margin:0; cursor:pointer;
+    padding:calc(var(--u) * .5); display:grid; place-items:center; border-radius:50%; transition:transform .2s ease; }
+  .enter .ico{ width:var(--mark); height:var(--mark); display:block; color:#fff; transition:filter .25s ease; }
+  .enter:hover{ transform:scale(1.045); }
+  .enter:active{ transform:scale(.975); }
+  .enter:hover .ico, .enter:focus-visible .ico{ filter:drop-shadow(0 0 calc(var(--u) * .95) rgba(255,255,255,.38)); }
+  .enter:focus-visible{ outline:none; }
+
+  /* the label beneath the button — the call to action, later the boot progress. One readable size,
+     the SAME typeface as everything else (no small text, no second font). */
+  .status{ max-width:min(92vw, 46ch); color:#aeaeb6; font-weight:500; line-height:1.6;
+    font-size:clamp(16px, calc(var(--u) * 1.08), calc(var(--u) * 1.3)); text-align:center; letter-spacing:.01em; }
+  .status b{ color:#e6e6ea; font-weight:600; }
+  .status code{ color:#e6e6ea; font-weight:600; }
+
+  /* a quiet signature: the gateway addresses ITS OWN bytes by content + the agent door. Same
+     typeface as the rest (the κ is no longer monospace) and a readable size — just dimmer. */
+  .foot{ position:fixed; left:0; right:0; bottom:calc(var(--u) * 1.5); z-index:2;
+    display:flex; flex-direction:column; align-items:center; gap:calc(var(--u) * .6);
+    color:#6f6f77; text-align:center; padding:0 6vw; }
+  .kappa{ font-size:clamp(15px, calc(var(--u) * .92), calc(var(--u) * 1.05)); letter-spacing:.02em; opacity:.9; max-width:90vw; }
+  .ag{ font-size:clamp(15px, calc(var(--u) * .92), calc(var(--u) * 1.05)); opacity:.95; }
+  .ag a{ color:#9fd2cb; text-decoration:none; }
+  .ag a:hover{ color:#c4f0e8; }
+
+  /* the composition stays centred + balanced at EVERY width — no per-breakpoint nudging */
+  /* boot handoff: dissolve the gateway content into the splash. The black bg is shared, so the page
+     never flashes — only the mark/text/doors fade as the splash animation takes over. */
+  body.leaving .cluster, body.leaving .nav, body.leaving .foot{ opacity:0; transition:opacity .24s ease; pointer-events:none; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+<nav class="nav" aria-label="Hologram OS">
+  <a href="CONSTITUTION.md" title="The Constitution — the conscience every action is checked against (ADR-033)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l7 2.8v5.2c0 4.2-2.9 7.4-7 8.6-4.1-1.2-7-4.4-7-8.6V6z"/></svg>
+    Constitution
+  </a>
+</nav>
+
+<main class="cluster">
+
+  <!-- hero text: the HOLOGRAM wordmark, on the golden line -->
+  <svg class="word" viewBox="-7 -7 635.00 84" role="img" aria-label="HOLOGRAM" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="12"><g transform="translate(0 0)"><path d="M4.5 0V70"/><path d="M51.5 0V70"/><path d="M4.5 35H51.5"/></g><g transform="translate(71 0)"><path d="M4.5 35A30.5 30.5 0 1 0 65.5 35A30.5 30.5 0 1 0 4.5 35"/></g><g transform="translate(156 0)"><path d="M4.5 0V70"/><path d="M4.5 65.5H45"/></g><g transform="translate(216 0)"><path d="M4.5 35A30.5 30.5 0 1 0 65.5 35A30.5 30.5 0 1 0 4.5 35"/></g><g transform="translate(301 0)"><path d="M62 51A30.5 30.5 0 1 1 62 19"/><path d="M45 35H62V51"/></g><g transform="translate(387 0)"><path d="M4.5 0V70"/><path d="M4.5 4.5H30A18 18 0 0 1 30 40.5H4.5"/><path d="M24 40.5L54 70"/></g><g transform="translate(460 0)"><path d="M5 70L33 4.5L61 70"/><path d="M14.5 48H51.5"/></g><g transform="translate(541 0)"><path d="M4.5 70V0L40 50L75.5 0V70"/></g></svg>
+  <!-- the boot control: the Hologram dot-mark IS the entry button (press the brand to enter), with its label beneath -->
+  <div class="act">
+    <button class="enter" id="enter" type="button" aria-label="Boot Hologram OS — press Enter or click the Hologram mark">
+      <svg class="ico" viewBox="-104 -104 208 208" role="img" aria-label="Hologram"><g fill="currentColor"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg>
+    </button>
+    <div class="status" id="status">Press Enter to boot Hologram OS</div>
+  </div>
+</main>
+
+<!-- AI agents: the full machine map is in the JSON-LD + /.well-known links in <head>; AGENTS.md is the human door. -->
+<footer class="foot">
+  <span class="kappa" id="kappa"></span>
+  <span class="ag">AI agent? Start at <a href="AGENTS.md">AGENTS.md</a></span>
+</footer>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+
+  // ── Fail-closed boot-refusal screen (ADR-033) — sharp, on-brand, self-contained (NO fetch). ──
+  // It must render even when the OS image is unreachable — exactly when it fires. One renderer,
+  // used by both boot gateways, so the refusal looks identical everywhere.
+  function holoBootRefused(constitutionHref) {
+    document.title = "Boot refused — Hologram OS";
+    const cube = '<svg class="hh-cube" viewBox="-104 -104 208 208" aria-hidden="true"><defs><linearGradient id="hhg" x1="-104" y1="-104" x2="104" y2="104"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient></defs><g fill="url(#hhg)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg>';
+    const css = `
+      .hh{position:fixed;inset:0;overflow:auto;color:#ECE9FB;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(1200px 760px at 82% -12%,rgba(139,92,246,.30),transparent 60%),radial-gradient(1000px 720px at 10% 114%,rgba(45,212,191,.16),transparent 60%),linear-gradient(160deg,#07041a,#0b071e);}
+      .hh-sky{position:fixed;inset:0;opacity:.5;pointer-events:none;background-repeat:no-repeat;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 60%,#cbd5ff,transparent),radial-gradient(1px 1px at 40% 80%,#fff,transparent),radial-gradient(1px 1px at 85% 25%,#bfe9ff,transparent),radial-gradient(1px 1px at 55% 15%,#fff,transparent),radial-gradient(1px 1px at 30% 65%,#e9d5ff,transparent);}
+      .hh-aur{position:fixed;inset:-25%;opacity:.4;filter:blur(40px);pointer-events:none;background:radial-gradient(closest-side,rgba(251,113,133,.12),transparent),radial-gradient(closest-side,rgba(139,92,246,.13),transparent);background-size:60% 60%,52% 52%;background-position:26% 28%,76% 72%;background-repeat:no-repeat;}
+      .hh-stage{position:relative;min-height:100%;display:grid;place-items:center;padding:6vh 6vw;}
+      .hh-card{width:min(92vw,520px);display:grid;justify-items:center;gap:1.35rem;text-align:center;background:linear-gradient(180deg,rgba(22,15,46,.62),rgba(11,7,30,.58));border:1px solid rgba(139,92,246,.20);border-top:2px solid rgba(251,113,133,.9);border-radius:18px;box-shadow:0 30px 90px rgba(2,0,12,.55);padding:clamp(34px,5vw,52px);}
+      .hh-cube{width:54px;height:54px;filter:drop-shadow(0 0 16px rgba(139,92,246,.5));}
+      .hh h1{margin:0;font-size:clamp(34px,5.4vw,48px);font-weight:600;letter-spacing:-.015em;line-height:1.08;}
+      .hh-lead{margin:0;max-width:26ch;font-size:clamp(16px,2.3vw,19px);line-height:1.5;color:#c9c3ea;}
+      .hh-act{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem;}
+      .hh-btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.82rem 1.55rem;font:500 15.5px/1 inherit;cursor:pointer;text-decoration:none;border:1px solid transparent;transition:filter .15s,background .15s;}
+      .hh-p{color:#fff;background:linear-gradient(135deg,#8b5cf6,#6d4bd0);box-shadow:0 12px 32px rgba(109,75,208,.45);}
+      .hh-p:hover{filter:brightness(1.12);}
+      .hh-g{color:#cdd6ff;border-color:rgba(139,92,246,.4);}
+      .hh-g:hover{background:rgba(139,92,246,.12);}`;
+    const html = `<div class="hh"><div class="hh-sky"></div><div class="hh-aur"></div><div class="hh-stage"><main class="hh-card">
+      ${cube}
+      <h1>Boot refused</h1>
+      <p class="hh-lead">Hologram OS couldn't verify its Constitution, so it didn't start. Nothing ran.</p>
+      <div class="hh-act"><button class="hh-btn hh-p" onclick="location.reload()">↻ Re-verify</button><a class="hh-btn hh-g" href="${constitutionHref}">Read the Constitution</a></div>
+    </main></div></div>`;
+    const s = document.createElement("style"); s.textContent = css; document.head.appendChild(s);
+    document.body.style.cssText = "margin:0"; document.body.innerHTML = html;
+  }
+
+  // Live self-address: the gateway resolves ITS OWN bytes to a κ — booting is resolve-by-content (Law L5).
+  (async () => {
+    try {
+      const buf = await (await fetch(location.href, { cache: "no-store" })).arrayBuffer();
+      const hex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", buf))].map((b) => b.toString(16).padStart(2, "0")).join("");
+      const short = hex.slice(0, 8) + "…" + hex.slice(-6);   // a tidy one-line κ — readable, not a tiny 64-char wrap
+      $("kappa").textContent = "this gateway is  did:holo:sha256:" + short;
+    } catch { $("kappa").textContent = "did:holo — content-addressed"; }
+  })();
+
+  // Boot: bring up the κ / FHS Service Worker (the substrate gateway — maps the flat URL space onto
+  // the FHS tree + supplies cross-origin isolation), then enter the bootloader. Relative paths, so
+  // this works at a root site, a /<repo>/ project site, or `node tools/holo-serve-fhs.mjs`.
+  let booting = false;
+  async function boot() {
+    if (booting) return; booting = true;
+    // Hologram OS needs http(s): the κ Service Worker — which maps the flat URL space onto the FHS
+    // tree AND re-derives every byte to its κ (Law L5) — cannot run from file://. So guide the user
+    // instead of forwarding to a path that can't boot.
+    if (!location.protocol.startsWith("http")) {
+      booting = false;
+      $("status").innerHTML = 'Hologram OS boots over <b>http</b>. From this folder run<br><code>cd system &amp;&amp; node tools/serve-pages.mjs</code><br>then open <b>http://127.0.0.1:8080/</b>';
+      return;
+    }
+    $("status").textContent = "resolving Hologram OS…";
+    // Find where the OS image is served — its real repo path (system/os/), or a remapped root (os/)
+    // if the host aliases it. So the gateway boots whether the repo is served literally by ANY static
+    // host or through the remapping dev server. (HEAD-probe the SW; first hit wins.)
+    let root = "system/os/";
+    for (const r of ["system/os/", "os/"]) { try { if ((await fetch(r + "holo-fhs-sw.js", { method: "HEAD", cache: "no-store" })).ok) { root = r; break; } } catch {} }
+
+    // ── Constitutional boot gate (ADR-033): the FIRST act of boot is to verify the conscience ──
+    // A sovereign computer does not boot under a constitution it cannot re-derive for itself. Load
+    // the fail-closed, self-verifying conscience gate and re-derive the eight principles against
+    // their pinned κ (Law L5). Sealed ⇒ boot. Tampered or absent ⇒ FAIL CLOSED — refuse to boot.
+    const CONSTITUTION_K = "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c";
+    $("status").textContent = "verifying the Constitution…";
+    let constitutionSealed = false;
+    try {
+      const C = await import(new URL(root + "usr/lib/holo/holo-conscience.js", location.href).href);
+      constitutionSealed = (await C.verifyConstitution()) === true && C.PINNED.root === CONSTITUTION_K;
+    } catch (e) { constitutionSealed = false; }
+    if (!constitutionSealed) {
+      booting = false;
+      holoBootRefused("CONSTITUTION.md");
+      return;
+    }
+    $("status").innerHTML = '✓ Constitution sealed (ADR-033) — booting a governed computer…';
+
+    try {
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.register(root + "holo-fhs-sw.js", { type: "module", scope: root }).catch(() => null);
+        if (reg && !navigator.serviceWorker.controller) {
+          await new Promise((res) => { if (reg.active) return res(); const w = reg.installing || reg.waiting; if (!w) return res(); w.addEventListener("statechange", function () { if (this.state === "activated") res(); }); setTimeout(res, 4000); });
+        }
+      }
+    } catch {}
+    // Power-on: the Constitution is sealed and the κ worker controls this client, so hand straight off
+    // to the Plymouth SPLASH — the boot animation — and let IT carry the client into the desktop shell
+    // (apps/sdk), the ONE canonical holospace inside which every application opens as a window. The
+    // splash is the seamless bridge: the gateway dissolves into the animation, the animation into the
+    // desktop. The boot MENU (rEFInd) stays reachable directly (boot.html). Every byte is still
+    // κ-verified by the worker (L5). Paths are relative to this gateway's dir, so they resolve in either root.
+    const next = "home.html";   // the splash carries the client here (the SDDM greeter + apps/sdk desktop aren't in this thin OS image)
+    try { localStorage.setItem("holo-splash:bg", "dark"); } catch {}   // splash on solid #000 — the SAME black as this gateway, so the handoff is seamless
+    document.body.classList.add("leaving");   // dissolve the gateway content; the black bg is shared, so only the content crossfades into the splash
+    const splashURL = root + "splash.html?" + new URLSearchParams({ next, menu: "boot.html", duration: "12", theme: "holo-pulse", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" });
+    setTimeout(() => location.replace(splashURL), 240);
+  }
+  $("enter").addEventListener("click", boot);
+  // No auto-boot — the gateway stays a STATIC splash until the user acts. Boot is an explicit
+  // choice: click the button or press Enter. (A sovereign computer powers on by will, not a timer.)
+  addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); boot(); } });
+  try { $("enter").focus({ preventScroll: true }); } catch {}
+</script>
+<noscript><div style="position:fixed;inset:0;display:grid;place-items:center"><a href="os/boot.html" style="color:#2dd4bf">Enter Hologram OS →</a></div></noscript>
+</body>
+</html>

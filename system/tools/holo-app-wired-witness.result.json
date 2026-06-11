@@ -1,0 +1,19 @@
+{
+  "spec": "Every served holospace application loads the upstream Holo UI engine (holo-theme.js, directly or via the holo-ui-kernel.js / holo-ui.js façades), so the canonical UI parameters defined + persisted by the holospace shell propagate to — and are honored by — every app instance.",
+  "authority": "ADR-0030 (Holo UI, the one UI subsystem) · ADR-0023 (the --holo-* token contract + postMessage propagation) · ADR-0057 (the readability floor) · static analysis of the served app repo",
+  "witnessed": true,
+  "covers": [
+    "holo-ui",
+    "wired-to-upstream",
+    "shell-defined-params",
+    "every-application",
+    "persistence"
+  ],
+  "engineEntrypoints": [
+    "holo-theme.js",
+    "holo-ui-kernel.js",
+    "holo-ui.js"
+  ],
+  "appsScanned": 32,
+  "unwired": []
+}

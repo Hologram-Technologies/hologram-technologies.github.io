@@ -1,0 +1,23 @@
+# Hologram OS
+
+> A sovereign, serverless internet computer: a content-addressable storage · compute · networking substrate that boots entirely in the browser, rooted in the user's local hardware. No server, no install. Every object is self-verifying — its identity is the hash of its content, re-derived on receipt (Law L5).
+
+The single gateway is `index.html`. Opening it brings up the κ Service Worker (the substrate gateway) and enters the boot chain — rEFInd → Plymouth → SDDM → PrimeOS. Signing in unlocks a self-sovereign key bound to this device; there is never a server account.
+
+## Boot
+- [Boot Hologram OS](os/boot.html): bootloader → splash → greeter → desktop, all in the browser.
+
+## The substrate (three axes)
+- Storage — the content-addressed κ-route: `GET os/.holo/sha256/<hex>` resolves any object by its hash and verifies it on receipt (Law L5). The store is the memory.
+- Compute — the OS runs in the browser on the user's own hardware (WASM virtual machines, WebGPU; a browser-native LLM engine). The login binds the session to the device's measured cores · memory · GPU · network.
+- Networking — a serverless peer mesh; the origin gateway is one CDN among peers, not an authority. Deny it and the byte-identical, verified OS still boots from cache or a neighbour.
+
+## Machine endpoints (for AI agents)
+- [Agent capabilities](os/.well-known/agents.json) — the single entry point to the agent stack.
+- [MCP tools](os/.well-known/mcp.json) — resolve_object · search_web · answer · verify_receipt · verify_delegation · verify_settlement · agent_passport · agent_facts · agent_reputation.
+- [Agent facts / passport](os/.well-known/agent-facts.json)
+- [Constitution](os/.well-known/constitution.json) — the fail-closed conscience every action is checked against.
+
+## Notes
+- 100% static and serverless — deploys to GitHub Pages as-is. A Service Worker (`os/holo-fhs-sw.js`) maps the flat URL space onto the Linux FHS tree and supplies cross-origin isolation, so it needs no server headers.
+- Open, MIT-licensed, W3C/JSON-LD aligned. Identity, laws and conformance are themselves content-addressed objects.

@@ -1,0 +1,58 @@
+{
+  "spec": "Hologram OS display manager renders the real, verbatim upstream SDDM QML in a real browser",
+  "witnessed": true,
+  "covers": [
+    "qml-render",
+    "greeter-live",
+    "sddm-theme"
+  ],
+  "render": {
+    "engineRan": true,
+    "rootType": "Rectangle",
+    "itemCount": 28,
+    "welcome": "Welcome to holo-5d4bUsernamePassword⚠SessionPrimeOSPrimeOSDebian (terminal)Workspace (VS Code)LayoutUnlock your sovereign identityLoginShut DownRestart",
+    "hasUsernameInput": true,
+    "buttons": [
+      "Login",
+      "Shut Down",
+      "Restart"
+    ]
+  },
+  "results": [
+    {
+      "name": "login chain resolves (engine + theme + identity over the κ-route)",
+      "ok": true,
+      "detail": "6/6"
+    },
+    {
+      "name": "login.html loads",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "Holo QML executed the theme (live object tree)",
+      "ok": true,
+      "detail": "root=Rectangle items=28"
+    },
+    {
+      "name": "the welcomeText property binding evaluated",
+      "ok": true,
+      "detail": "Welcome to holo-5d4bUsernamePassword⚠SessionPrimeOSPrimeOSDebian (terminal)Workspace (VS Code)LayoutUnlock your sovereign identityLoginShut DownRestart"
+    },
+    {
+      "name": "the greeter rendered its real controls (username field + Login button)",
+      "ok": true,
+      "detail": "input=true buttons=[Login, Shut Down, Restart]"
+    },
+    {
+      "name": "captured a screenshot of the rendered greeter",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no fatal page errors",
+      "ok": true,
+      "detail": "clean"
+    }
+  ]
+}

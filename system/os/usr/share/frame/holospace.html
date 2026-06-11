@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Holospace</title>
+<!-- The projection (engine: docs/08 §Projection) — a single did:holo / holo:// link boots an
+     ISOLATED, capability-bounded, serverless holospace app directly in any browser, desktop or
+     mobile. No server: the app is resolved from the content-addressed index and mounted in its
+     own W3C-sandboxed frame with only its declared capabilities. The launcher logic is
+     holo-launch.mjs (witnessed: A28). Delivered from any cold-start gateway; the browser is the peer. -->
+<style>
+  html, body { margin: 0; height: 100%; background: #0b071e; color: #e8e6f0;
+    font: var(--holo-text-sm, 1rem)/1.6 system-ui, -apple-system, sans-serif; overflow: hidden; }
+  #frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #0b071e; }
+  #msg { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 2rem; }
+  #msg code { color: #8b5cf6; } a { color: #2dd4bf; text-decoration: none; } a:hover { text-decoration: underline; }
+  .apps { margin-top: 1rem; line-height: 2.4; }
+</style>
+</head>
+<body>
+<div id="msg">Resolving holospace…</div>
+<!-- Holo Terms (MyTerms / IEEE 7012): the host GATE. Loaded gate-only (no badge on the bare
+     projection — the mounted app renders the badge) so the projection can intersect the app's
+     declared capabilities with the user's standing term + signed agreement record before granting
+     anything. window.HoloTerms is defined synchronously; gate() does its work lazily. -->
+<script>window.__holoTermsBadge = false;</script>
+<script src="_shared/holo-terms.js"></script>
+<script type="module">
+import { mount, parseLink } from "./holo-launch.mjs";
+import { sealConstitution } from "./_shared/holo-admit.mjs";
+
+const msg = document.getElementById("msg");
+const die = (html) => { msg.innerHTML = html; };
+
+// Sovereign delivery (ADR-026): when enabled (?sovereign=1), the OS-wide κ Service Worker
+// (holo-boot-sw.js, brought up by the guarded module below) serves the WHOLE OS by content from
+// cache/peers/origin — so we skip the per-app worker here to avoid a double registration. Default
+// off → the proven per-app path (A29) is untouched.
+const sovereign = (() => { try { return new URLSearchParams(location.search).get("sovereign") === "1" || localStorage.getItem("holoSovereign") === "1"; } catch { return false; } })();
+
+// The per-app κ Service Worker (A29 — serve subresources by content, from anywhere) is ON in
+// production and OFF by default on localhost, so iterating files never leaves a stale SW serving
+// old bytes. Force it on with ?sw=1, off with ?sw=0. In dev (off) the package path-loads directly.
+const swEnabled = (() => {
+  try {
+    const v = new URLSearchParams(location.search).get("sw");
+    if (v === "1") return true; if (v === "0") return false;
+    const h = location.hostname;
+    return h !== "" && !/^(localhost$|127\.|0\.0\.0\.0$|\[?::1)/.test(h);   // production host → on; localhost → off
+  } catch { return false; }
+})();
+
+// The single LINK: ?app=<did:holo | id>  or  #holo://<hex>. Identity is content (Law L1).
+const params = new URLSearchParams(location.search);
+const raw = params.get("app") || decodeURIComponent(location.hash.replace(/^#/, "")) || "";
+const link = parseLink(raw);
+
+async function boot() {
+  // Seal the Constitution (ADR-033) before mounting anything: re-derive its principles (Law L5).
+  // mount() is fail-closed — until this resolves, it refuses every holospace. Governance is not optional.
+  await sealConstitution().catch(() => {});
+  // Resolve from the content-addressed index (the lean store: { did:holo → metadata }).
+  const index = await fetch("./apps/index.jsonld").then((r) => r.json()).catch(() => null);
+  if (!index) return die("No app index yet — run <code>node tools/build-app.mjs</code>.");
+  const apps = index["dcat:dataset"] || [];
+  const app = link ? apps.find((a) => a["@id"] === link.did)
+            : raw  ? apps.find((a) => a["schema:identifier"] === raw || a["@id"] === raw)
+            : null;
+  if (!app) return die(`<b>Hologram OS</b> — pick a holospace:<div class="apps">` +
+    apps.map((a) => `<a href="?app=${encodeURIComponent(a["@id"])}">${a["schema:name"]}</a>`).join(" · ") + `</div>`);
+
+  // Fetch the app's definition + content-address lock.
+  const landing = app["dcat:landingPage"];                 // apps/<id>/index.html
+  const id = landing.split("/")[1];
+  const def = await fetch(`./apps/${id}/holospace.json`).then((r) => r.json());
+  const lock = await fetch(`./apps/${id}/holospace.lock.json`).then((r) => r.json());
+  // Holo Terms enforcement: derive the EFFECTIVE capabilities (declared ∩ the user's grant under
+  // their standing term) — opening a consent dialog for sensitive/egress requests — and spawn the
+  // app with only those. Fail-closed: no HoloTerms ⇒ undefined ⇒ mount falls back to declared.
+  const grant = window.HoloTerms ? await window.HoloTerms.gate(def) : undefined;
+  const m = mount({ def, lock, grant });
+
+  // Bring up the κ Service Worker BEFORE mounting, so the app's subresources route through it and
+  // load BY CONTENT — verified (Law L5), from anywhere (holo-sw.js + holo-resolver, A29). Proven
+  // pattern (the IPFS holospace): no `serviceWorker.ready` await (it can hang); wait on
+  // statechange→activated + a MessageChannel handshake, with a timeout fallback so the app still
+  // loads if the SW can't come up.
+  if ("serviceWorker" in navigator && !sovereign && swEnabled) {
+    await Promise.race([(async () => {
+      const reg = await navigator.serviceWorker.register("./holo-sw.js", { type: "module" });
+      const active = reg.active || await new Promise((res) => {
+        const w = reg.installing || reg.waiting; if (!w) return res(null);
+        w.addEventListener("statechange", function h() { if (this.state === "activated") { w.removeEventListener("statechange", h); res(reg.active); } });
+      });
+      if (active) await new Promise((res) => { const ch = new MessageChannel(); ch.port1.onmessage = res; active.postMessage({ closure: m.closure }, [ch.port2]); });
+    })().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
+  } else if ("serviceWorker" in navigator && !swEnabled) {
+    // dev / SW-off: actively unregister any stale per-app SW so iterating never leaves one
+    // controlling — the package path-loads from the origin instead. (Re-enable with ?sw=1.)
+    try { for (const r of await navigator.serviceWorker.getRegistrations()) if (/holo-sw\.js/.test(((r.active || r.installing || r.waiting) || {}).scriptURL || "")) await r.unregister(); } catch {}
+  }
+
+  // Mount it in an ISOLATED, capability-bounded frame: a WHATWG <iframe sandbox> in its own realm
+  // with a W3C Permissions-Policy `allow` that grants ONLY the declared features (default-deny).
+  const f = document.createElement("iframe");
+  f.id = "frame";
+  f.setAttribute("sandbox", m.sandbox);
+  if (m.allow) f.setAttribute("allow", m.allow);
+  f.setAttribute("title", m.name);
+  f.src = "./" + landing;                                   // (the κ-service-worker resolver — serve every
+                                                            //  subresource by content, from anywhere — is the next step)
+  document.title = `${m.name} · holospace`;
+  msg.remove();
+  document.body.appendChild(f);
+}
+// Unified experience (everything is an object): by default a single link opens the app INSIDE the
+// World shell — a fully editable holospace object. ?bare=1 keeps the standalone fullscreen mount
+// (for embedding one app, or a minimal kiosk).
+if (params.get("bare") === "1") {
+  boot().catch((e) => die("Boot failed: <code>" + (e && e.message || e) + "</code>"));
+} else {
+  const p = new URLSearchParams();
+  if (raw) p.set("open", raw);
+  if (params.get("sw")) p.set("sw", params.get("sw"));
+  location.replace("./apps/sdk/index.html" + (p.toString() ? "?" + p : ""));
+}
+</script>
+<!-- Sovereign delivery (ADR-026), guarded: a no-op unless ?sovereign=1 / localStorage.holoSovereign,
+     when it boots the OS-wide κ Service Worker so EVERY holospace's bytes resolve by content from
+     cache → peers → origin, re-derived (Law L5). Ramp-gated by holo-boot-sw-browser-witness.mjs. -->
+<script type="module" src="./holo-boot-sw-register.mjs"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "spec": "Hologram OS boots on a dumb static host (GitHub Pages) as-is: holo-fhs-sw.js (the in-browser twin of holo-serve-fhs.mjs, sharing lib/holo-fhs-map.mjs) maps the flat URL space onto the FHS tree and provides cross-origin isolation — no server cooperation",
+  "witnessed": false,
+  "covers": [],
+  "results": [
+    {
+      "name": "the host is a dumb static host (flat /home.html 404s; only the physical FHS path exists)",
+      "ok": true,
+      "detail": "flat=404 phys=200 sw=200 map=200"
+    },
+    {
+      "name": "the SW controls the page and maps /boot.html → the real rEFInd menu (flat URL, dumb host)",
+      "ok": false,
+      "detail": "url=/holo-os/ controlled=true menu=false"
+    },
+    {
+      "name": "cross-origin isolation works on Pages (SW stamps COOP/COEP — SharedArrayBuffer ready)",
+      "ok": true,
+      "detail": "crossOriginIsolated=true"
+    },
+    {
+      "name": "the SDDM greeter (QML engine + _shared modules + theme) loads entirely through the SW",
+      "ok": true,
+      "detail": "engine=true pass=true login=true bg=true"
+    },
+    {
+      "name": "the greeter page is cross-origin isolated too",
+      "ok": true,
+      "detail": "crossOriginIsolated=true"
+    }
+  ]
+}

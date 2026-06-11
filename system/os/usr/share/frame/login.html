@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hologram OS — Sign in</title>
+<!-- The DISPLAY MANAGER for Hologram OS — SDDM (https://github.com/sddm/sddm), projected into
+     the browser. This page no longer TRANSCRIBES the theme: it EXECUTES the real, verbatim
+     upstream QML. Holo QML (/_shared/holo-qml.mjs) parses the genuine data/themes/<theme>/Main.qml
+     — installed + content-addressed under /usr/share/sddm/ — builds its live object tree, evaluates
+     its property bindings, and renders it to the DOM, exactly the way Holo Splash runs Plymouth's
+     real .script themes (holo-plymouth.js) and Holo Boot runs rEFInd. The one substitution the
+     holospaces spec mandates: sddm.login() does NOT call PAM — it UNLOCKS a self-sovereign key
+     bound to this device (Law L1, holo-identity), wired here by the unchanged holo-sddm context.
+     100% serverless. Witness: tools/qml-engine-witness.mjs (vs the Qt 6 QML Reference). -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #07041a;
+    font-family: "Oxygen", "Segoe UI", system-ui, -apple-system, sans-serif; }
+  #stage { position: fixed; inset: 0; }
+  #fallback { position: fixed; inset: 0; display: none; place-items: center; color: #cbd5e1;
+    font: 13px/1.6 ui-monospace, monospace; text-align: center; padding: 24px; }
+  #fallback.on { display: grid; }
+  #fallback code { color: #f87171; display: block; margin-top: 8px; word-break: break-all; max-width: 600px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="fallback"><div>The display manager could not start.<code id="fallbackMsg"></code></div></div>
+
+<script type="module">
+import { QmlEngine, parseThemeConf, createDomBackend } from "./_shared/holo-qml.mjs";
+import { Button, TextBox, PasswordBox, ComboBox, Clock, createGreeter } from "./_shared/holo-sddm.js";
+
+const stage = document.getElementById("stage");
+const fetchText = async (url) => { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`${url} → ${r.status}`); return r.text(); };
+
+try {
+  // 1 · which theme? read SDDM's real config; fall back to the upstream default if it has no Main.qml.
+  const sddmConf = parseThemeConf(await fetchText("etc/sddm.conf").catch(() => "Current=maldives"));
+  // /etc/sddm.conf keeps ThemeDir absolute (faithful SDDM); normalise to a base-relative URL so
+  // it resolves through the SW under a /<repo>/ project site as well as a root site.
+  const themesDir = (sddmConf.ThemeDir || "usr/share/sddm/themes").replace(/\/$/, "").replace(/^\//, "");
+  let themeName = sddmConf.Current || "maldives";
+  let themeDir = `${themesDir}/${themeName}`;
+  let qml;
+  try { qml = await fetchText(`${themeDir}/Main.qml`); }
+  catch { themeName = "maldives"; themeDir = `${themesDir}/maldives`; qml = await fetchText(`${themeDir}/Main.qml`); }
+
+  // 2 · the real SDDM greeter context (sddm.login → holo-identity, userModel, sessionModel, …),
+  //     unchanged, plus the theme's real theme.conf merged into `config` (Qt.resolvedUrl base = themeDir).
+  const ctx = await createGreeter(new URLSearchParams(location.search));
+  let themeConf = {}; try { themeConf = parseThemeConf(await fetchText(`${themeDir}/theme.conf`)); } catch {}
+  ctx.config = { ...ctx.config, ...themeConf };
+  if (!ctx.config.defaultBackground) ctx.config.defaultBackground = ctx.config.background;
+
+  // 3 · run the real QML and mount it
+  const backend = createDomBackend({ Button, TextBox, PasswordBox, ComboBox, Clock });
+  const engine = new QmlEngine({ backend, context: ctx, baseUrl: `${themeDir}/`, onWarn: (m) => console.warn("[holo-qml]", m) });
+  engine.load(qml);
+  const rn = engine.root && engine.root.node;
+  if (rn) { rn.style.position = "fixed"; rn.style.inset = "0"; rn.style.width = "100vw"; rn.style.height = "100vh"; }
+  engine.mount(stage);
+  const remeasure = () => requestAnimationFrame(() => requestAnimationFrame(() => engine.measureImplicit()));
+  remeasure();
+  if (ctx.sddm) ctx.sddm.refresh = remeasure;   // QML reveal() calls sddm.refresh() to re-fit the card
+  window.__holoQml = engine;     // introspectable by agents / the render_qml MCP tool
+
+  // Component.onCompleted focuses the field; nudge it once layout settles
+  setTimeout(() => { const f = stage.querySelector("input"); if (f && document.activeElement !== f) f.focus(); }, 60);
+} catch (e) {
+  document.getElementById("fallback").classList.add("on");
+  document.getElementById("fallbackMsg").textContent = String(e && e.message || e);
+  console.error("[login] display manager failed:", e);
+}
+</script>
+</body>
+</html>

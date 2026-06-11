@@ -1,0 +1,58 @@
+{
+  "$comment": "ADOPTED SPEC (ADR-0059) — the TranslucentTB taskbar-translucency MODEL, distilled from TranslucentTB (github.com/TranslucentTB/TranslucentTB, settings.schema.json: $defs/TaskbarAppearance) into a byte-pinned, content-addressed κ-object. Hologram OS does NOT run TranslucentTB's C++/Win32 binary (ADR-0029: never run a foreign runtime); it adopts its accent-state model and expresses each state as the --holo-glass-* CSS tokens in holo-theme.css. holo-dock.css selects a state via #holo-dock[data-glass=...]. tools/holo-dock-witness.mjs proves this mapping is faithful.",
+  "source": {
+    "project": "TranslucentTB",
+    "url": "https://github.com/TranslucentTB/TranslucentTB",
+    "file": "settings.schema.json",
+    "def": "TaskbarAppearance"
+  },
+  "parameters": {
+    "accent": {
+      "enum": ["normal", "opaque", "clear", "blur", "acrylic"],
+      "doc": "The appearance mode applied to the bar."
+    },
+    "color": {
+      "pattern": "^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$",
+      "doc": "Tint color, #RRGGBBAA. The alpha is the tint-overlay opacity (0..255)."
+    },
+    "blur_radius": {
+      "min": 0,
+      "max": 750,
+      "cssDivisor": 3,
+      "doc": "Gaussian blur amount. TranslucentTB clamps to 750 and applies blur_radius/3; the CSS equivalent is backdrop-filter: blur(blur_radius/3 px)."
+    }
+  },
+  "states": {
+    "normal": {
+      "doc": "System default — no effect. The bar reverts to no background.",
+      "css": { "background": "transparent", "backdrop-filter": "none" }
+    },
+    "opaque": {
+      "doc": "Solid tinted color; alpha ignored (ACCENT_ENABLE_GRADIENT).",
+      "token": { "bg": "--holo-glass-opaque-bg", "fx": "--holo-glass-opaque-fx" },
+      "css": { "background": "rgb(R,G,B)", "backdrop-filter": "none" }
+    },
+    "clear": {
+      "doc": "Solid color WITH transparency; full alpha respected (ACCENT_ENABLE_TRANSPARENTGRADIENT).",
+      "token": { "bg": "--holo-glass-clear-bg", "fx": "--holo-glass-clear-fx" },
+      "css": { "background": "rgba(R,G,B,A)", "backdrop-filter": "none" }
+    },
+    "blur": {
+      "doc": "Gaussian blur behind + tint overlay (ACCENT_ENABLE_BLURBEHIND).",
+      "token": { "bg": "--holo-glass-blur-bg", "fx": "--holo-glass-blur-fx" },
+      "css": { "background": "rgba(R,G,B,A)", "backdrop-filter": "blur(blur_radius/3 px)" }
+    },
+    "acrylic": {
+      "doc": "Fluent acrylic material — blur + saturation boost + tint overlay (ACCENT_ENABLE_ACRYLICBLURBEHIND).",
+      "token": { "bg": "--holo-glass-acrylic-bg", "fx": "--holo-glass-acrylic-fx" },
+      "css": { "background": "rgba(R,G,B,A)", "backdrop-filter": "blur(blur_radius/3 px) saturate(1.6)" }
+    }
+  },
+  "dynamic": {
+    "doc": "TranslucentTB swaps the accent state by context (desktop / visible-window / maximized / start-opened / search-opened / task-view / battery-saver). Hologram OS maps the two it can observe in-substrate.",
+    "rules": [
+      { "when": "desktop (no holospace open in #holoframe)", "use": "the configured glass state" },
+      { "when": "battery-saver OR device tier 'lean' OR reduced-motion", "use": "opaque (drop backdrop-filter for performance/comfort)" }
+    ]
+  }
+}

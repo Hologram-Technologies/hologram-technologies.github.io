@@ -1,0 +1,38 @@
+{
+  "spec": "OS2 mints COMPOSED-object κ byte-identical to the hologram substrate — a Realization's identity = BLAKE3 over the SPINE-2 canonical shell (IRI · ordered 71-byte κ-refs · payload). A whole object, not just a leaf blob, resolves on the shared UOR substrate (the convergence that makes 'one substrate' literal).",
+  "authority": "hologram substrate realizations::encode SPINE-2 shell layout, realizations.rs:171-183 (consumed by reference, ADR-006) · Official BLAKE3 test vectors (BLAKE3-team) · the substrate's as1 σ-axis conformance (σ-axis == blake3 reference) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "realization-parity",
+    "spine-2-shell",
+    "kappa-label-71",
+    "composed-object",
+    "upstream-interop",
+    "uor-addr",
+    "law-l5",
+    "law-l2"
+  ],
+  "oracle": {
+    "skipped": true,
+    "reason": "HOLO_WASM_PKG unset — proven offline via KAT + framing"
+  },
+  "checks": {
+    "framing is byte-identical to the substrate SPINE-2 shell (realizations.rs:171-183)": true,
+    "each κ-ref is the fixed-width 71-byte KappaLabel71 (blake3:+64hex)": true,
+    "IRI is NUL-terminated; refcount + payload-len are u32LE": true,
+    "composed κ is a well-formed blake3 σ-label": true,
+    "κ == blake3:<hex> of the canonical shell (matches substrate address_bytes)": true,
+    "deterministic (equal shell ⇒ equal κ)": true,
+    "single-bit sensitive (tamper any payload byte ⇒ different κ)": true,
+    "ref ORDER is part of identity (swapping operands ⇒ different κ)": true,
+    "kernel mints the substrate κ as the object's @id": true,
+    "@id re-derives from content (Law L5)": true,
+    "JSON-LD ⇄ canonical-form bijection round-trips (refs + literals exact)": true,
+    "kappaCodec71 refuses a non-71-byte ref (substrate fixed-width invariant)": true,
+    "kappaCodec71 accepts a 71-byte blake3 label": true,
+    "write stores the object under its substrate κ (Law L2)": true,
+    "resolve re-derives + projects back to JSON-LD (Law L5)": true
+  },
+  "passed": 15,
+  "failed": 0
+}

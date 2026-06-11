@@ -1,0 +1,51 @@
+/* holo-shoelace.css — the bridge that makes Shoelace (Web Awesome) conform to Holo Theme.
+ *
+ * Holo Theme stays the single source of truth for tone (color, type, radius); this file
+ * maps its --holo-* tokens onto Shoelace's --sl-* design tokens, so every <sl-*> component
+ * automatically wears the Hologram OS look and follows live palette / font-size / accent
+ * changes. Load AFTER the Shoelace themes (to override) and AFTER holo-theme.css (to read
+ * the --holo-* values). Dark mode is activated by holo-theme.js toggling `.sl-theme-dark`.
+ *
+ * Custom properties pierce Shadow DOM, so these reach inside every Shoelace component.
+ * 100% W3C: custom properties + Color 4 color-mix(); no build step.
+ */
+
+:root,
+.sl-theme-dark {
+  /* ── Typography — Hologram's typefaces drive every component. ───────────────── */
+  --sl-font-sans: var(--holo-font-sans);
+  --sl-font-serif: var(--holo-font-serif);
+  --sl-font-mono: var(--holo-font-mono);
+
+  /* ── Shape — one radius language across OS chrome and components. ───────────── */
+  --sl-border-radius-small: var(--holo-radius-sm, 8px);
+  --sl-border-radius-medium: var(--holo-radius, 12px);
+  --sl-border-radius-large: var(--holo-radius-lg, 16px);
+  --sl-border-radius-x-large: calc(var(--holo-radius-lg, 16px) + 6px);
+
+  /* ── Accent — Hologram's accent becomes Shoelace's "primary" ramp. Tints/shades
+   *    are derived with Color 4 color-mix() so the whole scale tracks one token. */
+  --sl-color-primary-50:  color-mix(in srgb, var(--holo-accent) 12%, var(--sl-color-neutral-0));
+  --sl-color-primary-100: color-mix(in srgb, var(--holo-accent) 20%, var(--sl-color-neutral-0));
+  --sl-color-primary-200: color-mix(in srgb, var(--holo-accent) 38%, var(--sl-color-neutral-0));
+  --sl-color-primary-300: color-mix(in srgb, var(--holo-accent) 58%, var(--sl-color-neutral-0));
+  --sl-color-primary-400: color-mix(in srgb, var(--holo-accent) 80%, white);
+  --sl-color-primary-500: var(--holo-accent);
+  --sl-color-primary-600: var(--holo-accent);
+  --sl-color-primary-700: color-mix(in srgb, var(--holo-accent) 85%, black);
+  --sl-color-primary-800: color-mix(in srgb, var(--holo-accent) 70%, black);
+  --sl-color-primary-900: color-mix(in srgb, var(--holo-accent) 55%, black);
+  --sl-color-primary-950: color-mix(in srgb, var(--holo-accent) 45%, black);
+
+  /* ── Focus ring — accent, matching the rest of the OS. ─────────────────────── */
+  --sl-focus-ring-color: var(--holo-accent);
+  --sl-focus-ring-width: 3px;
+
+  /* ── Status colors — map to Holo Theme semantics. ──────────────────────────── */
+  --sl-color-success-600: var(--holo-ok);
+  --sl-color-warning-600: var(--holo-warn);
+  --sl-color-danger-600: var(--holo-danger);
+}
+
+/* The default selection/accent for the toggle controls also follows the accent. */
+:root { accent-color: var(--holo-accent); }

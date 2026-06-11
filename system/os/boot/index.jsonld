@@ -1,0 +1,50 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "boot",
+  "hosfs:fhs": "/boot",
+  "hosfs:fhsRole": "boot loader + kernel → boot-from-κ: the κ-route service worker + the Linux VM image as pins",
+  "hosfs:kind": "content",
+  "dcat:dataset": [
+    {
+      "@id": "did:holo:sha256:a7bb1f02a5ac96371ecb402645d25e1cc7cda18c5280f0828f0e31c4fb16162e",
+      "@type": [
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "Linux kernel (κ-pin)",
+      "schema:identifier": "os-kernel.gz",
+      "hosfs:fhs": "/boot/kernel.uor.json"
+    },
+    {
+      "@id": "did:holo:sha256:352acc3ce0e18a8eecba8cebabbfac8f5d264e89513a883c1566d91d15491462",
+      "@type": [
+        "schema:MediaObject"
+      ],
+      "schema:name": "Root filesystem (κ-pin)",
+      "schema:identifier": "os-rootfs.tar.gz",
+      "hosfs:fhs": "/boot/rootfs.uor.json"
+    }
+  ],
+  "id": "did:holo:sha256:74e3ffb5e6ad357193b5682fb54a4fcbfe8815869112fb743139efed384dcebf"
+}

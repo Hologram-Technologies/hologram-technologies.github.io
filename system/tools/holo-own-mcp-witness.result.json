@@ -1,0 +1,28 @@
+{
+  "spec": "The Own layer (ADR-053) is usable by AI agents over MCP — own_verify · own_settle · own_passport are advertised, schema'd tools returning self-verifying results (Law L5); an agent verifies ownership, settles value against proven title, and reads an ownership passport without trusting any server, and acquires ownership by signing a Title with its own self-sovereign key",
+  "authority": "W3C Model Context Protocol (2024-11-05) · W3C DID Core · Verifiable Credentials · UCAN · PROV-O · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "own-mcp",
+    "agents-as-owners",
+    "verify-dont-trust",
+    "self-verifying",
+    "settlement",
+    "law-l5"
+  ],
+  "checks": {
+    "own_verify advertised in tools/list": true,
+    "own_settle advertised in tools/list": true,
+    "own_passport advertised in tools/list": true,
+    "own_verify declares a JSON-Schema input (titles[])": true,
+    "own_verify confirms ownership (owner = Bob, chain re-derives)": true,
+    "own_verify result is a self-verifying UOR object (re-derive, Law L5)": true,
+    "own_verify is deterministic (same result κ)": true,
+    "own_verify rejects a tampered chain (ok=false)": true,
+    "own_settle releases a voucher to the proven owner": true,
+    "own_settle releases NOTHING on a tampered Title": true,
+    "own_passport: owner Bob, history=2, self-verifying": true
+  },
+  "passed": 11,
+  "failed": 0
+}

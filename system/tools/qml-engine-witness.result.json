@@ -1,0 +1,374 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "Holo QML parses + executes the verbatim upstream SDDM maldives/Main.qml (QtQuick + SddmComponents)",
+    "property bindings + reactive dependency tracking (sessionIndex ← session.index, welcomeText.arg)",
+    "real SDDM API wired: sddm.login(name.text, password.text, sessionIndex) · powerOff · reboot · Connections",
+    "Law L5: the theme + components are sealed κ objects (re-derive; tamper refused)"
+  ],
+  "checks": {
+    "kappa-sealed": true,
+    "kappa-tamper-refused": true,
+    "components-sealed": true,
+    "imports": true,
+    "root-type": true,
+    "load": true,
+    "binding-size": true,
+    "binding-welcome-arg": true,
+    "present-types": true,
+    "reactive-sessionIndex": true,
+    "wire-login-button": true,
+    "wire-keys-enter": true,
+    "wire-power": true,
+    "wire-connections-failed": true,
+    "wire-connections-info": true
+  },
+  "failed": [],
+  "warnings": [],
+  "itemCount": 28,
+  "tree": {
+    "type": "Rectangle",
+    "id": "container",
+    "props": {
+      "implicitWidth": 0,
+      "implicitHeight": 0,
+      "width": 640,
+      "height": 480,
+      "sessionIndex": 2
+    },
+    "wiring": [
+      "Component.*"
+    ],
+    "children": [
+      {
+        "type": "TextConstants",
+        "id": "textConstants",
+        "props": {
+          "implicitWidth": 0,
+          "implicitHeight": 0,
+          "welcomeText": "Welcome to %1",
+          "userName": "Username",
+          "password": "Password",
+          "session": "Session",
+          "layout": "Layout",
+          "login": "Login",
+          "shutdown": "Shut Down",
+          "reboot": "Restart",
+          "prompt": "Unlock your sovereign identity",
+          "loginSucceeded": "Session established",
+          "loginFailed": "Login failed"
+        },
+        "children": []
+      },
+      {
+        "type": "Connections",
+        "props": {
+          "implicitWidth": 0,
+          "implicitHeight": 0
+        },
+        "children": []
+      },
+      {
+        "type": "Background",
+        "props": {
+          "implicitWidth": 0,
+          "implicitHeight": 0,
+          "source": "/usr/share/sddm/themes/maldives/background.jpg",
+          "fillMode": 2
+        },
+        "wiring": [
+          "statusChanged"
+        ],
+        "children": []
+      },
+      {
+        "type": "Rectangle",
+        "props": {
+          "implicitWidth": 0,
+          "implicitHeight": 0,
+          "color": "transparent"
+        },
+        "children": [
+          {
+            "type": "Clock",
+            "id": "clock",
+            "props": {
+              "implicitWidth": 0,
+              "implicitHeight": 0,
+              "color": "white"
+            },
+            "children": []
+          },
+          {
+            "type": "Image",
+            "id": "rectangle",
+            "props": {
+              "implicitWidth": 0,
+              "implicitHeight": 0,
+              "source": "/usr/share/sddm/themes/maldives/rectangle.png",
+              "width": 320,
+              "height": 320
+            },
+            "children": [
+              {
+                "type": "Column",
+                "id": "mainColumn",
+                "props": {
+                  "implicitWidth": 0,
+                  "implicitHeight": 0,
+                  "spacing": 12
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "implicitWidth": 0,
+                      "implicitHeight": 0,
+                      "color": "black",
+                      "verticalAlignment": 128,
+                      "text": "Welcome to holo-7f3a",
+                      "wrapMode": 4,
+                      "elide": 3,
+                      "horizontalAlignment": 4
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "Column",
+                    "props": {
+                      "implicitWidth": 0,
+                      "implicitHeight": 0,
+                      "spacing": 4
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "id": "lblName",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "text": "Username"
+                        },
+                        "children": []
+                      },
+                      {
+                        "type": "TextBox",
+                        "id": "name",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "height": 30,
+                          "text": "alice"
+                        },
+                        "wiring": [
+                          "Keys.*"
+                        ],
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Column",
+                    "props": {
+                      "implicitWidth": 0,
+                      "implicitHeight": 0,
+                      "spacing": 4
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "id": "lblPassword",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "text": "Password"
+                        },
+                        "children": []
+                      },
+                      {
+                        "type": "PasswordBox",
+                        "id": "password",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "height": 30,
+                          "focus": true,
+                          "text": ""
+                        },
+                        "wiring": [
+                          "Keys.*"
+                        ],
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Row",
+                    "props": {
+                      "implicitWidth": 0,
+                      "implicitHeight": 0,
+                      "spacing": 4,
+                      "width": null,
+                      "z": 100
+                    },
+                    "children": [
+                      {
+                        "type": "Column",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "z": 100,
+                          "width": null,
+                          "spacing": 4
+                        },
+                        "children": [
+                          {
+                            "type": "Text",
+                            "id": "lblSession",
+                            "props": {
+                              "implicitWidth": 0,
+                              "implicitHeight": 0,
+                              "width": null,
+                              "text": "Session",
+                              "wrapMode": 4
+                            },
+                            "children": []
+                          },
+                          {
+                            "type": "ComboBox",
+                            "id": "session",
+                            "props": {
+                              "implicitWidth": 0,
+                              "implicitHeight": 0,
+                              "width": null,
+                              "height": 30,
+                              "arrowIcon": "/usr/share/sddm/themes/maldives/angle-down.png",
+                              "index": 2
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Column",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "z": 101,
+                          "width": null,
+                          "spacing": 4,
+                          "visible": false
+                        },
+                        "children": [
+                          {
+                            "type": "Text",
+                            "id": "lblLayout",
+                            "props": {
+                              "implicitWidth": 0,
+                              "implicitHeight": 0,
+                              "width": null,
+                              "text": "Layout",
+                              "wrapMode": 4
+                            },
+                            "children": []
+                          },
+                          {
+                            "type": "LayoutBox",
+                            "id": "layoutBox",
+                            "props": {
+                              "implicitWidth": 0,
+                              "implicitHeight": 0,
+                              "width": null,
+                              "height": 30,
+                              "arrowIcon": "/usr/share/sddm/themes/maldives/angle-down.png"
+                            },
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Column",
+                    "props": {
+                      "implicitWidth": 0,
+                      "implicitHeight": 0
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "id": "errorMessage",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "text": "Wrong passphrase",
+                          "color": "red"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Row",
+                    "props": {
+                      "implicitWidth": 0,
+                      "implicitHeight": 0,
+                      "spacing": 4,
+                      "btnWidth": 88
+                    },
+                    "children": [
+                      {
+                        "type": "Button",
+                        "id": "loginButton",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "text": "Login",
+                          "width": 88
+                        },
+                        "wiring": [
+                          "clicked"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "type": "Button",
+                        "id": "shutdownButton",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "text": "Shut Down",
+                          "width": 88
+                        },
+                        "wiring": [
+                          "clicked"
+                        ],
+                        "children": []
+                      },
+                      {
+                        "type": "Button",
+                        "id": "rebootButton",
+                        "props": {
+                          "implicitWidth": 0,
+                          "implicitHeight": 0,
+                          "text": "Restart",
+                          "width": 88
+                        },
+                        "wiring": [
+                          "clicked"
+                        ],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "authority": "Qt 6 QML Reference (QtQml) · SDDM data/themes/maldives + components/2.0"
+}

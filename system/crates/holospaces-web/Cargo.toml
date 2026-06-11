@@ -1,0 +1,75 @@
+[package]
+name = "holospaces-web"
+description = "The Hologram Platform Manager — holospaces' browser peer (wasm32), served from GitHub Pages"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Hologram-Technologies/holospaces"
+
+# wasm32-only (web-sys / wasm-bindgen). Excluded from the host workspace; built
+# explicitly via `scripts/browser-manager-test.sh` and the Pages deploy.
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# The engine, by reference (ADR-006), from the pinned submodule. (Excluded from the
+# host workspace; built from source for wasm32 by scripts/the Pages deploy.)
+holospaces = { path = "../../holospaces/crates/holospaces" }
+hologram-store-mem = { git = "https://github.com/Hologram-Technologies/hologram", rev = "18f553d8578997ce32e7b653786a0bcf9b09a2c0", package = "hologram-store-mem" }
+hologram-substrate-core = { git = "https://github.com/Hologram-Technologies/hologram", rev = "18f553d8578997ce32e7b653786a0bcf9b09a2c0", package = "hologram-substrate-core" }
+# The substrate runtime + the interpreter ContainerEngine (wasmi, no_std) — so
+# the browser peer actually boots userland containers (ADR-008; arc42 ch.7). The
+# wasmi interpreter runs in wasm32 where a JIT cannot.
+hologram-runtime = { git = "https://github.com/Hologram-Technologies/hologram", rev = "18f553d8578997ce32e7b653786a0bcf9b09a2c0", package = "hologram-runtime" }
+hologram-runtime-bare = { git = "https://github.com/Hologram-Technologies/hologram", rev = "18f553d8578997ce32e7b653786a0bcf9b09a2c0", package = "hologram-runtime-bare", features = ["std"] }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+serde_json = "1"
+# Drive the validated CC-6 QEMU module on the same `wasmi` interpreter the engine
+# uses (the import-free container ABI — empty Linker), with a linear-memory mailbox
+# for interactive console I/O + cooperative `hg_event` slices: the
+# `UserlandWorkspace` (web/QEMU-HOLOSPACE.md). Pinned to the bare engine's version.
+wasmi = { version = "2.0.0-beta.2", default-features = false, features = ["std"] }
+
+# The browser egress transport (CC-16, ADR-014): the userspace TCP/IP NAT runs in
+# wasm with the peer core, and its TCP streams are tunnelled out over a WebSocket
+# to a relay (there is no raw NIC behind a tab). Only the WebSocket surface is
+# needed.
+[dependencies.web-sys]
+version = "0.3"
+# WebSocket* — the CC-16 egress tunnel. FileSystem{SyncAccessHandle,ReadWriteOptions}
+# — the OPFS-backed paged κ-disk (boot_devcontainer_opfs_streamed): sectors live off
+# the wasm heap in an OPFS pack file, read/written through a worker sync access handle.
+features = ["WebSocket", "MessageEvent", "BinaryType", "Event", "CloseEvent", "FileSystemSyncAccessHandle", "FileSystemReadWriteOptions"]
+
+[profile.release]
+# This IS the production artifact (served from GitHub Pages). The browser peer
+# boots a real OS on the system emulator — a hot interpreter loop — so it is
+# tuned for throughput and a lean deploy, not developer convenience:
+#   • opt-level = 3, lto = true, codegen-units = 1 — maximal optimization across
+#     the whole crate (one codegen unit, fat LTO) for the interpreter hot path.
+#   • panic = "abort" — the deployed peer's invariants are fatal anyway (a broken
+#     invariant means the peer cannot continue), so unwinding tables are dead
+#     weight in production. Dropping them shrinks the wasm and removes the
+#     landing-pad overhead from the hot path. (Validation that *exercises* those
+#     invariants runs in CI on the host crate, not in the deployed artifact.)
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[package.metadata.wasm-pack.profile.release]
+# Run `wasm-opt` — a real production post-pass, not optional. The earlier
+# `wasm-opt = false` was a workaround for an *older*, MVP-only binaryen (bundled
+# with the previous CI action) that rejected the reference-type tables
+# wasm-bindgen now emits ("Only 1 table definition allowed in MVP"). wasm-pack
+# 0.13+ provisions binaryen ≥ v117, which supports these features; we enable them
+# explicitly so the post-pass is reproducible across environments.
+#
+# `-O3` optimizes for SPEED, not size: it is the right call for a hot interpreter
+# loop that retires billions of instructions per boot, where a few-percent
+# per-instruction win dwarfs the cost of a slightly larger one-time download (the
+# wasm is a fraction of the kernel + workbench assets anyway). `-O3` is binaryen's
+# recommended maximum — the experimental `-O4` adds a `flatten` pass that can
+# bloat the module without a throughput win.
+wasm-opt = ['-O3', '--enable-reference-types', '--enable-bulk-memory', '--enable-mutable-globals', '--enable-sign-ext', '--enable-nontrapping-float-to-int']

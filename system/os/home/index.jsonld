@@ -1,0 +1,43 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "home",
+  "hosfs:fhs": "/home",
+  "hosfs:fhsRole": "user home directories → per-user OPFS namespace, default-deny holospace sandbox",
+  "hosfs:kind": "state",
+  "links": [
+    {
+      "id": "did:holo:sha256:9d78fb2988e83c2dd4b4c9b2a43ed6f9b2af12ce38b340c477f0f10481e93371",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-9fX3VMu5vgKoFoCjTbWpwPcT88XER/KrmtDcGN5AfBw=",
+      "digestMultibase": "uEiD19fdUy7m-AqgWgKNNtanA9xPzxcRH8qua0NwY3kB8HA"
+    }
+  ],
+  "id": "did:holo:sha256:765bf00de9c5e2031c932d6cf8aa1cde9bde16295fce68939db316c3cacd0588"
+}

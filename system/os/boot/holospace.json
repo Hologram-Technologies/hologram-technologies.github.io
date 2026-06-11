@@ -1,0 +1,71 @@
+{
+  "$comment": "Generated from the hub catalog by tools/gen-app-defs.mjs — edit the catalog, not here.",
+  "id": "org.hologram.HoloBoot",
+  "name": "Holo Boot",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "A graphical boot manager — rEFInd, hologram-native",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "applicationCategory": "UtilitiesApplication",
+  "conforms": {
+    "specs": [
+      "holo-boot",
+      "refind-config"
+    ]
+  },
+  "capabilities": {
+    "storage": [
+      "org.hologram.HoloBoot"
+    ]
+  },
+  "shared": [
+    "holo-mobile.css",
+    "holo-theme.js",
+    "teleport.js"
+  ],
+  "engines": [],
+  "loader": "boot.html",
+  "description": [
+    {
+      "p": "Holo Boot is rEFInd reproduced faithfully in the browser: the iconic big-icon boot menu, a real refind.conf parser, themes, and the full keyboard/mouse/touch model. It scans the κ-store for bootable holospaces and verifies each one's hash before it boots it."
+    },
+    {
+      "ul": [
+        "A genuine refind.conf grammar + parser",
+        "κ re-derivation IS Secure Boot (Law L5)",
+        "Themes via theme.conf includes",
+        "Boots any holospace full-viewport"
+      ]
+    }
+  ],
+  "categories": [
+    "System",
+    "Education",
+    "Settings"
+  ],
+  "keywords": [
+    "boot",
+    "refind",
+    "uefi",
+    "bootloader",
+    "menu"
+  ],
+  "developer": {
+    "id": "com.rodsbooks",
+    "name": "Roderick W. Smith"
+  },
+  "license": "GPL-3.0-only",
+  "homepage": "https://www.rodsbooks.com/refind/",
+  "bugtracker": "https://github.com/Hologram-Technologies/holospaces/issues",
+  "releases": [
+    {
+      "version": "1.0",
+      "date": "2026-06-08",
+      "description": "Faithful rEFInd menu, config grammar, themes, and verify-before-boot."
+    }
+  ],
+  "accent": "#f0c040"
+}

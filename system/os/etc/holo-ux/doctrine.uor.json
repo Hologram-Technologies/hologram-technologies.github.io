@@ -1,0 +1,387 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "skos": "http://www.w3.org/2004/02/skos/core#",
+      "hosux": "https://hologram.os/ns/ux#",
+      "hosc": "https://hologram.os/ns/conformance#"
+    }
+  ],
+  "@type": [
+    "schema:CreativeWork",
+    "prov:Entity",
+    "skos:Collection"
+  ],
+  "schema:name": "Holo UX doctrine — the canonical upstream UX parameters of Hologram OS",
+  "schema:description": "Why: an experience should feel native, familiar and effortless on every machine, and treat the user's time, attention and energy as sacred. How: one self-verifying object declares the canonical UX parameters — the host OS is autodetected and the experience adapts to its native feel; thirteen tenets (the founding five + Steve Jobs's eight UX lessons) are each a checkable obligation; capability, voice and budget are resolved, not guessed. What: every holospace binds this object's κ rather than re-implementing UX, the same way Holo UI's tokens are bound — re-derive this did and each linked source κ to verify (Law L5).",
+  "schema:softwareVersion": "1.0",
+  "dcterms:conformsTo": "https://hologram.os/ns/ux",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "hosux:tenets": [
+    {
+      "@id": "hosux:native-adaptive",
+      "group": "founding",
+      "prefLabel": "Native by autodetection",
+      "hosux:obligation": "Resolve the host platform from the one resolver (holo-platform.js) and bind its native profile — modifier key, window-control side, font, accent, shortcuts (data-holo-platform) — dynamically; never hardcode one OS's idiom."
+    },
+    {
+      "@id": "hosux:familiar-effortless",
+      "group": "founding",
+      "prefLabel": "Familiar and effortless",
+      "hosux:obligation": "Reuse the host OS's established patterns and the canonical Holo UI tokens (--holo-*); introduce no bespoke interaction where a native one already exists."
+    },
+    {
+      "@id": "hosux:moments-of-magic",
+      "group": "founding",
+      "prefLabel": "Magic on curiosity's terms",
+      "hosux:obligation": "Surface advanced capability through progressive disclosure; every surface is self-descriptive (a clear label/affordance, not a tutorial); no forced interruption of the user's flow."
+    },
+    {
+      "@id": "hosux:sacred-resources",
+      "group": "founding",
+      "prefLabel": "Treat time, attention, money, compute and energy as sacred",
+      "hosux:obligation": "Hold the declared tier-aware resource budget (cold-start, interaction ≤100ms, bytes-per-surface, memory, maxDpr — holo-perf-budget.json); add no work the task does not require."
+    },
+    {
+      "@id": "hosux:signal-over-noise",
+      "group": "founding",
+      "prefLabel": "Maximize signal, minimize noise",
+      "hosux:obligation": "Route colour through the canonical palette (no attention-grabbing hardcodes — ADR-0057), respect the readability floor, and keep the plain voice (concise, jargon-free, why→how→what — holo-voice.mjs)."
+    },
+    {
+      "@id": "hosux:design-is-how-it-works",
+      "group": "jobs",
+      "prefLabel": "Design is how it works",
+      "hosux:obligation": "Conformance is behavioural, not skin-deep: a holospace binds the experience parameters (this doctrine), and its content address commits function and form together."
+    },
+    {
+      "@id": "hosux:simplicity-is-the-work",
+      "group": "jobs",
+      "prefLabel": "Simplicity, ruthlessly refined",
+      "hosux:obligation": "Prefer the fewest controls and an obvious default; an action a first-time user cannot guess is a fault, not a feature."
+    },
+    {
+      "@id": "hosux:user-first",
+      "group": "jobs",
+      "prefLabel": "The user first, end to end",
+      "hosux:obligation": "The experience is one continuous flow (boot → shell → app); no app is an island — every surface binds the one canonical doctrine."
+    },
+    {
+      "@id": "hosux:focus-say-no",
+      "group": "jobs",
+      "prefLabel": "Focus — say no to protect great",
+      "hosux:obligation": "Each surface does one thing well; secondary actions are disclosed on demand, not displayed by default."
+    },
+    {
+      "@id": "hosux:attention-to-detail",
+      "group": "jobs",
+      "prefLabel": "Detail in the unseen, too",
+      "hosux:obligation": "The parameters reach a surface's chrome honestly and say where they cannot (pixel-only guests: VM/canvas/video); nothing is left half-finished behind the visible edge."
+    },
+    {
+      "@id": "hosux:think-different",
+      "group": "jobs",
+      "prefLabel": "Redefine the question",
+      "hosux:obligation": "The experience is a re-derivable κ-object (Law L5), not a config file trusted by its location; verify by re-derivation, refuse a tampered byte."
+    },
+    {
+      "@id": "hosux:seamless-integration",
+      "group": "jobs",
+      "prefLabel": "Seamless, integrated experience",
+      "hosux:obligation": "One source (this doctrine) propagates to every surface over the postMessage tree; changing it re-flows the whole system live, with no rebuild and no restart."
+    },
+    {
+      "@id": "hosux:emotional-delight",
+      "group": "jobs",
+      "prefLabel": "It just works — and delights",
+      "hosux:obligation": "Defaults are beautiful and correct out of the box (bind the κ, do not re-implement); reduced-motion and accessibility are honoured so delight never costs comfort."
+    }
+  ],
+  "hosux:platformProfiles": {
+    "windows": {
+      "label": "Windows",
+      "mobile": false,
+      "apple": false,
+      "touch": false,
+      "modKey": "control",
+      "modSymbol": "Ctrl",
+      "altSymbol": "Alt",
+      "controlsSide": "right",
+      "controlStyle": "win",
+      "font": "\"Segoe UI Variable\",\"Segoe UI\",system-ui,sans-serif",
+      "accent": "#0a84ff",
+      "shortcuts": {
+        "spotlight": "Ctrl K",
+        "newComponent": "Ctrl ⇧ N",
+        "closeWindow": "Ctrl W",
+        "maximize": "Super ↑",
+        "minimize": "Super ↓",
+        "snapLeft": "Super ←",
+        "snapRight": "Super →"
+      }
+    },
+    "macos": {
+      "label": "macOS",
+      "mobile": false,
+      "apple": true,
+      "touch": false,
+      "modKey": "meta",
+      "modSymbol": "⌘",
+      "altSymbol": "⌥",
+      "controlsSide": "left",
+      "controlStyle": "traffic",
+      "font": "-apple-system,\"SF Pro Text\",\"Helvetica Neue\",system-ui,sans-serif",
+      "accent": "#0a84ff",
+      "shortcuts": {
+        "spotlight": "⌘ K",
+        "newComponent": "⌘ ⇧ N",
+        "closeWindow": "⌘ W",
+        "maximize": "⌃⌘ F",
+        "minimize": "⌘ M",
+        "snapLeft": "⌃⌥ ←",
+        "snapRight": "⌃⌥ →"
+      }
+    },
+    "ios": {
+      "label": "iOS",
+      "mobile": true,
+      "apple": true,
+      "touch": true,
+      "modKey": "meta",
+      "modSymbol": "⌘",
+      "altSymbol": "⌥",
+      "controlsSide": "left",
+      "controlStyle": "traffic",
+      "font": "-apple-system,\"SF Pro Text\",system-ui,sans-serif",
+      "accent": "#0a84ff",
+      "shortcuts": {
+        "spotlight": "⌘ K",
+        "newComponent": "⌘ ⇧ N",
+        "closeWindow": "⌘ W",
+        "maximize": "⌃⌘ F",
+        "minimize": "⌘ M",
+        "snapLeft": "⌃⌥ ←",
+        "snapRight": "⌃⌥ →"
+      }
+    },
+    "ipados": {
+      "label": "iPadOS",
+      "mobile": true,
+      "apple": true,
+      "touch": true,
+      "modKey": "meta",
+      "modSymbol": "⌘",
+      "altSymbol": "⌥",
+      "controlsSide": "left",
+      "controlStyle": "traffic",
+      "font": "-apple-system,\"SF Pro Text\",system-ui,sans-serif",
+      "accent": "#0a84ff",
+      "shortcuts": {
+        "spotlight": "⌘ K",
+        "newComponent": "⌘ ⇧ N",
+        "closeWindow": "⌘ W",
+        "maximize": "⌃⌘ F",
+        "minimize": "⌘ M",
+        "snapLeft": "⌃⌥ ←",
+        "snapRight": "⌃⌥ →"
+      }
+    },
+    "android": {
+      "label": "Android",
+      "mobile": true,
+      "apple": false,
+      "touch": true,
+      "modKey": "control",
+      "modSymbol": "Ctrl",
+      "altSymbol": "Alt",
+      "controlsSide": "right",
+      "controlStyle": "win",
+      "font": "Roboto,\"Noto Sans\",system-ui,sans-serif",
+      "accent": "#1a73e8",
+      "shortcuts": {
+        "spotlight": "Ctrl K",
+        "newComponent": "Ctrl ⇧ N",
+        "closeWindow": "Ctrl W",
+        "maximize": "Super ↑",
+        "minimize": "Super ↓",
+        "snapLeft": "Super ←",
+        "snapRight": "Super →"
+      }
+    },
+    "chromeos": {
+      "label": "ChromeOS",
+      "mobile": false,
+      "apple": false,
+      "touch": false,
+      "modKey": "control",
+      "modSymbol": "Ctrl",
+      "altSymbol": "Alt",
+      "controlsSide": "right",
+      "controlStyle": "win",
+      "font": "Roboto,system-ui,sans-serif",
+      "accent": "#1a73e8",
+      "shortcuts": {
+        "spotlight": "Ctrl K",
+        "newComponent": "Ctrl ⇧ N",
+        "closeWindow": "Ctrl W",
+        "maximize": "Super ↑",
+        "minimize": "Super ↓",
+        "snapLeft": "Super ←",
+        "snapRight": "Super →"
+      }
+    },
+    "linux": {
+      "label": "Linux",
+      "mobile": false,
+      "apple": false,
+      "touch": false,
+      "modKey": "control",
+      "modSymbol": "Ctrl",
+      "altSymbol": "Alt",
+      "controlsSide": "right",
+      "controlStyle": "win",
+      "font": "system-ui,\"Cantarell\",\"Ubuntu\",\"Noto Sans\",sans-serif",
+      "accent": "#3584e4",
+      "shortcuts": {
+        "spotlight": "Ctrl K",
+        "newComponent": "Ctrl ⇧ N",
+        "closeWindow": "Ctrl W",
+        "maximize": "Super ↑",
+        "minimize": "Super ↓",
+        "snapLeft": "Super ←",
+        "snapRight": "Super →"
+      }
+    }
+  },
+  "hosux:capabilityTiers": {
+    "lean": {
+      "density": "standard",
+      "motion": "reduced",
+      "maxDpr": 1.5,
+      "animations": false,
+      "blur": false
+    },
+    "standard": {
+      "density": "standard",
+      "motion": "full",
+      "maxDpr": 2,
+      "animations": true,
+      "blur": true
+    },
+    "rich": {
+      "density": "immersive",
+      "motion": "full",
+      "maxDpr": 3,
+      "animations": true,
+      "blur": true
+    }
+  },
+  "hosux:voiceRegister": {
+    "rule": "jargon-free · why→how→what · concise",
+    "lexiconTerms": 12,
+    "scheme": "https://hologram.os/ns/voice"
+  },
+  "hosux:resourceBudget": {
+    "lean": {
+      "coldStartMs": 1500,
+      "interactionMs": 100,
+      "bytesPerSurfaceKB": 512,
+      "memoryMB": 128,
+      "maxDpr": 1.5
+    },
+    "standard": {
+      "coldStartMs": 2500,
+      "interactionMs": 100,
+      "bytesPerSurfaceKB": 1024,
+      "memoryMB": 256,
+      "maxDpr": 2
+    },
+    "rich": {
+      "coldStartMs": 3500,
+      "interactionMs": 100,
+      "bytesPerSurfaceKB": 2048,
+      "memoryMB": 512,
+      "maxDpr": 3
+    }
+  },
+  "hosc:authority": "ADR-0062 (Holo UX doctrine) · ADR-0030 (Holo UI) · ADR-0028 (Holo UX Profile) · W3C UA Client Hints · WCAG 2.2 · RAIL / W3C Web Performance · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "hosc:witness": "tools/holo-ux-witness.mjs",
+  "links": [
+    {
+      "id": "did:holo:sha256:cf0139d46bd451e175065025c7b0ce2db400cbbe05efd32c7eb63711307cf602",
+      "rel": "hosux:ontology",
+      "@type": "schema:DigitalDocument",
+      "leaf": true,
+      "digestSRI": "sha256-zwE51GvUUeF1BlAlx7DOLbQAy74F79MsfrY3ETB89gI=",
+      "digestMultibase": "uEiDPATnUa9RR4XUGUCXHsM4ttADLvgXv0yx-tjcRMHz2Ag"
+    },
+    {
+      "id": "did:holo:sha256:891240a82a352c43a094cc13a3a22d3bd698dba50f40cbef79651cb4ae0f0c5c",
+      "rel": "hosux:doctrineSource",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-iRJAqCo1LEOglMwTo6ItO9aY26UPQMvveWUctK4PDFw=",
+      "digestMultibase": "uEiCJEkCoKjUsQ6CUzBOjoi071pjbpQ9Ay-95ZRy0rg8MXA"
+    },
+    {
+      "id": "did:holo:sha256:2d6977417f15c607e9495b06cc2ef0b8b8e1277f67e4facc349293ab6f5b4bc5",
+      "rel": "hosux:runtime",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-LWl3QX8VxgfpSVsGzC7wuLjhJ39n5PrMNJKTq29bS8U=",
+      "digestMultibase": "uEiAtaXdBfxXGB-lJWwbMLvC4uOEnf2fk-sw0kpOrb1tLxQ"
+    },
+    {
+      "id": "did:holo:sha256:2da3162efae729bb147fb855d23a2e3339ef40836a6c9f0d9a1f3dc1868a7110",
+      "rel": "hosux:platform",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-LaMWLvrnKbsUf7hV0jouMznvQINqbJ8Nmh89wYaKcRA=",
+      "digestMultibase": "uEiAtoxYu-ucpuxR_uFXSOi4zOe9Ag2psnw2aHz3BhopxEA"
+    },
+    {
+      "id": "did:holo:sha256:2b916fdedb61b5d592b4b2d8fb2a717f6bbb0b2bc7c21572748e40e3b510eee7",
+      "rel": "hosux:capability",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-K5Fv3tthtdWStLLY+ypxf2u7CyvHwhVydI5A47UQ7uc=",
+      "digestMultibase": "uEiArkW_e22G11ZK0stj7KnF_a7sLK8fCFXJ0jkDjtRDu5w"
+    },
+    {
+      "id": "did:holo:sha256:ca3c2656d008474d4b6897481d3922de4d22a9334626fedf2bebbb136ac28dd2",
+      "rel": "hosux:voice",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-yjwmVtAIR01LaJdIHTki3k0iqTNGJv7fK+u7E2rCjdI=",
+      "digestMultibase": "uEiDKPCZW0AhHTUtol0gdOSLeTSKpM0Ym_t8r67sTasKN0g"
+    },
+    {
+      "id": "did:holo:sha256:af0f2b5ff47f414281246d8e8e786edc6302bed6731174897f74f105dd2f93f3",
+      "rel": "hosux:proportion",
+      "@type": "schema:DigitalDocument",
+      "leaf": true,
+      "digestSRI": "sha256-rw8rX/R/QUKBJG2Ojnhu3GMCvtZzEXSJf3TxBd0vk/M=",
+      "digestMultibase": "uEiCvDytf9H9BQoEkbY6OeG7cYwK-1nMRdIl_dPEF3S-T8w"
+    },
+    {
+      "id": "did:holo:sha256:1e21c32132132dbe1a1bd91c566d23e17c8db9bc3d31f2207cff37bcd14270cc",
+      "rel": "hosux:budget",
+      "@type": "schema:Dataset",
+      "leaf": true,
+      "digestSRI": "sha256-HiHDITITLb4aG9kcVm0j4XyNubw9MfIgfP83vNFCcMw=",
+      "digestMultibase": "uEiAeIcMhMhMtvhob2RxWbSPhfI25vD0x8iB8_ze80UJwzA"
+    }
+  ],
+  "id": "did:holo:sha256:a7f14276182735066cf9a4cf25f5d18dcfd1dcaab24228225a520199da9f8d12"
+}

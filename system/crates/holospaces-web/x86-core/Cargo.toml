@@ -1,0 +1,27 @@
+# x86-core — a real (minimal) 8086 real-mode CPU core as a CC-6 guest.
+#
+# Executes REAL x86 machine code (a real boot sector) through the same
+# UserlandWorkspace mailbox ABI the cc6-fixture uses — proving real ISA emulation
+# in the browser, content-addressed, with O(1) κ-resume. It is the same *kind* of
+# thing as QEMU's TCG (an instruction interpreter), just minimal: it decodes the
+# handful of opcodes a serial boot sector needs and forwards COM1 (port 0x3f8) to
+# the holospace console. NOT QEMU — QEMU is the full-system C port. Zero imports;
+# exports `memory` + the `hg_*` container ABI. Built by build-x86-core.sh.
+[package]
+name = "x86-core"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

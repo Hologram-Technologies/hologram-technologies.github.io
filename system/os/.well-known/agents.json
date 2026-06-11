@@ -1,0 +1,145 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    }
+  ],
+  "@type": [
+    "schema:WebAPI",
+    "schema:CreativeWork",
+    "prov:Entity"
+  ],
+  "schema:name": "Hologram OS — the agent interface",
+  "schema:description": "The single entry point for AI agents. Hologram OS speaks every agent protocol (MCP · NANDA · A2A · Agent Skills) and exposes a verifiable agent stack — identity, reputation, authorization, multi-agent work receipts, and settlement. The one principle: every object is content-addressed (did:holo) and SELF-VERIFYING — fetch it, re-derive its hash, and you have verified it with no server to trust (Law L5). Don't trust — re-derive.",
+  "schema:url": "https://hologram.os",
+  "schema:potentialAction": [
+    {
+      "@type": "schema:EntryPoint",
+      "schema:name": "MCP (Model Context Protocol)",
+      "schema:url": "/.well-known/mcp.json",
+      "schema:actionPlatform": "/mcp",
+      "schema:description": "self-verifying resources + the agent-stack tools"
+    },
+    {
+      "@type": "schema:EntryPoint",
+      "schema:name": "NANDA AgentFacts",
+      "schema:url": "/.well-known/agent-facts.json",
+      "schema:isPartOf": "/nanda/index.jsonld",
+      "schema:description": "verifiable agent identity (ADR-034)"
+    },
+    {
+      "@type": "schema:EntryPoint",
+      "schema:name": "A2A (Agent2Agent)",
+      "schema:url": "/.well-known/agent-card.json",
+      "schema:actionPlatform": "/a2a",
+      "schema:isPartOf": "/a2a/index.jsonld",
+      "schema:description": "horizontal agent↔agent (ADR-036)"
+    },
+    {
+      "@type": "schema:EntryPoint",
+      "schema:name": "Agent Skills (agentskills.io)",
+      "schema:url": "/.well-known/skills/index.json",
+      "schema:description": "SKILL.md capabilities (ADR-035)"
+    }
+  ],
+  "schema:featureList": [
+    {
+      "@type": "schema:Action",
+      "schema:name": "agent_facts",
+      "schema:description": "NANDA AgentFacts for a Hologram OS holospace (ADR-034)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "agent_reputation",
+      "schema:description": "An agent's verifiable, tamper-evident REPUTATION (Holo AgentTrust, ADR-039)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "verify_receipt",
+      "schema:description": "Verify a multi-agent WORK RECEIPT (Holo Orchestrate, ADR-045)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "verify_delegation",
+      "schema:description": "Verify a capability DELEGATION chain (Holo Delegate, ADR-042 / UCAN)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "verify_settlement",
+      "schema:description": "Verify a SETTLEMENT and release payment against PROVEN work (Holo Settle, ADR-048 / x402-NP)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "agent_passport",
+      "schema:description": "One-link agent onboarding"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "own_verify",
+      "schema:description": "Verify who owns a holospace/object — re-derive its Title chain (ADR-053 Holo Own, Law L5)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "own_settle",
+      "schema:description": "Settle value against a PROVEN title — pay-for-proven; a forged title pays nothing (ADR-053/048)"
+    },
+    {
+      "@type": "schema:Action",
+      "schema:name": "own_passport",
+      "schema:description": "Provable ownership passport for an object — owner + history, self-verifying (ADR-053)"
+    }
+  ],
+  "schema:hasPart": [
+    {
+      "@type": [
+        "odrl:Policy",
+        "schema:CreativeWork"
+      ],
+      "schema:name": "constitution",
+      "schema:identifier": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+      "schema:url": "/etc/constitution/constitution.uor.json",
+      "schema:description": "the immutable, self-verifying constitutional core every agent operates within (ADR-033) — re-derive its κ to verify (Law L5)"
+    },
+    {
+      "@type": "schema:Dataset",
+      "schema:name": "reputation",
+      "schema:url": "/agenttrust/index.jsonld",
+      "schema:description": "tamper-evident agent reputation (ADR-039)"
+    },
+    {
+      "@type": "schema:Dataset",
+      "schema:name": "authorization",
+      "schema:url": "/delegate/index.jsonld",
+      "schema:description": "UCAN capability chains (ADR-042)"
+    },
+    {
+      "@type": "schema:Dataset",
+      "schema:name": "orchestration",
+      "schema:url": "/orchestrate/index.jsonld",
+      "schema:description": "verifiable multi-agent work receipts (ADR-045)"
+    },
+    {
+      "@type": "schema:Dataset",
+      "schema:name": "settlement",
+      "schema:url": "/settle/index.jsonld",
+      "schema:description": "pay against proven work (ADR-048)"
+    }
+  ],
+  "schema:totalTime": "30 MCP tools",
+  "dcterms:conformsTo": [
+    "https://modelcontextprotocol.io/",
+    "https://github.com/projnanda/projnanda",
+    "https://github.com/a2aproject/A2A",
+    "https://agentskills.io"
+  ],
+  "id": "did:holo:sha256:0167c804fe075368adfe155e7deb52cb435feed9ff00497d4d13500b12e5da92"
+}

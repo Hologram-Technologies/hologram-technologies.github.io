@@ -1,0 +1,11 @@
+{
+  "name": "Holo UX performance budget",
+  "comment": "The Holo UX layer's declared, tier-aware performance budget (ADR-028): lean, fast, native-feeling is a number, not a vibe. Resource headroom grows with device capability (lean → standard → rich), but interaction latency stays tight on every tier — responsiveness is non-negotiable. The browser side is MEASURED by Lighthouse (lighthouse-witness.mjs); this file is the DECLARED target, single-sourced and kept consistent with the capability tiers (holo-capability.mjs) by holo-perf-witness.mjs.",
+  "authority": "Lighthouse (Google) · RAIL model (response < 100ms) · W3C Web Performance",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "tiers": {
+    "lean":     { "coldStartMs": 1500, "interactionMs": 100, "bytesPerSurfaceKB": 512,  "memoryMB": 128, "maxDpr": 1.5 },
+    "standard": { "coldStartMs": 2500, "interactionMs": 100, "bytesPerSurfaceKB": 1024, "memoryMB": 256, "maxDpr": 2 },
+    "rich":     { "coldStartMs": 3500, "interactionMs": 100, "bytesPerSurfaceKB": 2048, "memoryMB": 512, "maxDpr": 3 }
+  }
+}

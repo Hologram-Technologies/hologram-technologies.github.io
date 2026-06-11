@@ -1,0 +1,26 @@
+# wdk — vendored Tether Wallet Development Kit (Law L5)
+#
+# Source: github.com/tetherto/wdk + wdk-wallet (Apache-2.0). Reproduce: node _shared/wdk/vendor.mjs
+#
+# Pinned commits:
+#   tetherto/wdk          37559b173f7273b8c65adbab741c30dd10378ce5  (2026-06-04)
+#   tetherto/wdk-wallet   dd8bb7ef85587f3ed5563f18f37c0663841684ef  (2026-05-25)
+#
+# VERBATIM (per-file sha256 in vendor.pins.json) — the orchestrator, base classes, and the five
+# protocol base classes. The ONLY change is the standard "localize bare specifiers" transform,
+# listed per file in vendor.mjs:
+#   core/src/wdk-manager.js                  @tetherto/wdk-wallet[/protocols] -> ../../wallet/...
+#   core/src/wallet-account-with-protocols   @tetherto/wdk-wallet/protocols  -> ../../wallet/...
+#   wallet/src/wallet-manager.js             'bip39'                         -> '../../bip39-shim.js'
+#
+# AUTHORED (not upstream files, clearly marked in-file):
+#   bip39-shim.js          adapts the `bip39` npm API onto our audited @scure/bip39 bundle
+#                          (identical BIP-39 standard; supplies the english wordlist).
+#   wdk-secret-manager.js  BYTE-COMPATIBLE re-encoding of @tetherto/wdk-secret-manager
+#                          (3195216, 2026-05-06). Upstream's b4a/sodium-native/node:crypto deps
+#                          are not browser-portable; this reproduces the EXACT vault format
+#                          (version2/PBKDF2-SHA256 header + libsodium secretbox) over the audited
+#                          @noble secretbox/pbkdf2. Round-trips with upstream vaults.
+#   index.js               the single entry Holo Wallet imports the kit through.
+#
+# Crypto comes from ../wdk-crypto/ (see that PROVENANCE) — the same scure/noble libs WDK builds on.

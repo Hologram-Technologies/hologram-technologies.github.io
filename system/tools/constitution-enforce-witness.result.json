@@ -1,0 +1,30 @@
+{
+  "spec": "Hologram OS Constitution — enforced at runtime for every holospace, fail-closed (ADR-033)",
+  "authority": "ADR-033 (Holo Constitution / Hologram OS principles, byte-pinned) · W3C ODRL 2.2 · W3C DID Core · IETF RFC 8785 (JCS) · W3C Web Cryptography · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "constitution-enforce",
+    "conscience-gate",
+    "fail-closed",
+    "admission-control",
+    "law-l5"
+  ],
+  "pinnedRoot": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+  "redLine": [
+    "P5",
+    "P6",
+    "P7"
+  ],
+  "appsTotal": 32,
+  "appsAdmitted": 32,
+  "appsRefused": [],
+  "checks": {
+    "failClosedByDefault": true,
+    "sealsToCanonicalConstitution": true,
+    "compliantAdmitted": true,
+    "redLineRefused": true,
+    "everyAppPassesAdmission": true,
+    "mountEnforcesAdmission": true,
+    "failsClosedOnTamper": true
+  }
+}

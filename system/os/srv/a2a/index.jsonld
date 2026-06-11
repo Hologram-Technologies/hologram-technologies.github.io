@@ -1,0 +1,2605 @@
+{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "rel": "schema:additionalType",
+    "links": {
+      "@id": "schema:hasPart",
+      "@container": "@set"
+    }
+  },
+  "root": "did:holo:sha256:df71099adf9f43d9fc3c8e847cf570f50f38206629f69d01b86553e220fe5e5b",
+  "source": "os/apps/index.jsonld + os/.well-known/mcp.json",
+  "conformsTo": "https://github.com/a2aproject/A2A",
+  "transport": "JSONRPC",
+  "endpoint": "/a2a",
+  "@graph": [
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "dcat": "http://www.w3.org/ns/dcat#",
+        "rel": "schema:additionalType",
+        "links": {
+          "@id": "schema:hasPart",
+          "@container": "@set"
+        }
+      },
+      "@type": [
+        "dcat:Catalog",
+        "schema:DataCatalog"
+      ],
+      "dcterms:title": "Holo A2A — content-addressed Agent2Agent card directory (every holospace as an A2A agent)",
+      "dcterms:source": "os/apps/index.jsonld + os/.well-known/mcp.json",
+      "dcterms:conformsTo": "https://github.com/a2aproject/A2A",
+      "links": [
+        {
+          "id": "did:holo:sha256:7ae20e3d9f1574897a0d51fa3d6d5907bf566c37ec5bc3f8c460ede54073d0a4",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-Girp7zDiYdm2I93PabWde17AGMD7lGAKn9zpGJnYdJk=",
+          "digestMultibase": "uEiAaKunvMOJh2bYj3c9ptZ17XsAYwPuUYAqf3OkYmdh0mQ"
+        },
+        {
+          "id": "did:holo:sha256:cfce9454c4811f6284e054d0a17323372e31e57a75a91ac55090ee232ae18f36",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-tqbKzXPNDEyYt6JDOWezwFq8EnqBRx8U+hih1wiLluA=",
+          "digestMultibase": "uEiC2psrNc80MTJi3okM5Z7PAWrwSeoFHHxT6GKHXCIuW4A"
+        },
+        {
+          "id": "did:holo:sha256:c1031d8a44824e76968484767c0a7c16cb3f94ab1e87727c352f08a3a17eb909",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-oZo+DUHnXkLgmxKY4nInukD5kx61zjjKlyi9P/WFFhg=",
+          "digestMultibase": "uEiChmj4NQedeQuCbEpjicie6QPmTHrXOOMqXKL0_9YUWGA"
+        },
+        {
+          "id": "did:holo:sha256:67d31f4bc46c1086e215837743c58559f52d22528ca446734c26d72810b3e210",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-aWMLfSDAMNKbwvG1+SbBox5WiCZsdRBfGPlyEzNNbDQ=",
+          "digestMultibase": "uEiBpYwt9IMAw0pvC8bX5JsGjHlaIJmx1EF8Y-XITM01sNA"
+        },
+        {
+          "id": "did:holo:sha256:8a31aa736697f95b239e8a7d0301ca08d0108148013659d617f7dde88b496d21",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-Ns5GqYvBa66/ItJ2mIiep5IB0hUSAbSzljUfWV1vfTk=",
+          "digestMultibase": "uEiA2zkapi8Frrr8i0naYiJ6nkgHSFRIBtLOWNR9ZXW99OQ"
+        },
+        {
+          "id": "did:holo:sha256:7541c7a99aa1764b40d277ea1859601593fe44f64876feb3afb6561f258ab8d8",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-ElRrTyg5XFCBWt7SPTexvF3didXP3UtCEQ6aD9IhPqc=",
+          "digestMultibase": "uEiASVGtPKDlcUIFa3tI9N7G8Xd2J1c_dS0IRDpoP0iE-pw"
+        },
+        {
+          "id": "did:holo:sha256:c7ba1a9c79f176e5ab83acff961ccaf66fbd1956b5e7d9313a4601c5371688fe",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-27N7H8J1SrwtRexybKdgseuc5A2lTNSu6LrABkztpSM=",
+          "digestMultibase": "uEiDbs3sfwnVKvC1F7HJsp2Cx65zkDaVM1K7ousAGTO2lIw"
+        },
+        {
+          "id": "did:holo:sha256:31a43286b4ef16736dc53c2938253f736f4eaadf52d08b5266e3bdd4a2d68126",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-Fdbmm5yL9QamE7KbAIO1IDWRwY9EVW6Z9NQ828UZFgg=",
+          "digestMultibase": "uEiAV1uabnIv1BqYTspsAg7UgNZHBj0RVbpn01DzbxRkWCA"
+        },
+        {
+          "id": "did:holo:sha256:3ca5628144711023346e87a67ac196e0e3a64b4a13ea38daa7c30fb64baefd74",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-rsdr0kfSskmQhh6OhOAvybxUcBzcGDxa0KvP/Y6Yt3Q=",
+          "digestMultibase": "uEiCux2vSR9KySZCGHo6E4C_JvFRwHNwYPFrQq8_9jpi3dA"
+        },
+        {
+          "id": "did:holo:sha256:ccf387fbd19a8d744d3602c807251434ce58af306b96e646a38f3bf483be4038",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-gKfhnA6E1NaoiapmgsS268ulJZj1cfrzLaI5QjwTd7M=",
+          "digestMultibase": "uEiCAp-GcDoTU1qiJqmaCxLbry6UlmPVx-vMtojlCPBN3sw"
+        },
+        {
+          "id": "did:holo:sha256:ae8ee2866292b23359c122d07e0ad9e08db2a3458685ef45139cf3597c1db2c3",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-+3Lwvnx7OrwhyVUeSHoqQ/P+NIgPcHUKIq45NAOCff0=",
+          "digestMultibase": "uEiD7cvC-fHs6vCHJVR5IeipD8_40iA9wdQoirjk0A4J9_Q"
+        },
+        {
+          "id": "did:holo:sha256:096a869e95305d6ec7c5af3cf16cc0fb8c2f891198e585d5e6d2cadbb5c41255",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-uOAZ6EG3LoXloSH7AqEe0pthgSqDJX0dzoJMLWMvGRU=",
+          "digestMultibase": "uEiC44BnoQbcuheWhIfsCoR7Sm2GBKoMlfR3OgkwtYy8ZFQ"
+        },
+        {
+          "id": "did:holo:sha256:ab80cb8c6a758389a7ceb889a84587e402abeb159f05606fc987a2365a91fd3f",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-UgGVDaFyVX2KKjcbCF5xP0pV9YswwKbfplZIM3XqKyY=",
+          "digestMultibase": "uEiBSAZUNoXJVfYoqNxsIXnE_SlX1izDApt-mVkgzdeorJg"
+        },
+        {
+          "id": "did:holo:sha256:de9c9b3f417eb87cdb8934e7edaaa3f732b6b52d069440885ba7d24e47afdaa3",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-2CYIVf+5BzbqSt0Ebm0dagaKNUw01RWiiW82ewURS9E=",
+          "digestMultibase": "uEiDYJghV_7kHNupK3QRubR1qBoo1TDTVFaKJbzZ7BRFL0Q"
+        },
+        {
+          "id": "did:holo:sha256:ac202571f4cd6420a95a3e7a36ddaf2f5d5237e9ec8b2b10474998cd91354242",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-SkgVLRWkpZgF90vPeBNbhHoTfATV2psTogzsvCMfVlo=",
+          "digestMultibase": "uEiBKSBUtFaSlmAX3S894E1uEehN8BNXamxOiDOy8Ix9WWg"
+        },
+        {
+          "id": "did:holo:sha256:e556e1f6839a4703dd5cec3b8ab8e072f90f3fd76123ea9fe59d12d325970b7d",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-TjIC81kubTlzmYnbCsAA8fYM7Z3qMxtYdMIYlQDZrTQ=",
+          "digestMultibase": "uEiBOMgLzWS5tOXOZidsKwADx9gztneozG1h0whiVANmtNA"
+        },
+        {
+          "id": "did:holo:sha256:c7fdc1cd953dea154c202dd53ef9cf2a6127ac8aba9f838c48859f9385febc2a",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-E9WG0Q/CzmImalGWlxJwrcRey7oAAlBZEPZNVhlD46A=",
+          "digestMultibase": "uEiAT1YbRD8LOYiZqUZaXEnCtxF7LugACUFkQ9k1WGUPjoA"
+        },
+        {
+          "id": "did:holo:sha256:64083706d27ff5c2e4510376b59e3f73650f4ee147bd2d7fed7ac0dd2c8826a3",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-iPJa9l1L9W0zIOdqMCmfp/gpyiHar6BXw8+ao38ByLY=",
+          "digestMultibase": "uEiCI8lr2XUv1bTMg52owKZ-n-CnKIdqvoFfDz5qjfwHItg"
+        },
+        {
+          "id": "did:holo:sha256:4e8ba54131585a1cda3082ab00f5e2f11491e460519ebf4f33d22e60be8ec7bb",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-+r9TfwXNXkIhtsi5yg6cQWj2uWwQK7Ism/9i5VxcyUs=",
+          "digestMultibase": "uEiD6v1N_Bc1eQiG2yLnKDpxBaPa5bBArsiyb_2LlXFzJSw"
+        },
+        {
+          "id": "did:holo:sha256:0c3d6d6f897a12d43575b2876fd915f918abdebf7bf81ce53480b98fe43a8601",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-c3GEcQSIp9adskDwqapN0TUKa9bJlz8Axtsz3KcRxoU=",
+          "digestMultibase": "uEiBzcYRxBIin1p2yQPCpqk3RNQpr1smXPwDG2zPcpxHGhQ"
+        },
+        {
+          "id": "did:holo:sha256:40189513a93331367002e5ce000c54ecddfd1b7206579cd5af4e98d58962c524",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-ULMlsVri/uE+dNW3CamVSBHHOeRckY+110IMlktNRA8=",
+          "digestMultibase": "uEiBQsyWxWuL-4T501bcJqZVIEcc55FyRj7XXQgyWS01EDw"
+        },
+        {
+          "id": "did:holo:sha256:9af107035c89afe0de7492b02fae23f0e86dacdfae9c118f9e048620c8151885",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-z+bfqzbhg3Cd6ZeAPGp8jQIxOMrT2rhKMcH/rlpAg2I=",
+          "digestMultibase": "uEiDP5t-rNuGDcJ3pl4A8anyNAjE4ytPauEoxwf-uWkCDYg"
+        },
+        {
+          "id": "did:holo:sha256:4c19d4b79b272ac618855a5642b516a58411a8f5b06dc6ac9dc03fae6bc8c090",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-XRx3JzeExZckMhfdyOK7Bm9Ej9JWMexto/eFbf04TPU=",
+          "digestMultibase": "uEiBdHHcnN4TFlyQyF93I4rsGb0SP0lYx7G2j94Vt_ThM9Q"
+        },
+        {
+          "id": "did:holo:sha256:c6f461336a55451d08b596e93ffe08b8606cb3d5ca100e56f7c5f87c9258e70e",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-Zs5PxfohcRxCqIoiUwq9j3ZQ4pnv8Ao9PljfCykSP4c=",
+          "digestMultibase": "uEiBmzk_F-iFxHEKoiiJTCr2PdlDime_wCj0-WN8LKRI_hw"
+        },
+        {
+          "id": "did:holo:sha256:1b07ac32254ec8b20a016592fc1e3507b2e56f81f3cab76ee72693d910585f0a",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-ks4nZ9I0zsYNqL2sX7v7fhBUGisFFdcfv0xniyCXmXU=",
+          "digestMultibase": "uEiCSzidn0jTOxg2ovaxfu_t-EFQaKwUV1x-_TGeLIJeZdQ"
+        },
+        {
+          "id": "did:holo:sha256:8ba0e45e2fcf1584b49bbb2cc9cfd087f77d9d0468dbf559335a017b4daf4f62",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-llfcWiWNJ6ispX4NxD/N71X0Q8dXqD54qn5o4USg0RM=",
+          "digestMultibase": "uEiCWV9xaJY0nqKylfg3EP83vVfRDx1eoPniqfmjhRKDREw"
+        },
+        {
+          "id": "did:holo:sha256:7518e407de4806c398013f5039a81428a97edbb5ae8fea30c8b472efefe76eae",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-dayyof5qIVWORX2IDertmz/Cl99KnbBIpoc2/Rs+Zp8=",
+          "digestMultibase": "uEiB1rLKh_mohVY5FfYgN6u2bP8KX30qdsEimhzb9Gz5mnw"
+        },
+        {
+          "id": "did:holo:sha256:9d82be3d866ce430fb28cb8130da6723319ea18076e22b325d1304ac4b01a022",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-9ZzTWIF3S7xeSBPmpockYGTKby+sBoB0b4Pa/fZvGYM=",
+          "digestMultibase": "uEiD1nNNYgXdLvF5IE-amhyRgZMpvL6wGgHRvg9r99m8Zgw"
+        },
+        {
+          "id": "did:holo:sha256:745cb550db726d3e2ff1dac4cbe50f092f684d53ecc2d55251cd00a133258448",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-8mAiHTQyI1iyNKKjGfa1L1bJOsueoJcceZ81ZE0kY5g=",
+          "digestMultibase": "uEiDyYCIdNDIjWLI0oqMZ9rUvVsk6y56glxx5nzVkTSRjmA"
+        },
+        {
+          "id": "did:holo:sha256:0e46281d7a28d5ce6d47dd9bdf3696ac23b062a3427e043728149c3679ce96aa",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-BzjJLi9W1adH4Xvp9n+PQU4/w9if4a6XT4vTZwJAy/c=",
+          "digestMultibase": "uEiAHOMkuL1bVp0fhe-n2f49BTj_D2J_hrpdPi9NnAkDL9w"
+        },
+        {
+          "id": "did:holo:sha256:18f195e1aa3847664281a22c6786f85089798fb943919d76a446e573137e6929",
+          "rel": "dcat:dataset",
+          "digestSRI": "sha256-wx7STvUVbPfq9d/CYH3g60M03vpwQU4E8w1Km/J0K4c=",
+          "digestMultibase": "uEiDDHtJO9RVs9-r138JgfeDrQzTe-nBBTgTzDUqb8nQrhw"
+        }
+      ],
+      "id": "did:holo:sha256:df71099adf9f43d9fc3c8e847cf570f50f38206629f69d01b86553e220fe5e5b"
+    },
+    {
+      "name": "Hologram OS",
+      "description": "The Hologram OS agent endpoint — a near feature-complete MCP server projecting every holospace as a self-verifying UOR resource, with a built-in verify_object tool no ordinary MCP server has.",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "0.1.0",
+      "documentationUrl": "https://hologram.os/.well-known/mcp.json",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "verify_object",
+          "name": "verify_object",
+          "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "resolve_object",
+          "name": "resolve_object",
+          "description": "Resolve ANY reference to its self-verifying UOR object: a did:holo / holo:// resource from the store, OR an open-web identifier (DOI, ISBN, Wikidata Q-id, place, GitHub owner/repo, gbif:/chem: prefix, domain, @user@host) resolved live over open APIs (Holo Resolve, no AI). Re-derive its did to verify (Law L5).",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "search_web",
+          "name": "search_web",
+          "description": "Federated search across the open web (Wikipedia · Wikidata · Crossref · Open Library · OpenStreetMap) — one query, fused by Reciprocal Rank Fusion + reconciled to Wikidata, no AI. Each result is re-derivable via resolve_object.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "answer",
+          "name": "answer",
+          "description": "A corroborated, conflict-aware answer composed DETERMINISTICALLY from the open web (no AI — it cannot hallucinate; it asserts only what verifiable sources agree on). Every fact traces to a source; disagreements are flagged, not merged. The query is governed by the constitution's perimeter.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "ask_model",
+          "name": "ask_model",
+          "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "ask_user",
+          "name": "ask_user",
+          "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "list_roots",
+          "name": "list_roots",
+          "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_batch",
+          "name": "verify_batch",
+          "description": "Verify many UOR objects at once; reports progress and is cancellable.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "holo_rank",
+          "name": "holo_rank",
+          "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "holo_recommend",
+          "name": "holo_recommend",
+          "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "disclose_for_purpose",
+          "name": "disclose_for_purpose",
+          "description": "Holo Privacy: obtain a W3C Verifiable Presentation that discloses ONLY the personal-data claims the user's standing policy authorizes for a given DPV purpose + recipient (IETF SD-JWT selective disclosure) — and can prove a fact (\"over 18\") without revealing the value behind it. Returns null when nothing is authorized (default-deny). Needs a connected wallet (the Holo Privacy app). Present the result to any tool that handles personal data.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_disclosure",
+          "name": "verify_disclosure",
+          "description": "Holo Privacy: verify a W3C Verifiable Presentation — re-derive its content address (Law L5), verify the holder's data-integrity proof, recompute every disclosed SD-JWT digest, and (if the data commitment is given) confirm membership. Reports what was disclosed and how much (n of m). Don't trust a disclosure you didn't verify.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "agent_facts",
+          "name": "agent_facts",
+          "description": "NANDA AgentFacts for a Hologram OS holospace (ADR-034): a self-verifying agent description (identity · provider · endpoints · capabilities · skills) that is, on the same bytes, a valid NANDA AgentFacts record AND a did:holo you re-derive (Law L5) AND a W3C VC. Give a holospace slug (e.g. 'holowallet') or omit for the OS agent.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "agent_reputation",
+          "name": "agent_reputation",
+          "description": "An agent's verifiable, tamper-evident REPUTATION (Holo AgentTrust, ADR-039): a content-addressed, append-only chain — one κ commits to the whole history. Returns a recomputed (not self-reported) summary: age, uptime, certifications, distinct issuers, freshly-minted + revocation signals, and the chain head κ you re-derive (verifyDeep, Law L5). Give a holospace slug.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_receipt",
+          "name": "verify_receipt",
+          "description": "Verify a multi-agent WORK RECEIPT (Holo Orchestrate, ADR-045): re-derive a content-addressed execution DAG and report — for an answer assembled by many agents — WHO acted (NANDA identity), HOW trustworthy (AgentTrust), UNDER WHAT AUTHORITY (UCAN delegation), that EVERY STEP passed the conscience gate (Constitution, ADR-033), and EXACTLY what they produced. Tamper any step and it refuses (Law L5). Give the receipt bundle as 'graph' (array of UOR objects); omit to verify a freshly-built demo.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_delegation",
+          "name": "verify_delegation",
+          "description": "Verify a capability DELEGATION chain (Holo Delegate, ADR-042 / UCAN): re-derive the chain and report whether agent B's authority is valid — principal alignment (you can only re-delegate what you were granted), attenuation (no privilege escalation), roots in the resource owner, not expired, not revoked. Give the chain as 'graph' + the resource owner 'sub'; omit for a demo.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_settlement",
+          "name": "verify_settlement",
+          "description": "Verify a SETTLEMENT and release payment against PROVEN work (Holo Settle, ADR-048 / x402-NP): re-derive the work receipt and release a voucher per contributing agent ONLY if it re-derives + every step was authorized + conscience-accepted. Tampered/unproven work releases nothing. Give the settlement bundle as 'graph'; omit for a demo.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "agent_passport",
+          "name": "agent_passport",
+          "description": "One-link agent onboarding: a single SELF-VERIFYING object bundling a holospace agent's identity (NANDA AgentFacts κ), reputation (AgentTrust head κ + summary), skills, and every agent door (MCP · NANDA · A2A · Skills). Re-derive its did:holo to verify the whole bundle (Law L5). Give a holospace slug.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "browser_open",
+          "name": "browser_open",
+          "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "browser_fetch",
+          "name": "browser_fetch",
+          "description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "read_liberty",
+          "name": "read_liberty",
+          "description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "standing_term",
+          "name": "standing_term",
+          "description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "agreement_for",
+          "name": "agreement_for",
+          "description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_list_chains",
+          "name": "wallet_list_chains",
+          "description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_get_address",
+          "name": "wallet_get_address",
+          "description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5).",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_get_balance",
+          "name": "wallet_get_balance",
+          "description": "The native-token balance for a chain (reads live from public RPC/Esplora).",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_get_portfolio",
+          "name": "wallet_get_portfolio",
+          "description": "Addresses and native balances across every supported chain.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_quote",
+          "name": "wallet_quote",
+          "description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_sign_message",
+          "name": "wallet_sign_message",
+          "description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny).",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_send",
+          "name": "wallet_send",
+          "description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote.",
+          "tags": [
+            "mcp",
+            "uor",
+            "agent"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "VU1CoKDX-TVKbTOMCHcP0RZI6ri5T58TiBGCv6rqv1zNegfkyFrsqzTdo8BGWufWOaYYkB3VNL-hH3_hGUtFCw"
+        }
+      ],
+      "id": "did:holo:sha256:7ae20e3d9f1574897a0d51fa3d6d5907bf566c37ec5bc3f8c460ede54073d0a4"
+    },
+    {
+      "name": "Holo Atlas",
+      "description": "The living map of every holospace — discover, verify and monitor the whole OS by content address",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "xOfGDccSje1S9x2BDNuY9ZxZIZg0Ph9GfMO4dZDU4R9xNRDHgKas1gVye_gzA1_OjVQfE8txtKE2x5q1M4e0Dw"
+        }
+      ],
+      "id": "did:holo:sha256:cfce9454c4811f6284e054d0a17323372e31e57a75a91ac55090ee232ae18f36"
+    },
+    {
+      "name": "Holo Boot",
+      "description": "A graphical boot manager — rEFInd, hologram-native",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "l0A_Gq0hK9uqe-Y64xnx5cas_qj6Ydp5_FUwAjrMkcwMxzdTCbJbkJqUGygYDB_d--BfuRrZWgvy9wmkSKsoBQ"
+        }
+      ],
+      "id": "did:holo:sha256:c1031d8a44824e76968484767c0a7c16cb3f94ab1e87727c352f08a3a17eb909"
+    },
+    {
+      "name": "Holo BRC Miner",
+      "description": "Mine, send and explore real BrowserCoin (BRC) — the full app, hologram-native",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "dlWltAauZRpEWbVULMcbbgPglfjcgwyEuQCkW716jejJouHvy2yA3KFyAGQGokr7gIsD7JQiWNHSMwnkdVDuDw"
+        }
+      ],
+      "id": "did:holo:sha256:67d31f4bc46c1086e215837743c58559f52d22528ca446734c26d72810b3e210"
+    },
+    {
+      "name": "Holo Browser",
+      "description": "Chromium, hologram-native: browse any web, local or holo://κ page as content-addressed substrate — every byte re-derived (Law L5)",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "browser_open",
+          "name": "browser_open",
+          "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
+          "tags": [
+            "communication",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "browser_fetch",
+          "name": "browser_fetch",
+          "description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response.",
+          "tags": [
+            "communication",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "SfsHB1nfI3DlgxkI_TvdDE_703tv2CdpyWPpTqnhJMlqTWRevMAGmP8y1t_klUhBOC5l5iZFOEtcg-ctV7OkCg"
+        }
+      ],
+      "id": "did:holo:sha256:8a31aa736697f95b239e8a7d0301ca08d0108148013659d617f7dde88b496d21"
+    },
+    {
+      "name": "BTC Miner",
+      "description": "A real self-custodial Bitcoin wallet + live network, entirely in your browser",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "GEoAKCw-w0nLMujmDESTt-reUxvBqIcEZ4WI88JXiJDtFfXqrHZ5DYyi_thnHubHes48KF02mldK1LjMOl7BBQ"
+        }
+      ],
+      "id": "did:holo:sha256:7541c7a99aa1764b40d277ea1859601593fe44f64876feb3afb6561f258ab8d8"
+    },
+    {
+      "name": "Holo Capture",
+      "description": "Capture, annotate and share your screen — Flameshot, hologram-native",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "xgIDa1zgqd3SGGGhh_LPkioGjrk4x-_Tq1avRESD0u-GY7dqt5Y8JnhboakxYPQJe3DvEuA5wyssnv9FOX3pBA"
+        }
+      ],
+      "id": "did:holo:sha256:c7ba1a9c79f176e5ab83acff961ccaf66fbd1956b5e7d9313a4601c5371688fe"
+    },
+    {
+      "name": "Holo Cloud",
+      "description": "Your files, end-to-end encrypted and content-addressed",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "9cvAhwFYoqIChozrhSBVfcnsl23MFswsG-hkUONobPs3N7KM-ZvGK5VSXqHnovMwbjX8GN3EXrjLem8tM6sxCQ"
+        }
+      ],
+      "id": "did:holo:sha256:31a43286b4ef16736dc53c2938253f736f4eaadf52d08b5266e3bdd4a2d68126"
+    },
+    {
+      "name": "Holo Docs",
+      "description": "Office suite — Writer, Calc and Impress with live co-editing",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "cYq9moJgj25ebDGH1BBlKMWjF6F-SgagrROmjAufB2MFN1_KEaaVgKz0dJQAl-Jx1Aibro8wjqfIsjiUHlBCBQ"
+        }
+      ],
+      "id": "did:holo:sha256:3ca5628144711023346e87a67ac196e0e3a64b4a13ea38daa7c30fb64baefd74"
+    },
+    {
+      "name": "Holo Scan",
+      "description": "A universal, Etherscan-identical block explorer — Blockscout-powered, κ-verified, in the browser",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "q3hZYAL3-jlWa_pbmP2S4qiOgsBRXX3yXa3YOPN5xvTFdzN8RPthVW2Y7xAWBPOPPHENja3ebdj7c3CDbHhoCw"
+        }
+      ],
+      "id": "did:holo:sha256:ccf387fbd19a8d744d3602c807251434ce58af306b96e646a38f3bf483be4038"
+    },
+    {
+      "name": "Holo EVM",
+      "description": "A real Ethereum Virtual Machine that runs in your browser",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "JZ2Y6mR4AAUuyDInfs41TQ8SXXUXrFqOcCnzuCLpkEQTpepYckslJyZmbJib-CeMat22NzjzScNW32zPLoiEDw"
+        }
+      ],
+      "id": "did:holo:sha256:ae8ee2866292b23359c122d07e0ad9e08db2a3458685ef45139cf3597c1db2c3"
+    },
+    {
+      "name": "Holo Git",
+      "description": "A self-hosted git forge — issues, PRs, merges, serverless",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "TT64nhv1u3gbAaIC5mpv06HNa7yLbFWaBtDEjHxsFrvY9EVO4_8kMzeTQCC7UagRUgx1BDcp_4Jdzuf3wpApDQ"
+        }
+      ],
+      "id": "did:holo:sha256:096a869e95305d6ec7c5af3cf16cc0fb8c2f891198e585d5e6d2cadbb5c41255"
+    },
+    {
+      "name": "Holo IPFS",
+      "description": "Browse the entire IPFS space as easily as the web — every block κ-verified in your browser",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "UXKlKb7FOYi1eoPh7usFh3st8rlLv1LyMeDWHtdipfnCkO3XrxEbbDHIm4IIzW8Lixkq-4gftMdzGO_rJXxvDA"
+        }
+      ],
+      "id": "did:holo:sha256:ab80cb8c6a758389a7ceb889a84587e402abeb159f05606fc987a2365a91fd3f"
+    },
+    {
+      "name": "On Liberty",
+      "description": "John Stuart Mill's On Liberty, published natively as a self-verifying UOR κ-DAG. The whole book re-derives from its own content in the browser — no server to trust (Law L5).",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "read_liberty",
+          "name": "read_liberty",
+          "description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object.",
+          "tags": [
+            "reference",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_object",
+          "name": "verify_object",
+          "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+          "tags": [
+            "reference",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "hM7A8q3aHrDIXcJcDiBIFSDBRwXCQ28-WErPIdhLAAZG4hh5R2OWXFmSDCKPgai8Oul3Y2eiloUoX5aTGN9rDA"
+        }
+      ],
+      "id": "did:holo:sha256:de9c9b3f417eb87cdb8934e7edaaa3f732b6b52d069440885ba7d24e47afdaa3"
+    },
+    {
+      "name": "Hologram Meet",
+      "description": "Serverless, end-to-end-encrypted video conferencing",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "-T2_AEla2Z4J4rA3QZie5n5yQx9rOIKKxLPi8QcfcKnMhv7mgpLqcy9VkACtfi5c6_3jmTS2i8-wcSNMhPCCBg"
+        }
+      ],
+      "id": "did:holo:sha256:ac202571f4cd6420a95a3e7a36ddaf2f5d5237e9ec8b2b10474998cd91354242"
+    },
+    {
+      "name": "Holo Music",
+      "description": "A content-addressed music library — and the whole internet as one",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "sU-xoOoMd87QnWUXBV3Kao8G4dhRQOQhWLC0Ucs3nozlS6pF68H0enjYgK1DGDVpk2x_swLZjtlsG1ypLsVdCg"
+        }
+      ],
+      "id": "did:holo:sha256:e556e1f6839a4703dd5cec3b8ab8e072f90f3fd76123ea9fe59d12d325970b7d"
+    },
+    {
+      "name": "Holo Notepad",
+      "description": "Your second brain — a networked outliner + an always-on, private memory bank. Roam Research, hologram-native",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "sEADWO3hxzUD2vNvyzcq36LHNq8NkJ9ClivVGBhUrgvcWW58FEl7hninkaNKnzTfWDagQngeSz7Rl2hwo-23BQ"
+        }
+      ],
+      "id": "did:holo:sha256:c7fdc1cd953dea154c202dd53ef9cf2a6127ac8aba9f838c48859f9385febc2a"
+    },
+    {
+      "name": "Hologram OS",
+      "description": "A real Debian GNU/Linux system, booted in a browser tab",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "NSxFa6oNPnHtmMXbtyuYKIvzl3Ey7IGeOUUdRaP3ELJ-EmSfCuTMRrqCM4vMWTz_-1lX_No-3wFgG9WLMYuEBg"
+        }
+      ],
+      "id": "did:holo:sha256:64083706d27ff5c2e4510376b59e3f73650f4ee147bd2d7fed7ac0dd2c8826a3"
+    },
+    {
+      "name": "Plasma Desktop",
+      "description": "Your real KDE Plasma 6 desktop, mounted live in a holospace via the canonical noVNC client (RFB/VNC)",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "i4_aRm66yBdKd5DBPePW3Pbm3tFYcl6LWppaY5XMyXvTTs3MCSRce6oufbRVabRaRqDv48KkKX7f3qXYa87FBw"
+        }
+      ],
+      "id": "did:holo:sha256:4e8ba54131585a1cda3082ab00f5e2f11491e460519ebf4f33d22e60be8ec7bb"
+    },
+    {
+      "name": "Holo Player",
+      "description": "A content-addressed media library, modeled on Jellyfin",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "Neka6Y6wrrpuxSMv084TgnkZJX0admQwpldeogqaLLRNnat-JikywY8sQj09_w76R0hohFUeGsOSBFVgcmopBA"
+        }
+      ],
+      "id": "did:holo:sha256:0c3d6d6f897a12d43575b2876fd915f918abdebf7bf81ce53480b98fe43a8601"
+    },
+    {
+      "name": "Holo Privacy",
+      "description": "Control what an AI agent may learn about you. You are the data subject; agents acting for you get only the minimum needed for a stated purpose — as a signed, verifiable disclosure — and never enough to track you.",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "disclose_for_purpose",
+          "name": "disclose_for_purpose",
+          "description": "Produce a W3C Verifiable Presentation that discloses only the personal-data claims the user's standing policy authorizes for a given DPV purpose and recipient (selective disclosure). Returns null if nothing is authorized (default-deny). Args: purpose (dpv:…), recipient, claims:[{category,name}].",
+          "tags": [
+            "security",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "verify_disclosure",
+          "name": "verify_disclosure",
+          "description": "Verify a W3C Verifiable Presentation against its personal-data commitment: re-derive its content address (Law L5), verify the holder's data-integrity proof, and recompute every disclosed SD-JWT digest. Reports what was disclosed and how much (n of m). Args: presentation, commitment.",
+          "tags": [
+            "security",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "tabi2ZxSwnYIEdYv9OiRITpQsxZWll3KhvEUZdGsTO5mVf2VSxC8I7qVTQCASfzE-tVOn-zluFxQNBDIaGhACQ"
+        }
+      ],
+      "id": "did:holo:sha256:40189513a93331367002e5ce000c54ecddfd1b7206579cd5af4e98d58962c524"
+    },
+    {
+      "name": "QEMU",
+      "description": "Generic and open source machine emulator and virtualizer",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "x-Or2UjaFSigwDfztp0UmunZrSa0n5dOT_JJCVOnwjpjEoKbLxUfT7ZF39scCsJj-xu_NqMc_8UBUWTWeIlxDA"
+        }
+      ],
+      "id": "did:holo:sha256:9af107035c89afe0de7492b02fae23f0e86dacdfae9c118f9e048620c8151885"
+    },
+    {
+      "name": "Holo SDK",
+      "description": "The Holo SDK — the unified, serverless, content-addressed environment where every holospace is built, run and shared: a spatial self-authoring desktop where each window, component and app is a self-verifying UOR object, scaffolded live and bootable by a single κ link",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "ij7jTjDfW_Ta_yMUNCYXcSarGOLr7wUit4jqOB9o1LhmPkK__wAK1-LxSIHA6u1OU0QzzJtBbSKgmvzu1QB1Dw"
+        }
+      ],
+      "id": "did:holo:sha256:4c19d4b79b272ac618855a5642b516a58411a8f5b06dc6ac9dc03fae6bc8c090"
+    },
+    {
+      "name": "Holo Search",
+      "description": "Google for the entire Hologram OS — one bar, OpenSearch-faithful, ranked by HoloRank, every result re-derivable (Law L5)",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "j_S_yBFlYIDj0dihmxD72jGHKHxhC_V-V9a1o5H9apPxtuKq5-zPK2WJ5r8wUs3-YbB6G9RvK0drssqO9k7wBA"
+        }
+      ],
+      "id": "did:holo:sha256:c6f461336a55451d08b596e93ffe08b8606cb3d5ca100e56f7c5f87c9258e70e"
+    },
+    {
+      "name": "Holo Starter",
+      "description": "A scaffolded example holospace — the Holo SDK reference output: auto-wired to Holo UI, UX, Terms, Privacy, and Conform; self-verifying by content address.",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "Jve9cuG_DEcne0MhB_kqKwsQ9SiswCeElCdeOoBOxl7sJ2wW1fiAYnSoMYTcJ7e4jdA6J9grjCRkC63FZ6R1Bw"
+        }
+      ],
+      "id": "did:holo:sha256:1b07ac32254ec8b20a016592fc1e3507b2e56f81f3cab76ee72693d910585f0a"
+    },
+    {
+      "name": "Holo Stream",
+      "description": "Live streaming, recording & a creator coin — OBS + Owncast, hologram-native",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "hxZiLsxihWxVW_R4WJsRNAR2v8m07O6gYRWgI7PJ4j6-xbM7sN6ak-0AeklsCaBxa1xXGqF7_-ulCG1hNoP4Ag"
+        }
+      ],
+      "id": "did:holo:sha256:8ba0e45e2fcf1584b49bbb2cc9cfd087f77d9d0468dbf559335a017b4daf4f62"
+    },
+    {
+      "name": "Holo Terms",
+      "description": "Your machine-readable personal terms (MyTerms / IEEE 7012-2025): you propose, each app agrees, the OS enforces. Choose your standing term; see and revoke what every app was granted.",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "standing_term",
+          "name": "standing_term",
+          "description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object.",
+          "tags": [
+            "security",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "agreement_for",
+          "name": "agreement_for",
+          "description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId.",
+          "tags": [
+            "security",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "Ro3Yh0c7rnDuaPZH-Sz_10k5__dFPwzR365xo1FiVGRV_BWSVVt-mJM15ipxdbJufS8vve9qd-_BkqatkaxqBg"
+        }
+      ],
+      "id": "did:holo:sha256:7518e407de4806c398013f5039a81428a97edbb5ae8fea30c8b472efefe76eae"
+    },
+    {
+      "name": "Holo Video",
+      "description": "A content-addressed video player with adaptive HLS",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "WpkCmLKHDLgIb0rLj-2uQQuCn_4kPdMOzNrVaddIufOZ3eqOSh-eBFMxNILceG6o8SEWMAHao8GcUOGRP18bAQ"
+        }
+      ],
+      "id": "did:holo:sha256:9d82be3d866ce430fb28cb8130da6723319ea18076e22b325d1304ac4b01a022"
+    },
+    {
+      "name": "Holo Wallet",
+      "description": "A MetaMask-familiar, self-custodial multi-chain wallet on Tether's WDK, hologram-native: one seed, every chain — content-addressed, for humans and AI agents",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_list_chains",
+          "name": "wallet_list_chains",
+          "description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs.",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_get_address",
+          "name": "wallet_get_address",
+          "description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5).",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_get_balance",
+          "name": "wallet_get_balance",
+          "description": "The native-token balance for a chain (reads live from public RPC/Esplora).",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_get_portfolio",
+          "name": "wallet_get_portfolio",
+          "description": "Addresses and native balances across every supported chain.",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_quote",
+          "name": "wallet_quote",
+          "description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything.",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_sign_message",
+          "name": "wallet_sign_message",
+          "description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny).",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        },
+        {
+          "id": "wallet_send",
+          "name": "wallet_send",
+          "description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote.",
+          "tags": [
+            "finance",
+            "mcp",
+            "uor"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "-CIohbGrESfEmo3hQkEtvmM6CQNLqxBYAkN-IXByHc_8PuvdE_d9af7jMBkDxewvvd8MkR1RF3EOKVkS4SA6AA"
+        }
+      ],
+      "id": "did:holo:sha256:745cb550db726d3e2ff1dac4cbe50f092f684d53ecc2d55251cd00a133258448"
+    },
+    {
+      "name": "Winamp",
+      "description": "It really whips the llama's ass — the classic skinnable player",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "inj1KjOP6yUVluWTYaV8n9jQntm0RuCo91y7HNCH-ScGtmLYl-sFqyjT8BWDGxqYdsBTwO8zjptVMgAfuDIlDA"
+        }
+      ],
+      "id": "did:holo:sha256:0e46281d7a28d5ce6d47dd9bdf3696ac23b062a3427e043728149c3679ce96aa"
+    },
+    {
+      "name": "Holo Workspace",
+      "description": "A code editor with the Monaco engine, LSP and a real filesystem",
+      "supportedInterfaces": [
+        {
+          "url": "https://hologram.os/a2a",
+          "transport": "JSONRPC"
+        }
+      ],
+      "provider": {
+        "url": "https://hologram.os",
+        "organization": "Hologram OS"
+      },
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "extendedAgentCard": false
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/ld+json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "resolve_object",
+          "name": "Resolve & verify (UOR)",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "tags": [
+            "uor",
+            "verify",
+            "content-addressing"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImRpZDprZXk6ejZNa3dScENlbm50dGl4VnQyRjM1SmZBU29tbzhySm81U3N5RzQ0ckF5bk1YeHh5IiwidHlwIjoiSldTIn0",
+          "signature": "nv2y_zSrS0Dp8mTKDodFZItQNLGpS6J9zX6fOeZjIaJLTlv84oiOqIj-LiPrrToXadmnn9zaVunoSe3DXMH9Dw"
+        }
+      ],
+      "id": "did:holo:sha256:18f195e1aa3847664281a22c6786f85089798fb943919d76a446e573137e6929"
+    }
+  ]
+}

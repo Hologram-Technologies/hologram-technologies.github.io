@@ -1,0 +1,26 @@
+# wdk-crypto — vendored HD-derivation + secret-box crypto for Holo Wallet (Law L5)
+#
+# The Tether WDK (github.com/tetherto/wdk) is built on the audited paulmillr scure/noble
+# ecosystem. Holo Wallet reuses the SAME libraries — no re-implemented crypto, no CDN, no
+# network at load. One esbuild bundle (ESM, minified), self-contained (zero bare imports).
+#
+# Pinned sources (npm, exact versions):
+#   @scure/bip39        2.2.0   BIP-39 mnemonic <-> entropy <-> seed (+ english wordlist)
+#   @scure/bip32        2.2.0   BIP-32 secp256k1 HD (EVM, BTC derivation)
+#   micro-key-producer  0.8.6   SLIP-0010 ed25519 HD (Solana, TON derivation)
+#   @noble/curves       2.2.0   secp256k1 + ed25519 (signing, public keys)
+#   @noble/hashes       2.2.0   sha256 / sha512 / hmac / pbkdf2
+#   @noble/ciphers      2.2.0   secretbox (XSalsa20-Poly1305 == libsodium crypto_secretbox)
+#   @scure/base         2.2.0   base58 / base58check / bech32 / base16
+#
+# Build (reproducible): node _shared/wdk-crypto/build.mjs
+#   -> esbuild .build/entry.mjs --bundle --format=esm --target=es2022 --minify
+#
+# Verified at build time against the official BIP-39 Trezor vector (zero entropy):
+#   mnemonic "abandon abandon ... about"
+#   seed (passphrase "TREZOR") = c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e5349553
+#                                1f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04
+#   m/44'/60'/0'/0/0 -> 0x9858EfFD232B4033E47d90003D41EC34EcaEda94 (canonical iancoleman/bip39)
+#
+# Content pin (sha256, Law L5):
+ba2220ea0a10a488d25f33aa5a6534cbd353594b2617fcd8910f396637b351d9  wdk-crypto.bundle.mjs

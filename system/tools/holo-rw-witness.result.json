@@ -1,0 +1,31 @@
+{
+  "spec": "Hologram OS read/WRITE substrate — every holospace object is a self-verifying, content-addressed Realization that can be split into smaller κ-objects or fused into larger ones, durably stored and verified on read",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C JSON-LD 1.1 · upstream holospaces SPINE-2 realization (consumed by reference, ADR-006) · Law L1/L2/L5",
+  "witnessed": true,
+  "covers": [
+    "read-write",
+    "self-editable",
+    "content-addressed-objects",
+    "split-fuse",
+    "durable-store",
+    "law-l5",
+    "uor-substrate"
+  ],
+  "note": "κ is structural (sha256 axis); BLAKE3/KappaLabel71 byte-parity to the hologram substrate is the one expected-RED target, gated on substrate access. Real-browser end-to-end (World shell boot + split/fuse + IndexedDB durability) is proven in a separate browser tier.",
+  "realHoloRepo": true,
+  "checks": {
+    "kernel: write → resolve round-trips (JSON-LD bijection)": true,
+    "kernel: split lifts a property into its own κ-object (ref edge)": true,
+    "kernel: fuse inlines the child back (split∘fuse = identity)": true,
+    "kernel: tampered bytes refused on resolve (Law L5)": true,
+    "store: put re-derives κ from the bytes (Law L2)": true,
+    "store: get returns the stored bytes; unknown κ → null": true,
+    "store: verify refuses bytes that don't re-derive (Law L5)": true,
+    "world: split lifts a component into a κ-object the node references": true,
+    "world: the object is durable in the κ store (survives reload)": true,
+    "world: fuse restores content from the durable store after reload": true,
+    "world: fuse refuses a tampered durable blob (Law L5)": true
+  },
+  "passed": 11,
+  "failed": 0
+}

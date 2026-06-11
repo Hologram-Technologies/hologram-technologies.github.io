@@ -1,0 +1,30 @@
+# cc6-fixture — the executable spec of the UserlandWorkspace container ABI.
+#
+# A tiny, zero-import CC-6 Wasm guest: it implements the `hg_*` mailbox ABI that
+# crates/holospaces-web/src/lib.rs `UserlandWorkspace` drives, so the whole
+# pipeline (boot → run slices → live console → input echo → κ-snapshot
+# suspend/resume) can be tested end-to-end in any browser, today — before the
+# real `qemu-system-x86_64` C port exists. It is NOT QEMU; QEMU is the full C
+# port that satisfies this same ABI. Imports nothing (so `validate_userland`
+# accepts it as a substrate-valid CC-6 userland); exports `memory` + the `hg_*`
+# functions. Built to wasm32 via build-cc6-fixture.sh, staged as web/cc6-fixture.wasm.
+[package]
+name = "cc6-fixture"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+# Own workspace root — isolate from the parent host workspace (this is a wasm32
+# cdylib that must not be pulled into native builds).
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"   # lean: this is a demonstrator, size over speed
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,113 @@
+{
+  "spec": "Holo Desk (the substrate-native desktop) works in a real browser — right-click 'New ▸ Folder', inline-rename, drag-arrange, NEST (drop onto a folder), marquee multi-select, save any holospace app as a desktop icon + pin it to the native menu bar (dock), and folders whose cover updates to match their contents; OPFS-persisted + OS-adaptive; the κ-pinned icon library is natively discoverable and every icon is a UOR object; the desktop layout itself re-derives to its content address (Law L5)",
+  "authority": "ADR-0061 (Holo Desk) · ADR-0058 (Holo Files VFS) · ADR-0059 (Holo Dock) · ADR-0032 (Holo Icons) · ADR-0057 (Holo UI) · W3C OPFS / File System Access · Web Crypto · verify by driving the real desktop in Chromium",
+  "witnessed": true,
+  "covers": [
+    "holo-desk",
+    "native-new-folder",
+    "inline-rename",
+    "opfs-home-write",
+    "os-adaptive",
+    "icon-discovery",
+    "icon-is-uor-object",
+    "layout-self-verifies",
+    "app-shortcut",
+    "pin-to-dock",
+    "nesting",
+    "folder-cover-matches-contents",
+    "marquee-multi-select",
+    "law-l5"
+  ],
+  "results": [
+    {
+      "name": "the desktop surface boots (HoloDesk + #holo-desk + engines ready)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the desktop is OS-adaptive (data-holo-platform set → native folder/selection feel)",
+      "ok": true,
+      "detail": "windows"
+    },
+    {
+      "name": "right-click opens the native context menu with \"New\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "\"New ▸ Folder\" creates a folder",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a new folder icon appears on the desktop",
+      "ok": true,
+      "detail": "New folder"
+    },
+    {
+      "name": "the new folder opens an inline-rename field (edit name like native)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the rename persists to the writable OPFS Home (Law: Home is read/WRITE)",
+      "ok": true,
+      "detail": "Projects"
+    },
+    {
+      "name": "the κ-pinned icon library is natively discoverable (HoloIcons.names)",
+      "ok": true,
+      "detail": "6378 icons in 'tabler'"
+    },
+    {
+      "name": "every icon is a content-addressed UOR object (did:holo)",
+      "ok": true,
+      "detail": "did:holo:sha256:9680a4f529b375a3a2d3…"
+    },
+    {
+      "name": "an applied icon is stored as part of the layout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the desktop layout is itself a self-verifying UOR object (re-derives to its κ, Law L5)",
+      "ok": true,
+      "detail": "id=true verify=true"
+    },
+    {
+      "name": "any holospace app saves as a desktop icon (a .holospace shortcut, kind=app)",
+      "ok": true,
+      "detail": "org.hologram.HoloAmp → Holo Amp"
+    },
+    {
+      "name": "a desktop app can be pinned to the native menu bar (dock)",
+      "ok": true,
+      "detail": "pinned org.hologram.HoloAmp"
+    },
+    {
+      "name": "icons NEST — dropping an item onto a folder moves it inside",
+      "ok": true,
+      "detail": "Projects ⊃ nest-me.txt"
+    },
+    {
+      "name": "a folder's cover updates to MATCH its contents (preview tiles)",
+      "ok": true,
+      "detail": "1 preview tile(s)"
+    },
+    {
+      "name": "marquee rubber-band selects multiple icons at once",
+      "ok": true,
+      "detail": "selected 3/3"
+    },
+    {
+      "name": "captured a screenshot of the working desktop",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the desktop runs with no fatal errors of its own",
+      "ok": true,
+      "detail": "clean"
+    }
+  ]
+}

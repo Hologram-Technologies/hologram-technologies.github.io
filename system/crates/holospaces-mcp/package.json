@@ -1,0 +1,23 @@
+{
+  "name": "hologram-mcp",
+  "version": "0.1.0",
+  "description": "Hologram OS MCP server — agent access to a content-addressed, self-verifying object substrate (UOR). MCP resources are self-verifying linked-data objects; built-in verify_object / ask_model tools. Built on the official Model Context Protocol SDK.",
+  "type": "module",
+  "bin": { "hologram-mcp": "bin/hologram-mcp.mjs" },
+  "exports": { ".": "./lib/mcp/holo-mcp.mjs", "./server": "./lib/mcp/holo-mcp-sdk.mjs" },
+  "files": ["bin", "lib", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "node build.mjs",
+    "prepack": "node build.mjs",
+    "start": "node bin/hologram-mcp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "express": "^5.2.1"
+  },
+  "engines": { "node": ">=20" },
+  "keywords": ["mcp", "model-context-protocol", "hologram", "uor", "content-addressed", "self-verifying", "linked-data", "ai-agents", "did"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/Hologram-Technologies/hologram-os.git", "directory": "crates/holospaces-mcp" },
+  "homepage": "https://github.com/Hologram-Technologies/hologram-os#readme"
+}

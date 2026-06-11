@@ -1,0 +1,39 @@
+holo-forge — verifiable content-addressed compilation (Law L5 pins)
+===================================================================
+
+Holo Forge (ADR-0051) makes a BUILD a re-derivable κ-transform. `holo-forge.mjs`
+is a real, deterministic Holo-C → WebAssembly compiler in pure JavaScript with
+ZERO dependencies — it runs identically in the browser and in Node, and identical
+source bytes always produce identical WebAssembly bytes (no timestamps, no host
+paths, no hash-map-order nondeterminism; functions, types and exports are emitted
+in deterministic source order).
+
+A build is therefore the pure function
+
+    κ(source) ⊕ κ(compiler) ⊕ κ(flags) → κ(artifact)
+
+and any peer can re-run the compile and reproduce the artifact's content address
+byte-for-byte (Law L5) — there is no build server to trust. The compiler is ITSELF
+a content-addressed object: its κ is pinned below, re-derived offline by the witness
+and in the browser by the app (which shows a "✓ pinned" badge when the served bytes
+match). The build receipt is a sealed UOR object (PROV-O): `prov:used` <source κ> →
+`prov:generated` <artifact κ>, via `hosc:tool` <compiler κ>. Its did:holo proves the
+whole transform. Flip one source byte and the artifact κ changes; flip one
+WebAssembly byte and the engine rejects the binary — a forged build cannot wear an
+honest address.
+
+Authored in-repo (MIT) — no toolchain, no Emscripten, no CDN — so it runs offline and
+re-derives byte-for-byte. `tools/holo-forge-witness.mjs` re-checks every pin offline
+(node 18/18) and the conformance gate (os/etc/conformance.jsonld row "holo-forge")
+re-runs it live. A forged byte fails.
+
+This is the on-ramp to verifiable inference: a build is just one deterministic
+transform, and the receipt shape is transform-agnostic — the same proof that a binary
+came from this source extends to proving an output came from a given model.
+
+  756f278f8a456b2965f70ed4e5398fec249ecc7cec2f8d7bcab9dff20da8ab53  holo-forge.mjs  (the compiler κ, v1.2.0 — +bitwise/ternary, +preprocessor, +fixed-width types & casts, +void fns)
+
+Pinned reference build (the witness fixture, Holo-C → wasm-core-2.0):
+  source    8951cf3781168cb9dccf7533caf4d8c2c56484c3a6fca3193d61e9234d0ef700
+  artifact  48d118b77c3912ffc8e647d3e6242667f75aff22c857677a4dbc9d07b65d7919   (368 bytes, spec-valid wasm — unchanged: the additions are backward-compatible)
+  receipt   774f2ceca6e14f52c24b90a05528d63503788dfcf444dad50b50ae14663ac6d4   (did:holo PROV-O object — embeds the new compiler κ)

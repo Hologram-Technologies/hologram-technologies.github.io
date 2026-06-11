@@ -1,0 +1,49 @@
+{
+  "spec": "Hologram OS2 — the lean, FHS-shaped, content-addressed OS boots in a real browser via the κ-route serving layer",
+  "witnessed": true,
+  "covers": [
+    "os2-boot",
+    "kappa-route",
+    "fhs-serving"
+  ],
+  "served": {
+    "fromOS2": 37,
+    "fromAppsRepo": 12,
+    "fellBackToOriginal": 0,
+    "missing": 0,
+    "gap": [],
+    "missingList": []
+  },
+  "results": [
+    {
+      "name": "every boot-critical resource resolves over the κ-route + FHS mount",
+      "ok": true,
+      "detail": "10/10"
+    },
+    {
+      "name": "frame document loads (holospace.html)",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "the frame mounts the holospace (sandboxed iframe → the app)",
+      "ok": true,
+      "detail": "./apps/search/index.html"
+    },
+    {
+      "name": "the app's package was served (index.html + holospace.json)",
+      "ok": true,
+      "detail": "0 missing"
+    },
+    {
+      "name": "captured a screenshot of the booted OS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no fatal page errors",
+      "ok": true,
+      "detail": "clean"
+    }
+  ]
+}

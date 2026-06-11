@@ -1,0 +1,30 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "dev",
+  "hosfs:fhs": "/dev",
+  "hosfs:fhsRole": "device nodes — synthesized by the VM (virtio: blk→κ-disk · net→relay · 9p→workspace)",
+  "hosfs:kind": "virtual",
+  "id": "did:holo:sha256:86feb1f09e846d3332fe7cf9f5e0a5f0a47c493771c6a1c98ecb79ed340c9d1b"
+}

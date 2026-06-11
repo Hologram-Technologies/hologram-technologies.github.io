@@ -1,0 +1,3933 @@
+{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "rel": "schema:additionalType",
+    "links": {
+      "@id": "schema:hasPart",
+      "@container": "@set"
+    }
+  },
+  "root": "did:holo:sha256:31b9e16834e608233b85992f8f641017048867f11f8519beed0b69d7956123ae",
+  "source": "os/apps/index.jsonld + os/.well-known/mcp.json",
+  "conformsTo": {
+    "agentFactsSchema": "https://agentfacts.org/schema/v1",
+    "nandaIndex": "https://github.com/projnanda/projnanda"
+  },
+  "@graph": [
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "dcat": "http://www.w3.org/ns/dcat#",
+        "rel": "schema:additionalType",
+        "links": {
+          "@id": "schema:hasPart",
+          "@container": "@set"
+        }
+      },
+      "@type": [
+        "dcat:Catalog",
+        "schema:DataCatalog"
+      ],
+      "dcterms:title": "Holo NANDA — content-addressed Internet-of-Agents index (every holospace as a NANDA agent)",
+      "dcterms:source": "os/apps/index.jsonld + os/.well-known/mcp.json",
+      "dcterms:conformsTo": "https://agentfacts.org/schema/v1",
+      "links": [
+        {
+          "id": "did:holo:sha256:92cd82370b11315d226331b2c4e441b750d3c881d5af9f82026e512a2af63803",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-mpVSw+Ib9NeFB8xqvTPZajMEyDpozgHRZK9q3KRmPrg=",
+          "digestMultibase": "uEiCalVLD4hv014UHzGq9M9lqMwTIOmjOAdFkr2rcpGY-uA"
+        },
+        {
+          "id": "did:holo:sha256:889bae5741106d94f3dc46915eccabfe1ed87b005f9fe8713f2a6b9a841bd7d4",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-ml4tqX97T4/q6m9z86XuqojzBNfnBmyKjLPdZ998JM0=",
+          "digestMultibase": "uEiCaXi2pf3tPj-rqb3Pzpe6qiPME1-cGbIqMs91n33wkzQ"
+        },
+        {
+          "id": "did:holo:sha256:bf1f8d7ded473713f7437825b4d9a64afd41fe208cf2f6615ec9e24bad674b76",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-H1JIBPGk6BqFpbMor2qJ/J+VTZbIPVx2eJGO7D5dCsM=",
+          "digestMultibase": "uEiAfUkgE8aToGoWlsyivaon8n5VNlsg9XHZ4kY7sPl0Kww"
+        },
+        {
+          "id": "did:holo:sha256:d20e6f433ff3fc4b9f9d9a6ce86758404c5489316666331913da14be42e816b5",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-mYZ6N2aLmkNpJ4aEhBTrVieUDP8GlBUDO4uK1FuHCGQ=",
+          "digestMultibase": "uEiCZhno3ZouaQ2knhoSEFOtWJ5QM_waUFQM7i4rUW4cIZA"
+        },
+        {
+          "id": "did:holo:sha256:321fb69d02fb70b33a13c6d6b205f3b7453018e3769d700a7dc3b30216ae905d",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-8YEvRTKFonAgo+4EGfaw49WXPTaAQjzUCSnlSaRqyQc=",
+          "digestMultibase": "uEiDxgS9FMoWicCCj7gQZ9rDj1Zc9NoBCPNQJKeVJpGrJBw"
+        },
+        {
+          "id": "did:holo:sha256:bda002f8567d35b7491b17099bc405864c919f8c518184f2a092ef1d0c837287",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-mMIs27xXlTO3Ts4g/il+dSmlIf/WVbYmUvl74YKvz+g=",
+          "digestMultibase": "uEiCYwizbvFeVM7dOziD-KX51KaUh_9ZVtiZS-Xvhgq_P6A"
+        },
+        {
+          "id": "did:holo:sha256:384d793f76eda5e73af93977c27e71e85b4f6e40dfbe31b425854700649c31c9",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-+5zm2mkk7i4LBAjd1CbUONuntiJZb9mXEXJ64g+6Y/w=",
+          "digestMultibase": "uEiD7nObaaSTuLgsECN3UJtQ426e2Illv2ZcRcnriD7pj_A"
+        },
+        {
+          "id": "did:holo:sha256:e4b4c79cd6622bc2f3f608a1c65096f294828c6493d21bddaca2842b675e5401",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-nBSz0WWnsieR8u1mgHm1a9dPKyzXVx+SF89jQMevnSU=",
+          "digestMultibase": "uEiCcFLPRZaeyJ5Hy7WaAebVr108rLNdXH5IXz2NAx6-dJQ"
+        },
+        {
+          "id": "did:holo:sha256:20c84d5ad51dd80dff12add5a5f57f1a3b84da0a13679be842b4bf756f6dee54",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-cRNzQpvvt1qA5gtWFrym2N2ZizxeorPba6AFDFL7BJo=",
+          "digestMultibase": "uEiBxE3NCm--3WoDmC1YWvKbY3ZmLPF6is9troAUMUvsEmg"
+        },
+        {
+          "id": "did:holo:sha256:eb7e3c6f9a7a3c191dad4acde6d88aaae7a7b09b14bbe1ba5f57f35303091c7e",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-cPtN42Eu/UPtvDio4ecQzccnnG9aMB9Ve6B6C0sArWI=",
+          "digestMultibase": "uEiBw-03jYS79Q-28OKjh5xDNxyecb1owH1V7oHoLSwCtYg"
+        },
+        {
+          "id": "did:holo:sha256:d5932ee1a1b4518d1518e9b53d94795157e0dcb5129cce28b2d72dbc904b1b90",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-KlLoL6Dss8D+G6HQzfzGCgp/Rup6BcgCwB9hR1TyFjQ=",
+          "digestMultibase": "uEiAqUugvoOyzwP4bodDN_MYKCn9G6noFyALAH2FHVPIWNA"
+        },
+        {
+          "id": "did:holo:sha256:a7a4931bb175b4b4f7dc3581b2f40a40535317ad9d7de9785092c61c7cfe3ac2",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-wFmlIHIdzpTndFaUXG+qBt1J94DxDOaW9pYDnVou4Uw=",
+          "digestMultibase": "uEiDAWaUgch3OlOd0VpRcb6oG3Un3gPEM5pb2lgOdWi7hTA"
+        },
+        {
+          "id": "did:holo:sha256:f6f1a400fe403ba1d02693f8e974c972a1e8ad45ddb7a368d4efa2236a4469eb",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-5CAh6jxpzPSiEcCXDxIvBFsQMa+M80Iy7x0Wdy2jqvQ=",
+          "digestMultibase": "uEiDkICHqPGnM9KIRwJcPEi8EWxAxr4zzQjLvHRZ3LaOq9A"
+        },
+        {
+          "id": "did:holo:sha256:f2335d46895559698742862f5e48dbc6ff31076fb10c58b3184aca0ae6ea0328",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-v7og+UmiN9xBEb49VHEsl7fcyuAxD5FmFafGJrkGXmk=",
+          "digestMultibase": "uEiC_uiD5SaI33EERvj1UcSyXt9zK4DEPkWYVp8YmuQZeaQ"
+        },
+        {
+          "id": "did:holo:sha256:5f7611739599a366969465ea99fed9a1b86188383943fb1683c4023b60115af8",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-+PAslF1NK4p3x9h8keYe+0pXe3XonKNSW6pJQvSIzoc=",
+          "digestMultibase": "uEiD48CyUXU0rinfH2HyR5h77Sld7deico1JbqklC9IjOhw"
+        },
+        {
+          "id": "did:holo:sha256:d7f577ad3ecc428d5f8c9994f3047fc89cd7dd6b6d76c56bca4137190e78d0fa",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-rH39HwKRs+eAiO07FQNgm/+4jbD55Hd3R5WG9ncyaDc=",
+          "digestMultibase": "uEiCsff0fApGz54CI7TsVA2Cb_7iNsPnkd3dHlYb2dzJoNw"
+        },
+        {
+          "id": "did:holo:sha256:3dfc995ef962ee17d48efe43b042dc5ea09279d8f3856831d78907fbe460cb89",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-wU9Ssr9CeCSFb9/ce+QYMtFnwvTRiDkhm8/8yroJntg=",
+          "digestMultibase": "uEiDBT1Kyv0J4JIVv39x75Bgy0WfC9NGIOSGbz_zKugme2A"
+        },
+        {
+          "id": "did:holo:sha256:d8d7b11163cc891e906259e24bc3f5658c886963a639c1708c5e1b4769fe7e0e",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-HPQ+3c472+roHvaBAgQvvCS6ZeumLSrj93hN3vo1bGM=",
+          "digestMultibase": "uEiAc9D7dzjvb6uge9oECBC-8JLpl66YtKuP3eE3e-jVsYw"
+        },
+        {
+          "id": "did:holo:sha256:438152aabe39eafe2fefb06a0175f0929dce514bc2cb12364a99b5e56a507f0e",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-TvbPovpmYTRlSo6qrgwZ48ydkbqzBcaW2vpBc4hDGmU=",
+          "digestMultibase": "uEiBO9s-i-mZhNGVKjqquDBnjzJ2RurMFxpba-kFziEMaZQ"
+        },
+        {
+          "id": "did:holo:sha256:179979ed0877c612cdbd65027589572148d7afe534ef56f708392fc7edef7239",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-Kdttu/G6m+WV+LVpuCTzFSDmEhFSXDBSi1ZZX+p4u6s=",
+          "digestMultibase": "uEiAp22278bqb5ZX4tWm4JPMVIOYSEVJcMFKLVllf6ni7qw"
+        },
+        {
+          "id": "did:holo:sha256:ab9a205f854606081c2422859c30439058df101758fb71a73304789d8ec2e764",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-E+nURWyvycL05Qx5Dl3wCH1j1usQqIaZPF/x7R+7U9E=",
+          "digestMultibase": "uEiAT6dRFbK_JwvTlDHkOXfAIfWPW6xCohpk8X_HtH7tT0Q"
+        },
+        {
+          "id": "did:holo:sha256:e6370fa8757336997e7f30f61352b4cc44beb387e921a51281bf2fc3e0be5525",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-PWYDGklr+HdRJ437KQSD8oYkwnxzoVCnIK451GsdA0E=",
+          "digestMultibase": "uEiA9ZgMaSWv4d1EnjfspBIPyhiTCfHOhUKcgrjnUax0DQQ"
+        },
+        {
+          "id": "did:holo:sha256:861f7e1754ef5c25d731e063891c284e875cd50b1333cbd6b351577e094c92cd",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-QMcsf5slBtm6+NghjmJvRzBobDvAE7S8rIcJ7JU8qro=",
+          "digestMultibase": "uEiBAxyx_myUG2br42CGOYm9HMGhsO8ATtLyshwnslTyqug"
+        },
+        {
+          "id": "did:holo:sha256:38ffdc321192ef8c095dc91081ea8e1fad7a28c101b6eb3c58bb52bad06fe5a4",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-B+9lR5n+pjcGA5GmVWkgaNlmtfW3+yGnm6sbS9Ylvmw=",
+          "digestMultibase": "uEiAH72VHmf6mNwYDkaZVaSBo2Wa19bf7IaebqxtL1iW-bA"
+        },
+        {
+          "id": "did:holo:sha256:74e70d182481a9f64221cb2bb33c8ada99fd5d2e0d8315a9493d72d9a7fd3618",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-l4x8ZByZlHdvudSg3k++KVQetReZgncUMvVlpnmO/ug=",
+          "digestMultibase": "uEiCXjHxkHJmUd2-51KDeT74pVB61F5mCdxQy9WWmeY7-6A"
+        },
+        {
+          "id": "did:holo:sha256:118f271b52cc5568cb3c5f58360b99710ba82782f97cdcdfab92fae96bf93f77",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-3nUwx2UsOIjvYPh2gPgMAAxQGV9aP7m0jY7KAoGNMIE=",
+          "digestMultibase": "uEiDedTDHZSw4iO9g-HaA-AwADFAZX1o_ubSNjsoCgY0wgQ"
+        },
+        {
+          "id": "did:holo:sha256:4bde2d8cfaad36e7f881177b5d7cb818646f9e9b866c7c45ed5028d0ea43a5e5",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-UrfI2G1F1Pa6iugXjtovqE5Oma1xyfk0WkOuqbZiZDQ=",
+          "digestMultibase": "uEiBSt8jYbUXU9rqK6BeO2i-oTk6ZrXHJ-TRaQ66ptmJkNA"
+        },
+        {
+          "id": "did:holo:sha256:7ced3d9ef87aa7afaa970243ecd70e8c69e1f03e44feb12a4547e17316f6809d",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-JD7M2xLBYT/skWATvNOqTcTkM30tbJZaxj2hSiXW8jE=",
+          "digestMultibase": "uEiAkPszbEsFhP-yRYBO806pNxOQzfS1sllrGPaFKJdbyMQ"
+        },
+        {
+          "id": "did:holo:sha256:9a014431fe01828d3a1d542666d1b9c00a649b159725db743d40dcdfa02cbfbe",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-D894qtKs1ZUAJDTWcM2nuhZySwuuo+KLlvyQSYTQAkA=",
+          "digestMultibase": "uEiAPz3iq0qzVlQAkNNZwzae6FnJLC66j4ouW_JBJhNACQA"
+        },
+        {
+          "id": "did:holo:sha256:70048403ed95ebb426d35c31c29889885d350aa1e5a968e92b6a3a9a6e1bc2df",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-QMBHxEVftqCsbbE+ED846MHBh1lwjU2hyghZlCuSRTE=",
+          "digestMultibase": "uEiBAwEfERV-2oKxtsT4QPzjowcGHWXCNTaHKCFmUK5JFMQ"
+        },
+        {
+          "id": "did:holo:sha256:d27fa29b073f9d1e594bae7d09ed641b180786e13984333aa928495eb4a014dd",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:SoftwareApplication",
+            "af:AgentFacts"
+          ],
+          "digestSRI": "sha256-IVdGpiM7slUKMQQxceJ6qanNXSrpHh6I6LV4Z79t6Bs=",
+          "digestMultibase": "uEiAhV0amIzuyVQoxBDFx4nqpqc1dKukeHojotXhnv23oGw"
+        }
+      ],
+      "id": "did:holo:sha256:31b9e16834e608233b85992f8f641017048867f11f8519beed0b69d7956123ae"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:hologram-os",
+      "label": "Hologram OS",
+      "description": "The Hologram OS agent endpoint — a near feature-complete MCP server projecting every holospace as a self-verifying UOR resource, with a built-in verify_object tool no ordinary MCP server has.",
+      "version": "0.1.0",
+      "documentationUrl": "https://hologram.os/.well-known/mcp.json",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/mcp",
+          "https://hologram.os/.well-known/mcp.json"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "verify_object",
+          "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "resolve_object",
+          "description": "Resolve ANY reference to its self-verifying UOR object: a did:holo / holo:// resource from the store, OR an open-web identifier (DOI, ISBN, Wikidata Q-id, place, GitHub owner/repo, gbif:/chem: prefix, domain, @user@host) resolved live over open APIs (Holo Resolve, no AI). Re-derive its did to verify (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "search_web",
+          "description": "Federated search across the open web (Wikipedia · Wikidata · Crossref · Open Library · OpenStreetMap) — one query, fused by Reciprocal Rank Fusion + reconciled to Wikidata, no AI. Each result is re-derivable via resolve_object.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "answer",
+          "description": "A corroborated, conflict-aware answer composed DETERMINISTICALLY from the open web (no AI — it cannot hallucinate; it asserts only what verifiable sources agree on). Every fact traces to a source; disagreements are flagged, not merged. The query is governed by the constitution's perimeter.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "ask_model",
+          "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "ask_user",
+          "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "list_roots",
+          "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_batch",
+          "description": "Verify many UOR objects at once; reports progress and is cancellable.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "holo_rank",
+          "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "holo_recommend",
+          "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "disclose_for_purpose",
+          "description": "Holo Privacy: obtain a W3C Verifiable Presentation that discloses ONLY the personal-data claims the user's standing policy authorizes for a given DPV purpose + recipient (IETF SD-JWT selective disclosure) — and can prove a fact (\"over 18\") without revealing the value behind it. Returns null when nothing is authorized (default-deny). Needs a connected wallet (the Holo Privacy app). Present the result to any tool that handles personal data.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_disclosure",
+          "description": "Holo Privacy: verify a W3C Verifiable Presentation — re-derive its content address (Law L5), verify the holder's data-integrity proof, recompute every disclosed SD-JWT digest, and (if the data commitment is given) confirm membership. Reports what was disclosed and how much (n of m). Don't trust a disclosure you didn't verify.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "agent_facts",
+          "description": "NANDA AgentFacts for a Hologram OS holospace (ADR-034): a self-verifying agent description (identity · provider · endpoints · capabilities · skills) that is, on the same bytes, a valid NANDA AgentFacts record AND a did:holo you re-derive (Law L5) AND a W3C VC. Give a holospace slug (e.g. 'holowallet') or omit for the OS agent.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "agent_reputation",
+          "description": "An agent's verifiable, tamper-evident REPUTATION (Holo AgentTrust, ADR-039): a content-addressed, append-only chain — one κ commits to the whole history. Returns a recomputed (not self-reported) summary: age, uptime, certifications, distinct issuers, freshly-minted + revocation signals, and the chain head κ you re-derive (verifyDeep, Law L5). Give a holospace slug.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_receipt",
+          "description": "Verify a multi-agent WORK RECEIPT (Holo Orchestrate, ADR-045): re-derive a content-addressed execution DAG and report — for an answer assembled by many agents — WHO acted (NANDA identity), HOW trustworthy (AgentTrust), UNDER WHAT AUTHORITY (UCAN delegation), that EVERY STEP passed the conscience gate (Constitution, ADR-033), and EXACTLY what they produced. Tamper any step and it refuses (Law L5). Give the receipt bundle as 'graph' (array of UOR objects); omit to verify a freshly-built demo.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_delegation",
+          "description": "Verify a capability DELEGATION chain (Holo Delegate, ADR-042 / UCAN): re-derive the chain and report whether agent B's authority is valid — principal alignment (you can only re-delegate what you were granted), attenuation (no privilege escalation), roots in the resource owner, not expired, not revoked. Give the chain as 'graph' + the resource owner 'sub'; omit for a demo.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_settlement",
+          "description": "Verify a SETTLEMENT and release payment against PROVEN work (Holo Settle, ADR-048 / x402-NP): re-derive the work receipt and release a voucher per contributing agent ONLY if it re-derives + every step was authorized + conscience-accepted. Tampered/unproven work releases nothing. Give the settlement bundle as 'graph'; omit for a demo.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "agent_passport",
+          "description": "One-link agent onboarding: a single SELF-VERIFYING object bundling a holospace agent's identity (NANDA AgentFacts κ), reputation (AgentTrust head κ + summary), skills, and every agent door (MCP · NANDA · A2A · Skills). Re-derive its did:holo to verify the whole bundle (Law L5). Give a holospace slug.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "browser_open",
+          "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "browser_fetch",
+          "description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "read_liberty",
+          "description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "standing_term",
+          "description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "agreement_for",
+          "description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_list_chains",
+          "description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_get_address",
+          "description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_get_balance",
+          "description": "The native-token balance for a chain (reads live from public RPC/Esplora).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_get_portfolio",
+          "description": "Addresses and native balances across every supported chain.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_quote",
+          "description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_sign_message",
+          "description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_send",
+          "description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z52AGDeouypAb1b9uvx8XLRGChN3EaDDY5CXWxDcHDzRLPTZrWsaBYgnh4Tir1AaqJMxca9bqpS2sHveDBPneAKvf"
+      },
+      "id": "did:holo:sha256:92cd82370b11315d226331b2c4e441b750d3c881d5af9f82026e512a2af63803"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoatlas",
+      "label": "Holo Atlas",
+      "description": "The living map of every holospace — discover, verify and monitor the whole OS by content address",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/atlas/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:95d7e3ded45b88aeeb309bdf31bf556405b76f0c159249ddd48b589216479e50",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2uovdUdzYyHtQBrbg672VhHRH5XJafv5tJNRE9ujNG3BFHkpa8fKQxdh58EnuVcxNeCFgAeKHyYmMfFiSxC1W2FJ"
+      },
+      "id": "did:holo:sha256:889bae5741106d94f3dc46915eccabfe1ed87b005f9fe8713f2a6b9a841bd7d4"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoboot",
+      "label": "Holo Boot",
+      "description": "A graphical boot manager — rEFInd, hologram-native",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/boot/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:b1b83d7bf931123d810b8a246d84cbf58bf7734e44c532764e2c7956ffd86743",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z62sMLvbV3ZgNuvYAzT4BykPMCCLfixXYAkEV5qvxdznoV1p9MWxBL6SFAnsnQBSxA29bvuRzxX4xMbqcCnc1QYwq"
+      },
+      "id": "did:holo:sha256:bf1f8d7ded473713f7437825b4d9a64afd41fe208cf2f6615ec9e24bad674b76"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holobrc",
+      "label": "Holo BRC Miner",
+      "description": "Mine, send and explore real BrowserCoin (BRC) — the full app, hologram-native",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/brcminer/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:a2460476662fff16a7c9cee05b120545e47ede01ef73c0f159c10c355432b2cd",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z5EG6C6pX6QnYT5Qv7j8oSbaZrVVLif9q9XMrdjmSaVvmfQptofd8MTqmn8C6R7NMSHxJN5c7vvy9YtBUurDirhR3"
+      },
+      "id": "did:holo:sha256:d20e6f433ff3fc4b9f9d9a6ce86758404c5489316666331913da14be42e816b5"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holobrowser",
+      "label": "Holo Browser",
+      "description": "Chromium, hologram-native: browse any web, local or holo://κ page as content-addressed substrate — every byte re-derived (Law L5)",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/browser/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "browser_open",
+          "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "browser_fetch",
+          "description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:5411cf8d9ad7ac2bb3593d1b74b06d5d94fd8769dc72f2810028e1ffd32faec5",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4JLvsYTuWTQkZHHdeUQGt5uLvBfsg9PH1WxixKdzDykboeH3Q8inKCsrG5bUFvnAbVpQPVz1h1So7zgz4PffFMXM"
+      },
+      "id": "did:holo:sha256:321fb69d02fb70b33a13c6d6b205f3b7453018e3769d700a7dc3b30216ae905d"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holobtc",
+      "label": "BTC Miner",
+      "description": "A real self-custodial Bitcoin wallet + live network, entirely in your browser",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/btc/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:1c03eb820ca8e2cc1cd1515e6f88afc25ba298c274ae46f6a988edcc565f40ff",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4jfCwMzHsokkaQgHHnkFGhqr2Gs4Ri3eaqsZucCfQ5FLYYNzR4BhH2gjmgcSVLBdyic4kaUZkxLVRjsgmsMjHSdv"
+      },
+      "id": "did:holo:sha256:bda002f8567d35b7491b17099bc405864c919f8c518184f2a092ef1d0c837287"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holocapture",
+      "label": "Holo Capture",
+      "description": "Capture, annotate and share your screen — Flameshot, hologram-native",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/capture/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:1587a5bb218c2a7e8c8f6ad1222508d1360b71da25b5653bbbc2c1e3558d5606",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z3an1Du8kZTM4Xo3aiagtxDczuA1vedeyBdFdbtY4w5hLhc5StZFdEZ3YtqM7hZrmhTV5mmrZ4btQMv1ntkQYCTAJ"
+      },
+      "id": "did:holo:sha256:384d793f76eda5e73af93977c27e71e85b4f6e40dfbe31b425854700649c31c9"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holocloud",
+      "label": "Holo Cloud",
+      "description": "Your files, end-to-end encrypted and content-addressed",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/cloud/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:efc6e3a8f992e81534628902c29a9f8fd8f50f1b4c3655f6836a6efbcbc8a9c0",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z42bcmds5pN7pcYwCsDGHE9SiNULV5VxtKWfsBSHeXN65eQ9KMm2yjQJNZ32rFD9ZKez2mJG3LstP424wrjEFiUft"
+      },
+      "id": "did:holo:sha256:e4b4c79cd6622bc2f3f608a1c65096f294828c6493d21bddaca2842b675e5401"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holodocs",
+      "label": "Holo Docs",
+      "description": "Office suite — Writer, Calc and Impress with live co-editing",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/docs/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:8bc211711ef0c0a96d881a604a495994e2259a2661b6b871c2b03f793b4c048f",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z6NcKpx9Hb6vibvsXkeZvCLKoA5ZiA6xT77HgAWzUsrg2hMJ4h8YG6BQTGq6GUh9pcFHYYPa18JPCn8g3spFEhxo"
+      },
+      "id": "did:holo:sha256:20c84d5ad51dd80dff12add5a5f57f1a3b84da0a13679be842b4bf756f6dee54"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoetherscan",
+      "label": "Holo Scan",
+      "description": "A universal, Etherscan-identical block explorer — Blockscout-powered, κ-verified, in the browser",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/etherscan/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:137007e581fe97e5f74c54884fb11a239ca28d7420a9bb64e25bbeb66495fce5",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z5ost66RsDLZmBz866PbtMFsAPHdHginWqo4r3yuRTRvessPmhpRq6FEnaE6YDhTApw48UD26CrdUdpZndYG2ZLmq"
+      },
+      "id": "did:holo:sha256:eb7e3c6f9a7a3c191dad4acde6d88aaae7a7b09b14bbe1ba5f57f35303091c7e"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoevm",
+      "label": "Holo EVM",
+      "description": "A real Ethereum Virtual Machine that runs in your browser",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/evm/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:c3cdb2908ba03fc6df337934365ee23d1c6457fcd5d71fbd77b3ece4ce7a1c6f",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z5otGHhKNzZzYqWNPonfzHv2ijxXtyUkh32jPWmdTYy69jVhJFhHToohZNDYhh4DUCvQ6uqQQ3VKcJmeiZQP1BEcy"
+      },
+      "id": "did:holo:sha256:d5932ee1a1b4518d1518e9b53d94795157e0dcb5129cce28b2d72dbc904b1b90"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:hologit",
+      "label": "Holo Git",
+      "description": "A self-hosted git forge — issues, PRs, merges, serverless",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/git/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:abf78931ca04a5a00eff1961287a5f35186e7071ebc3817f948172db696f87dc",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "zLucdZFzpqwKninNXxi3sZKQPCWQVg4si82uHT2dwD7MfNpdSzTWjVoborgyEyEQ7a7nKt3zbqwzv5EQ8pSZbqmc"
+      },
+      "id": "did:holo:sha256:a7a4931bb175b4b4f7dc3581b2f40a40535317ad9d7de9785092c61c7cfe3ac2"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoipfs",
+      "label": "Holo IPFS",
+      "description": "Browse the entire IPFS space as easily as the web — every block κ-verified in your browser",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/ipfs/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:3bcc1b669e7e0b086d21ce7684d561be2e9053cdf8fc7560dabb4786c57dbd8b",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4Q2pFFpGyrvjX7mJxousWeJG6we3vbc52yeUuGiGaN5XRxuG1LeRXRHsS1dw6aGYQtqK2ngZBqKgKMk8pNrDwn67"
+      },
+      "id": "did:holo:sha256:f6f1a400fe403ba1d02693f8e974c972a1e8ad45ddb7a368d4efa2236a4469eb"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:on-liberty",
+      "label": "On Liberty",
+      "description": "John Stuart Mill's On Liberty, published natively as a self-verifying UOR κ-DAG. The whole book re-derives from its own content in the browser — no server to trust (Law L5).",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/liberty/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "read_liberty",
+          "description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_object",
+          "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:99f79b08f86c60254aabcd0f687a64f0c061d809655b5a7d03bfb57b92beff7d",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2DKvJuAUNeYiWXYp89pTQJE9fhWRaLidqWfjQtb7FrcAVjqKWj6erz9FEGRN1z8u6mzDmstp1zT6npCSmZaJeNxc"
+      },
+      "id": "did:holo:sha256:f2335d46895559698742862f5e48dbc6ff31076fb10c58b3184aca0ae6ea0328"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:hologrammeet",
+      "label": "Hologram Meet",
+      "description": "Serverless, end-to-end-encrypted video conferencing",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/meet/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:e8e6717757c65f23993a6fac4a12fb23a9792bbbdf9ae2edc61c31c669d5118a",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4Z6mULpwna5FWKog5sWdznszdR2tAiTj9yGVUNptGaeWLkFc99zbxAD4xEuiJ8qoFUZ6oXixZyCmMbXE6JCgsmJS"
+      },
+      "id": "did:holo:sha256:5f7611739599a366969465ea99fed9a1b86188383943fb1683c4023b60115af8"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holomusic",
+      "label": "Holo Music",
+      "description": "A content-addressed music library — and the whole internet as one",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/music/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:b43aa2c9c0ba0b35b0201da7afbc1a51a9839b2f583b3d9417b06c9741ec0d53",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "ztTnX1FhABMJBdVvUZPopbHDWthDjD5Me3dcWkD4gw7DmLXQjLDWLFR9ZP14MRR1yNDFK7t4DTy1asVMeZQ4BA5v"
+      },
+      "id": "did:holo:sha256:d7f577ad3ecc428d5f8c9994f3047fc89cd7dd6b6d76c56bca4137190e78d0fa"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holonotepad",
+      "label": "Holo Notepad",
+      "description": "Your second brain — a networked outliner + an always-on, private memory bank. Roam Research, hologram-native",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/notepad/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:5518c5f9c15ef2ae68b8827d54b85a932cb04c2ef0cbcf46a289813ca2b5a74a",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2jme8YApo3NA1VbirpaUn587rr6HQDw4s7eF9Pt61zaFV3KRjN9egq9ngwa9JEXM2Hsi83vZ74L1UGUQK6qrFrWG"
+      },
+      "id": "did:holo:sha256:3dfc995ef962ee17d48efe43b042dc5ea09279d8f3856831d78907fbe460cb89"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoos",
+      "label": "Hologram OS",
+      "description": "A real Debian GNU/Linux system, booted in a browser tab",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/os/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:0953518061292e1961f1d1d187e6dcb179799535274c95ac7c61866b6a6f76a5",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z5stMZhfvLuDq2dj4PMru46HVK7kJKuLZuuFqgSpDEvgZZ4fQWAiitDUUJ69wroCKcP38NmYMtBma1G72FeMFNToL"
+      },
+      "id": "did:holo:sha256:d8d7b11163cc891e906259e24bc3f5658c886963a639c1708c5e1b4769fe7e0e"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:plasmadesktop",
+      "label": "Plasma Desktop",
+      "description": "Your real KDE Plasma 6 desktop, mounted live in a holospace via the canonical noVNC client (RFB/VNC)",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/plasma/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:e37e0157561c8a77dc5f3f7f5591ceac126f9144212169b657ebdfbca3d74b2a",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "zU48aEjmRSHL5os4iqeazZFvEqGVUzoaDVwue74z7PXzaD8dFxGSPrUoQYD6Gs74FdSUgY94JwaBudFCa9R7BRAr"
+      },
+      "id": "did:holo:sha256:438152aabe39eafe2fefb06a0175f0929dce514bc2cb12364a99b5e56a507f0e"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoplayer",
+      "label": "Holo Player",
+      "description": "A content-addressed media library, modeled on Jellyfin",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/player/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:4f17cac17cb50322a96ec428fcfdddae09dc8cde0f4f6a6d784d1fcaffba96df",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "zkQjapvmAqxeV5PoQCjuvAZ2hkBJYBgQjSU6m2W7Es8ntsYAxJRQLNY7kNpPA7YPvassLQTQ6xQSM8d94sjWJtvc"
+      },
+      "id": "did:holo:sha256:179979ed0877c612cdbd65027589572148d7afe534ef56f708392fc7edef7239"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoprivacy",
+      "label": "Holo Privacy",
+      "description": "Control what an AI agent may learn about you. You are the data subject; agents acting for you get only the minimum needed for a stated purpose — as a signed, verifiable disclosure — and never enough to track you.",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/privacy/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "disclose_for_purpose",
+          "description": "Produce a W3C Verifiable Presentation that discloses only the personal-data claims the user's standing policy authorizes for a given DPV purpose and recipient (selective disclosure). Returns null if nothing is authorized (default-deny). Args: purpose (dpv:…), recipient, claims:[{category,name}].",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "verify_disclosure",
+          "description": "Verify a W3C Verifiable Presentation against its personal-data commitment: re-derive its content address (Law L5), verify the holder's data-integrity proof, and recompute every disclosed SD-JWT digest. Reports what was disclosed and how much (n of m). Args: presentation, commitment.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:c59f58167d1aace0237b9d71d919d127838908879df1d16b5732920485a7279e",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4QXDqyDCBLBgKndX8FzXF9zTDsGU1bA8sRYBxGtcK2S3vS6FEqjuwGw7G3dmBxn8XUgCNUYKCN1RjyytGow4oeD1"
+      },
+      "id": "did:holo:sha256:ab9a205f854606081c2422859c30439058df101758fb71a73304789d8ec2e764"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:qemu",
+      "label": "QEMU",
+      "description": "Generic and open source machine emulator and virtualizer",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/qemu/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:bdde3b1b466acb14e4033c79e8c70c5fa8c62e9f8bc5938f92b4816046c4a2d1",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z5skFS9QMZuXbpCaBDa2GGJG8TQGcmRT3tdw1XwHgRG13CaS1Uq7CzyeoHzL6tkRSBsHFpK8vmZD9nVkppokrkKya"
+      },
+      "id": "did:holo:sha256:e6370fa8757336997e7f30f61352b4cc44beb387e921a51281bf2fc3e0be5525"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holosdk",
+      "label": "Holo SDK",
+      "description": "The Holo SDK — the unified, serverless, content-addressed environment where every holospace is built, run and shared: a spatial self-authoring desktop where each window, component and app is a self-verifying UOR object, scaffolded live and bootable by a single κ link",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/sdk/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:4ced702d4f1cb1327fc89f268744a44af2c213de1c97e261c73187f76108875c",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z5ik78pACuPThYDvj6AkaLmbL4z6sdd9UBmBWpjgcT1QT3otSDLzVDdRJRA9Z7csGiY2UsnCWGco6MervmgDpruSo"
+      },
+      "id": "did:holo:sha256:861f7e1754ef5c25d731e063891c284e875cd50b1333cbd6b351577e094c92cd"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holosearch",
+      "label": "Holo Search",
+      "description": "Google for the entire Hologram OS — one bar, OpenSearch-faithful, ranked by HoloRank, every result re-derivable (Law L5)",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/search/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:ef10cd5c8b4aa6afcacaeae18ef85b3bbc1bb734615758e13876eb00f7d6c4ff",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "zRhw9RsxhdUFxoafdi7nAypzPSZ6JwonDVPsQ7FKt7Ys1DiG98W4iU8b8yQbu6EsGQsXcrXeQAUkNJRP4mc924CP"
+      },
+      "id": "did:holo:sha256:38ffdc321192ef8c095dc91081ea8e1fad7a28c101b6eb3c58bb52bad06fe5a4"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holostarter",
+      "label": "Holo Starter",
+      "description": "A scaffolded example holospace — the Holo SDK reference output: auto-wired to Holo UI, UX, Terms, Privacy, and Conform; self-verifying by content address.",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/starter/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:b9703055805fe7914c9475aa437a9f9853ed4854a7944f370321ca501ef45a3c",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z4Je7j2QDcXZM4iJVTNff8yBKVnqpkPvrFBXC7sbPdkepTnNbJtMxyqWp8w4mnTzBU1JTqbjC1Sx4k91G4ffCepAd"
+      },
+      "id": "did:holo:sha256:74e70d182481a9f64221cb2bb33c8ada99fd5d2e0d8315a9493d72d9a7fd3618"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holostream",
+      "label": "Holo Stream",
+      "description": "Live streaming, recording & a creator coin — OBS + Owncast, hologram-native",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/stream/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:5ef837959e8366dd351ab45e23398fd69bd8ada7270d4639fac0cc7fe8dfdb5d",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2ZkvHEkCxeejMhMhFhKZL8tkkFWxj4RJgQjA7LSqxhwkEsdUmz6ZKCzZvJhX7bH34Q44CPEGMP7prD1boEYKTGzy"
+      },
+      "id": "did:holo:sha256:118f271b52cc5568cb3c5f58360b99710ba82782f97cdcdfab92fae96bf93f77"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoterms",
+      "label": "Holo Terms",
+      "description": "Your machine-readable personal terms (MyTerms / IEEE 7012-2025): you propose, each app agrees, the OS enforces. Choose your standing term; see and revoke what every app was granted.",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/terms/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "standing_term",
+          "description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "agreement_for",
+          "description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:651d2e10a5c6b8e18025081e341f3e44249113b0b64f897f3084acefa789618c",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2om63YoCFeFwvhbm2ui71Qav39zhejfBodz6VjSnoF1p78GSkE7BiQZNqLh3m2occAGU17Bchiun1N96EU1meBL"
+      },
+      "id": "did:holo:sha256:4bde2d8cfaad36e7f881177b5d7cb818646f9e9b866c7c45ed5028d0ea43a5e5"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holovideo",
+      "label": "Holo Video",
+      "description": "A content-addressed video player with adaptive HLS",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/video/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:09b8f9023a8be3115a3bd6fe3b6973ce1144b1f1024c3b8a8ea10ba4958c19cf",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z3svPais7fsd1STCLuDHdByi3RyJrDQCd6ttfoPqTCbHuMM2XgV2wKBtBm6Bt2fjhVXtrtH5mckoQpDRpeJ3cie6V"
+      },
+      "id": "did:holo:sha256:7ced3d9ef87aa7afaa970243ecd70e8c69e1f03e44feb12a4547e17316f6809d"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holowallet",
+      "label": "Holo Wallet",
+      "description": "A MetaMask-familiar, self-custodial multi-chain wallet on Tether's WDK, hologram-native: one seed, every chain — content-addressed, for humans and AI agents",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/wallet/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_list_chains",
+          "description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_get_address",
+          "description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_get_balance",
+          "description": "The native-token balance for a chain (reads live from public RPC/Esplora).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_get_portfolio",
+          "description": "Addresses and native balances across every supported chain.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_quote",
+          "description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_sign_message",
+          "description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        },
+        {
+          "id": "wallet_send",
+          "description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote.",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:4df84b13e2dcefc69cce6ff33f626b394f2b9eef8bef457270abfe8063cb1205",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z42BshMHze2ox9f9dkyGerMLV5DLUNwNdz5N2i9cYfXvZokiSpZRjPZZ54KtERKS29hBG63fHugwVcVB2mX8Mfxw1"
+      },
+      "id": "did:holo:sha256:9a014431fe01828d3a1d542666d1b9c00a649b159725db743d40dcdfa02cbfbe"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holowinamp",
+      "label": "Winamp",
+      "description": "It really whips the llama's ass — the classic skinnable player",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/winamp/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:012533c9f246ef522a5c104e5d88206345cf6b7cbbb9b577e1e5ff93eda93ad0",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2r1cdoKS5dDGSymGcXtdPr2JmqynRe9HZ57qqieBaQCc6W3eauwXPduAzARGE5eb6YScBftZeqfXpF23dQ4WDfwe"
+      },
+      "id": "did:holo:sha256:70048403ed95ebb426d35c31c29889885d350aa1e5a968e92b6a3a9a6e1bc2df"
+    },
+    {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "af": "https://agentfacts.org/schema/v1#",
+        "label": "schema:name",
+        "description": "schema:description",
+        "version": "schema:version",
+        "provider": "schema:provider",
+        "documentationUrl": "schema:documentation",
+        "jurisdiction": "schema:spatialCoverage",
+        "agent_name": "af:agent_name",
+        "endpoints": "af:endpoints",
+        "capabilities": "af:capabilities",
+        "skills": "af:skills",
+        "evaluations": "af:evaluations",
+        "telemetry": "af:telemetry",
+        "certification": "af:certification"
+      },
+      "@type": [
+        "schema:SoftwareApplication",
+        "af:AgentFacts"
+      ],
+      "agent_name": "@DID:hologram:holoworkspace",
+      "label": "Holo Workspace",
+      "description": "A code editor with the Monaco engine, LSP and a real filesystem",
+      "version": "1.0",
+      "documentationUrl": "https://hologram.os/",
+      "jurisdiction": "decentralized",
+      "provider": {
+        "name": "Hologram OS",
+        "url": "https://hologram.os",
+        "did": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+      },
+      "endpoints": {
+        "static": [
+          "https://hologram.os/apps/workspace/index.html",
+          "https://hologram.os/mcp"
+        ],
+        "adaptive_resolver": {
+          "url": "https://hologram.os/.holo/",
+          "policies": [
+            "content-address",
+            "law-l5-reverify"
+          ]
+        }
+      },
+      "capabilities": {
+        "modalities": [
+          "text",
+          "application/ld+json"
+        ],
+        "streaming": false,
+        "batch": true,
+        "authentication": {
+          "methods": [
+            "none"
+          ],
+          "requiredScopes": []
+        }
+      },
+      "skills": [
+        {
+          "id": "resolve_object",
+          "description": "Resolve + verify this holospace as a self-verifying UOR object — re-derive its did:holo and confirm it (Law L5).",
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/ld+json"
+          ],
+          "supportedLanguages": [
+            "en"
+          ]
+        }
+      ],
+      "schema:isBasedOn": "did:holo:sha256:a2b54fc09ef724cb06c5bc8562f257333de87ef17de84d3da90f4147551b833f",
+      "proof": {
+        "type": "DataIntegrityProof",
+        "cryptosuite": "eddsa-jcs-2022",
+        "created": "2026-06-09T00:00:00Z",
+        "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy",
+        "proofPurpose": "assertionMethod",
+        "proofValue": "z2jNMCqvEdbzYEy5PLRcXhhiFKVH7jVR3B9PoqLZDoNAiyGqrsRAzjQbWwuwKWdZXu6BEEbd2wQgTmuR8NCdH4wAi"
+      },
+      "id": "did:holo:sha256:d27fa29b073f9d1e594bae7d09ed641b180786e13984333aa928495eb4a014dd"
+    }
+  ],
+  "records": [
+    {
+      "agent_name": "@DID:hologram:hologram-os",
+      "agent_id": "did:holo:sha256:92cd82370b11315d226331b2c4e441b750d3c881d5af9f82026e512a2af63803",
+      "primary_facts_url": "holo://92cd82370b11315d226331b2c4e441b750d3c881d5af9f82026e512a2af63803",
+      "private_facts_url": "ipfs://bafkreieszwbdocyrgfoseyzrwlcoiqnxkdj4raovv6pyeatokevcv5ryam",
+      "ttl": 86400,
+      "signature": "zogKZDFw9G1WZRTnMtSY63tBh8DuTm2MFnft2YLoqNZqJxsdSU4ftDLLB4QBVZtuUQEufmKGJvFrcMwd128Wqvag",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoatlas",
+      "agent_id": "did:holo:sha256:889bae5741106d94f3dc46915eccabfe1ed87b005f9fe8713f2a6b9a841bd7d4",
+      "primary_facts_url": "holo://889bae5741106d94f3dc46915eccabfe1ed87b005f9fe8713f2a6b9a841bd7d4",
+      "private_facts_url": "ipfs://bafkreieitoxfoqiqnwkphxcgsfpmzk76d3mhwac7t7uhcpzknoniig6x2q",
+      "ttl": 86400,
+      "signature": "zxYT69srTfaCbfkzEXPWUyT9fEaViiYuACtjsKTuxpr9dAeYteLmQhQF5ntHL8VGvWayexN2n8NMn66XJVRs7swm",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoboot",
+      "agent_id": "did:holo:sha256:bf1f8d7ded473713f7437825b4d9a64afd41fe208cf2f6615ec9e24bad674b76",
+      "primary_facts_url": "holo://bf1f8d7ded473713f7437825b4d9a64afd41fe208cf2f6615ec9e24bad674b76",
+      "private_facts_url": "ipfs://bafkreif7d6gx33khg4j7oq3yew2ntjsk7va74iem6l3gcxwj4jf22z2loy",
+      "ttl": 86400,
+      "signature": "zVdsHSwsasx1Uf3UubHsNZEUHY3x8bVyRdzpv63hitZRrktruuJDFUaBcNqifyHY767cpCFvdcfKezmPUxcEo3Cf",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holobrc",
+      "agent_id": "did:holo:sha256:d20e6f433ff3fc4b9f9d9a6ce86758404c5489316666331913da14be42e816b5",
+      "primary_facts_url": "holo://d20e6f433ff3fc4b9f9d9a6ce86758404c5489316666331913da14be42e816b5",
+      "private_facts_url": "ipfs://bafkreigsbzxugp7t7rfz7hm2ntugowcajrkismlgmyzrse62cs7ef2awwu",
+      "ttl": 86400,
+      "signature": "ze1dp5dZAwKLGLyyFYDP6TEwoW2R6sXPLuGZvQ6NeW2JeJNaGkk9Wj4pJ3GUF8mL72ZbdfYZd6TbKpy3g9WcShfH",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holobrowser",
+      "agent_id": "did:holo:sha256:321fb69d02fb70b33a13c6d6b205f3b7453018e3769d700a7dc3b30216ae905d",
+      "primary_facts_url": "holo://321fb69d02fb70b33a13c6d6b205f3b7453018e3769d700a7dc3b30216ae905d",
+      "private_facts_url": "ipfs://bafkreibsd63j2ax3ocztue6g22zal45xiuybry3wtvyau7odwmbbnluqlu",
+      "ttl": 86400,
+      "signature": "z5rFqwMztEwKcSuawWB31LFVJqMnQkqXM8TyQkXRBQLDcRBeKoL6XgLWPxToUHYtjSKZyHJhkQKu3yVTw9hWgFsFG",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holobtc",
+      "agent_id": "did:holo:sha256:bda002f8567d35b7491b17099bc405864c919f8c518184f2a092ef1d0c837287",
+      "primary_facts_url": "holo://bda002f8567d35b7491b17099bc405864c919f8c518184f2a092ef1d0c837287",
+      "private_facts_url": "ipfs://bafkreif5uabpqvt5gw3usgyxbgn4ibmgjsiz7dcrqgcpfies54oqza3sq4",
+      "ttl": 86400,
+      "signature": "z42E7akVRun3USn4ZpRxfrYRgVdpagUpUg1gv2xkKTwVpAnzRLaV33DC26k6tUtx8Gtr8U8MmPALir35Fh3bkWrvc",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holocapture",
+      "agent_id": "did:holo:sha256:384d793f76eda5e73af93977c27e71e85b4f6e40dfbe31b425854700649c31c9",
+      "primary_facts_url": "holo://384d793f76eda5e73af93977c27e71e85b4f6e40dfbe31b425854700649c31c9",
+      "private_facts_url": "ipfs://bafkreibyjv4t65xnuxttv6jzo7bh44pilnhw4qg7xyy3ijmfi4agjhbrze",
+      "ttl": 86400,
+      "signature": "z3AXtpJQEAsKgiH4RsWjtHypQTgaEhA4QwHuSn3KjAsoNnchR3nocruW6jaDG6haeAm9iWg7Jtg8bXNyePGfXDqE",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holocloud",
+      "agent_id": "did:holo:sha256:e4b4c79cd6622bc2f3f608a1c65096f294828c6493d21bddaca2842b675e5401",
+      "primary_facts_url": "holo://e4b4c79cd6622bc2f3f608a1c65096f294828c6493d21bddaca2842b675e5401",
+      "private_facts_url": "ipfs://bafkreihewtdzzvtcfpbph5qiuhdfbfxsssbiyzet2in53lfcqqvwoxsuae",
+      "ttl": 86400,
+      "signature": "z34NdGUp1xUTsw7y1c7wM9rQ3KVGHtuGAbvA1ZvPL5MMvw1EWLZEoGxFiMUK6jLjUrwTxvQMKAeFhLnnkha34e7SE",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holodocs",
+      "agent_id": "did:holo:sha256:20c84d5ad51dd80dff12add5a5f57f1a3b84da0a13679be842b4bf756f6dee54",
+      "primary_facts_url": "holo://20c84d5ad51dd80dff12add5a5f57f1a3b84da0a13679be842b4bf756f6dee54",
+      "private_facts_url": "ipfs://bafkreibazbgvvvi53ag76evn2ws7k7y2hocnucqtm6n6qqvux52w63pokq",
+      "ttl": 86400,
+      "signature": "z4Qx6Hp5PQWdgkwXQagjFvdwdbG5gJ3hN7igW74MtHFwBno5uXSq8SeEDyMe1fPvzvKvXsapRZb8pTJVP8KU2Dcdb",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoetherscan",
+      "agent_id": "did:holo:sha256:eb7e3c6f9a7a3c191dad4acde6d88aaae7a7b09b14bbe1ba5f57f35303091c7e",
+      "primary_facts_url": "holo://eb7e3c6f9a7a3c191dad4acde6d88aaae7a7b09b14bbe1ba5f57f35303091c7e",
+      "private_facts_url": "ipfs://bafkreihlpy6g7gt2hqmr3lkkzxtnrcvk46t3bgyuxpq3ux2x6njqgci4py",
+      "ttl": 86400,
+      "signature": "z44JjQzWDwhNJGGbiaJjwbE1SEfVVJ3c8cNsExzWRaYD79PqqhD5hv2R2366UU1sJnZ34sGrJDbrYB7W8ddJCdidk",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoevm",
+      "agent_id": "did:holo:sha256:d5932ee1a1b4518d1518e9b53d94795157e0dcb5129cce28b2d72dbc904b1b90",
+      "primary_facts_url": "holo://d5932ee1a1b4518d1518e9b53d94795157e0dcb5129cce28b2d72dbc904b1b90",
+      "private_facts_url": "ipfs://bafkreigvsmxodinukggrkghjwu6zi6krk7qnznistthcrmwxfw6jasy3sa",
+      "ttl": 86400,
+      "signature": "z4RqjXgFnfk26Mmu78QNoG3re44q7m1PLq6P4pfLeJSw7VsV7ZbTRqPfCUsuDb4rGpLpUqYH317CzDV3SJULqH5DS",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:hologit",
+      "agent_id": "did:holo:sha256:a7a4931bb175b4b4f7dc3581b2f40a40535317ad9d7de9785092c61c7cfe3ac2",
+      "primary_facts_url": "holo://a7a4931bb175b4b4f7dc3581b2f40a40535317ad9d7de9785092c61c7cfe3ac2",
+      "private_facts_url": "ipfs://bafkreifhusjrxmlvws2ppxbvqgzpicsaknjrplm5pxuxquesyyohz7r2yi",
+      "ttl": 86400,
+      "signature": "z4G8TvmV2kNfqfTZcdYg7rMBwvJoDDvUBMk4gyfqC3YcTK9waHyHnYg4sEX8KzMpQM4bHuk2NdD34WEh915ZB1A67",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoipfs",
+      "agent_id": "did:holo:sha256:f6f1a400fe403ba1d02693f8e974c972a1e8ad45ddb7a368d4efa2236a4469eb",
+      "primary_facts_url": "holo://f6f1a400fe403ba1d02693f8e974c972a1e8ad45ddb7a368d4efa2236a4469eb",
+      "private_facts_url": "ipfs://bafkreihw6gsab7sahoq5ajut7duxjslsuhuk2ro5w6rwrvhpuirwurdj5m",
+      "ttl": 86400,
+      "signature": "z5ND2ZWBw69vMYryKrHoz1XSk9EJ9ybxTAZcPbhsBsvCHLKv9Mcis4WKAJ5NatZxkfey2wcvWRWpATt1VMt1KamNM",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:on-liberty",
+      "agent_id": "did:holo:sha256:f2335d46895559698742862f5e48dbc6ff31076fb10c58b3184aca0ae6ea0328",
+      "primary_facts_url": "holo://f2335d46895559698742862f5e48dbc6ff31076fb10c58b3184aca0ae6ea0328",
+      "private_facts_url": "ipfs://bafkreihsgnounckvlfuyoqugf5perw6g74yqo35rbrmlggckzifon2qdfa",
+      "ttl": 86400,
+      "signature": "z3iohE3xi9DY1GBKQW6k6rFGHWqovs8sSXgK2B5BYL3TYrMVnGtPAvwfbMFsn1hTriHV9xt2P5CvJixZH6j3KfpPX",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:hologrammeet",
+      "agent_id": "did:holo:sha256:5f7611739599a366969465ea99fed9a1b86188383943fb1683c4023b60115af8",
+      "primary_facts_url": "holo://5f7611739599a366969465ea99fed9a1b86188383943fb1683c4023b60115af8",
+      "private_facts_url": "ipfs://bafkreic7oyixhfmzuntjnfdf5km75wnbxbqyqobzip5rna6eai5waek27a",
+      "ttl": 86400,
+      "signature": "z5eXm2VDfWg9KPoYK1ABkXGK4En7aqVwGQjCBYqWjZyXq5cuuiHNJNesPU6qMESwuneDhw3TsBfcFYFPJicSL6JDM",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holomusic",
+      "agent_id": "did:holo:sha256:d7f577ad3ecc428d5f8c9994f3047fc89cd7dd6b6d76c56bca4137190e78d0fa",
+      "primary_facts_url": "holo://d7f577ad3ecc428d5f8c9994f3047fc89cd7dd6b6d76c56bca4137190e78d0fa",
+      "private_facts_url": "ipfs://bafkreigx6v322pwmikgv7dezstzqi76ittl5223no3cwxssbg4mq46gq7i",
+      "ttl": 86400,
+      "signature": "z5cKanb89ZUHAoZmtiKiRALX1ca8wjapHa92W9JMcR4n7YHXQstman3yBLVc2oKE3kgUc4528Kq63ksDSfcvkrxqr",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holonotepad",
+      "agent_id": "did:holo:sha256:3dfc995ef962ee17d48efe43b042dc5ea09279d8f3856831d78907fbe460cb89",
+      "primary_facts_url": "holo://3dfc995ef962ee17d48efe43b042dc5ea09279d8f3856831d78907fbe460cb89",
+      "private_facts_url": "ipfs://bafkreib57smv56lc5yl5jdx6ioyefxc6ucjhtwhtqvuddv4ja756iyglre",
+      "ttl": 86400,
+      "signature": "z2YznziSpyTTz8dfGMMr7CX6eyeAYxyxsnLdjBKuwWddsT7uzrGwLtzTTED6HaPXeEHisiJGCD2WdJhd6F3wdJj9Z",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoos",
+      "agent_id": "did:holo:sha256:d8d7b11163cc891e906259e24bc3f5658c886963a639c1708c5e1b4769fe7e0e",
+      "primary_facts_url": "holo://d8d7b11163cc891e906259e24bc3f5658c886963a639c1708c5e1b4769fe7e0e",
+      "private_facts_url": "ipfs://bafkreigy26yrcy6mrepjaysz4jf4h5lfrsegsy5ghhaxbdc6dndwt7t6by",
+      "ttl": 86400,
+      "signature": "z3DZpwdVrzzf46VHcArUyt2hLaY55PPhtX9HpB6C7dWhpYuE6GoefL4mLf6UKiUUN8buLAQ9A12pdGF7SMsm4RqBE",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:plasmadesktop",
+      "agent_id": "did:holo:sha256:438152aabe39eafe2fefb06a0175f0929dce514bc2cb12364a99b5e56a507f0e",
+      "primary_facts_url": "holo://438152aabe39eafe2fefb06a0175f0929dce514bc2cb12364a99b5e56a507f0e",
+      "private_facts_url": "ipfs://bafkreicdqfjkvprz5l7c735qniaxl4estxhfcs6czmjdmsuzwxswuud7by",
+      "ttl": 86400,
+      "signature": "z2PbhY6nuQLvtfsfzCUzuen1pSXB9CGH7inVH2oVvJGRefkzk6HKS6jsFfccf7xyVw9yRWJXJGDtt6gEqe6ADCwRf",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoplayer",
+      "agent_id": "did:holo:sha256:179979ed0877c612cdbd65027589572148d7afe534ef56f708392fc7edef7239",
+      "primary_facts_url": "holo://179979ed0877c612cdbd65027589572148d7afe534ef56f708392fc7edef7239",
+      "private_facts_url": "ipfs://bafkreiaxtf462cdxyyjm3plfaj2ysvzbjdl27zju55lpocbzf7d6333she",
+      "ttl": 86400,
+      "signature": "zxoYqx12XEvhZ8rkgoUQZ82syteCEEQkyhSXkDZi8LZsurxYDv9Q3yuxsRUV1dGjJsKVBqgwSawW5VeekGMduckz",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoprivacy",
+      "agent_id": "did:holo:sha256:ab9a205f854606081c2422859c30439058df101758fb71a73304789d8ec2e764",
+      "primary_facts_url": "holo://ab9a205f854606081c2422859c30439058df101758fb71a73304789d8ec2e764",
+      "private_facts_url": "ipfs://bafkreifltiqf7bkgayebyjbcqwodaq4qldpraf2y7ny2omyepcoy5qxhmq",
+      "ttl": 86400,
+      "signature": "z5MVvvKDwizs9sTiVuuEfFCdZrv9s74QBt1pXew5f8z1dHdSEFJocpJ1GjDLfsHLusozpWRhNFgUtXx2DBBMKbLkh",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:qemu",
+      "agent_id": "did:holo:sha256:e6370fa8757336997e7f30f61352b4cc44beb387e921a51281bf2fc3e0be5525",
+      "primary_facts_url": "holo://e6370fa8757336997e7f30f61352b4cc44beb387e921a51281bf2fc3e0be5525",
+      "private_facts_url": "ipfs://bafkreihgg4h2q5ltg2mx47zq6yjvfngmis7lhb7jegsrfan7f7b6bpsveu",
+      "ttl": 86400,
+      "signature": "z9Tx5GW66aLABDHSMqYg91tvd44a3Sj4mc7FkZkchRGovMUJjLcFGwBj46MQrpoBSQ9uLfVkvsjchwJZ9GQdCGuA",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holosdk",
+      "agent_id": "did:holo:sha256:861f7e1754ef5c25d731e063891c284e875cd50b1333cbd6b351577e094c92cd",
+      "primary_facts_url": "holo://861f7e1754ef5c25d731e063891c284e875cd50b1333cbd6b351577e094c92cd",
+      "private_facts_url": "ipfs://bafkreiegd57bovhplqs5ompamoerykcoq5onkcytgpf5nm2rk57asteszu",
+      "ttl": 86400,
+      "signature": "z5kBEYZhR4XNmN3wm1fhrR8AAvHq8vS3Axjs5Hio9rSFYb7KQushNcJ2kQcGZ1dZwer58j2Q6P8XgnRsBvrpuKDvi",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holosearch",
+      "agent_id": "did:holo:sha256:38ffdc321192ef8c095dc91081ea8e1fad7a28c101b6eb3c58bb52bad06fe5a4",
+      "primary_facts_url": "holo://38ffdc321192ef8c095dc91081ea8e1fad7a28c101b6eb3c58bb52bad06fe5a4",
+      "private_facts_url": "ipfs://bafkreiby77odeems56gasxojcca6vdq7vv5crqibw3vtywf3kk5na37fuq",
+      "ttl": 86400,
+      "signature": "za82bca6Urrk4TysjN8JCGwCy68PoEXozi3mRm76ABNEWYbfjM66xrCBFQPukBoLcagSM1Vh6fKHPojC2y77pvxh",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holostarter",
+      "agent_id": "did:holo:sha256:74e70d182481a9f64221cb2bb33c8ada99fd5d2e0d8315a9493d72d9a7fd3618",
+      "primary_facts_url": "holo://74e70d182481a9f64221cb2bb33c8ada99fd5d2e0d8315a9493d72d9a7fd3618",
+      "private_facts_url": "ipfs://bafkreidu44grqjebvh3eeiolfoztzcw2th6v2lqnqmk2ssj5olm2p7jwda",
+      "ttl": 86400,
+      "signature": "z5x4UxEnAp3GVUQT7VNxY5ZeEpGxNkip8ZWgrXCuYPPVU2TSH9xx2JfWVphS3A86qVzEx7F53B1hLnrUbjiMtFeWg",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holostream",
+      "agent_id": "did:holo:sha256:118f271b52cc5568cb3c5f58360b99710ba82782f97cdcdfab92fae96bf93f77",
+      "primary_facts_url": "holo://118f271b52cc5568cb3c5f58360b99710ba82782f97cdcdfab92fae96bf93f77",
+      "private_facts_url": "ipfs://bafkreiarr4trwuwmkvumwpc7la3axglrboucpaxzpton7k4s7luwx6j7o4",
+      "ttl": 86400,
+      "signature": "zz3RVdQTwmzfF3yLyfk2iLwVwpQbxwR4dNoaDzgi8PUQ4mkpF3EqmrbKF8vyYa2KrFcC9sgKdLDMEJaGtT4He5Sh",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoterms",
+      "agent_id": "did:holo:sha256:4bde2d8cfaad36e7f881177b5d7cb818646f9e9b866c7c45ed5028d0ea43a5e5",
+      "primary_facts_url": "holo://4bde2d8cfaad36e7f881177b5d7cb818646f9e9b866c7c45ed5028d0ea43a5e5",
+      "private_facts_url": "ipfs://bafkreicl3ywyz6vng3t7raixpnoxzoaymrxz5g4gnr6el3kqfdiouq5f4u",
+      "ttl": 86400,
+      "signature": "z2GAneX3JaGsCi3tJ7BgKaho3LKh6LYTXiFgkSoGZmo9YHNNF4dQiu2aiPZdJ1NBxGWSoXRgHmcxH3egBJJPM2DeM",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holovideo",
+      "agent_id": "did:holo:sha256:7ced3d9ef87aa7afaa970243ecd70e8c69e1f03e44feb12a4547e17316f6809d",
+      "primary_facts_url": "holo://7ced3d9ef87aa7afaa970243ecd70e8c69e1f03e44feb12a4547e17316f6809d",
+      "private_facts_url": "ipfs://bafkreid45u6z56d2u6x2vfycipwnodumnhq7apse72ysurkh4fzrn5uatu",
+      "ttl": 86400,
+      "signature": "ztummbPZdGeGKR7xLSUCb4Bk1yEQfmJr6nMMneucfopaQUNwSKqL82V6uyW6tJVXTBH9GMqgDaz3e2fuwFinvGfN",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holowallet",
+      "agent_id": "did:holo:sha256:9a014431fe01828d3a1d542666d1b9c00a649b159725db743d40dcdfa02cbfbe",
+      "primary_facts_url": "holo://9a014431fe01828d3a1d542666d1b9c00a649b159725db743d40dcdfa02cbfbe",
+      "private_facts_url": "ipfs://bafkreie2afcdd7qbqkgtuhkueztndooabjsjwfmxexnxipka3tp2alf7xy",
+      "ttl": 86400,
+      "signature": "z3Bu9rxLDXMeE4DWbsxrXaCPtNxVdH1LTKKGGDL76bnxVHXPqJnhq9sd5X31BMRcBv5RK15mkTp9CEmBoTdx2uLu7",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holowinamp",
+      "agent_id": "did:holo:sha256:70048403ed95ebb426d35c31c29889885d350aa1e5a968e92b6a3a9a6e1bc2df",
+      "primary_facts_url": "holo://70048403ed95ebb426d35c31c29889885d350aa1e5a968e92b6a3a9a6e1bc2df",
+      "private_facts_url": "ipfs://bafkreidqascah3mv5o2cnu24ghbjrcmilu2qvipfvfuosk3khkng4g6c34",
+      "ttl": 86400,
+      "signature": "zjZ1g9diajjLq8R7MaLiv8b8CrFmjUeMNsRwVUPqAiJ6zB8aCQppKZ7HDDSX7XDYr9d3ys9q2F8DzHxYjTLijZJp",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    },
+    {
+      "agent_name": "@DID:hologram:holoworkspace",
+      "agent_id": "did:holo:sha256:d27fa29b073f9d1e594bae7d09ed641b180786e13984333aa928495eb4a014dd",
+      "primary_facts_url": "holo://d27fa29b073f9d1e594bae7d09ed641b180786e13984333aa928495eb4a014dd",
+      "private_facts_url": "ipfs://bafkreigsp6rjwbz7tupfss5opue62za3dadynyjzqqztvkjijfpljiau3u",
+      "ttl": 86400,
+      "signature": "z3Se8fKxMHDSg37wVxEtqZ3m4xvHqarerXMHSwwXJ5YrHDWybSAvWDsNhPZDwSLKaCtuJbrujb7YGGsCyCCjTTdWr",
+      "verificationMethod": "did:key:z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy#z6MkwRpCennttixVt2F35JfASomo8rJo5SsyG44rAynMXxxy"
+    }
+  ]
+}

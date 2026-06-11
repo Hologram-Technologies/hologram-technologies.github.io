@@ -1,0 +1,43 @@
+// holo-fhs-map.mjs — THE one flat→FHS path mapping. The apps speak a flat URL space
+// (/_shared/, /apps/<id>/, /home.html, /boot.html, …) but the OS lives in a Linux FHS tree
+// (/usr/lib/holo/, /usr/share/frame/, /boot/boot/, …). This pure function maps a requested
+// os-relative path to the PHYSICAL FHS path that actually holds the bytes. It is the single
+// source of truth shared by BOTH the dev server (tools/holo-serve-fhs.mjs) and the in-browser
+// Service Worker (os/holo-fhs-sw.js) — so a GitHub Pages deploy (dumb static host, files at
+// their real FHS path) boots byte-identically to `node tools/holo-serve-fhs.mjs`. Law L2: one
+// canonical mapping, no per-surface drift. Pure + dependency-free (string-only; node + SW + DOM).
+//
+// Returns the os-relative physical path, or null for "unknown top-level" (the dev server then
+// tries the Apps repo / original-os gap fallback; on Pages a null is simply a 404).
+
+export function fhsMap(rel) {
+  rel = String(rel).replace(/^\/+/, "");
+  let mm;
+  if (rel === "apps/index.jsonld") return null;                       // the frame needs landingPage → dev serves original
+  // _shared and pkg are ALWAYS the OS runtime — wherever an app references them.
+  if ((mm = rel.match(/^(?:apps\/[^/]+\/)?_shared\/(.+)$/))) return "usr/lib/holo/" + mm[1];
+  if ((mm = rel.match(/^(?:apps\/[^/]+\/)?pkg\/(.+)$/))) return "usr/lib/pkg/" + mm[1];
+  if (rel.startsWith("apps/")) { const [, id, ...sub] = rel.split("/"); return id === "boot" ? "boot/" + sub.join("/") : "usr/share/holospaces/" + id + "/" + sub.join("/"); }
+  if (rel.startsWith("pkg/")) return "usr/lib/pkg/" + rel.slice(4);
+  if (rel.startsWith(".well-known/")) return ".well-known/" + rel.slice(12);
+  if (rel.startsWith("terms/")) return "etc/terms/" + rel.slice(6);
+  if ((mm = rel.match(/^\.holo\/(terms|privacy)\/(.+)$/))) return "etc/" + mm[1] + "/" + mm[2];
+  if ((mm = rel.match(/^(a2a|nanda|skills|atlas)\/(.+)$/))) return "srv/" + mm[1] + "/" + mm[2];
+  if (rel === "apps-witness.result.json") return "srv/apps-witness.result.json";
+  // The boot chain: rEFInd (boot.html at root) → Plymouth (splash.html) → SDDM (login.html)
+  // → shell (home.html) → editor (workspace.html). All in /usr/share/frame.
+  if (["holospace.html", "home.html", "find.html", "splash.html", "login.html", "workspace.html"].includes(rel)) return "usr/share/frame/" + rel;
+  if (rel === "boot.html") return "boot/index.html";                  // the bootloader, served at the root
+  // …the bootloader's OWN asset subdir is physically boot/boot/, so `boot/<x>` maps one level deeper.
+  if (/^boot\/(refind\.conf|boot-manifest\.json|icons\/|themes\/|make-boot\.mjs)/.test(rel)) return "boot/boot/" + rel.slice(5);
+  if (["holo-boot-sw.js", "coi-serviceworker.min.js"].includes(rel)) return "boot/" + rel;
+  if (["holo-sw.js", "holo-launch.mjs", "holo-boot-sw-register.mjs", "browser-sw.js"].includes(rel)) return "lib/" + rel;
+  if (["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-uor.mjs", "holo-object.mjs", "holo-wire.mjs"].includes(rel)) return "sbin/" + rel;
+  if (["manifest.webmanifest", "os-closure.json"].includes(rel)) return "etc/" + rel;
+  if (["icon-192.png", "icon-512.png"].includes(rel)) return "usr/share/icons/" + rel;
+  // The Plymouth theme catalog the splash fetches as `splash/themes/<id>/…` lives FHS-true.
+  if ((mm = rel.match(/^splash\/themes\/(.+)$/))) return "usr/share/plymouth/themes/" + mm[1];
+  // FHS passthrough: the whole Linux root is addressable at its real path (identity map).
+  if (/^(usr|etc|var|boot|bin|sbin|lib|lib64|opt|srv|mnt|media|home|root|dev|proc|sys|run|tmp)\//.test(rel)) return rel;
+  return null;
+}

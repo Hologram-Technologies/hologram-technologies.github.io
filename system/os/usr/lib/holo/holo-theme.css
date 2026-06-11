@@ -1,0 +1,146 @@
+/* Holo Theme (holo-theme.css) — the Hologram OS theming kernel. Companion to holo-mobile.css:
+ * that file enforces mobile *mechanics*; this one defines the *visual language*
+ * (palette, typography, density) as a runtime contract every holospace can adopt.
+ *
+ * 100% W3C standards-track — NO framework, NO build tool is the source of truth:
+ *   • CSS Custom Properties for Cascading Variables L1   — the tokens
+ *   • CSS Properties and Values API (@property)          — the typed token schema
+ *   • CSS Cascading & Inheritance L5 (@layer)            — OS / app / user precedence
+ *   • CSS Color 4 + Color Adjustment L1 (light-dark())   — light & dark in one value
+ *   • Media Queries L5 (prefers-*)                        — honor system + a11y defaults
+ *
+ * The theme PAYLOAD is this file; the theme IDENTITY is its κ (sha256 + JSON-LD + SRI
+ * + did:holo:, emitted by build-holo-site.mjs per ADR-022). Switched live by
+ * holo-theme.js over the postMessage iframe tree. Gated by theme-conformance-witness.mjs.
+ *
+ * Precedence (last @layer wins): an app's UNLAYERED rules beat any layer here, so an
+ * app keeps its own look by simply declaring its own values ("own"). An app that does
+ * NOT declare a token falls through to the OS value ("adopt"). The user always wins for
+ * accessibility because holo-theme.js applies font-scale/density as INLINE custom
+ * properties on :root (author inline beats stylesheet rules; enforce-os adds !important).
+ */
+
+@layer hos-base, hos-os, app, hos-user;
+
+/* ── Typed token schema (W3C @property) — gives tokens a type, an initial value, and
+ *    inheritance without any JSON format or compiler. Invalid values are ignored. ─── */
+@property --holo-font-scale { syntax: "<number>"; inherits: true; initial-value: 1; }
+@property --holo-density    { syntax: "<number>"; inherits: true; initial-value: 1; }
+@property --holo-accent     { syntax: "<color>";  inherits: true; initial-value: #5b8cff; }
+/* Minimum text size — the readability FLOOR (default 16px). Set live by the engine on :root;
+ * the type ramp (holo-mobile.css) and the root font-size below clamp UP to it with max(), so no
+ * OS/app text rendered through the tokens can fall below it. 0 = off (restore the raw ramp). */
+@property --holo-font-min   { syntax: "<length>"; inherits: true; initial-value: 16px; }
+
+@layer hos-os {
+  :root {
+    /* Enable light-dark(); palette attribute (set by the engine) pins one mode. */
+    color-scheme: light dark;
+
+    /* ── Typography — the OS-settable type system (Hologram OS › Settings › Display).
+     *    --holo-font-scale drives the ROOT font-size, so every rem-based size and the
+     *    --holo-text* ramp (holo-mobile.css, authored in rem) scale from ONE lever. */
+    --holo-font-scale: 1;                         /* 0.85 … 1.4, set live by the engine */
+    /* Default OS typeface: Helvetica Neue (the iPhone's face) — a system font on Apple
+     * devices; falls back to Helvetica/Arial elsewhere. (Not vendored; it's proprietary.) */
+    --holo-font-sans: "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, system-ui, sans-serif;
+    --holo-font-serif: ui-serif, Georgia, "Times New Roman", serif;
+    --holo-font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+
+    /* ── Density — multiplies UI spacing; immersive mode tightens it. */
+    --holo-density: 1;
+
+    /* Focus ring width (WCAG 2.4.7/2.4.13); bumped under prefers-contrast. */
+    --holo-focus-width: 3px;
+
+    /* ── Palette — light & dark carried in one declaration (CSS Color Adjustment L1). */
+    --holo-bg:         light-dark(#f5f7fa, #0b0d10);
+    --holo-surface:    light-dark(#ffffff, #14161b);
+    --holo-surface-2:  light-dark(#eef1f6, #181b21);
+    --holo-border:     light-dark(#d9dee7, #23272f);
+    --holo-ink:        light-dark(#16191f, #e6edf3);
+    --holo-ink-dim:    light-dark(#5b6470, #8b949e);
+    --holo-accent:     light-dark(#3b5bdb, #5b8cff);
+    --holo-accent-ink: #ffffff;
+    --holo-ok:         light-dark(#1f9d57, #3fb950);
+    --holo-warn:       light-dark(#b7791f, #d29922);
+    --holo-danger:     light-dark(#c92a2a, #f85149);
+    /* Derived surface tints — Color 4 color-mix(), no extra tokens to maintain. */
+    --holo-accent-soft: color-mix(in srgb, var(--holo-accent) 16%, transparent);
+    --holo-hover:       color-mix(in srgb, var(--holo-ink) 8%, transparent);
+
+    /* ── Glass / translucency (ADR-0059) — TranslucentTB's accent-state model
+     *    (holo-translucenttb-accents.json) expressed as CSS. A surface picks ONE state
+     *    via its own [data-glass] attribute; CSS blur px = TranslucentTB blur_radius/3.
+     *    Acrylic = blur + saturate + a faint accent tint (Fluent material). Used by the
+     *    dock (#holo-dock) and adoptable by any chrome that wants the same glass. */
+    --holo-glass-tint:    light-dark(rgba(246,248,252,0.72), rgba(22,26,34,0.70));
+    --holo-glass-blur:    22px;                 /* ≈ TranslucentTB blur_radius 66 / 3 — crisp Fluent frost */
+    --holo-glass-sat:     1.8;
+    --holo-glass-border:  light-dark(rgba(255,255,255,0.90), rgba(255,255,255,0.22));
+    --holo-glass-edge:    light-dark(rgba(255,255,255,0.85), rgba(255,255,255,0.28));   /* inset top bevel — reads on any bg */
+    --holo-glass-shadow:  0 0.5rem 2.5rem light-dark(rgba(20,30,50,0.28), rgba(0,0,0,0.60));
+    --holo-glass-opaque-bg:  light-dark(#ffffff, #14161b);  --holo-glass-opaque-fx:  none;
+    --holo-glass-clear-bg:   transparent;                   --holo-glass-clear-fx:   none;
+    --holo-glass-blur-bg:    var(--holo-glass-tint);        --holo-glass-blur-fx:    blur(var(--holo-glass-blur)) saturate(1.4) brightness(1.04);
+    --holo-glass-acrylic-bg: color-mix(in srgb, var(--holo-glass-tint) 86%, var(--holo-accent) 14%);
+    --holo-glass-acrylic-fx: blur(var(--holo-glass-blur)) saturate(var(--holo-glass-sat)) brightness(1.08);
+  }
+
+  /* Explicit palette beats the system default (Media Queries L5 still applies on auto). */
+  :root[data-holo-palette="light"] { color-scheme: light; }
+  :root[data-holo-palette="dark"]  { color-scheme: dark; }
+
+  /* Presentation axis — orthogonal to palette. Immersive = denser chrome, calm surfaces. */
+  :root[data-holo-presentation="immersive"] { --holo-density: 0.82; }
+
+  /* ── Global application at specificity 0 (:where) so ANY app rule overrides freely.
+   *    This is the only place the OS reaches every surface by default; it intentionally
+   *    sets typography (the user's readability) but NOT colors (apps keep their identity
+   *    unless they adopt the tokens), matching holo-mobile.css's restraint. */
+  :where(html) { font-size: max(var(--holo-font-min, 16px), calc(100% * var(--holo-font-scale, 1))); }
+  /* font-optical-sizing + synthesis are CSS Fonts Module controls (real type quality). */
+  :where(body) { font-family: var(--holo-font-sans); font-optical-sizing: auto; font-variation-settings: var(--holo-font-variation, normal); }
+  :where(code, pre, kbd, samp, .holo-mono) { font-family: var(--holo-font-mono); }
+
+  /* Visible keyboard focus (WCAG 2.4.7 Focus Visible / 2.4.13 Focus Appearance). Mouse
+   * focus stays quiet via :focus-visible; specificity 0 so apps can restyle, not remove. */
+  :where(:focus-visible) { outline: var(--holo-focus-width, 3px) solid var(--holo-accent); outline-offset: 2px; }
+
+  /* Honor the user's motion preference OS-wide (WCAG 2.3.3 / Media Queries L5). */
+  @media (prefers-reduced-motion: reduce) {
+    :where(*, *::before, *::after) {
+      animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important; scroll-behavior: auto !important;
+    }
+  }
+
+  /* Honor the user's contrast preference (Media Queries L5 / WCAG 1.4.6 + 1.4.11):
+   * push borders/ink to the extremes and widen the focus ring. */
+  @media (prefers-contrast: more) {
+    :root {
+      --holo-border:  light-dark(#000000, #ffffff);
+      --holo-ink:     light-dark(#000000, #ffffff);
+      --holo-ink-dim: light-dark(#26303a, #d7dee6);
+      --holo-focus-width: 4px;
+    }
+  }
+}
+
+/* ── Adopt-in primitives — the standard way to render OS-themed surface chrome. Apps
+ *    opt in by using these tokens/classes; they then follow palette + font changes. */
+.holo-surface { background: var(--holo-surface); color: var(--holo-ink); border: 1px solid var(--holo-border); border-radius: var(--holo-radius, 12px); }
+.holo-accent  { background: var(--holo-accent); color: var(--holo-accent-ink); }
+.holo-ink-dim { color: var(--holo-ink-dim); }
+
+/* ── Container-query responsiveness (W3C CSS Containment / Container Queries) ────────
+ *    A holospace nested in a small iframe must lay out by its OWN width, not the device
+ *    viewport — that's exactly what container queries give us (media queries can't see
+ *    the iframe's box). A region opts in with .holo-cq, and its children adapt to the
+ *    CONTAINER size. This is the standards-correct answer for an OS of nested frames. */
+.holo-cq { container-type: inline-size; container-name: holo; }
+.holo-cq-grid { display: grid; gap: var(--holo-space-4, 16px); grid-template-columns: 1fr; }
+@container holo (min-width: 30rem) { .holo-cq-grid { grid-template-columns: repeat(2, 1fr); } }
+@container holo (min-width: 52rem) { .holo-cq-grid { grid-template-columns: repeat(3, 1fr); } }
+.holo-cq-row { display: flex; flex-direction: column; gap: var(--holo-space-3, 12px); }
+@container holo (min-width: 34rem) { .holo-cq-row { flex-direction: row; align-items: center; } }

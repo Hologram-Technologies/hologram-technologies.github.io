@@ -1,0 +1,43 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "lib",
+  "hosfs:fhs": "/usr/lib",
+  "hosfs:fhsRole": "/usr libraries",
+  "hosfs:kind": "content",
+  "links": [
+    {
+      "id": "did:holo:sha256:5ebcae819efeb807c1c53f65740293ba4684de5235381ffff8b49bdf441930f4",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-M6BZ4zbWZIMsUsoWjNfd6TCD7EkKezLyvNSUj+8n0r4=",
+      "digestMultibase": "uEiAzoFnjNtZkgyxSyhaM193pMIPsSQp7MvK81JSP7yfSvg"
+    }
+  ],
+  "id": "did:holo:sha256:870c06f23cf446ce19036ee6412fc4a9b10c7f6fb265da5e3ff593f85beb6c75"
+}

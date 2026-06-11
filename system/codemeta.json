@@ -1,0 +1,132 @@
+{
+  "@context": [
+    "https://doi.org/10.5063/schema/codemeta-2.0",
+    {
+      "schema": "https://schema.org/",
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "owl": "http://www.w3.org/2002/07/owl#"
+    }
+  ],
+  "@type": "SoftwareSourceCode",
+  "name": "Hologram OS",
+  "description": "Your personal internet supercomputer — fast, free and private. A content-addressed operating system for the open, semantic web: every object is a self-verifying W3C linked-data node named by its content (did:holo:sha256:…), composing into one infinitely-nestable, serverless object graph. Resolve any reference, re-derive its hash, and you have verified it — no server to trust.",
+  "applicationCategory": "OperatingSystem",
+  "codeRepository": "https://github.com/Hologram-Technologies/hologram-os",
+  "license": "https://spdx.org/licenses/MIT",
+  "programmingLanguage": [
+    "Rust",
+    "JavaScript",
+    "HTML",
+    "WebAssembly"
+  ],
+  "runtimePlatform": "Web",
+  "operatingSystem": "Browser",
+  "keywords": [
+    "content-addressing",
+    "linked-data",
+    "JSON-LD",
+    "UOR",
+    "did:holo",
+    "semantic-web",
+    "WebAssembly",
+    "serverless",
+    "Model Context Protocol"
+  ],
+  "isBasedOn": "https://github.com/Hologram-Technologies/holospaces",
+  "author": {
+    "@type": "Organization",
+    "name": "Hologram Technologies",
+    "url": "https://github.com/Hologram-Technologies"
+  },
+  "maintainer": {
+    "@type": "Organization",
+    "name": "Hologram Technologies",
+    "url": "https://github.com/Hologram-Technologies"
+  },
+  "copyrightYear": 2026,
+  "copyrightHolder": {
+    "@type": "Organization",
+    "name": "Hologram Technologies"
+  },
+  "schema:hasPart": [
+    {
+      "@id": "did:holo:sha256:a2f70402f016d3482e9839e2136c43417e69109373b4e908c8345bfdeb232936",
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Collection"
+      ],
+      "schema:name": "Hologram OS image — the whole content-addressed OS as one self-verifying UOR Merkle-DAG (ADR-026)",
+      "schema:url": "os/os-root.jsonld"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2",
+      "@type": "dcat:Catalog",
+      "schema:name": "Conformance catalog — the gate (ADR-024), witnessed by tools/gate.mjs",
+      "schema:url": "os/etc/conformance.jsonld"
+    },
+    {
+      "@id": "https://hologram.os/apps",
+      "@type": "dcat:Catalog",
+      "schema:name": "Holospace (app) catalog — content-addressed, DCAT",
+      "schema:url": "os/apps/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:85c59e46578ada2473ff9688f838e754b35bd2c69f1bc1b2082575b3d14d90d0",
+      "@type": "dcat:Catalog",
+      "schema:name": "Project NANDA agent index — the Internet of AI Agents projection (ADR-034)",
+      "schema:url": "os/nanda/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:b3f207e46c4022a6c84996273a9c8631463d55d07dc9e23cf5fb38743772ee81",
+      "@type": "dcat:Catalog",
+      "schema:name": "Agent Skills index — the agentskills.io / Hermes projection (ADR-035)",
+      "schema:url": "os/skills/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:37d9919156b9a89a49cc8c661307d3bb42ed72ebe2559076161ca544954b4317",
+      "@type": "dcat:Catalog",
+      "schema:name": "Agent2Agent (A2A) card directory — the horizontal agent↔agent projection (ADR-036)",
+      "schema:url": "os/a2a/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:a8ae15c12698be5f7ffc63c640f1a86b52e555a743fef83b0cddb722dda4dfb5",
+      "@type": "dcat:Catalog",
+      "schema:name": "Holo AgentTrust — content-addressed, append-only agent reputation chains (ADR-039)",
+      "schema:url": "os/agenttrust/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:308ff5ca6724bc9c9c19b24967f27d6a74fc24740cb0dbf0060cc7e92c1e9cc0",
+      "@type": "dcat:Catalog",
+      "schema:name": "Holo Delegate — content-addressed UCAN capability chains (scoped, revocable authority) (ADR-042)",
+      "schema:url": "os/delegate/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:31b724eb4ccff8d76879cb3ef2f40d9233dfcaa0367d721555bde534173255e1",
+      "@type": "dcat:Catalog",
+      "schema:name": "Holo Orchestrate — verifiable multi-agent work receipts (content-addressed execution DAGs) (ADR-045)",
+      "schema:url": "os/orchestrate/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:1cfbfccbd2bf123529701a4a1f4b69d01602cdac097f17cf23edf40b1ac31502",
+      "@type": "dcat:Catalog",
+      "schema:name": "Holo Settle — verifiable settlement: pay agents against proven work (x402-NP over content-addressed receipts) (ADR-048)",
+      "schema:url": "os/settle/index.jsonld"
+    },
+    {
+      "@id": "did:holo:sha256:0167c804fe075368adfe155e7deb52cb435feed9ff00497d4d13500b12e5da92",
+      "@type": [
+        "schema:WebAPI",
+        "prov:Entity"
+      ],
+      "schema:name": "Holo Agents — the unified agent discovery entry point: every door (MCP · NANDA · A2A · Skills) + the agent-stack verbs (ADR-049)",
+      "schema:url": "os/.well-known/agents.json"
+    },
+    {
+      "@id": "https://hologram.os/ns/conformance",
+      "@type": "owl:Ontology",
+      "schema:name": "The hosc: vocabulary — the OS's one minted namespace, published as JSON-LD (ADR-024 A25)",
+      "schema:url": "os/ns/conformance.jsonld"
+    }
+  ]
+}

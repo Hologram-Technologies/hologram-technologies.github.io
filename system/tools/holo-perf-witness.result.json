@@ -1,0 +1,54 @@
+{
+  "spec": "Hologram OS is FAST — the content-addressing + verification hot path that 'fast in any browser' rests on is benchmarked within budget and its real throughput reported: blake3 (substrate axis) + sha256 hashing MB/s, seal+verify and verifyDeep ops/sec, dual-axis resolution, fail-fast tamper refusal, and linear (not quadratic) hash scaling. The gate asserts generous bounds (≥10× headroom); the numbers are the evidence. Paired with #boot (serverless boot in a real browser), this evidences the speed claim.",
+  "authority": "W3C High Resolution Time (performance.now) · BLAKE3 + SHA-256 reference throughput · UOR-ADDR re-derivation (Law L5) · the measured hot-path baseline — the in-browser cold-boot facet is the #boot Chromium tier (degrade honestly)",
+  "witnessed": true,
+  "covers": [
+    "performance",
+    "hot-path",
+    "hash-throughput",
+    "verify-rederivation",
+    "verifyDeep",
+    "dual-axis-resolution",
+    "linear-scaling",
+    "law-l5"
+  ],
+  "metrics": {
+    "hash": {
+      "blake3_MBps": 49.96,
+      "sha256_MBps": 1619.89,
+      "sample_MB": 4
+    },
+    "sealVerify": {
+      "ops": 5000,
+      "total_ms": 38.13,
+      "ms_per_op": 0.01,
+      "ops_per_sec": 131134
+    },
+    "verifyDeep": {
+      "nodes": 101,
+      "ms": 1.41
+    },
+    "dualResolve": {
+      "objects": 2000,
+      "resolves": 4000,
+      "total_ms": 18.37,
+      "resolves_per_sec": 217750
+    },
+    "scaling": {
+      "t_1MB_ms": 16.44,
+      "t_4MB_ms": 59.76,
+      "ratio_4x_input": 3.64
+    }
+  },
+  "checks": {
+    "blake3 (substrate axis) hashes at a real throughput": true,
+    "sha256 (open-web axis) hashes at a real throughput": true,
+    "seal+verify hot path is fast": true,
+    "verifyDeep re-derives a whole DAG within budget": true,
+    "a tampered node is refused FAST (fail-fast L5)": true,
+    "dual-axis resolution (sha256 + blake3) is fast": true,
+    "hash time scales ~linearly with input (4× bytes ≤ 8× time)": true
+  },
+  "passed": 7,
+  "failed": 0
+}

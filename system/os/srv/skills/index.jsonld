@@ -1,0 +1,1309 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#"
+    }
+  ],
+  "root": "did:holo:sha256:b3f207e46c4022a6c84996273a9c8631463d55d07dc9e23cf5fb38743772ee81",
+  "source": "os/.well-known/mcp.json",
+  "conformsTo": "https://agentskills.io/specification",
+  "@graph": [
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "dcat:Catalog",
+        "schema:DataCatalog"
+      ],
+      "dcterms:title": "Holo Skills — agentskills.io skills published by Hologram OS, each a self-verifying UOR object",
+      "dcterms:source": "os/.well-known/mcp.json",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "skills": [
+        {
+          "name": "agreement-for",
+          "description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId.",
+          "path": "skills/agreement-for/SKILL.md",
+          "kappa": "sha256:6ebe937ff1040c7c09395659dadee0ab5fe955cf41fbcbe05b0b0bce96a7f851",
+          "id": "did:holo:sha256:8dac41353bc4ce9182f5ab1f36d9b27774358ce5899f5322e78694283411d0aa"
+        },
+        {
+          "name": "ask-model",
+          "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client.",
+          "path": "skills/ask-model/SKILL.md",
+          "kappa": "sha256:f607b4a454dd7ba1cd6925f5a00ae04a11086edee295f238e696f779c7cb2ba7",
+          "id": "did:holo:sha256:14157e0a9de39b8aede0d564f4fd7ce90492fd9cd6cdecd85c3a115e73fa8665"
+        },
+        {
+          "name": "ask-user",
+          "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client.",
+          "path": "skills/ask-user/SKILL.md",
+          "kappa": "sha256:9430f6fe58c8146e5ac1ecec10fb9e6e8bee8a0b881d8e6ba4dcbc4994f0a88e",
+          "id": "did:holo:sha256:628645ff5046e8270819cbcbfdaf175488e54d4bf8d8fdd019c9c276c8729abb"
+        },
+        {
+          "name": "browser-fetch",
+          "description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response.",
+          "path": "skills/browser-fetch/SKILL.md",
+          "kappa": "sha256:230a285f0103b91765c11ea980380402bfb6311d467a4a6e46f583de714539dc",
+          "id": "did:holo:sha256:11f8f2f4392c7f60ae6c560ac16e43a461b3fefca0da9e432467d0e7d7979ff5"
+        },
+        {
+          "name": "browser-open",
+          "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
+          "path": "skills/browser-open/SKILL.md",
+          "kappa": "sha256:062ee4c065851445d2328f41dc0e1457ecea65369093b42ed2ad515e7c83a4f0",
+          "id": "did:holo:sha256:8cfd00e0790cc9cea811806410fc2a4d88deeb87ecd6adfbdb903b21aba768d4"
+        },
+        {
+          "name": "disclose-for-purpose",
+          "description": "Holo Privacy: obtain a W3C Verifiable Presentation that discloses ONLY the personal-data claims the user's standing policy authorizes for a given DPV purpose + recipient (IETF SD-JWT selective disclosure) — and can prove a fact (\"over 18\") without revealing the value behind it. Returns null when nothing is authorized (default-deny). Needs a connected wallet (the Holo Privacy app). Present the result to any tool that handles personal data.",
+          "path": "skills/disclose-for-purpose/SKILL.md",
+          "kappa": "sha256:a46d6bf1bac6ea64d34cd875d1283a0336885d257035a51761f93d8957e4b326",
+          "id": "did:holo:sha256:e8f864d0fa9cdd74a1adf26b39b120d83562061d2ef3e199d1565f74ae552077"
+        },
+        {
+          "name": "holo-rank",
+          "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents.",
+          "path": "skills/holo-rank/SKILL.md",
+          "kappa": "sha256:34dc8d300515e873150aa5c24a1bbcb14b64e9007ce0b65741eda8ba508aca30",
+          "id": "did:holo:sha256:8044c92a3609f0eee9287292151e2bc979579fd9d64d1ab86f8d4d003ac59400"
+        },
+        {
+          "name": "holo-recommend",
+          "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus.",
+          "path": "skills/holo-recommend/SKILL.md",
+          "kappa": "sha256:9e561b83604fb5c8b535bd1b14a6a9b40018fd0f7a7da9acea1d673a95fd3944",
+          "id": "did:holo:sha256:3d8fb5569186b26f251d707e7439678837d23f41e0d5fb8a6fcb5bd365090a6a"
+        },
+        {
+          "name": "list-roots",
+          "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client.",
+          "path": "skills/list-roots/SKILL.md",
+          "kappa": "sha256:61d71ba4573ac92867a8d5fc8e251c1f63be73ed3d76b33a11101977654585b6",
+          "id": "did:holo:sha256:e519198424e6b7223c5224e9d6525106cbc9c3e148c95c7ebc3d2072f969843e"
+        },
+        {
+          "name": "read-liberty",
+          "description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object.",
+          "path": "skills/read-liberty/SKILL.md",
+          "kappa": "sha256:06dcf5968a09232b106d07af04f0d252d1bc975602108f38517212b80c7abe25",
+          "id": "did:holo:sha256:1bf1547d628b295e9cd4b95d6fa029ca561605ec8ea451c3a28e829a9a7fb267"
+        },
+        {
+          "name": "resolve-object",
+          "description": "Resolve a did:holo / holo:// resource to its self-verifying UOR object.",
+          "path": "skills/resolve-object/SKILL.md",
+          "kappa": "sha256:41195b8c399263b6caafa63068d4ab433e82a70daeb846419c752fb585f6758d",
+          "id": "did:holo:sha256:a7cb1568b09ebe4b0a772849804a2f9d28fb925bfbda959b1e4a60e61ca95c20"
+        },
+        {
+          "name": "standing-term",
+          "description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object.",
+          "path": "skills/standing-term/SKILL.md",
+          "kappa": "sha256:f15474eebc7d404aac67a5c06a0cfa36373f25b77037120f942df4ac9067f6ae",
+          "id": "did:holo:sha256:edf6ccfe3cfdbc51489990f3d20286c6744fbe952ad71f4d9cd9572454945ece"
+        },
+        {
+          "name": "verify-batch",
+          "description": "Verify many UOR objects at once; reports progress and is cancellable.",
+          "path": "skills/verify-batch/SKILL.md",
+          "kappa": "sha256:6fedfcf2ba81b6d859494038a04ebef0c79da384a1a8c8d288c6937773459422",
+          "id": "did:holo:sha256:74562042270c7dbf5d236bbde6c738c090d9f5930927fb47363a408ce0a26df1"
+        },
+        {
+          "name": "verify-disclosure",
+          "description": "Holo Privacy: verify a W3C Verifiable Presentation — re-derive its content address (Law L5), verify the holder's data-integrity proof, recompute every disclosed SD-JWT digest, and (if the data commitment is given) confirm membership. Reports what was disclosed and how much (n of m). Don't trust a disclosure you didn't verify.",
+          "path": "skills/verify-disclosure/SKILL.md",
+          "kappa": "sha256:9fc5e76025bb0084f8ae28b742a24c498bd0ead32a909ebe554ec07dea767ee5",
+          "id": "did:holo:sha256:85fcc8dbe3ee0444a6bb4ab406ef939f9064d82b19b3746de28782366f8d3708"
+        },
+        {
+          "name": "verify-object",
+          "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+          "path": "skills/verify-object/SKILL.md",
+          "kappa": "sha256:5cd7d3d9c550a9183d8e69c0c0642114a65de12fb0be68cd3b154eb01b68165f",
+          "id": "did:holo:sha256:eb3159b34e72b604c7922119d43c1c38bee73f4768d9cfb6207bbfb676690a3e"
+        },
+        {
+          "name": "wallet-get-address",
+          "description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5).",
+          "path": "skills/wallet-get-address/SKILL.md",
+          "kappa": "sha256:0e77fd5b7ea243e4df0836c9e13b05e907844df62a324019b0ef4a6c09739381",
+          "id": "did:holo:sha256:d343709da6bedb285296f3328f8b55191a012b6f5244241005013e06e85f4e65"
+        },
+        {
+          "name": "wallet-get-balance",
+          "description": "The native-token balance for a chain (reads live from public RPC/Esplora).",
+          "path": "skills/wallet-get-balance/SKILL.md",
+          "kappa": "sha256:a09e97917dd3ef6181757d8d220ecaeac2d56f0b35deb78ef518cfc9d6fb4efb",
+          "id": "did:holo:sha256:c79ffafa645624806d4f8fcdd09ebf0b7c38ef9f7cd8735d073e00492e79fc43"
+        },
+        {
+          "name": "wallet-get-portfolio",
+          "description": "Addresses and native balances across every supported chain.",
+          "path": "skills/wallet-get-portfolio/SKILL.md",
+          "kappa": "sha256:3b88c8f59dd312e0eb7c1f24aaf7ae05b4998826bd5fac270a5e99825596f152",
+          "id": "did:holo:sha256:97b94f15f4961ad99340d8618fedf52f73f7bebe886a120f324500c9bf3860ad"
+        },
+        {
+          "name": "wallet-list-chains",
+          "description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs.",
+          "path": "skills/wallet-list-chains/SKILL.md",
+          "kappa": "sha256:1d00fe5758dc510b39943112bff01141f1b724d0bbbbf8cd36575bbe1553b76e",
+          "id": "did:holo:sha256:72360c937ab94998b4593f0839c633e9464541bcdd166adccac3f9fd58f797f5"
+        },
+        {
+          "name": "wallet-quote",
+          "description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything.",
+          "path": "skills/wallet-quote/SKILL.md",
+          "kappa": "sha256:83b766738d15c10841f69d75645a1f23a7a8a9ba243b9c44f69261250bd95649",
+          "id": "did:holo:sha256:0a58d353b4f771ce2ce8fee025cfe1933718c0a7f106e66eff7b8a6e501b4f93"
+        },
+        {
+          "name": "wallet-send",
+          "description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote.",
+          "path": "skills/wallet-send/SKILL.md",
+          "kappa": "sha256:0fb2c22d2ec4bd3d51d707eb7687a8f16784c2969cdd5fd7d01141787f004704",
+          "id": "did:holo:sha256:f5e2e737136b0096a64f6546a29e09a58e55e3f9c1ff9a5cdcc130de081cc4f2"
+        },
+        {
+          "name": "wallet-sign-message",
+          "description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny).",
+          "path": "skills/wallet-sign-message/SKILL.md",
+          "kappa": "sha256:9cb01183274eacced183fe18a8e315613f642511fae7a28cf0dc8fdbb48d66b5",
+          "id": "did:holo:sha256:6adf8459cdf9ae1294a859835eb73930f98ecd7c9ed1456103ca582040aa88d7"
+        }
+      ],
+      "links": [
+        {
+          "id": "did:holo:sha256:8dac41353bc4ce9182f5ab1f36d9b27774358ce5899f5322e78694283411d0aa",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-68Y11oVDYI5vvsNpXd1EoxYiGe3JYP/e/PJ9jaPXQ/Q=",
+          "digestMultibase": "uEiDrxjXWhUNgjm--w2ld3USjFiIZ7clg_9788n2No9dD9A"
+        },
+        {
+          "id": "did:holo:sha256:14157e0a9de39b8aede0d564f4fd7ce90492fd9cd6cdecd85c3a115e73fa8665",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-C4L3O1zOJ4LTMitNZ0remrOlN7aSMzafY7aAIc0P2Bo=",
+          "digestMultibase": "uEiALgvc7XM4ngtMyK01nSt6as6U3tpIzNp9jtoAhzQ_YGg"
+        },
+        {
+          "id": "did:holo:sha256:628645ff5046e8270819cbcbfdaf175488e54d4bf8d8fdd019c9c276c8729abb",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-2OVryPTWYKx2uCWfVS88gs0U8oMzkegzWA2HEnxUx2I=",
+          "digestMultibase": "uEiDY5WvI9NZgrHa4JZ9VLzyCzRTygzOR6DNYDYcSfFTHYg"
+        },
+        {
+          "id": "did:holo:sha256:11f8f2f4392c7f60ae6c560ac16e43a461b3fefca0da9e432467d0e7d7979ff5",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-nFXYktfCUd2dK95KPKOJLHtwDwP94ekV6Cr+CZ+AZpM=",
+          "digestMultibase": "uEiCcVdiS18JR3Z0r3ko8o4kse3APA_3h6RXoKv4Jn4Bmkw"
+        },
+        {
+          "id": "did:holo:sha256:8cfd00e0790cc9cea811806410fc2a4d88deeb87ecd6adfbdb903b21aba768d4",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-uI/aARm+U5xJOgrE1UXzXM/3VshfMUuXRkiNZusGpYE=",
+          "digestMultibase": "uEiC4j9oBGb5TnEk6CsTVRfNcz_dWyF8xS5dGSI1m6walgQ"
+        },
+        {
+          "id": "did:holo:sha256:e8f864d0fa9cdd74a1adf26b39b120d83562061d2ef3e199d1565f74ae552077",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-afZNtI3Rp+PD2J+O/XKUhgVI6OrlKkRQUAEtYD2h6DM=",
+          "digestMultibase": "uEiBp9k20jdGn48PYn479cpSGBUjo6uUqRFBQAS1gPaHoMw"
+        },
+        {
+          "id": "did:holo:sha256:8044c92a3609f0eee9287292151e2bc979579fd9d64d1ab86f8d4d003ac59400",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-U5Mz9dKBwrQ+BGNVQvd8e4AGtDbmmYLKyytqvAPByxQ=",
+          "digestMultibase": "uEiBTkzP10oHCtD4EY1VC93x7gAa0NuaZgsrLK2q8A8HLFA"
+        },
+        {
+          "id": "did:holo:sha256:3d8fb5569186b26f251d707e7439678837d23f41e0d5fb8a6fcb5bd365090a6a",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-uipYmfs2rQ3jcic7XYsmPlrzM80cxJOySmN0wuKRhzw=",
+          "digestMultibase": "uEiC6KliZ-zatDeNyJztdiyY-WvMzzRzEk7JKY3TC4pGHPA"
+        },
+        {
+          "id": "did:holo:sha256:e519198424e6b7223c5224e9d6525106cbc9c3e148c95c7ebc3d2072f969843e",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-S6Dpm5AjoW1kYBFM8yxPObUkTkbiE/usoof9QJ5+s04=",
+          "digestMultibase": "uEiBLoOmbkCOhbWRgEUzzLE85tSRORuIT-6yih_1Ann6zTg"
+        },
+        {
+          "id": "did:holo:sha256:1bf1547d628b295e9cd4b95d6fa029ca561605ec8ea451c3a28e829a9a7fb267",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-EQ9Mf4m3mDgXZTXic8SYrHERmrDhXQWKrFwEDMAJWSo=",
+          "digestMultibase": "uEiARD0x_ibeYOBdlNeJzxJiscRGasOFdBYqsXAQMwAlZKg"
+        },
+        {
+          "id": "did:holo:sha256:a7cb1568b09ebe4b0a772849804a2f9d28fb925bfbda959b1e4a60e61ca95c20",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-38tY7K0yNDnhgp8b3qDscv6pGPgKNZVWmCxSYUYnEKg=",
+          "digestMultibase": "uEiDfy1jsrTI0OeGCnxveoOxy_qkY-Ao1lVaYLFJhRicQqA"
+        },
+        {
+          "id": "did:holo:sha256:edf6ccfe3cfdbc51489990f3d20286c6744fbe952ad71f4d9cd9572454945ece",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-Kb9W3y2GCdHHLL23cY84ukj0DvYXqZ7f4NjuzINKhXE=",
+          "digestMultibase": "uEiApv1bfLYYJ0ccsvbdxjzi6SPQO9hepnt_g2O7Mg0qFcQ"
+        },
+        {
+          "id": "did:holo:sha256:74562042270c7dbf5d236bbde6c738c090d9f5930927fb47363a408ce0a26df1",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-dN7kROk/3+Br/FAnXhWL5WJ8m+v8EDtH9dAgUNfHOzQ=",
+          "digestMultibase": "uEiB03uRE6T_f4Gv8UCdeFYvlYnyb6_wQO0f10CBQ18c7NA"
+        },
+        {
+          "id": "did:holo:sha256:85fcc8dbe3ee0444a6bb4ab406ef939f9064d82b19b3746de28782366f8d3708",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-MUZFV62lyYbyi7O2uBtqLNZWoKIP9ocsaj7gOP+LstM=",
+          "digestMultibase": "uEiAxRkVXraXJhvKLs7a4G2os1lagog_2hyxqPuA4_4uy0w"
+        },
+        {
+          "id": "did:holo:sha256:eb3159b34e72b604c7922119d43c1c38bee73f4768d9cfb6207bbfb676690a3e",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-zNxr7x6dgIHMMdNGs3bqxgwRqlkc5t8OGNuY/tA90fs=",
+          "digestMultibase": "uEiDM3GvvHp2Agcwx00azdurGDBGqWRzm3w4Y25j-0D3R-w"
+        },
+        {
+          "id": "did:holo:sha256:d343709da6bedb285296f3328f8b55191a012b6f5244241005013e06e85f4e65",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-BZgpygJckoSdvUip0SsDKGgNcX1XCQMoB+Gp/QRUBII=",
+          "digestMultibase": "uEiAFmCnKAlyShJ29SKnRKwMoaA1xfVcJAygH4an9BFQEgg"
+        },
+        {
+          "id": "did:holo:sha256:c79ffafa645624806d4f8fcdd09ebf0b7c38ef9f7cd8735d073e00492e79fc43",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-NW+S21VJL1fUgJzszAKwZUKUhkuVhSBKO8lDSz+Ou/k=",
+          "digestMultibase": "uEiA1b5LbVUkvV9SAnOzMArBlQpSGS5WFIEo7yUNLP467-Q"
+        },
+        {
+          "id": "did:holo:sha256:97b94f15f4961ad99340d8618fedf52f73f7bebe886a120f324500c9bf3860ad",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-S2iIZ8PVLV+mKs6sSQcNjkPQVdkx6+7OQYBDqzXVy2w=",
+          "digestMultibase": "uEiBLaIhnw9UtX6YqzqxJBw2OQ9BV2THr7s5BgEOrNdXLbA"
+        },
+        {
+          "id": "did:holo:sha256:72360c937ab94998b4593f0839c633e9464541bcdd166adccac3f9fd58f797f5",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-tWCX/luuCQP+nLO60g/VBWLgnp7knPQ+NGeWWRa3bJY=",
+          "digestMultibase": "uEiC1YJf-W64JA_6cs7rSD9UFYuCenuSc9D40Z5ZZFrdslg"
+        },
+        {
+          "id": "did:holo:sha256:0a58d353b4f771ce2ce8fee025cfe1933718c0a7f106e66eff7b8a6e501b4f93",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-YQunJ6q9TtlEE5WF0K1bq+amVpscXz2l2XL4wI+zpXQ=",
+          "digestMultibase": "uEiBhC6cnqr1O2UQTlYXQrVur5qZWmxxfPaXZcvjAj7OldA"
+        },
+        {
+          "id": "did:holo:sha256:f5e2e737136b0096a64f6546a29e09a58e55e3f9c1ff9a5cdcc130de081cc4f2",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-rRUAFfyiXRhgdkMfWhJsDVfPb7hhDDCc1uH0VUgdcO0=",
+          "digestMultibase": "uEiCtFQAV_KJdGGB2Qx9aEmwNV89vuGEMMJzW4fRVSB1w7Q"
+        },
+        {
+          "id": "did:holo:sha256:6adf8459cdf9ae1294a859835eb73930f98ecd7c9ed1456103ca582040aa88d7",
+          "rel": "dcat:dataset",
+          "@type": [
+            "schema:HowTo",
+            "schema:SoftwareApplication"
+          ],
+          "digestSRI": "sha256-3f3Z4PHoxQ/wr7o+x2Dyv0Y7R1u41SpqdUAF/VhHEQQ=",
+          "digestMultibase": "uEiDd_dng8ejFD_Cvuj7HYPK_RjtHW7jVKmp1QAX9WEcRBA"
+        }
+      ],
+      "id": "did:holo:sha256:b3f207e46c4022a6c84996273a9c8631463d55d07dc9e23cf5fb38743772ee81"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "agreement-for",
+      "schema:description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#agreement_for",
+      "links": [
+        {
+          "id": "did:holo:sha256:6ebe937ff1040c7c09395659dadee0ab5fe955cf41fbcbe05b0b0bce96a7f851",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-br6Tf/EEDHwJOVZZ2t7gq1/pVc9B+8vgWwsLzpan+FE=",
+          "digestMultibase": "uEiBuvpN_8QQMfAk5Vlna3uCrX-lVz0H7y-BbCwvOlqf4UQ"
+        }
+      ],
+      "id": "did:holo:sha256:8dac41353bc4ce9182f5ab1f36d9b27774358ce5899f5322e78694283411d0aa"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "ask-model",
+      "schema:description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#ask_model",
+      "links": [
+        {
+          "id": "did:holo:sha256:f607b4a454dd7ba1cd6925f5a00ae04a11086edee295f238e696f779c7cb2ba7",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-9ge0pFTde6HNaSX1oArgShEIbt7ilfI45pb3ecfLK6c=",
+          "digestMultibase": "uEiD2B7SkVN17oc1pJfWgCuBKEQhu3uKV8jjmlvd5x8srpw"
+        }
+      ],
+      "id": "did:holo:sha256:14157e0a9de39b8aede0d564f4fd7ce90492fd9cd6cdecd85c3a115e73fa8665"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "ask-user",
+      "schema:description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#ask_user",
+      "links": [
+        {
+          "id": "did:holo:sha256:9430f6fe58c8146e5ac1ecec10fb9e6e8bee8a0b881d8e6ba4dcbc4994f0a88e",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-lDD2/ljIFG5awezsEPuebovuiguIHY5rpNy8SZTwqI4=",
+          "digestMultibase": "uEiCUMPb-WMgUblrB7OwQ-55ui-6KC4gdjmuk3LxJlPCojg"
+        }
+      ],
+      "id": "did:holo:sha256:628645ff5046e8270819cbcbfdaf175488e54d4bf8d8fdd019c9c276c8729abb"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "browser-fetch",
+      "schema:description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#browser_fetch",
+      "links": [
+        {
+          "id": "did:holo:sha256:230a285f0103b91765c11ea980380402bfb6311d467a4a6e46f583de714539dc",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-IwooXwEDuRdlwR6pgDgEAr+2MR1GekpuRvWD3nFFOdw=",
+          "digestMultibase": "uEiAjCihfAQO5F2XBHqmAOAQCv7YxHUZ6Sm5G9YPecUU53A"
+        }
+      ],
+      "id": "did:holo:sha256:11f8f2f4392c7f60ae6c560ac16e43a461b3fefca0da9e432467d0e7d7979ff5"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "browser-open",
+      "schema:description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#browser_open",
+      "links": [
+        {
+          "id": "did:holo:sha256:062ee4c065851445d2328f41dc0e1457ecea65369093b42ed2ad515e7c83a4f0",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-Bi7kwGWFFEXSMo9B3A4UV+zqZTaQk7Qu0q1RXnyDpPA=",
+          "digestMultibase": "uEiAGLuTAZYUURdIyj0HcDhRX7OplNpCTtC7SrVFefIOk8A"
+        }
+      ],
+      "id": "did:holo:sha256:8cfd00e0790cc9cea811806410fc2a4d88deeb87ecd6adfbdb903b21aba768d4"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "disclose-for-purpose",
+      "schema:description": "Holo Privacy: obtain a W3C Verifiable Presentation that discloses ONLY the personal-data claims the user's standing policy authorizes for a given DPV purpose + recipient (IETF SD-JWT selective disclosure) — and can prove a fact (\"over 18\") without revealing the value behind it. Returns null when nothing is authorized (default-deny). Needs a connected wallet (the Holo Privacy app). Present the result to any tool that handles personal data.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#disclose_for_purpose",
+      "links": [
+        {
+          "id": "did:holo:sha256:a46d6bf1bac6ea64d34cd875d1283a0336885d257035a51761f93d8957e4b326",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-pG1r8brG6mTTTNh10Sg6AzaIXSVwNaUXYfk9iVfksyY=",
+          "digestMultibase": "uEiCkbWvxusbqZNNM2HXRKDoDNohdJXA1pRdh-T2JV-SzJg"
+        }
+      ],
+      "id": "did:holo:sha256:e8f864d0fa9cdd74a1adf26b39b120d83562061d2ef3e199d1565f74ae552077"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "holo-rank",
+      "schema:description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#holo_rank",
+      "links": [
+        {
+          "id": "did:holo:sha256:34dc8d300515e873150aa5c24a1bbcb14b64e9007ce0b65741eda8ba508aca30",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-NNyNMAUV6HMVCqXCShu8sUtk6QB84LZXQe2oulCKyjA=",
+          "digestMultibase": "uEiA03I0wBRXocxUKpcJKG7yxS2TpAHzgtldB7ai6UIrKMA"
+        }
+      ],
+      "id": "did:holo:sha256:8044c92a3609f0eee9287292151e2bc979579fd9d64d1ab86f8d4d003ac59400"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "holo-recommend",
+      "schema:description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#holo_recommend",
+      "links": [
+        {
+          "id": "did:holo:sha256:9e561b83604fb5c8b535bd1b14a6a9b40018fd0f7a7da9acea1d673a95fd3944",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-nlYbg2BPtci1Nb0bFKaptAAY/Q96fams6h1nOpX9OUQ=",
+          "digestMultibase": "uEiCeVhuDYE-1yLU1vRsUpqm0ABj9D3p9qazqHWc6lf05RA"
+        }
+      ],
+      "id": "did:holo:sha256:3d8fb5569186b26f251d707e7439678837d23f41e0d5fb8a6fcb5bd365090a6a"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "list-roots",
+      "schema:description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#list_roots",
+      "links": [
+        {
+          "id": "did:holo:sha256:61d71ba4573ac92867a8d5fc8e251c1f63be73ed3d76b33a11101977654585b6",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-YdcbpFc6yShnqNX8jiUcH2O+c+09drM6ERAZd2VFhbY=",
+          "digestMultibase": "uEiBh1xukVzrJKGeo1fyOJRwfY75z7T12szoREBl3ZUWFtg"
+        }
+      ],
+      "id": "did:holo:sha256:e519198424e6b7223c5224e9d6525106cbc9c3e148c95c7ebc3d2072f969843e"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "read-liberty",
+      "schema:description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#read_liberty",
+      "links": [
+        {
+          "id": "did:holo:sha256:06dcf5968a09232b106d07af04f0d252d1bc975602108f38517212b80c7abe25",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-Btz1looJIysQbQevBPDSUtG8l1YCEI84UXISuAx6viU=",
+          "digestMultibase": "uEiAG3PWWigkjKxBtB68E8NJS0byXVgIQjzhRchK4DHq-JQ"
+        }
+      ],
+      "id": "did:holo:sha256:1bf1547d628b295e9cd4b95d6fa029ca561605ec8ea451c3a28e829a9a7fb267"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "resolve-object",
+      "schema:description": "Resolve a did:holo / holo:// resource to its self-verifying UOR object.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#resolve_object",
+      "links": [
+        {
+          "id": "did:holo:sha256:41195b8c399263b6caafa63068d4ab433e82a70daeb846419c752fb585f6758d",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-QRlbjDmSY7bKr6YwaNSrQz6Cpw2uuEZBnHUvtYX2dY0=",
+          "digestMultibase": "uEiBBGVuMOZJjtsqvpjBo1KtDPoKnDa64RkGcdS-1hfZ1jQ"
+        }
+      ],
+      "id": "did:holo:sha256:a7cb1568b09ebe4b0a772849804a2f9d28fb925bfbda959b1e4a60e61ca95c20"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "standing-term",
+      "schema:description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#standing_term",
+      "links": [
+        {
+          "id": "did:holo:sha256:f15474eebc7d404aac67a5c06a0cfa36373f25b77037120f942df4ac9067f6ae",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-8VR07rx9QEqsZ6XAagz6Njc/JbdwNxIPlC30rJBn9q4=",
+          "digestMultibase": "uEiDxVHTuvH1ASqxnpcBqDPo2Nz8lt3A3Eg-ULfSskGf2rg"
+        }
+      ],
+      "id": "did:holo:sha256:edf6ccfe3cfdbc51489990f3d20286c6744fbe952ad71f4d9cd9572454945ece"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "verify-batch",
+      "schema:description": "Verify many UOR objects at once; reports progress and is cancellable.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#verify_batch",
+      "links": [
+        {
+          "id": "did:holo:sha256:6fedfcf2ba81b6d859494038a04ebef0c79da384a1a8c8d288c6937773459422",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-b+388rqBtthZSUA4oE6+8Medo4ShqMjSiMaTd3NFlCI=",
+          "digestMultibase": "uEiBv7fzyuoG22FlJQDigTr7wx52jhKGoyNKIxpN3c0WUIg"
+        }
+      ],
+      "id": "did:holo:sha256:74562042270c7dbf5d236bbde6c738c090d9f5930927fb47363a408ce0a26df1"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "verify-disclosure",
+      "schema:description": "Holo Privacy: verify a W3C Verifiable Presentation — re-derive its content address (Law L5), verify the holder's data-integrity proof, recompute every disclosed SD-JWT digest, and (if the data commitment is given) confirm membership. Reports what was disclosed and how much (n of m). Don't trust a disclosure you didn't verify.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#verify_disclosure",
+      "links": [
+        {
+          "id": "did:holo:sha256:9fc5e76025bb0084f8ae28b742a24c498bd0ead32a909ebe554ec07dea767ee5",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-n8XnYCW7AIT4rii3QqJMSYvQ6tMqkJ6+VU7Afep2fuU=",
+          "digestMultibase": "uEiCfxedgJbsAhPiuKLdCokxJi9Dq0yqQnr5VTsB96nZ-5Q"
+        }
+      ],
+      "id": "did:holo:sha256:85fcc8dbe3ee0444a6bb4ab406ef939f9064d82b19b3746de28782366f8d3708"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "verify-object",
+      "schema:description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#verify_object",
+      "links": [
+        {
+          "id": "did:holo:sha256:5cd7d3d9c550a9183d8e69c0c0642114a65de12fb0be68cd3b154eb01b68165f",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-XNfT2cVQqRg9jmnAwGQhFKZd4S+wvmjNOxVOsBtoFl8=",
+          "digestMultibase": "uEiBc19PZxVCpGD2OacDAZCEUpl3hL7C-aM07FU6wG2gWXw"
+        }
+      ],
+      "id": "did:holo:sha256:eb3159b34e72b604c7922119d43c1c38bee73f4768d9cfb6207bbfb676690a3e"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-get-address",
+      "schema:description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5).",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_get_address",
+      "links": [
+        {
+          "id": "did:holo:sha256:0e77fd5b7ea243e4df0836c9e13b05e907844df62a324019b0ef4a6c09739381",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-Dnf9W36iQ+TfCDbJ4TsF6QeETfYqMkAZsO9KbAlzk4E=",
+          "digestMultibase": "uEiAOd_1bfqJD5N8INsnhOwXpB4RN9ioyQBmw70psCXOTgQ"
+        }
+      ],
+      "id": "did:holo:sha256:d343709da6bedb285296f3328f8b55191a012b6f5244241005013e06e85f4e65"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-get-balance",
+      "schema:description": "The native-token balance for a chain (reads live from public RPC/Esplora).",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_get_balance",
+      "links": [
+        {
+          "id": "did:holo:sha256:a09e97917dd3ef6181757d8d220ecaeac2d56f0b35deb78ef518cfc9d6fb4efb",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-oJ6XkX3T72GBdX2NIg7K6sLVbws13reO9RjPydb7Tvs=",
+          "digestMultibase": "uEiCgnpeRfdPvYYF1fY0iDsrqwtVvCzXet471GM_J1vtO-w"
+        }
+      ],
+      "id": "did:holo:sha256:c79ffafa645624806d4f8fcdd09ebf0b7c38ef9f7cd8735d073e00492e79fc43"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-get-portfolio",
+      "schema:description": "Addresses and native balances across every supported chain.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_get_portfolio",
+      "links": [
+        {
+          "id": "did:holo:sha256:3b88c8f59dd312e0eb7c1f24aaf7ae05b4998826bd5fac270a5e99825596f152",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-O4jI9Z3TEuDrfB8kqveuBbSZiCa9X6wnCl6ZglWW8VI=",
+          "digestMultibase": "uEiA7iMj1ndMS4Ot8HySq964FtJmIJr1frCcKXpmCVZbxUg"
+        }
+      ],
+      "id": "did:holo:sha256:97b94f15f4961ad99340d8618fedf52f73f7bebe886a120f324500c9bf3860ad"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-list-chains",
+      "schema:description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_list_chains",
+      "links": [
+        {
+          "id": "did:holo:sha256:1d00fe5758dc510b39943112bff01141f1b724d0bbbbf8cd36575bbe1553b76e",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-HQD+V1jcUQs5lDESv/ARQfG3JNC7u/jNNldbvhVTt24=",
+          "digestMultibase": "uEiAdAP5XWNxRCzmUMRK_8BFB8bck0Lu7-M02V1u-FVO3bg"
+        }
+      ],
+      "id": "did:holo:sha256:72360c937ab94998b4593f0839c633e9464541bcdd166adccac3f9fd58f797f5"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-quote",
+      "schema:description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_quote",
+      "links": [
+        {
+          "id": "did:holo:sha256:83b766738d15c10841f69d75645a1f23a7a8a9ba243b9c44f69261250bd95649",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-g7dmc40VwQhB9p11ZFofI6eoqbokO5xE9pJhJQvZVkk=",
+          "digestMultibase": "uEiCDt2ZzjRXBCEH2nXVkWh8jp6ipuiQ7nET2kmElC9lWSQ"
+        }
+      ],
+      "id": "did:holo:sha256:0a58d353b4f771ce2ce8fee025cfe1933718c0a7f106e66eff7b8a6e501b4f93"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-send",
+      "schema:description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_send",
+      "links": [
+        {
+          "id": "did:holo:sha256:0fb2c22d2ec4bd3d51d707eb7687a8f16784c2969cdd5fd7d01141787f004704",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-D7LCLS7EvT1R1wfrdoeo8WeEwpac3V/X0BFBeH8ARwQ=",
+          "digestMultibase": "uEiAPssItLsS9PVHXB-t2h6jxZ4TClpzdX9fQEUF4fwBHBA"
+        }
+      ],
+      "id": "did:holo:sha256:f5e2e737136b0096a64f6546a29e09a58e55e3f9c1ff9a5cdcc130de081cc4f2"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "dcterms": "http://purl.org/dc/terms/",
+          "rel": "schema:additionalType",
+          "links": {
+            "@id": "schema:hasPart",
+            "@container": "@set"
+          }
+        },
+        {
+          "dcat": "http://www.w3.org/ns/dcat#"
+        }
+      ],
+      "@type": [
+        "schema:HowTo",
+        "schema:SoftwareApplication"
+      ],
+      "schema:name": "wallet-sign-message",
+      "schema:description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny).",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcterms:conformsTo": "https://agentskills.io/specification",
+      "schema:isBasedOn": "https://hologram.os/apps",
+      "prov:wasDerivedFrom": "os/.well-known/mcp.json#wallet_sign_message",
+      "links": [
+        {
+          "id": "did:holo:sha256:9cb01183274eacced183fe18a8e315613f642511fae7a28cf0dc8fdbb48d66b5",
+          "rel": "dcterms:hasFormat",
+          "@type": "schema:DigitalDocument",
+          "leaf": true,
+          "digestSRI": "sha256-nLARgydOrM7Rg/4YqOMVYT9kJRH656KM8NyP27SNZrU=",
+          "digestMultibase": "uEiCcsBGDJ06sztGD_hio4xVhP2QlEfrnoozw3I_btI1mtQ"
+        }
+      ],
+      "id": "did:holo:sha256:6adf8459cdf9ae1294a859835eb73930f98ecd7c9ed1456103ca582040aa88d7"
+    }
+  ]
+}

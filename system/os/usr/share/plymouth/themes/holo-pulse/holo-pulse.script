@@ -1,0 +1,130 @@
+# Hologram Pulse — the Hologram dot-mark pulsing in a radial wave.
+# Artwork: the original Hologram mark (traced to 70 dots, system/tools/trace-logo.mjs).
+# Animation: original + procedural, in the dot-illumination style of adi1090x/plymouth-themes (GPL-3.0).
+# Background: the SHARED Hologram background (the same for every Holo Splash theme).
+screen.width = Window.GetWidth(0);
+screen.height = Window.GetHeight(0);
+Window.SetBackgroundTopColor(0.043, 0.027, 0.118);
+Window.SetBackgroundBottomColor(0.027, 0.020, 0.075);
+
+dot.image = Image("dot.png");
+N = 70;
+d.x[0] = 0.20; d.y[0] = -97.39; d.r[0] = 2.61;
+d.x[1] = -22.86; d.y[1] = -86.55; d.r[1] = 2.71;
+d.x[2] = 22.54; d.y[2] = -86.32; d.r[2] = 2.81;
+d.x[3] = -0.03; d.y[3] = -76.01; d.r[3] = 2.71;
+d.x[4] = 45.26; d.y[4] = -75.92; d.r[4] = 7.80;
+d.x[5] = -45.82; d.y[5] = -75.86; d.r[5] = 2.61;
+d.x[6] = 68.34; d.y[6] = -65.13; d.r[6] = 7.70;
+d.x[7] = -68.83; d.y[7] = -65.00; d.r[7] = 2.61;
+d.x[8] = -22.91; d.y[8] = -64.90; d.r[8] = 2.61;
+d.x[9] = 22.71; d.y[9] = -64.88; d.r[9] = 2.51;
+d.x[10] = 91.24; d.y[10] = -54.34; d.r[10] = 2.61;
+d.x[11] = -45.94; d.y[11] = -54.25; d.r[11] = 7.83;
+d.x[12] = -91.17; d.y[12] = -54.19; d.r[12] = 2.71;
+d.x[13] = -0.03; d.y[13] = -54.19; d.r[13] = 2.71;
+d.x[14] = 45.35; d.y[14] = -54.19; d.r[14] = 7.80;
+d.x[15] = -22.86; d.y[15] = -43.64; d.r[15] = 2.71;
+d.x[16] = 22.71; d.y[16] = -43.49; d.r[16] = 2.51;
+d.x[17] = 68.29; d.y[17] = -43.47; d.r[17] = 7.73;
+d.x[18] = -68.60; d.y[18] = -43.37; d.r[18] = 7.73;
+d.x[19] = -45.85; d.y[19] = -32.63; d.r[19] = 7.77;
+d.x[20] = 45.36; d.y[20] = -32.60; d.r[20] = 7.80;
+d.x[21] = -91.26; d.y[21] = -32.55; d.r[21] = 2.71;
+d.x[22] = 0.10; d.y[22] = -32.51; d.r[22] = 2.61;
+d.x[23] = 91.24; d.y[23] = -32.51; d.r[23] = 2.61;
+d.x[24] = 68.22; d.y[24] = -21.95; d.r[24] = 7.83;
+d.x[25] = 22.67; d.y[25] = -21.84; d.r[25] = 7.87;
+d.x[26] = -22.86; d.y[26] = -21.82; d.r[26] = 2.71;
+d.x[27] = -68.57; d.y[27] = -21.80; d.r[27] = 7.80;
+d.x[28] = 45.45; d.y[28] = -11.06; d.r[28] = 7.73;
+d.x[29] = -0.19; d.y[29] = -11.04; d.r[29] = 7.87;
+d.x[30] = 91.35; d.y[30] = -11.01; d.r[30] = 2.81;
+d.x[31] = -91.54; d.y[31] = -10.97; d.r[31] = 2.51;
+d.x[32] = -45.87; d.y[32] = -10.87; d.r[32] = 7.73;
+d.x[33] = 22.71; d.y[33] = -0.27; d.r[33] = 8.06;
+d.x[34] = -22.89; d.y[34] = -0.21; d.r[34] = 7.90;
+d.x[35] = 68.28; d.y[35] = -0.15; d.r[35] = 7.87;
+d.x[36] = -68.62; d.y[36] = -0.11; d.r[36] = 8.00;
+d.x[37] = -0.06; d.y[37] = 10.98; d.r[37] = 7.87;
+d.x[38] = 45.54; d.y[38] = 11.00; d.r[38] = 7.83;
+d.x[39] = -45.85; d.y[39] = 11.02; d.r[39] = 7.77;
+d.x[40] = -91.26; d.y[40] = 11.10; d.r[40] = 2.71;
+d.x[41] = 91.24; d.y[41] = 11.13; d.r[41] = 2.61;
+d.x[42] = 22.71; d.y[42] = 21.64; d.r[42] = 2.71;
+d.x[43] = -68.74; d.y[43] = 21.66; d.r[43] = 7.87;
+d.x[44] = -22.86; d.y[44] = 21.67; d.r[44] = 7.87;
+d.x[45] = 68.28; d.y[45] = 21.67; d.r[45] = 7.87;
+d.x[46] = -91.54; d.y[46] = 32.46; d.r[46] = 2.61;
+d.x[47] = 0.15; d.y[47] = 32.46; d.r[47] = 2.71;
+d.x[48] = -45.72; d.y[48] = 32.50; d.r[48] = 7.73;
+d.x[49] = 45.54; d.y[49] = 32.59; d.r[49] = 7.83;
+d.x[50] = 91.35; d.y[50] = 32.63; d.r[50] = 2.81;
+d.x[51] = -23.01; d.y[51] = 43.23; d.r[51] = 2.61;
+d.x[52] = 68.25; d.y[52] = 43.31; d.r[52] = 7.83;
+d.x[53] = -68.71; d.y[53] = 43.34; d.r[53] = 7.83;
+d.x[54] = 22.71; d.y[54] = 43.37; d.r[54] = 2.90;
+d.x[55] = 91.39; d.y[55] = 53.92; d.r[55] = 2.71;
+d.x[56] = 45.48; d.y[56] = 53.95; d.r[56] = 7.87;
+d.x[57] = -45.86; d.y[57] = 53.97; d.r[57] = 7.80;
+d.x[58] = -91.34; d.y[58] = 53.99; d.r[58] = 2.61;
+d.x[59] = 0.20; d.y[59] = 54.09; d.r[59] = 2.61;
+d.x[60] = -68.57; d.y[60] = 64.90; d.r[60] = 7.80;
+d.x[61] = -22.86; d.y[61] = 64.92; d.r[61] = 2.71;
+d.x[62] = 68.28; d.y[62] = 64.92; d.r[62] = 2.71;
+d.x[63] = 22.54; d.y[63] = 65.15; d.r[63] = 2.81;
+d.x[64] = -45.88; d.y[64] = 75.56; d.r[64] = 7.80;
+d.x[65] = 0.10; d.y[65] = 75.62; d.r[65] = 2.61;
+d.x[66] = 45.32; d.y[66] = 75.62; d.r[66] = 2.61;
+d.x[67] = 22.53; d.y[67] = 86.47; d.r[67] = 2.71;
+d.x[68] = -22.86; d.y[68] = 86.75; d.r[68] = 2.71;
+d.x[69] = -0.03; d.y[69] = 97.29; d.r[69] = 2.71;
+
+# place the mark centred, sized to ~46% of the smaller screen side (the trace spans 208 units)
+field = Math.Min(screen.width, screen.height) * 0.46;
+scale = field / 208;
+cx = screen.width / 2;
+cy = screen.height * 0.42;
+for (i = 0; i < N; i++) {
+  sz = d.r[i] * 2 * scale;
+  d.sprite[i] = Sprite(dot.image.Scale(sz, sz));
+  d.sprite[i].SetX(cx + d.x[i] * scale - sz / 2);
+  d.sprite[i].SetY(cy + d.y[i] * scale - sz / 2);
+  d.sprite[i].SetZ(3);
+  d.dist[i] = Math.Sqrt(d.x[i] * d.x[i] + d.y[i] * d.y[i]);
+}
+
+# a radial wave: brightness rings expand from the centre outward, looping (the dots never fully
+# vanish, so the mark always reads; the wave just breathes light across it).
+frame = 0;
+fun refresh_callback () {
+  for (i = 0; i < N; i++) {
+    wave = 0.5 + 0.5 * Math.Sin(frame * 0.09 - d.dist[i] * 0.055);
+    d.sprite[i].SetOpacity(0.20 + 0.80 * wave);
+  }
+  frame++;
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# the shared boot progress bar (driven by SetBootProgressFunction)
+bar.image = Image("bar.png");
+bar.width = screen.width * 0.42;
+bar.x = screen.width / 2 - bar.width / 2;
+bar.y = screen.height * 0.80;
+bar.track = Sprite(bar.image.Scale(bar.width, 3));
+bar.track.SetX(bar.x);
+bar.track.SetY(bar.y);
+bar.track.SetZ(2);
+bar.track.SetOpacity(0.16);
+bar.fill = Sprite();
+bar.fill.SetX(bar.x);
+bar.fill.SetY(bar.y);
+bar.fill.SetZ(3);
+fun progress_callback (time, progress) {
+  w = bar.width * progress;
+  if (w < 1) w = 1;
+  bar.fill.SetImage(bar.image.Scale(w, 3));
+  bar.fill.SetX(bar.x);
+  bar.fill.SetY(bar.y);
+}
+Plymouth.SetBootProgressFunction(progress_callback);

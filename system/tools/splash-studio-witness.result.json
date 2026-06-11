@@ -1,0 +1,97 @@
+{
+  "spec": "The splash is the full editable Holo Splash theme studio (theme picker · plymouth client dock · import) when opened standalone in the holospace, AND a clean firmware-style boot splash (chromeless, F2 → rEFInd boot menu) on the boot path — both served from a dumb static host with every byte κ-verified (Law L5), 100% serverless",
+  "witnessed": false,
+  "covers": [],
+  "results": [
+    {
+      "name": "gateway is a static splash — it does NOT auto-boot; it waits for the user",
+      "ok": true,
+      "detail": "still at / after 2.2 s (no auto-forward)"
+    },
+    {
+      "name": "explicit boot: pressing Enter on the gateway boots into the splash handoff",
+      "ok": true,
+      "detail": "Enter → splash.html"
+    },
+    {
+      "name": "boot face: the gateway boots → a clean handoff splash (chromeless, F2 prompt, κ SW controls, isolated)",
+      "ok": true,
+      "detail": "{\"url\":\"/os/splash.html\",\"handoff\":true,\"barHidden\":true,\"screen\":true,\"f2\":true,\"controlled\":true,\"isolated\":true}"
+    },
+    {
+      "name": "F2 → Holo Boot (rEFInd): the boot menu renders its entries, κ SW controls — every boot byte re-derived (L5)",
+      "ok": true,
+      "detail": "url=/os/boot.html entries=11 ver=\"✓ κ verified\""
+    },
+    {
+      "name": "studio face: the standalone splash is the editable theme studio (κ-verified theme picker · Import · controls)",
+      "ok": true,
+      "detail": "themes=12 bar=true dock=true import=true"
+    },
+    {
+      "name": "studio face: every active theme byte re-derives to its κ — the live L5 badge reads verified",
+      "ok": true,
+      "detail": "ver=\"✓ κ verified (4)\""
+    },
+    {
+      "name": "controls: a 3-mode Background segmented control (Dark · Light · Immersive) with one active",
+      "ok": true,
+      "detail": "modes=[dark,light,immersive] active=immersive"
+    },
+    {
+      "name": "controls: a Center-size slider with a live % readout",
+      "ok": true,
+      "detail": "sizeVal=\"100%\""
+    },
+    {
+      "name": "redundant components removed: the busy plymouth dev-dock + the old BG dropdown are gone",
+      "ok": true,
+      "detail": "none present"
+    },
+    {
+      "name": "loading bar: a precise progress bar under the centre animation (default Boot time 12 s) fills over the run",
+      "ok": true,
+      "detail": "dur=12s · fill 24.5%→35.3% · progress 0.245→0.353"
+    },
+    {
+      "name": "Boot time editable: setting a new time restarts the bar at that duration (run resets toward 0)",
+      "ok": true,
+      "detail": "set 6 s · progress 0.353→0.025"
+    },
+    {
+      "name": "Background toggle wired (static mark): Dark = clean (field hidden) · Immersive = field shown",
+      "ok": true,
+      "detail": "dark{field:false} immersive{field:true}"
+    },
+    {
+      "name": "animated theme 'Hologram Pulse' (Pack 5): solo (no field), running, with the dot-mark sprites",
+      "ok": true,
+      "detail": "id=holo-pulse field=false running=true sprites=72"
+    },
+    {
+      "name": "single loading bar: a theme's own bar is suppressed (no double) — only the canonical DOM bar shows",
+      "ok": true,
+      "detail": "themeBarVisible=false domBar=true"
+    },
+    {
+      "name": "Center-size slider scales the centre animation (--center-scale follows the slider)",
+      "ok": true,
+      "detail": "--center-scale=1.500 (slider=150%)"
+    },
+    {
+      "name": "imported image-theme · Immersive shows the theme's OWN backdrop (kept), the wave field OFF (no blur)",
+      "ok": true,
+      "detail": "{\"backdropShown\":true,\"logoShown\":true,\"field\":false}"
+    },
+    {
+      "name": "imported image-theme · Light removes the backdrop behind the centre animation (logo kept, no field)",
+      "ok": true,
+      "detail": "{\"backdropHidden\":true,\"logoShown\":true,\"field\":false}"
+    },
+    {
+      "name": "no κ mismatch (409) anywhere across boot · F2 menu · studio — the whole splash is content-native (L5)",
+      "ok": false,
+      "detail": "refused: /os/_shared/holo-mobile.css, /os/_shared/holo-theme.js, /os/_shared/teleport.js, /os/.holo/sha256/590dedd73cbdd94a82bf83b0bb2a4b2d3cb062cd7b7ef5ed6039e8460c8568a8.css, /os/.holo/sha256/e9464e1ccc25bd0ba2840ced25d7d1199794be73cf1c1ee98f7513bd0b6fd892.js, /os/_shared/holo-mobile.css, /os/_shared/holo-theme.js, /os/_shared/teleport.js"
+    }
+  ]
+}

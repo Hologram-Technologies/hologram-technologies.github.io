@@ -1,0 +1,122 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "holospaces",
+  "hosfs:fhs": "/usr/share/holospaces",
+  "hosfs:fhsRole": "the core holospaces — each a self-contained, portable κ-container",
+  "hosfs:kind": "content",
+  "dcat:dataset": [
+    {
+      "@id": "did:holo:sha256:3e9eea487fd446767c9c3fc323581728d8a257dd71ca609d501b527344609c2c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo World",
+      "schema:identifier": "org.hologram.HoloWorld",
+      "hosfs:fhs": "/usr/share/holospaces/world"
+    },
+    {
+      "@id": "did:holo:sha256:0953518061292e1961f1d1d187e6dcb179799535274c95ac7c61866b6a6f76a5",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo OS",
+      "schema:identifier": "org.hologram.HoloOS",
+      "hosfs:fhs": "/usr/share/holospaces/os"
+    },
+    {
+      "@id": "did:holo:sha256:5411cf8d9ad7ac2bb3593d1b74b06d5d94fd8769dc72f2810028e1ffd32faec5",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Browser",
+      "schema:identifier": "org.hologram.HoloBrowser",
+      "hosfs:fhs": "/usr/share/holospaces/browser"
+    },
+    {
+      "@id": "did:holo:sha256:7e4f77c6cd7252055f307eca984357fb1fb9ef11c321a652585516840669d70f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Search",
+      "schema:identifier": "org.hologram.HoloSearch",
+      "hosfs:fhs": "/usr/share/holospaces/search"
+    },
+    {
+      "@id": "did:holo:sha256:5518c5f9c15ef2ae68b8827d54b85a932cb04c2ef0cbcf46a289813ca2b5a74a",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Notepad",
+      "schema:identifier": "org.hologram.HoloNotepad",
+      "hosfs:fhs": "/usr/share/holospaces/notepad"
+    },
+    {
+      "@id": "did:holo:sha256:8bc211711ef0c0a96d881a604a495994e2259a2661b6b871c2b03f793b4c048f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Docs",
+      "schema:identifier": "org.hologram.HoloDocs",
+      "hosfs:fhs": "/usr/share/holospaces/docs"
+    },
+    {
+      "@id": "did:holo:sha256:a2b54fc09ef724cb06c5bc8562f257333de87ef17de84d3da90f4147551b833f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Workspace",
+      "schema:identifier": "org.hologram.HoloWorkspace",
+      "hosfs:fhs": "/usr/share/holospaces/workspace"
+    },
+    {
+      "@id": "did:holo:sha256:4df84b13e2dcefc69cce6ff33f626b394f2b9eef8bef457270abfe8063cb1205",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Wallet",
+      "schema:identifier": "org.hologram.HoloWallet",
+      "hosfs:fhs": "/usr/share/holospaces/wallet"
+    },
+    {
+      "@id": "did:holo:sha256:3bcc1b669e7e0b086d21ce7684d561be2e9053cdf8fc7560dabb4786c57dbd8b",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo IPFS",
+      "schema:identifier": "org.hologram.HoloIpfs",
+      "hosfs:fhs": "/usr/share/holospaces/ipfs"
+    }
+  ],
+  "id": "did:holo:sha256:92dfce4d3cea5c284a6f95bf8a89fea095521e984315c58ddfa903023715f1e3"
+}

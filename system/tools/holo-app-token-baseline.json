@@ -1,0 +1,200 @@
+{
+  "note": "Ratchet baseline for Holo UI COLOR + SHAPE token conformance (ADR-0057). 'ceilings' is the max hardcoded themeable bypasses (hex colors + px border-radius) allowed per app's authored index.html; the witness FAILS on any increase. Colors are IDENTITY (the adopt-vs-own model) so they are not force-rewritten — the ratchet just prevents NEW bypasses; radius exact-matches (8/12/16px) are safely tokenizable via burndown-app-radius.mjs. New apps default to 0.",
+  "total": 1793,
+  "perApp": {
+    "amp": {
+      "hex": 25,
+      "radius": 2,
+      "bypass": 27
+    },
+    "atlas": {
+      "hex": 1,
+      "radius": 8,
+      "bypass": 9
+    },
+    "atlas96": {
+      "hex": 14,
+      "radius": 6,
+      "bypass": 20
+    },
+    "brcminer": {
+      "hex": 34,
+      "radius": 9,
+      "bypass": 43
+    },
+    "browser": {
+      "hex": 51,
+      "radius": 16,
+      "bypass": 67
+    },
+    "btc": {
+      "hex": 33,
+      "radius": 7,
+      "bypass": 40
+    },
+    "capture": {
+      "hex": 59,
+      "radius": 12,
+      "bypass": 71
+    },
+    "cloud": {
+      "hex": 40,
+      "radius": 8,
+      "bypass": 48
+    },
+    "docs": {
+      "hex": 46,
+      "radius": 6,
+      "bypass": 52
+    },
+    "etherscan": {
+      "hex": 106,
+      "radius": 41,
+      "bypass": 147
+    },
+    "evm": {
+      "hex": 43,
+      "radius": 6,
+      "bypass": 49
+    },
+    "files": {
+      "hex": 55,
+      "radius": 24,
+      "bypass": 79
+    },
+    "forge": {
+      "hex": 31,
+      "radius": 7,
+      "bypass": 38
+    },
+    "git": {
+      "hex": 106,
+      "radius": 24,
+      "bypass": 130
+    },
+    "ipfs": {
+      "hex": 47,
+      "radius": 14,
+      "bypass": 61
+    },
+    "liberty": {
+      "hex": 21,
+      "radius": 3,
+      "bypass": 24
+    },
+    "meet": {
+      "hex": 82,
+      "radius": 9,
+      "bypass": 91
+    },
+    "music": {
+      "hex": 51,
+      "radius": 29,
+      "bypass": 80
+    },
+    "notepad": {
+      "hex": 62,
+      "radius": 11,
+      "bypass": 73
+    },
+    "os": {
+      "hex": 55,
+      "radius": 5,
+      "bypass": 60
+    },
+    "plasma": {
+      "hex": 12,
+      "radius": 2,
+      "bypass": 14
+    },
+    "player": {
+      "hex": 31,
+      "radius": 9,
+      "bypass": 40
+    },
+    "privacy": {
+      "hex": 32,
+      "radius": 10,
+      "bypass": 42
+    },
+    "q": {
+      "hex": 77,
+      "radius": 30,
+      "bypass": 107
+    },
+    "qemu": {
+      "hex": 55,
+      "radius": 5,
+      "bypass": 60
+    },
+    "sdk": {
+      "hex": 153,
+      "radius": 14,
+      "bypass": 167
+    },
+    "search": {
+      "hex": 1,
+      "radius": 0,
+      "bypass": 1
+    },
+    "stream": {
+      "hex": 13,
+      "radius": 1,
+      "bypass": 14
+    },
+    "terms": {
+      "hex": 23,
+      "radius": 7,
+      "bypass": 30
+    },
+    "video": {
+      "hex": 21,
+      "radius": 1,
+      "bypass": 22
+    },
+    "wallet": {
+      "hex": 16,
+      "radius": 7,
+      "bypass": 23
+    },
+    "workspace": {
+      "hex": 57,
+      "radius": 7,
+      "bypass": 64
+    }
+  },
+  "ceilings": {
+    "amp": 27,
+    "atlas": 9,
+    "atlas96": 20,
+    "brcminer": 43,
+    "browser": 67,
+    "btc": 40,
+    "capture": 71,
+    "cloud": 48,
+    "docs": 52,
+    "etherscan": 147,
+    "evm": 49,
+    "files": 79,
+    "forge": 38,
+    "git": 130,
+    "ipfs": 61,
+    "liberty": 24,
+    "meet": 91,
+    "music": 80,
+    "notepad": 73,
+    "os": 60,
+    "plasma": 14,
+    "player": 40,
+    "privacy": 42,
+    "q": 107,
+    "qemu": 60,
+    "sdk": 167,
+    "search": 1,
+    "stream": 14,
+    "terms": 30,
+    "video": 22,
+    "wallet": 23,
+    "workspace": 64
+  }
+}

@@ -1,0 +1,5 @@
+# Fetch git dependencies via the git CLI rather than libgit2 — robust across
+# environments. holospaces and the hologram substrate it references are both
+# public, so no token is required; this is kept for build reproducibility.
+[net]
+git-fetch-with-cli = true

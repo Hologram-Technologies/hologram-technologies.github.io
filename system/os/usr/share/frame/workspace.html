@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>holospace · workspace</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { height: 100%; margin: 0; }
+      body { font: var(--holo-text-sm, 1rem)/1.5 var(--holo-font-sans); background: var(--holo-bg); color: var(--holo-ink); display: flex; flex-direction: column; }
+      #titlebar { background: var(--holo-surface); padding: 0.35rem 0.8rem; display: flex; align-items: center; gap: 0.6rem; border-bottom: 1px solid var(--holo-border); font-size: 0.85em; }
+      #titlebar .name { font-weight: 600; color: var(--holo-ink); }
+      #titlebar .k { color: var(--holo-accent); font-family: var(--holo-font-mono); word-break: break-all; }
+      #titlebar .status { margin-left: auto; color: var(--holo-ink-dim); }
+      #ide { flex: 1; display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 1fr 14rem; min-height: 0; }
+      #sidebar { grid-row: 1 / 3; background: var(--holo-surface-2); border-right: 1px solid var(--holo-border); overflow-y: auto; }
+      #sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--holo-ink-dim); padding: 0.6rem 0.8rem 0.3rem; margin: 0; }
+      .file { padding: 0.25rem 0.8rem 0.25rem 1.4rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .file:hover { background: var(--holo-hover); }
+      .file.active { background: color-mix(in srgb, var(--holo-accent) 18%, transparent); color: var(--holo-ink); }
+      .file .fk { display: block; font-size: 0.7em; color: var(--holo-ink-dim); font-family: var(--holo-font-mono); overflow: hidden; text-overflow: ellipsis; }
+      #editor { grid-column: 2; grid-row: 1; min-height: 0; }
+      #panel { grid-column: 2; grid-row: 2; background: var(--holo-bg); border-top: 1px solid var(--holo-border); display: flex; flex-direction: column; min-height: 0; }
+      #panel .tab { padding: 0.3rem 0.8rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--holo-ink-dim); border-bottom: 1px solid var(--holo-border); }
+      #term { flex: 1; min-height: 0; padding: 0.3rem; }
+      #boot { padding: 2rem; text-align: center; color: var(--holo-ink-dim); grid-column: 1 / 3; grid-row: 1 / 3; }
+      a { color: var(--holo-accent); }
+    </style>
+    <!-- Mobile conformance layer — loaded last so it wins the cascade (WCAG 2.2 §1.4.10/§2.5.8 + MD3). -->
+    <link rel="stylesheet" href="_shared/holo-mobile.css" />
+  </head>
+  <body>
+    <div id="titlebar">
+      <span class="name" id="name">holospace</span>
+      <span class="k" id="hk">—</span>
+      <span class="status" id="status">starting…</span>
+    </div>
+    <div id="ide">
+      <div id="boot">
+        <p>Launching the workspace…</p>
+        <p id="bootlog" class="status" style="font-family:ui-monospace,monospace"></p>
+      </div>
+      <div id="sidebar" style="display:none">
+        <h2>Explorer · devcontainer</h2>
+        <div id="files"></div>
+      </div>
+      <div id="editor" style="display:none"></div>
+      <div id="panel" style="display:none">
+        <div class="tab">Terminal — the running holospace</div>
+        <div id="term"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import init, { kappa, verify_kappa, Workspace, DevcontainerImage } from "./pkg/holospaces_web.js";
+
+      // The browser peer is the trust root: once it is loaded, the substrate's
+      // own σ-axis (blake3, CC-1) verifies every other byte by re-derivation
+      // (Law L5). The VS Code components and the OS image are content imported by
+      // κ, exactly like any holospace's code — nothing is trusted from a bare
+      // <script src>. This is the uor-native realization: the platform verifies
+      // its own UI with itself.
+      await init();
+
+      const $ = (id) => document.getElementById(id);
+      const params = new URLSearchParams(location.search);
+      $("name").textContent = params.get("name") || "devcontainer";
+      $("hk").textContent = params.get("id") || "(local)";
+      const setStatus = (m) => ($("status").textContent = m);
+      const bootlog = (m) => ($("bootlog").textContent = m);
+
+      // The pinned κ of each imported artifact (the substrate's content address;
+      // provenance in vv/artifacts/cc13/vendor.kappa + vv/PROVENANCE.md).
+      const K = {
+        "vendor/monaco/loader.js": "blake3:11a21e4e68cd15599539c9e3dccab9918adb25fe98225fcb315868f68991894b",
+        "vendor/monaco/editor/editor.main.js": "blake3:9f7f6b050c2698b3788fb9fdb0b49bad45804f7e15faa6870e9cf0d822200730",
+        "vendor/monaco/editor/editor.main.css": "blake3:a0d37d83f7c702f316c5964069dbe81ea8292ec3b7ec97c1f28869437893461a",
+        "vendor/monaco/base/worker/workerMain.js": "blake3:8937fecc35712a379622f58a6cafc0b88fc2a6f76facc20ba611f5f97ddc631f",
+        "vendor/monaco/basic-languages/markdown/markdown.js": "blake3:7948095c5cf2a7a6ea7d07fbcb16ab8ef22e1db36ec1956945537d040ad5f263",
+        "vendor/monaco/basic-languages/shell/shell.js": "blake3:8637ec501c735be9d7e31e0a4ed3101e29cc983e71bdcc50415fe10651088d7f",
+        "vendor/xterm/xterm.js": "blake3:481ecdef6a6186997d3771adbe807393ed61d8af62e4897f5cf9314abc447c50",
+        "vendor/xterm/xterm.css": "blake3:c2fbf3e19ed81c6b5ad45c60b95289e5b483789861f7bd277ca99bd85897047f",
+        "vendor/xterm/addon-fit.js": "blake3:0be65ad91c9fc0c898229b532748d569154398412d8737ff5e9d13f5d6b92a99",
+        "workspace-kernel.gz": "blake3:69d01fad85dee601f35c3406f32ad203ef58ba260d2a3f0f7c7566edc3bf9a57",
+        "workspace.dtb": "blake3:e1afd55f442345e6020b0a45a240b363fe0de19eca69dc88ebe58f90b0544d5b",
+        "devcontainer-kernel.gz": "blake3:86444b599981098edbc377ed17cf81236efd56321edb86119dcf516f80fc2632",
+        "devcontainer-layer.tar.gz": "blake3:bd7614da27950a93ebc69c6e41f8e59a1bd733789b9cc46984c9b1bafa72852a",
+      };
+
+      // Import content from the gateway and verify it by re-derivation through
+      // the substrate (Law L5): a forged byte is refused, the gateway cannot lie.
+      async function importKappa(path) {
+        const res = await fetch(path);
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (!verify_kappa(bytes, K[path])) {
+          throw new Error(`κ mismatch importing ${path} — the gateway returned forged content (Law L5)`);
+        }
+        return bytes;
+      }
+      const blobUrl = (bytes, type) => URL.createObjectURL(new Blob([bytes], { type }));
+      function injectScript(bytes) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = blobUrl(bytes, "text/javascript");
+          s.onload = resolve;
+          s.onerror = () => reject(new Error("script load failed"));
+          document.head.appendChild(s);
+        });
+      }
+      function injectStyle(bytes) {
+        const l = document.createElement("link");
+        l.rel = "stylesheet";
+        l.href = blobUrl(bytes, "text/css");
+        document.head.appendChild(l);
+      }
+
+      // ── Load the real VS Code terminal (xterm.js), κ-verified ──
+      setStatus("verifying xterm.js by κ…");
+      injectStyle(await importKappa("vendor/xterm/xterm.css"));
+      await injectScript(await importKappa("vendor/xterm/xterm.js"));
+      await injectScript(await importKappa("vendor/xterm/addon-fit.js"));
+
+      // ── Load the real VS Code editor (Monaco), κ-verified ──
+      setStatus("verifying Monaco editor by κ…");
+      // The editor renders, edits, and tokenizes (syntax highlighting) entirely
+      // on the main thread from κ-verified code. Monaco's optional language-service
+      // *worker* loads a module tree we do not import; to keep the workspace fully
+      // uor-native — nothing fetched unverified — it runs with a self-contained
+      // no-op worker (rich language diagnostics are a verifiable future addition).
+      self.MonacoEnvironment = {
+        getWorkerUrl: () => blobUrl(new TextEncoder().encode("self.onmessage=function(){};"), "text/javascript"),
+      };
+      // Verify the stylesheet by κ (the substrate gate); Monaco's own CSS plugin
+      // then resolves it from the gateway path (same gate-verified bytes).
+      await importKappa("vendor/monaco/editor/editor.main.css");
+      await injectScript(await importKappa("vendor/monaco/loader.js"));
+      // The loader resolves `vs/*` (its CSS plugin) from the verified gateway dir;
+      // the executable modules are registered from κ-verified blobs below, so no
+      // code is fetched unverified.
+      window.require.config({ paths: { vs: "vendor/monaco" } });
+      await injectScript(await importKappa("vendor/monaco/editor/editor.main.js"));
+      // Pre-register the syntax languages we use, κ-verified, so Monaco resolves
+      // them from registered modules — no language tokenizer is fetched unverified.
+      for (const lang of ["markdown", "shell"]) {
+        await injectScript(await importKappa(`vendor/monaco/basic-languages/${lang}/${lang}.js`));
+      }
+      await new Promise((resolve) => window.require(["vs/editor/editor.main"], resolve));
+
+      // ── Boot the holospace's devcontainer OS on the emulator (κ-verified) ──
+      setStatus("importing the OS image by κ…");
+      async function gunzip(bytes) {
+        const stream = new Response(bytes).body.pipeThrough(new DecompressionStream("gzip"));
+        return new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      // Two boot modes (both κ-verified, both in the browser peer):
+      //   default            — the pinned CC-11 interactive OS (the VS Code demo);
+      //   ?devcontainer      — import a devcontainer's OCI image from the gateway,
+      //                        assemble its rootfs (the in-crate Layer Assembler,
+      //                        wasm), and boot it over virtio-blk (CC-14 / CC-20).
+      const devcontainer = new URLSearchParams(location.search).has("devcontainer");
+      let ws, READY;
+      if (devcontainer) {
+        setStatus("importing the devcontainer image by κ + assembling its rootfs…");
+        const kernel = await gunzip(await importKappa("devcontainer-kernel.gz"));
+        const layer = await importKappa("devcontainer-layer.tar.gz");
+        const image = new DevcontainerImage();
+        image.add_layer("application/vnd.oci.image.layer.v1.tar+gzip", layer);
+        const rootfs = image.assemble(); // gunzip + untar + overlay + ext4, in wasm
+        ws = Workspace.boot_devcontainer(kernel, rootfs);
+        READY = "USERSPACE-OK";
+      } else {
+        const kernel = await gunzip(await importKappa("workspace-kernel.gz"));
+        const dtb = await importKappa("workspace.dtb");
+        ws = Workspace.boot(kernel, dtb, 128 * 1024 * 1024, 0x80000000, 0x87000000);
+        READY = "HOLOSPACES-WORKSPACE-READY";
+      }
+      window.__ws = ws; // for the browser witness
+
+      // Reveal the IDE; xterm renders the terminal, Monaco the editor.
+      $("boot").style.display = "none";
+      $("sidebar").style.display = "";
+      $("editor").style.display = "";
+      $("panel").style.display = "";
+
+      const term = new window.Terminal({
+        convertEol: true, fontSize: 12, fontFamily: "ui-monospace, monospace",
+        theme: { background: "#1e1e1e", foreground: "#cccccc" },
+      });
+      const fit = new window.FitAddon.FitAddon();
+      term.loadAddon(fit);
+      term.open($("term"));
+      fit.fit();
+      window.addEventListener("resize", () => fit.fit());
+
+      const editor = window.monaco.editor.create($("editor"), {
+        value: "", language: "plaintext", theme: "vs-dark", automaticLayout: true, minimap: { enabled: false },
+      });
+
+      // Stream the OS console into the xterm terminal as it is produced.
+      let shown = 0;
+      function pumpTerminal() {
+        const full = ws.terminal();
+        if (full.length > shown) {
+          term.write(full.slice(shown));
+          shown = full.length;
+        }
+        $("hk").textContent = ws.state_kappa();
+      }
+
+      // Boot in instruction chunks so the tab stays live and streams the boot.
+      await new Promise((resolve) => {
+        let steps = 0;
+        const tick = () => {
+          const halted = ws.run(5_000_000);
+          steps += 5_000_000;
+          pumpTerminal();
+          setStatus(`booting the devcontainer OS… (${(steps / 1e6).toFixed(0)}M instructions)`);
+          if (ws.shows(READY) || halted) return resolve();
+          setTimeout(tick, 0);
+        };
+        tick();
+      });
+      setStatus("running — type in the terminal, edit files in the explorer");
+
+      // Drive the terminal: capture keystrokes, echo locally, send whole lines as
+      // canonical events to the running holospace (the OS shell does not echo).
+      let line = "";
+      term.onData((d) => {
+        if (ws.halted) return;
+        for (const ch of d) {
+          if (ch === "\r") {
+            term.write("\r\n");
+            const event = ws.type_line(line);
+            line = "";
+            pumpTerminal();
+            setStatus("event on the channel → κ " + event);
+            if (ws.halted) { setStatus("the holospace powered off"); term.write("\r\n[powered off]\r\n"); }
+          } else if (ch === "") {
+            if (line.length) { line = line.slice(0, -1); term.write("\b \b"); }
+          } else if (ch >= " ") {
+            line += ch; term.write(ch);
+          }
+        }
+      });
+      term.focus();
+
+      // ── The editor / file tree — environment content addressed by κ ──
+      // Seed a sample devcontainer project; each file is content, its κ its identity.
+      const project = {
+        "/work/README.md": "# Welcome to your holospace\n\nThis is a real devcontainer running in your browser tab — the OS boots\non the κ-addressed system emulator, no Docker daemon and no cloud VM.\n\nThe **terminal** below drives the running OS; this **editor** is the real\nMonaco editor, and every file is content addressed by κ (Law L1).\n",
+        "/work/.devcontainer/devcontainer.json": '{\n  "name": "holospace",\n  "image": "debian:12",\n  "features": {}\n}\n',
+        "/work/hello.sh": '#!/bin/sh\necho "hello from the devcontainer"\n',
+      };
+      const langOf = (p) => p.endsWith(".md") ? "markdown" : p.endsWith(".sh") ? "shell" : "plaintext";
+      let openPath = null;
+
+      function renderFiles() {
+        const list = JSON.parse(ws.files());
+        $("files").innerHTML = list
+          .map((f) => `<div class="file ${f.path === openPath ? "active" : ""}" data-p="${f.path}">${f.path.split("/").pop()}<span class="fk">${f.kappa}</span></div>`)
+          .join("");
+        for (const el of $("files").querySelectorAll(".file")) {
+          el.onclick = () => openFile(el.dataset.p);
+        }
+      }
+      function openFile(path) {
+        const bytes = ws.read_path(path);
+        if (!bytes) return;
+        openPath = path;
+        const text = new TextDecoder().decode(bytes);
+        window.monaco.editor.setModelLanguage(editor.getModel(), langOf(path));
+        editor.setValue(text);
+        renderFiles();
+      }
+      function save() {
+        if (!openPath) return;
+        const k = ws.save_file(openPath, new TextEncoder().encode(editor.getValue()));
+        setStatus("saved " + openPath + " → κ " + k);
+        renderFiles();
+      }
+      // Seed the project into the workspace store (content addressed by κ).
+      for (const [p, body] of Object.entries(project)) ws.save_file(p, new TextEncoder().encode(body));
+      renderFiles();
+      openFile("/work/README.md");
+      editor.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS, save);
+
+      window.__ready = true;
+    </script>
+      <script src="_shared/holo-theme.js"></script>
+    <script src="_shared/holo-manage.js" defer></script>
+  </body>
+</html>

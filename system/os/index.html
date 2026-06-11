@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hologram OS</title>
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Self-declaring: this boot entry NAMES the Constitution it verifies before booting (ADR-033),
+     for humans (the link below) and agents (the JSON-LD door + /.well-known/constitution.json). -->
+<link rel="alternate" type="application/ld+json" href=".well-known/constitution.json" title="Constitution (ADR-033)" />
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Hologram OS",
+  "usageInfo": { "@type": "CreativeWork", "name": "Constitution — the fail-closed conscience every action is checked against (ADR-033)", "url": "etc/constitution/CONSTITUTION.md" },
+  "hasPart": [{ "@type": "CreativeWork", "name": "Constitution — machine-readable, self-verifying", "url": ".well-known/constitution.json" }] }
+</script>
+<style>html,body{margin:0;height:100%;background:#0b071e;color:#e8e6f0;font:15px/1.6 system-ui,sans-serif;display:grid;place-items:center}a{color:#2dd4bf}</style>
+</head>
+<body>
+<div style="text-align:center">Booting Hologram OS…<div style="opacity:.6;font-size:.85em;margin-top:.6rem">Governed by its <a href="etc/constitution/CONSTITUTION.md">Constitution</a>, verified before boot (<a href=".well-known/constitution.json">ADR-033</a>).</div></div>
+<!-- The Pages boot entry. On a dumb static host (GitHub Pages) only real FHS paths exist, so we
+     bring up holo-fhs-sw.js — the in-browser twin of tools/holo-serve-fhs.mjs — which maps the flat
+     URL space (/home.html, /_shared/…, /boot.html) onto the FHS tree and stamps cross-origin-
+     isolation headers. Once it controls this page (one reload), we enter the bootloader (rEFInd →
+     Plymouth → SDDM → PrimeOS). Relative paths only, so it also works under a /<repo>/ project site. -->
+<script type="module">
+  // Constitutional boot gate (ADR-033): self-verify the conscience BEFORE entering the bootloader.
+  // The gate (holo-conscience.js) is self-contained, so it loads on this bootstrap page before the
+  // worker controls it. Sealed ⇒ boot. Tampered or absent ⇒ FAIL CLOSED — refuse to boot (Law L5).
+  const CONSTITUTION_K = "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c";
+  async function constitutionSealed() {
+    try { const C = await import(new URL("usr/lib/holo/holo-conscience.js", location.href).href); return (await C.verifyConstitution()) === true && C.PINNED.root === CONSTITUTION_K; }
+    catch (e) { return false; }
+  }
+
+  // ── Fail-closed boot-refusal screen (ADR-033) — sharp, on-brand, self-contained (NO fetch). ──
+  // It must render even when the OS image is unreachable — exactly when it fires. One renderer,
+  // used by both boot gateways, so the refusal looks identical everywhere.
+  function holoBootRefused(constitutionHref) {
+    document.title = "Boot refused — Hologram OS";
+    const cube = '<svg class="hh-cube" viewBox="0 0 128 128" fill="none" stroke="url(#hhg)" stroke-width="9" stroke-linejoin="round" aria-hidden="true"><defs><linearGradient id="hhg" x1="0" y1="0" x2="128" y2="128"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient></defs><path d="M64 16 L110 42 V86 L64 112 L18 86 V42 Z"/><path d="M18 42 L64 68 L110 42"/><path d="M64 68 V112"/></svg>';
+    const css = `
+      .hh{position:fixed;inset:0;overflow:auto;color:#ECE9FB;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(1200px 760px at 82% -12%,rgba(139,92,246,.30),transparent 60%),radial-gradient(1000px 720px at 10% 114%,rgba(45,212,191,.16),transparent 60%),linear-gradient(160deg,#07041a,#0b071e);}
+      .hh-sky{position:fixed;inset:0;opacity:.5;pointer-events:none;background-repeat:no-repeat;background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 60%,#cbd5ff,transparent),radial-gradient(1px 1px at 40% 80%,#fff,transparent),radial-gradient(1px 1px at 85% 25%,#bfe9ff,transparent),radial-gradient(1px 1px at 55% 15%,#fff,transparent),radial-gradient(1px 1px at 30% 65%,#e9d5ff,transparent);}
+      .hh-aur{position:fixed;inset:-25%;opacity:.4;filter:blur(40px);pointer-events:none;background:radial-gradient(closest-side,rgba(251,113,133,.12),transparent),radial-gradient(closest-side,rgba(139,92,246,.13),transparent);background-size:60% 60%,52% 52%;background-position:26% 28%,76% 72%;background-repeat:no-repeat;}
+      .hh-stage{position:relative;min-height:100%;display:grid;place-items:center;padding:6vh 6vw;}
+      .hh-card{width:min(92vw,520px);display:grid;justify-items:center;gap:1.35rem;text-align:center;background:linear-gradient(180deg,rgba(22,15,46,.62),rgba(11,7,30,.58));border:1px solid rgba(139,92,246,.20);border-top:2px solid rgba(251,113,133,.9);border-radius:18px;box-shadow:0 30px 90px rgba(2,0,12,.55);padding:clamp(34px,5vw,52px);}
+      .hh-cube{width:54px;height:54px;filter:drop-shadow(0 0 16px rgba(139,92,246,.5));}
+      .hh h1{margin:0;font-size:clamp(34px,5.4vw,48px);font-weight:600;letter-spacing:-.015em;line-height:1.08;}
+      .hh-lead{margin:0;max-width:26ch;font-size:clamp(16px,2.3vw,19px);line-height:1.5;color:#c9c3ea;}
+      .hh-act{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem;}
+      .hh-btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.82rem 1.55rem;font:500 15.5px/1 inherit;cursor:pointer;text-decoration:none;border:1px solid transparent;transition:filter .15s,background .15s;}
+      .hh-p{color:#fff;background:linear-gradient(135deg,#8b5cf6,#6d4bd0);box-shadow:0 12px 32px rgba(109,75,208,.45);}
+      .hh-p:hover{filter:brightness(1.12);}
+      .hh-g{color:#cdd6ff;border-color:rgba(139,92,246,.4);}
+      .hh-g:hover{background:rgba(139,92,246,.12);}`;
+    const html = `<div class="hh"><div class="hh-sky"></div><div class="hh-aur"></div><div class="hh-stage"><main class="hh-card">
+      ${cube}
+      <h1>Boot refused</h1>
+      <p class="hh-lead">Hologram OS couldn't verify its Constitution, so it didn't start. Nothing ran.</p>
+      <div class="hh-act"><button class="hh-btn hh-p" onclick="location.reload()">↻ Re-verify</button><a class="hh-btn hh-g" href="${constitutionHref}">Read the Constitution</a></div>
+    </main></div></div>`;
+    const s = document.createElement("style"); s.textContent = css; document.head.appendChild(s);
+    document.body.style.cssText = "margin:0"; document.body.innerHTML = html;
+  }
+
+  async function go() {
+    if (!(await constitutionSealed())) return holoBootRefused("etc/constitution/CONSTITUTION.md");
+    // ?menu / ?boot → the rEFInd boot menu (the full cinematic chain). Default → straight to the
+    // SDDM greeter, then the ONE desktop shell (apps/sdk) — consistent with the root gateway.
+    const p = new URLSearchParams(location.search);
+    if (p.has("menu") || p.has("boot")) return location.replace("boot.html" + location.search + location.hash);
+    return location.replace("login.html?" + new URLSearchParams({ next: "apps/sdk/index.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" }));
+  }
+  if (!("serviceWorker" in navigator)) { await go(); }
+  else if (navigator.serviceWorker.controller) { await go(); }  // already mapped + isolated → verify, then boot
+  else {
+    try {
+      const reg = await navigator.serviceWorker.register("holo-fhs-sw.js", { type: "module", scope: "./" });
+      // wait for the worker to activate, then reload ONCE so it controls this client (gaining the
+      // FHS mapping + COI headers). A sessionStorage guard prevents a reload loop.
+      await new Promise((res) => {
+        if (reg.active) return res();
+        const w = reg.installing || reg.waiting;
+        if (!w) return res();
+        w.addEventListener("statechange", function () { if (this.state === "activated") res(); });
+        setTimeout(res, 4000);
+      });
+      if (!sessionStorage.getItem("holoFhsBooted")) { sessionStorage.setItem("holoFhsBooted", "1"); location.reload(); }
+      else { await Promise.race([new Promise((r) => navigator.serviceWorker.addEventListener("controllerchange", r, { once: true })), new Promise((r) => setTimeout(r, 1500))]); await go(); }
+    } catch (e) { await go(); }                                 // SW unavailable → physical paths only (still boots at a root site)
+  }
+</script>
+<noscript><a href="boot.html" style="color:#2dd4bf">Enter Hologram OS</a></noscript>
+</body>
+</html>

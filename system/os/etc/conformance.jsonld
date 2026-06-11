@@ -1,0 +1,339 @@
+{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "earl": "http://www.w3.org/ns/earl#",
+    "hosc": "https://hologram.os/ns/conformance#",
+    "name": "schema:name",
+    "conforms": {
+      "@id": "hosc:conforms",
+      "@container": "@set"
+    }
+  },
+  "@id": "https://hologram.os/conformance/os2",
+  "@type": [
+    "dcat:Catalog",
+    "hosc:ConformanceCatalog"
+  ],
+  "dcterms:title": "Hologram OS — conformance catalog (the gate)",
+  "dcterms:description": "Every required row is proven by RE-RUNNING its witness against an external authority; the gate (tools/gate.mjs) joins the witness results to this catalog and emits an EARL report. Fail-closed: a build with any required row unwitnessed cannot ship. Reuses W3C/community vocabulary (DCAT 3 · EARL 1.0 · schema.org) unchanged; only the hosc: namespace is minted (usr/share/ns/conformance.jsonld). This document is itself valid JSON-LD.",
+  "dcterms:isDefinedBy": "https://hologram.os/ns/conformance",
+  "conforms": [
+    {
+      "@id": "https://hologram.os/conformance/os2#fhs-graph",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The Linux FHS root is one self-verifying, AI-navigable semantic graph",
+      "hosc:authority": "Linux Foundation FHS 3.0 · W3C JSON-LD 1.1 · W3C SHACL · schema.org + DCAT 3 + PROV-O · W3C DID Core · IETF RFC 8785 (JCS)",
+      "hosc:witness": "tools/fhs-graph-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Filesystem & linked data"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#boot",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Hologram OS boots serverless in a real browser via the κ-route serving layer",
+      "hosc:authority": "W3C Service Workers · WHATWG Fetch · W3C WebAssembly · cross-origin isolation (COOP/COEP)",
+      "hosc:witness": "tools/boot-os2-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#apps-self-contained",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Every holospace app is self-contained (0 fallbacks) in the one OS frame",
+      "hosc:authority": "UOR content-addressing — identity is content not location (Law L1), verify by re-derivation (Law L5) · the holospace closure",
+      "hosc:witness": "tools/audit-apps.mjs",
+      "hosc:required": true,
+      "hosc:category": "Holospaces"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-files",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo Files is the native, substrate-native file explorer (ADR-0058) — one interactive window onto the OS's whole content-addressed object universe + a writable OPFS Home: it auto-detects the host OS and wears its native chrome (Finder/Explorer/Files/Nautilus), every object carries its did:holo κ and re-derives on demand (Law L5 — a tampered byte is refused), Home is read/WRITE while the immutable substrate is read-only, and it is a core part of the World shell (dock + native shortcut); proven by driving the real UI in Chromium — click into Holospaces → verify a κ → write to Home",
+      "hosc:authority": "W3C File System Access / OPFS (navigator.storage.getDirectory) · W3C Web Cryptography (SHA-256 re-derivation) · WHATWG Fetch + DOM · W3C UA Client Hints (host detection) · UOR-ADDR (κ = H(canonical_form)) · files-community/Files UX (reproduced) · holospaces Laws L1/L4/L5 · real Chromium via Playwright",
+      "hosc:witness": "tools/holo-files-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Holospaces"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#qml-engine",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The display manager runs the real, verbatim upstream QML — Holo QML parses + executes SDDM's maldives/Main.qml and wires its real API to the self-sovereign identity",
+      "hosc:authority": "Qt 6 QML Reference — QtQml (doc.qt.io/qt-6/qmlreference.html) · SDDM (github.com/sddm/sddm — data/themes/maldives + components/2.0) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/qml-engine-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#qml-render",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The greeter renders in a real browser — Holo QML paints SDDM's theme to the live DOM (welcomeText binding evaluated, username field + Login button), no fatal errors",
+      "hosc:authority": "W3C DOM · WHATWG HTML · Qt 6 QML Reference (QtQml) · SDDM theme (real Chromium via Playwright)",
+      "hosc:witness": "tools/qml-render-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-forge",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "A build is a verifiable, re-derivable κ-transform — Holo Forge compiles Holo-C → spec-valid WebAssembly deterministically, and the build re-derives byte-for-byte to its content address with no server (Law L5 extended from files to builds; the on-ramp to verifiable AI inference)",
+      "hosc:authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C Subresource Integrity · W3C DID Core · W3C PROV-O · UOR-ADDR (κ-label = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-forge-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-forge-registry",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "A verifiable package universe — Holo Forge libraries are content-addressed κ-objects whose dependencies resolve by content address, link exactly once (Law L3 dedup) and re-derive byte-for-byte; a tampered dependency cannot reproduce the pinned artifact (the supply-chain attack, refused)",
+      "hosc:authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · W3C Subresource Integrity · UOR content-addressing (Law L1/L3/L5)",
+      "hosc:witness": "tools/holo-forge-registry-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-app",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Every holospace fulfils three native verbs — BUILD · RUN · SHARE — over one content-addressed substrate: build compiles source → wasm and persists it by κ (O(1) rebind on repeat), run executes by κ (a source κ self-compiles, an artifact κ runs directly), share is the κ itself (holo://κ, self-verifying, serverless); an app is a single κ derived from its attributes",
+      "hosc:authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · UOR content-addressing (Law L1/L2/L5)",
+      "hosc:witness": "tools/holo-app-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-app-mcp",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "AI agents BUILD · RUN · SHARE holospaces over MCP — holo_build / holo_run / holo_share are advertised tools (tools/list, schema'd) on the canonical Hologram MCP server: build compiles Holo-C → a content-addressed wasm κ and returns a STRUCTURED {line,col,message} error for the agent's fix-and-retry loop; run executes by κ (a source κ self-compiles) and calls exports; share returns holo://κ — agents collaborate by content address, no server",
+      "hosc:authority": "W3C Model Context Protocol (2024-11-05) · W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · UOR content-addressing (Law L1/L2/L5)",
+      "hosc:witness": "tools/holo-app-mcp-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-build",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "BUILD is a native holospace pillar (ADR-0055) — a serverless, VS Code-faithful IDE that runs entirely in the browser (the real Monaco editor + xterm terminal, κ-verified, no server): it rebinds an identical build in O(1) (Holo Forge memo — rebind, not recompute), keeps files as editor tabs, renders a holospace's running code LIVE (the visual Build), exposes Quick Open + Command Palette, and lets humans + AI agents co-edit in real time CONVERGING to the same content address (κ) — collaboration proven by re-derivation (Law L5), not trust; complements RUN and SHARE",
+      "hosc:authority": "Microsoft VS Code + Monaco Editor (editor + Dark Modern workbench, github.com/microsoft/vscode) · xterm.js · W3C WebAssembly Core 2.0 · WHATWG HTML/DOM · W3C BroadcastChannel · W3C PROV-O + DID Core + JSON-LD 1.1 · IETF RFC 8785 (JCS) · UOR content-addressing (Law L1/L3/L5) · holospaces Laws · real Chromium via Playwright",
+      "hosc:witness": "tools/holo-build-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-lang",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Language intelligence is a serverless, OFF-THREAD κ-object language service (ADR-0056) — a Web Worker analyzer (no server, no bundler) feeds Monaco's standard providers (document symbols/outline · find-references · signature help · document formatting · rename) so analysis never blocks typing; it is the language-server PATTERN a real WASM LSP (clangd/rust-analyzer) plugs into over the same transport, keeping the IDE 100% serverless and fast",
+      "hosc:authority": "Microsoft Language Server Protocol (the provider model) · Monaco Editor languages API · W3C Web Workers · WHATWG HTML/DOM · WebAssembly Core 2.0 (the future LSP runtime) · UOR content-addressing (Law L1/L5) · real Chromium via Playwright",
+      "hosc:witness": "tools/holo-lang-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-wasm-lsp",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "A REAL WASM language server runs in the browser with no server (ADR-0056 escalation) — Biome (a production Rust→WebAssembly toolchain) is vendored as a content-addressed κ-object and driven in a Web Worker over the Holo Lang transport, producing genuine lint diagnostics + formatting for JS/TS/JSON entirely in-tab, off the main thread, offline; the serverless, content-addressed substitute for a VS Code extension host",
+      "hosc:authority": "Biome (github.com/biomejs/biome — @biomejs/wasm-web 1.9.4, Rust→WASM) · W3C WebAssembly Core 2.0 · W3C Web Workers · Microsoft Language Server Protocol (the provider model) · Monaco Editor languages API · UOR content-addressing (Law L1/L5) · real Chromium via Playwright",
+      "hosc:witness": "tools/holo-wasm-lsp-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-ts",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The full TypeScript language service runs in the browser with no server (ADR-0056 power ceiling) — the real TS compiler (bundled in Monaco, the editor's #1 language server) runs in a κ-verified Web Worker, giving genuine CROSS-FILE TYPE INFERENCE (a real type error is reported) + IntelliSense (completion · hover · go-to-def · signature · rename · references) entirely in-tab, offline; the serverless, content-addressed substitute for a VS Code extension host",
+      "hosc:authority": "Microsoft TypeScript (the language service) · Microsoft VS Code + Monaco Editor (vs/language/typescript — github.com/microsoft/vscode) · Microsoft Language Server Protocol · W3C Web Workers · WHATWG HTML/DOM · UOR content-addressing (Law L1/L5) · real Chromium via Playwright",
+      "hosc:witness": "tools/holo-ts-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-link",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CLOSURE — content-addressed composition (Holo Link, ADR-0060): every module is a self-verifying WASM κ-object that imports others BY CONTENT ADDRESS (the κ is the WASM import's module-name, so a module's own bytes commit to its dependencies); running LINKS the dependency graph from the store — verified by re-derivation (Law L5), instantiated once (Law L3) — so objects combine into new self-verifying objects and split back apart, connected only by a single self-referential κ. A tampered dependency refuses the whole run. Build·Run·Share becomes Build·Compose·Run·Share over a universe of interoperable serverless apps; the lean substitute for a 100 MB compiler toolchain (WASM is the universal IR, already in every browser — ship a linker, not a compiler)",
+      "hosc:authority": "W3C WebAssembly Core 2.0 (imports + linking) · WebAssembly JS API (Module.imports / instantiate) · IETF RFC 8785 (JCS) · W3C PROV-O + DID Core · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L3/L5",
+      "hosc:witness": "tools/holo-link-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#qml-mcp",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The QML engine is usable by AI agents — the render_qml MCP tool parses + executes a QML document and returns the real component tree as a self-verifying, deterministic UOR object",
+      "hosc:authority": "W3C Model Context Protocol (2024-11-05) · Qt 6 QML Reference (QtQml) · IETF RFC 8785 (JCS) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/qml-mcp-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#constitution-enforce",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The Constitution is enforced at runtime for EVERY holospace, fail-closed — admission control at the one mount chokepoint (holo-launch mount()); the gate self-seals by re-deriving its principles (Law L5); a red-line violation or a tampered/absent constitution refuses the mount",
+      "hosc:authority": "ADR-033 (Hologram OS principles, byte-pinned) · W3C ODRL 2.2 · W3C DID Core · IETF RFC 8785 (JCS) · W3C Web Cryptography · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/constitution-enforce-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Governance & conscience"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#constitution-boot",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The Constitution is SEALED, SELF-VERIFYING, SELF-DECLARING and ENFORCED from the initial boot gateway (ADR-033). The first page (index.html + os/index.html) loads the fail-closed conscience gate, re-derives the eight principles to their pinned κ (Law L5), and REFUSES TO BOOT under a tampered or absent constitution; both gateways + the /.well-known/constitution.json door declare it; a single tampered byte un-seals the gate; and the one mount chokepoint admits a benign app, refuses a red-line app, and refuses everything when unsealed",
+      "hosc:authority": "ADR-033 (Hologram OS principles, byte-pinned) · W3C ODRL 2.2 · W3C DID Core · IETF RFC 8785 (JCS) · W3C Web Cryptography · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/boot-constitution-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Governance & conscience"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#read-write",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Every holospace object is self-editable read/WRITE — content and components are durable, content-addressed Realizations that split into smaller κ-objects or fuse into larger ones, stored under the κ their bytes re-derive to and verified on read (Law L5), no server",
+      "hosc:authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C JSON-LD 1.1 · upstream holospaces SPINE-2 realization (consumed by reference, ADR-006) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-rw-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Read/write substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#kappa-parity",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "OS2's content-addressing σ-axis is byte-identical to the hologram substrate — κ = blake3:<hex> = standard BLAKE3 of the canonical bytes, so OS2 objects resolve on the shared UOR substrate (the convergence that unblocks Read-Write-Own)",
+      "hosc:authority": "Official BLAKE3 test vectors (BLAKE3-team) · the hologram substrate blake3 σ-axis (ADR-052) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-blake3-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Read/write substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#realization-parity",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "OS2 mints COMPOSED-object κ byte-identical to the hologram substrate — a Realization's identity = BLAKE3 over the SPINE-2 canonical shell (IRI · ordered 71-byte κ-refs · payload), so a whole object (not just a leaf blob) resolves on the shared UOR substrate; the σ-axis row above proves the hash, this proves the framing that carries a real object onto it",
+      "hosc:authority": "hologram substrate realizations::encode SPINE-2 shell (realizations.rs:171-183, consumed by reference, ADR-006) · Official BLAKE3 test vectors (BLAKE3-team) · the substrate's as1 σ-axis conformance · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-realization-parity-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Read/write substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#own",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Every holospace object is OWNABLE — the 'Own' era on the content-addressed substrate (ADR-053): a Title is a signed, content-addressed claim (owner did:holo ⊕ owned κ ⊕ prior Title; rights as ODRL; a W3C VC) whose head κ proves the whole ownership history; transfer is a UCAN-attenuated, signed, conscience-gated capability op (a non-owner or an escalation is refused — SEC-2/L5); a double-transfer fork is detected and scarcity is anchored to an existing chain BY REFERENCE, never minted (Law L4); value settles against proven title (ADR-048); community ownership is a multi-principal Title — uniting web2 · web3 · AI in one self-verifying substrate",
+      "hosc:authority": "W3C DID Core · Verifiable Credentials + VC Data Integrity · UCAN · ODRL 2.2 · PROV-O · JSON-LD 1.1 · UOR-ADDR (κ = H(canonical_form)) · BTC/ETH/Solana consensus by reference · holospaces Laws L1/L2/L4/L5 + SEC-2 (attenuate-only) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-own-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Ownership & economics"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#dual-axis",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Every UOR object resolves on the shared substrate via DUAL AXIS — the same canonical content is addressed on BOTH the open-web sha256 σ-axis (its did:holo id) AND the hologram substrate's blake3 σ-axis (a did:holo:blake3 W3C alsoKnownAs alias); a κ-store/route keyed on either axis finds the bytes and re-derives them (Law L5). Additive + reversible: sha256 stays the identity, blake3 is gained — the corpus rides onto upstream addressing without a rewrite",
+      "hosc:authority": "W3C DID Core (alsoKnownAs) · the hologram substrate blake3 σ-axis (address_bytes, byte-identical via holo-blake3 + holo-realization-parity witnesses) · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-dual-axis-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Read/write substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#own-ui",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Ownership is AMBIENT in every holospace (ADR-053, layer 2) — the World shell gives every object a live owner badge + a Claim·Transfer·Anchor·Sell surface over the real Own engine; claim/transfer re-derive + verify (Law L5) and persist in a content-addressed title registry, signed by the operator's self-sovereign key, value moving only through the wallet's human-approval gate; proven by booting the shell in real Chromium",
+      "hosc:authority": "W3C DID Core · Verifiable Credentials · UCAN · ODRL 2.2 · PROV-O · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L4/L5 · real Chromium via Playwright",
+      "hosc:witness": "tools/holo-own-world-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Ownership & economics"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#perf",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Hologram OS is FAST — the content-addressing + verification hot path that 'fast in any browser' rests on is benchmarked within budget and its real throughput reported (blake3 + sha256 MB/s, seal+verify and verifyDeep ops/sec, dual-axis resolution, fail-fast tamper refusal, linear hash scaling); the SAME code runs in the browser, and #boot proves it boots serverless in real Chromium — together they evidence the speed claim",
+      "hosc:authority": "W3C High Resolution Time (performance.now) · BLAKE3 + SHA-256 reference throughput · UOR-ADDR re-derivation (Law L5) · the measured hot-path baseline",
+      "hosc:witness": "tools/holo-perf-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#own-mcp",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Ownership is usable by AI agents over MCP (ADR-053, layer 3) — own_verify · own_settle · own_passport are advertised, JSON-Schema'd tools on the canonical Hologram MCP server returning SELF-VERIFYING results (Law L5): an agent verifies who owns an object, settles value against proven title (a tampered title releases nothing), and reads an ownership passport without trusting any server; an agent acquires ownership by signing a Title with its own self-sovereign key — agents are owners + counterparties on the one substrate",
+      "hosc:authority": "W3C Model Context Protocol (2024-11-05) · W3C DID Core · Verifiable Credentials · UCAN · PROV-O · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-own-mcp-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Ownership & economics"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#own-demo",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "End-to-end Own, witnessed (ADR-053): an AI AGENT BUYS A HOLOSPACE FROM A HUMAN on the content-addressable substrate — self-sovereign human + agent identities; the agent does trustless due diligence over MCP (own_verify); the human signs the hand-over; payment settles ONLY against the proven title (pay-for-proven — a forged sale releases nothing); the agent becomes the verified owner — every step re-derives (Law L5), no server. Composes identity ⊕ own ⊕ settle ⊕ MCP",
+      "hosc:authority": "W3C DID Core · Verifiable Credentials · UCAN · PROV-O · W3C Model Context Protocol (2024-11-05) · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L4/L5",
+      "hosc:witness": "tools/holo-own-demo-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Ownership & economics"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#chain",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "OMNICHAIN, native in every holospace (ADR-053): the Chain Abstraction Layer unifies the fragmented blockchain ecosystem UNDER the κ substrate — NOT a bridge between chains, but each chain a verifiable projection of + anchor for the one κ universe. CAIP (CAIP-2/10/19) names any chain/account/asset; resolve() turns any chain identifier into a SELF-VERIFYING κ object in the one graph (two different chains' accounts land as distinct, re-derivable κ objects); did:pkh makes a chain wallet a holospace principal that holds an Own Title with no new key; anchor/pay route an INTENT to the right chain by namespace via the one default-deny wallet seam — the holospace speaks κ + intents, never a chain",
+      "hosc:authority": "CAIP-2/10/19 (Chain Agnostic Improvement Proposals) · W3C/CASA did:pkh · W3C DID Core · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L4/L5 · the chain kit (prism-btc · holo-eth/evm · holo-solana · wdk) consumed by reference (Law L4)",
+      "hosc:witness": "tools/holo-chain-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Ownership & economics"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-ui-conformance",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo UI is the single canonical UI source with a strict readability FLOOR (ADR-0057) — one engine (holo-theme.js) drives the --holo-* design tokens for every holospace, and --holo-font-min is a minimum text size below which no token-rendered text can fall: holo-theme.css floors the root font-size and holo-mobile.css floors the sub-1rem type ramp + form controls with max(var(--holo-font-min), …), and NO first-party UI hardcodes a sub-floor px font-size that would silently bypass it (verbatim SDDM greeter / Plymouth splash reproductions exempt). Strict conformance to the one set of canonical parameters makes the whole experience coherent",
+      "hosc:authority": "ADR-0030 (Holo UI façade over HoloTheme · HoloPlatform · HoloZones) · ADR-0057 (minimum text size) · W3C CSS Custom Properties + Properties & Values API (@property) · WCAG 2.2 (1.4.4 Resize Text / 1.4.10 Reflow) · verify by static analysis of the served token layer + first-party chrome",
+      "hosc:witness": "tools/holo-ui-conformance-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#app-ui-conformance",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The Holo UI readability floor (ADR-0057) is ENFORCED across EVERY holospace application, not just the OS chrome — a ratchet over the served app repo holds every app's authored shell to no NEW sub-16px font-size beyond its committed baseline (the 'betterer' no-new-violations pattern): no native application can introduce text too small to read, the baseline is the visible burn-down, and burning it down only ever passes. Apps already inherit the floor for token/rem text via the --holo-* tokens + postMessage propagation; this closes the bypass where an app hardcodes px in its own shell",
+      "hosc:authority": "ADR-0057 (minimum text size) · ADR-0030 (Holo UI) · WCAG 2.2 (1.4.4 Resize Text) · the 'betterer' no-new-violations ratchet · static analysis of the served app repo",
+      "hosc:witness": "tools/holo-app-ui-conformance-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-dock",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The dock is native-feel, OS-adaptive and built by ADOPTING desktop-component specs as κ-objects (ADR-0059) — a persistent bottom dock/taskbar that reskins to the host OS (Windows full-width taskbar · macOS centered magnifying dock · iOS/Android safe-area dock · Linux), is golden-ratio-proportioned (holo-phi) and glass-translucent. It runs NO foreign runtime (ADR-0029): it adopts zebar's widget-pack schema (the dock config is a valid zpack instance) and TranslucentTB's accent-state model (opaque/clear/blur/acrylic wired as --holo-glass-* tokens) as byte-pinned content-addressed objects, links to the canonical Holo UI/UX parameters, and every pinned object + the config + the adopted specs are editable like any other substrate object; pin/rearrange/unpin/delete persist to the user's OPFS",
+      "hosc:authority": "zebar (github.com/glzr-io/zebar — resources/zpack-schema.json) · TranslucentTB (github.com/TranslucentTB/TranslucentTB — settings.schema.json) · ADR-0029 (adopt OSS desktop standards as κ-objects, never run a foreign runtime) · ADR-0030 (Holo UI) · ADR-0057 (readability floor) · W3C CSS backdrop-filter + Color 4 light-dark() + Custom Properties · W3C UA Client Hints (HoloPlatform host detection) · golden ratio (φ) · verify by static analysis of the served chrome",
+      "hosc:witness": "tools/holo-dock-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#app-ui-wired",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "EVERY holospace application is wired to upstream Holo UI (ADR-0030/0057) — the canonical UI parameters (text-size floor · palette · density · accent) are defined and persisted by ONE source, the Holo UI engine loaded by the holospace shell, and propagated to every nested app over the postMessage tree; an app only receives + conforms to them if it loads that engine, so every served app's authored shell must reference the Holo UI engine (holo-theme.js, directly or via the holo-ui-kernel.js / holo-ui.js façades) — no app is an island. Forwarder stubs are checked at their target",
+      "hosc:authority": "ADR-0030 (Holo UI, the one UI subsystem) · ADR-0023 (the --holo-* token contract + postMessage propagation) · ADR-0057 (the readability floor) · static analysis of the served app repo",
+      "hosc:witness": "tools/holo-app-wired-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#app-ui-tokens",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo UI conformance extends from text size to COLOR + SHAPE (ADR-0057) — the canonical palette (--holo-bg/-surface/-ink/-accent/…) and radius (--holo-radius-sm/-/-lg) tokens are the single source, and a hardcoded hex color or px border-radius in an app's authored shell bypasses them. Because color is IDENTITY (apps + the faithful reproductions keep their own colors under the ADOPT-vs-OWN model, ADR-0023), this is a no-regression RATCHET, not a forced rewrite: an app may not add hardcoded themeable values beyond its committed baseline, so the corpus can only get MORE token-conformant. Radius exact-matches (8/12/16px) are adopted as tokens pixel-for-pixel (burndown-app-radius.mjs)",
+      "hosc:authority": "ADR-0030 (Holo UI) · ADR-0023 (the --holo-* token contract + adopt-vs-own) · ADR-0057 (the readability floor) · the 'betterer' no-new-violations ratchet · static analysis of the served app repo",
+      "hosc:witness": "tools/holo-app-token-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-desk",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo Desk is the substrate-native DESKTOP (ADR-0061) — a wallpaper plane + icon grid over the writable OPFS Home (/home/user/Desktop) that feels native in any browser: right-click 'New ▸ Folder / Text / App shortcut' (creates + opens an inline-rename field; Home is read/WRITE), drag to arrange, NEST by dropping onto a folder, marquee rubber-band multi-select, double-click to open in place; any holospace app saves as a desktop icon and can be pinned to the native menu bar (dock); a folder's cover updates to MATCH its contents (preview tiles); it reskins to the host OS (Windows folders/selection vs macOS) via HoloPlatform and insets around the dock; every glyph is a κ-pinned Holo Icon (ADR-0032) and the whole library is natively discoverable + applicable (HoloIcons.names/kappa — each icon a did:holo UOR object); and the desktop LAYOUT itself is sealed as a self-verifying UOR object that re-derives to its content address (Law L5). It reuses the OS engines and runs no foreign runtime (ADR-0029); proven by driving the real desktop in Chromium (18 checks).",
+      "hosc:authority": "ADR-0061 (Holo Desk) · ADR-0058 (Holo Files VFS) · ADR-0032 (Holo Icons) · ADR-0030/0057 (Holo UI) · ADR-0029 (adopt-don’t-run) · W3C OPFS / File System Access · Web Crypto · driving the real desktop in Chromium",
+      "hosc:witness": "tools/holo-desk-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-ux",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo UX is the single canonical, self-verifying source of the EXPERIENCE (ADR-0062) — the experience analogue of Holo UI's token contract. The system autodetects the host OS (Windows · macOS · iOS · iPadOS · Android · ChromeOS · Linux) and adapts its native feel dynamically — modifier key, window-control side, font, accent, shortcuts (holo-platform.js → data-holo-platform, seeded without overriding the user) — so it feels familiar and effortless on every machine. Thirteen tenets (the five founding principles + Steve Jobs's eight UX lessons) are each a checkable obligation; capability tier, plain voice and a tier-aware resource budget (time · attention · compute · memory · energy held sacred, interaction ≤100ms / RAIL) are resolved, not guessed. The canonical parameters are sealed as ONE UOR object (etc/holo-ux/doctrine.uor.json) that re-derives to its content address and whose source links re-derive (Law L5) — every holospace binds the κ rather than re-implementing UX",
+      "hosc:authority": "ADR-0062 (Holo UX doctrine) · ADR-0030 (Holo UI) · ADR-0028 (Holo UX Profile) · W3C UA Client Hints (host autodetect) · WCAG 2.2 (readability · target size · animation) · RAIL / W3C Web Performance · W3C OWL 2 / RDFS / SKOS (the hosux: vocabulary) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-ux-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    }
+  ]
+}

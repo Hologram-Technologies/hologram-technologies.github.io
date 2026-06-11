@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Cross-origin isolation for static hosts (GitHub Pages can't send COOP/COEP):
+         this shim registers a service worker that adds the headers and reloads once,
+         so crossOriginIsolated (SharedArrayBuffer / the WASM VMs) works on Pages. It
+         no-ops when already isolated (holo-serve / the native engine set real headers). -->
+    <script src="coi-serviceworker.min.js"></script>
+    <title>Home — Hologram OS</title>
+    <style>
+      :root { color-scheme: light dark;
+        /* adopt the canonical Holo UI palette (ADR-0057); fallbacks preserve the dark look standalone */
+        --bg: var(--holo-bg, var(--bg)); --surface: var(--holo-surface, var(--surface)); --line: var(--holo-border, var(--line));
+        --ink: var(--holo-ink, var(--ink)); --dim: var(--holo-ink-dim, var(--dim)); --accent: var(--holo-accent, var(--accent));
+        --ok: var(--holo-ok, var(--ok)); --warn: var(--holo-warn, var(--warn)); --danger: var(--holo-danger, var(--danger)); }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body { font: var(--holo-text-sm, 1rem)/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: var(--bg); color: var(--ink);
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+      header { padding: 0.9rem 1.5rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 1rem; }
+      header h1 { font-size: 1.1rem; margin: 0; }
+      header .op { margin-left: auto; font-size: 0.85em; }
+      .k { color: var(--accent); font-family: ui-monospace, monospace; word-break: break-all; }
+      .muted { color: var(--dim); }
+      main { padding: 1.5rem; max-width: 64rem; margin: 0 auto; }
+      h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); margin: 1.5rem 0 0.6rem; }
+      button { font: inherit; padding: 0.3rem 0.75rem; margin: 0 0.3rem 0.3rem 0; cursor: pointer; background: var(--line); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+      button:hover { background: var(--line); }
+      button.primary { background: var(--ok); border-color: var(--ok); color: #fff; }
+      button.danger { border-color: #6e2528; color: var(--danger); }
+      button.danger:hover { background: #6e2528; color: #fff; }
+      button.sm { padding: 0.15rem 0.5rem; font-size: 0.85em; }
+      button:disabled { opacity: 0.45; cursor: default; }
+      input, textarea, select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem 0.6rem; font: inherit; }
+      select { cursor: pointer; }
+      textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 0.85em; min-height: 6rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+      th { text-align: left; color: var(--dim); font-weight: 500; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--line); }
+      td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--surface); vertical-align: top; }
+      tr:hover td { background: var(--surface); }
+      .badge { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.78em; border: 1px solid; }
+      .badge.stopped { color: var(--dim); border-color: var(--line); }
+      .badge.running { color: var(--ok); border-color: var(--ok); }
+      .badge.suspended { color: var(--warn); border-color: var(--warn); }
+      .badge.arch { color: #a371f7; border-color: #6e40c9; font-family: ui-monospace, monospace; }
+      .new { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
+      .new label { display: block; font-size: 0.85em; color: var(--dim); margin: 0.5rem 0 0.2rem; }
+      .row { display: flex; gap: 0.6rem; align-items: end; flex-wrap: wrap; }
+      #toast { position: fixed; bottom: 1rem; right: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.85em; max-width: 28rem; display: none; }
+
+      /* Per-guest settings drawer — the VPC-console "instance settings" panel. */
+      #scrim { position: fixed; inset: 0; background: rgba(1,4,9,0.6); opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 40; }
+      #scrim.open { opacity: 1; pointer-events: auto; }
+      #drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(30rem, 92vw); background: var(--bg); border-left: 1px solid var(--line); box-shadow: -16px 0 40px rgba(0,0,0,0.5); transform: translateX(100%); transition: transform 0.18s ease; z-index: 50; display: flex; flex-direction: column; }
+      #drawer.open { transform: translateX(0); }
+      .drawer-head { padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); display: flex; align-items: start; gap: 1rem; }
+      .drawer-head .d-title { font-size: 1.05rem; font-weight: 600; }
+      .drawer-body { overflow-y: auto; padding: 0.5rem 1.25rem 2rem; }
+      .drawer-body section { padding: 1rem 0; border-bottom: 1px solid var(--surface); }
+      .drawer-body h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); margin: 0 0 0.7rem; }
+      .drawer-body h3 .lock { color: var(--dim); text-transform: none; letter-spacing: 0; font-size: 0.9em; }
+      dl.details { margin: 0; display: grid; grid-template-columns: 7rem 1fr; gap: 0.4rem 0.8rem; }
+      dl.details dt { color: var(--dim); font-size: 0.85em; }
+      dl.details dd { margin: 0; word-break: break-all; }
+      .field { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+      .field label { color: var(--dim); font-size: 0.85em; min-width: 4.5rem; }
+      .field input { flex: 1; min-width: 6rem; }
+      .hint { color: var(--dim); font-size: 0.8em; margin: 0.2rem 0 0; }
+      .toggle { display: inline-flex; align-items: center; gap: 0.35rem; margin-right: 1rem; font-size: 0.9em; }
+
+      /* Conformance specs + bundles (catalog from specs.json; pills derived from specs.status.json). */
+      .bundles { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.6rem; margin: 0 0 1.4rem; }
+      .bundle-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem 0.9rem; }
+      .bundle-card .bn { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+      .bundle-card .ba { color: var(--dim); font-size: 0.78em; margin: 0.3rem 0 0.55rem; }
+      .bundle-card .bar { height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
+      .bundle-card .bar > i { display: block; height: 100%; background: var(--ok); }
+      .bundle-card .bm { color: var(--dim); font-size: 0.78em; margin-top: 0.4rem; }
+      .spec-group { margin-bottom: 1rem; }
+      .spec-group > h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); margin: 0 0 0.45rem; }
+      .spec-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.7rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 0.35rem; }
+      .spec-row:hover { border-color: var(--line); }
+      .spec-row .mark { flex: none; width: 2rem; height: 2rem; border-radius: 7px; display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line); color: var(--dim); font: 600 0.68rem ui-monospace, monospace; }
+      .spec-row .info { min-width: 0; flex: 1; }
+      .spec-row .nm { font-size: 0.92em; font-weight: 600; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+      .spec-row .sub { color: var(--dim); font-size: 0.8em; margin-top: 0.1rem; word-break: break-word; }
+      .spec-row .src { color: var(--accent); font-size: 0.8em; text-decoration: none; white-space: nowrap; }
+      .spec-row .src:hover { text-decoration: underline; }
+      .pill { display: inline-block; padding: 0.02rem 0.5rem; border-radius: 999px; font-size: 0.72em; border: 1px solid; white-space: nowrap; }
+      .pill.ok { color: var(--ok); border-color: var(--ok); }
+      .pill.no { color: var(--dim); border-color: var(--line); }
+      .pill.tag { color: #a371f7; border-color: #6e40c9; }
+      .pill.ready { color: var(--ok); border-color: var(--ok); }
+
+      /* The holospace frame is holo-apps/holospace.html (ADR-026): one app-agnostic
+         chrome that mounts any holospace (?app/?k a verified Hub app · ?src any page)
+         and re-derives its κ (Law L5). The manager mounts that one frame in a
+         full-viewport iframe so holospaces nest on screen — a holospace can mount the
+         manager, whose Enter mounts another holospace, without limit. We add no chrome
+         of our own (the frame brings its rail · share · κ-footer) — only a way back. */
+      #holoframe { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: none; }
+      #holoframe.open { display: block; }
+      #holoframe iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+      /* Home fills the screen like a desktop OS — lock the page scroll behind it
+         so there's no stray (redundant) scrollbar. */
+      html.framed, html.framed body { overflow: hidden; height: 100%; }
+    </style>
+    <!-- OS theming kernel — design tokens, palette, typography (W3C: custom props, @property,
+         @layer, light-dark()). Loaded before the mobile layer so mechanics still win last. -->
+    <link rel="stylesheet" href="_shared/holo-theme.css" />
+    <!-- Mobile conformance layer — loaded last so it wins the cascade (WCAG 2.2 §1.4.10/§2.5.8 + MD3). -->
+    <link rel="stylesheet" href="_shared/holo-mobile.css" />
+    <!-- Holo Dock (ADR-0059): native-feel bottom dock / taskbar; id-scoped so it never undercuts the
+         mobile layer. Glass tokens come from holo-theme.css; the runtime is holo-dock.js (below). -->
+    <link rel="stylesheet" href="_shared/holo-dock.css" />
+    <style>
+      /* ── boot splash: the IBM PS/2 Reference Diskette power-on layout — a large
+           HOLOGRAM logo top-centre, an identity block lower-right, and a
+           Press-Enter prompt bottom-left. Black + green, flat and sharp. ── */
+      #bootsplash { position: fixed; inset: 0; z-index: 3000; background: #000; overflow: hidden;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; transition: opacity .35s ease; }
+      #bootsplash.done { opacity: 0; pointer-events: none; }
+      /* while booting, the splash owns the whole screen — no page scroll. */
+      html.booting, html.booting body { overflow: hidden !important; height: 100%; }
+      #bootsplash pre { margin: 0; white-space: pre; }
+      /* HOLOGRAM — the large logo, centred in the upper screen (where the IBM logo sits). */
+      #bootsplash .logo { position: absolute; top: 9vh; left: 50%; transform: translateX(-50%);
+        color: #2fdd5e; line-height: 1.05; font-size: clamp(6px, 2.2vw, 34px);
+        text-shadow: 0 0 6px rgba(47,221,94,.45); }
+      /* identity block — lower-right, left-aligned within (mirrors IBM's version block). */
+      #bootsplash .info { position: absolute; right: 7vw; bottom: 19vh; text-align: left;
+        color: #2fdd5e; font-size: clamp(11px, 1.2vw, 15px); line-height: 1.7; }
+      /* Press-Enter — bottom-left, as on the IBM screen. */
+      #bootsplash .prompt { position: absolute; left: 3.5vw; bottom: 7vh;
+        color: #5bffa0; font-size: clamp(12px, 1.3vw, 16px); }
+    </style>
+  </head>
+  <body>
+    <div id="bootsplash">
+      <pre class="logo">██   ██   █████   ██        █████    █████   ██████    █████   ██   ██
+██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██  ██   ██  ███ ███
+██   ██  ██   ██  ██       ██   ██  ██       ██   ██  ██   ██  ██ █ ██
+███████  ██   ██  ██       ██   ██  ██  ███  ██████   ███████  ██   ██
+██   ██  ██   ██  ██       ██   ██  ██   ██  ██  ██   ██   ██  ██   ██
+██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██  ██   ██  ██   ██
+██   ██   █████   ███████   █████    █████   ██   ██  ██   ██  ██   ██</pre>
+      <pre class="info">Hologram OS
+Reference Holospace
+Version 0.1
+
+(C) UOR Foundation 2026</pre>
+      <div class="prompt">Press Enter (&#9166;) to continue...</div>
+    </div>
+    <header>
+      <h1>Hologram Platform Manager</h1>
+      <span class="muted">manage your holospaces · enter one to work in it</span>
+      <span class="op">
+        <button id="signin" class="primary sm">Sign in</button>
+        <span class="muted">operator</span> <span id="operator" class="k">(signed out)</span>
+      </span>
+    </header>
+    <main>
+      <!-- OS-wide Holo Search bar — a single Google-class bar over the whole OS. Opens the
+           Holo Search holospace (search.html) in the shared frame. Self-contained handler
+           (queries the DOM at submit time) so it needs nothing from the module script. -->
+      <h2>Search the OS</h2>
+      <div class="new" style="margin-bottom:1.4rem">
+        <form style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"
+              onsubmit="event.preventDefault();var q=this.q.value.trim();var f=document.getElementById('holoframe');document.getElementById('hf-frame').src='holospace.html?app=org.hologram.HoloSearch'+(q?('&q='+encodeURIComponent(q)):'');f.classList.add('open');f.setAttribute('aria-hidden','false');document.documentElement.classList.add('framed');">
+          <input name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search every holospace, spec, doc and object…" style="flex:1;min-width:16rem;border-radius:999px;padding:.55rem 1rem" aria-label="Search the Hologram OS" />
+          <button class="primary" type="submit" style="border-radius:999px">🔍 Holo Search</button>
+        </form>
+        <p class="hint" style="margin:.5rem 0 0">Holo Search — OpenSearch-faithful, ranked by HoloRank; every result re-derives to its <span class="k">did:holo</span> (Law L5). Press Enter to open.</p>
+      </div>
+
+      <h2>New holospace</h2>
+      <div class="new">
+        <div class="row">
+          <div style="flex:1; min-width:14rem">
+            <label for="hname">Name</label>
+            <input id="hname" value="my-devcontainer" style="width:100%" />
+          </div>
+          <div>
+            <label for="harch">Architecture</label>
+            <select id="harch" title="The guest's instruction-set architecture — fixed for its life (part of its content-addressed identity, Law L1 / ADR-021).">
+              <option value="riscv64">riscv64 (RV64GC)</option>
+              <option value="aarch64">aarch64 (ARMv8-A)</option>
+            </select>
+          </div>
+          <button id="create" class="primary" disabled>Create devcontainer</button>
+        </div>
+        <p class="hint">The architecture is chosen once, at launch — like an instance type in a cloud console. It is part of the holospace's identity (the same config under two ISAs is two distinct holospaces), so it cannot be changed afterward. Everything else (lifecycle · network · storage · access) is editable per guest in its settings.</p>
+        <label for="dcjson">devcontainer.json (validated against the Dev Container spec — CC-4)</label>
+        <textarea id="dcjson" spellcheck="false">{
+  "name": "my-devcontainer",
+  "image": "mcr.microsoft.com/devcontainers/base:debian-12",
+  "features": {}
+}</textarea>
+      </div>
+
+      <h2>Holospaces</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Arch</th><th>Source</th><th>Identity</th><th>Status</th><th style="width:20rem">Actions</th></tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="6" class="muted">No holospaces yet — sign in and create one.</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:1rem">
+        roster κ <span id="roster" class="k">—</span> · the browser is a peer that
+        <em>is</em> the substrate (Law L1); your holospaces are content in the store (Law L3).
+      </p>
+
+      <h2>Conformance specs</h2>
+      <p class="hint" id="spec-sum">Loading the spec catalog…</p>
+      <p class="hint" style="margin-top:0">The catalog is the single source of truth: the dashboard and the
+        enforcement gate (<code>enforce-witnesses.mjs</code>) read the same <code>specs.json</code>. Each spec is
+        pinned and witnessed; the <span class="pill ok">Verified</span> pill is derived from the last conformance run
+        (<code>specs.status.json</code>), never hand-set. <strong>Bundles</strong> group specs by capability.</p>
+      <div id="bundles" class="bundles"></div>
+      <div id="specs" class="specs"></div>
+    </main>
+
+    <!-- The per-guest settings drawer (VPC-console "instance settings"). -->
+    <div id="scrim"></div>
+    <aside id="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <div id="d-name" class="d-title">—</div>
+          <div class="muted">guest settings</div>
+        </div>
+        <button id="d-close" class="sm" style="margin-left:auto">✕ Close</button>
+      </div>
+      <div class="drawer-body">
+        <section>
+          <h3>Details <span class="lock">· fixed at launch 🔒</span></h3>
+          <dl class="details">
+            <dt>Architecture</dt><dd><span id="d-arch" class="badge arch">—</span></dd>
+            <dt>Identity (κ)</dt><dd class="k" id="d-kappa">—</dd>
+            <dt>Source</dt><dd class="muted" id="d-source">—</dd>
+            <dt>Status</dt><dd id="d-status">—</dd>
+          </dl>
+          <p class="hint">Identity, architecture, and source are content-addressed — immutable by construction (Law L1).</p>
+        </section>
+
+        <section>
+          <h3>Lifecycle</h3>
+          <div>
+            <button class="sm primary" data-life="start">Start</button>
+            <button class="sm" data-life="suspend">Suspend</button>
+            <button class="sm" data-life="resume">Resume</button>
+            <button class="sm danger" data-life="terminate">Terminate</button>
+          </div>
+          <p class="hint">Publishes a lifecycle Configuration (CC-28); the running instance resolves, verifies, and applies it over the control channel (ADR-018).</p>
+        </section>
+
+        <section>
+          <h3>Network</h3>
+          <div class="field">
+            <label for="d-port">Forward port</label>
+            <input id="d-port" type="number" min="1" max="65535" placeholder="8080" />
+            <button class="sm" id="d-forward">Forward</button>
+            <button class="sm" id="d-unforward">Unforward</button>
+          </div>
+          <div class="field">
+            <label class="toggle"><input type="checkbox" id="d-fetch" /> fetch</label>
+            <label class="toggle"><input type="checkbox" id="d-announce" /> announce</label>
+            <button class="sm" id="d-network">Apply network</button>
+          </div>
+          <p class="hint">Forwarded guest ports become app-preview URLs; fetch/announce govern the guest's substrate connectivity.</p>
+        </section>
+
+        <section>
+          <h3>Storage</h3>
+          <div class="field">
+            <label for="d-quota">Quota (MB)</label>
+            <input id="d-quota" type="number" min="0" placeholder="512" />
+            <button class="sm" id="d-quota-apply">Set quota</button>
+          </div>
+          <p class="hint">A byte ceiling on the guest's content in the store.</p>
+        </section>
+
+        <section>
+          <h3>Access</h3>
+          <div class="field">
+            <label for="d-grant">Grant κ</label>
+            <input id="d-grant" placeholder="blake3:… principal/capability" />
+            <button class="sm" id="d-grant-apply">Grant</button>
+          </div>
+          <p class="hint">Grant a content-addressed principal access to this guest (CC-1 self-sovereign identity).</p>
+        </section>
+      </div>
+    </aside>
+
+    <!-- Holospaces open in the one shared frame (holo-apps/holospace.html), mounted
+         here in a full-viewport iframe so they nest on screen. The frame carries its
+         own chrome (rail · share · κ-footer); we add only a way back to the manager. -->
+    <div id="holoframe" aria-hidden="true">
+      <iframe id="hf-frame" title="holospace" allow="fullscreen; clipboard-read; clipboard-write"></iframe>
+    </div>
+
+    <div id="toast"></div>
+
+    <script type="module">
+      import init, { kappa, verify_kappa, run_holo, validate_userland, Console, Workspace, DevcontainerImage }
+        from "./pkg/holospaces_web.js";
+
+      // ── Self-hosted boot ───────────────────────────────────────────────────
+      // hologram-os opens holospaces in its OWN VS Code workbench (workbench.html,
+      // built by build-workbench.mjs) — no external Hub. Home (the welcome) and
+      // every holospace boot in the in-page frame (the Home boot below + `action("enter")`).
+
+      await init();
+      window.hs = { kappa, verify_kappa, run_holo, validate_userland, Console, Workspace, DevcontainerImage };
+
+      const console0 = new Console();
+      const $ = (id) => document.getElementById(id);
+      // Presentation metadata for the console (name · arch · source · status); the
+      // canonical state is the holospace κ + roster in the store (Law L3).
+      const meta = new Map(); // κ -> { name, arch, source, status, extensions }
+
+      let toastTimer;
+      function toast(m) {
+        const t = $("toast"); t.textContent = m; t.style.display = "block";
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.style.display = "none"), 4000);
+      }
+
+      // ── The one holospace frame ────────────────────────────────────────────
+      // Holospaces open in the self-hosted VS Code workbench (workbench.html),
+      // mounted full-viewport in the in-page iframe — no external Hub.
+
+      // The Workspace Projection a guest enters into. CANONICAL target is the real VS
+      // Code web workbench (workbench.html — composed into the deploy by build-workbench.mjs,
+      // keyed per-launch by ?id=<κ>; ADR-012 / CC-17, witnessed by CC-17/CC-32). The
+      // documented CC-13 Monaco workspace (workspace.html) is the FALLBACK, used where the
+      // workbench isn't built (raw-source dev). One cached HEAD probe picks which is present;
+      // the inner ?id=<κ> contract is identical either way, so the κ→snapshot keying holds.
+      // Which editor does THIS image ship? Prefer the full self-hosted VS Code workbench
+      // (workbench.html, CC-17) when it is actually present, else the Monaco workspace
+      // (workspace.html, CC-13). We consult the OS κ-closure — the authoritative manifest of
+      // what the content-addressed image contains — instead of a speculative network HEAD
+      // (which 404s on the lean image and isn't a real signal: identity is content, Law L1).
+      const workspaceEntry = (async () => {
+        try {
+          const closure = await fetch(new URL("os-closure.json", location.href), { cache: "no-store" }).then((r) => (r.ok ? r.json() : null));
+          if (closure && closure.closure && closure.closure["workbench.html"]) return "workbench.html";
+        } catch (e) { /* no closure available → use the workspace fallback */ }
+        return "workspace.html";
+      })();
+
+      function openFrame(url) {
+        $("hf-frame").src = url;
+        const f = $("holoframe");
+        f.classList.add("open"); f.setAttribute("aria-hidden", "false");
+        document.documentElement.classList.add("framed"); // lock the page scroll behind Home
+      }
+      function closeFrame() {
+        const f = $("holoframe");
+        f.classList.remove("open"); f.setAttribute("aria-hidden", "true");
+        document.documentElement.classList.remove("framed");
+        $("hf-frame").src = "about:blank"; // tear the holospace down — free its workers
+      }
+      // No on-screen Exit bar — Home fills the screen. Reach the Manager via
+      // ?manage, or Esc (when the page itself, not the workbench, holds focus).
+      addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && $("holoframe").classList.contains("open")) closeFrame();
+      });
+
+      function render() {
+        const v = JSON.parse(console0.view());
+        $("operator").textContent = v.operator || "(signed out)";
+        $("roster").textContent = console0.roster_kappa() || "—";
+        const tbody = $("rows");
+        if (v.holospaces.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="muted">No holospaces yet — sign in and create one.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = v.holospaces.map((k) => {
+          const m = meta.get(k) || { name: "holospace", arch: "riscv64", source: "devcontainer", status: "stopped" };
+          const enter = m.status === "stopped" || m.status === "suspended";
+          return `<tr>
+            <td>${m.name}</td>
+            <td><span class="badge arch">${m.arch}</span></td>
+            <td class="muted">${m.source}</td>
+            <td class="k">${k.slice(0, 24)}…</td>
+            <td><span class="badge ${m.status}">${m.status}</span></td>
+            <td>
+              <button class="sm primary" data-act="enter" data-k="${k}" ${enter ? "" : "disabled"}>Enter</button>
+              <button class="sm" data-act="suspend" data-k="${k}" ${m.status === "running" ? "" : "disabled"}>Suspend</button>
+              <button class="sm" data-act="settings" data-k="${k}">⚙ Settings</button>
+              <button class="sm" data-act="remove" data-k="${k}">Remove</button>
+            </td></tr>`;
+        }).join("");
+        for (const b of tbody.querySelectorAll("button[data-act]")) {
+          b.onclick = () => action(b.dataset.act, b.dataset.k);
+        }
+      }
+
+      // The control channel to the running instances (ADR-018): a browser-local
+      // substrate-sync analog. The panel publishes a Configuration as content and
+      // broadcasts its κ + bytes; an instance tab resolves it, verifies it by
+      // re-derivation (Law L5), and applies it — no direct call, content only.
+      const control = new BroadcastChannel("holospaces-control");
+
+      // Reconfigure an instance from the panel: publish a content-addressed
+      // Configuration (ADR-018; CC-28), then carry it over the control channel to
+      // the running instance, which resolves + verifies + applies it.
+      // Returns the configuration κ (the published content), or throws.
+      function configure(k, directives) {
+        const cfg = console0.configure(k, JSON.stringify(directives));
+        const bytes = console0.resolve(cfg); // the canonical configuration bytes
+        if (bytes) control.postMessage({ instance: k, kappa: cfg, bytes });
+        return cfg;
+      }
+
+      function action(act, k) {
+        const m = meta.get(k);
+        if (act === "enter") {
+          m.status = "running"; render();
+          // Enter the holospace through the one gateway: mount the canonical Workspace
+          // Projection (the real VS Code workbench — ADR-012 / CC-17) in the shared frame,
+          // falling back to the documented CC-13 Monaco workspace where the workbench isn't
+          // built. The inner ?id=<κ> is the upstream contract build-workbench keys on
+          // (CC-32), preserved byte-for-byte; the frame mounts it via its universal ?src
+          // handle (an entered guest carries no published κ manifest → honest external,
+          // Law L5). Because the frame can mount the manager itself, entries nest.
+          const ext = m.extensions && m.extensions.length ? "&ext=" + encodeURIComponent(m.extensions.join(",")) : "";
+          workspaceEntry.then((page) => {
+            const inner = new URL(`${page}?id=${encodeURIComponent(k)}&name=${encodeURIComponent(m.name)}&arch=${encodeURIComponent(m.arch)}${ext}`, location.href).href;
+            // Boot the holospace directly in the self-hosted VS Code workbench
+            // (no external Hub shell). The workbench mounts the holospace's
+            // workspace via the holospace-fs builtin extension (?id=<κ>).
+            openFrame(inner);
+          });
+          toast("entering " + m.name + " — opening in the holospace frame");
+        } else if (act === "suspend") {
+          // Real: publish a lifecycle configuration the instance applies (no stub).
+          const cfg = configure(k, [{ lifecycle: "suspend" }]);
+          m.status = "suspended"; render();
+          toast(m.name + " — published suspend config " + cfg.slice(0, 22) + "… (the instance applies it over the substrate)");
+        } else if (act === "settings") {
+          openDrawer(k);
+        } else if (act === "remove") {
+          forgetSnapshot(k);
+          if (drawerKappa === k) closeDrawer();
+          meta.delete(k); remove(k); render();
+        }
+      }
+
+      // ── Per-guest settings drawer ────────────────────────────────────────────
+      // The VPC-console "instance settings" panel: an immutable Details header
+      // (architecture · identity · source — fixed at launch, part of the κ) over
+      // the editable operation classes (lifecycle · network · storage · access),
+      // each wired to a CC-28 Configuration via configure().
+      let drawerKappa = null;
+
+      function openDrawer(k) {
+        const m = meta.get(k);
+        if (!m) return;
+        drawerKappa = k;
+        $("d-name").textContent = m.name;
+        $("d-arch").textContent = m.arch;
+        $("d-kappa").textContent = k;
+        $("d-source").textContent = m.source;
+        $("d-status").innerHTML = `<span class="badge ${m.status}">${m.status}</span>`;
+        $("drawer").classList.add("open");
+        $("drawer").setAttribute("aria-hidden", "false");
+        $("scrim").classList.add("open");
+      }
+      function closeDrawer() {
+        drawerKappa = null;
+        $("drawer").classList.remove("open");
+        $("drawer").setAttribute("aria-hidden", "true");
+        $("scrim").classList.remove("open");
+      }
+      $("d-close").onclick = closeDrawer;
+      $("scrim").onclick = closeDrawer;
+
+      // Apply a directive batch to the drawer's current guest, refresh the status
+      // line + roster, and report the published configuration κ.
+      function applyToDrawer(directives, label) {
+        const k = drawerKappa;
+        if (!k) return;
+        const m = meta.get(k);
+        try {
+          const cfg = configure(k, directives);
+          if (label === "suspend") m.status = "suspended";
+          else if (label === "terminate") { m.status = "stopped"; forgetSnapshot(k); }
+          else if (label === "start" || label === "resume") m.status = "running";
+          if (label) $("d-status").innerHTML = `<span class="badge ${m.status}">${m.status}</span>`;
+          render();
+          toast(m.name + " — published " + (label || "config") + " " + cfg.slice(0, 22) + "…");
+        } catch (e) {
+          toast("configure failed: " + e);
+        }
+      }
+
+      for (const b of $("drawer").querySelectorAll("button[data-life]")) {
+        b.onclick = () => applyToDrawer([{ lifecycle: b.dataset.life }], b.dataset.life);
+      }
+      $("d-forward").onclick = () => {
+        const port = parseInt($("d-port").value, 10);
+        if (!Number.isInteger(port) || port < 1 || port > 65535) return toast("enter a port 1–65535");
+        applyToDrawer([{ forwardPort: port }], "forwardPort " + port);
+      };
+      $("d-unforward").onclick = () => {
+        const port = parseInt($("d-port").value, 10);
+        if (!Number.isInteger(port) || port < 1 || port > 65535) return toast("enter a port 1–65535");
+        applyToDrawer([{ unforwardPort: port }], "unforwardPort " + port);
+      };
+      $("d-network").onclick = () =>
+        applyToDrawer([{ network: { fetch: $("d-fetch").checked, announce: $("d-announce").checked } }], "network");
+      $("d-quota-apply").onclick = () => {
+        const mb = parseInt($("d-quota").value, 10);
+        if (!Number.isInteger(mb) || mb < 0) return toast("enter a quota in MB");
+        applyToDrawer([{ quota: mb * 1024 * 1024 }], "quota " + mb + "MB");
+      };
+      $("d-grant-apply").onclick = () => {
+        const principal = $("d-grant").value.trim();
+        if (!principal) return toast("enter a principal κ to grant");
+        applyToDrawer([{ grant: principal }], "grant");
+      };
+
+      // The console's view is canonical; removal drops the holospace from the
+      // operator's set (a presentation action — the content stays addressable).
+      const removed = new Set();
+      function remove(k) { removed.add(k); }
+
+      // Drop a holospace's persisted resume state from OPFS. The snapshot is keyed
+      // by the holospace identity (κ) — the SAME sanitization the workbench
+      // extension uses (holospace-fs `deriveHoloKey`) — so removing/terminating a
+      // holospace here actually clears its slot, instead of leaving remnants that
+      // bleed into the next launch. OPFS is per-origin, shared with the tabs.
+      function holoKeyOf(k) {
+        return String(k).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default";
+      }
+      async function forgetSnapshot(k) {
+        if (!navigator.storage || !navigator.storage.getDirectory) return;
+        try {
+          const root = await navigator.storage.getDirectory();
+          const key = holoKeyOf(k);
+          for (const name of [`holospace.${key}.snapshot.gz`, `holospace.${key}.snapshot.kappa`, `holospace.${key}.scrollback.gz`]) {
+            await root.removeEntry(name).catch(() => {});
+          }
+        } catch {
+          /* OPFS unavailable — nothing persisted to forget */
+        }
+      }
+
+      $("signin").onclick = () => {
+        console0.sign_in(new TextEncoder().encode("operator-self-sovereign-key"));
+        $("create").disabled = false;
+        render();
+        toast("signed in — a self-sovereign, content-addressed identity (CC-1)");
+      };
+
+      $("create").onclick = () => {
+        const name = $("hname").value.trim() || "devcontainer";
+        const arch = $("harch").value;
+        const text = $("dcjson").value;
+        const json = new TextEncoder().encode(text);
+        try {
+          // The operator's architecture choice is part of the holospace identity
+          // (Law L1): the same config under two ISAs yields two distinct κ.
+          const k = console0.provision_devcontainer(json, arch, 128 * 1024 * 1024);
+          // The devcontainer's declared VS Code extensions
+          // (customizations.vscode.extensions, CC-4): carried to the workbench on
+          // launch, which installs the web-capable ones from the open gallery.
+          let extensions = [];
+          try { extensions = JSON.parse(text)?.customizations?.vscode?.extensions || []; } catch {}
+          meta.set(k, { name, arch, source: "devcontainer", status: "stopped", extensions });
+          render();
+          toast("provisioned " + name + " (" + arch + ") → " + k.slice(0, 28) + "…");
+        } catch (e) {
+          toast("invalid devcontainer.json: " + e);
+        }
+      };
+
+      // Filter removed holospaces out of the rendered view.
+      const view0 = console0.view.bind(console0);
+      console0.view = () => {
+        const v = JSON.parse(view0());
+        v.holospaces = v.holospaces.filter((k) => !removed.has(k));
+        return JSON.stringify(v);
+      };
+
+      render();
+
+      // ── Home: the canonical Hologram OS homepage ───────────────────────────
+      // Boot onto the Holo Desk DESKTOP (the home surface) unless ?manage requests the Platform
+      // Manager dashboard. The self-hosted VS Code workbench is still provisioned under a stable κ
+      // (its content IS its identity, Law L1) and is one click away (window.__openWorkspace / the
+      // dock), but it no longer auto-mounts over the desktop. Any failure falls back to the dashboard.
+      if (!new URLSearchParams(location.search).has("manage")) {
+        (async () => {
+          try {
+            console0.sign_in(new TextEncoder().encode("operator-self-sovereign-key"));
+            $("create").disabled = false;
+            const k = console0.provision_devcontainer(
+              new TextEncoder().encode($("dcjson").value), "riscv64", 128 * 1024 * 1024);
+            meta.set(k, { name: "Home", arch: "riscv64", source: "devcontainer", status: "running", extensions: [] });
+            render();
+            const page = await workspaceEntry;
+            const inner = new URL(`${page}?id=${encodeURIComponent(k)}`, location.href).href;
+            // Desktop-as-home: at boot we reveal the Holo Desk desktop (the frame stays closed, so
+            // #holo-desk shows through) rather than mounting the workbench over it. The IDE opener is
+            // exposed so a desktop shortcut / the dock can mount it in the one frame on demand. Gated
+            // on the power-on splash so the Press-Enter keystroke isn't swallowed by a focused frame.
+            window.__openWorkspace = () => openFrame(inner);
+            window.__bootHome = () => { try { window.HoloDesk && window.HoloDesk.show(); } catch (e) {} };
+            if (window.__splashDismissed) window.__bootHome();
+          } catch (e) { /* fall back to the Manager dashboard */ }
+        })();
+      }
+
+      window.__ready = true;
+    </script>
+
+
+    <!-- Conformance specs + bundles — the SAME single source of truth the gate
+         enforces: specs.json (catalog, grouped by category) + specs.status.json
+         (the last conformance run). The "Verified" pill is DERIVED from the run,
+         never asserted. Bundles (specs.json bundles[] + status._bundles) are the
+         task-oriented grouping: a capability is "Ready" when all members verify.
+         Pure data-driven — a new spec/bundle appears by editing specs.json. -->
+    <script>
+      (async () => {
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        const data = await fetch("specs.json", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+        if (!data) { $("spec-sum").textContent = "Spec catalog unavailable (specs.json not served)."; return; }
+        const status = await fetch("specs.status.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+        const cats = data.categories || [], specs = data.specs || [], bundles = data.bundles || [], bstat = status._bundles || {};
+        const bidsOf = (s) => [].concat(s.bundle || []);
+        const markFor = (cat) => (cats.find((c) => c[0] === cat) || [, "·"])[1];
+        // Pill derived: the run (specs.status.json) overrides the committed `tested` state.
+        const verified = (s) => (status[s.id] ? status[s.id].witnessed === true : s.tested === true);
+
+        // Bundles — capability grouping with derived readiness.
+        $("bundles").innerHTML = bundles.map((b) => {
+          const st = bstat[b.id] || { total: specs.filter((s) => bidsOf(s).includes(b.id)).length, verified: 0, ready: false };
+          const pct = st.total ? Math.round((st.verified / st.total) * 100) : 0;
+          return `<div class="bundle-card" title="${esc(b.description || "")}">
+            <div class="bn">${esc(b.name)} ${st.ready ? '<span class="pill ready">Ready</span>' : ""}</div>
+            <div class="ba">${esc(b.authority || "")}</div>
+            <div class="bar"><i style="width:${pct}%"></i></div>
+            <div class="bm">${st.verified}/${st.total} verified</div>
+          </div>`;
+        }).join("");
+
+        // Specs — grouped by category, derived pill, bundle tags.
+        const shownCats = cats.map((c) => c[0]).filter((c) => specs.some((s) => s.cat === c));
+        const row = (s) => {
+          const tags = bidsOf(s).map((b) => `<span class="pill tag">${esc((bundles.find((x) => x.id === b) || {}).name || b)}</span>`).join(" ");
+          const pill = verified(s) ? '<span class="pill ok" title="Confirmed by the last conformance run">Verified</span>' : '<span class="pill no" title="Pinned, but its conformance test has not passed yet">Unverified</span>';
+          return `<div class="spec-row">
+            <span class="mark">${esc(markFor(s.cat))}</span>
+            <div class="info">
+              <div class="nm">${esc(s.name)} ${pill} ${tags}</div>
+              <div class="sub">${esc(s.org || "")}${s.version ? " · " + esc(s.version) : ""}</div>
+            </div>
+            ${s.url ? `<a class="src" href="${esc(s.url)}" target="_blank" rel="noopener">Source ↗</a>` : ""}
+          </div>`;
+        };
+        $("specs").innerHTML = shownCats.map((c) => `<div class="spec-group"><h3>${esc(c)}</h3>${specs.filter((s) => s.cat === c).map(row).join("")}</div>`).join("");
+        const nv = specs.filter(verified).length;
+        $("spec-sum").textContent = `${specs.length} specs · ${shownCats.length} categories · ${bundles.length} bundle${bundles.length === 1 ? "" : "s"} · ${nv} verified`;
+      })();
+    </script>
+    <script>
+      // Power-on splash in the IBM PS/2 Reference Diskette layout. It is the
+      // boot GATE: Home is not framed until it is dismissed, so this listener
+      // owns keyboard focus and Enter reliably continues. Enter (or Space, or a
+      // click/tap) dismisses the splash and boots Home (see __bootHome above).
+      (function () {
+        var sp = document.getElementById("bootsplash");
+        if (!sp) return;
+        document.documentElement.classList.add("booting"); // lock page scroll
+        var done = false;
+        function dismiss() {
+          if (done) return; done = true;
+          sp.classList.add("done");
+          document.documentElement.classList.remove("booting"); // restore scroll
+          window.__splashDismissed = true;
+          if (window.__bootHome) window.__bootHome(); // Enter pressed → boot Home now
+          setTimeout(function () { if (sp.parentNode) sp.remove(); }, 450);
+        }
+        addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar" || e.key === "Escape") { e.preventDefault(); dismiss(); }
+        });
+        sp.addEventListener("click", dismiss);
+        window.__dismissSplash = dismiss;   // the greeter handoff skips this redundant splash
+      })();
+    </script>
+    <!-- OS theme runtime: resolves + applies the theme, persists it, and propagates it
+         live across mounted holospaces (postMessage). -->
+    <script src="_shared/holo-theme.js"></script>
+    <!-- OS experience runtime (Holo UX, ADR-0062): autodetects the host OS and adapts the
+         native feel (modifier key · window-control side · font · accent), resolves the device
+         capability tier, and propagates both across mounted holospaces. Seeds native defaults
+         without overriding the user's theme choice. -->
+    <script type="module" src="_shared/holo-ux.js"></script>
+    <!-- Display settings — reachable OS-wide; opens the theme panel (appearance · text
+         size · typeface · accent). Hidden behind the boot splash. -->
+    <style> html.booting #holo-settings-btn { display: none; } </style>
+    <button id="holo-settings-btn" type="button" aria-label="Display & theme settings"
+            onclick="window.HoloTheme && HoloTheme.openSettings()"
+            style="position:fixed;right:14px;bottom:14px;z-index:2147482400;width:44px;height:44px;border-radius:999px;border:1px solid var(--holo-border,var(--line));background:var(--holo-surface,#0d1117e6);color:var(--holo-ink,var(--ink));font-size:20px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 2px 10px #0006">⚙</button>
+    <script src="holo-fx.js"></script>
+      <script src="_shared/holo-manage.js" defer></script>
+    <!-- Holo Dock (ADR-0059): the native-feel bottom dock / taskbar. Hidden behind the boot splash;
+         the bottom-corner chrome (settings · terms · privacy · loader) lifts above the bar by the
+         dock's published --holo-dock-h (0 for the floating macOS dock, so the corners stay free). -->
+    <style>
+      html.booting #holo-dock { display: none; }
+      #holo-settings-btn, #holo-terms-btn, #holo-privacy-btn, #holo-load {
+        bottom: calc(14px + var(--holo-dock-h, 0px)) !important;
+      }
+      /* When the dock is a vertical LEFT bar (windowed), shift the bottom-LEFT chrome clear of it. */
+      #holo-terms-btn, #holo-privacy-btn, #holo-load {
+        left: calc(14px + var(--holo-dock-w, 0px)) !important;
+      }
+    </style>
+    <script src="_shared/holo-dock.js" defer></script>
+    <!-- Holo Desk: the substrate-native DESKTOP — a wallpaper plane + icon grid over the writable OPFS
+         Home (/home/user/Desktop). It feels native in any browser (right-click "New ▸ Folder", inline
+         rename, drag to arrange), reskins to the host OS (Windows/macOS) via HoloPlatform, renders every
+         glyph as a κ-pinned Holo Icon (ADR-032), and seals its own layout as a self-verifying UOR object
+         (Law L5). It sits BEHIND the one app frame, so it IS the home surface and the dock's "Show
+         desktop" reveals it. Hidden behind the boot splash. -->
+    <style> html.booting #holo-desk { display: none; } </style>
+    <script src="_shared/holo-icons.js" defer></script>
+    <script src="_shared/holo-desk.js" defer></script>
+    <!-- Holo Terms (MyTerms / IEEE 7012): the desktop entry point to your machine-readable personal
+         terms. The shield opens the Holo Terms control center; hidden behind the boot splash. -->
+    <style> html.booting #holo-terms-btn { display: none; } </style>
+    <script src="_shared/holo-terms.js" defer></script>
+    <!-- Holo Privacy (agentprivacy / blades, in W3C DPV/ODRL/VC terms): the desktop entry point to
+         what an AI agent may learn about you. The shield opens the Holo Privacy control center. -->
+    <style> html.booting #holo-privacy-btn { display: none; } </style>
+    <script src="_shared/holo-privacy.js" defer></script>
+    <!-- Greeter handoff: SDDM (login.html) signed a session assertion binding the operator's
+         self-sovereign key to THIS machine's hardware. Verify it (Law L5), stamp the header with
+         the real sovereign operator + host binding, and — since the operator already authenticated
+         at the greeter — skip the shell's redundant power-on splash. Serverless: no token leaves
+         the device; the operator κ + host κ are public content addresses. -->
+    <script type="module">
+      import { verifySession } from "./_shared/holo-identity.mjs";
+      (async () => {
+        const p = new URLSearchParams(location.search);
+        let tok = null; try { tok = JSON.parse(sessionStorage.getItem("holo.session") || "null"); } catch {}
+        if (!tok && !p.get("operator")) return;                       // not arriving from the greeter
+        const body = tok ? await verifySession(tok) : null;           // Law L5: re-derive + signature-verify
+        if (!body || (p.get("operator") && body.operator !== p.get("operator"))) return;
+        if (window.__dismissSplash) window.__dismissSplash();          // seamless: no second "Press Enter"
+        const opEl = document.getElementById("operator");
+        const shortK = (k) => (k || "").split(":").pop().slice(0, 8);
+        const stamp = () => {
+          if (opEl) { opEl.textContent = body.label + " · " + shortK(body.operator) + "…"; opEl.title = "self-sovereign identity (CC-1): " + body.operator; }
+          let h = document.getElementById("hostchip");
+          if (!h && opEl && opEl.parentNode) { h = document.createElement("span"); h.id = "hostchip"; h.className = "muted"; h.style.marginLeft = "0.6rem"; opEl.parentNode.appendChild(h); }
+          if (h) { const host = p.get("host") || body.host || ""; h.textContent = "⌂ on this machine · " + shortK(host); h.title = "session bound to this device's hardware (machine-id): " + host; }
+        };
+        stamp();
+        if (opEl) new MutationObserver(stamp).observe(opEl, { childList: true, characterData: true });
+      })().catch(() => {});
+    </script>
+  </body>
+</html>

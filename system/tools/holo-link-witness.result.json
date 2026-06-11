@@ -1,0 +1,46 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "content-addressed composition: an app imports a library by κ (the κ is the WASM import module-name)",
+    "CLOSURE — the combined object's bytes commit to its dependency's κ; reachable from one self-referential κ",
+    "combine + run by content address: the dependency is linked from the store, verified (L5), instantiated once (L3)",
+    "split — the dependency still stands alone as its own self-verifying, runnable κ-object",
+    "O(1) recompose (rebind, not recompile); the whole composition shares as one holo://κ",
+    "Law L5: a tampered dependency refuses the whole run (re-derivation across the link)",
+    "WIT-style isolated typed interfaces — a STRING crosses between components that each keep their OWN memory; the linker lifts it from the caller and lowers it into the callee (canonical-ABI core), the string-type info carried in a content-addressed holo-iface custom section"
+  ],
+  "library": {
+    "kappa": "did:holo:sha256:39e4ca357b62fdca05dd6f90713b9c70c436bda8636c16c46495ea2120172ece",
+    "exports": [
+      "add",
+      "mul"
+    ]
+  },
+  "composed": {
+    "kappa": "did:holo:sha256:88f31795f90497160fa59e8e1a439b15250633c692efcb0b1e76ac453ac329f7",
+    "source": "did:holo:sha256:64f7ae292a2d53c95586bb7a02f854f62d6d4fb3c9e4f8a775bae6887a21e045",
+    "imports": [
+      {
+        "name": "add",
+        "kappa": "did:holo:sha256:39e4ca357b62fdca05dd6f90713b9c70c436bda8636c16c46495ea2120172ece",
+        "arity": 2,
+        "str": []
+      }
+    ]
+  },
+  "checks": {
+    "library-is-kappa-object": true,
+    "app-builds-with-kappa-import": true,
+    "closure-bytes-commit-to-dependency-kappa": true,
+    "composed-runs-via-content-address": true,
+    "composed-runs-from-source-kappa": true,
+    "dependency-stands-alone": true,
+    "compose-O(1)-rebind": true,
+    "share-the-composition-kappa": true,
+    "tampered-dependency-refuses-run": true,
+    "isolated-typed-string-composes": true
+  },
+  "failed": [],
+  "authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · UOR-ADDR · Law L1/L3/L5"
+}

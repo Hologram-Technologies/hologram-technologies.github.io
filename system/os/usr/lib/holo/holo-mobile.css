@@ -1,0 +1,91 @@
+/* holo-mobile.css — the Hologram mobile conformance layer.
+ *
+ * One stylesheet every holospace links. It does NOT theme apps — they keep their
+ * own colors and feel. It enforces the mobile *mechanics* that must be standard on
+ * every screen: no horizontal overflow, safe-area insets, ≥48px tap targets, and
+ * 16px form controls (no iOS auto-zoom). The spec is WCAG 2.2 (§1.4.10 Reflow,
+ * §2.5.8 Target Size) + Material Design 3 (48dp). Conformance is enforced by
+ * mobile-conformance-witness.mjs (the gate), not by this file alone.
+ *
+ * Specificity discipline: structural defaults use :where() (specificity 0) so any
+ * app rule overrides them freely. This layer is loaded AFTER each page's own styles.
+ * Deliberately NO `overflow-x:clip` backstop — clipping would hide overflow from the
+ * witness and let real violations pass. Overflow is fixed at the cause, not masked.
+ */
+
+:root {
+  /* Safe-area insets (notch / home indicator). 0 on devices without them. */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+
+  /* Shared tokens — consistency without dictating color. Apps map these to brand. */
+  --holo-tap: 48px;                 /* Material Design 3 minimum touch target */
+  --holo-space-1: 4px;  --holo-space-2: 8px;  --holo-space-3: 12px;
+  --holo-space-4: 16px; --holo-space-5: 24px; --holo-space-6: 32px;   /* 8px grid */
+  --holo-radius-sm: 8px; --holo-radius: 12px; --holo-radius-lg: 16px;
+  /* Fluid type scale (clamps to the viewport; readable floor, sane ceiling). Authored
+   * in rem — NOT px — so the whole ramp scales from the OS text-size lever
+   * (--holo-font-scale → root font-size; see holo-theme.css). 1rem = 16px at base.
+   * The sub-1rem steps clamp UP to the readability floor (--holo-font-min, default 16px,
+   * set by the engine) with max(), so caption/label text can never render too small to read;
+   * -lg/-xl already exceed the floor so the hierarchy above it is preserved. */
+  --holo-text-sm: max(var(--holo-font-min, 16px), clamp(0.8125rem, 0.78rem + 0.2vw, 0.875rem));
+  --holo-text: max(var(--holo-font-min, 16px), clamp(0.9375rem, 0.9rem + 0.3vw, 1rem));
+  --holo-text-lg: clamp(1.125rem, 1.0rem + 0.6vw, 1.3125rem);
+  --holo-text-xl: clamp(1.5rem, 1.2rem + 1.6vw, 2.125rem);
+}
+
+/* ── Global guards (safe on every page) ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+:where(html) { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Replaced/wide elements must never force the page wider than the viewport. */
+:where(img, svg, video, canvas, iframe, table) { max-width: 100%; }
+:where(pre, code) { overflow-wrap: anywhere; }
+
+/* ── Tap targets — WCAG 2.5.8 + MD3 48px floor (low specificity = app-overridable). */
+:where(button, [role="button"], a.btn, .btn, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, summary) {
+  min-height: var(--holo-tap);
+}
+/* Buttons (incl. icon-only) also meet the 48px width floor by default. */
+:where(button, [role="button"], a.btn, .btn, summary) { min-width: var(--holo-tap); }
+/* Escape hatch for genuinely-dense, essential chrome where 48px is impractical
+ * (status bars, emulator window controls) — WCAG 2.5.8 allows such exceptions.
+ * The conformance witness skips tap-size checks inside `.holo-dense`. Use sparingly. */
+:where(.holo-dense) :where(button, [role="button"], a.btn) { min-width: 0; min-height: 0; }
+
+/* ── Form controls — readability floor (≥16px) also stops iOS auto-zoom on focus. ── */
+:where(input, select, textarea) { font-size: max(var(--holo-font-min, 16px), 1rem); }
+
+/* ── Safe-area variables exposed for adoption. Applied generically to the body so
+ *    content clears the notch/home-indicator; bespoke fixed bars opt in via the
+ *    utility classes below (env() on a bar's own padding is overridden by the app's
+ *    padding rule, so we keep this best-effort + opt-in rather than fighting apps). */
+:where(body) { padding-left: var(--safe-l); padding-right: var(--safe-r); }
+.holo-safe-top { padding-top: max(var(--holo-space-2), var(--safe-t)); }
+.holo-safe-bottom { padding-bottom: max(var(--holo-space-2), var(--safe-b)); }
+
+/* ── Adopt-in primitives — the standard way to present these elements ───────── */
+
+/* A top app bar that never overflows: brand stays put, the rest can shrink/scroll. */
+.holo-appbar {
+  display: flex; align-items: center; gap: var(--holo-space-3);
+  padding: max(var(--holo-space-2), var(--safe-t)) var(--holo-space-4) var(--holo-space-2);
+  min-height: var(--holo-tap);
+}
+.holo-appbar > .brand, .holo-appbar > :first-child { flex: 0 0 auto; min-width: 0; }
+.holo-appbar > .grow { flex: 1 1 auto; min-width: 0; }
+
+/* A horizontally scrollable chip/meta row — scrolls instead of clipping (the fix
+ * for the Linux/QVAC header chips). Momentum scroll, no visible scrollbar. */
+.holo-scroll-x {
+  display: flex; flex-wrap: nowrap; gap: var(--holo-space-2);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; min-width: 0; max-width: 100%;
+}
+.holo-scroll-x::-webkit-scrollbar { display: none; }
+.holo-scroll-x > * { flex: 0 0 auto; }
+
+/* Long unbroken strings (hashes, κ ids, URLs) wrap instead of widening the page. */
+.holo-break { overflow-wrap: anywhere; word-break: break-word; }

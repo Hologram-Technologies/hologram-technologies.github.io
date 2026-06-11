@@ -1,0 +1,22 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@id": "did:holo:sha256:352acc3ce0e18a8eecba8cebabbfac8f5d264e89513a883c1566d91d15491462",
+  "@type": [
+    "schema:MediaObject",
+    "prov:Entity"
+  ],
+  "schema:name": "Root filesystem",
+  "hosfs:fhs": "/boot/rootfs.uor.json",
+  "hosfs:kind": "pin",
+  "dcterms:description": "Resolved by content from cache → peers/IPFS → origin at boot; re-derived to this κ before use (Law L5). Not shipped in the image.",
+  "digestSRI": "sha256-NSrMPODhio7suozrq7+sj10mTolROog8FWbZHRVJFGI=",
+  "digestMultibase": "uEiA1Ksw84OGKjuy6jOurv6yPXSZOiVE6iDwVZtkdFUkUYg"
+}

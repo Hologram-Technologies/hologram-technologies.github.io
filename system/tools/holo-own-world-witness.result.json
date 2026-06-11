@@ -1,0 +1,58 @@
+{
+  "spec": "Ownership is ambient in every holospace (ADR-053, layer 2): the World shell gives every object a live owner badge + a Claim·Transfer·Anchor·Sell surface over the real Own engine; claim/transfer re-derive + verify (Law L5) and persist in a content-addressed title registry, through the wallet's human-approval gate",
+  "authority": "W3C DID Core · Verifiable Credentials · UCAN · ODRL · PROV-O · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L4/L5 · real Chromium via Playwright",
+  "witnessed": true,
+  "covers": [
+    "own-ambient",
+    "world-shell",
+    "owner-badge",
+    "claim-transfer",
+    "title-registry",
+    "law-l5",
+    "every-holospace"
+  ],
+  "results": [
+    {
+      "name": "World shell boots with the ownership module wired",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ambient ownership hooks present (__world.own)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "an object starts unowned",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "claim → owner is the operator and the chain verifies (Law L5)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "transfer → owner is the new owner and the chain verifies",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the titlebar shows the live owner badge (ambient cue)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ownership persists in the durable title registry",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no fatal console errors during the flow",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "passed": 8,
+  "failed": 0
+}

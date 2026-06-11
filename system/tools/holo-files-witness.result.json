@@ -1,0 +1,165 @@
+{
+  "spec": "Holo Files (ADR-0058) — the native, substrate-native file explorer: one window onto the OS's content-addressed object universe + a writable OPFS Home. It auto-detects the host OS and wears its native chrome (Finder/Explorer/Files/Nautilus); every object carries its did:holo κ and re-derives on demand (Law L5 — a tampered byte is refused); Home is read/WRITE while the substrate is read-only; a core part of the World shell. SEAMLESSLY integrates Holo Search (a unified omnibox: recursive local search + paste-a-κ/identifier resolve + open-web answer) and Holo Cloud (it mounts the SAME content-addressed OPFS κ-store the Cloud app uses, so a file sent from Files appears in Holo Cloud — one substrate, not a bridge).",
+  "authority": "W3C File System Access / OPFS (navigator.storage.getDirectory) · W3C Web Cryptography (SHA-256 re-derivation) · WHATWG Fetch + DOM · W3C UA Client Hints (host detection, holo-platform) · Nextcloud WebDAV (holo-webdav, Holo Cloud) · the unified-window resolve/federate/answer pipeline (Holo Search, no AI) · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L3/L4/L5 · files-community/Files UX (reproduced) · real Chromium via Playwright",
+  "witnessed": true,
+  "covers": [
+    "files-explorer",
+    "substrate-vfs",
+    "click-navigation",
+    "law-l5-verify",
+    "tamper-refused",
+    "opfs-home-write",
+    "os-adaptive",
+    "core-of-the-shell",
+    "unified-search",
+    "kappa-resolve",
+    "holo-cloud-mount",
+    "cloud-roundtrip-verified",
+    "tabs",
+    "multi-select",
+    "drag-and-drop",
+    "drag-out-as-kappa",
+    "drop-to-materialize",
+    "file-tags",
+    "dual-pane"
+  ],
+  "results": [
+    {
+      "name": "the explorer boots and paints its Home landing page",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "auto-detects the host OS and wears its native skin",
+      "ok": true,
+      "detail": "windows → Windows · File Explorer"
+    },
+    {
+      "name": "clicking Holospaces lists every app from the catalog",
+      "ok": true,
+      "detail": "32 holospaces"
+    },
+    {
+      "name": "a holospace opens to its sealed closure (the _shared runtime folder is present)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "selecting a file shows its content address (did:holo κ) in the details pane",
+      "ok": true,
+      "detail": "did:holo:sha256:2e987ba55ba09af5b5…"
+    },
+    {
+      "name": "Verify re-derives the file and its content address matches (Law L5)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "dragging a file out carries its holo://κ content address",
+      "ok": true,
+      "detail": "holo://2e987ba55ba09af5b5222"
+    },
+    {
+      "name": "a tampered content address is REFUSED — the bytes do not re-derive to it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "New folder writes into the OPFS Home and the listing reflects it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a file written to Home reads back byte-identical (read/WRITE substrate)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a new tab opens (multi-tab browsing)",
+      "ok": true,
+      "detail": "1 → 2 tabs"
+    },
+    {
+      "name": "switching tabs activates the clicked tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "closing a tab returns to a single tab",
+      "ok": true,
+      "detail": "→ 1 tab"
+    },
+    {
+      "name": "Ctrl-click extends a multi-selection",
+      "ok": true,
+      "detail": "2 rows selected"
+    },
+    {
+      "name": "Home entries are draggable (drag-and-drop enabled)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a file moves into a folder (the drag-to-move primitive)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a colored tag is assigned to a file and persists",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the tag surfaces in the sidebar Tags section (filterable)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "dual-pane opens a second, independent pane",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the second pane navigates independently of the first",
+      "ok": true,
+      "detail": "2 crumbs"
+    },
+    {
+      "name": "the unified search box finds objects across the substrate (Holo Search · local plane)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a pasted content address (κ) resolves to its object locally — the omnibox is a window onto every object",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "dropping a κ link in materializes its object into Home (drop-to-materialize)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Send to Holo Cloud chunks + content-addresses the file into the shared κ-store",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the file appears in the Holo Cloud location — seamless, one substrate (not a bridge)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the cloud copy re-derives to its content address (Law L5 over the cloud κ-store)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no fatal console errors across the whole flow",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "passed": 27,
+  "failed": 0
+}

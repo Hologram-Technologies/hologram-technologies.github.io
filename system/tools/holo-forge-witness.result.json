@@ -1,0 +1,57 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "Holo Forge compiles real Holo-C → spec-valid WebAssembly deterministically (identical source ⇒ identical bytes)",
+    "the compiler is itself a content-addressed UOR object (κ pinned + re-derived)",
+    "the emitted module instantiates and COMPUTES correctly (fib/gcd/factorial/mutual recursion) — Law L5 semantic",
+    "a build is a re-derivable κ-transform: κ(source)⊕κ(compiler)⊕κ(flags)→κ(artifact), reproduced from the receipt with no server",
+    "tamper refused: a flipped source byte changes the artifact κ; a flipped wasm byte fails WebAssembly validation",
+    "the build receipt is a self-verifying PROV-O UOR object (prov:used source → prov:generated artifact)"
+  ],
+  "build": {
+    "lang": "holo-c",
+    "tool": "holo-forge/1.2.0 · holo-c → wasm-core-2.0",
+    "compilerKappa": "did:holo:sha256:60cffa9f729ea9f605bc33f0bc099f91b2e3d471c31606511dc65e399d7f39bf",
+    "sourceKappa": "did:holo:sha256:8951cf3781168cb9dccf7533caf4d8c2c56484c3a6fca3193d61e9234d0ef700",
+    "flagsKappa": "did:holo:sha256:1a369c927f5ff7abe84bacf4bca87c7dca931f6468dcfdab038403f911f97957",
+    "artifactKappa": "did:holo:sha256:48d118b77c3912ffc8e647d3e6242667f75aff22c857677a4dbc9d07b65d7919",
+    "receipt": "did:holo:sha256:ba015c16a6f780ec0d340d99e4ac4ca6cb2639d61350a13e94a78970f558fe25",
+    "wasmBytes": 368,
+    "exports": [
+      "add",
+      "abs",
+      "max",
+      "fib",
+      "fact",
+      "gcd",
+      "isqrt",
+      "isEven",
+      "isOdd"
+    ],
+    "sri": "sha256-SNEYt3w5Ev/I5kfT5iQmZ/da/yLIV2d6TbydB7ZdeRk=",
+    "multibase": "uEiBI0Ri3fDkS_8jmR9PmJCZn91r_IshXZ3pNvJ0Htl15GQ"
+  },
+  "checks": {
+    "compiler-is-kappa-object": true,
+    "reproducible-bytes": true,
+    "reproducible-kappa": true,
+    "source-pinned": true,
+    "artifact-rederives-to-pin": true,
+    "wasm-valid": true,
+    "wasm-instantiates": true,
+    "semantics-correct": true,
+    "source-tamper-refused": true,
+    "artifact-tamper-refused": true,
+    "receipt-seals": true,
+    "receipt-verifies": true,
+    "receipt-rederives-to-pin": true,
+    "receipt-links-source": true,
+    "receipt-links-artifact": true,
+    "receipt-links-compiler": true,
+    "receipt-tamper-refused": true,
+    "re-derivation-reproduces-artifact": true
+  },
+  "failed": [],
+  "authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C SRI · W3C DID Core · W3C PROV-O · UOR-ADDR · Law L5"
+}

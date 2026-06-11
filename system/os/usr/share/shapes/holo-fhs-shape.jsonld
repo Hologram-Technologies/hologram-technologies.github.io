@@ -1,0 +1,44 @@
+{
+  "@context": {
+    "sh": "http://www.w3.org/ns/shacl#",
+    "schema": "https://schema.org/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "hosfs": "https://hologram.os/ns/fs#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@id": "https://hologram.os/shapes/fhs-directory",
+  "@type": "sh:NodeShape",
+  "rdfs:comment": "W3C SHACL shape for a Hologram OS filesystem-projection node: a content-addressed directory in the FHS graph. Every directory node must name itself, carry its FHS path + role + realization kind, and be typed as a DCAT catalog and a PROV collection. Standards-valid SHACL any engine can run; the fhs-graph-witness enforces the minCount/hasValue/in/datatype subset in pure Node.",
+  "sh:targetClass": { "@id": "hosfs:Directory" },
+  "sh:property": [
+    {
+      "sh:path": { "@id": "schema:name" },
+      "sh:minCount": 1,
+      "sh:datatype": { "@id": "xsd:string" }
+    },
+    {
+      "sh:path": { "@id": "hosfs:fhs" },
+      "sh:minCount": 1,
+      "sh:datatype": { "@id": "xsd:string" }
+    },
+    {
+      "sh:path": { "@id": "hosfs:fhsRole" },
+      "sh:minCount": 1,
+      "sh:datatype": { "@id": "xsd:string" }
+    },
+    {
+      "sh:path": { "@id": "hosfs:kind" },
+      "sh:minCount": 1,
+      "sh:in": { "@list": ["content", "pin", "state", "mount", "virtual", "ephemeral"] }
+    },
+    {
+      "sh:path": { "@id": "@type" },
+      "sh:hasValue": "dcat:Catalog"
+    },
+    {
+      "sh:path": { "@id": "@type" },
+      "sh:hasValue": "prov:Collection"
+    }
+  ]
+}

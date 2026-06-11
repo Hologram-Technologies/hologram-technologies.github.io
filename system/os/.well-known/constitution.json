@@ -1,0 +1,44 @@
+{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "odrl": "http://www.w3.org/ns/odrl/2/",
+    "hosc": "https://hologram.os/ns/conformance#"
+  },
+  "@id": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+  "@type": [
+    "odrl:Policy",
+    "schema:CreativeWork"
+  ],
+  "schema:name": "Hologram OS Constitution",
+  "schema:description": "The immutable, self-verifying constitutional core of Hologram OS (ADR-033) — the perimeter every holospace and AI agent operates within. Machine-readable JSON-LD; re-derive its did:holo over the object's canonical content to verify it (Law L5, no server to trust). Human-readable text alongside it.",
+  "dcterms:conformsTo": "https://hologram.os/adr/0033-holo-constitution",
+  "schema:url": "/etc/constitution/constitution.uor.json",
+  "schema:encoding": [
+    {
+      "@type": "schema:MediaObject",
+      "schema:encodingFormat": "application/ld+json",
+      "schema:contentUrl": "/etc/constitution/constitution.uor.json",
+      "schema:description": "the sealed UOR object — machine-readable + self-verifying"
+    },
+    {
+      "@type": "schema:MediaObject",
+      "schema:encodingFormat": "text/markdown",
+      "schema:contentUrl": "/etc/constitution/CONSTITUTION.md",
+      "schema:description": "the full human-readable text"
+    }
+  ],
+  "schema:hasPart": [
+    {
+      "@type": "schema:Dataset",
+      "schema:name": "amendments",
+      "schema:url": "/etc/constitution/amendments.uor.json"
+    },
+    {
+      "@type": "schema:Dataset",
+      "schema:name": "proof",
+      "schema:url": "/etc/constitution/proof.json"
+    }
+  ],
+  "hosc:howToVerify": "Re-derive the did:holo over the object's canonical content; it MUST equal this @id (did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c). No server is trusted (Law L5)."
+}

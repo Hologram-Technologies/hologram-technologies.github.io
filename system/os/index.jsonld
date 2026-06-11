@@ -1,0 +1,243 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection",
+    "schema:SoftwareApplication"
+  ],
+  "schema:name": "Hologram OS",
+  "hosfs:fhs": "/",
+  "hosfs:fhsRole": "the OS root — one did:holo, one self-verifying Merkle-DAG; boots from a single κ (ADR-026)",
+  "hosfs:kind": "content",
+  "schema:applicationCategory": "OperatingSystem",
+  "links": [
+    {
+      "id": "did:holo:sha256:48c5a5af8df76e5b335ab3a2432ee4bb594e13d18e1310c4a728727753335967",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-BZy2YOL8tyYc2D5oYhvBO7xLQr4kaQ3+2wDKeErNITg=",
+      "digestMultibase": "uEiAFnLZg4vy3JhzYPmhiG8E7vEtCviRpDf7bAMp4Ss0hOA"
+    },
+    {
+      "id": "did:holo:sha256:74e3ffb5e6ad357193b5682fb54a4fcbfe8815869112fb743139efed384dcebf",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-xv7H/jKE+GyLh+m7jUFYYrihUS5c2c/1KBQ2j/7aqr8=",
+      "digestMultibase": "uEiDG_sf-MoT4bIuH6buNQVhiuKFRLlzZz_UoFDaP_tqqvw"
+    },
+    {
+      "id": "did:holo:sha256:0f7141478afc3b0a881a85bbcec45519db7e2c63de9f4e002b49fc67a56d7845",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-5Vnfj6D8KgUh7/eYUCBm6Ad3r6jmLV6HFyUV5qWMyng=",
+      "digestMultibase": "uEiDlWd-PoPwqBSHv95hQIGboB3evqOYtXocXJRXmpYzKeA"
+    },
+    {
+      "id": "did:holo:sha256:55bc505730990a2a8ef020b27b09ebce4d94d4d4cdeaa8ea91eb21c1f17ffaea",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-D4zneM6EOTWSTT8n6KmnqqUzy1RhWrES43tyNzefUPg=",
+      "digestMultibase": "uEiAPjOd4zoQ5NZJNPyfoqaeqpTPLVGFasRLje3I3N59Q-A"
+    },
+    {
+      "id": "did:holo:sha256:5e3aee34b71f0e4a363ecbaaf174cd057acf8647e3055d2d0b8a78d3b6ac30cf",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-qpkSiAhPq19Iihv36F0LDnNLKVgBocs6OeUPdU+O7Xk=",
+      "digestMultibase": "uEiCqmRKICE-rX0iKG_foXQsOc0spWAGhyzo55Q91T47teQ"
+    },
+    {
+      "id": "did:holo:sha256:eddb11c3cf04543bbb06c027add25b3fabacbb1a6df6340e018ee337004e991f",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-MoIlOH5UpkQ4VF6kir+BID8BgAEkEfznxOcqfEeOdMw=",
+      "digestMultibase": "uEiAygiU4flSmRDhUXqSKv4EgPwGAASQR_OfE5yp8R450zA"
+    },
+    {
+      "id": "did:holo:sha256:765bf00de9c5e2031c932d6cf8aa1cde9bde16295fce68939db316c3cacd0588",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-XaPsOt0eOO5sZkfl/iajAP1q+XOae9xm7pG8G6rir9U=",
+      "digestMultibase": "uEiBdo-w63R447mxmR-X-JqMA_Wr5c5p73GbukbwbquKv1Q"
+    },
+    {
+      "id": "did:holo:sha256:864f45f14f70f9ab26242889dbbf8677950a08e8de11f73b2c58f873ef17bbb1",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-ORQaemYIXvnPtnuFB38IBeuQ6LPsW+QJy6qUY4tamaE=",
+      "digestMultibase": "uEiA5FBp6Zghe-c-2e4UHfwgF65Dos-xb5AnLqpRji1qZoQ"
+    },
+    {
+      "id": "did:holo:sha256:176f2cce113ac50abfb14611eae4378f3ba30665d0f949cd044b51caaaf07efd",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-EDLqjfoBbG4xAMigIzSA5sjCrUHp8bOczhe0mW8sIP0=",
+      "digestMultibase": "uEiAQMuqN-gFsbjEAyKAjNIDmyMKtQenxs5zOF7SZbywg_Q"
+    },
+    {
+      "id": "did:holo:sha256:0a87f34a5ef2692105880b9f933dff9734a86cb1c0b0fd0259d19fd577ade95d",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-Gxwp8nfdAU6aAPmXiyRQLXz3w3J4QpCtS6+ct3YhBGM=",
+      "digestMultibase": "uEiAbHCnyd90BTpoA-ZeLJFAtfPfDcnhCkK1Lr5y3diEEYw"
+    },
+    {
+      "id": "did:holo:sha256:e3ad46400dd2e741e564ebbf1dcc777356cecdb230a9c1eafe980586530eae5a",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-8eD6QLTwR/WL2d8mH0M6egI6pVn/ucl3M+OHoXlq/7s=",
+      "digestMultibase": "uEiDx4PpAtPBH9YvZ3yYfQzp6AjqlWf-5yXcz44eheWr_uw"
+    },
+    {
+      "id": "did:holo:sha256:69d012915a36ee18cbe4f851ab989d85aac550ea827fee889765a5772d05009c",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-OUr9FXjXtPx/jJpI/7+4dpt0djV4wlLzZ3yX6WP0Tmo=",
+      "digestMultibase": "uEiA5Sv0VeNe0_H-Mmkj_v7h2m3R2NXjCUvNnfJfpY_ROag"
+    },
+    {
+      "id": "did:holo:sha256:1c0142159e13551af044ddeaad6ecc5cc5f6c476aaad706b697c5a02d3265247",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-Pf5W4ZiilDBi6B70uv6hvgv6A+i7X33rrKjhiG3K/Pw=",
+      "digestMultibase": "uEiA9_lbhmKKUMGLoHvS6_qG-C_oD6LtffeusqOGIbcr8_A"
+    },
+    {
+      "id": "did:holo:sha256:3b477a76b2f76ac7f74badc45eb20cbe4675bd855ed29aece389edcd0c40227b",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-USiXvMuWbSjYkF6jirL9MIUF14v6InvFamaNOtgExoQ=",
+      "digestMultibase": "uEiBRKJe8y5ZtKNiQXqOKsv0whQXXi_oie8VqZo062ATGhA"
+    },
+    {
+      "id": "did:holo:sha256:3af7f03d6a18cc4d9652c2dff3411584037f34ce9f8cac5143abe2a9737066f6",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-VST7D2THIGMiIrmI4t0qo0/YPfcO0IrHZACEI8RRvHk=",
+      "digestMultibase": "uEiBVJPsPZMcgYyIiuYji3SqjT9g99w7QisdkAIQjxFG8eQ"
+    },
+    {
+      "id": "did:holo:sha256:332142ef0afbf80ff3fa5671bb51dbc2d8529d79dd3749850f02a2869e4e7aae",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-Ij7c8E18KgiHzl0j9aNt5Pjg+SPVJWR4+G6fto1fAWk=",
+      "digestMultibase": "uEiAiPtzwTXwqCIfOXSP1o23k-OD5I9UlZHj4bp-2jV8BaQ"
+    },
+    {
+      "id": "did:holo:sha256:86feb1f09e846d3332fe7cf9f5e0a5f0a47c493771c6a1c98ecb79ed340c9d1b",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-ZX8QI/UW3PvqYaCTgbbkFQbow5tQP+8zS3GUcBIIHkw=",
+      "digestMultibase": "uEiBlfxAj9Rbc--phoJOBtuQVBujDm1A_7zNLcZRwEggeTA"
+    },
+    {
+      "id": "did:holo:sha256:9f84ae0b996dd3918ea81c147664191d173a3edb311c7caba437780563392b63",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-LpeNUbWkvYr7utHhwfVmqTFZaLPtjlQK8uVYMgR6noI=",
+      "digestMultibase": "uEiAul41RtaS9ivu60eHB9WapMVlos-2OVAry5VgyBHqegg"
+    },
+    {
+      "id": "did:holo:sha256:2c4653ecf1e5ecbbe139aed91c79e3b65c78290ed9ecc23c2550b46e6e240ae0",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-zFoOHCd8+LadJ+VQlbLNNIK/qwqRyukvubKVr2XQEc4=",
+      "digestMultibase": "uEiDMWg4cJ3z4tp0n5VCVss00gr-rCpHK6S-5spWvZdARzg"
+    }
+  ],
+  "id": "did:holo:sha256:c5203506862ff15c4bde8c9954c411eef0eb2f2fb7cc062bc323ee7621972450"
+}

@@ -1,0 +1,35 @@
+{
+  "tool": "gen-atlas96-forge",
+  "compiler": "holo-forge/1.2.0 · holo-c → wasm-core-2.0",
+  "lang": "holo-c",
+  "source": "did:holo:sha256:e512af68d1e6dc9296e945ebdcfc27eb3fc42e9f23b611bdaacda0442cb3b925",
+  "compilerKappa": "did:holo:sha256:756f278f8a456b2965f70ed4e5398fec249ecc7cec2f8d7bcab9dff20da8ab53",
+  "flags": "did:holo:sha256:1a369c927f5ff7abe84bacf4bca87c7dca931f6468dcfdab038403f911f97957",
+  "artifact": "did:holo:sha256:cb6ea863aa5458c5449b74ffc5697309f66cda724ec0b43430f7d66af3017be2",
+  "receipt": "did:holo:sha256:ce68436ba9178eef9a29c93a21b64c2c25a40e87fef5acb59955a960c0b527f3",
+  "wasmBytes": 499,
+  "exports": [
+    "lean_uor_pages_minimal",
+    "lean_uor_bytes_minimal",
+    "lean_uor_rclasses_minimal",
+    "lean_uor_r96_classify_minimal",
+    "lean_uor_phi_encode_minimal",
+    "lean_uor_phi_page_minimal",
+    "lean_uor_phi_byte_minimal",
+    "lean_uor_truth_zero_minimal",
+    "lean_uor_truth_add_minimal",
+    "lean_initialize_uor_minimal",
+    "lean_finalize_uor_minimal"
+  ],
+  "checks": {
+    "pages": true,
+    "bytes": true,
+    "rclasses": true,
+    "r96_all_256_bytes": true,
+    "phi_roundtrip_12288": true,
+    "truth_zero": true,
+    "truth_add": true,
+    "reproducible": true
+  },
+  "witnessed": true
+}

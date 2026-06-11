@@ -1,0 +1,18 @@
+:root {
+  /* holo-phi — canonical golden-ratio proportion tokens (φ = 1.618). GENERATED from
+   * _shared/holo-phi.mjs; do not hand-edit (holo-phi-witness.mjs re-derives the values).
+   * Proportion only — spacing rhythm stays on holo-mobile.css's 8px grid. */
+  --holo-phi: 1.618;
+  --holo-phi-inv: 0.618;
+  --holo-size-3xs: 0.236rem; /* φ⁻³ */
+  --holo-size-2xs: 0.382rem; /* φ⁻² */
+  --holo-size-xs: 0.618rem; /* φ⁻¹ */
+  --holo-size-s: 1rem;   /* φ⁰ base */
+  --holo-size-m: 1.618rem; /* φ¹ */
+  --holo-size-l: 2.618rem; /* φ² */
+  --holo-size-xl: 4.236rem; /* φ³ */
+  --holo-size-2xl: 6.854rem; /* φ⁴ */
+  --holo-size-3xl: 11.09rem; /* φ⁵ */
+  /* golden grid fractions: a content:aside split of φ:1 → `grid-template-columns: 1fr var(--holo-phi-fr)` */
+  --holo-phi-fr: 1.618fr;
+}

@@ -1,0 +1,22 @@
+{
+  "name": "hologram-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hologram OS — the thin desktop holospace frame: a Linux FHS root realized as a content-addressed, self-verifying semantic graph. Apps live in the separate Hologram Apps repo and boot in this OS's holospace template frame by κ.",
+  "license": "MIT",
+  "scripts": {
+    "gate": "node tools/gate.mjs",
+    "serve": "node tools/holo-serve-fhs.mjs",
+    "witness": "node tools/fhs-graph-witness.mjs",
+    "boot": "node tools/boot-os2-witness.mjs",
+    "audit": "node tools/audit-apps.mjs",
+    "gen": "node tools/gen-fhs-graph.mjs",
+    "qml-witness": "node tools/qml-engine-witness.mjs",
+    "qml-render": "node tools/qml-render-witness.mjs",
+    "qml-mcp": "node tools/qml-mcp-witness.mjs",
+    "seal-greeter": "node tools/seal-greeter.mjs",
+    "seal-login": "node tools/seal-login-closure.mjs",
+    "mcp-build": "node crates/holospaces-mcp/build.mjs"
+  }
+}

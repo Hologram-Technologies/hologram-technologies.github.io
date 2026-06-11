@@ -1,0 +1,19 @@
+[Plymouth Theme]
+Name=Holo Spinner
+Description=A two-step splash: brand watermark with a looping spinner and a password dialog.
+ModuleName=two-step
+
+[two-step]
+ImageDir=/usr/share/plymouth/themes/holo-spinner
+HorizontalAlignment=0.5
+VerticalAlignment=0.5
+WatermarkImage=watermark.png
+WatermarkHorizontalAlignment=0.5
+WatermarkVerticalAlignment=0.94
+DialogHorizontalAlignment=0.5
+DialogVerticalAlignment=0.5
+Transition=merge-fade
+TransitionDuration=0.4
+BackgroundStartColor=0x0b071e
+BackgroundEndColor=0x0b071e
+Font=16

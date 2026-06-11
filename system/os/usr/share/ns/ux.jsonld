@@ -1,0 +1,301 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "schema": "https://schema.org/",
+    "hosux": "https://hologram.os/ns/ux#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "domain": {
+      "@id": "rdfs:domain",
+      "@type": "@id"
+    },
+    "range": {
+      "@id": "rdfs:range",
+      "@type": "@id"
+    },
+    "subClassOf": {
+      "@id": "rdfs:subClassOf",
+      "@type": "@id"
+    },
+    "closeMatch": {
+      "@id": "skos:closeMatch",
+      "@type": "@id"
+    },
+    "inScheme": {
+      "@id": "skos:inScheme",
+      "@type": "@id"
+    },
+    "topConceptOf": {
+      "@id": "skos:topConceptOf",
+      "@type": "@id"
+    },
+    "isDefinedBy": {
+      "@id": "rdfs:isDefinedBy",
+      "@type": "@id"
+    },
+    "prefLabel": "skos:prefLabel",
+    "definition": "skos:definition",
+    "obligation": "hosux:obligation"
+  },
+  "@id": "https://hologram.os/ns/ux",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — Holo UX doctrine vocabulary (hosux:)",
+  "comment": "The canonical, upstream UX parameters of Hologram OS (ADR-0062): the doctrine every holospace binds — the experience analogue of the Holo UI token contract. Mints only the genuinely-new UX terms (Tenet · obligation · the native-OS profile · capability tier · voice register · resource budget); every near-equivalent declares skos:closeMatch to its ratified authority (WCAG · RAIL · UA Client Hints · UOR-ADDR). This document is itself valid JSON-LD, and is re-derived from holo-ux-doctrine.mjs (no drift).",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "@graph": [
+    {
+      "@id": "hosux:Doctrine",
+      "@type": "rdfs:Class",
+      "label": "UX Doctrine",
+      "comment": "The one canonical set of UX tenets a holospace binds. A specialization of a SKOS concept scheme.",
+      "isDefinedBy": "https://hologram.os/ns/ux",
+      "subClassOf": "skos:ConceptScheme"
+    },
+    {
+      "@id": "hosux:Tenet",
+      "@type": "rdfs:Class",
+      "label": "UX Tenet",
+      "comment": "One canonical UX principle expressed as a checkable obligation a holospace conforms to. A specialization of a SKOS concept.",
+      "isDefinedBy": "https://hologram.os/ns/ux",
+      "subClassOf": "skos:Concept"
+    },
+    {
+      "@id": "hosux:PlatformProfile",
+      "@type": "rdfs:Class",
+      "label": "Native Platform Profile",
+      "comment": "The native-feel profile resolved for a host OS — modifier key, window-control side, font, accent, shortcuts — that the experience adapts to at boot.",
+      "isDefinedBy": "https://hologram.os/ns/ux"
+    },
+    {
+      "@id": "hosux:obligation",
+      "@type": "rdf:Property",
+      "label": "obligation",
+      "comment": "The canonical, conformable rule a Tenet places on a holospace — the WHAT a per-app conformance ratchet binds. OS-specific UX term, no W3C equivalent.",
+      "isDefinedBy": "https://hologram.os/ns/ux",
+      "domain": "hosux:Tenet",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hosux:capabilityTier",
+      "@type": "rdf:Property",
+      "label": "capability tier",
+      "comment": "The resolved device tier (lean · standard · rich) the experience optimizes to; a deterministic function of the hardware probe.",
+      "isDefinedBy": "https://hologram.os/ns/ux",
+      "range": "xsd:string",
+      "closeMatch": "schema:processorRequirements"
+    },
+    {
+      "@id": "hosux:voiceRegister",
+      "@type": "rdf:Property",
+      "label": "voice register",
+      "comment": "The plain authoring voice (jargon-free, why→how→what, concise) every user-facing description holds.",
+      "isDefinedBy": "https://hologram.os/ns/ux",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hosux:resourceBudget",
+      "@type": "rdf:Property",
+      "label": "resource budget",
+      "comment": "The declared, tier-aware budget for the resources a holospace spends (time · compute · memory · bytes · energy).",
+      "isDefinedBy": "https://hologram.os/ns/ux",
+      "closeMatch": "schema:Quantity"
+    },
+    {
+      "@id": "https://hologram.os/ns/ux#doctrine",
+      "@type": [
+        "skos:ConceptScheme",
+        "hosux:Doctrine"
+      ],
+      "prefLabel": "Holo UX doctrine — the canonical upstream UX parameters (ADR-0062)",
+      "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "comment": "Thirteen tenets: the five founding principles of Hologram OS and the eight UX lessons of Steve Jobs, each a checkable obligation every holospace native app binds."
+    },
+    {
+      "@id": "hosux:native-adaptive",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Native by autodetection",
+      "definition": "The system detects the host OS — Windows, macOS, iOS, iPadOS, Android, ChromeOS, Linux — and wears its native feel, so it is familiar and effortless on every machine the first second it opens.",
+      "obligation": "Resolve the host platform from the one resolver (holo-platform.js) and bind its native profile — modifier key, window-control side, font, accent, shortcuts (data-holo-platform) — dynamically; never hardcode one OS's idiom.",
+      "closeMatch": "https://www.w3.org/TR/ua-client-hints/",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "founding"
+    },
+    {
+      "@id": "hosux:familiar-effortless",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Familiar and effortless",
+      "definition": "Use conventions a person already knows, so nothing needs a manual; the easy path is the obvious one.",
+      "obligation": "Reuse the host OS's established patterns and the canonical Holo UI tokens (--holo-*); introduce no bespoke interaction where a native one already exists.",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "founding"
+    },
+    {
+      "@id": "hosux:moments-of-magic",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Magic on curiosity's terms",
+      "definition": "Let power reveal itself when the user reaches for it — self-described, never forced, never a guided tour; curiosity guides the discovery.",
+      "obligation": "Surface advanced capability through progressive disclosure; every surface is self-descriptive (a clear label/affordance, not a tutorial); no forced interruption of the user's flow.",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/headings-and-labels.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "founding"
+    },
+    {
+      "@id": "hosux:sacred-resources",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Treat time, attention, money, compute and energy as sacred",
+      "definition": "Always seek more with less; the lightest path that does the job honours what the user spends to be here.",
+      "obligation": "Hold the declared tier-aware resource budget (cold-start, interaction ≤100ms, bytes-per-surface, memory, maxDpr — holo-perf-budget.json); add no work the task does not require.",
+      "closeMatch": "https://www.w3.org/TR/2024/WD-rail-20240101/",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "founding"
+    },
+    {
+      "@id": "hosux:signal-over-noise",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Maximize signal, minimize noise",
+      "definition": "No clutter, no wall of text, no attention-grabbing colour, no distraction; the content leads and the chrome recedes.",
+      "obligation": "Route colour through the canonical palette (no attention-grabbing hardcodes — ADR-0057), respect the readability floor, and keep the plain voice (concise, jargon-free, why→how→what — holo-voice.mjs).",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "founding"
+    },
+    {
+      "@id": "hosux:design-is-how-it-works",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Design is how it works",
+      "definition": "Design is the whole interaction, not the surface; how it works and how it feels are one thing.",
+      "obligation": "Conformance is behavioural, not skin-deep: a holospace binds the experience parameters (this doctrine), and its content address commits function and form together.",
+      "closeMatch": "https://www.w3.org/TR/did-core/",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:simplicity-is-the-work",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Simplicity, ruthlessly refined",
+      "definition": "Simple can be harder than complex; refine until the obvious thing is the only thing.",
+      "obligation": "Prefer the fewest controls and an obvious default; an action a first-time user cannot guess is a fault, not a feature.",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/headings-and-labels.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:user-first",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "The user first, end to end",
+      "definition": "Stand in the user's shoes and own the whole experience, from the first paint to the last action.",
+      "obligation": "The experience is one continuous flow (boot → shell → app); no app is an island — every surface binds the one canonical doctrine.",
+      "closeMatch": "https://www.w3.org/TR/html-design-principles/",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:focus-say-no",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Focus — say no to protect great",
+      "definition": "Eliminate the non-essential; concentrate on what truly matters by cutting what does not.",
+      "obligation": "Each surface does one thing well; secondary actions are disclosed on demand, not displayed by default.",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:attention-to-detail",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Detail in the unseen, too",
+      "definition": "Obsess over every detail, visible and invisible; the parts no one sees are crafted with the same care.",
+      "obligation": "The parameters reach a surface's chrome honestly and say where they cannot (pixel-only guests: VM/canvas/video); nothing is left half-finished behind the visible edge.",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:think-different",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Redefine the question",
+      "definition": "Do not copy conventions; build what the user does not yet know they need — substrate-native: self-verifying, serverless, content-addressed.",
+      "obligation": "The experience is a re-derivable κ-object (Law L5), not a config file trusted by its location; verify by re-derivation, refuse a tampered byte.",
+      "closeMatch": "https://github.com/uor-foundation/uor-addr",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:seamless-integration",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "Seamless, integrated experience",
+      "definition": "Make a single whole where the parts work together intuitively, not a pile of separate features.",
+      "obligation": "One source (this doctrine) propagates to every surface over the postMessage tree; changing it re-flows the whole system live, with no rebuild and no restart.",
+      "closeMatch": "https://html.spec.whatwg.org/multipage/web-messaging.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    },
+    {
+      "@id": "hosux:emotional-delight",
+      "@type": [
+        "skos:Concept",
+        "hosux:Tenet"
+      ],
+      "prefLabel": "It just works — and delights",
+      "definition": "Create something that just works and feels magical, human-centred, worth being grateful for.",
+      "obligation": "Defaults are beautiful and correct out of the box (bind the κ, do not re-implement); reduced-motion and accessibility are honoured so delight never costs comfort.",
+      "closeMatch": "https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html",
+      "inScheme": "https://hologram.os/ns/ux#doctrine",
+      "topConceptOf": "https://hologram.os/ns/ux#doctrine",
+      "schema:category": "jobs"
+    }
+  ]
+}

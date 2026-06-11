@@ -1,0 +1,210 @@
+/* holo-desk.css — Holo Desk: the substrate-native desktop surface for Hologram OS. A wallpaper
+   plane + an icon grid over the user's writable OPFS Home (/home/user/Desktop), styled to feel
+   NATIVE on the host OS (Windows Explorer · macOS Finder · Linux) via data-holo-platform. Every
+   glyph is a κ-pinned Holo Icon (<holo-icon>, ADR-032); the layout is itself a self-verifying UOR
+   object. Pure DOM + Web APIs, no framework, no CDN (Law L4). The runtime is holo-desk.js.
+
+   Z-order: the desktop sits BEHIND the one app frame (#holoframe, z 60) and the dock — so opening
+   an app covers it, and "Show desktop" (the dock home button closes the frame) reveals it. */
+
+#holo-desk {
+  position: fixed; inset: 0; z-index: 5; overflow: hidden;
+  font-family: var(--holo-font, system-ui, -apple-system, "Segoe UI", sans-serif);
+  color: #fff; user-select: none; -webkit-user-select: none;
+  /* default wallpaper (overridden by data-wallpaper) */
+  background: radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%);
+}
+#holo-desk[hidden] { display: none; }
+
+/* ── wallpapers — a small curated set; each a pure CSS projection (no asset bytes) ─────────── */
+#holo-desk[data-wallpaper="aurora"]   { background: radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%); }
+#holo-desk[data-wallpaper="mojave"]   { background: linear-gradient(180deg, #3a2f5b 0%, #6d4a7c 38%, #c77b8b 72%, #f0a98a 100%); }
+#holo-desk[data-wallpaper="bloom"]    { background: radial-gradient(100% 100% at 70% 10%, #2b6fd6 0%, #1f5bbf 30%, #0a2a66 100%); }
+#holo-desk[data-wallpaper="graphite"] { background: linear-gradient(160deg, #1c1f24 0%, #0f1115 100%); }
+#holo-desk[data-wallpaper="accent"]   { background: radial-gradient(120% 120% at 30% 0%, color-mix(in srgb, var(--holo-accent, #2b6fd6) 70%, #06122b) 0%, #05070c 80%); }
+
+/* a faint tone wash so light wallpapers keep label contrast */
+#holo-desk::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.18) 100%); }
+
+/* ── the icon surface ─────────────────────────────────────────────────────────────────────── */
+.holo-desk-surface { position: absolute; inset: 0; z-index: 1; }
+
+/* breadcrumb (shown when navigated into a sub-folder) */
+.holo-desk-bar { position: absolute; left: 14px; top: 12px; z-index: 3; display: none;
+  align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px;
+  background: var(--holo-glass-bg, rgba(12,18,28,0.55)); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+#holo-desk[data-nav] .holo-desk-bar { display: flex; }
+.holo-desk-bar button { all: unset; cursor: pointer; padding: 3px 8px; border-radius: 7px;
+  font-size: max(var(--holo-font-min, 16px), 0.82rem); color: #eaf0f8; }
+.holo-desk-bar button:hover { background: rgba(255,255,255,0.14); }
+.holo-desk-bar .crumb { opacity: 0.85; }
+.holo-desk-bar .crumb.cur { font-weight: 600; opacity: 1; }
+
+/* an icon cell — absolutely placed (auto-arranged or user-dragged) */
+.holo-desk-icon {
+  position: absolute; width: 92px; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 4px 6px; border-radius: 10px; cursor: default;
+  transition: background 0.08s ease;
+}
+.holo-desk-icon:focus-visible { outline: 2px solid var(--holo-accent, #2b6fd6); outline-offset: 1px; }
+.holo-desk-icon.is-selected { background: color-mix(in srgb, var(--holo-accent, #2b6fd6) 30%, transparent); }
+.holo-desk-icon.dragging { opacity: 0.6; }
+
+.holo-desk-glyph { width: 56px; height: 56px; display: grid; place-items: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45)); }
+.holo-desk-glyph holo-icon { width: 52px; height: 52px; }
+.holo-desk-glyph img { width: 52px; height: 52px; }
+/* folders take the host's folder tint; files stay neutral-bright */
+.holo-desk-glyph--folder { color: var(--holo-folder, #e8c06a); }
+.holo-desk-glyph--file   { color: #cdd9e8; }
+.holo-desk-glyph--app    { color: var(--holo-accent, #6aa8ff); }
+
+.holo-desk-label {
+  max-width: 88px; text-align: center; line-height: 1.2;
+  font-size: max(var(--holo-font-min, 16px), 0.8rem);
+  color: #f3f7fc; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+  word-break: break-word; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.holo-desk-icon.is-selected .holo-desk-label {
+  background: var(--holo-accent, #2b6fd6); color: #fff; border-radius: 5px;
+  padding: 0 4px; text-shadow: none; -webkit-line-clamp: 3; overflow: visible;
+}
+
+/* inline rename — the native "edit name" field */
+.holo-desk-rename {
+  width: 88px; text-align: center; font-family: inherit;
+  font-size: max(var(--holo-font-min, 16px), 0.8rem); line-height: 1.2;
+  color: #11151b; background: #fff; border: 1px solid var(--holo-accent, #2b6fd6);
+  border-radius: 4px; padding: 1px 3px; outline: none;
+}
+
+/* ── platform feel ────────────────────────────────────────────────────────────────────────── */
+/* Windows: manila-gold folders, square selection. */
+#holo-desk[data-holo-platform="windows"] { --holo-folder: #f6cf6a; }
+#holo-desk[data-holo-platform="windows"] .holo-desk-icon.is-selected { border-radius: 4px; }
+/* macOS: blue folders, softer rounding. */
+#holo-desk[data-holo-platform="macos"],
+#holo-desk[data-holo-platform="ipados"],
+#holo-desk[data-holo-platform="ios"] { --holo-folder: #5aa9f8; }
+#holo-desk[data-holo-platform="macos"] .holo-desk-icon { border-radius: 12px; }
+/* Linux / others: fall back to the accent for folders. */
+#holo-desk[data-holo-platform="linux"]    { --holo-folder: #e9b949; }
+#holo-desk[data-holo-platform="android"]  { --holo-folder: #ffca28; }
+#holo-desk[data-holo-platform="chromeos"] { --holo-folder: #8ab4f8; }
+
+/* ── context menu (native right-click) ──────────────────────────────────────────────────────── */
+.holo-desk-menu {
+  position: fixed; z-index: 2147482000; min-width: 200px; padding: 5px;
+  background: var(--holo-surface, #12161dF2); color: var(--holo-ink, #e6edf5);
+  border: 1px solid var(--holo-border, rgba(255,255,255,0.14)); border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(14px);
+  font-size: max(var(--holo-font-min, 16px), 0.86rem); user-select: none;
+}
+.holo-desk-menu button {
+  all: unset; display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box;
+  padding: 7px 10px; border-radius: 7px; cursor: pointer; color: inherit;
+}
+.holo-desk-menu button:hover, .holo-desk-menu button.open { background: var(--holo-accent, #2b6fd6); color: #fff; }
+.holo-desk-menu button[disabled] { opacity: 0.4; pointer-events: none; }
+.holo-desk-menu button .chev { margin-left: auto; opacity: 0.7; }
+.holo-desk-menu hr { border: none; border-top: 1px solid var(--holo-border, rgba(255,255,255,0.12)); margin: 5px 6px; }
+.holo-desk-menu holo-icon { width: 18px; height: 18px; opacity: 0.9; }
+.holo-desk-submenu { position: fixed; z-index: 2147482001; }
+
+/* ── icon picker (discover + apply any κ-pinned icon) ───────────────────────────────────────── */
+.holo-desk-scrim { position: fixed; inset: 0; z-index: 2147482400;
+  background: rgba(2,5,10,0.55); backdrop-filter: blur(2px); display: grid; place-items: center; }
+.holo-desk-picker {
+  width: min(680px, 92vw); max-height: 82vh; display: flex; flex-direction: column;
+  background: var(--holo-surface, #12161dF7); color: var(--holo-ink, #e6edf5);
+  border: 1px solid var(--holo-border, rgba(255,255,255,0.14)); border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6); overflow: hidden;
+}
+.holo-desk-picker .pk-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+  border-bottom: 1px solid var(--holo-border, rgba(255,255,255,0.1)); }
+.holo-desk-picker .pk-title { font-weight: 600; font-size: max(var(--holo-font-min, 16px), 1rem); }
+.holo-desk-picker .pk-close { all: unset; margin-left: auto; cursor: pointer; padding: 4px 9px;
+  border-radius: 8px; font-size: max(var(--holo-font-min, 16px), 1rem); }
+.holo-desk-picker .pk-close:hover { background: rgba(255,255,255,0.12); }
+.holo-desk-picker .pk-controls { display: flex; gap: 10px; align-items: center; padding: 12px 16px; flex-wrap: wrap; }
+.holo-desk-picker input.pk-search {
+  flex: 1; min-width: 12rem; padding: 9px 12px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); color: inherit; border: 1px solid var(--holo-border, rgba(255,255,255,0.16));
+  font-size: max(var(--holo-font-min, 16px), 0.92rem); outline: none;
+}
+.holo-desk-picker input.pk-search:focus { border-color: var(--holo-accent, #2b6fd6); }
+.holo-desk-picker select.pk-set { padding: 9px 10px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); color: inherit; border: 1px solid var(--holo-border, rgba(255,255,255,0.16));
+  font-size: max(var(--holo-font-min, 16px), 0.9rem); }
+.holo-desk-picker .pk-grid { overflow: auto; padding: 6px 12px 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; }
+.holo-desk-picker .pk-cell { all: unset; cursor: pointer; aspect-ratio: 1; display: grid; place-items: center;
+  border-radius: 10px; border: 1px solid transparent; color: #dfe8f3; }
+.holo-desk-picker .pk-cell holo-icon { width: 26px; height: 26px; }
+.holo-desk-picker .pk-cell:hover { background: rgba(255,255,255,0.08); }
+.holo-desk-picker .pk-cell.sel { background: color-mix(in srgb, var(--holo-accent, #2b6fd6) 35%, transparent);
+  border-color: var(--holo-accent, #2b6fd6); }
+.holo-desk-picker .pk-foot { display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-top: 1px solid var(--holo-border, rgba(255,255,255,0.1)); }
+.holo-desk-picker .pk-kappa { flex: 1; min-width: 0; font-family: ui-monospace, monospace;
+  font-size: max(var(--holo-font-min, 16px), 0.78rem); color: #8fb4ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.holo-desk-picker .pk-btn { all: unset; cursor: pointer; padding: 8px 16px; border-radius: 10px;
+  font-size: max(var(--holo-font-min, 16px), 0.9rem); }
+.holo-desk-picker .pk-btn.primary { background: var(--holo-accent, #2b6fd6); color: #fff; }
+.holo-desk-picker .pk-btn.primary[disabled] { opacity: 0.45; pointer-events: none; }
+.holo-desk-picker .pk-btn.ghost { color: inherit; border: 1px solid var(--holo-border, rgba(255,255,255,0.18)); }
+.holo-desk-picker .pk-count { font-size: max(var(--holo-font-min, 16px), 0.8rem); opacity: 0.7; }
+
+/* properties popover reuses the picker scrim; a compact card */
+.holo-desk-props { width: min(440px, 92vw); padding: 18px 20px; }
+.holo-desk-props .pr-row { display: grid; grid-template-columns: 6.5rem 1fr; gap: 6px 12px; margin: 6px 0;
+  font-size: max(var(--holo-font-min, 16px), 0.86rem); }
+.holo-desk-props .pr-row dt { opacity: 0.66; }
+.holo-desk-props .pr-row dd { margin: 0; word-break: break-all; font-family: ui-monospace, monospace; }
+.holo-desk-props .pr-badge { display: inline-block; padding: 1px 8px; border-radius: 999px;
+  font-size: max(var(--holo-font-min, 16px), 0.76rem); border: 1px solid; }
+.holo-desk-props .pr-badge.ok { color: #51d88a; border-color: #2ea043; }
+.holo-desk-props .pr-badge.no { color: #ff7b72; border-color: #6e2528; }
+.holo-desk-props .pr-badge.pend { color: #d9a627; border-color: #9e6a03; }
+
+/* ── folder cover that MATCHES its contents (up to 4 child previews in the folder body) ──────── */
+.holo-desk-folder { position: relative; width: 56px; height: 56px; }
+.holo-desk-folder .fold-base { position: absolute; inset: 0; color: var(--holo-folder, #e8c06a); }
+.holo-desk-folder .fold-base holo-icon { width: 56px; height: 56px; }
+.holo-desk-folder .fold-prev { position: absolute; left: 11px; right: 9px; top: 23px; bottom: 9px;
+  display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 1.5px; }
+.holo-desk-folder.empty .fold-prev { display: none; }
+.holo-desk-folder .fold-prev .mini { background: rgba(255,255,255,0.94); border-radius: 2.5px;
+  display: grid; place-items: center; overflow: hidden; color: #5a6675; }
+.holo-desk-folder .fold-prev .mini holo-icon { width: 9px; height: 9px; }
+.holo-desk-folder .fold-prev .mini.thumb { background: #0b0e14; }
+.holo-desk-folder .fold-prev .mini img { width: 100%; height: 100%; object-fit: cover; }
+/* a single child fills the body; 2–3 children flow naturally in the 2×2 grid */
+.holo-desk-folder .fold-prev .mini:only-child { grid-column: 1 / span 2; }
+
+/* app-shortcut + custom-image glyphs */
+.holo-desk-glyph img { width: 52px; height: 52px; object-fit: contain; }
+.holo-desk-glyph--app img { border-radius: 11px; }
+
+/* ── marquee (rubber-band multi-select) ─────────────────────────────────────────────────────── */
+.holo-desk-marquee { position: absolute; z-index: 4; pointer-events: none; border-radius: 2px;
+  border: 1px solid var(--holo-accent, #2b6fd6);
+  background: color-mix(in srgb, var(--holo-accent, #2b6fd6) 18%, transparent); }
+
+/* ── nest: the folder highlighted as a drop target while dragging ───────────────────────────── */
+.holo-desk-icon.drop-target { background: color-mix(in srgb, var(--holo-accent, #2b6fd6) 34%, transparent);
+  outline: 2px dashed var(--holo-accent, #2b6fd6); outline-offset: -1px; }
+.holo-desk-icon.dragging { opacity: 0.55; z-index: 3; }
+
+/* ── app picker (save any holospace app to the desktop) ─────────────────────────────────────── */
+.holo-desk-picker .pk-apps { overflow: auto; padding: 8px 14px 14px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.holo-desk-picker .pk-app { all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; border-radius: 11px; border: 1px solid var(--holo-border, rgba(255,255,255,0.12)); }
+.holo-desk-picker .pk-app:hover { background: rgba(255,255,255,0.07); border-color: var(--holo-accent, #2b6fd6); }
+.holo-desk-picker .pk-app img, .holo-desk-picker .pk-app holo-icon { width: 28px; height: 28px; object-fit: contain; flex: none; }
+.holo-desk-picker .pk-app .nm { font-size: max(var(--holo-font-min, 16px), 0.86rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

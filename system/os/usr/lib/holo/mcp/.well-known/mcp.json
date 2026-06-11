@@ -1,0 +1,91 @@
+{
+  "mcpVersion": "2024-11-05",
+  "server": {
+    "name": "hologram-os",
+    "version": "0.1.0",
+    "title": "Hologram OS"
+  },
+  "resources": [
+    {
+      "uri": "holo://sample",
+      "name": "Sample UOR object",
+      "mimeType": "application/ld+json"
+    }
+  ],
+  "tools": [
+    {
+      "name": "verify_object",
+      "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5)."
+    },
+    {
+      "name": "resolve_object",
+      "description": "Resolve a did:holo / holo:// resource to its self-verifying UOR object."
+    },
+    {
+      "name": "ask_model",
+      "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client."
+    },
+    {
+      "name": "ask_user",
+      "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client."
+    },
+    {
+      "name": "list_roots",
+      "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client."
+    },
+    {
+      "name": "verify_batch",
+      "description": "Verify many UOR objects at once; reports progress and is cancellable."
+    },
+    {
+      "name": "holo_rank",
+      "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents."
+    },
+    {
+      "name": "holo_recommend",
+      "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus."
+    },
+    {
+      "name": "render_qml",
+      "description": "Parse + EXECUTE a QML document with Holo QML (the from-spec engine that runs the real upstream SDDM greeter in the browser — Qt 6 QML Reference semantics, no Qt runtime) and return its live component tree + signal wiring as a SELF-VERIFYING UOR object: re-derive its did (verify_object, Law L5); deterministic, so an agent recomputes the same κ. Lets an agent introspect any QML UI's structure + the API it wires, without a browser. Input: { qml } (the QML source — e.g. resolve the greeter's source via resolve_object first). The display manager's own greeter is also published as the resource usr/share/sddm/greeter.uor.json."
+    },
+    {
+      "name": "holo_build",
+      "description": "BUILD a holospace app: compile source (Holo-C — a C subset: int functions, arithmetic, if/while, short-circuit logic, calls, mutual recursion) to spec-valid WebAssembly, persisted by its content address (κ). Deterministic + O(1) on repeat (identical source rebinds, not recompiles). Returns { ok, kappa (the artifact did:holo), sourceKappa, receipt (a self-verifying PROV-O build receipt κ), exports }. On a compile error returns { ok:false, error:{ message, line, col } } — FIX the source at that line and call holo_build again (the tight build loop). Serverless, self-verifying (Law L5)."
+    },
+    {
+      "name": "holo_run",
+      "description": "RUN a built app by content address. Pass { kappa } (an ARTIFACT κ runs directly; a SOURCE κ self-compiles then runs) OR { source } to build-then-run. Optionally { fn, args } to call an exported function with i32 args and get its result. Returns { ok, kappa, selfCompiled, exports:[names], result? }. The wasm is re-derived before running (Law L5). No server."
+    },
+    {
+      "name": "holo_share",
+      "description": "SHARE a built app: the κ IS the share. Returns { kappa, holo (holo://κ), url } — location-independent, self-verifying, self-compiling; the recipient resolves it from cache/peers/IPFS/origin, re-derives it (Law L5), and runs it, with no server. Agents collaborate by passing κ."
+    },
+    {
+      "name": "own_verify",
+      "description": "Verify a content-addressed OWNERSHIP chain (ADR-053 Titles): re-derive every Title κ, check each transfer's signature + authority (the current owner, or an attenuated UCAN delegation) + lineage (Law L5 / SEC-2), and report who owns it NOW. Returns { ok, owner (σ-axis κ), ownerDid (did:holo), head, errors, result } — `result` is a SELF-VERIFYING UOR object (re-derive its id, Law L5). An agent verifies ownership without trusting any server. An agent ACQUIRES ownership by signing a Title locally (its own holo-identity) and verifying the extended chain here."
+    },
+    {
+      "name": "own_settle",
+      "description": "Settle value against a PROVEN Title (ADR-053/048): releases a voucher ONLY if the ownership chain re-derives AND the payer's order commits to the proven head — pay against proven ownership, not claimed. Keyless + anyone-runs; a tampered/unproven Title releases nothing. Returns { released, voucher } (voucher κ = the idempotent txId)."
+    },
+    {
+      "name": "own_passport",
+      "description": "An ownership passport for an object: verify its Title chain and summarise { owner, ownerDid, verified, history (number of transfers), head } as a SELF-VERIFYING UOR object (re-derive its id, Law L5). The agent-facing 'who owns this, provably' tool."
+    }
+  ],
+  "prompts": [
+    {
+      "name": "verify_object",
+      "description": "Verify a UOR object by re-deriving its did (Law L5)."
+    },
+    {
+      "name": "conformance_brief",
+      "description": "Explain Hologram OS's content-addressed, self-verifying model to an agent."
+    }
+  ],
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "launch": "npx hologram-mcp",
+  "note": "Static discovery document. Run `npx hologram-mcp` (stdio) or `--http` for a live MCP endpoint; resources are self-verifying UOR objects."
+}

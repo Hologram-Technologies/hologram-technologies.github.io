@@ -1,0 +1,30 @@
+[package]
+name = "arm64-repro"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "arm64-repro"
+path = "src/main.rs"
+
+# Depend ONLY on the no_std holospaces core (assembler + AArch64 emulator) — not the
+# example's wasmtime dev-dep — so this builds for BOTH native and wasm32-wasi. The
+# binary itself uses std for file I/O (works on WASI via preopened dirs).
+[dependencies]
+holospaces = { path = "../../holospaces/crates/holospaces", default-features = false }
+# The in-memory KappaStore for the streamed boot (so the rootfs is read sector-by-
+# sector — no single 325 MiB Vec that wasm32-wasi's allocator chokes on).
+hologram-store-mem = { git = "https://github.com/Hologram-Technologies/hologram", rev = "18f553d8578997ce32e7b653786a0bcf9b09a2c0", package = "hologram-store-mem", default-features = false }
+
+# Match the browser peer's codegen profile (the bug is opt-dependent): the wasm
+# this produces should mis-compile the same way the deployed peer does.
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# Standalone workspace root so this doesn't join any parent workspace; the path dep
+# to holospaces resolves through holospaces' own workspace.
+[workspace]

@@ -1,0 +1,37 @@
+{
+  "spec": "Holo Own (ADR-053) — verifiable, self-sovereign ownership on the content-addressed substrate: a Title is a signed, content-addressed claim (owner ⊕ owned κ ⊕ prior, rights as ODRL, a W3C VC); transfer is a UCAN-attenuated, conscience-gated capability op; scarcity is anchored to an existing chain by reference (never minted, Law L4); value settles against proven title (ADR-048); community ownership is a multi-principal Title",
+  "authority": "W3C DID Core · Verifiable Credentials + VC Data Integrity · UCAN · ODRL 2.2 · PROV-O · JSON-LD 1.1 · UOR-ADDR (κ = H(canonical_form), BLAKE3 σ-axis) · BTC/ETH/Solana by reference · holospaces Laws L1/L2/L4/L5 + SEC-2 (attenuate-only)",
+  "witnessed": true,
+  "covers": [
+    "own",
+    "title",
+    "self-sovereign-ownership",
+    "transfer-capability",
+    "attenuation",
+    "fork-detection",
+    "anchor-by-reference",
+    "settlement",
+    "law-l5",
+    "web2-web3-ai"
+  ],
+  "checks": {
+    "Title is substrate-parity κ (blake3:) over the owner/owned/prior frame": true,
+    "genesis Title verifies (Law L5) and resolves its owner": true,
+    "owner can transfer; the chain re-derives and the head resolves to Bob": true,
+    "a non-owner transfer is refused (SEC-2)": true,
+    "a UCAN-attenuated delegate transfers in-scope; chain verifies to Alice": true,
+    "escalation beyond the delegation is refused (wrong asset)": true,
+    "escalation beyond the delegation is refused (recipient constraint)": true,
+    "a double-transfer is detected as a fork (two heads share one prior)": true,
+    "'anchor wins' resolves the fork to the anchored head": true,
+    "settlement releases a voucher to the proven owner, idempotently (ADR-048)": true,
+    "settlement on a tampered/unproven Title pays nothing": true,
+    "a tampered Title fails chain verification (Law L5)": true,
+    "anchor goes through the wallet rail and commits the head κ": true,
+    "a declining wallet refuses the anchor (default-deny — value never moves alone)": true,
+    "settleVia releases a voucher AND a real-shaped tx on a proven Title": true,
+    "settleVia pays nothing on a tampered Title (no value leaves on bad proof)": true
+  },
+  "passed": 16,
+  "failed": 0
+}

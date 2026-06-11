@@ -1,0 +1,32 @@
+{
+  "spec": "The Chain Abstraction Layer (ADR-053 omnichain keystone): fragmented blockchains are unified UNDER the κ substrate — CAIP names every chain/account/asset, resolve() turns any chain identifier into a self-verifying κ object (one graph), did:pkh makes a chain wallet a holospace principal that holds an Own Title with no new key, and anchor/pay route an intent to the right chain via the one default-deny wallet seam. Not a bridge between chains — each chain is a verifiable projection of, and anchor for, the one κ universe",
+  "authority": "CAIP-2/10/19 (Chain Agnostic Improvement Proposals) · W3C/CASA did:pkh · W3C DID Core · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L4/L5 · the chain kit (prism-btc · holo-eth/evm · holo-solana · wdk) by reference",
+  "witnessed": true,
+  "covers": [
+    "omnichain",
+    "chain-abstraction",
+    "caip",
+    "did-pkh",
+    "resolve-to-kappa",
+    "one-graph",
+    "intent-routing",
+    "law-l5"
+  ],
+  "checks": {
+    "CAIP-2 chainId parses (eip155:8453)": true,
+    "CAIP-10 account parses (namespace · reference · address)": true,
+    "CAIP-19 asset parses (an NFT: erc721 + tokenId)": true,
+    "resolve(CAIP) → a self-verifying κ object that commits to the CAIP id (Law L5)": true,
+    "resolve is deterministic (same id → same κ)": true,
+    "a Solana account + an Ethereum account are BOTH κ objects in the one graph (distinct, both verify)": true,
+    "did:pkh derives from a CAIP-10 account (CASA standard)": true,
+    "principal(account) → an Own owner-ref κ + did:pkh": true,
+    "a holospace Title can be OWNED by a chain wallet (did:pkh principal), chain re-derives": true,
+    "anchor INTENT routes to the right chain by CAIP (eip155:8453 → base)": true,
+    "pay INTENT routes to the chain + address (eip155:1 → ethereum)": true,
+    "a declining wallet refuses the intent (default-deny — value never moves alone)": true,
+    "CAIP → wallet-chain mapping covers all 7 chains the kit speaks": true
+  },
+  "passed": 13,
+  "failed": 0
+}

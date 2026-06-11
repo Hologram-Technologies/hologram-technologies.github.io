@@ -1,0 +1,2066 @@
+{
+  "root": "did:holo:sha256:adccbd2a9e376bf9bdd84e2b34835d782884f4b7f69568b1f92829c102bf4e06",
+  "source": "os/_shared/holo-atlas.js",
+  "@graph": [
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:ItemList",
+        "schema:DataCatalog",
+        "prov:Entity"
+      ],
+      "dcterms:conformsTo": "https://schema.org/",
+      "dcterms:description": "Every Hologram OS native holospace mapped by content truth: identity (did:holo κ), integrity (closure bytes/files), conformance specs, and agent-door coverage — derived purely from apps/index.jsonld + each holospace.json/.lock.json + the door indices and sealed as one re-derivable κ (Law L5).",
+      "dcterms:source": "os/apps/index.jsonld",
+      "dcterms:title": "Holo Atlas — the content-addressed map of every holospace",
+      "hatl:doors": {
+        "a2a": 30,
+        "mcp": 30,
+        "nanda": 30,
+        "skills": 30
+      },
+      "hatl:totalBytes": 95433204,
+      "hatl:totalFiles": 722,
+      "hatl:totalSpecs": 73,
+      "id": "did:holo:sha256:adccbd2a9e376bf9bdd84e2b34835d782884f4b7f69568b1f92829c102bf4e06",
+      "links": [
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBhakWWIy43qE1gwjYPD2XUI5y0NWmrFvYblRGuBJjpQA",
+          "digestSRI": "sha256-YWpFliMuN6hNYMI2Dw9l1COctDVpqxb2G5URrgSY6UA=",
+          "id": "did:holo:sha256:673fb26dd43325d2e696bd0b59dfdbf27cced7b8516ed9695b9ae6eb48f87a56",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCGsmnqi-qIP-n8IxW_YWujBMc6mXs955_j6FpNkNSd-w",
+          "digestSRI": "sha256-hrJp6ovqiD/p/CMVv2FrowTHOpl7Peef4+haTZDUnfs=",
+          "id": "did:holo:sha256:e400fd081165e7a40f3428d34b2d37f6a51b473b24d009a8fa799d1d2543a51e",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAaJ-df6KCO_aACUyq8aq7OwDteMSPUYkVFwKHVoD2wig",
+          "digestSRI": "sha256-GifnX+igjv2gAlMqvGquzsA7XjEj1GJFRcCh1aA9sIo=",
+          "id": "did:holo:sha256:3ed50d2fe3fd7fa522bcb74412be6cf7f4c1402aa1464622242b5333450ade15",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBmoIWSnaxn7f9WEWAhJvwyEtudS00lUQMp4biWIw-20w",
+          "digestSRI": "sha256-ZqCFkp2sZ+3/VhFgISb8MhLbnUtNJVEDKeG4liMPttM=",
+          "id": "did:holo:sha256:e19bf27865356bdfa5753409bf1894a2f2b82ea421710bd9e89eb740acfb5d9c",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBs1H6rUSeDgS7iyQ6rIaQhVrkzcbr1iMzKnYpJQBg5sg",
+          "digestSRI": "sha256-bNR+q1Eng4Eu4skOqyGkIVa5M3G69YjMyp2KSUAYObI=",
+          "id": "did:holo:sha256:651f1d922c572ef5e6ca9fae35456430c2c97fb8b3e8eef90e149297d99f673e",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAV4ic5XyEGeBSKW8lKPMQCR5y7jLJEVxlAxH0NpAvdbw",
+          "digestSRI": "sha256-FeInOV8hBngUilvJSjzEAkecu4yyRFcZQMR9DaQL3W8=",
+          "id": "did:holo:sha256:83c2e54783311936fa4d7f9dc2da2760597fc2a884dc379a4d13df7b6c4c5f3f",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiDRimhNPDKakStdmt-TOE2GtlKjLHrBOa2XmVEMhTzhBA",
+          "digestSRI": "sha256-0YpoTTwympErXZrfkzhNhrZSoyx6wTmtl5lRDIU84QQ=",
+          "id": "did:holo:sha256:5ee2bbd9daad8c3eb210bb551740a29cc3fe78329d90f8160283c93454d2505c",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCWtUXhc3eqKeXUJ7oxW4AqYGcX7tPjTqDecNgJ66az8w",
+          "digestSRI": "sha256-lrVF4XN3qinl1Ce6MVuAKmBnF+7T406g3nDYCeums/M=",
+          "id": "did:holo:sha256:6bb55476f35e9a092d8dbcd651673c544ea2fcf18926eb179c8520cef8812ba5",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAYiMFkcniY-P_FreC7cVe3LLgCPWVCJG-oR4pLVR_KRw",
+          "digestSRI": "sha256-GIjBZHJ4mPj/xa3gu3FXtyy4Aj1lQiRvqEeKS1Ufykc=",
+          "id": "did:holo:sha256:5729110da7b3f1f1fb71bbeea80fc92db5d5a0dc4abdf25cca681e906c7c4148",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCoKPEjmODfvYAVeAY9yZV5yQmdd1E8q4Y0auBkLsRJSw",
+          "digestSRI": "sha256-qCjxI5jg372AFXgGPcmVeckJnXdRPKuGNGrgZC7ESUs=",
+          "id": "did:holo:sha256:d01d7bd94c7d49656bff77cb61533493ed4332c572fdd1b0bd4d2c7fb158ecc9",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiD_0Sit-CtqXKeXrJuQZvMRXHplSIJCsODdIr5oLv6z8A",
+          "digestSRI": "sha256-/9Eorfgralynl6ybkGbzEVx6ZUiCQrDg3SK+aC7+s/A=",
+          "id": "did:holo:sha256:784783de054f374b2b8914ec601256406e39049bd4b6de38194366a7a6595f8e",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiADKpv12fH0gCQZ_B8yK1mzRjTVDtVsxIikwItkbhW-YA",
+          "digestSRI": "sha256-Ayqb9dnx9IAkGfwfMitZs0Y01Q7VbMSIpMCLZG4VvmA=",
+          "id": "did:holo:sha256:f848053b724e9a217214f6acbee74c60545f918307bc0ca1a44cf00a9ba1504e",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBSnlhWtMHl_8GYphPfKoXdSzZ6M4RsLyY-23JhikYR6g",
+          "digestSRI": "sha256-Up5YVrTB5f/BmKYT3yqF3Us2ejOEbC8mPttyYYpGEeo=",
+          "id": "did:holo:sha256:70d99095a247d49465dec13fbfeea17a150d329c6f6763d8caba632b295e3311",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiDJLkyRvyXcXAa_BaPQWqNmXTqXkRKX_kCk8IW0ZJrqBg",
+          "digestSRI": "sha256-yS5Mkb8l3FwGvwWj0FqjZl06l5ESl/5ApPCFtGSa6gY=",
+          "id": "did:holo:sha256:d5ea770e68d492f34ebf297815b1addc083ec0e9493cdcf3319e0c948ff280ec",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiC3i3a4g5lkygAB8P6s65Vb5-2sFz-3fiq8bkW9YXjMzg",
+          "digestSRI": "sha256-t4t2uIOZZMoAAfD+rOuVW+ftrBc/t34qvG5FvWF4zM4=",
+          "id": "did:holo:sha256:7519295ba2252f25bcd94ec13760163bd98c560ce34e897adb10632ebca1cdde",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAbRAsRNflueNAglrY9t8HDVWMbMbMpl1vbjIFGf4MwTQ",
+          "digestSRI": "sha256-G0QLETX5bnjQIJa2PbfBw1VjGzGzKZdb24yBRn+DME0=",
+          "id": "did:holo:sha256:4f22b170d4b55464c20e9feabdd3f2af80ec1a4ad1b3a03a6281284ba7c5f5fb",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBQhNEDREEWfGRdlw47XH-I52DyAxSzQGrVf3bO2ZkVfA",
+          "digestSRI": "sha256-UITRA0RBFnxkXZcOO1x/iOdg8gMUs0Bq1X92ztmZFXw=",
+          "id": "did:holo:sha256:3199c0c051935f85cf2e901008487577dec0e96048d121104a0b3d6125cdbe62",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiB2j8tE0rFuU9V4IwtesDoOU7NWNZSj0u___H_VfvQClQ",
+          "digestSRI": "sha256-do/LRNKxblPVeCMLXrA6DlOzVjWUo9Lv//x/1X70ApU=",
+          "id": "did:holo:sha256:d6981b4ede534f1d873886e3fce67b8ff89a1eb0df0e60fa64d32de1c6ebc8f4",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBiEJ_WaK5niXbrDv48heSL2EnA58Rc3Pf4VBtSMAVZdA",
+          "digestSRI": "sha256-YhCf1miuZ4l26w7+PIXki9hJwOfEXNz3+FQbUjAFWXQ=",
+          "id": "did:holo:sha256:304ff800d4b6d67bf2db48a507ac97f978e45110342d4eade50c6840aad98fc2",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiD83KMFtu3Ue7hH3RlKjpwQ0vMu1pGJa_UoXO_Be4zniw",
+          "digestSRI": "sha256-/NyjBbbt1Hu4R90ZSo6cENLzLtaRiWv1KFzvwXuM54s=",
+          "id": "did:holo:sha256:69a64355b9f643d819b342aa05b5eb4fb1ea824f3ce15d513f94dab1afa05d23",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCrVkwHvJ-52mdZqcqzQGiA3F6Pib_baxDGGtxDpv6Ipg",
+          "digestSRI": "sha256-q1ZMB7yfudpnWanKs0BogNxej4m/22sQxhrcQ6b+iKY=",
+          "id": "did:holo:sha256:7549d69ed179ba35332c5737bfe7d1215f5809a65ad10172e90b36b0d0a171d3",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCpLukP0CPIQEUKL8WkeBXpmZdm1vOy54r9_t7KiZdC0Q",
+          "digestSRI": "sha256-qS7pD9AjyEBFCi/FpHgV6ZmXZtbzsueK/f7eyomXQtE=",
+          "id": "did:holo:sha256:7bb6b40763a72156c7b54caea34bd538b362a04b652a4fd30ab6c30c9d15e4ea",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiB_qLY3DXmaoBxfJqlsKutBfTdlTzVGjfEKNdtPgO0few",
+          "digestSRI": "sha256-f6i2Nw15mqAcXyapbCrrQX03ZU81Ro3xCjXbT4DtH3s=",
+          "id": "did:holo:sha256:2788ceb85bb3aa5990db4555de9fdc5d824ec2d6adfc4fea32826f7ffba8c846",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAaWOmf5EufOxZaKNYgNDnYbJHuG_rvCkC6Udf_xHVCbQ",
+          "digestSRI": "sha256-Gljpn+RLnzsWWijWIDQ52GyR7hv67wpAulHX/8R1Qm0=",
+          "id": "did:holo:sha256:441ba0422e2c9377b7d9aad40feaa88c9f78d4829808ad003dc833d5cb6854cb",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBqYRNPfTY66h9LYx0SiD8lItZo3F5KUbBWgUUTCOmmsA",
+          "digestSRI": "sha256-amETT302OuofS2MdEog/JSLWaNxeSlGwVoFFEwjpprA=",
+          "id": "did:holo:sha256:457a3b8b8698f5d780060a588cecaa59ab420b92f401e9f4ffc71b7fce51ec93",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCabiP9Uil5qHPIYOyNI08KI2bpbCIJazV29xmUQMboRA",
+          "digestSRI": "sha256-mm4j/VIpeahzyGDsjSNPCiNm6WwiCWs1dvcZlEDG6EQ=",
+          "id": "did:holo:sha256:77e5831e749aed19c4fd5887801773c79e75e2cb0d93c137ad0c59e6b93a5188",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiCfICwug0zocFGt6ew7NKdo6J7XewibU3hrNeHrg9cGfg",
+          "digestSRI": "sha256-nyAsLoNM6HBRrensOzSnaOie13sIm1N4azXh64PXBn4=",
+          "id": "did:holo:sha256:c248f1c6a7e6f5295af63eba2dc0974c92e3bb1d18cc5dd1d13bb73320f5df76",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAnt6Uvslj_l2XZ-Uxyocb8GxkqUDLofqDUhQo16168wA",
+          "digestSRI": "sha256-J7elL7JY/5dl2flMcqHG/BsZKlAy6H6g1IUKNetevMA=",
+          "id": "did:holo:sha256:91e6c042769f7876ab2a0487aad13aea58068bc3392990bcc1b865400b2f2343",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiBk1gh_QG1srVucBZbmw5aPyq8npLoM1PRyZEsOBwn_Yw",
+          "digestSRI": "sha256-ZNYIf0BtbK1bnAWW5sOWj8qvJ6S6DNT0cmRLDgcJ/2M=",
+          "id": "did:holo:sha256:0d96e792144365d8aa4205dec1df555e5cddf7614cec7634c884df0e11819850",
+          "rel": "schema:itemListElement"
+        },
+        {
+          "@type": [
+            "schema:SoftwareApplication",
+            "prov:Entity"
+          ],
+          "digestMultibase": "uEiAi7zi8hiHJnT8KE_bJXYwiVWaq14L0-PBx3YZPZoSy9w",
+          "digestSRI": "sha256-Iu84vIYhyZ0/ChP2yV2MIlVmqteC9Pjwcd2GT2aEsvc=",
+          "id": "did:holo:sha256:dbcc3af14a9a31c197fbaea6c48171f1e389e5e1b1dfec15b46d6cd23aff2357",
+          "rel": "schema:itemListElement"
+        }
+      ],
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:numberOfItems": 30
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 4398118,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 29,
+      "hatl:root": "did:holo:sha256:012533c9f246ef522a5c104e5d88206345cf6b7cbbb9b577e1e5ff93eda93ad0",
+      "hatl:specCount": 2,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:673fb26dd43325d2e696bd0b59dfdbf27cced7b8516ed9695b9ae6eb48f87a56",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "MultimediaApplication",
+      "schema:description": "It really whips the llama's ass — the classic skinnable player",
+      "schema:featureList": [
+        "winamp",
+        "winamp-holospace"
+      ],
+      "schema:identifier": "org.hologram.HoloWinamp",
+      "schema:name": "Winamp",
+      "schema:position": 1,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js",
+        "webamp/PROVENANCE.txt",
+        "webamp/base-2.91.wsz",
+        "webamp/skins/",
+        "webamp/skins/skins.json",
+        "webamp/webamp.bundle.min.js"
+      ],
+      "schema:softwareVersion": "1.5.0",
+      "schema:url": "apps/winamp/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 545804,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 16,
+      "hatl:root": "did:holo:sha256:0953518061292e1961f1d1d187e6dcb179799535274c95ac7c61866b6a6f76a5",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:e400fd081165e7a40f3428d34b2d37f6a51b473b24d009a8fa799d1d2543a51e",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "schema:description": "A real Debian GNU/Linux system, booted in a browser tab",
+      "schema:featureList": [
+        "web-platform"
+      ],
+      "schema:identifier": "org.hologram.HoloOS",
+      "schema:name": "Hologram OS",
+      "schema:position": 2,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-theme.js",
+        "xterm/addon-clipboard.js",
+        "xterm/addon-fit.js",
+        "xterm/addon-search.js",
+        "xterm/addon-unicode11.js",
+        "xterm/addon-web-links.js",
+        "xterm/addon-webgl.js",
+        "xterm/xterm.css",
+        "xterm/xterm.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/os/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 72193953,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 260,
+      "hatl:root": "did:holo:sha256:09b8f9023a8be3115a3bd6fe3b6973ce1144b1f1024c3b8a8ea10ba4958c19cf",
+      "hatl:specCount": 6,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:3ed50d2fe3fd7fa522bcb74412be6cf7f4c1402aa1464622242b5333450ade15",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "MultimediaApplication",
+      "schema:description": "A content-addressed video player with adaptive HLS",
+      "schema:featureList": [
+        "cmaf-dash",
+        "gpu-super-resolution",
+        "video-audio",
+        "video-holospace",
+        "video-streaming",
+        "webgpu-present"
+      ],
+      "schema:identifier": "org.hologram.HoloVideo",
+      "schema:name": "Holo Video",
+      "schema:position": 3,
+      "schema:softwareRequirements": [
+        "holo-gpu.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js",
+        "videojs/video-js.min.css",
+        "videojs/video.min.js"
+      ],
+      "schema:softwareVersion": "8.0",
+      "schema:url": "apps/video/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 421458,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 24,
+      "hatl:root": "did:holo:sha256:137007e581fe97e5f74c54884fb11a239ca28d7420a9bb64e25bbeb66495fce5",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:e19bf27865356bdfa5753409bf1894a2f2b82ea421710bd9e89eb740acfb5d9c",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "A universal, Etherscan-identical block explorer — Blockscout-powered, κ-verified, in the browser",
+      "schema:featureList": [
+        "etherscan"
+      ],
+      "schema:identifier": "org.hologram.HoloEtherscan",
+      "schema:name": "Holo Scan",
+      "schema:position": 4,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "2.0",
+      "schema:url": "apps/etherscan/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 213787,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 13,
+      "hatl:root": "did:holo:sha256:1587a5bb218c2a7e8c8f6ad1222508d1360b71da25b5653bbbc2c1e3558d5606",
+      "hatl:specCount": 2,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:651f1d922c572ef5e6ca9fae35456430c2c97fb8b3e8eef90e149297d99f673e",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "MultimediaApplication",
+      "schema:description": "Capture, annotate and share your screen — Flameshot, hologram-native",
+      "schema:featureList": [
+        "capture",
+        "media-capture"
+      ],
+      "schema:identifier": "org.hologram.HoloCapture",
+      "schema:name": "Holo Capture",
+      "schema:position": 5,
+      "schema:softwareRequirements": [
+        "holo-capture.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/capture/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 310000,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 15,
+      "hatl:root": "did:holo:sha256:1c03eb820ca8e2cc1cd1515e6f88afc25ba298c274ae46f6a988edcc565f40ff",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:83c2e54783311936fa4d7f9dc2da2760597fc2a884dc379a4d13df7b6c4c5f3f",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "A real self-custodial Bitcoin wallet + live network, entirely in your browser",
+      "schema:featureList": [
+        "btc"
+      ],
+      "schema:identifier": "org.hologram.HoloBtc",
+      "schema:name": "BTC Miner",
+      "schema:position": 6,
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "0.3",
+      "schema:url": "apps/btc/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 242139,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 14,
+      "hatl:root": "did:holo:sha256:3bcc1b669e7e0b086d21ce7684d561be2e9053cdf8fc7560dabb4786c57dbd8b",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:5ee2bbd9daad8c3eb210bb551740a29cc3fe78329d90f8160283c93454d2505c",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "Browse the entire IPFS space as easily as the web — every block κ-verified in your browser",
+      "schema:featureList": [
+        "holo-ipfs"
+      ],
+      "schema:identifier": "org.hologram.HoloIpfs",
+      "schema:name": "Holo IPFS",
+      "schema:position": 7,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/ipfs/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 308091,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 17,
+      "hatl:root": "did:holo:sha256:4ced702d4f1cb1327fc89f268744a44af2c213de1c97e261c73187f76108875c",
+      "hatl:specCount": 2,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:6bb55476f35e9a092d8dbcd651673c544ea2fcf18926eb179c8520cef8812ba5",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "DeveloperApplication",
+      "schema:description": "The Holo SDK — the unified, serverless, content-addressed environment where every holospace is built, run and shared: a spatial self-authoring desktop where each window, component and app is a self-verifying UOR object, scaffolded live and bootable by a single κ link",
+      "schema:featureList": [
+        "app-launch",
+        "self-authoring-shell"
+      ],
+      "schema:identifier": "org.hologram.HoloSDK",
+      "schema:name": "Holo SDK",
+      "schema:position": 8,
+      "schema:softwareRequirements": [
+        "holo-auto.js",
+        "holo-blocks-repo.mjs",
+        "holo-blocks.js",
+        "holo-collab.js",
+        "holo-keys.js",
+        "holo-manim.js",
+        "holo-platform.js",
+        "holo-scaffold.js",
+        "holo-terms.js",
+        "holo-theme.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "0.1",
+      "schema:url": "apps/sdk/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 169341,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 12,
+      "hatl:root": "did:holo:sha256:4df84b13e2dcefc69cce6ff33f626b394f2b9eef8bef457270abfe8063cb1205",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:5729110da7b3f1f1fb71bbeea80fc92db5d5a0dc4abdf25cca681e906c7c4148",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "FinanceApplication",
+      "schema:description": "A MetaMask-familiar, self-custodial multi-chain wallet on Tether's WDK, hologram-native: one seed, every chain — content-addressed, for humans and AI agents",
+      "schema:featureList": [
+        "wdk"
+      ],
+      "schema:identifier": "org.hologram.HoloWallet",
+      "schema:name": "Holo Wallet",
+      "schema:position": 9,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "metamask/design-tokens.css",
+        "metamask/geist/geist.css",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/wallet/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 202109,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 15,
+      "hatl:root": "did:holo:sha256:4f17cac17cb50322a96ec428fcfdddae09dc8cde0f4f6a6d784d1fcaffba96df",
+      "hatl:specCount": 2,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:d01d7bd94c7d49656bff77cb61533493ed4332c572fdd1b0bd4d2c7fb158ecc9",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "MultimediaApplication",
+      "schema:description": "A content-addressed media library, modeled on Jellyfin",
+      "schema:featureList": [
+        "holo-player",
+        "jellyfin-api"
+      ],
+      "schema:identifier": "org.hologram.HoloPlayer",
+      "schema:name": "Holo Player",
+      "schema:position": 10,
+      "schema:softwareRequirements": [
+        "holo-jellyfin.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/player/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 322816,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 19,
+      "hatl:root": "did:holo:sha256:5411cf8d9ad7ac2bb3593d1b74b06d5d94fd8769dc72f2810028e1ffd32faec5",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:784783de054f374b2b8914ec601256406e39049bd4b6de38194366a7a6595f8e",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "Chromium, hologram-native: browse any web, local or holo://κ page as content-addressed substrate — every byte re-derived (Law L5)",
+      "schema:featureList": [
+        "holo-browser"
+      ],
+      "schema:identifier": "org.hologram.HoloBrowser",
+      "schema:name": "Holo Browser",
+      "schema:position": 11,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/browser/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 282460,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 15,
+      "hatl:root": "did:holo:sha256:5518c5f9c15ef2ae68b8827d54b85a932cb04c2ef0cbcf46a289813ca2b5a74a",
+      "hatl:specCount": 7,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:f848053b724e9a217214f6acbee74c60545f918307bc0ca1a44cf00a9ba1504e",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "BusinessApplication",
+      "schema:description": "Your second brain — a networked outliner + an always-on, private memory bank. Roam Research, hologram-native",
+      "schema:featureList": [
+        "crdt-collab",
+        "holo-memory",
+        "holo-notepad",
+        "holo-record",
+        "persistent-identity",
+        "wikilink-graph",
+        "zk-membership"
+      ],
+      "schema:identifier": "org.hologram.HoloNotepad",
+      "schema:name": "Holo Notepad",
+      "schema:position": 12,
+      "schema:softwareRequirements": [
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-memory.js",
+        "holo-mobile.css",
+        "holo-record.js",
+        "holo-roam.js",
+        "holo-theme.js",
+        "holo-zk.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/notepad/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 240208,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 17,
+      "hatl:root": "did:holo:sha256:5ef837959e8366dd351ab45e23398fd69bd8ada7270d4639fac0cc7fe8dfdb5d",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:70d99095a247d49465dec13fbfeea17a150d329c6f6763d8caba632b295e3311",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "MultimediaApplication",
+      "schema:description": "Live streaming, recording & a creator coin — OBS + Owncast, hologram-native",
+      "schema:featureList": [
+        "stream"
+      ],
+      "schema:identifier": "org.hologram.HoloStream",
+      "schema:name": "Holo Stream",
+      "schema:position": 13,
+      "schema:softwareRequirements": [
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-obs.js",
+        "holo-owncast.js",
+        "holo-pump.js",
+        "holo-rtc.js",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.1",
+      "schema:url": "apps/stream/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 141790,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 10,
+      "hatl:root": "did:holo:sha256:651d2e10a5c6b8e18025081e341f3e44249113b0b64f897f3084acefa789618c",
+      "hatl:specCount": 6,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:d5ea770e68d492f34ebf297815b1addc083ec0e9493cdcf3319e0c948ff280ec",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "SecurityApplication",
+      "schema:description": "Your machine-readable personal terms (MyTerms / IEEE 7012-2025): you propose, each app agrees, the OS enforces. Choose your standing term; see and revoke what every app was granted.",
+      "schema:featureList": [
+        "did-core",
+        "holo-terms",
+        "ieee-7012",
+        "myterms",
+        "permissions-policy",
+        "vc-data-integrity"
+      ],
+      "schema:identifier": "org.hologram.HoloTerms",
+      "schema:name": "Holo Terms",
+      "schema:position": 14,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-terms.js",
+        "holo-theme.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/terms/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 245880,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 14,
+      "hatl:root": "did:holo:sha256:8bc211711ef0c0a96d881a604a495994e2259a2661b6b871c2b03f793b4c048f",
+      "hatl:specCount": 3,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:7519295ba2252f25bcd94ec13760163bd98c560ce34e897adb10632ebca1cdde",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "BusinessApplication",
+      "schema:description": "Office suite — Writer, Calc and Impress with live co-editing",
+      "schema:featureList": [
+        "crdt-collab",
+        "holodocs-holospace",
+        "spreadsheet-formula"
+      ],
+      "schema:identifier": "org.hologram.HoloDocs",
+      "schema:name": "Holo Docs",
+      "schema:position": 15,
+      "schema:softwareRequirements": [
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/docs/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 160589,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 13,
+      "hatl:root": "did:holo:sha256:95d7e3ded45b88aeeb309bdf31bf556405b76f0c159249ddd48b589216479e50",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:4f22b170d4b55464c20e9feabdd3f2af80ec1a4ad1b3a03a6281284ba7c5f5fb",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "DeveloperApplication",
+      "schema:description": "The living map of every holospace — discover, verify and monitor the whole OS by content address",
+      "schema:featureList": [
+        "holo-atlas"
+      ],
+      "schema:identifier": "org.hologram.HoloAtlas",
+      "schema:name": "Holo Atlas",
+      "schema:position": 16,
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-atlas.js",
+        "holo-icons.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-phi.css",
+        "holo-theme.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "0.1",
+      "schema:url": "apps/atlas/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 729356,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 8,
+      "hatl:root": "did:holo:sha256:99f79b08f86c60254aabcd0f687a64f0c061d809655b5a7d03bfb57b92beff7d",
+      "hatl:specCount": 3,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:3199c0c051935f85cf2e901008487577dec0e96048d121104a0b3d6125cdbe62",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "ReferenceApplication",
+      "schema:description": "John Stuart Mill's On Liberty, published natively as a self-verifying UOR κ-DAG. The whole book re-derives from its own content in the browser — no server to trust (Law L5).",
+      "schema:featureList": [
+        "content-addressing",
+        "did-core",
+        "liberty"
+      ],
+      "schema:identifier": "did:holo:sha256:3dd559e0fd7c038589a1b3a650d6ad1ea46d03abfc224a1995bc6433e52af2f7",
+      "schema:name": "On Liberty",
+      "schema:position": 17,
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/liberty/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 318593,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 16,
+      "hatl:root": "did:holo:sha256:a2460476662fff16a7c9cee05b120545e47ede01ef73c0f159c10c355432b2cd",
+      "hatl:specCount": 2,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:d6981b4ede534f1d873886e3fce67b8ff89a1eb0df0e60fa64d32de1c6ebc8f4",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "Mine, send and explore real BrowserCoin (BRC) — the full app, hologram-native",
+      "schema:featureList": [
+        "brc",
+        "brcminer"
+      ],
+      "schema:identifier": "org.hologram.HoloBrc",
+      "schema:name": "Holo BRC Miner",
+      "schema:position": 18,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/brcminer/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 183582,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 8,
+      "hatl:root": "did:holo:sha256:a2b54fc09ef724cb06c5bc8562f257333de87ef17de84d3da90f4147551b833f",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:304ff800d4b6d67bf2db48a507ac97f978e45110342d4eade50c6840aad98fc2",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "DeveloperApplication",
+      "schema:description": "A code editor with the Monaco engine, LSP and a real filesystem",
+      "schema:featureList": [
+        "web-platform"
+      ],
+      "schema:identifier": "org.hologram.HoloWorkspace",
+      "schema:name": "Holo Workspace",
+      "schema:position": 19,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/workspace/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 318667,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 14,
+      "hatl:root": "did:holo:sha256:abf78931ca04a5a00eff1961287a5f35186e7071ebc3817f948172db696f87dc",
+      "hatl:specCount": 3,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:69a64355b9f643d819b342aa05b5eb4fb1ea824f3ce15d513f94dab1afa05d23",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "DeveloperApplication",
+      "schema:description": "A self-hosted git forge — issues, PRs, merges, serverless",
+      "schema:featureList": [
+        "git-object-format",
+        "gitea-api",
+        "holo-git-holospace"
+      ],
+      "schema:identifier": "org.hologram.HoloGit",
+      "schema:name": "Holo Git",
+      "schema:position": 20,
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-collab.js",
+        "holo-git.js",
+        "holo-gitea.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/git/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 177385,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 42,
+      "hatl:root": "did:holo:sha256:b1b83d7bf931123d810b8a246d84cbf58bf7734e44c532764e2c7956ffd86743",
+      "hatl:specCount": 2,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:7549d69ed179ba35332c5737bfe7d1215f5809a65ad10172e90b36b0d0a171d3",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "schema:description": "A graphical boot manager — rEFInd, hologram-native",
+      "schema:featureList": [
+        "holo-boot",
+        "refind-config"
+      ],
+      "schema:identifier": "org.hologram.HoloBoot",
+      "schema:name": "Holo Boot",
+      "schema:position": 21,
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/boot/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 10924998,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 35,
+      "hatl:root": "did:holo:sha256:b43aa2c9c0ba0b35b0201da7afbc1a51a9839b2f583b3d9417b06c9741ec0d53",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:7bb6b40763a72156c7b54caea34bd538b362a04b652a4fd30ab6c30c9d15e4ea",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "MultimediaApplication",
+      "schema:description": "A content-addressed music library — and the whole internet as one",
+      "schema:featureList": [
+        "web-platform"
+      ],
+      "schema:identifier": "org.hologram.HoloMusic",
+      "schema:name": "Holo Music",
+      "schema:position": 22,
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-audio.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-stations.js",
+        "holo-subsonic.js",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/music/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 140470,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 14,
+      "hatl:root": "did:holo:sha256:b9703055805fe7914c9475aa437a9f9853ed4854a7944f370321ca501ef45a3c",
+      "hatl:specCount": 8,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:2788ceb85bb3aa5990db4555de9fdc5d824ec2d6adfc4fea32826f7ffba8c846",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "Utility",
+      "schema:description": "A scaffolded example holospace — the Holo SDK reference output: auto-wired to Holo UI, UX, Terms, Privacy, and Conform; self-verifying by content address.",
+      "schema:featureList": [
+        "did-core",
+        "holo-conform",
+        "holo-privacy",
+        "holo-sdk",
+        "holo-terms",
+        "json-ld",
+        "sri",
+        "wcag"
+      ],
+      "schema:identifier": "org.hologram.HoloStarter",
+      "schema:name": "Holo Starter",
+      "schema:position": 23,
+      "schema:softwareRequirements": [
+        "holo-icons.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-phi.css",
+        "holo-privacy.js",
+        "holo-sdk.js",
+        "holo-terms.js",
+        "holo-theme.css",
+        "holo-ui-kernel.js",
+        "holo-ux.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/starter/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 543636,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 16,
+      "hatl:root": "did:holo:sha256:bdde3b1b466acb14e4033c79e8c70c5fa8c62e9f8bc5938f92b4816046c4a2d1",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:441ba0422e2c9377b7d9aad40feaa88c9f78d4829808ad003dc833d5cb6854cb",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "schema:description": "Generic and open source machine emulator and virtualizer",
+      "schema:featureList": [
+        "web-platform"
+      ],
+      "schema:identifier": "org.qemu.QEMU",
+      "schema:name": "QEMU",
+      "schema:position": 24,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-theme.js",
+        "xterm/addon-clipboard.js",
+        "xterm/addon-fit.js",
+        "xterm/addon-search.js",
+        "xterm/addon-unicode11.js",
+        "xterm/addon-web-links.js",
+        "xterm/addon-webgl.js",
+        "xterm/xterm.css",
+        "xterm/xterm.js"
+      ],
+      "schema:softwareVersion": "9.0",
+      "schema:url": "apps/qemu/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 963992,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 17,
+      "hatl:root": "did:holo:sha256:c3cdb2908ba03fc6df337934365ee23d1c6457fcd5d71fbd77b3ece4ce7a1c6f",
+      "hatl:specCount": 1,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:457a3b8b8698f5d780060a588cecaa59ab420b92f401e9f4ffc71b7fce51ec93",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "DeveloperApplication",
+      "schema:description": "A real Ethereum Virtual Machine that runs in your browser",
+      "schema:featureList": [
+        "evm"
+      ],
+      "schema:identifier": "org.hologram.HoloEVM",
+      "schema:name": "Holo EVM",
+      "schema:position": 25,
+      "schema:softwareRequirements": [
+        "holo-evm/PROVENANCE.txt",
+        "holo-evm/bctests/",
+        "holo-evm/bctests/index.json",
+        "holo-evm/holo-evm.bundle.mjs",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/evm/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 165370,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 10,
+      "hatl:root": "did:holo:sha256:c59f58167d1aace0237b9d71d919d127838908879df1d16b5732920485a7279e",
+      "hatl:specCount": 7,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:77e5831e749aed19c4fd5887801773c79e75e2cb0d93c137ad0c59e6b93a5188",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "SecurityApplication",
+      "schema:description": "Control what an AI agent may learn about you. You are the data subject; agents acting for you get only the minimum needed for a stated purpose — as a signed, verifiable disclosure — and never enough to track you.",
+      "schema:featureList": [
+        "agent-privacy",
+        "did-core",
+        "dpv",
+        "holo-privacy",
+        "odrl",
+        "vc-data-integrity",
+        "vc-selective-disclosure"
+      ],
+      "schema:identifier": "org.hologram.HoloPrivacy",
+      "schema:name": "Holo Privacy",
+      "schema:position": 26,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-privacy.js",
+        "holo-theme.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/privacy/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 71160,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 6,
+      "hatl:root": "did:holo:sha256:e37e0157561c8a77dc5f3f7f5591ceac126f9144212169b657ebdfbca3d74b2a",
+      "hatl:specCount": 3,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:c248f1c6a7e6f5295af63eba2dc0974c92e3bb1d18cc5dd1d13bb73320f5df76",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "System",
+      "schema:description": "Your real KDE Plasma 6 desktop, mounted live in a holospace via the canonical noVNC client (RFB/VNC)",
+      "schema:featureList": [
+        "plasma",
+        "rfb",
+        "vnc"
+      ],
+      "schema:identifier": "org.kde.PlasmaDesktop",
+      "schema:name": "Plasma Desktop",
+      "schema:position": 27,
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/plasma/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 193348,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 12,
+      "hatl:root": "did:holo:sha256:e8e6717757c65f23993a6fac4a12fb23a9792bbbdf9ae2edc61c31c669d5118a",
+      "hatl:specCount": 3,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:91e6c042769f7876ab2a0487aad13aea58068bc3392990bcc1b865400b2f2343",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "Serverless, end-to-end-encrypted video conferencing",
+      "schema:featureList": [
+        "mediacapture",
+        "meet-holospace",
+        "webrtc"
+      ],
+      "schema:identifier": "org.hologram.HologramMeet",
+      "schema:name": "Hologram Meet",
+      "schema:position": 28,
+      "schema:softwareRequirements": [
+        "holo-gpu.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-rtc.js",
+        "holo-theme.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/meet/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 101453,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 8,
+      "hatl:root": "did:holo:sha256:ef10cd5c8b4aa6afcacaeae18ef85b3bbc1bb734615758e13876eb00f7d6c4ff",
+      "hatl:specCount": 6,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:0d96e792144365d8aa4205dec1df555e5cddf7614cec7634c884df0e11819850",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "schema:description": "Google for the entire Hologram OS — one bar, OpenSearch-faithful, ranked by HoloRank, every result re-derivable (Law L5)",
+      "schema:featureList": [
+        "holo-search",
+        "knn-vector",
+        "lucene-bm25",
+        "opensearch-description",
+        "opensearch-query-dsl",
+        "opensearch-rest"
+      ],
+      "schema:identifier": "org.hologram.HoloSearch",
+      "schema:name": "Holo Search",
+      "schema:position": 29,
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/search/index.html"
+    },
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/data-integrity/v2",
+        {
+          "dcterms": "http://purl.org/dc/terms/",
+          "links": {
+            "@container": "@set",
+            "@id": "schema:hasPart"
+          },
+          "prov": "http://www.w3.org/ns/prov#",
+          "rel": "schema:additionalType",
+          "schema": "https://schema.org/"
+        },
+        {
+          "hatl": "https://hologram.os/ns/atlas#"
+        }
+      ],
+      "@type": [
+        "schema:SoftwareApplication",
+        "prov:Entity"
+      ],
+      "hatl:bytes": 202651,
+      "hatl:carriesConstitution": true,
+      "hatl:doors": {
+        "a2a": true,
+        "mcp": true,
+        "nanda": true,
+        "skills": true
+      },
+      "hatl:files": 13,
+      "hatl:root": "did:holo:sha256:efc6e3a8f992e81534628902c29a9f8fd8f50f1b4c3655f6836a6efbcbc8a9c0",
+      "hatl:specCount": 4,
+      "hatl:witnessed": true,
+      "id": "did:holo:sha256:dbcc3af14a9a31c197fbaea6c48171f1e389e5e1b1dfec15b46d6cd23aff2357",
+      "prov:wasInfluencedBy": "os/_shared/holo-atlas.js",
+      "schema:applicationCategory": "CommunicationApplication",
+      "schema:description": "Your files, end-to-end encrypted and content-addressed",
+      "schema:featureList": [
+        "cloud-holospace",
+        "holo-files",
+        "nextcloud-api",
+        "webdav-ocs"
+      ],
+      "schema:identifier": "org.hologram.HoloCloud",
+      "schema:name": "Holo Cloud",
+      "schema:position": 30,
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "holo-webdav.js"
+      ],
+      "schema:softwareVersion": "1.0",
+      "schema:url": "apps/cloud/index.html"
+    }
+  ]
+}

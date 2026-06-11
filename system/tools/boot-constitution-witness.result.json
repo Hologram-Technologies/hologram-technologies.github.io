@@ -1,0 +1,29 @@
+{
+  "spec": "Hologram OS Constitution — sealed, self-verifying, self-declaring + enforced from the initial boot gateway (ADR-033)",
+  "authority": "ADR-033 (Holo Constitution) · W3C ODRL 2.2 · W3C DID Core · IETF RFC 8785 (JCS) · W3C Web Cryptography · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "constitution-sealed",
+    "self-verifying",
+    "self-declaring",
+    "enforced-at-boot",
+    "enforced-at-mount",
+    "fail-closed",
+    "law-l5"
+  ],
+  "constitutionK": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+  "gateways": [
+    "index.html (front door)",
+    "os/index.html (Pages entry)"
+  ],
+  "checks": {
+    "sealed": true,
+    "selfDeclaring": true,
+    "enforcedAtBoot": true,
+    "benignAdmitted": true,
+    "redLineRefused": true,
+    "tamperUnseals": true,
+    "failsClosedWhenUnsealed": true,
+    "reSealsToCanonical": true
+  }
+}

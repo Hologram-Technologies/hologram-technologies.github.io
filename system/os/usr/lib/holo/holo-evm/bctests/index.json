@@ -1,0 +1,61 @@
+{
+  "_comment": "Vendored Ethereum Foundation consensus vectors (ethereum/tests BlockchainTests/ValidBlocks/bcExample, develop branch). Each is a self-contained full-block state-transition test: complete pre-state alloc + RLP block(s) + expected post-state root. Holo EVM re-executes the whole block and reproduces the post-state root byte-for-byte — offline, no network. Law L5: evm.html + evm-witness.mjs re-derive each file sha256 vs the pin below.",
+  "source": "https://github.com/ethereum/tests/tree/develop/BlockchainTests/ValidBlocks/bcExample",
+  "algo": "sha256",
+  "tests": [
+    {
+      "file": "basefeeExample.json",
+      "kappa": "sha256:d0c7d1e1e8fecc5d1b456caaa535da7acff5a43b725b7d577e40e6affefe046d",
+      "cases": [
+        {
+          "key": "BlockchainTests/ValidBlocks/bcExample/basefeeExample.json::basefeeExample_Cancun",
+          "name": "basefeeExample_Cancun",
+          "network": "Cancun",
+          "blocks": 1
+        },
+        {
+          "key": "BlockchainTests/ValidBlocks/bcExample/basefeeExample.json::basefeeExample_Prague",
+          "name": "basefeeExample_Prague",
+          "network": "Prague",
+          "blocks": 1
+        }
+      ]
+    },
+    {
+      "file": "shanghaiExample.json",
+      "kappa": "sha256:cc2ab553d6798f1e80694bdd67cafe3a1a996b1f60fcb8164efb8ce1c2beeafa",
+      "cases": [
+        {
+          "key": "BlockchainTests/ValidBlocks/bcExample/shanghaiExample.json::shanghaiExample_Cancun",
+          "name": "shanghaiExample_Cancun",
+          "network": "Cancun",
+          "blocks": 1
+        },
+        {
+          "key": "BlockchainTests/ValidBlocks/bcExample/shanghaiExample.json::shanghaiExample_Prague",
+          "name": "shanghaiExample_Prague",
+          "network": "Prague",
+          "blocks": 1
+        }
+      ]
+    },
+    {
+      "file": "mergeExample.json",
+      "kappa": "sha256:5b7735d59f3b9e8f247563452c93e5d3c2a0431608137c301ec3672021efe64d",
+      "cases": [
+        {
+          "key": "BlockchainTests/ValidBlocks/bcExample/mergeExample.json::mergeExample_Cancun",
+          "name": "mergeExample_Cancun",
+          "network": "Cancun",
+          "blocks": 1
+        },
+        {
+          "key": "BlockchainTests/ValidBlocks/bcExample/mergeExample.json::mergeExample_Prague",
+          "name": "mergeExample_Prague",
+          "network": "Prague",
+          "blocks": 1
+        }
+      ]
+    }
+  ]
+}

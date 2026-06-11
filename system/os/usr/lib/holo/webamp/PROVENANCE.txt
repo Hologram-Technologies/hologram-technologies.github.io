@@ -1,0 +1,43 @@
+Webamp — the hologram-native Winamp engine (a pixel-exact, open reimplementation of
+Winamp 2.9 that runs the ORIGINAL Winamp classic-skin spec in the browser).
+
+Pinned, integrity-verified external authority (Law L5) — vendored dist build + the
+canonical classic base skin, NOT loaded from a CDN. winamp.html loads exactly these
+bytes; winamp-witness.mjs re-derives their sha256 and refuses a drift. The bundle is
+self-contained (React + the audio engine + the default classic skin embedded) — one
+engine file, no extra import — so the whole player (main window · equalizer · playlist ·
+the spectrum-analyzer / oscilloscope visualizers driven by the Web Audio AnalyserNode)
+works offline in any browser.
+
+Why this IS the original Winamp spec: Webamp is reverse-engineered to be pixel-faithful
+to Winamp 2.9, and it consumes the unmodified original skin format — a `.wsz` is just a
+renamed ZIP of the original sprite bitmaps (MAIN.BMP, CBUTTONS.BMP, TITLEBAR.BMP,
+NUMBERS.BMP, TEXT.BMP, VOLUME.BMP, BALANCE.BMP, POSBAR.BMP, PLAYPAUS.BMP, EQMAIN.BMP,
+PLEDIT.BMP) plus the text configs (PLEDIT.TXT, VISCOLOR.TXT, REGION.TXT). The vendored
+base-2.91.wsz is that exact archive; drag any real Winamp skin onto the player and it
+applies, because the player implements the spec, not a lookalike.
+
+Milkdrop (the AVS/butterchurn preset visualizer) is an OPTIONAL lazy import and is NOT
+vendored — so Milkdrop is unavailable offline by design; the built-in classic main-window
+visualizers (spectrum analyzer + oscilloscope) are part of the bundle and always present.
+
+Versions:
+  webamp                  1.5.0    (MIT)  — UMD global `Webamp`
+  base skin               base-2.91.wsz   — Winamp 2.91 classic base skin (original sprite spec)
+
+sha256 (the bytes winamp.html loads):
+  3b0a9cc744051a9addb3a9d5e3848f5f04b1be907c351b6bfff50cf650ef04fa  webamp.bundle.min.js
+  cb2e5361a5208878855ae2c6c4a842df6cb71590b2c4405fe8776258c82e59bb  base-2.91.wsz
+  fc7f2696d3e70b5c04659de0a843c1d7defebbb14eb2a07a38808fead88d9279  LICENSE
+
+Skin gallery (all available skins):
+  The full Webamp demo skin set is vendored under skins/ — the canonical "available
+  skins" the player offers (Options -> Skins, and the holospace's own skin picker).
+  Each is a genuine .wsz (ZIP of the original sprite spec) and is content-addressed:
+  its κ is pinned in skins/skins.json and re-derived by winamp-witness.mjs (Law L5).
+  Source: github.com/captbaritone/webamp packages/webamp-demo/skins (MIT).
+
+Reproduce:
+  curl -L https://unpkg.com/webamp@1.5.0/built/webamp.bundle.min.js -o webamp.bundle.min.js
+  curl -L https://raw.githubusercontent.com/captbaritone/webamp/master/LICENSE.txt -o LICENSE
+  curl -L https://raw.githubusercontent.com/captbaritone/webamp/master/packages/webamp/demo/skins/base-2.91.wsz -o base-2.91.wsz

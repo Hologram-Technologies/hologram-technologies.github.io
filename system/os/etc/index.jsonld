@@ -1,0 +1,42 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "etc",
+  "hosfs:fhs": "/etc",
+  "hosfs:fhsRole": "host configuration, no secrets (ADR-017) → manifests · capability policy · the Constitution",
+  "hosfs:kind": "content",
+  "dcat:dataset": [
+    {
+      "@id": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+      "@type": [
+        "schema:Legislation",
+        "schema:CreativeWork"
+      ],
+      "schema:name": "Hologram OS Constitution",
+      "schema:identifier": "org.hologram.HoloConstitution",
+      "hosfs:fhs": "/etc/constitution/constitution.uor.json"
+    }
+  ],
+  "id": "did:holo:sha256:eddb11c3cf04543bbb06c027add25b3fabacbb1a6df6340e018ee337004e991f"
+}

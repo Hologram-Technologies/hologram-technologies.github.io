@@ -1,0 +1,148 @@
+#!/usr/bin/env node
+// rebrand-descriptions.mjs — rewrite every app's summary + description to Hologram-native capability
+// language: implicit why → how → what, jargon-free, concise, scannable. External PRODUCT brands are
+// removed; protocols / standards / data-sources / factual runtimes are KEPT (they're what the app
+// interoperates with or genuinely runs). Idempotent: sets summary + description per holospace.json.
+//
+//   node tools/rebrand-descriptions.mjs
+
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+const APPS = "C:/Users/pavel/Desktop/Hologram Apps/apps";
+const D = (why, how, ...what) => [{ p: why }, { p: how }, { ul: what }];
+
+const M = {
+  atlas: { summary: "A live map of every holospace — discover, verify and monitor the whole OS by content address.",
+    description: D("You can trust a directory ranked by content; you can't trust one ranked by popularity.",
+      "Every holospace's identity is its content address (did:holo), so the map shows verifiable truth — each entry re-derives to prove it is genuine (Law L5).",
+      "A constellation graph and searchable directory of every holospace", "Identity is the content hash — no registry to trust", "A live in-tab verification badge", "Discover, verify and monitor the whole OS in one place") },
+  brcminer: { summary: "Mine, send and explore real BrowserCoin — wallet, miner and explorer in one.",
+    description: D("Owning and mining a live coin should not need an install, an extension or a server.",
+      "Real proof-of-work and signed transactions run on the live public BrowserCoin network, entirely in the browser.",
+      "Wallet, miner, explorer and mempool — the full app", "Real on-chain coin, no simulation", "No install, extension or server", "Content-addressed and verifiable") },
+  browser: { summary: "A web browser that treats every page — web, local or holo://κ — as verifiable content.",
+    description: D("The web asks you to trust the server that sent each byte; it shouldn't have to.",
+      "Multi-tab navigation, an omnibox and a scheme registry (holo:// · κ: · ipfs://) fetch every byte and re-derive it before rendering (Law L5).",
+      "Browse the open web, local pages and content-addressed pages", "Multi-tab sessions, history and omnibox autocomplete", "Every byte verified by content (Law L5)", "Serverless — the browser is the peer") },
+  btc: { summary: "A real self-custodial Bitcoin wallet and live network view, entirely in your browser.",
+    description: D("Holding real Bitcoin shouldn't mean trusting a custodian or installing software.",
+      "Real secp256k1 keys and bech32 addresses are generated and signed on-device with audited cryptography, against the live Bitcoin network.",
+      "Self-custodial keys, generated and signed on-device", "Send and receive real BTC on the live network", "No install, server or simulation", "Auditable and content-addressed") },
+  capture: { summary: "Capture, annotate and share your screen — every capture content-addressed.",
+    description: D("A screenshot you share should be yours, verifiable, and never touch a server.",
+      "The W3C Screen Capture API grabs a screen, window or tab; a full annotation toolset marks it up; the result is a content-addressed object.",
+      "Capture a screen, window or tab", "Annotate: arrows, shapes, text, blur, counters", "Copy, save, pin or share", "Every capture is content-addressed") },
+  cloud: { summary: "Your files — end-to-end encrypted, content-addressed, and shared without a server.",
+    description: D("A personal cloud shouldn't require a server you rent and trust.",
+      "Files are stored as deduplicated, content-addressed blocks and shared in real time — a shared file IS its content address.",
+      "Deduplicated content-addressed storage", "Real-time multi-user sharing", "WebDAV + OCS, client-side", "A hub for Docs, Talk and Music") },
+  docs: { summary: "A serverless office suite — documents, spreadsheets and slides with live co-editing.",
+    description: D("An office suite shouldn't lock your documents behind a server or a format.",
+      "A word processor, a spreadsheet with a formula engine and a presentation tool co-edit in real time over sealed, content-addressed deltas.",
+      "Writer, Calc and Impress in the browser", "Real-time co-editing", "Import/export .docx, .xlsx, .pptx and ODF", "Serverless and content-addressed") },
+  etherscan: { summary: "One universal block explorer for 27 networks — verifiable, in the browser.",
+    description: D("Exploring a chain shouldn't mean trusting one explorer's servers.",
+      "It reads real on-chain data across 25 EVM chains plus Solana and Hyperliquid, verifying results by content in the browser.",
+      "27 networks, each with native branding", "Real on-chain data, no simulation", "Address, transaction, block and token views", "Results verified by content (Law L5)") },
+  evm: { summary: "A spec-faithful Ethereum Virtual Machine that runs in your browser.",
+    description: D("Running and testing EVM bytecode shouldn't require a node or a server.",
+      "A reference EVM engine that passes the official Ethereum consensus tests executes real bytecode and signed transactions, entirely in the browser.",
+      "Real EVM bytecode execution", "Passes the official Ethereum test suite", "No node, no server", "Content-addressed and reproducible") },
+  forge: { summary: "Compile in your browser. Verify by re-derivation. Trust no server.",
+    description: D("A build is normally something you're told to trust; it should be something anyone can reproduce and verify.",
+      "Holo Forge makes the compiler itself a content-addressed object and every build a re-derivable proof — Holo-C compiles to spec-valid WebAssembly that re-derives byte-for-byte (Law L5).",
+      "Real Holo-C → spec-valid WebAssembly", "Deterministic: identical source ⇒ identical bytes", "The compiler is a content-addressed object", "Every build is a re-derivable receipt") },
+  git: { summary: "A self-hosted git forge — issues, pull requests and merges, serverless.",
+    description: D("Hosting code and collaborating shouldn't depend on a central server.",
+      "Git objects live on the content-addressed store, issues and pull requests are conflict-free replicated types, and clone/fetch/push run over a content-blind relay.",
+      "Real git objects (sha1 + sha256)", "Issues and PRs as conflict-free replicated data", "Open a PR on one peer, merge on another", "No server") },
+  ipfs: { summary: "Browse the entire IPFS space as easily as the web — every block verified.",
+    description: D("Content addressing is powerful, but usually hidden behind a daemon and an install.",
+      "A gateway that speaks IPFS natively in the browser re-derives every block's multihash before showing it (Law L5).",
+      "Browse and pin IPFS content", "Every block verified by its multihash", "No daemon, no install", "Content addressing, end to end") },
+  liberty: { summary: "On Liberty by John Stuart Mill, published as a self-verifying object — the whole book re-derives from its own content (Law L5).",
+    description: D("A text you read should be one you can prove is unaltered, with no server to trust.",
+      "The complete book is published as a content-addressed object graph; every chapter re-derives from its own bytes in the browser (Law L5).",
+      "The full text of On Liberty", "Self-verifying — re-derives from its content", "Reads offline and serverless", "A reference holospace for published works") },
+  meet: { summary: "Serverless, end-to-end-encrypted video conferencing.",
+    description: D("A video call shouldn't route your face and voice through someone else's server.",
+      "A full WebRTC mesh connects peers directly, with an adaptive quality ladder and on-device super-resolution.",
+      "Serverless, end-to-end-encrypted WebRTC mesh", "Adaptive quality up to 4K", "Screen share, chat, raise hand, recording", "On-device super-resolution") },
+  music: { summary: "A content-addressed music library — and the whole internet as one.",
+    description: D("Your music, and the world's, shouldn't be trapped behind a server you run.",
+      "A serverless library speaks the Subsonic API, and a federated search turns public sources into one catalog.",
+      "Serverless, content-addressed library (Subsonic API)", "Federated search across public sources", "Internet Archive, Radio Browser, SomaFM, podcasts", "Add any link") },
+  notepad: { summary: "Your second brain — a networked, private outliner and always-on memory bank.",
+    description: D("Notes are only as useful as the connections between them — and they should stay private.",
+      "A serverless, end-to-end-encrypted, content-addressed graph links every thought; bidirectional links and block references re-derive identically on every peer (Law L5).",
+      "An infinitely nestable bullet outliner", "[[wiki-links]] and block references, backlinked automatically", "End-to-end encrypted and content-addressed", "An always-on memory bank for humans and agents") },
+  os: { summary: "A real Debian GNU/Linux system, booted in a browser tab.",
+    description: D("A real Linux shell shouldn't need an install, a VM manager, or a server.",
+      "A genuine Debian userland boots on an emulated machine running entirely in the browser, with a filesystem that persists.",
+      "A real Debian rootfs — apt, bash, coreutils", "A persistent, writable filesystem", "No install, no server", "A genuine shell, not an emulation") },
+  plasma: { summary: "Your real KDE Plasma desktop, mounted live in a holospace over VNC.",
+    description: D("Your full desktop environment should be reachable from any browser, unmodified.",
+      "A standards VNC client (RFB, RFC 6143) mounts your genuine, running Plasma session live in a window — with zero reimplementation.",
+      "Your real, unmodified Plasma session", "Standards VNC/RFB transport (RFC 6143)", "Full desktop UX — windows, widgets, effects", "Rendered in a holospace window") },
+  player: { summary: "A content-addressed media library for your movies and shows.",
+    description: D("Your media library shouldn't need a media server running somewhere.",
+      "The content-addressed store is the library; it is scanned into a browsable catalog and played in the browser.",
+      "The content-addressed store is the library", "A browsable catalog with metadata", "Plays through Holo Video", "No media server") },
+  privacy: { summary: "Control what an AI agent may learn about you — minimum disclosure, for a stated purpose, never enough to track you.",
+    description: D("An agent acting for you needs some data — but should never become a surveillance channel.",
+      "Every disclosure is minimal, bound to a stated purpose, and issued as a signed, verifiable credential — you are the data subject.",
+      "Purpose-bound, minimal disclosures", "Signed and verifiable", "You control what each agent sees", "The agent-facing companion to Holo Terms") },
+  q: { summary: "A real AI that thinks entirely in your browser — no server, no cloud, no API key.",
+    description: D("An AI answer is normally something a server produced and you must trust; it should be something you can prove.",
+      "The whole model runs on your GPU from a content-addressed disk verified byte-for-byte, and every answer is a re-derivable inference receipt (Law L5).",
+      "A full language model, on-device", "No server ever sees your prompt", "The model is verified off the substrate", "Every inference is a reproducible receipt") },
+  qemu: { summary: "A full machine emulator — boot other architectures in your browser.",
+    description: D("Emulating real hardware shouldn't need a local install or a server.",
+      "QEMU runs as a content-addressed module over the host ABI, emulating whole machines instruction by instruction.",
+      "Full-system emulation of multiple architectures (arm, riscv, x86)", "Runs as a content-addressed module", "Watch a machine boot, instruction by instruction", "No install, no server") },
+  sdk: { summary: "A spatial, self-authoring desktop where every window, component and world is a verifiable object.",
+    description: D("A desktop should be something you can reshape and author, not a fixed surface.",
+      "An infinite canvas mounts each holospace as an isolated, capability-bounded window through the single-link launcher; every object is a self-verifying, content-addressed node.",
+      "An infinite canvas of draggable windows", "Each window is an isolated, capability-bounded holospace", "Author and reshape objects live", "Every object is a verifiable UOR node") },
+  search: { summary: "One search bar over the whole OS and the open web — every result verifiable.",
+    description: D("Search should rank by verifiable relevance, not by who pays, and answer without AI guesswork.",
+      "A full analysis chain and BM25 index search every holospace, spec and object, blended with a personal content-graph rank; every hit re-derives to its content address (Law L5).",
+      "Full-text search across the whole OS", "Conforms to the OpenSearch query DSL", "Ranked by HoloRank — a verifiable content-graph rank", "Every result re-derivable; the open web, with no AI") },
+  stream: { summary: "Live streaming, recording and a creator coin — composited in the browser.",
+    description: D("Going live and recording shouldn't depend on desktop software or a streaming host.",
+      "Compose a scene from your screen, windows, camera and mic, mix the audio, then record a content-addressed clip or broadcast over a serverless relay.",
+      "Scene composition — display, window, camera, mic", "Record a content-addressed clip", "Go live over a serverless relay", "A built-in creator coin") },
+  terms: { summary: "Your machine-readable personal terms (MyTerms / IEEE 7012): you propose, each app agrees, the OS enforces.",
+    description: D("You should set the terms of your own data — and have the OS enforce them, not merely display them.",
+      "You pick a standing term from a standard roster; each app must agree before the OS grants it any capability, and you can see and revoke every grant.",
+      "Propose your terms (MyTerms / IEEE 7012-2025)", "Apps must agree before they are granted anything", "See and revoke what each app holds", "Enforced by the OS, not advisory") },
+  video: { summary: "A content-addressed video player with adaptive streaming.",
+    description: D("Video you play should be verifiable and embeddable anywhere, with no server.",
+      "Adaptive HLS streams where every chunk is content-addressed and verified, nestable into any holospace.",
+      "Adaptive HLS, every chunk verified", "Nestable into any holospace", "Full transport and quality selector", "Serverless") },
+  wallet: { summary: "A self-custodial, multi-chain wallet — one seed, every chain, for humans and AI agents.",
+    description: D("Your keys and assets across every chain should be yours alone, and usable by the agents you trust.",
+      "One recovery phrase deterministically derives your accounts on every chain via standard hierarchical derivation (BIP-39 / BIP-44 / SLIP-0010), signed on-device.",
+      "One seed, every chain — self-custodial", "Standard derivation (BIP-39/44, SLIP-0010)", "A familiar, approachable wallet surface", "Content-addressed; usable by humans and AI agents") },
+  amp: { summary: "A classic skinnable audio player, content-addressed.",
+    description: D("A music player should be fun, personal and yours — skins and all.",
+      "The classic player runs in the browser with the genuine skin format and Web Audio playback; its skins are content-addressed.",
+      "A classic skinnable player interface", "Genuine .wsz skins (13 content-pinned)", "Spectrum analyzer and oscilloscope", "Full Web Audio playback") },
+  workspace: { summary: "A code editor with language servers and a real filesystem, in the browser.",
+    description: D("A real editing environment shouldn't require an install or a server.",
+      "A fast code-editor engine, Language Server Protocol support and a persistent filesystem let you open a folder, edit and run — everything content-addressed underneath.",
+      "A full code editor", "Language Server Protocol support", "A real, persistent filesystem", "Content-addressed and serverless") },
+};
+
+let n = 0; const missed = [];
+for (const [id, m] of Object.entries(M)) {
+  const j = join(APPS, id, "holospace.json");
+  if (!existsSync(j)) { missed.push(id); continue; }
+  const x = JSON.parse(readFileSync(j, "utf8"));
+  x.summary = m.summary;
+  x.description = m.description;
+  writeFileSync(j, JSON.stringify(x, null, 2) + "\n");
+  n++;
+}
+console.log(`✓ rewrote summary + why→how→what description for ${n} apps`);
+if (missed.length) console.log(`  (no manifest for: ${missed.join(", ")})`);

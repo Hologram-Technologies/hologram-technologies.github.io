@@ -1,0 +1,65 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "var",
+  "hosfs:fhs": "/var",
+  "hosfs:fhsRole": "variable data → mutable substrate state",
+  "hosfs:kind": "state",
+  "links": [
+    {
+      "id": "did:holo:sha256:7179ab6ccd292d085b644538507ca4c7a2a71339144654431556a33ab4203ce2",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-jZNCm+PoR66zrKZffTgKxhvEpRdD+/kr3MUIfX4YECg=",
+      "digestMultibase": "uEiCNk0Kb4-hHrrOspl99OArGG8SlF0P7-SvcxQh9fhgQKA"
+    },
+    {
+      "id": "did:holo:sha256:ca41990bb3f5a04c97f21b5011821190718ba46efb321dcced2f890c000abf83",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-ntRiGXb5+FYDkOpddeB+rBnQyvm2jG2xGIL2dyYZ25s=",
+      "digestMultibase": "uEiCe1GIZdvn4VgOQ6l114H6sGdDK-baMbbEYgvZ3Jhnbmw"
+    },
+    {
+      "id": "did:holo:sha256:7faec2f47babfbfb59434faad19db805db0d58162f3d5eb6a98941394baca03d",
+      "rel": "schema:hasPart",
+      "@type": [
+        "hosfs:Directory",
+        "dcat:Catalog",
+        "prov:Collection"
+      ],
+      "digestSRI": "sha256-DR79A6cy+RdGzKG6Ao1Qn0NMyNWlzk5kRXLScxX/8H4=",
+      "digestMultibase": "uEiANHv0DpzL5F0bMoboCjVCfQ0zI1aXOTmRFctJzFf_wfg"
+    }
+  ],
+  "id": "did:holo:sha256:e3ad46400dd2e741e564ebbf1dcc777356cecdb230a9c1eafe980586530eae5a"
+}

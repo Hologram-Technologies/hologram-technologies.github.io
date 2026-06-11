@@ -1,0 +1,32 @@
+{
+  "spec": "Every UOR object resolves on the shared substrate via DUAL AXIS — the same canonical content is addressed on BOTH the open-web sha256 σ-axis (its did:holo id) AND the hologram substrate's blake3 σ-axis (a did:holo:blake3 W3C alsoKnownAs alias). A content-addressed store/route keyed on either axis finds the bytes and re-derives them (Law L5). Additive + reversible: sha256 stays the identity, blake3 is gained — the corpus rides onto upstream addressing without a rewrite.",
+  "authority": "W3C DID Core (alsoKnownAs) · the hologram substrate blake3 σ-axis (address_bytes, byte-identical via holo-blake3 + holo-realization-parity witnesses) · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "dual-axis",
+    "also-known-as",
+    "substrate-resolution",
+    "blake3",
+    "sha256",
+    "reversible-migration",
+    "law-l5",
+    "upstream-interop"
+  ],
+  "advisory": "committed id did:holo:sha256:7ae20e3d9f… re-derives with our JCS",
+  "checks": {
+    "object carries a did:holo:sha256 identity": true,
+    "…and a did:holo:blake3 alsoKnownAs alias (W3C DID Core)": true,
+    "sha256 id = sha256(canonical content)": true,
+    "blake3 alias = blake3(the SAME canonical content) — substrate σ-axis parity": true,
+    "verifyDualAxis: BOTH axes re-derive from content (Law L5)": true,
+    "a tampered byte fails BOTH axes (Law L5)": true,
+    "the bare blake3 κ is the substrate's 71-byte ContentLabel": true,
+    "resolves by its sha256 κ": true,
+    "resolves by its blake3 κ — the substrate axis": true,
+    "both axes return byte-identical content": true,
+    "a REAL committed object (agent-card.json) has a well-formed substrate κ": true,
+    "the REAL object resolves on BOTH axes from one κ-store (no rewrite)": true
+  },
+  "passed": 12,
+  "failed": 0
+}

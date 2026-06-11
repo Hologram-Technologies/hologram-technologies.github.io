@@ -1,0 +1,58 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "the Holo Forge library registry is a self-verifying UOR object; every library re-derives to its κ (Law L5)",
+    "dependencies resolve by content address; a shared library links exactly once (Law L3 dedup); deps precede dependents",
+    "deterministic static linking → spec-valid WebAssembly that computes correctly ACROSS libraries (linked Law L5)",
+    "the linked build is a PROV-O receipt sealed to a did:holo, re-derivable from the registry with no server",
+    "supply-chain tamper refused: forging one byte of a DEPENDENCY changes the artifact κ — a forged dep cannot wear the honest address"
+  ],
+  "build": {
+    "registry": "did:holo:sha256:2d68b6b3fd1a41abf169e10bab211ab8440a273c4eead07bdd5629b5a561ecfe",
+    "selected": [
+      "prime",
+      "combo"
+    ],
+    "order": [
+      "math",
+      "combo",
+      "prime"
+    ],
+    "programKappa": "did:holo:sha256:0231c019b298dc79936f90e0f3670a00ffcb1379f826ee89881f1bce071542dc",
+    "artifactKappa": "did:holo:sha256:7b52b30de3d115e4fe64f69ea92c73ff68b3ab6c6a55d514d235d9d0d2900706",
+    "receipt": "did:holo:sha256:8b720c899657af85fd035d88f3c5d92df08c5e25bd76cd04c07e0dd16e4d6af0",
+    "wasmBytes": 609,
+    "exports": [
+      "abs",
+      "min",
+      "max",
+      "gcd",
+      "isqrt",
+      "ipow",
+      "factorial",
+      "choose",
+      "isPrime",
+      "nthPrime",
+      "primePick"
+    ]
+  },
+  "checks": {
+    "registry-verifies": true,
+    "libraries-rederive": true,
+    "transitive-resolution": true,
+    "dedup-shared-dep": true,
+    "deps-before-dependents": true,
+    "link-reproducible": true,
+    "wasm-valid": true,
+    "wasm-instantiates": true,
+    "linked-semantics-correct": true,
+    "receipt-verifies": true,
+    "tampered-dependency-refused": true,
+    "forged-lib-fails-rederivation": true,
+    "registry-rederives-to-pin": true,
+    "linked-artifact-rederives-to-pin": true
+  },
+  "failed": [],
+  "authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C SRI · W3C DID Core · W3C PROV-O · UOR-ADDR · Law L1/L3/L5"
+}

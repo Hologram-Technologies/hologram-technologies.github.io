@@ -1,0 +1,28 @@
+{
+  "spec": "OS2's content-addressing σ-axis is byte-identical to the hologram substrate — κ = blake3:<hex> = standard BLAKE3 of the canonical bytes (the convergence primitive that makes OS2 objects resolve on the shared substrate)",
+  "authority": "Official BLAKE3 test vectors (BLAKE3-team) · the hologram substrate's blake3 σ-axis (ADR-052; its kappa() reproduces these verbatim, cross-checked 20/20 lengths) · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "blake3",
+    "sigma-axis",
+    "kappa-parity",
+    "upstream-interop",
+    "uor-addr",
+    "law-l5"
+  ],
+  "vectors": 7,
+  "checks": {
+    "BLAKE3 vector len 0 re-derives to the substrate κ": true,
+    "BLAKE3 vector len 1 re-derives to the substrate κ": true,
+    "BLAKE3 vector len 64 re-derives to the substrate κ": true,
+    "BLAKE3 vector len 1024 re-derives to the substrate κ": true,
+    "BLAKE3 vector len 1025 re-derives to the substrate κ": true,
+    "BLAKE3 vector len 4096 re-derives to the substrate κ": true,
+    "BLAKE3 vector len 16385 re-derives to the substrate κ": true,
+    "BLAKE3('abc') == canonical 6437b3ac…": true,
+    "deterministic (equal bytes ⇒ equal κ)": true,
+    "single-bit sensitive": true
+  },
+  "passed": 10,
+  "failed": 0
+}

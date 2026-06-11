@@ -1,0 +1,29 @@
+{
+  "spec": "Holo UI is the single canonical UI source; --holo-font-min (ADR-0057) is the readability FLOOR. The canonical token layer clamps up to it and no first-party UI hardcodes sub-floor px text that bypasses it (verbatim SDDM/Plymouth reproductions exempt).",
+  "authority": "ADR-0030 (Holo UI façade) · ADR-0057 (minimum text size) · WCAG 2.2 readability · verify by static analysis of the served token layer + first-party chrome",
+  "witnessed": true,
+  "covers": [
+    "holo-ui",
+    "font-min",
+    "type-ramp",
+    "canonical-tokens",
+    "a11y",
+    "conformance"
+  ],
+  "floor": 16,
+  "contract": {
+    "holo-theme.css declares the @property --holo-font-min token": true,
+    "holo-theme.css floors the root font-size to --holo-font-min": true,
+    "holo-mobile.css floors --holo-text-sm to --holo-font-min": true,
+    "holo-mobile.css floors --holo-text to --holo-font-min": true,
+    "holo-mobile.css floors form controls to --holo-font-min": true
+  },
+  "contractOk": true,
+  "scanned": 107,
+  "fidelityExempt": [
+    "os/usr/lib/holo/holo-sddm.js",
+    "os/usr/share/frame/login.html",
+    "os/usr/share/frame/splash.html"
+  ],
+  "violations": []
+}

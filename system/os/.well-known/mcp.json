@@ -1,0 +1,183 @@
+{
+  "mcpVersion": "2024-11-05",
+  "server": {
+    "name": "hologram-os",
+    "version": "0.1.0",
+    "title": "Hologram OS"
+  },
+  "resources": [
+    {
+      "uri": "did:holo:sha256:3ff288d0c06a0fd22da898301cb6c8c11fc62e3b2b7ab58a53c7cb0cb385f00c",
+      "name": "Hologram OS Constitution",
+      "type": "odrl:Policy",
+      "description": "The immutable, self-verifying constitutional core of Hologram OS (ADR-033) — the perimeter every holospace and AI agent operates within. Machine-readable JSON-LD; re-derive its did:holo over the object's canonical content to verify it (Law L5, no server to trust). Human-readable text alongside it. Served at /etc/constitution/constitution.uor.json; human text at /etc/constitution/CONSTITUTION.md.",
+      "mimeType": "application/ld+json"
+    },
+    {
+      "uri": "holo://sample",
+      "name": "Sample UOR object",
+      "mimeType": "application/ld+json"
+    },
+    {
+      "uri": "apps/liberty/on-liberty.uor.json",
+      "name": "On Liberty (UOR Merkle-DAG)",
+      "mimeType": "application/ld+json"
+    },
+    {
+      "uri": "usr/share/sddm/greeter.uor.json",
+      "name": "Display manager greeter — real SDDM QML (self-verifying)",
+      "description": "The login greeter as a self-verifying UOR object: the verbatim upstream SDDM maldives/Main.qml run by Holo QML, linking by content address to the real theme + components/2.0 source. Resolve + re-derive to verify (Law L5).",
+      "mimeType": "application/ld+json"
+    },
+    {
+      "uri": "privacy/policies.json",
+      "name": "Holo Privacy disclosure policies (UOR)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "terms/roster.json",
+      "name": "Holo Terms roster (UOR)",
+      "mimeType": "application/json"
+    }
+  ],
+  "tools": [
+    {
+      "name": "verify_object",
+      "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5)."
+    },
+    {
+      "name": "resolve_object",
+      "description": "Resolve ANY reference to its self-verifying UOR object: a did:holo / holo:// resource from the store, OR an open-web identifier (DOI, ISBN, Wikidata Q-id, place, GitHub owner/repo, gbif:/chem: prefix, domain, @user@host) resolved live over open APIs (Holo Resolve, no AI). Re-derive its did to verify (Law L5)."
+    },
+    {
+      "name": "render_qml",
+      "description": "Parse + EXECUTE a QML document with Holo QML (the from-spec engine that runs the real upstream SDDM greeter in the browser — Qt 6 QML Reference semantics, no Qt runtime) and return its live component tree + signal wiring as a SELF-VERIFYING UOR object: re-derive its did (verify_object, Law L5); deterministic, so an agent recomputes the same κ. Lets an agent introspect any QML UI's structure + the API it wires, without a browser. Input: { qml }. The display manager's own greeter is also published as the resource usr/share/sddm/greeter.uor.json."
+    },
+    {
+      "name": "search_web",
+      "description": "Federated search across the open web (Wikipedia · Wikidata · Crossref · Open Library · OpenStreetMap) — one query, fused by Reciprocal Rank Fusion + reconciled to Wikidata, no AI. Each result is re-derivable via resolve_object."
+    },
+    {
+      "name": "answer",
+      "description": "A corroborated, conflict-aware answer composed DETERMINISTICALLY from the open web (no AI — it cannot hallucinate; it asserts only what verifiable sources agree on). Every fact traces to a source; disagreements are flagged, not merged. The query is governed by the constitution's perimeter."
+    },
+    {
+      "name": "ask_model",
+      "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client."
+    },
+    {
+      "name": "ask_user",
+      "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client."
+    },
+    {
+      "name": "list_roots",
+      "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client."
+    },
+    {
+      "name": "verify_batch",
+      "description": "Verify many UOR objects at once; reports progress and is cancellable."
+    },
+    {
+      "name": "holo_rank",
+      "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents."
+    },
+    {
+      "name": "holo_recommend",
+      "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus."
+    },
+    {
+      "name": "disclose_for_purpose",
+      "description": "Holo Privacy: obtain a W3C Verifiable Presentation that discloses ONLY the personal-data claims the user's standing policy authorizes for a given DPV purpose + recipient (IETF SD-JWT selective disclosure) — and can prove a fact (\"over 18\") without revealing the value behind it. Returns null when nothing is authorized (default-deny). Needs a connected wallet (the Holo Privacy app). Present the result to any tool that handles personal data."
+    },
+    {
+      "name": "verify_disclosure",
+      "description": "Holo Privacy: verify a W3C Verifiable Presentation — re-derive its content address (Law L5), verify the holder's data-integrity proof, recompute every disclosed SD-JWT digest, and (if the data commitment is given) confirm membership. Reports what was disclosed and how much (n of m). Don't trust a disclosure you didn't verify."
+    },
+    {
+      "name": "agent_facts",
+      "description": "NANDA AgentFacts for a Hologram OS holospace (ADR-034): a self-verifying agent description (identity · provider · endpoints · capabilities · skills) that is, on the same bytes, a valid NANDA AgentFacts record AND a did:holo you re-derive (Law L5) AND a W3C VC. Give a holospace slug (e.g. 'holowallet') or omit for the OS agent."
+    },
+    {
+      "name": "agent_reputation",
+      "description": "An agent's verifiable, tamper-evident REPUTATION (Holo AgentTrust, ADR-039): a content-addressed, append-only chain — one κ commits to the whole history. Returns a recomputed (not self-reported) summary: age, uptime, certifications, distinct issuers, freshly-minted + revocation signals, and the chain head κ you re-derive (verifyDeep, Law L5). Give a holospace slug."
+    },
+    {
+      "name": "verify_receipt",
+      "description": "Verify a multi-agent WORK RECEIPT (Holo Orchestrate, ADR-045): re-derive a content-addressed execution DAG and report — for an answer assembled by many agents — WHO acted (NANDA identity), HOW trustworthy (AgentTrust), UNDER WHAT AUTHORITY (UCAN delegation), that EVERY STEP passed the conscience gate (Constitution, ADR-033), and EXACTLY what they produced. Tamper any step and it refuses (Law L5). Give the receipt bundle as 'graph' (array of UOR objects); omit to verify a freshly-built demo."
+    },
+    {
+      "name": "verify_delegation",
+      "description": "Verify a capability DELEGATION chain (Holo Delegate, ADR-042 / UCAN): re-derive the chain and report whether agent B's authority is valid — principal alignment (you can only re-delegate what you were granted), attenuation (no privilege escalation), roots in the resource owner, not expired, not revoked. Give the chain as 'graph' + the resource owner 'sub'; omit for a demo."
+    },
+    {
+      "name": "verify_settlement",
+      "description": "Verify a SETTLEMENT and release payment against PROVEN work (Holo Settle, ADR-048 / x402-NP): re-derive the work receipt and release a voucher per contributing agent ONLY if it re-derives + every step was authorized + conscience-accepted. Tampered/unproven work releases nothing. Give the settlement bundle as 'graph'; omit for a demo."
+    },
+    {
+      "name": "agent_passport",
+      "description": "One-link agent onboarding: a single SELF-VERIFYING object bundling a holospace agent's identity (NANDA AgentFacts κ), reputation (AgentTrust head κ + summary), skills, and every agent door (MCP · NANDA · A2A · Skills). Re-derive its did:holo to verify the whole bundle (Law L5). Give a holospace slug."
+    },
+    {
+      "name": "browser_open",
+      "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ)."
+    },
+    {
+      "name": "browser_fetch",
+      "description": "Fetch a URL through Holo Browser's loading seam and return its content address (κ / did:holo) plus content-type and size, re-derived (Law L5) — the bytes are content-addressed substrate, not a trusted response."
+    },
+    {
+      "name": "read_liberty",
+      "description": "Return a self-verifying chapter of On Liberty as a UOR object the agent can re-derive (Law L5). Args: chapter (0=Introduction, 1..5 = the chapters) or find (a phrase; returns the chapter containing it). With no args, returns the book root object."
+    },
+    {
+      "name": "standing_term",
+      "description": "Return the user's current standing term (the relationship agreement they propose to every app) as a content-addressed roster object."
+    },
+    {
+      "name": "agreement_for",
+      "description": "Return the signed agreement record for an app (the granted capabilities under the user's terms), or null. Args: appId."
+    },
+    {
+      "name": "wallet_list_chains",
+      "description": "List the blockchains Holo Wallet supports and your address on each (BIP-44 / SLIP-0010 derived; re-derivable by the agent — Law L5). Implemented by mcp/holo-wallet-mcp.mjs."
+    },
+    {
+      "name": "wallet_get_address",
+      "description": "The wallet address for a chain (e.g. 'ethereum','bitcoin','solana'). Deterministic from the seed; verify by re-derivation (Law L5)."
+    },
+    {
+      "name": "wallet_get_balance",
+      "description": "The native-token balance for a chain (reads live from public RPC/Esplora)."
+    },
+    {
+      "name": "wallet_get_portfolio",
+      "description": "Addresses and native balances across every supported chain."
+    },
+    {
+      "name": "wallet_quote",
+      "description": "Quote the cost of a send (fee estimate). Does NOT sign or broadcast anything."
+    },
+    {
+      "name": "wallet_sign_message",
+      "description": "Sign a message with the wallet key for a chain. GATED: requires explicit human approval (default-deny)."
+    },
+    {
+      "name": "wallet_send",
+      "description": "Send / transfer value. GATED: signs and broadcasts ONLY after explicit human approval (default-deny). Quote first with wallet_quote."
+    }
+  ],
+  "prompts": [
+    {
+      "name": "verify_object",
+      "description": "Verify a UOR object by re-deriving its did (Law L5)."
+    },
+    {
+      "name": "conformance_brief",
+      "description": "Explain Hologram OS's content-addressed, self-verifying model to an agent."
+    }
+  ],
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "launch": "npx hologram-mcp",
+  "note": "Static discovery document. Run `npx hologram-mcp` (stdio) or `--http` for a live MCP endpoint; resources are self-verifying UOR objects."
+}

@@ -1,0 +1,1268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Holo Splash — Hologram OS</title>
+    <meta name="description" content="Holo Splash — the hologram-native Plymouth: real .plymouth themes (script · two-step · text · details), a faithful Plymouth-script interpreter, boot progress, messages and password prompts — content-addressed and κ-verified, running entirely in the browser. No server." />
+    <!-- The mobile conformance layer every shipped holospace adopts (the enforce-witnesses gate). -->
+    <link rel="stylesheet" href="_shared/holo-mobile.css" />
+    <link rel="stylesheet" href="_shared/holo-phi.css" />
+    <style>
+      :root {
+        color-scheme: dark; --bg: var(--holo-bg); --dim: var(--holo-ink-dim);
+        /* Golden-ratio scale (φ = 1.618) — one harmonic spacing/size system for the gallery. */
+        /* golden-ratio proportion: canonical --holo-phi / --holo-size-* from _shared/holo-phi.css (ADR-028) */
+        --card: 13.6rem;            /* φ-derived card min width; the grid reflows from this */
+        --sheet: 61.8rem;           /* φ-proportioned sheet max width */
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: var(--holo-ink); display: flex; flex-direction: column;
+        font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+      /* Thin holospace chrome — identity · κ-address · Law-L5 · mode · theme — the
+         same vocabulary as os.html / winamp.html / boot.html (ADR-026). */
+      #bar { flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; position: relative; z-index: 30;
+        padding: 0.3rem 0.8rem; background: var(--holo-surface); border-bottom: 1px solid var(--holo-border);
+        font: 12px ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; user-select: none; flex-wrap: wrap; }
+      #bar .name { color: var(--holo-ink); font-weight: 600; letter-spacing: 0.02em; }
+      #bar .tag { color: var(--dim); }
+      #bar .k { color: var(--holo-accent); word-break: break-all; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #bar .ver { color: var(--dim); } #bar .ver.ok { color: var(--holo-ok); } #bar .ver.bad { color: var(--holo-danger); }
+      #bar .sp { margin-left: auto; }
+      #bar .stat { color: var(--dim); font-variant-numeric: tabular-nums; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #bar .dot { color: var(--holo-warn); } #bar .dot.on { color: var(--holo-ok); } #bar .dot.off { color: var(--holo-danger); }
+      #bar button, #bar select { font: inherit; color: var(--dim); background: var(--holo-surface); border: 1px solid var(--holo-border);
+        border-radius: 5px; padding: 0.15rem 0.5rem; cursor: pointer; }
+      #bar button:hover, #bar select:hover { color: var(--holo-ink); border-color: var(--holo-border); }
+
+      /* The stage holds three independent layers: the BACKGROUND (a render-time choice —
+         Immersive shows the theme's own backdrop + the wave field; Dark / Light are clean solid
+         fills), the centre ANIMATION (#screen / its GPU present, sizeable via --center-scale), and
+         the wave field. Background and centre scale independently, so resizing the centre animation
+         never disturbs the backdrop, and a clean fill leaves no seam. */
+      #stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: var(--holo-bg); }
+      body.bg-dark #stage { background: #000000; }
+      body.bg-light #stage { background: #f0eee8; }
+      #screen, #gpuScreen { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+        transform: scale(var(--center-scale, 1)); transform-origin: center center; transition: transform .14s ease; }
+      /* WebGPU present canvas sits over #screen while presenting (#screen keeps rendering as
+         its source); hidden otherwise. */
+      #gpuScreen { display: none; z-index: 2; }
+      body.gpu-on #gpuScreen { display: block; }
+      body.gpu-on #screen { visibility: hidden; }   /* the GPU canvas is the visible present */
+      /* The soulbis wave field — the living holographic backdrop, the "existing background image"
+         of Immersive mode: a glowing dual-lattice manifold + constellation whose focal orb is the
+         centred boot logo. Hidden in the clean Dark / Light modes; never scaled by --center-scale
+         (it is backdrop, not the centre animation). Sits above #screen and #gpuScreen. */
+      #field { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 3;
+        pointer-events: none; mix-blend-mode: screen; opacity: 0.92; }
+      /* the field is shown only as the Immersive backdrop of a built-in theme (see applyBackground) */
+      body.field-off #field { display: none; }
+      #hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        color: #2b3640; font: 600 14px ui-monospace, monospace; pointer-events: none; transition: opacity .4s; }
+      #hint.gone { opacity: 0; }
+      #pw { position: absolute; opacity: 0; pointer-events: none; left: -9999px; }
+
+      /* The "plymouth client" dock — the boot commands made tangible (show/hide,
+         update --status, message, ask-for-password, change-mode, system-update). */
+      #dock { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem 0.55rem;
+        padding: 0.4rem 0.7rem calc(0.4rem + env(safe-area-inset-bottom, 0px)); background: var(--holo-surface); border-top: 1px solid var(--holo-border);
+        font: 12px ui-monospace, monospace; }
+      #dock .grp { display: flex; align-items: center; gap: 0.35rem; }
+      #dock .lbl { color: var(--dim); }
+      #dock button, #dock select, #dock input[type="range"], #dock input[type="number"] { font: inherit; color: #c9d4de; background: var(--holo-surface-2);
+        border: 1px solid #283039; border-radius: 6px; padding: 0.25rem 0.55rem; cursor: pointer; }
+      #dock button:hover { border-color: var(--holo-ok); color: var(--holo-ink); }
+      #dock input[type="range"] { width: 120px; padding: 0; }
+      #dock .spacer { flex: 1 1 auto; }
+      /* the background segmented control — Dark · Light · Immersive */
+      #dock .seg { display: inline-flex; border: 1px solid #283039; border-radius: 6px; overflow: hidden; }
+      #dock .seg button { border: 0; border-right: 1px solid #283039; border-radius: 0; padding: 0.3rem 0.9rem; background: var(--holo-surface-2); color: var(--dim); }
+      #dock .seg button:last-child { border-right: 0; }
+      #dock .seg button:hover { color: var(--holo-ink); }
+      #dock .seg button.on { background: var(--holo-accent); color: var(--holo-bg); font-weight: 600; }
+      #dock #sizeRange { width: 220px; }
+      #dock #sizeVal { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--holo-ink); }
+      #dock #durNum { width: 3.4em; text-align: right; cursor: text; color: var(--holo-ink); font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+      #dock #durNum::-webkit-inner-spin-button, #dock #durNum::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      #dock .gap { width: 1.4rem; }
+      /* the loading bar — the single, canonical boot-progress readout under the centre animation,
+         shown in BOTH the studio and a real handoff (the theme's own bar is suppressed so there is
+         never a double bar). Precise + linear; adapts to the background (white on Dark/Immersive,
+         ink on Light). */
+      #loadbar { position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%); z-index: 4;
+        width: min(440px, 52%); display: flex; flex-direction: column; align-items: center; gap: 0.55rem;
+        pointer-events: none; --lb: rgba(255,255,255,.92); --lb-track: rgba(255,255,255,.13); }
+      body.bg-light #loadbar { --lb: rgba(10,10,15,.86); --lb-track: rgba(10,10,15,.12); }
+      #loadbarTrack { width: 100%; height: 2px; border-radius: 2px; background: var(--lb-track); overflow: hidden; }
+      #loadbarFill { height: 100%; width: 0%; background: var(--lb); border-radius: 2px; }
+      body.bg-dark #loadbarFill, body.bg-immersive #loadbarFill { box-shadow: 0 0 10px rgba(255,255,255,.45); }
+      #loadbarMeta { font: 600 11px ui-monospace, monospace; letter-spacing: .14em; color: var(--dim); font-variant-numeric: tabular-nums; }
+      /* During a real boot handoff (Holo Boot → splash → OS) the plymouth client dock is
+         hidden for an authentic full-screen splash; a hint to skip is shown instead. */
+      body.handoff #dock { display: none; }
+      body.handoff #skip { display: block; }
+      body.handoff #impBtn { display: none; }   /* a boot splash is not interactive */
+      body.handoff #bar { display: none; }       /* hide the dev chrome → a clean, full-screen boot splash */
+      #skip kbd { display: inline-block; border: 1px solid #3a4570; border-radius: 4px; padding: 1px 7px; color: #cdd6ff; background: rgba(139,92,246,.14); margin: 0 2px; }
+      #skip { display: none; position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
+        color: #46525c; font: 12px ui-monospace, monospace; pointer-events: none; }
+      @media (max-width: 640px) {
+        #bar .k { max-width: 60vw; } #bar .stat { order: 9; flex-basis: 100%; max-width: 96vw; }
+        #bar button, #bar select, #dock button, #dock select { min-height: 44px; }
+      }
+      #toast { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); background: var(--holo-surface-2);
+        border: 1px solid var(--holo-border); border-radius: 8px; padding: 0.45rem 0.8rem; font-size: 12px; opacity: 0;
+        transition: opacity 0.2s; z-index: 40; pointer-events: none; }
+      #toast.show { opacity: 1; }
+
+      /* ── Import gallery — browse adi1090x/plymouth-themes, tap to preview, Keep to save.
+         Golden-ratio proportions throughout; every colour is a Holo Theme token so the
+         whole surface re-themes live. Fully responsive: the grid reflows from --card. ── */
+      #imp { position: absolute; inset: 0; z-index: 50; display: none; }
+      #imp.open { display: block; }
+      .imp-scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--holo-bg) 78%, transparent);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+      .imp-sheet { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        width: min(96vw, var(--sheet)); height: min(90vh, 51rem); display: flex; flex-direction: column;
+        background: var(--holo-surface); border: 1px solid var(--holo-border); border-radius: var(--holo-size-m);
+        box-shadow: 0 1.618rem 4.236rem rgba(0,0,0,0.55); overflow: hidden; transition: opacity .22s, transform .22s; }
+      /* previewing: retract the sheet so the live splash behind shows through; keep the action bar. */
+      #imp.previewing .imp-scrim { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; pointer-events: none; }
+      #imp.previewing .imp-sheet { opacity: 0; transform: translate(-50%, -42%) scale(0.985); pointer-events: none; }
+
+      .imp-head { flex: 0 0 auto; display: flex; align-items: center; gap: var(--holo-size-s); flex-wrap: wrap;
+        padding: var(--holo-size-s) var(--holo-size-m); border-bottom: 1px solid var(--holo-border); }
+      .imp-title { font: 600 1.05rem ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--holo-ink);
+        letter-spacing: 0.01em; display: flex; align-items: baseline; gap: var(--holo-size-xs); }
+      .imp-title .src { font: 11px ui-monospace, monospace; color: var(--dim); }
+      .imp-search { flex: 1 1 14rem; min-width: 8rem; font: 13px ui-sans-serif, system-ui, sans-serif; color: var(--holo-ink);
+        background: var(--holo-surface-2); border: 1px solid var(--holo-border); border-radius: var(--holo-size-m);
+        padding: var(--holo-size-xs) var(--holo-size-s); outline: none; }
+      .imp-search:focus { border-color: var(--holo-accent); }
+      .imp-x { font: 16px ui-monospace, monospace; color: var(--dim); background: transparent; border: 1px solid var(--holo-border);
+        border-radius: 50%; width: 2rem; height: 2rem; line-height: 1; cursor: pointer; }
+      .imp-x:hover { color: var(--holo-ink); border-color: var(--holo-accent); }
+
+      .imp-chips { flex: 0 0 auto; display: flex; gap: var(--holo-size-xs); flex-wrap: wrap; padding: var(--holo-size-xs) var(--holo-size-m); }
+      .imp-chip { font: 12px ui-monospace, monospace; color: var(--dim); background: var(--holo-surface-2);
+        border: 1px solid var(--holo-border); border-radius: var(--holo-size-m); padding: var(--holo-size-2xs) var(--holo-size-s); cursor: pointer; }
+      .imp-chip.on { color: var(--holo-bg); background: var(--holo-accent); border-color: var(--holo-accent); }
+
+      .imp-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--holo-size-s) var(--holo-size-m) var(--holo-size-l);
+        display: grid; gap: var(--holo-size-s); align-content: start;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--card)), 1fr)); }
+      .imp-empty { padding: var(--holo-size-xl) var(--holo-size-m); text-align: center; color: var(--dim);
+        font: 13px ui-monospace, monospace; grid-column: 1 / -1; }
+
+      /* A card: a φ-aspect panel — name + a faint hologram motif + a meta footer. */
+      .card { position: relative; aspect-ratio: var(--holo-phi); display: flex; flex-direction: column; justify-content: space-between;
+        padding: var(--holo-size-s); border: 1px solid var(--holo-border); border-radius: var(--holo-size-s); cursor: pointer; overflow: hidden;
+        background:
+          radial-gradient(120% 120% at 82% 12%, color-mix(in srgb, var(--holo-accent) 16%, transparent), transparent 60%),
+          linear-gradient(155deg, var(--holo-surface-2), var(--holo-surface));
+        transition: transform .14s, border-color .14s, box-shadow .14s; }
+      .card:hover, .card:focus-visible { transform: translateY(-2px); border-color: var(--holo-accent);
+        box-shadow: 0 0.618rem 1.618rem rgba(0,0,0,0.4); outline: none; }
+      /* live theme preview: a rendered still of the theme fills the card, with a legibility
+         veil (built from --holo-bg so it adapts to the theme) so the labels stay readable. */
+      .card .thumb { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0;
+        opacity: 0; transition: opacity .35s; pointer-events: none; }
+      .card.has-thumb .thumb { opacity: 1; }
+      .card .veil { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .35s;
+        background: linear-gradient(to bottom, color-mix(in srgb, var(--holo-bg) 66%, transparent), transparent 26%, transparent 72%, color-mix(in srgb, var(--holo-bg) 80%, transparent)); }
+      .card.has-thumb .veil { opacity: 1; }
+      .card .ring { position: absolute; right: -1.2rem; top: -1.2rem; width: 5.2rem; height: 5.2rem; border-radius: 50%;
+        border: 1px solid color-mix(in srgb, var(--holo-accent) 38%, transparent); opacity: 0.5; transition: opacity .35s; }
+      .card .ring.b { right: -0.2rem; top: -0.2rem; width: 3.2rem; height: 3.2rem; border-style: dashed; }
+      .card.has-thumb .ring { opacity: 0; }
+      .card .nm { position: relative; z-index: 2; font: 600 clamp(0.95rem, 2.2vw, 1.2rem) ui-sans-serif, system-ui, sans-serif;
+        color: var(--holo-ink); line-height: 1.15; word-break: break-word; text-transform: capitalize; text-shadow: 0 1px 3px color-mix(in srgb, var(--holo-bg) 80%, transparent); }
+      .card .meta { position: relative; z-index: 2; display: flex; align-items: center; gap: var(--holo-size-xs); flex-wrap: wrap;
+        font: 11px ui-monospace, monospace; color: var(--dim); }
+      .card .pack { color: var(--holo-bg); background: var(--holo-accent); border-radius: var(--holo-size-m); padding: 0 var(--holo-size-xs); }
+      .card .kept { color: var(--holo-ok); border: 1px solid color-mix(in srgb, var(--holo-ok) 40%, transparent);
+        border-radius: var(--holo-size-m); padding: 0 var(--holo-size-xs); }
+      .card .trash { margin-left: auto; color: var(--dim); background: transparent; border: 0; cursor: pointer; font-size: 13px; }
+      .card .trash:hover { color: var(--holo-danger); }
+      .card.busy { pointer-events: none; }
+      .card .prog { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--holo-accent); width: 0; transition: width .12s; }
+
+      /* The preview console — a clean, golden-ratio-spaced two-row panel: identity + actions
+         on top, the cinema transport · frequency spectrum · present telemetry below. */
+      .imp-action { position: absolute; left: 50%; bottom: calc(var(--holo-size-m) + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+        z-index: 55; display: none; flex-direction: column; gap: var(--holo-size-s); width: min(94vw, 44rem);
+        padding: var(--holo-size-s) var(--holo-size-m); background: var(--holo-surface); border: 1px solid var(--holo-border);
+        border-radius: var(--holo-size-m); box-shadow: 0 var(--holo-size-xs) var(--holo-size-l) rgba(0,0,0,0.5); font: 12px ui-monospace, monospace; }
+      #imp.previewing .imp-action { display: flex; }
+      .imp-action button { font: inherit; border-radius: var(--holo-size-xs); padding: 0 var(--holo-size-s); cursor: pointer; height: var(--holo-size-l);
+        border: 1px solid var(--holo-border); background: var(--holo-surface-2); color: var(--holo-ink); line-height: 1; white-space: nowrap; }
+      .imp-action button:hover { border-color: var(--holo-accent); }
+      .imp-action .keep { background: var(--holo-accent); border-color: var(--holo-accent); color: var(--holo-bg); font-weight: 600; }
+      .imp-action .ghost { background: transparent; color: var(--dim); } .imp-action .ghost:hover { color: var(--holo-ink); }
+      .imp-action button.on { border-color: var(--holo-accent); color: var(--holo-accent); }
+
+      /* row 1 — identity (truncating) + actions */
+      .a-top { display: flex; align-items: center; gap: var(--holo-size-s); }
+      .a-info { display: flex; align-items: baseline; gap: var(--holo-size-xs); min-width: 0; flex: 1 1 auto; overflow: hidden; }
+      .a-info .a-nm { color: var(--holo-ink); font-weight: 600; text-transform: capitalize; flex: 0 0 auto; }
+      .a-info .a-k { color: var(--holo-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+      .a-info .a-v { color: var(--holo-ok); flex: 0 0 auto; } .a-info .a-v.bad { color: var(--holo-danger); }
+      .a-acts { display: flex; align-items: center; gap: var(--holo-size-xs); flex: 0 0 auto; }
+
+      /* row 2 — cinema transport · frequency spectrum · present telemetry */
+      .cine { display: flex; align-items: center; gap: var(--holo-size-s); flex-wrap: nowrap; padding-top: var(--holo-size-s); border-top: 1px solid var(--holo-border); }
+      .transport { display: inline-flex; border: 1px solid var(--holo-border); border-radius: var(--holo-size-xs); overflow: hidden; }
+      .transport .step { border: 0; border-radius: 0; height: var(--holo-size-l); padding: 0 var(--holo-size-s); }
+      .transport .step + .step { border-left: 1px solid var(--holo-border); }
+      .cine .lbl { color: var(--dim); }
+      /* the frequency control IS a spectrum: a slow→fast band (warm → violet, like a spectrum). */
+      .cine input#cSpeed { -webkit-appearance: none; appearance: none; width: 10.5rem; height: var(--holo-size-xs); border-radius: var(--holo-size-m); outline: none; cursor: pointer;
+        background: linear-gradient(90deg, #444 0 4%, hsl(28 90% 55%) 16%, hsl(52 92% 55%) 34%, hsl(140 78% 50%) 54%, hsl(196 92% 56%) 74%, hsl(280 92% 62%) 100%); }
+      .cine input#cSpeed::-webkit-slider-thumb { -webkit-appearance: none; width: 1rem; height: 1rem; border-radius: 50%; background: var(--holo-ink); border: 2px solid var(--holo-accent); box-shadow: 0 0 6px color-mix(in srgb, var(--holo-accent) 60%, transparent); }
+      .cine input#cSpeed::-moz-range-thumb { width: 1rem; height: 1rem; border-radius: 50%; background: var(--holo-ink); border: 2px solid var(--holo-accent); }
+      .cine .spd { color: var(--holo-ink); font-variant-numeric: tabular-nums; min-width: 3.4rem; font-weight: 600; }
+      .cine .hud { margin-left: auto; color: var(--dim); font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .cine .hud .gpu { color: var(--holo-ok); } .cine .hud .lut { color: var(--holo-accent); } .cine .hud .soft { color: var(--holo-warn); }
+
+      /* Boot-splash preferences panel (default + per-instance). */
+      .imp-boot { flex: 0 0 auto; border-top: 1px solid var(--holo-border); padding: var(--holo-size-xs) var(--holo-size-m);
+        display: none; gap: var(--holo-size-xs); flex-direction: column; max-height: 38%; overflow-y: auto; }
+      #imp.show-boot .imp-boot { display: flex; }
+      .imp-boot .bt-row { display: flex; align-items: center; gap: var(--holo-size-s); font: 12px ui-monospace, monospace; color: var(--dim); }
+      .imp-boot .bt-row .lbl { flex: 0 0 9rem; color: var(--holo-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .imp-boot select { flex: 1 1 auto; font: inherit; color: var(--holo-ink); background: var(--holo-surface-2);
+        border: 1px solid var(--holo-border); border-radius: var(--holo-size-xs); padding: var(--holo-size-2xs) var(--holo-size-xs); min-height: 34px; }
+
+      @media (max-width: 640px) {
+        .imp-sheet { width: 100vw; height: 100dvh; top: 0; left: 0; transform: none; border-radius: 0; border: 0; }
+        #imp.previewing .imp-sheet { transform: translateY(8%); }
+        .imp-action { width: 96vw; }
+        .a-top, .cine { flex-wrap: wrap; }                 /* stack on phones */
+        .a-info { flex-basis: 100%; }
+        .cine .hud { flex-basis: 100%; margin-left: 0; text-align: right; }
+        .imp-head, .imp-chips, .imp-grid, .imp-boot { padding-left: var(--holo-size-s); padding-right: var(--holo-size-s); }
+        .imp-action button, .imp-chip, .imp-x { min-height: 44px; }
+      }
+    </style>
+  </head>
+  <body data-no-teleport>
+    <div id="bar">
+      <span class="name">Holo Splash</span>
+      <span class="tag">· holospace</span>
+      <span class="k" id="kaddr" title="content address of the active Plymouth theme">holo://local</span>
+      <span class="ver" id="ver" title="Law L5: every theme byte (the .plymouth, the .script, every PNG) re-derives to its κ"></span>
+      <span class="sp"></span>
+      <span class="stat" id="now" title="boot status"></span>
+      <span class="dot" id="dot">●</span>
+      <span class="tag" id="state">idle</span>
+      <select id="themeSel" title="Plymouth theme — the original .plymouth format; κ-verified on load"></select>
+      <button id="impBtn" title="import a community theme from adi1090x/plymouth-themes">✦ Import</button>
+      <button id="replayBtn" title="replay boot (r)">⟳ replay</button>
+      <button id="fsBtn" title="fullscreen (f)">⛶ fullscreen</button>
+    </div>
+
+    <div id="stage">
+      <canvas id="screen"></canvas>
+      <!-- the hologram-native WebGPU present layer (Lanczos super-resolution + the O(1)
+           content-addressed LUT grade); shown over #screen while presenting, else hidden. -->
+      <canvas id="gpuScreen" aria-hidden="true"></canvas>
+      <!-- the soulbis wave field — living holographic backdrop over the boot theme -->
+      <canvas id="field" aria-hidden="true"></canvas>
+      <input id="pw" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-hidden="true" />
+      <div id="hint">starting plymouthd…</div>
+      <div id="skip">press any key to continue…</div>
+      <!-- the studio loading bar — a precise, linear boot-progress readout under the centre
+           animation, driven each frame from eng.progress over the editable Boot-time. Hidden in a
+           real handoff, where the active theme paints its own bar. -->
+      <div id="loadbar" aria-hidden="true">
+        <div id="loadbarTrack"><div id="loadbarFill"></div></div>
+        <div id="loadbarMeta"><span id="loadbarPct">0%</span></div>
+      </div>
+    </div>
+
+    <!-- the splash controls — background mode + centre-animation size, the whole studio in one row -->
+    <div id="dock">
+      <span class="lbl">Background</span>
+      <div class="seg" id="bgSeg" role="radiogroup" aria-label="Background mode">
+        <button type="button" data-bg="dark" role="radio" title="clean solid dark background">Dark</button>
+        <button type="button" data-bg="light" role="radio" title="clean solid light background">Light</button>
+        <button type="button" data-bg="immersive" role="radio" title="the theme backdrop + the living wave field">Immersive</button>
+      </div>
+      <span class="spacer"></span>
+      <span class="lbl">Boot time</span>
+      <input id="durNum" type="number" min="2" max="60" step="0.5" value="12" aria-label="Boot time in seconds" title="how long the loading bar takes to fill" />
+      <span class="lbl">s</span>
+      <span class="gap"></span>
+      <span class="lbl">Center size</span>
+      <input id="sizeRange" type="range" min="50" max="200" value="100" step="1" aria-label="Centre animation size" title="size of the centre animation" />
+      <span class="lbl" id="sizeVal">100%</span>
+    </div>
+
+    <div id="toast"></div>
+
+    <!-- Import gallery: browse adi1090x/plymouth-themes live, tap a card to preview it
+         running in the splash, Keep to content-address + persist, or set it as a boot splash. -->
+    <div id="imp">
+      <div class="imp-scrim" id="impScrim"></div>
+      <div class="imp-sheet">
+        <div class="imp-head">
+          <div class="imp-title">✦ Import a boot splash <span class="src">adi1090x · plymouth-themes</span></div>
+          <input class="imp-search" id="impSearch" type="search" placeholder="Search themes…" autocomplete="off" />
+          <button class="imp-x" id="impBoot" title="boot-splash preferences">⚙</button>
+          <button class="imp-x" id="impClose" title="close (Esc)">✕</button>
+        </div>
+        <div class="imp-chips" id="impChips"></div>
+        <div class="imp-grid" id="impGrid"></div>
+        <div class="imp-boot" id="impBootPanel"></div>
+      </div>
+      <div class="imp-action">
+        <div class="a-top">
+          <div class="a-info">
+            <span class="a-nm" id="aName"></span>
+            <span class="a-k" id="aK" title="content address of this theme"></span>
+            <span class="a-v" id="aVer" title="Law L5 — every theme byte re-derives to its κ"></span>
+          </div>
+          <div class="a-acts">
+            <button class="keep" id="aKeep">Keep</button>
+            <button id="aBoot">Set as boot splash</button>
+            <button class="ghost" id="aDiscard">Discard</button>
+          </div>
+        </div>
+        <div class="cine">
+          <div class="transport">
+            <button class="step" id="cStepB" title="restart from the first frame">⏮</button>
+            <button class="step" id="cPlay" title="play / pause (space)">⏸</button>
+            <button class="step" id="cStepF" title="step forward one frame">⏭</button>
+          </div>
+          <span class="lbl">freq</span>
+          <input id="cSpeed" type="range" min="-2" max="4" step="0.01" value="0" title="animation frequency spectrum — 0 (frozen) → very high; the band maps slow → fast" />
+          <span class="spd" id="cSpeedV">1.00×</span>
+          <button class="ghost" id="cFx" title="holographic FX — chromatic aberration · bloom · scanlines · grain">✦ FX</button>
+          <span class="hud" id="cHud"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share affordance + #k= provenance + Law-L5 stamp (repo-standard). -->
+    <script src="_shared/teleport.js" defer></script>
+    <!-- hologram-native WebGPU present layer (window.HoloGPU); degrades to null with no WebGPU. -->
+    <script src="_shared/holo-gpu.js" defer></script>
+    <script type="module">
+      import { parsePlymouth, CanvasBackend, HeadlessBackend, makePlugin, Engine, MODES } from "./_shared/holo-plymouth.js";
+      import { loadCatalog, fetchTheme, rawUrl } from "./_shared/holo-splash-import.js";
+      import { createSoulbisField } from "./_shared/holo-soulbis-field.js";
+
+      const $ = (id) => document.getElementById(id);
+      const params = new URLSearchParams(location.search);
+      const bool = (v, d) => (v == null ? d : v !== "0" && v !== "false");
+
+      let toastT;
+      const toast = (m) => { const el = $("toast"); el.textContent = m; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), 1800); };
+      const setState = (t, cls) => { $("state").textContent = t; $("dot").className = "dot" + (cls ? " " + cls : ""); };
+      const showKaddr = (k) => { $("kaddr").textContent = k ? (k.startsWith("holo://") ? k : "holo://" + k) : "holo://local"; };
+
+      // ── Law L5: pins are sha256 (splash-manifest.json), so re-derive sha256 directly. ──
+      async function sha256(u8) { const d = await crypto.subtle.digest("SHA-256", u8); return "sha256:" + Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join(""); }
+      let MANIFEST = { files: {} };
+      const ver = { ok: null, total: 0, bad: 0 };
+      function renderVer() {
+        if (ver.ok === null) { $("ver").textContent = ""; $("ver").className = "ver"; return; }
+        $("ver").textContent = ver.ok ? `✓ κ verified (${ver.total})` : "✗ κ mismatch — refused";
+        $("ver").className = "ver " + (ver.ok ? "ok" : "bad");
+        $("ver").title = `Law L5 · ${ver.total - ver.bad}/${ver.total} theme bytes re-derive to their κ`;
+      }
+      // fetch bytes and verify against the manifest pin for `rel`; throws on mismatch.
+      async function fetchVerified(rel) {
+        const buf = new Uint8Array(await (await fetch(rel, { cache: "no-store" })).arrayBuffer());
+        const want = MANIFEST.files[rel];
+        if (want) { ver.total++; const got = await sha256(buf); if (got !== want) { ver.bad++; throw new Error("κ mismatch: " + rel); } }
+        return buf;
+      }
+
+      // ── imported themes: content-addressed, persisted in OPFS, self-certifying (Law L5) ──
+      // Each imported theme's identity is its own κ (sha256 of its bytes). On load we
+      // re-derive every file's sha256 and refuse a mismatch — no central manifest needed.
+      const IMPORTED = new Map();   // id → index entry { id,name,module,pack,kappa,files:[{path,sha256,size}] }
+
+      // GitHub transport: direct fetch (CORS + COEP=credentialless allow it), and on any
+      // failure (offline/blocked) auto-fall-back to holo-serve's host-whitelisted /gh pipe.
+      // Nothing is trusted — every byte is κ-re-derived client-side regardless of route.
+      const GH = {
+        async _get(url) {
+          try { const r = await fetch(url, { cache: "no-store" }); if (r.ok) return r; throw new Error("HTTP " + r.status); }
+          catch (e) { const r = await fetch("/gh?url=" + encodeURIComponent(url), { cache: "no-store" }); if (!r.ok) throw new Error("fetch failed: " + url); return r; }
+        },
+        async json(url) { return (await this._get(url)).json(); },
+        async bytes(url) { return new Uint8Array(await (await this._get(url)).arrayBuffer()); },
+      };
+
+      // OPFS store under splash-import/ : index.json + <κ>/<path> bytes.
+      async function impRoot(create = false) { return (await navigator.storage.getDirectory()).getDirectoryHandle("splash-import", { create }); }
+      const kdir = (k) => k.replace(/[^a-z0-9]/gi, "_");
+      async function readIndex() {
+        try { const d = await impRoot(false); const fh = await d.getFileHandle("index.json"); const j = JSON.parse(await (await fh.getFile()).text()); return Array.isArray(j.themes) ? j.themes : []; }
+        catch { return []; }
+      }
+      async function writeIndex(themes) {
+        const d = await impRoot(true); const fh = await d.getFileHandle("index.json", { create: true });
+        const w = await fh.createWritable(); await w.write(JSON.stringify({ version: 1, themes })); await w.close();
+      }
+      async function impFileDir(kappa, create = false) { return (await impRoot(create)).getDirectoryHandle(kdir(kappa), { create }); }
+      async function writeImportFile(kappa, path, bytes) {
+        let dir = await impFileDir(kappa, true); const parts = path.split("/"); const fname = parts.pop();
+        for (const p of parts) dir = await dir.getDirectoryHandle(p, { create: true });
+        const fh = await dir.getFileHandle(fname, { create: true }); const w = await fh.createWritable(); await w.write(bytes); await w.close();
+      }
+      async function readImportFile(kappa, path) {
+        let dir = await impFileDir(kappa, false); const parts = path.split("/"); const fname = parts.pop();
+        for (const p of parts) dir = await dir.getDirectoryHandle(p);
+        return new Uint8Array(await (await (await dir.getFileHandle(fname)).getFile()).arrayBuffer());
+      }
+      async function saveImport(theme) {
+        for (const f of theme.files) await writeImportFile(theme.kappa, f.path, f.bytes);
+        const entry = { id: theme.id, name: theme.name, description: theme.description || "", module: theme.module,
+          pack: theme.pack, source: theme.source, kappa: theme.kappa,
+          files: theme.files.map((f) => ({ path: f.path, sha256: f.sha256, size: f.size })), importedAt: Date.now() };
+        const next = (await readIndex()).filter((t) => t.id !== entry.id); next.push(entry);
+        await writeIndex(next); IMPORTED.set(entry.id, entry); return entry;
+      }
+      async function removeImport(id) {
+        const e = IMPORTED.get(id); IMPORTED.delete(id);
+        await writeIndex((await readIndex()).filter((t) => t.id !== id));
+        if (e) { try { (await impRoot(false)).removeEntry(kdir(e.kappa), { recursive: true }); } catch {} }
+      }
+
+      // ── boot-splash preferences (localStorage, shared same-origin with Holo Boot) ──────
+      const PREF_DEFAULT = "holo-splash:default", PREF_PER = "holo-splash:perInstance";
+      const getDefaultPref = () => { try { return localStorage.getItem(PREF_DEFAULT) || ""; } catch { return ""; } };
+      const setDefaultPref = (id) => { try { localStorage.setItem(PREF_DEFAULT, id); } catch {} };
+      const getPerInstance = () => { try { return JSON.parse(localStorage.getItem(PREF_PER) || "{}") || {}; } catch { return {}; } };
+      const setPerInstance = (m) => { try { localStorage.setItem(PREF_PER, JSON.stringify(m)); } catch {} };
+
+      // ── per-instance brand: rasterize the chosen entry's icon (+ its name) into a logo
+      //    image, Law-L5 verified against the boot manifest (the same κ Holo Boot pins). ──
+      let BOOT_MANIFEST = null;
+      async function brandImage(url, label) {
+        try {
+          const bytes = new Uint8Array(await (await fetch(url, { cache: "no-store" })).arrayBuffer());
+          if (BOOT_MANIFEST === null) BOOT_MANIFEST = await fetch("boot/boot-manifest.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ assets: {} }));
+          const want = (BOOT_MANIFEST.assets || {})[url];
+          if (want) { ver.total++; const got = await sha256(bytes); brandVer = got === want; if (!brandVer) ver.bad++; }
+          // draw the icon glyph (SVG currentColor → brand teal) + the instance name
+          let glyph;
+          if (/\.svg(\?|$)/i.test(url)) {
+            const svg = new TextDecoder().decode(bytes).replace(/currentColor/g, "#7defc9");
+            const u = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+            glyph = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+            URL.revokeObjectURL(u);
+          } else { glyph = await createImageBitmap(new Blob([bytes])); }
+          const isz = 116, pad = 14, font = '600 22px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+          const meas = document.createElement("canvas").getContext("2d"); meas.font = font;
+          const lw = label ? Math.ceil(meas.measureText(label).width) : 0;
+          const W = Math.max(isz, lw) + pad * 2, H = isz + (label ? 36 : 0) + pad;
+          const off = document.createElement("canvas"); off.width = W; off.height = H;
+          const c = off.getContext("2d");
+          c.drawImage(glyph, (W - isz) / 2, 0, isz, isz);
+          if (label) { c.fillStyle = "#e6edf3"; c.textAlign = "center"; c.textBaseline = "top"; c.font = font; c.fillText(label, W / 2, isz + 8); }
+          return { bitmap: off, width: W, height: H, verified: brandVer };
+        } catch { return null; }
+      }
+
+      // ── background mode (Dark · Light · Immersive) ──────────────────────────────────
+      // A RENDER-TIME choice; it never touches the theme bytes, so Law L5 (κ) is unaffected.
+      //   • Immersive — the theme's own backdrop + the soulbis wave field (the existing
+      //     background image): the full, living boot splash.
+      //   • Dark / Light — a clean solid fill with the wave field hidden, so the centre animation
+      //     reads on its own. The backend's bg is overridden to match #stage exactly, so resizing
+      //     the centre animation reveals only that same colour — a seamless seam.
+      const BG_DARK = [0.000, 0.000, 0.000];    // == #000000 (body.bg-dark #stage)
+      const BG_LIGHT = [0.941, 0.933, 0.910];   // == #f0eee8 (body.bg-light #stage)
+      const BG_MODES = ["dark", "light", "immersive"];
+      const BG_PREF = "holo-splash:bg";
+      let themeBg = null;   // the active theme's OWN background — captured at load, restored in Immersive
+      let bgMode = (() => { try { const v = localStorage.getItem(BG_PREF); return v === "theme" ? "immersive" : (BG_MODES.includes(v) ? v : "immersive"); } catch { return "immersive"; } })();
+      const saveBg = () => { try { localStorage.setItem(BG_PREF, bgMode); } catch {} };
+      function reflectBgSeg() { const seg = document.getElementById("bgSeg"); if (seg) for (const b of seg.children) b.classList && b.classList.toggle("on", b.dataset && b.dataset.bg === bgMode); }
+      // An IMPORTED theme's own backdrop sprite (its background.png / wallpaper art) — the LARGEST
+      // image sprite, distinct from the smaller centred logo/spinner. Dark/Light hide it so only the
+      // centre animation remains on a clean fill; Immersive keeps it. Scoped to imported themes (the
+      // built-ins are gradient-based and designed for these modes — never touched) and resolution-
+      // independent (compares sprite sizes, not canvas coverage, so a high-DPI render can't fool it).
+      // Returns [] when there is no separable foreground (a single-image theme can't be split).
+      function backdropSprites() {
+        try {
+          if (!be || !be.sprites || !(curTheme && curTheme.imported)) return [];
+          const imgs = be.sprites.filter((s) => s && s.image && s.image.width && s.image.height);
+          if (imgs.length < 2) return [];
+          const sz = (s) => s.image.width * s.image.height;
+          const sorted = [...imgs].sort((a, b) => sz(b) - sz(a));
+          // the backdrop must be clearly larger than the foreground (≥1.6×), else this is e.g. two
+          // equal logos and there is no obvious wallpaper to drop.
+          return sz(sorted[0]) >= 1.6 * sz(sorted[1]) ? [sorted[0]] : [];
+        } catch { return []; }
+      }
+      // Suppress a theme's OWN progress bar so the canonical DOM loading bar is the only one (no
+      // double bar). A progress bar reads as an extremely wide, very short sprite (e.g. Plymouth's
+      // `bar.image.Scale(width, 3)`); we hide it and any sprite sharing its row (the track + the
+      // fill). Runs every frame because the fill sprite is re-imaged each tick. Geometry-only, so it
+      // works for built-in AND imported themes; throbbers (square) and backdrops (tall) never match.
+      function hideThemeBars() {
+        try {
+          if (!be || !be.sprites) return;
+          const isBar = (s) => s && s.image && s.image.width > 0 && s.image.height > 0 && s.image.width / s.image.height >= 18;
+          const rows = be.sprites.filter(isBar).map((s) => s.y);
+          if (!rows.length) return;
+          for (const s of be.sprites) {
+            if (!s || !s.image) continue;
+            const h = s.image.height || 0;
+            if (rows.some((y) => Math.abs((s.y || 0) - y) <= Math.max(8, h))) s.__hidden = true;
+          }
+        } catch {}
+      }
+      function applyBackground() {
+        document.body.classList.remove("bg-dark", "bg-light", "bg-immersive");
+        document.body.classList.add("bg-" + bgMode);
+        reflectBgSeg();
+        if (!be) return;
+        const immersive = bgMode === "immersive";
+        // Dark/Light: hide the theme's own backdrop image → only the centre animation, on a clean fill.
+        for (const s of be.sprites) s.__hidden = false;
+        if (!immersive) for (const s of backdropSprites()) s.__hidden = true;
+        // The soulbis wave field is the Immersive backdrop behind a STATIC mark (its centred logo is
+        // the field's focal orb). It is suppressed for: IMPORTED themes (they bring their own image)
+        // and SOLO themes — themes that are themselves a living full-field animation (e.g. holo-pulse,
+        // the pulsing dot-mark), which the field would only wash out. None in Dark/Light.
+        const SOLO = new Set(["holo-pulse"]);
+        const fieldOn = immersive && !(curTheme && curTheme.imported) && !(curTheme && SOLO.has(curTheme.id));
+        document.body.classList.toggle("field-off", !fieldOn);
+        // Canvas fill: Immersive restores the theme's own bg; Dark/Light a clean solid matching #stage.
+        if (immersive) { if (themeBg) be.bg = { top: themeBg.top.slice(), bottom: themeBg.bottom.slice() }; }
+        else { const c = bgMode === "dark" ? BG_DARK : BG_LIGHT; be.bg = { top: c.slice(), bottom: c.slice() }; }
+        be.dirty(); be.paint();
+      }
+
+      // ── centre-animation size (independent of the background) ───────────────────────
+      // A render-time CSS scale of the centre animation alone (#screen / its GPU present); the
+      // background layer never moves, so the animation grows or shrinks over a stable backdrop.
+      const SIZE_PREF = "holo-splash:size";
+      let centerSize = (() => { try { return Math.min(200, Math.max(50, +localStorage.getItem(SIZE_PREF) || 100)); } catch { return 100; } })();
+      function applySize() {
+        document.documentElement.style.setProperty("--center-scale", (centerSize / 100).toFixed(3));
+        const v = document.getElementById("sizeVal"); if (v) v.textContent = centerSize + "%";
+        const r = document.getElementById("sizeRange"); if (r && +r.value !== centerSize) r.value = centerSize;
+      }
+
+      // ── boot status sequence (the realistic plymouthd status stream) ────────────────
+      const STATUSES = ["Loading initrd", "Probing hardware", "Mounting root filesystem",
+        "Starting udev", "Loading kernel modules", "Starting system services",
+        "Verifying κ-store", "Starting Hologram Platform Manager", "Reaching graphical target"];
+
+      // ── engine state ────────────────────────────────────────────────────────────────
+      let be = null, plugin = null, eng = null, curTheme = null, themes = [], rafId = 0;
+      let asking = false, statusIdx = -1;
+      // Boot handoff (Plymouth's role): when Holo Boot hands off, ?next=<loader> is the OS
+      // to chain to once the splash completes, ?logo=<icon> is THIS instance's own brand,
+      // ?label is its name. Without ?next the page is a standalone, looping demo.
+      const NEXT = params.get("next") || "";
+      const LABEL = params.get("label") || "";
+      const LOGO = params.get("logo") || "";
+      // Boot time — how long the loading bar takes to fill (eng.duration). A real handoff is brisk;
+      // the standalone studio runs the full 12 s by default. Editable in the dock + persisted; an
+      // explicit ?duration= (the gateway handoff) always wins. Clamped to a sane 2–60 s.
+      const DUR_PREF = "holo-splash:duration";
+      const DUR_DEFAULT = NEXT ? 4.5 : 12;
+      const clampDur = (v) => Math.min(60, Math.max(2, v));
+      let bootDur = (() => {
+        const u = +params.get("duration"); if (u >= 1) return clampDur(u);
+        try { const s = +localStorage.getItem(DUR_PREF); if (s >= 1) return clampDur(s); } catch {}
+        return DUR_DEFAULT;
+      })();
+      let navigated = false, reachedAt = 0, brandVer = null;
+      function gotoNext() { if (navigated || !NEXT) return; navigated = true; cancelAnimationFrame(rafId); toast("starting " + (LABEL || "system") + "…"); location.href = NEXT; }
+      if (NEXT) document.body.classList.add("handoff");
+      // Boot Menu (rEFInd) reachable via F2 during a handoff — like real firmware (F2 is page-preventable).
+      const MENU = params.get("menu") || "";
+      function gotoMenu() { if (navigated || !MENU) return; navigated = true; cancelAnimationFrame(rafId); location.href = MENU; }
+      if (NEXT && MENU) { const s = document.getElementById("skip"); if (s) s.innerHTML = 'Press <kbd>F2</kbd> for Boot Menu · or any key to continue'; }
+
+      // ── hardware-adaptive resolution (the "dynamically adjust for the device" layer) ──
+      // Modelled on holo-rtc.js deviceProfile(): cores × memory × mobile × dpr × screen pick a
+      // present ceiling, so a weak phone renders 1080p and a strong desktop+8K display renders
+      // 8K. The splash engine draws at ANY resolution natively, so this is just choosing it.
+      const GPU_OK = typeof navigator !== "undefined" && !!navigator.gpu;
+      function renderProfile() {
+        const cores = navigator.hardwareConcurrency || 4;
+        const mem = navigator.deviceMemory || 4;
+        const mobile = (typeof matchMedia === "function" && matchMedia("(pointer:coarse)").matches) || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || "");
+        const dpr = Math.min(4, window.devicePixelRatio || 1);
+        const screenPx = (typeof screen !== "undefined" ? Math.max(screen.width || 0, screen.height || 0) : 0) * (window.devicePixelRatio || 1);
+        let tier;
+        if (mobile) tier = cores >= 6 && mem >= 4 ? "1080p" : "720p";
+        else if (cores >= 12 && mem >= 8 && screenPx >= 7000) tier = "8k";
+        else if (cores >= 8 && mem >= 8) tier = "4k";
+        else if (cores <= 4 || mem <= 4) tier = "1080p";
+        else tier = "1440p";
+        const maxDim = { "720p": 1280, "1080p": 1920, "1440p": 2560, "4k": 3840, "8k": 7680 }[tier];
+        // When the GPU present layer is available it Lanczos-upscales, so the 2D render stays
+        // lean (≤1440p) and the GPU reconstructs to `maxDim`. Otherwise the 2D render IS native.
+        return { cores, mem, mobile, dpr, screenPx, tier, maxDim, internalMaxDim: GPU_OK ? Math.min(maxDim, 2560) : maxDim, thumbDpr: Math.min(dpr, 3) };
+      }
+      const PROFILE = renderProfile();
+      // ── the soulbis wave field — a living holographic backdrop over the boot theme ──────
+      // A from-spec port of github.com/mitchuski/soulbis: a two-lattice manifold + drifting
+      // constellation + soul-orb glass lens, coral (Swordsman) ⇄ cyan (Mage), composited via
+      // `screen` blend so only its light reaches the boot. It renders at the device's tier
+      // resolution (PROFILE.maxDim — up to 8K), strokes vector-crisp, the centred boot logo
+      // its focal orb. Pure garnish: a failure here must never block the boot, hence the try.
+      let field = null;
+      // The soul orb tracks the ACTIVE theme's logo: the backend draws in stage CSS px (the
+      // same space the field renders in), so we pick the largest square-ish visible sprite —
+      // the logo reads bigger in its smallest dimension than a thin progress bar or a small
+      // throbber — and centre the manifold's focal well on it. Falls back to centre-ish.
+      function logoFocus(w, h) {
+        let fx = w / 2, fy = h * 0.42;
+        try {
+          const sprites = be && be.sprites;
+          if (sprites && sprites.length) {
+            let best = null, bestScore = 0;
+            for (const s of sprites) {
+              if (!s.image || (s.opacity != null && s.opacity <= 0.05)) continue;
+              const iw = s.image.width || 0, ih = s.image.height || 0;
+              if (!iw || !ih) continue;
+              const score = Math.min(iw, ih);   // square logos beat wide-thin bars / tiny throbbers
+              if (score > bestScore) { bestScore = score; best = { x: s.x + iw / 2, y: s.y + ih / 2 }; }
+            }
+            if (best) { fx = best.x; fy = best.y; }
+          }
+        } catch {}
+        return { x: fx, y: fy };
+      }
+      try {
+        field = createSoulbisField($("field"), {
+          dpr: PROFILE.dpr, maxDim: PROFILE.maxDim,
+          focus: logoFocus,   // the soul orb follows the live boot logo
+        });
+        field.start();
+      } catch (e) { console.warn("soulbis field unavailable:", e); }
+      // CSS rect + an effective dpr capped so the backing store's longest edge ≤ `ceiling`.
+      function stageSize(ceiling) {
+        const r = $("stage").getBoundingClientRect();
+        const w = Math.max(64, Math.floor(r.width)), h = Math.max(64, Math.floor(r.height));
+        const cap = ceiling || PROFILE.internalMaxDim;
+        const dpr = Math.max(1, Math.min(PROFILE.dpr, cap / Math.max(w, h)));
+        return { w, h, dpr };
+      }
+
+      // Resolve where a theme's bytes come from and how they verify (Law L5). Built-in
+      // themes verify against splash-manifest.json; imported themes re-derive each file's
+      // sha256 against the OPFS index entry — the same guarantee, no central manifest.
+      // A content-addressed bundle (imported-from-OPFS or an in-memory preview): every file
+      // re-derives to its stored sha256 before use (Law L5), keyed by full path AND basename.
+      let PREVIEW = null;   // { id, theme } — a fetched-but-not-yet-kept theme, in memory
+      function bundleSource(files, kappa, getBytes) {
+        const need = new Map(files.map((f) => [f.path, f.sha256]));
+        const readVerified = async (path) => {
+          const buf = await getBytes(path);
+          ver.total++; const got = await sha256(buf);
+          if (got !== need.get(path)) { ver.bad++; throw new Error("κ mismatch: " + path); }
+          return buf;
+        };
+        const plyPath = files.find((f) => /\.plymouth$/i.test(f.path)).path;
+        const pngs = files.filter((f) => /\.png$/i.test(f.path)).map((f) => f.path);
+        return {
+          imported: true, kappa,
+          plymouthText: async () => new TextDecoder().decode(await readVerified(plyPath)),
+          pngList: () => pngs, asset: (p) => readVerified(p),
+          script: async (name) => {
+            const base = (name || "").split("/").pop();
+            const f = files.find((x) => x.path === name) || files.find((x) => x.path.split("/").pop() === base) || files.find((x) => /\.script$/i.test(x.path));
+            return new TextDecoder().decode(await readVerified(f.path));
+          },
+        };
+      }
+
+      async function themeSource(id) {
+        if (PREVIEW && PREVIEW.id === id) { const t = PREVIEW.theme, m = new Map(t.files.map((f) => [f.path, f.bytes])); return bundleSource(t.files, t.kappa, (p) => m.get(p)); }
+        const imp = IMPORTED.get(id);
+        if (imp) return bundleSource(imp.files, imp.kappa, (p) => readImportFile(imp.kappa, p));
+        const base = `splash/themes/${id}/`, plyRel = base + id + ".plymouth";
+        const pngRels = Object.keys(MANIFEST.files).filter((r) => r.startsWith(base) && r.endsWith(".png"));
+        return {
+          imported: false, kappa: MANIFEST.files[plyRel] || "",
+          plymouthText: async () => new TextDecoder().decode(await fetchVerified(plyRel)),
+          pngList: () => pngRels.map((r) => r.slice(base.length)),
+          asset: (name) => fetchVerified(base + name),
+          script: async (name) => new TextDecoder().decode(await fetchVerified(base + name.split("/").pop())),
+        };
+      }
+
+      async function loadTheme(id, { keepProgress = false } = {}) {
+        const prevT = eng ? eng.t : 0, prevP = eng ? eng.progress : 0, prevMode = be ? be.mode() : (params.get("mode") || "boot");
+        cancelAnimationFrame(rafId);
+        ver.ok = null; ver.total = 0; ver.bad = 0; renderVer();
+        const src = await themeSource(id);
+        // 1 · the .plymouth config (verified) → module + keys
+        const conf = parsePlymouth(await src.plymouthText());
+        const themeKappa = src.kappa;
+        // 2 · the theme's PNG assets (verified) → ImageBitmaps (keyed by full path AND basename)
+        const sz = stageSize();
+        const cv = $("screen");
+        be = new CanvasBackend(cv, {}); be.resize(sz.w, sz.h, sz.dpr);
+        be.setMode(MODES.includes(prevMode) ? prevMode : "boot");
+        const assets = {};
+        for (const key of src.pngList()) {
+          const bytes = await src.asset(key);
+          const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+          const a = { bitmap, width: bitmap.width, height: bitmap.height };
+          assets[key] = a; assets[key.split("/").pop()] = a;
+        }
+        // per-instance brand: override the theme's logo/watermark with THIS boot entry's
+        // own icon (+ its name), so every login instance gets its own splash logo. The
+        // brand is Law-L5 verified against the boot manifest before it is shown.
+        if (LOGO) { const brand = await brandImage(LOGO, LABEL); if (brand) { assets["logo.png"] = brand; assets["watermark.png"] = brand; } }
+        be.assets = assets;
+        // 3 · build the plugin
+        let opts = { cfg: conf.module };
+        if (conf.moduleName === "script") {
+          opts.source = await src.script(conf.module.ScriptFile || (id + ".script"));
+        } else {
+          const map = {}; for (const name of Object.keys(assets)) map[name] = be.loadImage(name); opts.assets = map;
+        }
+        plugin = makePlugin(conf.moduleName, be, opts);
+        plugin.start();
+        // 4 · engine + boot
+        eng = new Engine(be, plugin); eng.duration = bootDur;
+        eng.start();
+        if (keepProgress) { eng.t = prevT; eng.progress = prevP; if (plugin.bootProgress) plugin.bootProgress(prevT, prevP); }
+        else { statusIdx = -1; }
+        curTheme = { id, conf, kappa: themeKappa, imported: src.imported };
+        ver.ok = ver.bad === 0; renderVer();
+        showKaddr(themeKappa); if (window.HoloTeleport) HoloTeleport.stamp(themeKappa);
+        $("themeSel").value = id;
+        $("hint").classList.add("gone");
+        be.dirty(); be.paint();
+        themeBg = { top: be.bg.top.slice(), bottom: be.bg.bottom.slice() };   // the theme's own backdrop (Immersive restores it)
+        applyBackground();   // re-apply the chosen background (Dark · Light · Immersive) over the fresh theme
+        loop();
+        try { parent !== window && parent.postMessage({ type: "holo-splash-ready", theme: id, module: conf.moduleName }, "*"); } catch {}
+        toast(`theme · ${conf.name || id} · ${conf.moduleName} · ${ver.ok ? "κ ✓" : "κ ✗"}`);
+        postStatus();
+      }
+
+      // ── the rAF boot loop ───────────────────────────────────────────────────────────
+      let last = 0;
+      function loop() {
+        cancelAnimationFrame(rafId);
+        last = performance.now();
+        const step = (now) => {
+          const dt = Math.min(0.1, (now - last) / 1000); last = now;
+          hideThemeBars();   // the DOM loading bar is canonical → suppress the theme's own bar before it paints
+          eng.tick(dt);
+          // drive the status stream from progress
+          const idx = Math.min(STATUSES.length - 1, Math.floor(eng.progress * STATUSES.length));
+          if (idx !== statusIdx && eng.running) { statusIdx = idx; eng.updateStatus(STATUSES[idx]); }
+          reflectState();
+          // Plymouth handoff: once boot completes, hold briefly, then chain to the OS.
+          if (NEXT && !navigated && !asking && !eng.paused && eng.progress >= 1) {
+            if (!reachedAt) reachedAt = now; else if (now - reachedAt > 850) { gotoNext(); return; }
+          }
+          rafId = requestAnimationFrame(step);
+        };
+        rafId = requestAnimationFrame(step);
+      }
+      function reflectState() {
+        if (!eng) return;
+        const pct = Math.round(eng.progress * 100);
+        const m = be.mode();
+        $("now").textContent = `${m} · ${pct}%${plugin && plugin.status ? " · " + plugin.status : ""}`;
+        // the studio loading bar: fractional width for a smooth precise fill, integer % readout
+        const lbf = document.getElementById("loadbarFill"); if (lbf) lbf.style.width = (eng.progress * 100).toFixed(2) + "%";
+        const lbp = document.getElementById("loadbarPct"); if (lbp) lbp.textContent = pct + "%";
+        if (!eng.running) setState("quit", "off");
+        else if (eng.paused) setState("paused", "");
+        else if (eng.progress >= 1) setState("ready", "on");
+        else setState("booting", "on");
+        postStatus();
+      }
+
+      // ── nestable status mirror (postMessage) ────────────────────────────────────────
+      function postStatus() {
+        const msg = { type: "holo-splash-status", theme: curTheme && curTheme.id, module: curTheme && curTheme.conf.moduleName,
+          mode: be ? be.mode() : "", progress: eng ? eng.progress : 0, status: plugin ? (plugin.status || "") : "",
+          running: eng ? eng.running : false, paused: eng ? eng.paused : false, kappa: (curTheme && curTheme.kappa) || "", verified: ver.ok === true };
+        try { parent !== window && parent.postMessage(msg, "*"); } catch {}
+        window.holoSplash.last = msg;
+      }
+
+      // ── client commands (the plymouth(1) surface) ───────────────────────────────────
+      const client = {
+        show: () => { eng.showSplash(); toast("show-splash"); },
+        hide: () => { eng.hideSplash(); $("screen").getContext("2d").clearRect(0, 0, be.canvas.width, be.canvas.height); toast("hide-splash"); },
+        status: (s) => { eng.updateStatus(s); },
+        message: (t) => { eng.message(t); },
+        password: (prompt, bullets) => { eng.displayPassword(prompt, bullets); },
+        question: (prompt, entry) => { eng.displayQuestion(prompt, entry); },
+        progress: (p) => { eng.setProgress(p); reflectState(); },
+        mode: (m) => { eng.setMode(m); reflectState(); toast("change-mode · " + m); },
+        quit: () => { eng.quit(); reflectState(); toast("quit"); },
+        pause: () => { eng.paused ? eng.resume() : eng.pause(); reflectState(); },
+        replay: () => loadTheme(curTheme.id, { keepProgress: false }),
+      };
+
+      // ── password entry: keystrokes → bullets, Enter resolves (ask-for-password) ──────
+      function startAsk(prompt) {
+        asking = true; const inp = $("pw"); inp.value = ""; inp.style.pointerEvents = "auto";
+        eng.displayPassword(prompt || "Enter passphrase to unlock disk:", 0);
+        setTimeout(() => inp.focus(), 0); toast("ask-for-password — type, then Enter");
+      }
+      $("pw").addEventListener("input", (e) => { if (asking) eng.displayPassword(curPrompt, e.target.value.length); });
+      let curPrompt = "Enter passphrase to unlock disk:";
+      $("pw").addEventListener("keydown", (e) => {
+        if (!asking) return;
+        if (e.key === "Enter") { asking = false; $("pw").style.pointerEvents = "none"; eng.displayNormal(); eng.message("✓ disk unlocked"); toast("password accepted"); }
+        else if (e.key === "Escape") { asking = false; $("pw").style.pointerEvents = "none"; eng.displayNormal(); toast("cancelled"); }
+      });
+
+      // ── chrome + dock wiring ─────────────────────────────────────────────────────────
+      $("fsBtn").addEventListener("click", () => { const el = $("stage"); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); });
+      $("replayBtn").addEventListener("click", () => client.replay());
+      $("themeSel").addEventListener("change", (e) => loadTheme(e.target.value, { keepProgress: false }));
+      // background mode (segmented Dark · Light · Immersive) + centre-animation size (slider)
+      const bgSeg = document.getElementById("bgSeg");
+      if (bgSeg) bgSeg.addEventListener("click", (e) => { const b = e.target.closest("button[data-bg]"); if (!b) return; bgMode = b.dataset.bg; saveBg(); applyBackground(); toast("background · " + bgMode); });
+      $("sizeRange").addEventListener("input", (e) => { centerSize = Math.min(200, Math.max(50, +e.target.value)); try { localStorage.setItem(SIZE_PREF, centerSize); } catch {} applySize(); });
+      // Boot time (seconds) — sets eng.duration and restarts the run from 0 so the new timing reads
+      // exactly. Persisted; reflected back into the field. "change" (not "input") so typing "12"
+      // doesn't restart on the intermediate "1".
+      const durNum = document.getElementById("durNum");
+      if (durNum) {
+        durNum.value = (Number.isInteger(bootDur) ? bootDur : bootDur.toFixed(1));
+        durNum.addEventListener("change", () => {
+          bootDur = clampDur(+durNum.value || DUR_DEFAULT);
+          durNum.value = (Number.isInteger(bootDur) ? bootDur : bootDur.toFixed(1));
+          try { localStorage.setItem(DUR_PREF, bootDur); } catch {}
+          if (eng) { eng.duration = bootDur; eng.t = 0; eng.progress = 0; if (plugin && plugin.bootProgress) plugin.bootProgress(0, 0); statusIdx = -1; reachedAt = 0; reflectState(); }
+          toast("boot time · " + bootDur.toFixed(1) + "s");
+        });
+      }
+      addEventListener("keydown", (e) => {
+        // while the import gallery is open it owns the keyboard: Esc closes it, and the
+        // splash shortcuts (f/r/space) are suppressed (typing in search still works).
+        if ($("imp") && $("imp").classList.contains("open")) {
+          if (e.key === "Escape") { e.preventDefault(); closeGallery(); return; }
+          if (e.key === " " && $("imp").classList.contains("previewing") && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) { e.preventDefault(); if (eng) { eng.paused ? eng.resume() : eng.pause(); reflectCine(); } }
+          return;
+        }
+        if (asking || (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) return;
+        // during a boot handoff: F2 opens the boot menu (rEFInd); any other key continues to the OS
+        if (NEXT && e.key === "F2" && MENU) { e.preventDefault(); gotoMenu(); return; }
+        if (NEXT && (e.key === "Enter" || e.key === "Escape" || e.key === " ")) { e.preventDefault(); gotoNext(); return; }
+        if (e.key === "f") $("fsBtn").click();
+        else if (e.key === "r") client.replay();
+        else if (e.key === " ") { e.preventDefault(); client.pause(); }
+      });
+      if (NEXT) $("stage").addEventListener("click", () => gotoNext());
+
+      // resize: rebuild the theme at the new size, preserving boot progress.
+      let rT; addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if (field) field.resize(); if (curTheme) loadTheme(curTheme.id, { keepProgress: true }); }, 160); });
+
+      // ── nestability: a parent holospace can drive the splash over postMessage ────────
+      addEventListener("message", (e) => {
+        const m = e.data; if (!m || typeof m !== "object" || !eng) return;
+        if (m.type === "holo-splash" && m.theme) { loadTheme(m.theme, { keepProgress: false }); if (m.mode) setTimeout(() => client.mode(m.mode), 50); }
+        else if (m.type === "holo-splash-control" && m.action) {
+          ({ show: () => client.show(), hide: () => client.hide(), update: () => client.status(m.status || ""),
+             status: () => client.status(m.status || ""), message: () => client.message(m.text || ""),
+             password: () => client.password(m.prompt || "Password", m.bullets || 0), question: () => client.question(m.prompt || "", m.entry || ""),
+             progress: () => client.progress(m.progress ?? 0), mode: () => client.mode(m.mode || "boot"),
+             quit: () => client.quit(), pause: () => eng.pause(), resume: () => eng.resume() }[m.action] || (() => {}))();
+        }
+      });
+
+      // public handle (witness / parent automation)
+      window.holoSplash = {
+        get engine() { return eng; }, get backend() { return be; }, get plugin() { return plugin; },
+        get theme() { return curTheme; }, get verified() { return ver; }, get themes() { return themes; },
+        get progress() { return eng ? eng.progress : 0; }, get mode() { return be ? be.mode() : ""; },
+        get sprites() { return be ? be.sprites.length : 0; }, get callbacks() { return plugin && plugin.callbackNames ? plugin.callbackNames() : []; },
+        get next() { return NEXT; }, get label() { return LABEL; }, get logo() { return LOGO; }, get brandVerified() { return brandVer; },
+        get profile() { return PROFILE; }, get gpuAvailable() { return GPU_OK; }, get field() { return field; },
+        get gpu() { return { on: !!gpu.ctrl, available: GPU_OK, fx: gpu.fx, lutKappa: gpu.ctrl ? gpu.ctrl.lutKappa : "", adapter: gpu.ctrl ? gpu.ctrl.adapter : null, present: gpu.ctrl ? [$("gpuScreen").width, $("gpuScreen").height] : null, fps: gpu.ctrl ? gpu.ctrl.fps : 0 }; },
+        setSpeed: (s) => { if (eng) eng.speed = s; }, stepFrame: () => { if (eng) { eng.pause(); eng.stepFrame(); reflectCine(); } },
+        setTheme: (id) => loadTheme(id, { keepProgress: false }), client, startAsk, MODES, last: null,
+      };
+
+      // (Re)build the theme picker: built-in (manifest-pinned) + imported (OPFS) groups.
+      function rebuildThemeSelect() {
+        const sel = $("themeSel"), cur = curTheme && curTheme.id; sel.innerHTML = "";
+        const gB = document.createElement("optgroup"); gB.label = "Built-in";
+        for (const t of themes) { const o = document.createElement("option"); o.value = t.id; o.textContent = `${t.name} · ${t.module}`; gB.appendChild(o); }
+        sel.appendChild(gB);
+        const imp = [...IMPORTED.values()];
+        if (imp.length) { const gI = document.createElement("optgroup"); gI.label = "Imported"; for (const t of imp) { const o = document.createElement("option"); o.value = t.id; o.textContent = `${t.name} · ${t.module}`; gI.appendChild(o); } sel.appendChild(gI); }
+        if (cur) sel.value = cur;
+      }
+      const knownTheme = (id) => !!id && (themes.some((t) => t.id === id) || IMPORTED.has(id));
+
+      // ── Import gallery: browse adi1090x/plymouth-themes, tap → live preview, Keep to save ──
+      let CATALOG = null, galPack = "all", galQuery = "", galBusy = false, galState = null;
+      // live theme previews: render ONE representative still per card, lazily + cached.
+      const THUMBS = new Map();   // id → dataURL (session cache; also persisted in OPFS)
+      let thumbActive = 0; const thumbQ = [], thumbScanGuard = { t: 0 };
+      // hologram-native GPU present (holo-gpu.js): Lanczos super-res + the O(1) content-addressed
+      // LUT grade, fed by the splash canvas. null controller ⇒ no WebGPU (we stay on the 2D path).
+      const gpu = { ctrl: null, video: null, stream: null, hudT: 0, fx: false };
+      const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
+      const emptyMsg = (s) => { const d = document.createElement("div"); d.className = "imp-empty"; d.textContent = s; return d; };
+      const prettyLoader = (f) => ({ "os.html": "Hologram OS", "home.html": "Home" }[f] || f.replace(/\.html$/, "").replace(/(^|[-_])(\w)/g, (_, a, b) => (a ? " " : "") + b.toUpperCase()));
+
+      function initGallery() {
+        $("impBtn").addEventListener("click", openGallery);
+        $("impClose").addEventListener("click", closeGallery);
+        $("impScrim").addEventListener("click", closeGallery);
+        $("impBoot").addEventListener("click", toggleBootPanel);
+        $("impSearch").addEventListener("input", (e) => { galQuery = e.target.value.trim().toLowerCase(); renderGrid(); });
+        $("impGrid").addEventListener("scroll", () => { clearTimeout(thumbScanGuard.t); thumbScanGuard.t = setTimeout(scanThumbs, 80); }, { passive: true });
+        $("aKeep").addEventListener("click", () => keepPreview(false));
+        $("aBoot").addEventListener("click", () => keepPreview(true));
+        $("aDiscard").addEventListener("click", discardPreview);
+        // cinema controls: granular speed + frame-by-frame step + play/pause + the FX toggle
+        $("cSpeed").addEventListener("input", (e) => { const val = +e.target.value; setSpeed(val <= -2 ? 0 : Math.pow(10, val)); });
+        $("cStepF").addEventListener("click", () => { if (eng) { if (!eng.paused) { eng.pause(); reflectCine(); } eng.stepFrame(); } });
+        $("cStepB").addEventListener("click", async () => { if (!curTheme) return; await loadTheme(curTheme.id, { keepProgress: false }); if (eng) { eng.speed = Math.pow(10, +$("cSpeed").value); eng.pause(); reflectCine(); } });
+        $("cPlay").addEventListener("click", () => { if (!eng) return; eng.paused ? eng.resume() : eng.pause(); reflectCine(); });
+        $("cFx").addEventListener("click", toggleFx);
+      }
+
+      async function openGallery() {
+        $("imp").classList.add("open"); renderChips(); renderGrid();
+        if (CATALOG === null) { try { CATALOG = await loadCatalog(GH); } catch { CATALOG = false; } renderChips(); renderGrid(); }
+        $("impSearch").focus();
+      }
+      async function closeGallery() {
+        if ($("imp").classList.contains("previewing")) await discardPreview();
+        $("imp").classList.remove("open", "show-boot");
+      }
+
+      function renderChips() {
+        const el = $("impChips"); el.innerHTML = "";
+        const mk = (val, label) => { const b = document.createElement("button"); b.className = "imp-chip" + (galPack === val ? " on" : ""); b.textContent = label; b.onclick = () => { galPack = val; renderChips(); renderGrid(); }; return b; };
+        el.appendChild(mk("all", "All"));
+        for (const p of (CATALOG && CATALOG.packs) || []) el.appendChild(mk(p, p.replace("pack_", "Pack ")));
+      }
+      function renderGrid() {
+        const grid = $("impGrid"); grid.innerHTML = "";
+        if (CATALOG === null) return grid.appendChild(emptyMsg("Loading the live catalog…"));
+        if (CATALOG === false) return grid.appendChild(emptyMsg("Couldn't reach the catalog — check the connection and reopen."));
+        let list = CATALOG.themes;
+        if (galPack !== "all") list = list.filter((t) => t.pack === galPack);
+        if (galQuery) list = list.filter((t) => t.name.toLowerCase().includes(galQuery));
+        if (!list.length) return grid.appendChild(emptyMsg("No themes match “" + galQuery + "”."));
+        for (const t of list) grid.appendChild(card(t));
+        requestAnimationFrame(scanThumbs); setTimeout(scanThumbs, 250); setTimeout(scanThumbs, 700);
+      }
+      function card(t) {
+        const el = document.createElement("div"); el.className = "card"; el.tabIndex = 0; el.setAttribute("role", "button");
+        el.innerHTML = `<canvas class="thumb" aria-hidden="true"></canvas><div class="veil"></div><div class="ring"></div><div class="ring b"></div>
+          <div class="nm">${esc(t.name.replace(/_/g, " "))}</div>
+          <div class="meta"><span class="pack">${esc(t.pack.replace("pack_", "P"))}</span><span>${t.pngCount} frames</span></div>
+          <div class="prog"></div>`;
+        el._entry = t; if (THUMBS.has(t.id)) { el._thumbQ = true; drawThumbUrl(el, THUMBS.get(t.id)); }
+        if (IMPORTED.has(t.id)) {
+          const meta = el.querySelector(".meta");
+          const kept = document.createElement("span"); kept.className = "kept"; kept.textContent = "✓ kept"; meta.appendChild(kept);
+          const tr = document.createElement("button"); tr.className = "trash"; tr.title = "remove"; tr.textContent = "🗑"; meta.appendChild(tr);
+          tr.onclick = (e) => { e.stopPropagation(); removeImported(t.id); };
+        }
+        const go = () => previewTheme(t, el);
+        el.onclick = go; el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+        return el;
+      }
+
+      // ── live card thumbnails ─────────────────────────────────────────────────────────
+      // Render a single representative frame of a theme without fetching all its (sometimes
+      // 300+) PNGs: PROBE it headlessly to see which images are on screen at mid-boot, fetch
+      // only those, then render at a virtual size and downscale onto the card. Cached.
+      // Render at a compact virtual size so the theme's (fixed-pixel) logo/spinner fills more
+      // of the card, at a progress point where the bar + animation are well under way.
+      const VW = 360, VH = Math.round(360 / 1.618), STILL_STEPS = 70, STILL_PROGRESS = 0.66, THUMB_VERSION = 3;
+      function queueThumb(el) { thumbQ.push(el); pumpThumbs(); }
+      function pumpThumbs() { while (thumbActive < 3 && thumbQ.length) { const el = thumbQ.shift(); thumbActive++; renderThumb(el).catch(() => {}).finally(() => { thumbActive--; pumpThumbs(); }); } }
+      // Render thumbnails for cards near the visible scroll region (robust everywhere —
+      // IntersectionObserver is unreliable in some headless/automation contexts).
+      function maybeQueueThumb(el) {
+        if (!el._entry || el._thumbQ || el.classList.contains("has-thumb")) return;
+        if (THUMBS.has(el._entry.id)) { el._thumbQ = true; drawThumbUrl(el, THUMBS.get(el._entry.id)); return; }
+        const grid = el.parentElement; if (!grid) return;
+        const gr = grid.getBoundingClientRect(), r = el.getBoundingClientRect();
+        if (r.bottom >= gr.top - 260 && r.top <= gr.bottom + 260) { el._thumbQ = true; queueThumb(el); }
+      }
+      function scanThumbs() { const grid = $("impGrid"); if (!grid) return; for (const el of grid.querySelectorAll(".card")) maybeQueueThumb(el); }
+
+      function drawThumbUrl(el, url) {
+        const canvas = el.querySelector(".thumb"); if (!canvas) return;
+        const img = new Image();
+        img.onload = () => { const dpr = PROFILE.thumbDpr; const r = canvas.getBoundingClientRect(); const w = Math.max(1, Math.round(r.width || el.clientWidth)), h = Math.max(1, Math.round(r.height || w / 1.618)); canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); const c = canvas.getContext("2d"); c.imageSmoothingQuality = "high"; c.drawImage(img, 0, 0, canvas.width, canvas.height); el.classList.add("has-thumb"); };
+        img.src = url;
+      }
+
+      async function renderThumb(el) {
+        const t = el._entry; if (!t || !el.isConnected) return;
+        if (THUMBS.has(t.id)) return drawThumbUrl(el, THUMBS.get(t.id));
+        // OPFS thumbnail cache → instant on revisit / next session
+        const cached = await thumbCacheGet(t.id);
+        if (cached) { const url = await blobToDataURL(new Blob([cached], { type: "image/png" })); THUMBS.set(t.id, url); return drawThumbUrl(el, url); }
+        const off = await computeThumb(t);
+        if (!off) return;
+        const url = off.toDataURL("image/png");
+        THUMBS.set(t.id, url); drawThumbUrl(el, url);
+        try { thumbCachePut(t.id, await (await fetch(url)).blob()); } catch {}
+      }
+
+      // Drive a script theme to a representative still and return an offscreen canvas (or null).
+      async function computeThumb(t) {
+        const plyRel = t.files.find((f) => /\.plymouth$/i.test(f)); if (!plyRel) return null;
+        const conf = parsePlymouth(new TextDecoder().decode(await GH.bytes(rawUrl(t.dir + "/" + plyRel))));
+        if (conf.moduleName !== "script") return null;          // thumbnails: script themes (≈ all of adi1090x)
+        const sfRel = (conf.module.ScriptFile || "").split("/").pop();
+        const scriptRel = (sfRel && t.files.find((f) => f.split("/").pop() === sfRel)) || t.files.find((f) => /\.script$/i.test(f));
+        if (!scriptRel) return null;
+        const source = new TextDecoder().decode(await GH.bytes(rawUrl(t.dir + "/" + scriptRel)));
+        const need = probeFrames(source, t);
+        const assets = {};
+        await Promise.all(need.map(async (name) => {
+          try { const b = await GH.bytes(rawUrl(t.dir + "/" + name)); const bmp = await createImageBitmap(new Blob([b], { type: "image/png" })); assets[name] = { bitmap: bmp, width: bmp.width, height: bmp.height }; assets[name.split("/").pop()] = assets[name]; } catch {}
+        }));
+        const off = document.createElement("canvas");
+        const be = new CanvasBackend(off, assets); be.resize(VW, VH, 1);
+        const plugin = makePlugin("script", be, { source });
+        plugin.start(); if (plugin.bootProgress) plugin.bootProgress(STILL_PROGRESS, STILL_PROGRESS);
+        for (let k = 0; k < STILL_STEPS; k++) if (plugin.refresh) plugin.refresh();
+        be.dirty(); be.paint();
+        return off;
+      }
+
+      // Headlessly run the theme and collect the image filenames visible at the still — so we
+      // fetch ~a handful of PNGs instead of the whole sequence. Derived images trace to source.
+      function probeFrames(source, t) {
+        const seen = new Set();
+        try {
+          const sizes = {}; for (const f of t.files) if (/\.png$/i.test(f)) { sizes[f] = { width: 64, height: 64 }; sizes[f.split("/").pop()] = { width: 64, height: 64 }; }
+          const probe = new HeadlessBackend(VW, VH, sizes);
+          const pp = makePlugin("script", probe, { source });
+          pp.start(); if (pp.bootProgress) pp.bootProgress(STILL_PROGRESS, STILL_PROGRESS);
+          for (let k = 0; k < STILL_STEPS; k++) if (pp.refresh) pp.refresh();
+          for (const s of probe.sprites) {
+            if (!s.image || s.opacity <= 0) continue;
+            let img = s.image, g = 0; while (img && img.kind === "derived" && img.from && g++ < 8) img = img.from;
+            if (img && img.name) seen.add(img.name.split("/").pop());
+          }
+        } catch {}
+        // Expand each numeric frame to a small neighbourhood: the headless probe and the live
+        // render can land a frame or two apart, and themes size from frame 0 — so we fetch the
+        // shown frame ±3 plus frames 0/1 of each sequence. Non-numeric art (logo) is kept as-is.
+        const fileSet = new Set(t.files.map((f) => f.split("/").pop()));
+        const out = new Set();
+        const add = (n) => { if (fileSet.has(n)) out.add(n); };
+        for (const n of seen) {
+          const m = /^(.*?)(\d+)(\.\w+)$/.exec(n);
+          if (!m) { out.add(n); continue; }
+          const base = m[1], num = +m[2], ext = m[3];
+          for (let d = -3; d <= 3; d++) if (num + d >= 0) add(base + (num + d) + ext);
+          add(base + "0" + ext); add(base + "1" + ext);   // sizing frames
+        }
+        for (const f of t.files) { const b = f.split("/").pop(); if (/\.png$/i.test(b) && /^(logo|watermark|background|bg|header)\b/i.test(b)) out.add(b); }
+        return [...out];
+      }
+
+      // OPFS thumbnail cache (splash-import/thumbs/<id>.png)
+      const blobToDataURL = (blob) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+      // Content-addressed thumbnail cache key: theme id + the device's size tier. Retrieval is
+      // O(1) regardless of how many frames the theme has (a 328-frame theme is as fast as a 30).
+      const thumbFile = (id) => safeName(id) + "." + PROFILE.tier + ".v" + THUMB_VERSION + ".png";
+      async function thumbCacheGet(id) { try { const d = await (await impRoot(false)).getDirectoryHandle("thumbs"); return await (await (await d.getFileHandle(thumbFile(id))).getFile()).arrayBuffer(); } catch { return null; } }
+      async function thumbCachePut(id, blob) { try { const d = await (await impRoot(true)).getDirectoryHandle("thumbs", { create: true }); const fh = await d.getFileHandle(thumbFile(id), { create: true }); const w = await fh.createWritable(); await w.write(blob); await w.close(); } catch {} }
+      const safeName = (s) => String(s).replace(/[^a-z0-9_-]/gi, "_");
+
+      // Tap a card → fetch + content-address + run it live in the splash (not yet persisted).
+      async function previewTheme(t, el) {
+        if (galBusy) return; galBusy = true; el.classList.add("busy");
+        const prog = el.querySelector(".prog");
+        const prevId = curTheme ? curTheme.id : BUILTIN_DEFAULT;
+        try {
+          let theme;
+          if (IMPORTED.has(t.id)) { PREVIEW = null; await loadTheme(t.id, { keepProgress: false }); const e = IMPORTED.get(t.id); theme = { id: t.id, name: e.name, kappa: e.kappa }; galState = { prevId, theme, kept: true }; }
+          else {
+            theme = await fetchTheme(t, { transport: GH, onProgress: (d, tot) => { if (prog) prog.style.width = Math.round((d / tot) * 100) + "%"; } });
+            PREVIEW = { id: theme.id, theme }; await loadTheme(theme.id, { keepProgress: false }); galState = { prevId, theme, kept: false };
+          }
+          enterPreview(theme);
+        } catch (e) {
+          PREVIEW = null; toast("couldn’t run this theme: " + String(e.message || e).slice(0, 56));
+          try { await loadTheme(prevId, { keepProgress: false }); } catch {}
+        } finally { el.classList.remove("busy"); if (prog) prog.style.width = "0"; galBusy = false; }
+      }
+      function enterPreview(theme) {
+        $("imp").classList.add("previewing");
+        $("aName").textContent = (theme.name || theme.id).replace(/_/g, " ");
+        const hex = (theme.kappa || "").replace("sha256:", "");
+        $("aK").textContent = hex ? "holo://sha256:" + hex.slice(0, 10) + "…" : "";
+        $("aK").title = theme.kappa ? "holo://" + theme.kappa : "";
+        $("aVer").textContent = ver.ok ? `✓ κ·${ver.total}` : "✗ κ";
+        $("aVer").className = "a-v" + (ver.ok ? "" : " bad");
+        $("aKeep").style.display = galState.kept ? "none" : "";
+        $("aBoot").textContent = galState.kept ? "Set as boot splash" : "Keep + boot";
+        $("cSpeed").value = "0"; setSpeed(1); reflectCine();
+        startGpuPresent();   // present this preview through the hologram-native GPU layer
+      }
+      async function keepPreview(asBoot) {
+        let id = galState.theme.id;
+        if (!galState.kept && PREVIEW) {
+          const entry = await saveImport(PREVIEW.theme); id = entry.id; galState.kept = true; PREVIEW = null;
+          rebuildThemeSelect(); $("themeSel").value = id; if (curTheme) curTheme.imported = true;
+          toast("kept · " + entry.name);
+        }
+        if (asBoot) {
+          // confirm + close — do NOT bounce back to the import grid; leave the theme showing.
+          setDefaultPref(id); toast("boot splash set · " + (galState.theme.name || id));
+          stopGpuPresent(); if (eng) eng.speed = 1;
+          $("imp").classList.remove("previewing", "open", "show-boot"); galState = null; return;
+        }
+        await exitPreview(false); renderGrid(); if ($("imp").classList.contains("show-boot")) renderBootPanel();
+      }
+      async function discardPreview() { PREVIEW = null; await exitPreview(true); }
+      async function exitPreview(revert) {
+        $("imp").classList.remove("previewing");
+        stopGpuPresent(); if (eng) eng.speed = 1;
+        if (revert && galState) { try { await loadTheme(galState.prevId, { keepProgress: false }); } catch {} }
+        galState = null;
+      }
+
+      // ── cinema controls: frame-by-frame speed + the hologram-native GPU present ─────────
+      // map a (log) frequency to a spectrum hue: slow = warm, fast = violet — like a spectrum.
+      const freqColor = (s) => `hsl(${Math.round(28 + Math.max(0, Math.min(1, (Math.log10(Math.max(s, 0.01)) + 2) / 6)) * 252)} 92% 66%)`;
+      const fmtSpeed = (s) => (s >= 100 ? Math.round(s) + "×" : s >= 10 ? s.toFixed(1) + "×" : s.toFixed(2) + "×");
+      function setSpeed(s) {
+        if (eng) eng.speed = s;
+        const v = $("cSpeedV");
+        if (s <= 0) { v.textContent = "frozen"; v.style.color = "var(--dim)"; }
+        else { v.textContent = fmtSpeed(s); v.style.color = freqColor(s); }
+        // The high-frequency "energy" enriches the O(1) content-addressed LUT grade on the GPU
+        // present — one trilinear fetch per pixel, so the cost stays CONSTANT however high the
+        // frequency climbs; the spectrum just gets hotter. (Stepping the animation is bounded
+        // work per frame, not O(1) — only the per-pixel present grade is.)
+        if (gpu.ctrl) { const e = Math.max(0, Math.min(1, Math.log10(Math.max(s, 1)) / 4)); gpu.ctrl.setGrade(0.35 + 0.4 * e); }
+      }
+      function reflectCine() { $("cPlay").textContent = eng && eng.paused ? "▶" : "⏸"; }
+
+      // Present the splash through holo-gpu: capture the 2D canvas as a live video and run it
+      // through the Lanczos-SR + O(1)-LUT pipeline, presenting at the device's native pixels
+      // (capped by the hardware tier). No WebGPU ⇒ we stay on the already-sharp 2D canvas.
+      async function startGpuPresent() {
+        stopGpuPresent();
+        if (!GPU_OK || !(window.HoloGPU && window.HoloGPU.available && window.HoloGPU.available())) { updateHud(); return; }
+        try {
+          const src = $("screen");
+          if (!src.captureStream) { updateHud(); return; }
+          const stream = src.captureStream(60);
+          const video = document.createElement("video");
+          video.muted = true; video.playsInline = true; video.autoplay = true; video.srcObject = stream;
+          try { await video.play(); } catch {}
+          const rect = $("stage").getBoundingClientRect();
+          const longest = Math.max(rect.width, rect.height) || 1;
+          const maxDpr = Math.max(1, Math.min(PROFILE.dpr, PROFILE.maxDim / longest));   // cap present at the hardware tier
+          document.body.classList.add("gpu-on");   // #gpuScreen must be visible BEFORE holo-gpu measures it
+          const ctrl = await window.HoloGPU.attach(video, $("gpuScreen"), { sr: 1, grade: 0.35, fx: gpu.fx ? 0.6 : 0, maxDpr });
+          if (!ctrl) { document.body.classList.remove("gpu-on"); try { stream.getTracks().forEach((t) => t.stop()); } catch {} updateHud(); return; }
+          gpu.ctrl = ctrl; gpu.video = video; gpu.stream = stream;
+          gpu.hudT = setInterval(updateHud, 700); updateHud();
+        } catch { stopGpuPresent(); }
+      }
+      function stopGpuPresent() {
+        document.body.classList.remove("gpu-on");
+        if (gpu.hudT) { clearInterval(gpu.hudT); gpu.hudT = 0; }
+        try { gpu.ctrl && gpu.ctrl.dispose(); } catch {}
+        try { gpu.stream && gpu.stream.getTracks().forEach((t) => t.stop()); } catch {}
+        if (gpu.video) { try { gpu.video.srcObject = null; } catch {} }
+        gpu.ctrl = null; gpu.video = null; gpu.stream = null; updateHud();
+      }
+      function updateHud() {
+        const hud = $("cHud"); if (!hud) return;
+        if (gpu.ctrl) {
+          const a = gpu.ctrl.adapter || {}, name = String(a.description || a.vendor || a.architecture || "WebGPU").slice(0, 20);
+          const k = (gpu.ctrl.lutKappa || "").replace("sha256:", "").slice(0, 10);
+          const g = $("gpuScreen");
+          hud.innerHTML = `<span class="gpu">GPU ${esc(name)}</span> · present ${g.width}×${g.height} · <span class="lut">LUT holo://sha256:${k}…</span> · SR${gpu.fx ? " · FX" : ""} · ${Math.round(gpu.ctrl.fps)}fps`;
+          $("cFx").classList.toggle("on", gpu.fx);
+        } else {
+          const w = be ? be.canvas.width : 0, h = be ? be.canvas.height : 0;
+          hud.innerHTML = `<span class="soft">2D</span> · ${PROFILE.tier} · render ${w}×${h} · ${GPU_OK ? "GPU idle" : "no WebGPU"}`;
+          $("cFx").classList.remove("on");
+        }
+        hud.title = hud.textContent;   // the full telemetry on hover (the row truncates)
+      }
+      function toggleFx() { gpu.fx = !gpu.fx; if (gpu.ctrl) gpu.ctrl.setFx(gpu.fx ? 0.6 : 0); updateHud(); }
+      async function removeImported(id) {
+        await removeImport(id); rebuildThemeSelect();
+        if (getDefaultPref() === id) setDefaultPref("");
+        if (curTheme && curTheme.id === id) { try { await loadTheme(BUILTIN_DEFAULT, { keepProgress: false }); } catch {} }
+        toast("removed · " + id); renderGrid(); if ($("imp").classList.contains("show-boot")) renderBootPanel();
+      }
+
+      // Boot-splash preferences: a default + a per-Hologram-OS-instance assignment, both
+      // honoured by Holo Boot at handoff. Instances come from the boot manifest (no drift).
+      async function toggleBootPanel() { $("imp").classList.toggle("show-boot"); if ($("imp").classList.contains("show-boot")) renderBootPanel(); }
+      async function bootLoaders() {
+        try { if (BOOT_MANIFEST === null) BOOT_MANIFEST = await fetch("boot/boot-manifest.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})); return Object.keys((BOOT_MANIFEST && BOOT_MANIFEST.loaders) || {}); } catch { return []; }
+      }
+      async function renderBootPanel() {
+        const el = $("impBootPanel"); el.innerHTML = "";
+        const all = [...themes.map((t) => ({ id: t.id, label: `${t.name} · ${t.module}` })), ...[...IMPORTED.values()].map((t) => ({ id: t.id, label: `${t.name} · imported` }))];
+        const mkSelect = (value, withInherit, onchange) => {
+          const s = document.createElement("select");
+          if (withInherit) { const o = document.createElement("option"); o.value = ""; o.textContent = "(default)"; s.appendChild(o); }
+          for (const a of all) { const o = document.createElement("option"); o.value = a.id; o.textContent = a.label; s.appendChild(o); }
+          s.value = value || ""; s.onchange = () => onchange(s.value); return s;
+        };
+        const row = (label, title, sel) => { const r = document.createElement("div"); r.className = "bt-row"; const l = document.createElement("span"); l.className = "lbl"; l.textContent = label; if (title) l.title = title; r.appendChild(l); r.appendChild(sel); return r; };
+        el.appendChild(row("Default boot splash", "used when an instance has no explicit assignment", mkSelect(getDefaultPref(), false, (v) => { setDefaultPref(v); toast("default · " + (v || BUILTIN_DEFAULT)); })));
+        const per = getPerInstance();
+        for (const f of await bootLoaders()) {
+          if (f === "splash.html") continue;
+          el.appendChild(row(prettyLoader(f), f, mkSelect(per[f] || "", true, (v) => { const m = getPerInstance(); if (v) m[f] = v; else delete m[f]; setPerInstance(m); toast(prettyLoader(f) + " · " + (v || "default")); })));
+        }
+      }
+
+      // ── boot ──────────────────────────────────────────────────────────────────────────
+      let BUILTIN_DEFAULT = "holo-logo";
+      (async () => {
+        MANIFEST = await fetch("splash/splash-manifest.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ files: {} }));
+        const index = await fetch("splash/themes/themes.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ themes: [], default: "holo-logo" }));
+        themes = index.themes || []; BUILTIN_DEFAULT = index.default || (themes[0] && themes[0].id) || "holo-logo";
+        try { for (const e of await readIndex()) IMPORTED.set(e.id, e); } catch {}   // persisted imports
+        rebuildThemeSelect();
+        applyBackground();   // restore the saved background mode (Dark · Light · Immersive)
+        applySize();         // restore the saved centre-animation size
+        // chosen theme: explicit ?theme → saved default preference → built-in default
+        const pref = getDefaultPref();
+        const want = (knownTheme(params.get("theme")) && params.get("theme")) || (knownTheme(pref) && pref) || BUILTIN_DEFAULT;
+        try { await loadTheme(want, { keepProgress: false }); }
+        catch (e) {
+          // a saved/imported theme that won't load must never dead-end the boot — fall back.
+          if (want !== BUILTIN_DEFAULT) { try { await loadTheme(BUILTIN_DEFAULT, { keepProgress: false }); } catch (e2) { return refuse(e2); } }
+          else return refuse(e);
+        }
+        const qmode = params.get("mode"); if (qmode && MODES.includes(qmode) && eng) client.mode(qmode);   // ?mode= → plymouth change-mode
+        if (!bool(params.get("autoplay"), true)) eng.pause();
+        reflectState();
+        if (field) field.resize();   // the stage now has its final layout — match the field to it
+        initGallery();
+      })();
+      function refuse(e) { $("hint").classList.remove("gone"); $("hint").textContent = "theme refused: " + e.message; setState("refused", "off"); ver.ok = false; renderVer(); }
+    </script>
+      <script src="_shared/holo-theme.js"></script>
+</body>
+</html>

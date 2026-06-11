@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "render_qml is a live MCP tool",
+    "returns the real self-verifying QML tree (Law L5)",
+    "deterministic (re-derivable κ)",
+    "advertised in tools/list"
+  ],
+  "checks": {
+    "advertised": true,
+    "has-input-schema": true,
+    "no-error": true,
+    "real-tree": true,
+    "imports": true,
+    "self-verifies": true,
+    "deterministic": true,
+    "error-path": true
+  },
+  "failed": [],
+  "did": "did:holo:sha256:1da91b0771697b68c521c463a8b143b41dcfa9e1327374d6c270f44cc3e29649",
+  "authority": "W3C Model Context Protocol (2024-11-05) · Qt 6 QML Reference · verify by re-derivation (Law L5)"
+}

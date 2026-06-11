@@ -1,0 +1,22 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@id": "did:holo:sha256:a7bb1f02a5ac96371ecb402645d25e1cc7cda18c5280f0828f0e31c4fb16162e",
+  "@type": [
+    "schema:SoftwareApplication",
+    "prov:Entity"
+  ],
+  "schema:name": "Linux kernel",
+  "hosfs:fhs": "/boot/kernel.uor.json",
+  "hosfs:kind": "pin",
+  "dcterms:description": "Resolved by content from cache → peers/IPFS → origin at boot; re-derived to this κ before use (Law L5). Not shipped in the image.",
+  "digestSRI": "sha256-p7sfAqWsljcey0AmRdJeHMfNoYxSgPCCjw4xxPsWFi4=",
+  "digestMultibase": "uEiCnux8CpayWNx7LQCZF0l4cx82hjFKA8IKPDjHE-xYWLg"
+}

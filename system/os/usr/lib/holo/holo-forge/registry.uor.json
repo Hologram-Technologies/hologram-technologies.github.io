@@ -1,0 +1,103 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "hosc": "https://hologram.os/ns/conformance#"
+    }
+  ],
+  "@type": [
+    "schema:DataCatalog",
+    "hosc:LibraryRegistry",
+    "prov:Collection"
+  ],
+  "schema:name": "Holo Forge — content-addressed library registry",
+  "schema:description": "A verifiable package universe: each Holo-C library is addressed by the κ of its bytes; dependencies are resolved by content address, shared libraries are linked once (Law L3), and the whole graph re-derives byte-for-byte (Law L5). No registry server, no npm.",
+  "algo": "sha256",
+  "libraries": [
+    {
+      "name": "math",
+      "version": "1.0.0",
+      "schema:description": "integer math primitives",
+      "deps": [],
+      "exports": [
+        "abs",
+        "min",
+        "max",
+        "gcd",
+        "isqrt",
+        "ipow"
+      ],
+      "sourceKappa": "did:holo:sha256:b7707944e895a140ffa79dcabdd19570df570306e142b941e6d31037174e88e0",
+      "source": "// holo-std/math — integer math primitives (Holo-C). A content-addressed library: its κ is the\n// hash of these exact bytes; anything that links it pins it by content (Law L1), re-derives it\n// (Law L5), and shares it once across the whole dependency graph (Law L3).\nint abs(int x) { if (x < 0) return -x; return x; }\nint min(int a, int b) { if (a < b) return a; return b; }\nint max(int a, int b) { if (a > b) return a; return b; }\nint gcd(int a, int b) { while (b != 0) { int t = a % b; a = b; b = t; } return a; }\nint isqrt(int n) { int r = 0; while ((r + 1) * (r + 1) <= n) { r = r + 1; } return r; }\nint ipow(int base, int exp) { int r = 1; while (exp > 0) { r = r * base; exp = exp - 1; } return r; }\n"
+    },
+    {
+      "name": "prime",
+      "version": "1.0.0",
+      "schema:description": "primality + prime enumeration",
+      "deps": [
+        "math"
+      ],
+      "exports": [
+        "isPrime",
+        "nthPrime"
+      ],
+      "sourceKappa": "did:holo:sha256:3cd85db0c83161efee8c6133e591612de047752f39db7ed2608de981ad7b4259",
+      "source": "// holo-std/prime — primality + prime enumeration (Holo-C). Depends on holo-std/math (uses isqrt).\n// The dependency is resolved by content address and the shared math library is linked exactly once.\nint isPrime(int n) {\n  if (n < 2) return 0;\n  int i = 2;\n  int r = isqrt(n);                 // from holo-std/math\n  while (i <= r) { if (n % i == 0) return 0; i = i + 1; }\n  return 1;\n}\nint nthPrime(int k) {               // 1-indexed: nthPrime(1) = 2, nthPrime(10) = 29\n  int count = 0; int n = 1;\n  while (count < k) { n = n + 1; if (isPrime(n)) count = count + 1; }\n  return n;\n}\n"
+    },
+    {
+      "name": "combo",
+      "version": "1.0.0",
+      "schema:description": "combinatorics",
+      "deps": [
+        "math"
+      ],
+      "exports": [
+        "factorial",
+        "choose"
+      ],
+      "sourceKappa": "did:holo:sha256:eef1bcbd33afaa0f6700f69e5c7f08564a4fa814e52df9e46124729b065b4b60",
+      "source": "// holo-std/combo — combinatorics (Holo-C). Depends on holo-std/math (uses min). Linking combo and\n// prime together pulls holo-std/math once (Law L3 dedup) — a real transitive dependency graph.\nint factorial(int n) { int r = 1; while (n > 1) { r = r * n; n = n - 1; } return r; }\nint choose(int n, int k) {          // n-choose-k, computed without overflow-prone full factorials\n  k = min(k, n - k);                // from holo-std/math\n  int num = 1; int den = 1; int i = 0;\n  while (i < k) { num = num * (n - i); den = den * (i + 1); i = i + 1; }\n  return num / den;\n}\n"
+    }
+  ],
+  "links": [
+    {
+      "id": "did:holo:sha256:3cd85db0c83161efee8c6133e591612de047752f39db7ed2608de981ad7b4259",
+      "rel": "schema:hasPart",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-PNhdsMgxYe/ujGEz5ZFhLeBHdS85237SYI3pga17Qlk=",
+      "digestMultibase": "uEiA82F2wyDFh7-6MYTPlkWEt4Ed1LznbftJgjemBrXtCWQ",
+      "schema:name": "holo-std/prime"
+    },
+    {
+      "id": "did:holo:sha256:b7707944e895a140ffa79dcabdd19570df570306e142b941e6d31037174e88e0",
+      "rel": "schema:hasPart",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-t3B5ROiVoUD/p53KvdGVcN9XAwbhQrlB5tMQNxdOiOA=",
+      "digestMultibase": "uEiC3cHlE6JWhQP-nncq90ZVw31cDBuFCuUHm0xA3F06I4A",
+      "schema:name": "holo-std/math"
+    },
+    {
+      "id": "did:holo:sha256:eef1bcbd33afaa0f6700f69e5c7f08564a4fa814e52df9e46124729b065b4b60",
+      "rel": "schema:hasPart",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-7vG8vTOvqg9nAPaeXH8IVkpPqBTlLfnkYSRymwZbS2A=",
+      "digestMultibase": "uEiDu8by9M6-qD2cA9p5cfwhWSk-oFOUt-eRhJHKbBltLYA",
+      "schema:name": "holo-std/combo"
+    }
+  ],
+  "id": "did:holo:sha256:2d68b6b3fd1a41abf169e10bab211ab8440a273c4eead07bdd5629b5a561ecfe"
+}

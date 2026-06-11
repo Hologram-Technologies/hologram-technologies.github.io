@@ -1,0 +1,51 @@
+holo-evm — the hologram-native Ethereum Virtual Machine engine (Law L5 pins)
+============================================================================
+
+Holo EVM runs a REAL, spec-faithful Ethereum Virtual Machine entirely in the
+browser. The engine is the EthereumJS reference implementation — the Ethereum
+Foundation's JavaScript EVM/VM that tracks the Yellow Paper + the executable
+spec and passes the official `ethereum/tests` consensus suite. It is vendored
+as ONE self-contained ES-module bundle — no CDN — so the holospace runs offline
+and is re-derivable byte-for-byte.
+
+Why this IS the Ethereum spec (not a lookalike):
+  • Full opcode set, gas schedule, memory/stack semantics, precompiles, and the
+    active hardfork rules come straight from EthereumJS @ethereumjs/evm + /vm.
+  • State is a Merkle-Patricia Trie (@ethereumjs/mpt): every account, storage
+    slot and the state ROOT is a keccak256 content address — Ethereum is already
+    a UOR content-addressed system. Contract code is addressed by its codeHash =
+    keccak256(code). The κ-axis here is `keccak`.
+  • Transactions are real, signed (secp256k1) RLP objects (@ethereumjs/tx); block
+    headers RLP-encode + keccak to the canonical block hash (@ethereumjs/block).
+
+How the κ-gate works (Law L5 — verify by re-derivation):
+  • evm.html re-derives the sha256 of the bytes it loads and REFUSES a drift.
+  • In-page self-test: the engine reproduces keccak256("") byte-for-byte and
+    executes a canonical opcode trace (ADD) at the spec gas cost.
+  • Live mainnet view: each real block's 16-field header is RLP-re-encoded and
+    keccak-hashed (createBlockHeaderFromRPC → .hash()) and κ-checked against the
+    network's block hash — byte-identical, no simulation.
+  • evm-witness.mjs re-checks every pin offline and re-runs the functional KATs.
+  A forged byte fails.
+
+Built from the npm reference packages (all @ethereumjs v10.1.2):
+  @ethereumjs/vm @ethereumjs/evm @ethereumjs/common @ethereumjs/statemanager
+  @ethereumjs/mpt @ethereumjs/util @ethereumjs/tx @ethereumjs/block @ethereumjs/rlp
+  + ethereum-cryptography 3.2.0 (keccak256 / secp256k1)
+bundled with esbuild (--bundle --format=esm --platform=browser --minify) from
+the entry that re-exports them as stable namespaces. Reproduce with
+`build-holo-evm.mjs` (see crates/holospaces-web/).
+
+License: Mozilla Public License 2.0 (EthereumJS). See LICENSE.
+
+sha256 (the bytes evm.html loads):
+  89d0e166d3d363c29587272013900b3f581d7278d6d57ae9295f3525781e2b9d  holo-evm.bundle.mjs
+  fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85  LICENSE
+
+EF consensus vectors (full-block state-transition verifier) — ethereum/tests
+BlockchainTests/ValidBlocks/bcExample (develop). Self-contained; re-executed offline
+to reproduce each block's post-state root. sha256 (re-derived by evm.html + witness):
+  5219d2760752f0727c302754adcce1855615b1afad356bc887bf72d9d60c5940  bctests/index.json
+  d0c7d1e1e8fecc5d1b456caaa535da7acff5a43b725b7d577e40e6affefe046d  bctests/basefeeExample.json
+  cc2ab553d6798f1e80694bdd67cafe3a1a996b1f60fcb8164efb8ce1c2beeafa  bctests/shanghaiExample.json
+  5b7735d59f3b9e8f247563452c93e5d3c2a0431608137c301ec3672021efe64d  bctests/mergeExample.json

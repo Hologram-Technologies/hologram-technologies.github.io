@@ -1,0 +1,51 @@
+name: Deploy Hologram OS to GitHub Pages
+
+# Publishes the OS as-is: the site root IS the FHS image (os/). No build step — the in-browser
+# Service Worker (os/holo-fhs-sw.js, the twin of tools/holo-serve-fhs.mjs, sharing
+# os/lib/holo-fhs-map.mjs) maps the flat URL space onto the FHS tree and supplies cross-origin
+# isolation at runtime. Proven by tools/pages-deploy-witness.mjs against a dumb static host.
+#
+# Serve at a ROOT site (a <user>.github.io user/org site, or a custom domain) so the app's
+# absolute references (/_shared/…, /usr/…) resolve. Under a project subpath (/<repo>/) those
+# absolute paths escape the SW scope — that conversion is the one remaining follow-up.
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      # Stage a lean site from the new layout (everything lives under system/, except the gateway
+      # + agent/governance docs which sit at the repo root). Published: the gateway, the agent map,
+      # the AGENTS + CONSTITUTION docs, the FHS image as the os/ subtree, and a root mirror of
+      # /.well-known. No source dirs (crates/docs/tools) are published. No build — the Service
+      # Worker maps flat→FHS + supplies cross-origin isolation at runtime.
+      - name: Stage site (gateway + OS subtree)
+        run: |
+          mkdir -p _site
+          cp index.html README.md AGENTS.md CONSTITUTION.md _site/
+          cp system/llms.txt _site/
+          cp -r system/os _site/os
+          cp -r system/os/.well-known _site/.well-known
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

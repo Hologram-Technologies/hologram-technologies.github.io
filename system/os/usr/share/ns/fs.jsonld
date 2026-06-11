@@ -1,0 +1,65 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "schema": "https://schema.org/",
+    "hosfs": "https://hologram.os/ns/fs#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "domain": { "@id": "rdfs:domain", "@type": "@id" },
+    "range": { "@id": "rdfs:range", "@type": "@id" },
+    "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
+    "closeMatch": { "@id": "skos:closeMatch", "@type": "@id" },
+    "isDefinedBy": { "@id": "rdfs:isDefinedBy", "@type": "@id" }
+  },
+  "@id": "https://hologram.os/ns/fs",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — Filesystem projection vocabulary (hosfs:)",
+  "comment": "The terms Hologram OS mints to project the Linux Filesystem Hierarchy Standard (FHS 3.0) onto the content-addressed UOR object graph. A directory becomes a graph node (a dcat:Catalog / prov:Collection) carrying the FHS path it projects to as a LABEL — never as its identity. Identity stays the node's did:holo over its own content (Law L1); the FHS path is a human- and Linux-facing projection. Mint-nothing discipline (ADR-024): terms with a near-equivalent declare skos:closeMatch; only the genuinely OS-specific ones (fhs, kind) stand alone. Everything structural reuses dcat, prov, schema.org, DCMI Terms unchanged. This document is itself valid JSON-LD.",
+  "dcterms:source": "https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "@graph": [
+    {
+      "@id": "hosfs:Directory",
+      "@type": "rdfs:Class",
+      "label": "Directory (FHS projection node)",
+      "comment": "A content-addressed graph node that projects one Filesystem Hierarchy Standard directory onto the UOR Merkle-DAG. It is a DCAT catalog of its children and a PROV collection; its identity is its did:holo, not its path. An AI agent resolves it, re-derives its κ (Law L5), and follows its schema:hasPart edges to navigate the tree as a graph.",
+      "subClassOf": "dcat:Catalog",
+      "isDefinedBy": "https://hologram.os/ns/fs"
+    },
+    {
+      "@id": "hosfs:fhs",
+      "@type": "rdf:Property",
+      "label": "fhs path",
+      "comment": "The Filesystem Hierarchy Standard path this node projects to (e.g. \"/usr/share\"). A LABEL, not an identity: per Law L1 the node is named by content (did:holo), and the same node is identical at any path. OS-specific — the FHS path of a content-addressed node has no W3C equivalent.",
+      "domain": "hosfs:Directory",
+      "range": "xsd:string",
+      "isDefinedBy": "https://hologram.os/ns/fs"
+    },
+    {
+      "@id": "hosfs:fhsRole",
+      "@type": "rdf:Property",
+      "label": "fhs role",
+      "comment": "The FHS function this directory fulfils, stated in Linux terms (e.g. \"shareable, read-only data\" for /usr, \"boot loader + kernel\" for /boot), mapped to its Hologram realization. Lets the tree explain itself.",
+      "domain": "hosfs:Directory",
+      "range": "xsd:string",
+      "closeMatch": "dcterms:description",
+      "isDefinedBy": "https://hologram.os/ns/fs"
+    },
+    {
+      "@id": "hosfs:kind",
+      "@type": "rdf:Property",
+      "label": "kind",
+      "comment": "How this directory is realized, which is what keeps the OS lean: content (ships κ-addressed read-only bytes), pin (a κ reference resolved from peers/IPFS at boot, not shipped), state (mutable persistent OPFS-backed storage — /home /var/lib /root /srv), mount (a runtime mount point — /mnt /media), virtual (synthesized by the running VM — /dev /proc /sys), or ephemeral (tmpfs, cleared on boot — /run /tmp /var/cache). OS-specific.",
+      "domain": "hosfs:Directory",
+      "range": "xsd:string",
+      "isDefinedBy": "https://hologram.os/ns/fs"
+    }
+  ]
+}

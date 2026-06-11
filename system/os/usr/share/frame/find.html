@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Holo Find — the open web, resolved</title>
+  <meta name="description" content="One search bar onto the open web's object universe. Type anything — a paper, a place, a person, a book, an identifier — and get a self-verifying, corroborated answer. No AI." />
+  <!-- the shared conformance + theme layers (every shipped page adopts them) -->
+  <link rel="stylesheet" href="_shared/holo-mobile.css" />
+  <link rel="stylesheet" href="_shared/holo-theme.css" />
+  <style>
+    :root { color-scheme: light dark; --ink: var(--holo-ink, #11181c); --dim: var(--holo-ink-dim, #5b6b73);
+      --accent: var(--holo-accent, #1f6feb); --surface: var(--holo-bg, #ffffff); --card: var(--holo-surface, #f6f8fa);
+      --line: var(--holo-border, #d9dee2); --ok: var(--holo-ok, #1a7f37); --warn: var(--holo-warn, #9a6700); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.55 var(--holo-font-sans, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+      color: var(--ink); background: var(--surface); display: flex; flex-direction: column; min-height: 100dvh; }
+    main { width: 100%; max-width: 720px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); flex: 1; }
+    .hero { display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 18px; min-height: 46dvh; text-align: center; transition: min-height .25s ease; }
+    body.has-results .hero { min-height: 0; gap: 12px; padding-bottom: 8px; }
+    .wordmark { font-weight: 700; letter-spacing: -.02em; font-size: clamp(30px, 7vw, 52px); }
+    .wordmark .holo { color: var(--accent); }
+    .tagline { color: var(--dim); max-width: 30ch; }
+    body.has-results .tagline { display: none; }
+    form { display: flex; gap: 8px; width: 100%; max-width: 580px; }
+    input[type=search] { flex: 1; min-width: 0; font-size: 16px; padding: 14px 18px; border: 1px solid var(--line);
+      border-radius: 999px; background: var(--card); color: var(--ink); outline: none; }
+    input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+    button { font-size: 16px; padding: 0 20px; min-height: 48px; border: 0; border-radius: 999px;
+      background: var(--accent); color: #fff; cursor: pointer; font-weight: 600; }
+    button:disabled { opacity: .55; cursor: progress; }
+    .status { color: var(--dim); margin: 20px 2px; font-size: var(--holo-text-sm, 1rem); }
+    .card { border: 1px solid var(--line); background: var(--card); border-radius: 16px; padding: 18px 20px; margin: 18px 0; }
+    .answer { font-size: clamp(20px, 5vw, 26px); font-weight: 650; letter-spacing: -.01em; }
+    .answer a { color: inherit; text-decoration: none; border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+    .fact { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .fact:first-of-type { border-top: 0; }
+    .fact .k { color: var(--dim); min-width: 92px; }
+    .fact .v { font-weight: 550; }
+    .mark { font-weight: 700; }
+    .mark.ok { color: var(--ok); } .mark.warn { color: var(--warn); }
+    .chip { font-size: var(--holo-text-sm, 1rem); color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; text-decoration: none; }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .vs { color: var(--dim); margin: 0 6px; }
+    h2 { font-size: var(--holo-text-sm, 1rem); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 26px 2px 8px; }
+    .hit { padding: 12px 0; border-top: 1px solid var(--line); }
+    .hit a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .hit .meta { color: var(--dim); font-size: var(--holo-text-sm, 1rem); margin-top: 2px; }
+    .agree { display: inline-block; font-size: var(--holo-text-sm, 1rem); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 40%, var(--line)); border-radius: 999px; padding: 0 7px; margin-left: 6px; }
+    footer { text-align: center; color: var(--dim); font-size: var(--holo-text-sm, 1rem); padding: 22px; border-top: 1px solid var(--line); }
+    footer b { color: var(--ink); font-weight: 600; }
+    .verify { color: var(--dim); font-size: var(--holo-text-sm, 1rem); margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero">
+      <div class="wordmark"><span class="holo">Holo</span> Find</div>
+      <div class="tagline">One bar onto the open web's object universe. Type anything — a person, a place, a paper, a book, an identifier — and get a self-verifying, corroborated answer. No AI.</div>
+      <form id="f" role="search">
+        <input id="q" type="search" name="q" autocomplete="off" autofocus
+          placeholder="marie curie · 10.1038/nature14539 · London · Q937 · 9780345391803" aria-label="Search the open web" />
+        <button id="go" type="submit">Find</button>
+      </form>
+    </div>
+    <div id="out" aria-live="polite"></div>
+  </main>
+  <footer>Resolved live from the open web — Wikipedia · Wikidata · Crossref · Open Library · OpenStreetMap. <b>No AI.</b> Every fact links to its source; agreement across sources is the signal.</footer>
+
+  <script type="module">
+    import { find, browserFetchJson, screen } from "./_shared/holo-find.js";
+    const $ = (s) => document.querySelector(s);
+    const out = $("#out"), form = $("#f"), input = $("#q"), go = $("#go");
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const status = (s) => { out.innerHTML = `<p class="status">${esc(s)}</p>`; };
+
+    function srcChip(name, url) { return url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>` : `<span class="chip">${esc(name)}</span>`; }
+
+    function render(r) {
+      document.body.classList.add("has-results");
+      const a = r.answer; const parts = [];
+      const head = a.reconciledTo
+        ? `<a href="https://www.wikidata.org/wiki/${esc(a.reconciledTo)}" target="_blank" rel="noopener">${esc(a.answer || a.entity || r.query)}</a>`
+        : esc(a.answer || a.entity || r.query);
+      parts.push(`<div class="card"><div class="answer">${head}</div>`);
+      if (!a.facts.length && !a.conflicts.length) parts.push(`<div class="fact"><span class="v">No corroborated facts found across the sources for this query.</span></div>`);
+      for (const f of a.facts) parts.push(`<div class="fact"><span class="mark ok">✓</span><span class="k">${esc(f.label)}</span><span class="v">${esc(f.value)}</span> ${f.sources.map((s) => srcChip(s)).join(" ")}${f.corroboration > 1 ? `<span class="agree">corroborated ×${f.corroboration}</span>` : ""}</div>`);
+      for (const c of a.conflicts) parts.push(`<div class="fact"><span class="mark warn">⚠</span><span class="k">${esc(c.label)}</span><span class="v">${c.variants.map((v) => `${esc(v.value)} ${srcChip(v.source)}`).join('<span class="vs">vs</span>')}</span></div>`);
+      parts.push(`<div class="verify">${r.mode === "federate" && r.anchor ? `Entity anchored on Wikipedia's primary topic (${esc(r.anchor.qid || "—")})${r.anchor.agreed ? ", confirmed by the federated search" : ""}. ` : ""}Disagreements are shown, not merged — the answer asserts only what verifiable sources agree on.</div></div>`);
+      if (r.results && r.results.length > 1) {
+        parts.push(`<h2>See also — ${r.results.length} results across ${r.sources ? r.sources.length : "several"} sources</h2>`);
+        for (const x of r.results.slice(1, 12)) parts.push(`<div class="hit">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}${x.foundBy > 1 ? `<span class="agree">${x.foundBy} sources</span>` : ""}<div class="meta">${esc(x.description || "")}${x.reconcile ? ` · ${esc(x.reconcile)}` : ""}</div></div>`);
+      }
+      out.innerHTML = parts.join("");
+    }
+
+    async function run(q) {
+      q = (q || "").trim(); if (!q) return;
+      const scr = screen(q);                                  // the constitution's perimeter screens the input
+      if (scr.decision === "block") { status("This query was blocked at the perimeter for attack shape."); return; }
+      go.disabled = true; status(`Resolving “${q}” across the open web…`);
+      try { render(await find(q, { fetchJson: browserFetchJson })); }
+      catch (e) { status("Could not reach the open web: " + e.message); }
+      finally { go.disabled = false; }
+    }
+
+    form.addEventListener("submit", (e) => { e.preventDefault(); const q = input.value; history.replaceState(null, "", "?q=" + encodeURIComponent(q)); run(q); });
+    const initial = new URLSearchParams(location.search).get("q");
+    if (initial) { input.value = initial; run(initial); }
+  </script>
+</body>
+</html>

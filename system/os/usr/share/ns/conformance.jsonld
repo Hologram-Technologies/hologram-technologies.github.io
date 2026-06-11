@@ -1,0 +1,111 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "earl": "http://www.w3.org/ns/earl#",
+    "schema": "https://schema.org/",
+    "hosc": "https://hologram.os/ns/conformance#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "domain": { "@id": "rdfs:domain", "@type": "@id" },
+    "range": { "@id": "rdfs:range", "@type": "@id" },
+    "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
+    "subPropertyOf": { "@id": "rdfs:subPropertyOf", "@type": "@id" },
+    "closeMatch": { "@id": "skos:closeMatch", "@type": "@id" },
+    "isDefinedBy": { "@id": "rdfs:isDefinedBy", "@type": "@id" }
+  },
+  "@id": "https://hologram.os/ns/conformance",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — Conformance vocabulary (hosc:)",
+  "comment": "The ONE namespace Hologram OS mints: the terms its W3C conformance catalog (https://hologram.os/conformance/w3c) needs and that have no W3C / community equivalent. Mint-nothing discipline (ADR-024): a term with a near-equivalent declares skos:closeMatch to it; only the genuinely OS-specific terms (layer, witness, required, status) stand alone. Everything else in the catalog reuses dcat, earl, prov, schema.org, and DCMI Terms unchanged. This document is itself valid JSON-LD.",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "@graph": [
+    {
+      "@id": "hosc:ConformanceCatalog",
+      "@type": "rdfs:Class",
+      "label": "Conformance Catalog",
+      "comment": "A catalog of the W3C / semantic-web categories an internet computer enforces, each linked to its external authority and its witness. A specialization of a DCAT catalog.",
+      "subClassOf": "dcat:Catalog",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:ConformanceAssertion",
+      "@type": "rdfs:Class",
+      "label": "Conformance Assertion",
+      "comment": "One catalog row: the claim that the system conforms to a named standard, provable by re-running its witness. Each row becomes an earl:Assertion in the EARL report the gate emits.",
+      "subClassOf": "earl:Assertion",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:conforms",
+      "@type": "rdf:Property",
+      "label": "conforms",
+      "comment": "Links a ConformanceCatalog to the assertions it is composed of.",
+      "domain": "hosc:ConformanceCatalog",
+      "range": "hosc:ConformanceAssertion",
+      "closeMatch": "dcterms:hasPart",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:authority",
+      "@type": "rdf:Property",
+      "label": "authority",
+      "comment": "The external normative authority a row is witnessed against — the IRI of its specification or test suite. Conformance is never self-asserted: this is the source of truth the witness re-derives against.",
+      "domain": "hosc:ConformanceAssertion",
+      "range": "rdfs:Resource",
+      "closeMatch": "dcterms:conformsTo",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:category",
+      "@type": "rdf:Property",
+      "label": "category",
+      "comment": "The W3C category a row belongs to (e.g. \"Identity & addressing\", \"Linked data\").",
+      "domain": "hosc:ConformanceAssertion",
+      "range": "rdfs:Literal",
+      "closeMatch": "schema:category",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:layer",
+      "@type": "rdf:Property",
+      "label": "layer",
+      "comment": "Which layer of the internet computer the row sits in: addressing, conformance, holospace, or substrate. OS-specific — no W3C equivalent.",
+      "domain": "hosc:ConformanceAssertion",
+      "range": "rdfs:Literal",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:witness",
+      "@type": "rdf:Property",
+      "label": "witness",
+      "comment": "The executable proof for a row: a path to the script that re-derives conformance against the authority and emits a machine-readable result. The witness is what turns the assertion into an earl:Assertion. OS-specific — no W3C equivalent.",
+      "domain": "hosc:ConformanceAssertion",
+      "range": "rdfs:Literal",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:required",
+      "@type": "rdf:Property",
+      "label": "required",
+      "comment": "Whether the row is release-gated: a build fails if a required row is not witnessed. OS-specific — encodes the refuse-on-red gate semantics.",
+      "domain": "hosc:ConformanceAssertion",
+      "range": "xsd:boolean",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    },
+    {
+      "@id": "hosc:status",
+      "@type": "rdf:Property",
+      "label": "status",
+      "comment": "The maturity of a row: witnessed (green now), partial (green but coverage incomplete), target (an expected-red witness exists), or planned (authority fixed, witness not yet written). OS-specific.",
+      "domain": "hosc:ConformanceAssertion",
+      "range": "rdfs:Literal",
+      "isDefinedBy": "https://hologram.os/ns/conformance"
+    }
+  ]
+}

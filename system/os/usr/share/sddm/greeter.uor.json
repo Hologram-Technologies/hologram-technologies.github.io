@@ -1,0 +1,142 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "qml": "https://doc.qt.io/qt-6/qtqml-index.html#",
+      "sddm": "https://github.com/sddm/sddm#",
+      "hosc": "https://hologram.os/ns/conformance#"
+    }
+  ],
+  "@type": [
+    "schema:SoftwareApplication",
+    "prov:Entity"
+  ],
+  "schema:name": "Hologram OS display manager — real SDDM greeter (Holo QML)",
+  "schema:description": "The login greeter IS the verbatim upstream SDDM maldives/Main.qml, parsed + executed by Holo QML (a from-spec QML engine, os/usr/lib/holo/holo-qml.mjs) and rendered to the DOM — the way Holo Splash runs Plymouth's real .script themes. sddm.login() unlocks a self-sovereign key bound to this device (Law L1), not PAM. Re-derive this object's did and each linked source κ to verify (Law L5).",
+  "schema:applicationCategory": "DisplayManager",
+  "schema:softwareRequirements": "Holo QML engine (os/usr/lib/holo/holo-qml.mjs)",
+  "qml:imports": [
+    "QtQuick 2.0",
+    "SddmComponents 2.0"
+  ],
+  "qml:types": {
+    "Rectangle": 2,
+    "TextConstants": 1,
+    "Connections": 1,
+    "Background": 1,
+    "Clock": 1,
+    "Image": 1,
+    "Column": 6,
+    "Text": 6,
+    "TextBox": 1,
+    "PasswordBox": 1,
+    "Row": 2,
+    "ComboBox": 1,
+    "LayoutBox": 1,
+    "Button": 3
+  },
+  "qml:ids": [
+    "container",
+    "textConstants",
+    "clock",
+    "rectangle",
+    "mainColumn",
+    "lblName",
+    "name",
+    "lblPassword",
+    "password",
+    "lblSession",
+    "session",
+    "lblLayout",
+    "layoutBox",
+    "errorMessage",
+    "loginButton",
+    "shutdownButton",
+    "rebootButton"
+  ],
+  "qml:apiSurface": [
+    "sddm.login",
+    "sddm.powerOff",
+    "sddm.reboot"
+  ],
+  "hosc:authority": "Qt 6 QML Reference — QtQml (doc.qt.io/qt-6/qmlreference.html) · SDDM (github.com/sddm/sddm — data/themes/maldives + components/2.0)",
+  "hosc:witness": "tools/qml-engine-witness.mjs",
+  "links": [
+    {
+      "id": "did:holo:sha256:d56e37c6ccae2c8a5db1e28def52415dd98d9c048189987c575fde5706baf1c6",
+      "rel": "qml:theme",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-1W43xsyuLIpdseKN71JBXdmNnASBiZh8V1/eVwa68cY=",
+      "digestMultibase": "uEiDVbjfGzK4sil2x4o3vUkFd2Y2cBIGJmHxXX95XBrrxxg"
+    },
+    {
+      "id": "did:holo:sha256:eaeca7386179b171dd9be874cdd280fa2d0ea1c3a4192f8eda25a2a94e99920b",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-6uynOGF5sXHdm+h0zdKA+i0OocOkGS+O2iWiqU6Zkgs=",
+      "digestMultibase": "uEiDq7Kc4YXmxcd2b6HTN0oD6LQ6hw6QZL47aJaKpTpmSCw"
+    },
+    {
+      "id": "did:holo:sha256:77a944efde01785089f93a46ca1d01f38b277ee8542676de557641ffb5263305",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-d6lE794BeFCJ+TpGyh0B84snfuhUJnbeVXZB/7UmMwU=",
+      "digestMultibase": "uEiB3qUTv3gF4UIn5OkbKHQHziyd-6FQmdt5VdkH_tSYzBQ"
+    },
+    {
+      "id": "did:holo:sha256:b1ebdd329d04c1dee6a76e707cacb963c81f39a18fce04832ea2a524fd8db1e4",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-sevdMp0Ewd7mp25wfKy5Y8gfOaGPzgSDLqKlJP2NseQ=",
+      "digestMultibase": "uEiCx690ynQTB3uanbnB8rLljyB85oY_OBIMuoqUk_Y2x5A"
+    },
+    {
+      "id": "did:holo:sha256:62a822a9ca8982d66a631a9040de17e366486aac510a656abdd18acbf2883f8e",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-YqgiqcqJgtZqYxqQQN4X42ZIaqxRCmVqvdGKy/KIP44=",
+      "digestMultibase": "uEiBiqCKpyomC1mpjGpBA3hfjZkhqrFEKZWq90YrL8og_jg"
+    },
+    {
+      "id": "did:holo:sha256:9dfd0e65b7a079544afd8f7ea987980cbd173852aaa5373ffa839c8e2ac7f45e",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-nf0OZbegeVRK/Y9+qYeYDL0XOFKqpTc/+oOcjirH9F4=",
+      "digestMultibase": "uEiCd_Q5lt6B5VEr9j36ph5gMvRc4UqqlNz_6g5yOKsf0Xg"
+    },
+    {
+      "id": "did:holo:sha256:8faf39164507eddb5be729657c71848b14b094a33292f009c0b0dba4150a7843",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-j685FkUH7dtb5yllfHGEixSwlKMykvAJwLDbpBUKeEM=",
+      "digestMultibase": "uEiCPrzkWRQft21vnKWV8cYSLFLCUozKS8AnAsNukFQp4Qw"
+    },
+    {
+      "id": "did:holo:sha256:6d9ca8eaccadaafe66f95feed4f3cd042460285533100885670958dbec3264ed",
+      "rel": "qml:component",
+      "@type": "schema:MediaObject",
+      "leaf": true,
+      "digestSRI": "sha256-bZyo6sytqv5m+V/u1PPNBCRgKFUzEAiFZwlY2+wyZO0=",
+      "digestMultibase": "uEiBtnKjqzK2q_mb5X-7U880EJGAoVTMQCIVnCVjb7DJk7Q"
+    }
+  ],
+  "id": "did:holo:sha256:f8d5427cfb3192b95c34ff23bb57667edd5e43f2702f6dbfd7a8c75d37701a72"
+}

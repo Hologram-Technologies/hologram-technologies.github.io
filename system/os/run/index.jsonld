@@ -1,0 +1,30 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "hosfs": "https://hologram.os/ns/fs#"
+    }
+  ],
+  "@type": [
+    "hosfs:Directory",
+    "dcat:Catalog",
+    "prov:Collection"
+  ],
+  "schema:name": "run",
+  "hosfs:fhs": "/run",
+  "hosfs:fhsRole": "run-time state since boot (tmpfs) → live sessions · sockets · the mesh",
+  "hosfs:kind": "ephemeral",
+  "id": "did:holo:sha256:3af7f03d6a18cc4d9652c2dff3411584037f34ce9f8cac5143abe2a9737066f6"
+}

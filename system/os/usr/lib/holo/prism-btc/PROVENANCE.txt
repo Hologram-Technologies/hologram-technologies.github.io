@@ -1,0 +1,22 @@
+prism-btc — WebAssembly mining engine (Law L5 pins)
+====================================================
+
+The hologram-native Bitcoin miner. `prism-btc` derives a Bitcoin block
+address (the `sha256d:<64hex>` κ-label = the conventional block hash) by
+folding an 80-byte canonical-form header through the shared UOR-ADDR
+ψ-tower; the `sha256d` σ-axis is the content-addressing primitive. The
+in-browser holospace drives the kernel's bounded `mine_range` sweep over
+the 32-bit nonce space; the first candidate whose digest satisfies the
+target is admitted — Bitcoin proof-of-work, realized as a typed
+admission observation on the κ-label.
+
+Built from github.com/UOR-Foundation/prism-btc (crates/prism-btc-wasm)
+with `wasm-pack build --target web --release`. The engine is vendored —
+no CDN — so the miner runs offline and is re-derivable byte-for-byte.
+
+Each file below re-derives to the sha256 listed (Law L5). `btc.html`
+re-derives the bytes it loads and REFUSES a κ mismatch; the witness
+(`btc-witness.mjs`) re-checks the same pins offline. A forged byte fails.
+
+6757c873764d0dd31c9d3eb77c2a165e6c93b05ccc3441b3f0558caca990df92  prism_btc_wasm.js
+a46e6df8cf670021277b1facc0ea642a83e04afb9e5947853f766b82b1448446  prism_btc_wasm_bg.wasm

@@ -1,0 +1,32 @@
+{
+  "spec": "Hologram OS filesystem — the FHS root as one self-verifying, content-addressed semantic graph",
+  "authority": "Linux Foundation FHS 3.0 · W3C SHACL · RDF Schema 1.1 / OWL 2 · schema.org + DCAT 3 + PROV-O · W3C DID Core · IETF RFC 8785 (JCS)",
+  "witnessed": true,
+  "covers": [
+    "fhs-graph",
+    "uor-object",
+    "shacl",
+    "mint-nothing",
+    "semantic-web",
+    "ai-navigable"
+  ],
+  "root": "did:holo:sha256:c5203506862ff15c4bde8c9954c411eef0eb2f2fb7cc062bc323ee7621972450",
+  "nodes": 33,
+  "dagDepth": 3,
+  "fhsMissing": [],
+  "missing": [],
+  "shapeErrors": [],
+  "checks": {
+    "rootSelfVerifies": true,
+    "dagReDerives": true,
+    "allNodesSelfVerify": true,
+    "tamperRefused": true,
+    "navigableFromRoot": true,
+    "ontologyPublished": true,
+    "mintNothing": true,
+    "usesStandardVocab": true,
+    "shapeWellFormed": true,
+    "shapeValid": true,
+    "fhsComplete": true
+  }
+}

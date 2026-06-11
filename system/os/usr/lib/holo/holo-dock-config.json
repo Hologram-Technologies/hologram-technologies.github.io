@@ -1,0 +1,46 @@
+{
+  "$comment": "Holo Dock (ADR-0059) default configuration — an EDITABLE, content-addressed κ-object. The top level is a valid zebar widget pack (conforms to holo-zpack-schema.json: the bar is one widget docked to the bottom edge); the `holo` block carries the dock's own editable state (pinned app ids, glass mode, magnify, clock). zebar ignores unknown keys, so adoption stays faithful while this stays the one place to customize the dock. A user's edits are layered on top from OPFS (holo.dock.config.json); /usr is read-only, /home (OPFS) is writable.",
+  "name": "holo-dock",
+  "version": "1.0.0",
+  "description": "The native-feel Hologram OS dock — a Windows-taskbar / macOS-dock bar that adapts to the host OS.",
+  "tags": ["dock", "taskbar", "launcher"],
+  "widgets": [
+    {
+      "name": "dock",
+      "htmlPath": "./home.html",
+      "zOrder": "top_most",
+      "shownInTaskbar": false,
+      "focused": false,
+      "resizable": false,
+      "transparent": true,
+      "presets": [
+        {
+          "name": "bottom",
+          "anchor": "bottom_center",
+          "offsetX": "0px",
+          "offsetY": "0px",
+          "width": "100%",
+          "height": "2.618rem",
+          "monitorSelection": { "type": "primary" },
+          "dockToEdge": { "enabled": true, "edge": "bottom", "windowMargin": "0px" }
+        }
+      ]
+    }
+  ],
+  "holo": {
+    "pins": [
+      "org.hologram.HoloFiles",
+      "org.hologram.HoloSearch",
+      "org.hologram.HoloBrowser",
+      "org.hologram.HoloDocs",
+      "org.hologram.HoloNotepad",
+      "org.hologram.HoloWorkspace",
+      "org.hologram.HoloQ"
+    ],
+    "glass": "acrylic",
+    "glassByPlatform": { "macos": "acrylic", "ipados": "acrylic" },
+    "magnify": true,
+    "showClock": true,
+    "showHome": true
+  }
+}
