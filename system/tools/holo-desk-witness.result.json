@@ -16,6 +16,11 @@
     "nesting",
     "folder-cover-matches-contents",
     "marquee-multi-select",
+    "pin-any-object",
+    "desktop-as-one-kappa",
+    "content-address-verify",
+    "trash-undo",
+    "copy-paste",
     "law-l5"
   ],
   "results": [
@@ -98,6 +103,31 @@
       "name": "marquee rubber-band selects multiple icons at once",
       "ok": true,
       "detail": "selected 3/3"
+    },
+    {
+      "name": "any object — a κ, did:holo, or URL — pins to the desktop (drop/paste)",
+      "ok": true,
+      "detail": "https://uor.foundation"
+    },
+    {
+      "name": "the whole desktop arrangement is ONE shareable content address (Copy desktop κ)",
+      "ok": true,
+      "detail": "holo://0611b7b36ddcdbf16637731…"
+    },
+    {
+      "name": "each desktop file re-derives to its content κ on demand (Law L5)",
+      "ok": true,
+      "detail": "ed7002b439e9ac845f22…"
+    },
+    {
+      "name": "delete moves to Trash and Undo (⌘Z) restores it",
+      "ok": true,
+      "detail": "removed=true restored=true"
+    },
+    {
+      "name": "copy + paste duplicates an item (content-addressed)",
+      "ok": true,
+      "detail": "dup-me 2.txt, dup-me.txt"
     },
     {
       "name": "captured a screenshot of the working desktop",

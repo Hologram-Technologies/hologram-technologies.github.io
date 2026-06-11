@@ -56,16 +56,13 @@ try {
   browser = await chromium.launch();
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 
-  // ── clean boot: every boot byte re-derives to its κ, so the SDDM greeter runs + COI works ──
-  // The streamlined default path skips the rEFInd menu + Plymouth and goes straight to the greeter,
-  // which (on unlock) opens the ONE desktop shell (apps/sdk). Integrity is unchanged — the worker
-  // still re-derives every byte to its κ (L5); we just land on the greeter, not a boot animation.
+  // ── clean boot: every boot byte re-derives to its κ, so the Plymouth splash runs + COI works ──
   await page.goto(base + "/", { waitUntil: "load", timeout: 30000 });
-  await page.waitForURL(/\/login\.html/, { timeout: 25000 }).catch(() => {});
-  await sleep(2500);
-  const boot = await page.evaluate(() => ({ controlled: !!navigator.serviceWorker.controller, greeter: !!window.__holoQml || !!document.querySelector("#stage input"), isolated: typeof crossOriginIsolated !== "undefined" ? crossOriginIsolated : false }));
-  rec("clean boot: SW controls, the SDDM greeter renders, isolated — i.e. every boot byte re-derived to its κ (L5)",
-    boot.controlled && boot.greeter && boot.isolated, `controlled=${boot.controlled} greeter=${boot.greeter} isolated=${boot.isolated}`);
+  await page.waitForURL(/\/splash\.html/, { timeout: 25000 }).catch(() => {});
+  await sleep(2000);
+  const boot = await page.evaluate(() => ({ controlled: !!navigator.serviceWorker.controller, splash: !!document.getElementById("screen"), isolated: typeof crossOriginIsolated !== "undefined" ? crossOriginIsolated : false }));
+  rec("clean boot: SW controls, the Plymouth splash renders, isolated — i.e. every boot byte re-derived to its κ (L5)",
+    boot.controlled && boot.splash && boot.isolated, `controlled=${boot.controlled} splash=${boot.splash} isolated=${boot.isolated}`);
 
   // ── the SW serves a pinned file only when it verifies (clean = 200) ──
   const clean = await page.evaluate(async () => (await fetch("/os/_shared/holo-identity.mjs?cb=" + Date.now())).status);
@@ -78,7 +75,7 @@ try {
     tampered.status === 409 && /MISMATCH/.test(tampered.body), `status=${tampered.status} body="${tampered.body}"`);
 
   // ── and with tampering on, the boot genuinely can't proceed (the greeter won't initialise) ──
-  await page.goto(base + "/os/login.html?next=apps%2Fsdk%2Findex.html&label=Hologram%20OS", { waitUntil: "load", timeout: 30000 });
+  await page.goto(base + "/os/login.html?next=home.html&label=Hologram%20OS", { waitUntil: "load", timeout: 30000 });
   await sleep(1500);
   const greeterDied = await page.evaluate(() => !window.__holoQml);   // login.html imports holo-identity (now refused)
   rec("with a tampered identity module, the greeter fails closed (does not boot)", greeterDied, `__holoQml=${!greeterDied}`);

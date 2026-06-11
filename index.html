@@ -262,7 +262,11 @@
     // desktop. The boot MENU (rEFInd) stays reachable directly (boot.html). Every byte is still
     // κ-verified by the worker (L5). Paths are relative to this gateway's dir, so they resolve in either root.
     const next = "home.html";   // the splash carries the client here (the SDDM greeter + apps/sdk desktop aren't in this thin OS image)
-    try { localStorage.setItem("holo-splash:bg", "dark"); } catch {}   // splash on solid #000 — the SAME black as this gateway, so the handoff is seamless
+    try {
+      localStorage.setItem("holo-splash:bg", "dark");                       // splash on solid #000 — the SAME black as this gateway
+      const TK = "holo.theme.v1", s = JSON.parse(localStorage.getItem(TK) || "{}");
+      s.palette = "dark"; localStorage.setItem(TK, JSON.stringify(s));       // pin the OS palette DARK so home + every app match the black boot — ONE consistent experience
+    } catch {}
     document.body.classList.add("leaving");   // dissolve the gateway content; the black bg is shared, so only the content crossfades into the splash
     const splashURL = root + "splash.html?" + new URLSearchParams({ next, menu: "boot.html", duration: "12", theme: "holo-pulse", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" });
     setTimeout(() => location.replace(splashURL), 240);

@@ -8,7 +8,9 @@
     "split — the dependency still stands alone as its own self-verifying, runnable κ-object",
     "O(1) recompose (rebind, not recompile); the whole composition shares as one holo://κ",
     "Law L5: a tampered dependency refuses the whole run (re-derivation across the link)",
-    "WIT-style isolated typed interfaces — a STRING crosses between components that each keep their OWN memory; the linker lifts it from the caller and lowers it into the callee (canonical-ABI core), the string-type info carried in a content-addressed holo-iface custom section"
+    "WIT-style isolated typed interfaces — a STRING crosses between components that each keep their OWN memory; the linker lifts it from the caller and lowers it into the callee (canonical-ABI core), the string-type info carried in a content-addressed holo-iface custom section",
+    "WIT RETURNS — a component hands BACK a string or a struct (canonical-ABI indirect return: the callee returns a pointer to its result; the linker lowers it back into the caller's own memory)",
+    "WIT RECORDS · LISTS · VARIANTS — composite types whose fields are themselves strings cross isolated memories; one general recursive lift/lower walks the type descriptor and copies every string field into the destination's own memory"
   ],
   "library": {
     "kappa": "did:holo:sha256:39e4ca357b62fdca05dd6f90713b9c70c436bda8636c16c46495ea2120172ece",
@@ -25,7 +27,11 @@
         "name": "add",
         "kappa": "did:holo:sha256:39e4ca357b62fdca05dd6f90713b9c70c436bda8636c16c46495ea2120172ece",
         "arity": 2,
-        "str": []
+        "params": [
+          "i32",
+          "i32"
+        ],
+        "ret": "i32"
       }
     ]
   },
@@ -39,7 +45,12 @@
     "compose-O(1)-rebind": true,
     "share-the-composition-kappa": true,
     "tampered-dependency-refuses-run": true,
-    "isolated-typed-string-composes": true
+    "isolated-typed-string-composes": true,
+    "component-returns-a-string": true,
+    "component-returns-a-struct": true,
+    "record-with-string-field-composes": true,
+    "list-of-strings-composes": true,
+    "variant-with-string-case-composes": true
   },
   "failed": [],
   "authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · UOR-ADDR · Law L1/L3/L5"

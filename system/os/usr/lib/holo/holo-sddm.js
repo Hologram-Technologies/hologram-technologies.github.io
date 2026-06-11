@@ -14,7 +14,7 @@
 
 import { enroll, unlock, roster, openSession } from "./holo-identity.mjs";
 import { measure, describe } from "./holo-host.mjs";
-import { teeAvailable, teeName, teeEnroll, teeAssert, teeError } from "./holo-webauthn.mjs";
+import { teeAvailable, teeReason, teeName, teeEnroll, teeAssert, teeError } from "./holo-webauthn.mjs";
 
 export const PHI = 1.6180339887;                 // φ — the proportion the whole greeter is tuned on
 const te = (s) => document.createTextNode(s);
@@ -227,11 +227,12 @@ export async function createGreeter(params) {
         return finish(match ? await unlock(match.kappa, pass) : await enroll({ label: name, passphrase: pass }));
       };
       try {
-        const hasTee = await teeAvailable();
+        const reason = await teeReason();        // "" when a real biometric ceremony can run here
+        const hasTee = !reason;
         // No TEE on this device, or an existing key that predates biometrics → passphrase
         // (a biometric secret can't unwrap a passphrase-wrapped key).
         if (!hasTee || (match && !match.cred)) {
-          if (!hasTee) emit("informationMessage", "No biometric device — use your passphrase");
+          if (!hasTee) emit("informationMessage", reason + " — use your passphrase");
           return await viaPassphrase();
         }
         try {
@@ -268,7 +269,9 @@ export async function createGreeter(params) {
     async unlockDevice() {
       const known = users.filter((u) => u.cred);
       const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
-      if (!known.length || !(await teeAvailable())) { emit("needName"); return; }
+      const reason = await teeReason();
+      if (!known.length) { emit("needName"); return; }              // nothing enrolled → enrol path
+      if (reason) { emit("informationMessage", reason); emit("needName"); return; }   // no biometric → name/passphrase
       try {
         emit("informationMessage", "Verifying with " + teeName() + "…");
         const { secret, credentialId } = await teeAssert({ allowCredentials: known.map((u) => u.cred) });

@@ -156,6 +156,15 @@
       "hosc:category": "Compute & verifiable builds"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#holo-compose-mcp",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "AI agents COMPOSE a universe of interoperable apps over MCP (Holo Link, ADR-0060) — an agent builds capability κ-objects, composes them BY CONTENT ADDRESS (`extern … from \"κ\"`, including typed WIT-style `str` interfaces across isolated component memories), RUNS the composition (the linker resolves + verifies (L5) + links (L3) the dependency graph, no server) and SHARES it as one holo://κ; `holo_build` surfaces a composition's dependency κ's in `imports`. The composition is itself a κ — a first-class object that flows into Own (ADR-0053) · Settle (ADR-0048) · Orchestrate (ADR-0045), which operate on any κ. The universe of apps, agent-driven",
+      "hosc:authority": "W3C Model Context Protocol (2024-11-05) · W3C WebAssembly Core 2.0 (imports/linking) · IETF RFC 8785 (JCS) · W3C PROV-O + DID Core · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L3/L5",
+      "hosc:witness": "tools/holo-compose-mcp-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#qml-mcp",
       "@type": "hosc:ConformanceAssertion",
       "name": "The QML engine is usable by AI agents — the render_qml MCP tool parses + executes a QML document and returns the real component tree as a self-verifying, deterministic UOR object",
@@ -320,7 +329,7 @@
     {
       "@id": "https://hologram.os/conformance/os2#holo-desk",
       "@type": "hosc:ConformanceAssertion",
-      "name": "Holo Desk is the substrate-native DESKTOP (ADR-0061) — a wallpaper plane + icon grid over the writable OPFS Home (/home/user/Desktop) that feels native in any browser: right-click 'New ▸ Folder / Text / App shortcut' (creates + opens an inline-rename field; Home is read/WRITE), drag to arrange, NEST by dropping onto a folder, marquee rubber-band multi-select, double-click to open in place; any holospace app saves as a desktop icon and can be pinned to the native menu bar (dock); a folder's cover updates to MATCH its contents (preview tiles); it reskins to the host OS (Windows folders/selection vs macOS) via HoloPlatform and insets around the dock; every glyph is a κ-pinned Holo Icon (ADR-0032) and the whole library is natively discoverable + applicable (HoloIcons.names/kappa — each icon a did:holo UOR object); and the desktop LAYOUT itself is sealed as a self-verifying UOR object that re-derives to its content address (Law L5). It reuses the OS engines and runs no foreign runtime (ADR-0029); proven by driving the real desktop in Chromium (18 checks).",
+      "name": "Holo Desk is the substrate-native DESKTOP (ADR-0061) — the full native folder/icon experience in any browser, made magical by leaning into the UOR content-addressed substrate. CREATE: right-click 'New ▸ Folder/Text/App shortcut' (+ inline-rename; Home is read/WRITE). PIN ANYTHING: drop or paste any app, file, URL, or κ/did:holo onto the desktop and it becomes a self-verifying icon (files import + content-address on write; identifiers become object pins; apps become launchers). ORGANISE: drag to arrange, NEST onto a folder, marquee multi-select, copy/cut/paste, keyboard nav + type-ahead, and delete → Trash with Undo (⌘Z). PROVE: every icon carries its did:holo κ (a verify badge re-derives on hover, Law L5), 'Copy holo:// link' shares an object by content address, 'Copy desktop κ' turns the WHOLE arrangement into one shareable address, and Quick Look (Space) shows the live κ. FEEL: reskins to the host OS (Windows/macOS) via HoloPlatform, insets around the dock, animates with taste (reduced-motion aware); folders show covers that match their contents. Reuses the OS engines, no foreign runtime (ADR-0029); proven by driving the real desktop in Chromium (23 checks).",
       "hosc:authority": "ADR-0061 (Holo Desk) · ADR-0058 (Holo Files VFS) · ADR-0032 (Holo Icons) · ADR-0030/0057 (Holo UI) · ADR-0029 (adopt-don’t-run) · W3C OPFS / File System Access · Web Crypto · driving the real desktop in Chromium",
       "hosc:witness": "tools/holo-desk-witness.mjs",
       "hosc:required": true,
@@ -332,6 +341,15 @@
       "name": "Holo UX is the single canonical, self-verifying source of the EXPERIENCE (ADR-0062) — the experience analogue of Holo UI's token contract. The system autodetects the host OS (Windows · macOS · iOS · iPadOS · Android · ChromeOS · Linux) and adapts its native feel dynamically — modifier key, window-control side, font, accent, shortcuts (holo-platform.js → data-holo-platform, seeded without overriding the user) — so it feels familiar and effortless on every machine. Thirteen tenets (the five founding principles + Steve Jobs's eight UX lessons) are each a checkable obligation; capability tier, plain voice and a tier-aware resource budget (time · attention · compute · memory · energy held sacred, interaction ≤100ms / RAIL) are resolved, not guessed. The canonical parameters are sealed as ONE UOR object (etc/holo-ux/doctrine.uor.json) that re-derives to its content address and whose source links re-derive (Law L5) — every holospace binds the κ rather than re-implementing UX",
       "hosc:authority": "ADR-0062 (Holo UX doctrine) · ADR-0030 (Holo UI) · ADR-0028 (Holo UX Profile) · W3C UA Client Hints (host autodetect) · WCAG 2.2 (readability · target size · animation) · RAIL / W3C Web Performance · W3C OWL 2 / RDFS / SKOS (the hosux: vocabulary) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
       "hosc:witness": "tools/holo-ux-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#app-ux-conformance",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The Holo UX doctrine (ADR-0062) is strictly adhered to by EVERY holospace application, not just the OS chrome — so every app is beautiful, functional and coherent with the whole OS. Loading the ONE engine every app already loads (holo-theme.js) bootstraps the Holo UX runtime (holo-ux.js), so every app inherits the WHOLE doctrine — the host-OS native feel, the capability tier, the resource budget, the live propagation — by binding one canonical wire (Law L2), with no per-app script tag. This witness proves that inheritance is real for every served app (the carrier is intact + the canonical doctrine object re-derives + every app loads the engine), and holds each app to the two obligations checkable in its OWN authored shell: its manifest keeps the plain voice (jargon-free — signal over noise), and a no-new-regression ratchet drives every app to honor prefers-reduced-motion (time/compute/energy held sacred — WCAG 2.3.3). Read-only over the served app repo — no edits, no re-lock",
+      "hosc:authority": "ADR-0062 (Holo UX doctrine) · ADR-0030/0057 (Holo UI) · WCAG 2.2 (2.3.3 Animation from Interactions · 1.4.x readability) · the plain voice register (holo-voice.mjs) · RAIL / W3C Web Performance · the 'betterer' no-new-violations ratchet · static analysis of the served app repo",
+      "hosc:witness": "tools/holo-app-ux-witness.mjs",
       "hosc:required": true,
       "hosc:category": "Display manager & UI"
     }

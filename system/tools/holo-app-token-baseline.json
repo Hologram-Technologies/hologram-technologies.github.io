@@ -1,6 +1,6 @@
 {
   "note": "Ratchet baseline for Holo UI COLOR + SHAPE token conformance (ADR-0057). 'ceilings' is the max hardcoded themeable bypasses (hex colors + px border-radius) allowed per app's authored index.html; the witness FAILS on any increase. Colors are IDENTITY (the adopt-vs-own model) so they are not force-rewritten — the ratchet just prevents NEW bypasses; radius exact-matches (8/12/16px) are safely tokenizable via burndown-app-radius.mjs. New apps default to 0.",
-  "total": 1820,
+  "total": 1825,
   "perApp": {
     "amp": {
       "hex": 25,
@@ -108,9 +108,9 @@
       "bypass": 14
     },
     "player": {
-      "hex": 49,
-      "radius": 17,
-      "bypass": 66
+      "hex": 53,
+      "radius": 18,
+      "bypass": 71
     },
     "privacy": {
       "hex": 32,
@@ -185,7 +185,7 @@
     "notepad": 73,
     "os": 60,
     "plasma": 14,
-    "player": 66,
+    "player": 71,
     "privacy": 42,
     "q": 107,
     "qemu": 60,

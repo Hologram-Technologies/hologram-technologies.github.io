@@ -76,10 +76,10 @@ const receipt = seal(receiptObj);
 // Each step moved the compiler's κ (and the receipt embedding it); the fixture source/artifact are
 // UNCHANGED — the additions compile every existing program to byte-identical wasm.
 const PIN = {
-  compiler: "did:holo:sha256:60cffa9f729ea9f605bc33f0bc099f91b2e3d471c31606511dc65e399d7f39bf",
+  compiler: "did:holo:sha256:9f1ff6cf0f57ee19bcc817f6a204630b00897171cb6bf6da063ab8235494e1a6",
   source: "did:holo:sha256:8951cf3781168cb9dccf7533caf4d8c2c56484c3a6fca3193d61e9234d0ef700",
   artifact: "did:holo:sha256:48d118b77c3912ffc8e647d3e6242667f75aff22c857677a4dbc9d07b65d7919",
-  receipt: "did:holo:sha256:ba015c16a6f780ec0d340d99e4ac4ca6cb2639d61350a13e94a78970f558fe25",
+  receipt: "did:holo:sha256:915c0c2f38ea91dacd6ee228d32b5bff8a72bb999f1545815f4b7385ba08242d",
 };
 
 // ── 1 · the compiler is itself a content-addressed object (the "compiler on the substrate") ──

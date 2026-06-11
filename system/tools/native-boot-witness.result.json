@@ -1,26 +1,22 @@
 {
   "spec": "Hologram OS boot is 100% native to the UOR content-addressed substrate: every booted byte is re-derived to its κ and a tampered origin is refused (Law L5); no servers, no external dependencies",
-  "witnessed": true,
-  "covers": [
-    "content-addressed-boot",
-    "law-l5-delivery",
-    "untrusted-origin"
-  ],
+  "witnessed": false,
+  "covers": [],
   "results": [
     {
-      "name": "clean boot: SW controls, the Plymouth splash renders, isolated — i.e. every boot byte re-derived to its κ (L5)",
-      "ok": true,
-      "detail": "controlled=true splash=true isolated=true"
+      "name": "clean boot: SW controls, the SDDM greeter renders, isolated — i.e. every boot byte re-derived to its κ (L5)",
+      "ok": false,
+      "detail": "controlled=false greeter=false isolated=false"
     },
     {
       "name": "a κ-pinned boot module verifies and is served (200)",
-      "ok": true,
-      "detail": "status=200"
+      "ok": false,
+      "detail": "status=404"
     },
     {
       "name": "tampered origin byte is REFUSED by re-derivation (409) — the origin is untrusted (L5)",
-      "ok": true,
-      "detail": "status=409 body=\"holo-fhs-sw: κ MISMATCH — refused (Law L\""
+      "ok": false,
+      "detail": "status=404 body=\"404 /os/_shared/holo-identity.mjs\""
     },
     {
       "name": "with a tampered identity module, the greeter fails closed (does not boot)",

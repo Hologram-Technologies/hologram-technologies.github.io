@@ -82,7 +82,35 @@ int main() { store8(64, 65); store8(65, 66); store8(66, 67); return bytesum(64, 
 `);
 const lifted = (await app.run(SAPP.kappa)).exports.main();              // "ABC"(65+66+67) lifted from A's mem → lowered into B's
 const bAlone = (await app.run(SLIB.kappa)).exports.bytesum(64, 3);      // B's OWN memory at 64 is empty (not A's) → proves ISOLATION
-ok("isolated-typed-string-composes", lifted === 198 && bAlone !== 198 && SAPP.imports[0].str[0] === 0);
+ok("isolated-typed-string-composes", lifted === 198 && bAlone !== 198 && SAPP.imports[0].params[0] === "str");
+
+// ── 10 · WIT RETURNS — a component HANDS BACK a string or a struct (canonical-ABI indirect return: the
+// callee returns a pointer to its result in ITS memory; the linker lowers it BACK into the caller's). ──
+const RLIB = await app.build(`int alloc(int n){ int p=load(0); if(p<64)p=64; store(0,p+n); return p; }
+int reverse(int p, int n){ int out=alloc(n); int i=0; while(i<n){ store8(out+i, load8(p+n-1-i)); i=i+1; } int rec=alloc(8); store(rec,out); store(rec+4,n); return rec; }
+int divmod(int a, int b){ int buf=alloc(8); int q=a/b; store(buf,q); store(buf+4, a-q*b); int rec=alloc(8); store(rec,buf); store(rec+4,8); return rec; }`);
+const STRRET = await app.build(`extern str reverse(str s) from "${RLIB.kappa}";
+int alloc(int n){ int p=load(0); if(p<64)p=64; store(0,p+n); return p; }
+int main(){ int p=alloc(2); store8(p,104); store8(p+1,105); int rec=reverse(p,2); int rp=load(rec); return load8(rp)*100 + load8(rp+1); }`);
+const STRUCTRET = await app.build(`extern str divmod(int a, int b) from "${RLIB.kappa}";
+int alloc(int n){ int p=load(0); if(p<64)p=64; store(0,p+n); return p; }
+int main(){ int rec=divmod(17,5); int bp=load(rec); return load(bp)*10 + load(bp+4); }`);
+ok("component-returns-a-string", (await app.run(STRRET.kappa)).exports.main() === 10604);   // reverse "hi" → "ih"
+ok("component-returns-a-struct", (await app.run(STRUCTRET.kappa)).exports.main() === 32);    // divmod 17/5 → {q:3, r:2}
+
+// ── 11 · WIT RECORDS · LISTS · VARIANTS — composite types whose fields are STRINGS cross isolated memories;
+// the linker walks the type and lift/lowers every string RECURSIVELY (one general mechanism for all shapes) ──
+const AL = (s) => "int alloc(int n){ int p=load(0); if(p<64)p=64; store(0,p+n); return p; }\n" + s;
+const RICH = await app.build(AL(`int describe(int n){ int label=alloc(3); store8(label,72); store8(label+1,73); store8(label+2,33); int rec=alloc(12); store(rec,label); store(rec+4,3); store(rec+8, n*n); return rec; }
+int makewords(){ int w0=alloc(2); store8(w0,72); store8(w0+1,105); int w1=alloc(2); store8(w1,121); store8(w1+1,111); int arr=alloc(16); store(arr,w0); store(arr+4,2); store(arr+8,w1); store(arr+12,2); int rec=alloc(8); store(rec,arr); store(rec+4,2); return rec; }
+int classify(int n){ int rec=alloc(12); if(n>0){ store(rec,0); store(rec+4,n*2); } else { int s=alloc(3); store8(s,78); store8(s+1,79); store8(s+2,33); store(rec,1); store(rec+4,s); store(rec+8,3); } return rec; }`));
+const richMain = async (src) => (await app.run((await app.build(AL(src))).kappa)).exports.main();
+const recR = await richMain(`extern rec(str, int) describe(int n) from "${RICH.kappa}";\nint main(){ int r=describe(7); int lp=load(r); int ll=load(r+4); int v=load(r+8); return load8(lp)*100 + ll*10 + (v==49); }`);
+ok("record-with-string-field-composes", recR === 7231);    // describe(7) → { label:"HI!", value:49 }
+const listR = await richMain(`extern list(str) makewords() from "${RICH.kappa}";\nint main(){ int r=makewords(); int arr=load(r); int s0=load(arr); int s1=load(arr+8); return load8(s0)*1000 + load8(s1)*10 + load(r+4); }`);
+ok("list-of-strings-composes", listR === 73212);           // makewords() → ["Hi","yo"]
+const varR = await richMain(`extern variant(int, str) classify(int n) from "${RICH.kappa}";\nint main(){ int r=classify(0); int tag=load(r); int sp=load(r+4); int sl=load(r+8); return tag*1000 + load8(sp)*10 + sl; }`);
+ok("variant-with-string-case-composes", varR === 1783);    // classify(0) → variant tag 1 = "NO!"
 
 const witnessed = Object.values(checks).every(Boolean);
 const result = {
@@ -96,6 +124,8 @@ const result = {
     "O(1) recompose (rebind, not recompile); the whole composition shares as one holo://κ",
     "Law L5: a tampered dependency refuses the whole run (re-derivation across the link)",
     "WIT-style isolated typed interfaces — a STRING crosses between components that each keep their OWN memory; the linker lifts it from the caller and lowers it into the callee (canonical-ABI core), the string-type info carried in a content-addressed holo-iface custom section",
+    "WIT RETURNS — a component hands BACK a string or a struct (canonical-ABI indirect return: the callee returns a pointer to its result; the linker lowers it back into the caller's own memory)",
+    "WIT RECORDS · LISTS · VARIANTS — composite types whose fields are themselves strings cross isolated memories; one general recursive lift/lower walks the type descriptor and copies every string field into the destination's own memory",
   ],
   library: { kappa: B.kappa, exports: B.exports },
   composed: { kappa: A.kappa, source: A.sourceKappa, imports: A.imports },

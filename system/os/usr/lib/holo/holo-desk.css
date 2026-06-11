@@ -208,3 +208,59 @@
 .holo-desk-picker .pk-app:hover { background: rgba(255,255,255,0.07); border-color: var(--holo-accent, #2b6fd6); }
 .holo-desk-picker .pk-app img, .holo-desk-picker .pk-app holo-icon { width: 28px; height: 28px; object-fit: contain; flex: none; }
 .holo-desk-picker .pk-app .nm { font-size: max(var(--holo-font-min, 16px), 0.86rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── object pins (κ / URL) ──────────────────────────────────────────────────────────────────── */
+.holo-desk-glyph--object { color: #b69dff; }
+.holo-desk-glyph--object holo-icon { width: 50px; height: 50px; }
+
+/* ── content-address verify badge (every object carries its κ; hover re-derives, Law L5) ─────── */
+.holo-desk-glyph { position: relative; }
+.holo-desk-glyph .vbadge { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px;
+  border-radius: 999px; display: grid; place-items: center; color: #8b97a6;
+  background: var(--holo-surface, #12161d); border: 1px solid var(--holo-border, rgba(255,255,255,0.16));
+  opacity: 0; transform: scale(0.6); transition: opacity 0.14s ease, transform 0.14s ease, color 0.14s ease; }
+.holo-desk-glyph .vbadge holo-icon { width: 11px; height: 11px; }
+.holo-desk-icon:hover .holo-desk-glyph .vbadge { opacity: 1; transform: scale(1); }
+.holo-desk-icon.verified .holo-desk-glyph .vbadge { color: #51d88a; border-color: #2ea043; }
+
+/* ── drop zone (drag anything onto the desktop) ─────────────────────────────────────────────── */
+#holo-desk.drag-over::before { content: "Drop to add — files import, a κ / URL pins"; position: absolute;
+  inset: 10px; z-index: 6; border-radius: 18px; display: grid; place-items: center;
+  border: 2.5px dashed color-mix(in srgb, var(--holo-accent, #2b6fd6) 70%, #fff);
+  background: color-mix(in srgb, var(--holo-accent, #2b6fd6) 12%, transparent);
+  color: #fff; font-size: max(var(--holo-font-min, 16px), 1rem); text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  pointer-events: none; }
+
+/* ── Quick Look (Space) ─────────────────────────────────────────────────────────────────────── */
+.holo-desk-ql { width: min(640px, 92vw); max-height: 84vh; }
+.holo-desk-ql .ql-body { padding: 14px 16px; overflow: auto; display: grid; place-items: center; gap: 10px; min-height: 120px; }
+.holo-desk-ql .ql-img { max-width: 100%; max-height: 60vh; border-radius: 8px; }
+.holo-desk-ql .ql-pre { align-self: stretch; margin: 0; white-space: pre-wrap; word-break: break-word;
+  font-family: ui-monospace, monospace; font-size: max(var(--holo-font-min, 16px), 0.84rem);
+  color: var(--holo-ink, #e6edf5); background: rgba(255,255,255,0.04); padding: 12px; border-radius: 10px; max-height: 56vh; overflow: auto; }
+.holo-desk-ql .ql-meta { color: var(--holo-ink, #e6edf5); font-size: max(var(--holo-font-min, 16px), 0.9rem); text-align: center; word-break: break-all; }
+.holo-desk-ql .ql-foot { display: flex; align-items: center; gap: 10px; padding: 12px 16px; flex-wrap: wrap;
+  border-top: 1px solid var(--holo-border, rgba(255,255,255,0.1)); }
+.holo-desk-ql .ql-k { font-family: ui-monospace, monospace; font-size: max(var(--holo-font-min, 16px), 0.76rem);
+  color: #8fb4ff; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── delight micro-interactions (honour reduced motion) ─────────────────────────────────────── */
+.holo-desk-icon { transition: transform 0.12s ease, background 0.1s ease; }
+.holo-desk-icon:hover { transform: translateY(-2px); }
+.holo-desk-icon.is-selected:hover { transform: none; }
+@keyframes holo-desk-enter { from { opacity: 0; transform: translateY(6px) scale(0.92); } to { opacity: 1; transform: none; } }
+.holo-desk-icon.enter { animation: holo-desk-enter 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes holo-desk-bounce { 0% { transform: scale(1); } 30% { transform: scale(0.86); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.holo-desk-icon.bounce { animation: holo-desk-bounce 0.34s ease; }
+@keyframes holo-desk-absorb { 0% { transform: scale(1); } 50% { transform: scale(1.16); } 100% { transform: scale(1); } }
+.holo-desk-icon.absorb .holo-desk-glyph { animation: holo-desk-absorb 0.32s ease; }
+.holo-desk-menu { animation: holo-desk-enter 0.12s ease both; }
+.holo-desk-scrim { animation: holo-desk-fade 0.14s ease both; }
+@keyframes holo-desk-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .holo-desk-icon, .holo-desk-icon.enter, .holo-desk-icon.bounce, .holo-desk-icon.absorb .holo-desk-glyph,
+  .holo-desk-menu, .holo-desk-scrim { animation: none !important; transition: none !important; }
+  .holo-desk-icon:hover { transform: none; }
+}
+[data-holo-motion="reduced"] .holo-desk-icon, [data-holo-motion="reduced"] .holo-desk-icon.enter,
+[data-holo-motion="reduced"] .holo-desk-menu { animation: none !important; }

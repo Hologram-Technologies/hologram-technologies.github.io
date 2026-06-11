@@ -43,6 +43,22 @@ and the dock's "Show desktop" reveals it. It is composed entirely from engines t
   addressed app catalog; choosing one writes a tiny `<Name>.holospace` shortcut (kind=app) that
   launches in the one frame on double-click, and a right-click "Pin to dock" pins it to the native
   menu bar via `HoloDock.pin`.
+- **Pin ANY object, not just apps (the substrate magic).** Drop or paste onto the desktop and it is
+  resolved: native files import into OPFS (content-addressed on write); a `holo://` / `did:holo` /
+  CID / κ becomes an object pin (`<Name>.holoref`); a URL becomes a web pin; an app link becomes a
+  launcher. "New ▸ Pin object by κ / URL…" does the same from a prompt. A drag-over hint invites it.
+- **Content address everywhere.** Every non-folder icon carries a verify badge that re-derives to its
+  `did:holo` κ on hover (Law L5); "Copy holo:// link" shares an object by its address; "Copy desktop
+  κ" turns the WHOLE arrangement (the sealed layout object) into one shareable address; and Quick Look
+  (Space) previews an object alongside its live, re-derived κ.
+- **Safe + fast edits.** Copy/Cut/Paste (⌘C/X/V over `HoloFiles.copyHome`/`moveHome`), delete → a
+  recoverable `~/.Trash` with one-step **Undo (⌘Z)** for delete/rename/move/create, keyboard
+  navigation (arrows + type-ahead, Enter/Space/F2/Delete), and tasteful enter/launch/absorb/hover
+  animations that fully disable under `prefers-reduced-motion` / `data-holo-motion="reduced"`.
+
+(Implementation gotcha worth remembering: `ST.sel` is a `Set`, so `[].slice.call(set)` yields `[]` —
+selection lists must use `Array.from`. This silently no-op'd every keyboard/selection action until the
+witness caught it.)
 
 All `font-size` in the new chrome clamps to the `--holo-font-min` readability floor (ADR-0057), and
 the layer respects the boot splash + the dock's `--holo-dock-h`.

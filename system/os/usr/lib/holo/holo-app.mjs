@@ -62,40 +62,78 @@ export function makeApp({ store, hash, index = memIndex() }) {
   // ONCE per graph (memoized → a shared dependency links exactly once, Law L3). The whole composition is
   // reached from one κ; combine = a module that imports another by κ, split = each κ still stands alone.
   const readIface = (module) => { try { const s = WebAssembly.Module.customSections(module, "holo-iface"); return s.length ? JSON.parse(new TextDecoder().decode(new Uint8Array(s[0]))) : {}; } catch { return {}; } };
-  // WIT lift/lower (the canonical-ABI core): each `str` arg is (ptr,len) in the CALLER's own memory; copy the
-  // bytes into the CALLEE's own memory (via the callee's exported `alloc`) and rewrite the pointer. Isolated.
-  function typedTrampoline(dep, name, strStarts, caller) {
+  // WIT lift/lower (the canonical-ABI core), isolated. Each `str` ARG is (ptr,len) in the CALLER's own memory:
+  // copy the bytes into the CALLEE's memory (via its exported `alloc`) and rewrite the pointer. A `str` RESULT
+  // is an indirect return — the callee returns a pointer to (dataPtr,len) in ITS memory; we copy that string
+  // BACK into the caller's memory and hand back a (dataPtr,len) record in the caller's memory. (A struct is a
+  // typed buffer, so the same path returns a string OR a struct.)
+  const u8 = (mem) => new Uint8Array(mem.buffer), dv = (mem) => new DataView(mem.buffer), W = 4;
+  // sizeof a WIT type's flat layout — i32=4 · str=(ptr,len)=8 · rec=Σfields · list=(ptr,count)=8 · variant=tag+max(case).
+  function sizeOf(t) {
+    if (t === "str") return 2 * W;
+    if (t && t.rec) return t.rec.reduce((s, f) => s + sizeOf(f), 0);
+    if (t && t.list) return 2 * W;
+    if (t && t.variant) return W + Math.max(0, ...t.variant.map(sizeOf));
+    return W;
+  }
+  // COPY a value of type `t` at `srcAddr` in `src` memory into `dst` ({mem, alloc}), recursively lifting EVERY
+  // string (inside records / lists / variants) into dst's OWN memory. Returns the value's address in dst.
+  function copyComposite(t, src, srcAddr, dst) {
+    const size = sizeOf(t), dstAddr = dst.alloc(size);
+    u8(dst.mem).set(u8(src).slice(srcAddr, srcAddr + size), dstAddr);   // raw-copy the flat layout, then fix up pointers
+    fixup(t, src, srcAddr, dst, dstAddr);
+    return dstAddr;
+  }
+  function fixup(t, src, srcAddr, dst, dstAddr) {
+    if (t === "str") {                                                 // [ptr,len] → lift bytes, lower, rewrite the ptr
+      const sptr = dv(src).getInt32(srcAddr, true), len = dv(src).getInt32(srcAddr + W, true);
+      const dptr = dst.alloc(len); u8(dst.mem).set(u8(src).slice(sptr, sptr + len), dptr);
+      dv(dst.mem).setInt32(dstAddr, dptr, true);
+    } else if (t && t.rec) { let off = 0; for (const f of t.rec) { fixup(f, src, srcAddr + off, dst, dstAddr + off); off += sizeOf(f); } }
+    else if (t && t.list) {
+      const sptr = dv(src).getInt32(srcAddr, true), count = dv(src).getInt32(srcAddr + W, true), es = sizeOf(t.list);
+      const buf = dst.alloc(count * es); u8(dst.mem).set(u8(src).slice(sptr, sptr + count * es), buf);
+      for (let i = 0; i < count; i++) fixup(t.list, src, sptr + i * es, dst, buf + i * es);
+      dv(dst.mem).setInt32(dstAddr, buf, true);
+    } else if (t && t.variant) { const tag = dv(src).getInt32(srcAddr, true); if (t.variant[tag]) fixup(t.variant[tag], src, srcAddr + W, dst, dstAddr + W); }
+    // i32 / scalars: the raw copy is already correct
+  }
+  // satisfy a TYPED κ-import: lift/lower params + result across the two ISOLATED memories (the canonical ABI).
+  function typedTrampoline(dep, name, params, ret, caller) {
     return (...args) => {
-      const a = args.slice();
-      for (const s of strStarts) {
-        const ptr = a[s], len = a[s + 1];
-        const bytes = new Uint8Array(caller.m.buffer).slice(ptr, ptr + len);
-        const dptr = dep.exports.alloc(len);                            // allocate in the callee's OWN memory
-        new Uint8Array(dep.exports.memory.buffer).set(bytes, dptr);     // lower the string into it
-        a[s] = dptr;                                                    // rewrite the pointer to the callee's address
+      const depO = { mem: dep.exports.memory, alloc: dep.exports.alloc };
+      const callerO = { mem: caller.m, alloc: caller.alloc };
+      const out = []; let ai = 0;
+      for (const pt of params) {
+        if (pt === "str") { const len = args[ai + 1], dptr = depO.alloc(len); u8(depO.mem).set(u8(callerO.mem).slice(args[ai], args[ai] + len), dptr); out.push(dptr, len); ai += 2; }
+        else if (pt === "i32") { out.push(args[ai]); ai += 1; }
+        else { out.push(copyComposite(pt, callerO.mem, args[ai], depO)); ai += 1; }   // composite param → copy into the callee
       }
-      return dep.exports[name](...a);
+      const r = dep.exports[name](...out);
+      if (ret === "i32" || ret === "void") return r;
+      return copyComposite(ret === "str" ? { rec: ["str"] } : ret, depO.mem, r, callerO);   // lower the result BACK into the caller
     };
   }
   async function linkGraph(kappa, rootImports = {}, cache = new Map()) {
     if (cache.has(kappa)) return cache.get(kappa);
     const module = await WebAssembly.compile(await fetchVerified(kappa));
-    const iface = readIface(module);                                    // content-addressed string-type info
-    const caller = { m: null };                                        // bound to this module's own memory after instantiate
+    const iface = readIface(module);                                    // content-addressed interface types (params + result)
+    const caller = { m: null, alloc: null };                           // bound to this module's own memory + allocator
     const importObj = {};
     for (const imp of WebAssembly.Module.imports(module)) {
-      if (imp.kind !== "function") continue;                           // memory is now DEFINED per-component, not imported
+      if (imp.kind !== "function") continue;                           // memory is DEFINED per-component, not imported
       let fn;
       if (isKappa(imp.module)) {
         const dep = await linkGraph(imp.module, {}, cache);
-        const t = iface[imp.name];
-        fn = (t && t.str && t.str.length) ? typedTrampoline(dep, imp.name, t.str, caller) : dep.exports[imp.name];
+        const t = iface[imp.name];                                     // present iff the import has a non-trivial WIT type
+        fn = t ? typedTrampoline(dep, imp.name, t.params || [], t.ret || "i32", caller) : dep.exports[imp.name];
       } else if (rootImports[imp.module]) fn = rootImports[imp.module][imp.name];
       if (fn === undefined) throw new Error(`link: ${kappa} imports "${imp.module}"."${imp.name}" — unresolved`);
       (importObj[imp.module] ||= {})[imp.name] = fn;
     }
     const instance = await WebAssembly.instantiate(module, importObj);   // (Module, imports) → Instance
-    caller.m = instance.exports.memory || null;                          // trampolines lift from THIS module's memory
+    caller.m = instance.exports.memory || null;                          // trampolines lift from / lower into THIS module
+    caller.alloc = instance.exports.alloc || null;
     cache.set(kappa, instance);
     return instance;
   }

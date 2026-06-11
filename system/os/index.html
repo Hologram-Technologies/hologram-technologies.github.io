@@ -64,12 +64,8 @@
   }
 
   async function go() {
-    if (!(await constitutionSealed())) return holoBootRefused("etc/constitution/CONSTITUTION.md");
-    // ?menu / ?boot → the rEFInd boot menu (the full cinematic chain). Default → straight to the
-    // SDDM greeter, then the ONE desktop shell (apps/sdk) — consistent with the root gateway.
-    const p = new URLSearchParams(location.search);
-    if (p.has("menu") || p.has("boot")) return location.replace("boot.html" + location.search + location.hash);
-    return location.replace("login.html?" + new URLSearchParams({ next: "apps/sdk/index.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" }));
+    if (await constitutionSealed()) return location.replace("boot.html" + location.search + location.hash);
+    holoBootRefused("etc/constitution/CONSTITUTION.md");
   }
   if (!("serviceWorker" in navigator)) { await go(); }
   else if (navigator.serviceWorker.controller) { await go(); }  // already mapped + isolated → verify, then boot

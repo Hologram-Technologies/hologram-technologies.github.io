@@ -156,25 +156,38 @@ function parse(src) {
   // extern <type> <name> ( params ) from "<κ>" ;  — declares an imported function provided by another
   // module, named BY CONTENT ADDRESS. The κ becomes the WASM import's module-name, so this module's
   // own bytes (hence its κ) commit to its dependency — the self-referential link the substrate runs on.
+  // A WIT type expression in an extern: int · str · rec(T,…) · list(T) · variant(T,…). The linker
+  // lift/lowers these across isolated component memories (recursively, for any string inside a composite).
+  function parseExternType() {
+    const tok = peek();
+    if (tok.t === "int") { next(); return "i32"; }
+    if (tok.t === "id") {
+      if (tok.v === "str") { next(); return "str"; }
+      if (tok.v === "void") { next(); return "void"; }
+      if (tok.v === "list") { next(); eat("("); const e = parseExternType(); eat(")"); return { list: e }; }
+      if (tok.v === "rec" || tok.v === "variant") { const kind = next().v; eat("("); const elems = []; if (!isAt(")")) do { elems.push(parseExternType()); } while (isAt(",") && (next(), true)); eat(")"); return { [kind]: elems }; }
+      if (INT_TYPES.has(tok.v)) { next(); return "i32"; }
+    }
+    throw new CompileError(`expected a type but found '${tok.v || tok.t}'`, tok.line, tok.col);
+  }
   function parseExtern() {
     eat("id");                                   // 'extern'
-    const ret = eatType();
+    const retDesc = parseExternType();           // composites + str return a pointer (indirect return)
     const name = eat("id").v;
     eat("(");
-    const params = []; const strStarts = [];     // a `str` param lowers to (ptr,len) = 2 i32; recorded so the
-    if (!isAt(")")) {                             // linker lift/lowers it across isolated component memories (WIT)
+    const paramDescs = []; let wasmArity = 0;    // str = 2 i32 (ptr,len); a composite param = 1 i32 (a pointer)
+    if (!isAt(")")) {
       if (peek().t === "id" && peek().v === "void" && toks[p + 1].t === ")") next();
-      else do {
-        if (peek().t === "id" && peek().v === "str") { next(); strStarts.push(params.length); params.push("_ptr", "_len"); if (peek().t === "id") next(); }
-        else { eatType(); if (peek().t === "id") params.push(next().v); else params.push("_" + params.length); }
-      } while (isAt(",") && (next(), true));
+      else do { const pt = parseExternType(); if (peek().t === "id") next(); paramDescs.push(pt); wasmArity += (pt === "str") ? 2 : 1; } while (isAt(",") && (next(), true));
     }
     eat(")");
     let kappa = null;
     if (peek().t === "id" && peek().v === "from") { next(); kappa = eat("string").v; }
     eat(";");
     if (!kappa) throw new CompileError(`extern '${name}' needs a content address — extern … from "did:holo:…";`);
-    return { name, params, ret, kappa, strStarts };
+    const retType = retDesc === "void" ? "void" : "int";   // WASM result key (i32, or a pointer for str/composite)
+    const nontrivial = paramDescs.some((t) => t !== "i32") || (retDesc !== "i32" && retDesc !== "void");
+    return { name, paramDescs, wasmArity, retDesc, retType, nontrivial, kappa };
   }
 
   function parseFunction() {
@@ -307,7 +320,7 @@ function compileModule(ast) {
 
   // global function index space: imports first (0..k-1), then defined functions (k..k+n-1)
   const table = new Map();
-  imports.forEach((im, i) => { if (table.has(im.name)) throw new CompileError(`'${im.name}' imported more than once`); table.set(im.name, { index: i, arity: im.params.length }); });
+  imports.forEach((im, i) => { if (table.has(im.name)) throw new CompileError(`'${im.name}' imported more than once`); table.set(im.name, { index: i, arity: im.wasmArity }); });
   defs.forEach((f, j) => { if (table.has(f.name)) throw new CompileError(`function '${f.name}' redefined`); table.set(f.name, { index: k + j, arity: f.params.length }); });
 
   const memFlag = { used: false };                // set if any function uses load()/store() (Holo Link memory ABI)
@@ -321,7 +334,7 @@ function compileModule(ast) {
     if (!sigByKey.has(key)) { sigByKey.set(key, types.length); const result = ret === "void" ? vec([]) : vec([I32]); types.push([0x60, ...vec(new Array(arity).fill(I32)), ...result]); }
     return sigByKey.get(key);
   };
-  const importTypeIdx = imports.map((im) => typeIndex(im.params.length, im.ret));
+  const importTypeIdx = imports.map((im) => typeIndex(im.wasmArity, im.retType));
   const funcTypeIdx = defs.map((f) => typeIndex(f.params.length, f.ret));
 
   const typeSec = section(1, vec(types));
@@ -339,16 +352,16 @@ function compileModule(ast) {
   const codeSec = section(10, vec(bodies.map((b) => [...unsignedLEB(b.length), ...b])));
   // holo-iface custom section (id 0) — content-addressed TYPE info: which import params are strings, so the
   // linker lift/lowers them across isolated memories. In the module's bytes → its κ commits to its interface.
-  const typed = imports.filter((im) => im.strStarts && im.strStarts.length);
+  const typed = imports.filter((im) => im.nontrivial);   // functions with any str/record/list/variant in their signature
   const ifaceSec = typed.length
-    ? section(0, [...str("holo-iface"), ...new TextEncoder().encode(jcs(Object.fromEntries(typed.map((im) => [im.name, { str: im.strStarts }]))))])
+    ? section(0, [...str("holo-iface"), ...new TextEncoder().encode(jcs(Object.fromEntries(typed.map((im) => [im.name, { params: im.paramDescs, ret: im.retDesc }]))))])
     : [];
 
   const wasm = Uint8Array.from([
     0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,   // \0asm, version 1
     ...typeSec, ...importSec, ...funcSec, ...memSec, ...exportSec, ...codeSec, ...ifaceSec,
   ]);
-  return { wasm, order: defs.map((f) => f.name), exportsMeta: defs.map((f) => ({ name: f.name, params: f.params.slice() })), imports: imports.map((im) => ({ name: im.name, kappa: im.kappa, arity: im.params.length, str: im.strStarts || [] })) };
+  return { wasm, order: defs.map((f) => f.name), exportsMeta: defs.map((f) => ({ name: f.name, params: f.params.slice() })), imports: imports.map((im) => ({ name: im.name, kappa: im.kappa, arity: im.wasmArity, params: im.paramDescs, ret: im.retDesc })) };
 }
 
 function emitFunction(fn, table, mem = { used: false }) {

@@ -18,8 +18,11 @@
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
-      body { background: var(--bg); color: var(--holo-ink); display: flex; flex-direction: column;
+      /* Dark base so the FIRST paint is black — no white flash when the boot gateway (also #000) hands
+         off, before the #stage canvas paints. The studio's Light mode flips it back (body.bg-light). */
+      body { background: #000; color: var(--holo-ink); display: flex; flex-direction: column;
         font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      body.bg-light { background: #f0eee8; }
 
       /* Thin holospace chrome — identity · κ-address · Law-L5 · mode · theme — the
          same vocabulary as os.html / winamp.html / boot.html (ADR-026). */
@@ -743,9 +746,9 @@
         showKaddr(themeKappa); if (window.HoloTeleport) HoloTeleport.stamp(themeKappa);
         $("themeSel").value = id;
         $("hint").classList.add("gone");
+        themeBg = { top: be.bg.top.slice(), bottom: be.bg.bottom.slice() };   // capture the theme's own backdrop FIRST (Immersive restores it)
+        applyBackground();   // choose the background (Dark · Light · Immersive) BEFORE the first paint, so frame 1 is already correct — no flash on boot handoff
         be.dirty(); be.paint();
-        themeBg = { top: be.bg.top.slice(), bottom: be.bg.bottom.slice() };   // the theme's own backdrop (Immersive restores it)
-        applyBackground();   // re-apply the chosen background (Dark · Light · Immersive) over the fresh theme
         loop();
         try { parent !== window && parent.postMessage({ type: "holo-splash-ready", theme: id, module: conf.moduleName }, "*"); } catch {}
         toast(`theme · ${conf.name || id} · ${conf.moduleName} · ${ver.ok ? "κ ✓" : "κ ✗"}`);

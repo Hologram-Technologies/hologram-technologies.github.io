@@ -178,6 +178,60 @@ if (chromium) {
     });
     rec("marquee rubber-band selects multiple icons at once", marqRes.total < 2 || marqRes.sel >= 2, "selected " + marqRes.sel + "/" + marqRes.total);
 
+    // ── pin ANY object (a κ / URL) to the desktop — the drop/paste path ──
+    const pinObj = await page.evaluate(async () => {
+      await window.HoloDesk.pinObject("https://uor.foundation");
+      await new Promise((r) => setTimeout(r, 600));
+      const n = (window.HoloDesk._state.nodes || []).find((x) => x.kind === "object");
+      return { ok: !!n, kind: n && n.kind, ref: n && (n._url || n._oid) };
+    });
+    rec("any object — a κ, did:holo, or URL — pins to the desktop (drop/paste)", pinObj.ok && pinObj.kind === "object", pinObj.ref || "no object pin");
+
+    // ── the WHOLE desktop is one shareable content address ──
+    const dk = await page.evaluate(async () => { try { return await window.HoloDesk.deskKappa(); } catch (e) { return ""; } });
+    rec("the whole desktop arrangement is ONE shareable content address (Copy desktop κ)", /^holo:\/\/[a-f0-9]{64}$/.test(dk || ""), (dk || "").slice(0, 30) + "…");
+
+    // ── each desktop file re-derives to its content κ on demand (verify badge / Quick Look, Law L5) ──
+    const vf = await page.evaluate(async () => {
+      try {
+        await window.HoloFiles.createFile("/home/user/Desktop", "verify-me.txt", "content");
+        await window.HoloDesk.refresh(); await new Promise((r) => setTimeout(r, 300));
+        const n = (window.HoloDesk._state.nodes || []).find((x) => x.name === "verify-me.txt");
+        if (!n) return { ok: false, why: "node missing" };
+        const v = await window.HoloFiles.verify(n); return { ok: !!(v && v.derived), k: v && v.derived };
+      } catch (e) { return { ok: false, why: String(e && e.message || e) }; }
+    });
+    rec("each desktop file re-derives to its content κ on demand (Law L5)", vf.ok, vf.ok ? (vf.k || "").slice(0, 20) + "…" : vf.why);
+
+    // ── delete → Trash, then Undo (⌘Z) restores it — the safety net ──
+    const tu = await page.evaluate(async () => {
+      try {
+        await window.HoloFiles.createFile("/home/user/Desktop", "trash-me.txt", "bye");
+        await window.HoloDesk.refresh(); await new Promise((r) => setTimeout(r, 300));
+        window.HoloDesk._state.sel = new Set(["/home/user/Desktop/trash-me.txt"]);
+        await window.HoloDesk.trash(); await new Promise((r) => setTimeout(r, 1100));
+        const removed = !(window.HoloDesk._state.nodes || []).some((n) => n.name === "trash-me.txt");
+        await window.HoloDesk.undo(); await new Promise((r) => setTimeout(r, 1100));
+        const restored = (window.HoloDesk._state.nodes || []).some((n) => n.name === "trash-me.txt");
+        return { removed, restored };
+      } catch (e) { return { removed: false, restored: false, why: String(e && e.message || e) }; }
+    });
+    rec("delete moves to Trash and Undo (⌘Z) restores it", tu.removed && tu.restored, tu.why || ("removed=" + tu.removed + " restored=" + tu.restored));
+
+    // ── copy + paste duplicates an item ──
+    const cp = await page.evaluate(async () => {
+      try {
+        await window.HoloFiles.createFile("/home/user/Desktop", "dup-me.txt", "x");
+        await window.HoloDesk.refresh(); await new Promise((r) => setTimeout(r, 300));
+        window.HoloDesk._state.sel = new Set(["/home/user/Desktop/dup-me.txt"]);
+        window.HoloDesk.copy(); await new Promise((r) => setTimeout(r, 120));
+        window.HoloDesk.paste(); await new Promise((r) => setTimeout(r, 900));
+        const names = (window.HoloDesk._state.nodes || []).map((n) => n.name).filter((n) => /dup-me/.test(n));
+        return { count: names.length, names };
+      } catch (e) { return { count: 0, names: [], why: String(e && e.message || e) }; }
+    });
+    rec("copy + paste duplicates an item (content-addressed)", cp.count >= 2, cp.why || cp.names.join(", "));
+
     const shot = join(here, "holo-desk-witness.png");
     await page.screenshot({ path: shot, fullPage: false });
     console.log(`screenshot → ${shot}`);
@@ -195,7 +249,7 @@ writeResult({
   spec: "Holo Desk (the substrate-native desktop) works in a real browser — right-click 'New ▸ Folder', inline-rename, drag-arrange, NEST (drop onto a folder), marquee multi-select, save any holospace app as a desktop icon + pin it to the native menu bar (dock), and folders whose cover updates to match their contents; OPFS-persisted + OS-adaptive; the κ-pinned icon library is natively discoverable and every icon is a UOR object; the desktop layout itself re-derives to its content address (Law L5)",
   authority: "ADR-0061 (Holo Desk) · ADR-0058 (Holo Files VFS) · ADR-0059 (Holo Dock) · ADR-0032 (Holo Icons) · ADR-0057 (Holo UI) · W3C OPFS / File System Access · Web Crypto · verify by driving the real desktop in Chromium",
   witnessed,
-  covers: witnessed ? ["holo-desk", "native-new-folder", "inline-rename", "opfs-home-write", "os-adaptive", "icon-discovery", "icon-is-uor-object", "layout-self-verifies", "app-shortcut", "pin-to-dock", "nesting", "folder-cover-matches-contents", "marquee-multi-select", "law-l5"] : [],
+  covers: witnessed ? ["holo-desk", "native-new-folder", "inline-rename", "opfs-home-write", "os-adaptive", "icon-discovery", "icon-is-uor-object", "layout-self-verifies", "app-shortcut", "pin-to-dock", "nesting", "folder-cover-matches-contents", "marquee-multi-select", "pin-any-object", "desktop-as-one-kappa", "content-address-verify", "trash-undo", "copy-paste", "law-l5"] : [],
   results,
 });
 console.log(`\n=== ${passed}/${passed + failed} passed, ${failed} failed ===`);

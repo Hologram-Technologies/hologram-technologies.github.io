@@ -68,14 +68,27 @@ holospace.
   tier resolution is conservative + honest headless; the doctrine practises its own plain voice; and
   the budget keeps interaction ≤100 ms on every tier (RAIL). Required row `#holo-ux` in the gate.
 
-**Consequences.** The experience is now a canonical, self-verifying κ-object every holospace can
-bind — "feels native, familiar and effortless, treats my resources as sacred" becomes the gate, not
-a hope, exactly as the Holo UI tokens did for the look. It composes with ADR-022/023/024/025/030/057
-and adds zero runtime framework. The next step (a maintainer's, per the brief) is the *per-app*
-ratchet that wires every native app's conformance to these upstream parameters — the experience
-twin of `#app-ui-wired` / `#app-ui-tokens`. Costs: the `hosux:` vocabulary and the seal step to
-maintain (re-run `seal-ux-doctrine.mjs` after editing the doctrine — the witness catches a stale
-seal); and the same honest non-coverage of pixel-only surfaces (VM/canvas) inherited from ADR-023.
+- **Strict adherence by EVERY app (`#app-ux-conformance`).** So every native app is beautiful,
+  functional and coherent with the whole OS, the doctrine is enforced per-app — the experience twin
+  of `#app-ui-wired` / `#app-ui-tokens`. The lean wire (Law L2): the one engine every app already
+  loads — `holo-theme.js`, gated universal by `#app-ui-wired` — bootstraps `holo-ux.js`, so every
+  app inherits the WHOLE doctrine (native feel · tier · budget · propagation) with **no per-app
+  script tag and no app-repo re-lock**. `tools/holo-app-ux-witness.mjs` proves that inheritance is
+  real for every served app (the carrier is intact + the doctrine object re-derives + every app
+  loads the engine), and holds each app to the two obligations checkable in its own shell: its
+  manifest keeps the plain voice (jargon-free — already 0 across the corpus, enforced absolutely),
+  and a no-new-regression ratchet (`holo-app-ux-baseline.json`) drives every app to honor
+  `prefers-reduced-motion` (WCAG 2.3.3) — read-only, the burn-down only ever passes.
+
+**Consequences.** The experience is now a canonical, self-verifying κ-object every holospace binds
+AND is held to — "feels native, familiar and effortless, treats my resources as sacred" becomes the
+gate, not a hope, exactly as the Holo UI tokens did for the look. It composes with
+ADR-022/023/024/025/030/057 and adds zero runtime framework. Two required rows: `#holo-ux` (the
+canonical source self-verifies) and `#app-ux-conformance` (every app adheres). Costs: the `hosux:`
+vocabulary and the seal step to maintain (re-run `seal-ux-doctrine.mjs` after editing the doctrine —
+the witness catches a stale seal); burning down the reduced-motion baseline (run the witness with
+`--update-baseline` as apps gain a guard); and the same honest non-coverage of pixel-only surfaces
+(VM/canvas) inherited from ADR-023.
 
 **External authorities — W3C / platform:** UA Client Hints (host autodetect); HTML Standard
 (cross-document messaging); CSS Custom Properties; Media Queries L5 (`prefers-*`); Device Memory;

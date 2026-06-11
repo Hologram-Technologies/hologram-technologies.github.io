@@ -19,7 +19,7 @@
  * OUTSIDE #holo-dock and so would not inherit them otherwise. The dock's own layout stays below. */
 #holo-dock, .holo-dock-flyout, .holo-dock-menu {
   /* φ-proportioned metrics (golden ratio everywhere), each with a portable fallback. */
-  --hd-tile: var(--holo-size-l, 2.618rem);                 /* φ² — the chip */
+  --hd-tile: clamp(2.2rem, 2vmin + 1.2rem, 2.9rem);        /* the chip — responsive to screen size; icon/gap/radius stay φ-proportioned to it */
   --hd-icon: calc(var(--hd-tile) * var(--hd-phi-inv));     /* icon = φ⁻¹ · chip (golden) */
   --hd-gap:  calc(var(--hd-tile) * 0.236);                 /* φ⁻³ · chip — breathing room between chips */
   --hd-pad:  calc(var(--hd-tile) * 0.146);                 /* φ⁻⁴ · chip — inner padding */
@@ -87,8 +87,8 @@
 .holo-dock-inner {
   pointer-events: auto;
   display: flex; align-items: center; gap: var(--hd-gap);
-  width: 100%; min-height: calc(var(--hd-tile) + var(--hd-sp2));
-  padding: var(--hd-pad) var(--hd-sp3);
+  width: 100%; min-height: var(--hd-tile);
+  padding: var(--hd-sp1) var(--hd-sp3);
   background: var(--hd-blur-bg);
   -webkit-backdrop-filter: var(--hd-blur-fx); backdrop-filter: var(--hd-blur-fx);
   border-top: 1px solid var(--hd-glass-border);
@@ -121,7 +121,7 @@
   background: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(243,246,250,0.42));
   box-shadow: 0 1px 2px rgba(8,12,24,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
   color: var(--hd-ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transition: transform 0.16s cubic-bezier(.2,.7,.3,1), box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+  transition: transform 0.11s cubic-bezier(.2,.8,.2,1), box-shadow 0.11s ease, background 0.11s ease, border-color 0.11s ease;
   transform-origin: center;
 }
 .holo-dock-tile:hover, .holo-dock-tile:focus-visible {
@@ -133,8 +133,10 @@
 .holo-dock-icon { width: var(--hd-icon); height: var(--hd-icon); display: block; pointer-events: none; object-fit: contain; }
 .holo-dock-logo { width: calc(var(--hd-icon) * 1.04); height: calc(var(--hd-icon) * 1.04); }
 
-/* Active (running) — an accent-tinted chip + a dot below. */
-.holo-dock-dot { width: var(--hd-sp1); height: var(--hd-sp1); border-radius: 999px; background: transparent; margin-top: var(--hd-pad); transition: background 0.16s ease; }
+/* Active (running) — an accent-tinted chip + a dot. The dot is ABSOLUTE so every item equals the chip
+ * EXACTLY → all chips align precisely (the dot never grows an item's box). Centred just below in the
+ * bottom dock; pinned to the left in the vertical bar (overridden in the [data-orient="left"] block). */
+.holo-dock-dot { position: absolute; left: 50%; bottom: calc(-0.6 * var(--hd-sp2)); transform: translateX(-50%); width: var(--hd-sp1); height: var(--hd-sp1); border-radius: 999px; background: transparent; pointer-events: none; transition: background 0.14s ease; }
 .holo-dock-item[data-running] .holo-dock-dot { background: var(--hd-accent); }
 .holo-dock-item[data-running] .holo-dock-tile {
   background: linear-gradient(180deg, color-mix(in srgb, var(--hd-accent) 30%, #fff), color-mix(in srgb, var(--hd-accent) 15%, #fff));
@@ -219,7 +221,7 @@
 #holo-dock[data-orient="left"] .holo-dock-tile { transform-origin: left center; }
 #holo-dock[data-orient="left"] .holo-dock-label { bottom: auto; left: calc(100% + var(--hd-pad)); top: 50%; transform: translateY(-50%) translateX(var(--hd-sp1)); }
 #holo-dock[data-orient="left"] .holo-dock-item:hover .holo-dock-label { transform: translateY(-50%) translateX(0); }
-#holo-dock[data-orient="left"] .holo-dock-dot { position: absolute; left: calc(var(--hd-pad) * -1); top: 50%; transform: translateY(-50%); margin: 0; }
+#holo-dock[data-orient="left"] .holo-dock-dot { left: calc(var(--hd-pad) * -1); top: 50%; bottom: auto; transform: translateY(-50%); }
 #holo-dock[data-orient="left"] .holo-dock-item.drop-before::before,
 #holo-dock[data-orient="left"] .holo-dock-item.drop-after::after { top: auto; bottom: auto; left: 10%; right: 10%; width: auto; height: 2px; }
 #holo-dock[data-orient="left"] .holo-dock-item.drop-before::before { top: calc(var(--hd-gap) / -2); }

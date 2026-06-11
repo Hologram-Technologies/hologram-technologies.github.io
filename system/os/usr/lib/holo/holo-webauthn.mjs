@@ -37,20 +37,44 @@ export function teeSupported() {
   return typeof PublicKeyCredential !== "undefined" && !!(globalThis.navigator && navigator.credentials && navigator.credentials.create);
 }
 
-// True only when THIS device has a user-verifying platform authenticator (a real TEE/biometric),
-// not a roaming security key. This is the "auto-detect the device" gate the greeter checks.
+// A valid RP ID is "localhost" or a real dotted domain — NEVER a bare IP literal (the WebAuthn
+// spec forbids IPs as RP IDs, so http://127.0.0.1 throws SecurityError; http://localhost and any
+// https:// host work). This is why the dev preview must be opened on localhost, not 127.0.0.1.
+function host() { return (globalThis.location && location.hostname) || ""; }
+function rpIdValid() {
+  const h = host();
+  if (h === "localhost") return true;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return false;          // IPv4 literal
+  if (h.includes(":")) return false;                            // IPv6 literal
+  return h.includes(".");                                       // a real domain (has a dot)
+}
+function secureOk() { return typeof window === "undefined" ? false : (window.isSecureContext === true); }
+
+// Why a biometric prompt is not available right now — drives the greeter's fallback messaging.
+// Returns "" when biometrics ARE available. Async because it probes the platform authenticator.
+export async function teeReason() {
+  if (!teeSupported()) return "This browser has no WebAuthn / passkey support";
+  if (!secureOk()) return "Biometrics need a secure page (https or localhost)";
+  if (!rpIdValid()) return "Open this on https or localhost (not an IP) for biometrics";
+  try { if (!(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())) return "No device biometric is set up (Face ID / Touch ID / Windows Hello / fingerprint)"; }
+  catch { return "Could not query the device authenticator"; }
+  return "";
+}
+
+// True only when THIS device can run a user-verifying PLATFORM biometric ceremony right now:
+// the on-device authenticator exists, the page is a secure context, and the RP ID is valid.
+// Works uniformly on desktop and mobile (Windows Hello · Touch/Face ID · Android fingerprint).
 export async function teeAvailable() {
-  if (!teeSupported()) return false;
-  try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
-  catch { return false; }
+  return (await teeReason()) === "";
 }
 
 // A human name for the local authenticator, for the greeter's status line.
 export function teeName() {
   const ua = ((globalThis.navigator && (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent)) || "");
+  if (/iphone|ipad|ios/i.test(ua)) return "Face ID / Touch ID";
+  if (/mac/i.test(ua)) return "Touch ID";
   if (/win/i.test(ua)) return "Windows Hello";
-  if (/mac|iphone|ipad|ios/i.test(ua)) return "Touch ID";
-  if (/android/i.test(ua)) return "device biometrics";
+  if (/android/i.test(ua)) return "your fingerprint";
   return "device biometrics";
 }
 
@@ -58,9 +82,11 @@ export function teeName() {
 export function teeError(e) {
   const n = (e && (e.name || "")) + "";
   const m = (e && (e.message || "")) + "";
-  if (/NotAllowed/i.test(n)) return "Biometric cancelled or timed out";
+  if (/NotAllowed|AbortError/i.test(n)) return "Biometric cancelled or timed out";
+  if (/InvalidState/i.test(n)) return "This identity is already set up on this device";
   if (/PRF|hardware secret/i.test(m)) return "This device can't derive a hardware key (no PRF)";
-  if (/SecurityError|secure context/i.test(n + m)) return "Biometric needs a secure (https/localhost) page";
+  if (/NotSupported/i.test(n)) return "This device can't do hardware biometric sign-in";
+  if (/Security|secure context|RP ID|relying party/i.test(n + m)) return "Biometrics need a secure (https/localhost) page";
   return m || "Biometric sign-in failed";
 }
 

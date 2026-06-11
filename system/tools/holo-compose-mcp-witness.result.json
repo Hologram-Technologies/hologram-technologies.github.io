@@ -1,0 +1,38 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "an AI agent builds capability κ-objects, composes them BY CONTENT ADDRESS (extern … from κ) and runs the linked result over MCP — no server",
+    "holo_build surfaces a composition's dependency κ's in `imports`; holo_run resolves + verifies (L5) + links them (L3 dedup)",
+    "agents compose TYPED (WIT) components too — a string crosses between isolated component memories, lifted/lowered by the linker",
+    "the composition is itself a κ (holo://κ) — a first-class object that flows into Own (ADR-0053) · Settle (ADR-0048) · Orchestrate (ADR-0045), which operate on any κ"
+  ],
+  "library": {
+    "kappa": "did:holo:sha256:39e4ca357b62fdca05dd6f90713b9c70c436bda8636c16c46495ea2120172ece"
+  },
+  "composed": {
+    "kappa": "did:holo:sha256:88f31795f90497160fa59e8e1a439b15250633c692efcb0b1e76ac453ac329f7",
+    "imports": [
+      {
+        "name": "add",
+        "kappa": "did:holo:sha256:39e4ca357b62fdca05dd6f90713b9c70c436bda8636c16c46495ea2120172ece",
+        "arity": 2,
+        "params": [
+          "i32",
+          "i32"
+        ],
+        "ret": "i32"
+      }
+    ],
+    "ran": 42
+  },
+  "checks": {
+    "agent-builds-capability": true,
+    "agent-composes-by-content-address": true,
+    "agent-runs-linked-composition": true,
+    "agent-shares-composition-kappa": true,
+    "agent-composes-typed-string-component": true
+  },
+  "failed": [],
+  "authority": "W3C Model Context Protocol (2024-11-05) · W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · UOR-ADDR · Law L1/L3/L5"
+}

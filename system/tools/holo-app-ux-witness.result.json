@@ -1,0 +1,63 @@
+{
+  "spec": "Every served holospace app strictly adheres to the canonical Holo UX doctrine (ADR-0062): it inherits the whole doctrine by loading the one engine (holo-theme.js bootstraps holo-ux.js — the native-OS feel, capability tier, resource budget and propagation reach every app with no per-app script, Law L2); its manifest holds the plain voice (signal-over-noise); and a no-new-regression ratchet drives every app to honor prefers-reduced-motion (sacred resources · WCAG 2.3.3). Read-only static analysis of the served app repo.",
+  "authority": "ADR-0062 (Holo UX doctrine) · ADR-0030/0057 (Holo UI) · WCAG 2.2 (2.3.3 Animation from Interactions · 1.4.x readability) · the plain voice register (holo-voice.mjs) · RAIL / W3C Web Performance · the 'betterer' no-new-violations ratchet · static analysis of the served app repo",
+  "witnessed": true,
+  "covers": [
+    "holo-ux",
+    "every-application",
+    "inherits-doctrine",
+    "native-os-feel",
+    "plain-voice",
+    "reduced-motion",
+    "sacred-resources",
+    "ratchet",
+    "strict-conformance"
+  ],
+  "appsScanned": 32,
+  "doctrineKappa": "did:holo:sha256:a7f14276182735066cf9a4cf25f5d18dcfd1dcaab24228225a520199da9f8d12",
+  "checks": {
+    "the carrier is intact — holo-theme.js bootstraps holo-ux.js (every engine-loading app inherits the doctrine)": true,
+    "the canonical Holo UX doctrine object exists + re-derives to its content address (Law L5)": true,
+    "every served app loads the engine → inherits Holo UX (native-OS feel · tier · obligations)": true,
+    "every app's manifest is jargon-free (signal-over-noise · the plain voice register)": true,
+    "no NEW app animates without honoring prefers-reduced-motion (sacred resources · WCAG 2.3.3 ratchet)": true
+  },
+  "unwired": [],
+  "jargonApps": [],
+  "reducedMotion": {
+    "baseline": 28,
+    "now": 28,
+    "regressions": [],
+    "burnedDown": [],
+    "animatingUnguarded": [
+      "amp",
+      "atlas",
+      "brcminer",
+      "browser",
+      "btc",
+      "capture",
+      "cloud",
+      "docs",
+      "etherscan",
+      "evm",
+      "files",
+      "forge",
+      "git",
+      "ipfs",
+      "meet",
+      "music",
+      "notepad",
+      "os",
+      "player",
+      "privacy",
+      "q",
+      "qemu",
+      "sdk",
+      "search",
+      "stream",
+      "terms",
+      "video",
+      "wallet"
+    ]
+  }
+}
