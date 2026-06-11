@@ -25,7 +25,7 @@ const writeResult = (extra = {}) => writeFileSync(join(here, "holo-files-witness
   spec: "Holo Files (ADR-0058) — the native, substrate-native file explorer: one window onto the OS's content-addressed object universe + a writable OPFS Home. It auto-detects the host OS and wears its native chrome (Finder/Explorer/Files/Nautilus); every object carries its did:holo κ and re-derives on demand (Law L5 — a tampered byte is refused); Home is read/WRITE while the substrate is read-only; a core part of the World shell. SEAMLESSLY integrates Holo Search (a unified omnibox: recursive local search + paste-a-κ/identifier resolve + open-web answer) and Holo Cloud (it mounts the SAME content-addressed OPFS κ-store the Cloud app uses, so a file sent from Files appears in Holo Cloud — one substrate, not a bridge).",
   authority: "W3C File System Access / OPFS (navigator.storage.getDirectory) · W3C Web Cryptography (SHA-256 re-derivation) · WHATWG Fetch + DOM · W3C UA Client Hints (host detection, holo-platform) · Nextcloud WebDAV (holo-webdav, Holo Cloud) · the unified-window resolve/federate/answer pipeline (Holo Search, no AI) · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L3/L4/L5 · files-community/Files UX (reproduced) · real Chromium via Playwright",
   witnessed: failed === 0 && passed > 0,
-  covers: ["files-explorer", "substrate-vfs", "click-navigation", "law-l5-verify", "tamper-refused", "opfs-home-write", "os-adaptive", "core-of-the-shell", "unified-search", "kappa-resolve", "holo-cloud-mount", "cloud-roundtrip-verified", "tabs", "multi-select", "drag-and-drop", "drag-out-as-kappa", "drop-to-materialize", "file-tags", "dual-pane"],
+  covers: ["files-explorer", "substrate-vfs", "click-navigation", "law-l5-verify", "tamper-refused", "opfs-home-write", "os-adaptive", "core-of-the-shell", "unified-search", "kappa-resolve", "holo-cloud-mount", "cloud-roundtrip-verified", "tabs", "multi-select", "drag-and-drop", "drag-out-as-kappa", "drop-to-materialize", "file-tags", "dual-pane", "sort-group", "status-column", "archives-zip"],
   results, passed, failed, ...extra,
 }, null, 2) + "\n");
 
@@ -48,8 +48,8 @@ try {
   rec("the explorer boots and paints its Home landing page", true);
 
   // ── auto-detects the host OS and adapts the chrome ───────────────────────────────────
-  const osInfo = await page.evaluate(() => ({ os: document.documentElement.getAttribute("data-os"), skin: (document.getElementById("st-os") || {}).textContent || "", title: document.title }));
-  rec("auto-detects the host OS and wears its native skin", !!osInfo.os && /·/.test(osInfo.skin), `${osInfo.os} → ${osInfo.skin}`);
+  const osInfo = await page.evaluate(() => ({ os: document.documentElement.getAttribute("data-os"), accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() }));
+  rec("auto-detects the host OS and wears its native chrome (implicit, not stated in the window)", ["windows", "macos", "ios", "ipados", "android", "chromeos", "linux"].includes(osInfo.os) && !!osInfo.accent, `${osInfo.os} · accent ${osInfo.accent}`);
 
   // ── CLICK INTO HOLOSPACES (the sidebar location) ─────────────────────────────────────
   await page.locator('#side .sitem[data-loc="2"]').first().click();
@@ -179,6 +179,30 @@ try {
   } else rec("the second pane navigates independently of the first", false, "no folder to drill");
   await page.screenshot({ path: join(here, "holo-files-dual-tags.png") });
   await page.locator("#p2close").click();
+
+  // ── Sort & group menu ──────────────────────────────────────────────────────────────────
+  await page.locator('#views .vbtn[data-v="details"]').click();
+  await page.locator("#sortBtn").click();
+  await page.waitForSelector("#sortmenu.on", { timeout: 4000 });
+  await page.locator('#sortmenu .mi[data-gb="kind"]').click();
+  const grouped = await page.evaluate(() => document.querySelectorAll("#list .grouphdr").length > 0);
+  rec("the sort/group menu groups the listing (group headers render)", grouped);
+
+  // ── Status column — the content-addressed analog of git status (sealed vs local) ───────
+  const statusCol = await page.evaluate(() => { const th = [...document.querySelectorAll("#list table.det thead th")].some((t) => /Status/.test(t.textContent)); const local = !!document.querySelector("#list .gstat.st-local"); return th && local; });
+  rec("a Status column distinguishes local (working copy) from sealed (κ-pinned)", statusCol);
+  await page.locator("#sortBtn").click(); await page.waitForSelector("#sortmenu.on", { timeout: 4000 }); await page.locator('#sortmenu .mi[data-gb="none"]').click();
+
+  // ── Archives (.zip) — compress + extract round-trip (real DEFLATE, no CDN) ──────────────
+  const zipRoundtrip = await page.evaluate(async () => {
+    const payload = "deflate-me-" + "x".repeat(500);
+    await window.HoloFiles.createFile("/home/user", "zsrc.txt", payload);
+    await window.HoloFiles.compressToZip([{ source: "opfs", path: "/home/user/zsrc.txt", name: "zsrc.txt", kind: "file" }], "/home/user", "z.zip");
+    await window.HoloFiles.extractZip({ source: "opfs", path: "/home/user/z.zip", name: "z.zip", kind: "file" }, "/home/user");
+    const out = await window.HoloFiles.read({ source: "opfs", path: "/home/user/z/zsrc.txt", name: "zsrc.txt" });
+    return new TextDecoder().decode(out.bytes) === payload;
+  });
+  rec("a .zip compresses and extracts byte-identically (real DEFLATE via Compression Streams)", zipRoundtrip);
 
   // ── Holo Search — the unified omnibox finds objects across the whole substrate ─────────
   await page.fill("#q", "witness");

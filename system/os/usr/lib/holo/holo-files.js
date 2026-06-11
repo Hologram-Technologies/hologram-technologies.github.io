@@ -411,7 +411,67 @@ export async function webSearch(query) { const m = await import("./holo-find.js"
 // storage usage for the writable plane (W3C StorageManager).
 export async function freeSpace() { try { const e = await navigator.storage.estimate(); return { usage: e.usage || 0, quota: e.quota || 0 }; } catch { return null; } }
 
+// ── archives (.zip) — real DEFLATE via the W3C Compression Streams API (no CDN, Law L4) ────
+const CRCT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRCT[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function deflateRaw(u8) { const cs = new CompressionStream("deflate-raw"); const w = cs.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(cs.readable).arrayBuffer()); }
+async function inflateRaw(u8) { const ds = new DecompressionStream("deflate-raw"); const w = ds.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(ds.readable).arrayBuffer()); }
+async function zip(entries) {                              // entries: [{ name, bytes }] → a .zip Uint8Array
+  const te = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const e of entries) {
+    const nameB = te.encode(e.name), data = e.bytes instanceof Uint8Array ? e.bytes : new Uint8Array(e.bytes);
+    const crc = crc32(data), comp = await deflateRaw(data);
+    const lh = new Uint8Array(30 + nameB.length), dv = new DataView(lh.buffer);
+    dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true); dv.setUint16(8, 8, true);
+    dv.setUint32(14, crc, true); dv.setUint32(18, comp.length, true); dv.setUint32(22, data.length, true); dv.setUint16(26, nameB.length, true); lh.set(nameB, 30);
+    parts.push(lh, comp); central.push({ nameB, crc, comp: comp.length, size: data.length, off }); off += lh.length + comp.length;
+  }
+  const cdStart = off, cd = [];
+  for (const c of central) {
+    const ch = new Uint8Array(46 + c.nameB.length), dv = new DataView(ch.buffer);
+    dv.setUint32(0, 0x02014b50, true); dv.setUint16(4, 20, true); dv.setUint16(6, 20, true); dv.setUint16(10, 8, true);
+    dv.setUint32(16, c.crc, true); dv.setUint32(20, c.comp, true); dv.setUint32(24, c.size, true); dv.setUint16(28, c.nameB.length, true); dv.setUint32(42, c.off, true); ch.set(c.nameB, 46);
+    cd.push(ch); off += ch.length;
+  }
+  const eocd = new Uint8Array(22), dv = new DataView(eocd.buffer);
+  dv.setUint32(0, 0x06054b50, true); dv.setUint16(8, central.length, true); dv.setUint16(10, central.length, true); dv.setUint32(12, off - cdStart, true); dv.setUint32(16, cdStart, true);
+  const all = [...parts, ...cd, eocd]; let total = 0; for (const c of all) total += c.length; const out = new Uint8Array(total); let o = 0; for (const c of all) { out.set(c, o); o += c.length; } return out;
+}
+async function unzip(u8) {                                 // → [{ name, bytes }] (files only)
+  u8 = u8 instanceof Uint8Array ? u8 : new Uint8Array(u8); const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), tdz = new TextDecoder();
+  let eo = -1; for (let i = u8.length - 22; i >= 0; i--) { if (dv.getUint32(i, true) === 0x06054b50) { eo = i; break; } }
+  if (eo < 0) throw new Error("not a zip archive");
+  const count = dv.getUint16(eo + 10, true); let p = dv.getUint32(eo + 16, true); const out = [];
+  for (let i = 0; i < count && dv.getUint32(p, true) === 0x02014b50; i++) {
+    const method = dv.getUint16(p + 10, true), comp = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true);
+    const name = tdz.decode(u8.subarray(p + 46, p + 46 + nlen));
+    const lnlen = dv.getUint16(lho + 26, true), lelen = dv.getUint16(lho + 28, true), dstart = lho + 30 + lnlen + lelen, cdata = u8.subarray(dstart, dstart + comp);
+    if (!name.endsWith("/")) { let data; if (method === 0) data = cdata.slice(); else if (method === 8) data = await inflateRaw(cdata); else { p += 46 + nlen + elen + clen; continue; } out.push({ name, bytes: data }); }
+    p += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+async function opfsWriteDeep(rootParts, relPath, bytes) {
+  const segs = [...rootParts, ...relPath.split("/").filter(Boolean)], name = segs.pop();
+  let dir = await opfsRoot(); for (const s of segs) dir = await dir.getDirectoryHandle(s, { create: true });
+  const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(bytes); await w.close();
+}
+// extract a .zip object into destDir/<archive-name>/ (preserving the archive's subpaths)
+export async function extractZip(node, destDirPath = "/home/user") {
+  const { bytes } = await read(node, 512 * 1024 * 1024), entries = await unzip(bytes);
+  const folder = (node.name || "archive").replace(/\.zip$/i, ""), rootParts = homeParts(destDirPath).concat(folder);
+  for (const e of entries) await opfsWriteDeep(rootParts, e.name, e.bytes);
+  return { folder, count: entries.length };
+}
+// compress the given file nodes into a single .zip written to destDir
+export async function compressToZip(nodes, destDirPath = "/home/user", zipName = "archive.zip") {
+  const entries = []; for (const n of nodes) { if (n.kind !== "file") continue; try { const { bytes } = await read(n, 512 * 1024 * 1024); entries.push({ name: n.name, bytes }); } catch {} }
+  if (!entries.length) throw new Error("no files to compress");
+  const z = await zip(entries); await createFile(destDirPath, zipName, z);
+  return { name: zipName, count: entries.length, bytes: z.length };
+}
+
 export const HoloFiles = { ROOTS, list, read, verify, realPath, platform, skinFor, mkdir, createFile, writeFile, rename, remove, moveHome, copyHome, fmtBytes, mimeOf, kindOf, extOf, FHS,
-  sendToCloud, cloudShareLink, searchAll, resolveInput, materialize, webSearch, freeSpace };
+  sendToCloud, cloudShareLink, searchAll, resolveInput, materialize, webSearch, freeSpace, extractZip, compressToZip };
 if (typeof window !== "undefined") window.HoloFiles = HoloFiles;
 export default HoloFiles;

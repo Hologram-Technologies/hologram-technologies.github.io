@@ -57,7 +57,12 @@ native-web holospace wired directly to the substrate.
 
 **Consequences.**
 
-- The two integrations + the desktop interactions are witnessed live (`#holo-files`, 27 checks):
+- A **sort/group menu** (sort by name/size/type/κ + direction; group by kind/type/tag), real **.zip
+  archives** (compress + extract via the W3C Compression Streams API — `deflate-raw`, no CDN, Law L4),
+  and a **Status column** — the content-addressed analog of git status: *sealed* (κ-pinned, immutable)
+  vs *local* (your editable OPFS working copy). The OS name is **not stated in the window** — it is
+  implicit in the native chrome (the skin adapts; the text would be redundant).
+- The two integrations + the desktop interactions are witnessed live (`#holo-files`, 30 checks):
   unified search finds objects, a κ resolves to its object, a Home file sent to Cloud appears in the
   Holo Cloud location and re-derives (Law L5 over the cloud κ-store); a new tab opens / switches /
   closes (multi-tab browsing), Ctrl-click extends a multi-selection, and a file moves into a folder

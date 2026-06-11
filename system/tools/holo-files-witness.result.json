@@ -21,7 +21,10 @@
     "drag-out-as-kappa",
     "drop-to-materialize",
     "file-tags",
-    "dual-pane"
+    "dual-pane",
+    "sort-group",
+    "status-column",
+    "archives-zip"
   ],
   "results": [
     {
@@ -30,9 +33,9 @@
       "detail": ""
     },
     {
-      "name": "auto-detects the host OS and wears its native skin",
+      "name": "auto-detects the host OS and wears its native chrome (implicit, not stated in the window)",
       "ok": true,
-      "detail": "windows → Windows · File Explorer"
+      "detail": "windows · accent #0a84ff"
     },
     {
       "name": "clicking Holospaces lists every app from the catalog",
@@ -125,6 +128,21 @@
       "detail": "2 crumbs"
     },
     {
+      "name": "the sort/group menu groups the listing (group headers render)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a Status column distinguishes local (working copy) from sealed (κ-pinned)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a .zip compresses and extracts byte-identically (real DEFLATE via Compression Streams)",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "the unified search box finds objects across the substrate (Holo Search · local plane)",
       "ok": true,
       "detail": ""
@@ -160,6 +178,6 @@
       "detail": ""
     }
   ],
-  "passed": 27,
+  "passed": 30,
   "failed": 0
 }
