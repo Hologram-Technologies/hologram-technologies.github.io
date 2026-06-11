@@ -370,6 +370,33 @@
       "hosc:witness": "tools/holo-product-witness.mjs",
       "hosc:required": true,
       "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-pm",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo Product Manager is the canonical full-cycle product-management framework for Hologram-native products + applications (ADR-0066) — the bridge that turns ideas into scalable, enterprise-grade products that solve real pain points. It STRICTLY adopts the Pragmatic Framework (pragmaticinstitute.com/product/framework) VERBATIM — 37 activities ('boxes') in 7 categories (Market · Focus · Business · Planning · Programs · Enablement · Support), on the strategic→tactical axis, a clear path from a great idea to a great product — and WIRES every activity Hologram realizes to the tool that executes it (User Personas → Holo UX capability tiers · Use Scenarios/Stakeholder Comm → the plain voice · Requirements/Roadmap/Positioning → Holo Product · Buyer Experience → Holo UX · Launch/Awareness/Advocacy → Holo Share-to-Run · Pricing/Revenue/Profitability → Holo Own·Settle · Buy-Build-Partner/Innovation → Holo App build·compose · Measurement → the witnessed gate · Operations → the conscience gate · Content/Sales Tools → the Holo SDK + scaffolder), so the framework is EXECUTED on the substrate, not just described; the market/business judgment boxes stay the PM's job (NIHITO — no tool can own them). It is sealed as ONE self-verifying UOR object (etc/holo-pm/pm.uor.json) that re-derives to its content address and Merkle-links the Holo Product foundation it manages + every wired tool (Law L5); it is surfaced as the canonical PANE (holo-pm.html) and exposed through the Holo SDK (pm()), to deliver one seamless, unified, coordinated PM framework",
+      "hosc:authority": "ADR-0066 (Holo Product Manager) · the Pragmatic Framework (pragmaticinstitute.com/product/framework, cited verbatim — 37 boxes / 7 categories) · ADR-0065 (Holo Product) · ADR-0062/0030/0057 (Holo UX/UI) · ADR-0064 (Holo Share-to-Run) · ADR-0053 (Holo Own/Settle) · ADR-0050 (Holo SDK) · W3C OWL 2 / RDFS / SKOS (the hospm: vocabulary) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+      "hosc:witness": "tools/holo-pm-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#atlas96-resonator",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The Atlas 96 Resonator is the Φ-Atlas-12288 boundary made PHYSICAL, AUDIBLE and PROVABLE — the whole 12,288-cell torus (T² = ℤ₄₈ × ℤ₂₅₆, verbatim upstream invariants: R96 = b % 96 · Φ(p,b) = (p << 8) | b) as an interactive fiber instrument: pull a cell, field-grab the whole structure, squeeze it until it buckles, pluck it; morph the SAME cells through 1D cycle → 2D sheet → 3D torus → 4D Clifford torus in S³; hear deformation as 96-EDO partials over the R96 classes (class c sounds at 220·2^(c/96) Hz) with truth ≙ conservation (the strain budget returns to 0). Its structure is NOT parametric — every irregular artifact of the weave (each fiber kink, each hole) is a byte of DNA(p,b) = SHA-256(atlasObjectId ‖ Φ(p,b)), zero free parameters, zero RNG, sealed in a PROV-O receipt and re-derived LIVE in the tab (Law L5); tampering ONE codepoint of the atlas object is refused with all 12,288 cells re-deriving differently. This is the decidable answer to 'how do we know the model didn't just classify the shape and apply the math formula — did the mesh capture the specific, irregular artifacts?': re-derive, or be refused",
+      "hosc:authority": "UOR-Foundation/atlas-12288 @ aef42a6 (verbatim, MIT — the 48×256→96 Prime Structure, vendored not re-implemented) · W3C PROV-O (the structure receipt) · DID-Core + RFC 8785 JCS (did:holo self-verification) · FIPS 180-4 SHA-256 (the per-cell derivation) · WebGL2 + Web Audio (presentation) · Law L5: verify by re-derivation, tamper → refuse",
+      "hosc:witness": "tools/atlas96-resonator-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Holospaces"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-q-spine",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo Q is a substrate-native chat app (LibreChat-parity spine, reimplemented natively): conversations persist as content-addressed κ-objects — NOT a database — the parentMessageId branch tree is a verify-on-load Merkle-DAG (every message links its parent's κ; regenerate/edit = a new sibling κ; fork = a new conversation referencing the SAME κ-objects, O(1), zero copy), and every answer is a re-derivable PROV-O inference receipt sealed to its own did:holo. Tampering one byte of any message or receipt is refused by re-derivation; identical (context ⊕ prompt ⊕ model ⊕ params) replays from the κ-memo in O(1) with no decode",
+      "hosc:authority": "IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · W3C Subresource Integrity · UOR content-addressing (κ = H(canonical form)) · verify-by-re-derivation (Law L1/L3/L5) · LibreChat data model (conversation/message/preset field names, reproduced not vendored)",
+      "hosc:witness": "tools/q-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Holospaces"
     }
   ]
 }

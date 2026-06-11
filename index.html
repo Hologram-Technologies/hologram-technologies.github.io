@@ -69,109 +69,350 @@
   ]
 }
 </script>
+<!-- apply the saved appearance mode (light · dark · immersive) before first paint — no flash -->
+<script>try{var d=document.documentElement;var m=localStorage.getItem("holo.gateway.mode")||"immersive";d.setAttribute("data-theme",m==="light"?"light":"dark");d.setAttribute("data-immersive",m==="immersive"?"full":"off");}catch(e){var x=document.documentElement;x.setAttribute("data-theme","dark");x.setAttribute("data-immersive","full");}</script>
 <style>
   /* ─────────────────────────────────────────────────────────────────────────────────────────
-     The gateway face — a clean welcome on pure black. The ENTIRE layout is built from ONE fluid
-     golden unit (--u) and powers of φ (1.618), so every size and gap is a golden relationship and
-     the composition holds its proportions from a phone to an 8K wall. Everything on screen is
-     vector (the SVG mark + system text), so it stays razor-sharp at any pixel density.
+     The gateway face — the LibreChat landing UX (top bar · star pill · giant headline · sub-line ·
+     two CTA pills), rebranded HOLOGRAM, rebuilt on a GOLDEN-RATIO system.
+
+     • Golden ratio throughout — one fluid unit --u and powers of φ (1.618) govern every type size,
+       gap, pad and control, so each relationship on the page is a golden one (links→brand = φ,
+       sub→headline = φ³, inline pads = φ·block pads, …).
+     • Resolution-independent & razor sharp — the page is 100% vector (the dot-mark + system text),
+       so it is pixel-perfect at ANY density: HiDPI, Retina, 5K/8K. Rendering is tuned for crispness
+       (grayscale smoothing, optical sizing, geometric SVG precision, no faux-bold synthesis).
+     • Scales as ONE piece — --u tracks the viewport's SHORT side (vmin), so the whole composition
+       grows grander on a large panel and stays compact on a phone, and NEVER forces a scrollbar.
      ───────────────────────────────────────────────────────────────────────────────────────── */
   :root{
+    --bg:#000;
+    --fg:#fff;
+    --fg-soft:#e2e2e8;        /* star-pill label */
+    --muted:#8b8b93;          /* nav links, sub-line */
+    --muted-2:#6f6f78;        /* placeholders */
+    --line:#262629;           /* hairline borders */
+    --line-strong:#3a3a40;    /* hover borders */
+    --panel:#0d0d0f;          /* search / badge / ghost-button fills */
+    --panel-2:#1b1b1f;        /* keycaps, active toggle */
+    --panel-hover:#1a1a1d;
+    --shadow:0 16px 50px rgba(0,0,0,.55);                      /* search dropdown */
+    --btn-p-bg:#fff; --btn-p-fg:#000; --btn-p-hover:#e6e6e6;   /* primary button */
+
+    /* ── GOLDEN-RATIO SCALE ─────────────────────────────────────────────────────────────────
+       --u is the fluid golden unit (tracks the viewport short side). Every size below is --u times
+       a power of φ, so the page is one self-similar golden composition at any scale. The headline
+       and sub get their own clamps (a far wider min↔max range than the UI) but stay φ-related. */
     --phi:1.618;
-    --u: clamp(15px, 1.3vmin, 54px);            /* the golden unit — scales with the viewport's short side */
-    --u1: calc(var(--u) * 1.618);               /* φ¹ */
-    --u2: calc(var(--u) * 2.618);               /* φ² */
-    --u3: calc(var(--u) * 4.236);               /* φ³ */
-    --word: clamp(24px, 8vw, calc(var(--u) * 6)); /* wordmark cap — golden, fluid; grander on big screens, the vw term keeps the whole lockup inside the frame on the narrowest phone */
-    --mark: calc(var(--word) * var(--phi));     /* the dot-mark is φ× the wordmark cap — a golden pair */
-    --ink:#f5f5f7;
+    --u: clamp(13px, 2.15vmin, 30px);                          /* φ⁰ — UI rhythm unit */
+    --u-phi:  calc(var(--u) * var(--phi));                     /* φ¹  ≈ 1.618·u */
+    --u-phi2: calc(var(--u) * 2.618);                          /* φ²  */
+    --u-phi3: calc(var(--u) * 4.236);                          /* φ³  */
+    --u-phi4: calc(var(--u) * 6.854);                          /* φ⁴  */
+    --display: clamp(34px, min(14.4vmin, 12vw), 240px);        /* the headline register — vw term keeps long single words (Supercomputer) inside the narrowest phone */
+    --sub: clamp(15px, calc(var(--display) / var(--phi) / var(--phi) / var(--phi)), 34px); /* headline ÷ φ³ */
     color-scheme:dark;
   }
+  /* light theme — flipped by the sun/moon switch (persisted); a LibreChat-style inverse palette */
+  :root[data-theme="light"]{
+    --bg:#fff;
+    --fg:#09090b;
+    --fg-soft:#27272a;
+    --muted:#52525b;
+    --muted-2:#71717a;
+    --line:#e4e4e7;
+    --line-strong:#d4d4d8;
+    --panel:#f4f4f5;
+    --panel-2:#e8e8ec;
+    --panel-hover:#ececef;
+    --shadow:0 16px 50px rgba(15,15,20,.18);
+    --btn-p-bg:#09090b; --btn-p-fg:#fff; --btn-p-hover:#27272a;
+    color-scheme:light;
+  }
+  html,:root{ transition:background-color .2s ease; }
   *{ box-sizing:border-box; }
-  html,body{ margin:0; height:100%; }
-  body{ background:#000; color:var(--ink); overflow:hidden;
-    font:500 var(--u)/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  html,body{ margin:0; height:100%; width:100%; overflow:hidden; }
+  body{ background:var(--bg); color:var(--fg);
+    font:400 var(--u)/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
+    /* HiDPI/Retina/5K-8K crispness: grayscale smoothing on dark, real weights only (no faux-bold
+       blur), optical sizing, legibility kerning, and stable text scale on mobile. */
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility; font-synthesis:none; font-optical-sizing:auto;
+    font-kerning:normal; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  a{ text-decoration:none; color:inherit; }
+  /* vector marks/icons re-rasterise per-device at full precision — sharp at any pixel density */
+  svg{ shape-rendering:geometricPrecision; }
 
-  /* two quiet doors, top-right (golden-spaced) */
-  .nav{ position:fixed; top:0; right:0; z-index:3; display:flex; align-items:center; gap:var(--u1);
-    padding:var(--u1) calc(var(--u) * 1.7); }
-  .nav a{ display:inline-flex; align-items:center; gap:.5em; text-decoration:none; color:#c7c7cd;
-    font-size:clamp(15px, calc(var(--u) * .98), calc(var(--u) * 1.12)); font-weight:500; transition:color .15s; }
-  .nav a:hover{ color:#fff; }
-  .nav svg{ width:1.25em; height:1.25em; }
+  /* ── IMMERSIVE BACKGROUND ───────────────────────────────────────────────────────────────────
+     A deep-space holo-field built ENTIRELY from inline CSS gradients (zero external assets) — so it
+     is part of the page's own bytes and therefore 100% encoded in the content-addressed object the
+     gateway re-derives (did:holo:sha256 of itself). Vector → razor-sharp at any density. Three
+     intensities (Minimal · Ambient · Immersive) are toggled via :root[data-immersive]. */
+  .bg{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; opacity:1; transition:opacity .45s ease; }
+  .bg>div{ position:absolute; }
+  .bg-neb{ inset:-12%;
+    background:
+      radial-gradient(42% 56% at 82% 6%,  rgba(139,92,246,.42), transparent 60%),
+      radial-gradient(46% 56% at 10% 102%, rgba(45,212,191,.24), transparent 60%),
+      radial-gradient(38% 44% at 50% 48%, rgba(99,102,241,.14), transparent 72%); }
+  .bg-aurora{ inset:-30%; filter:blur(70px); opacity:.55; will-change:transform;
+    background:
+      radial-gradient(closest-side, rgba(251,113,133,.18), transparent),
+      radial-gradient(closest-side, rgba(139,92,246,.20), transparent),
+      radial-gradient(closest-side, rgba(45,212,191,.14), transparent);
+    background-size:56% 56%, 50% 50%, 46% 46%;
+    background-position:24% 26%, 78% 70%, 60% 16%; background-repeat:no-repeat;
+    animation:bgdrift 30s ease-in-out infinite alternate; }
+  @keyframes bgdrift{ from{ transform:translate3d(-2%,-1%,0) scale(1.04);} to{ transform:translate3d(3%,2%,0) scale(1.12);} }
+  .bg-stars{ inset:0; opacity:.55;
+    background-repeat:repeat; background-size:520px 520px;
+    background-image:
+      radial-gradient(1.2px 1.2px at 18% 22%, #fff, transparent),
+      radial-gradient(1px 1px at 68% 14%, #d7e0ff, transparent),
+      radial-gradient(1.4px 1.4px at 42% 72%, #fff, transparent),
+      radial-gradient(1px 1px at 86% 56%, #bfe9ff, transparent),
+      radial-gradient(1px 1px at 30% 90%, #e9d5ff, transparent),
+      radial-gradient(1.2px 1.2px at 78% 88%, #fff, transparent),
+      radial-gradient(1px 1px at 8% 64%, #cbd5ff, transparent); }
+  .bg-scrim{ inset:0; background:radial-gradient(95% 75% at 50% 44%, transparent 42%, rgba(0,0,0,.42) 100%); }
+  :root[data-theme="light"] .bg-neb{ opacity:.85;
+    background:
+      radial-gradient(46% 60% at 84% 4%,  rgba(139,92,246,.20), transparent 62%),
+      radial-gradient(50% 60% at 8% 104%, rgba(20,184,166,.16), transparent 62%),
+      radial-gradient(40% 46% at 50% 50%, rgba(99,102,241,.08), transparent 72%); }
+  :root[data-theme="light"] .bg-stars{ opacity:0; }
+  :root[data-theme="light"] .bg-scrim{ background:radial-gradient(95% 75% at 50% 44%, transparent 46%, rgba(255,255,255,.5) 100%); }
+  /* Light & Dark are plain; only Immersive shows the holo-field (full + animated). */
+  :root[data-immersive="off"] .bg{ opacity:0; }
 
-  /* the composition, balanced in the centre of the frame — the nav above and the signature below
-     frame it with even breathing room. Golden still governs every SIZE and GAP; only the vertical
-     anchor is centred (rather than on the 38.2% line) so the whole experience feels balanced. */
-  .cluster{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    max-width:92vw; display:flex; flex-direction:column; align-items:center; gap:var(--u2); }
-  /* hero wordmark — a custom VECTOR logotype in the Caslon's Egyptian style (the first sans, 1816),
-     built by tools/gen-wordmark.mjs. GOLDEN sizing: svg height = --word·1.2 so its cap height ≈ --word,
-     making the dot-mark button (height --word·φ) and the wordmark cap a clean φ:1 pair. White. */
-  .word{ height:calc(var(--word) * 1.2); width:auto; display:block; color:#fff; }
+  /* ── TOP BAR ─────────────────────────────────────────────────────────────────────────────── */
+  .bar{ position:fixed; inset:0 0 auto 0; z-index:5;
+    height:calc(var(--u) * 3.85);                              /* ≈ control-height · φ */
+    display:flex; align-items:center; gap:var(--u);
+    padding:0 var(--u-phi2); }
+  .brand{ display:flex; align-items:center; gap:.5em; font-weight:700; color:var(--fg);
+    font-size:var(--u-phi); letter-spacing:-.01em; }                          /* u·φ */
+  .brand .mk{ width:1.2em; height:1.2em; display:block; color:var(--fg); }
+  .links{ display:flex; align-items:center; gap:var(--u-phi); margin-left:var(--u-phi); }
+  .links a{ color:var(--muted); font-size:var(--u); font-weight:450; transition:color .15s; } /* u */
+  .links a:hover{ color:var(--fg); }
+  .grow{ flex:1; }
+  .right{ display:flex; align-items:center; gap:calc(var(--u) * .65); }
 
-  /* the BOOT CONTROL + its label — the Hologram dot-mark IS the entry button (press the brand to
-     enter). Floats a golden gap below the hero, out of flow so the hero holds the golden line. */
-  .act{ display:flex; flex-direction:column; align-items:center; gap:calc(var(--u) * .85); }
-  .enter{ -webkit-appearance:none; appearance:none; border:0; background:none; margin:0; cursor:pointer;
-    padding:calc(var(--u) * .5); display:grid; place-items:center; border-radius:50%; transition:transform .2s ease; }
-  .enter .ico{ width:var(--mark); height:var(--mark); display:block; color:#fff; transition:filter .25s ease; }
-  .enter:hover{ transform:scale(1.045); }
-  .enter:active{ transform:scale(.975); }
-  .enter:hover .ico, .enter:focus-visible .ico{ filter:drop-shadow(0 0 calc(var(--u) * .95) rgba(255,255,255,.38)); }
-  .enter:focus-visible{ outline:none; }
+  .search{ position:relative; display:flex; align-items:center; gap:.6em;
+    background:var(--panel); border:1px solid var(--line); border-radius:calc(var(--u) * .62);
+    height:calc(var(--u) * 2.618); padding:0 .8em; color:var(--muted-2); cursor:text;   /* h = u·φ² */
+    width:clamp(190px, 19vw, 380px); font-size:var(--u); transition:border-color .15s; }
+  .search:hover{ border-color:var(--line-strong); }
+  .search:focus-within{ border-color:var(--line-strong); }
+  .search svg{ width:1.05em; height:1.05em; flex:none; }
+  .search input{ all:unset; flex:1; min-width:0; color:var(--fg); font:inherit; line-height:1.2; }
+  .search input::placeholder{ color:var(--muted-2); }
+  .kbd{ display:flex; gap:3px; }
 
-  /* the label beneath the button — the call to action, later the boot progress. One readable size,
-     the SAME typeface as everything else (no small text, no second font). */
-  .status{ max-width:min(92vw, 46ch); color:#aeaeb6; font-weight:500; line-height:1.6;
-    font-size:clamp(16px, calc(var(--u) * 1.08), calc(var(--u) * 1.3)); text-align:center; letter-spacing:.01em; }
+  /* ── SEARCH RESULTS — instant, local, golden-spaced. Anchored under the box; a full-width sheet
+     on phones. Each row launches a native app in its own holospace tab. ──────────────────────── */
+  .results{ position:absolute; top:calc(100% + .5em); right:0; z-index:30;
+    width:min(94vw, 27em); max-height:min(68vh, 30em); overflow-y:auto; overscroll-behavior:contain;
+    background:var(--panel); border:1px solid var(--line); border-radius:calc(var(--u) * .7);
+    box-shadow:var(--shadow); padding:calc(var(--u) * .28); display:flex; flex-direction:column; gap:2px;
+    font-size:var(--u); cursor:default; }
+  .results[hidden]{ display:none; }
+  .r-head{ padding:.5em .7em .35em; font-size:.72em; letter-spacing:.08em; text-transform:uppercase; color:var(--muted-2); }
+  .r-item{ display:flex; align-items:center; gap:.7em; padding:.5em .55em; border-radius:calc(var(--u) * .5);
+    cursor:pointer; user-select:none; }
+  .r-item[aria-selected="true"]{ background:var(--panel-hover); }
+  .r-badge{ width:2.05em; height:2.05em; border-radius:.5em; flex:none; display:grid; place-items:center;
+    font-weight:700; font-size:.92em; color:#fff; }
+  .r-main{ min-width:0; flex:1; }
+  .r-name{ font-weight:600; color:var(--fg); font-size:.92em; line-height:1.25;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .r-desc{ color:var(--muted); font-size:.76em; line-height:1.3;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .r-cat{ flex:none; color:var(--muted-2); font-size:.68em; padding:.2em .6em;
+    border:1px solid var(--line); border-radius:999px; }
+  .r-enter{ flex:none; color:var(--muted-2); font-size:.8em; opacity:0; }
+  .r-item[aria-selected="true"] .r-enter{ opacity:1; }
+  .r-empty{ padding:1.1em .8em; color:var(--muted); text-align:center; font-size:.85em; }
+  .results mark{ background:none; color:var(--fg); font-weight:700; }
+  .kbd kbd{ background:var(--panel-2); border:1px solid var(--line); border-radius:.38em;
+    padding:.12em .5em; font:600 .82em/1.4 inherit; color:var(--muted); }
+
+  .toggle{ display:flex; align-items:center; gap:2px; background:var(--panel);
+    border:1px solid var(--line); border-radius:999px; padding:calc(var(--u) * .2); }
+  .toggle button{ -webkit-appearance:none; appearance:none; border:0; cursor:pointer; padding:0;
+    width:calc(var(--u) * 2.05); height:calc(var(--u) * 2.05); border-radius:999px; display:grid; place-items:center;
+    background:none; color:var(--muted); transition:background .15s,color .15s; }
+  .toggle button svg{ width:calc(var(--u) * 1.18); height:calc(var(--u) * 1.18); }
+  .toggle button[aria-pressed="true"]{ background:var(--panel-2); color:var(--fg); }
+
+  .ghlink{ display:grid; place-items:center; width:calc(var(--u) * 2.05); height:calc(var(--u) * 2.05); border-radius:.5em;
+    color:var(--muted); transition:color .15s,background .15s; }
+  .ghlink:hover{ color:var(--fg); background:var(--panel); }
+  .ghlink svg{ width:calc(var(--u) * 1.45); height:calc(var(--u) * 1.45); }
+
+  /* ── HERO — bottom-weighted, exactly like the reference: a large gap above the star pill, a tight
+     gap below the buttons. flex-end pins the cluster to a small bottom inset; the rest is open. ── */
+  /* HERO — bottom-weighted (big open gap above the pill, tight gap below the buttons). The vertical
+     rhythm is golden: section gap = u·φ², bottom inset = u·φ², top guard = u·φ³. */
+  .hero{ position:fixed; inset:0; z-index:2;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    text-align:center; gap:var(--u-phi2);
+    padding:var(--u-phi3) 5vw var(--u-phi2); }
+
+  .pill-star{ display:inline-flex; align-items:center; gap:.7em;
+    background:var(--panel); border:1px solid var(--line); border-radius:999px;
+    padding:.62em 1em; font-size:var(--u); color:var(--fg-soft);                /* inline pad = block · φ */
+    transition:border-color .15s, background .15s; }
+  .pill-star:hover{ border-color:var(--line-strong); background:var(--panel-hover); }
+  .pill-star svg{ width:1.15em; height:1.15em; }
+  .pill-star .sep{ width:1px; height:1.25em; background:var(--line-strong); }
+  .pill-star .ct{ display:inline-flex; align-items:center; gap:.4em; color:var(--muted); }
+
+  h1{ margin:0; color:var(--fg); font-weight:800; letter-spacing:-.022em; line-height:.95;
+    font-size:var(--display); max-width:15ch; text-wrap:balance; }
+
+  .sub{ margin:0; color:var(--muted); line-height:1.5; max-width:min(92vw, 40ch);
+    font-size:var(--sub); text-wrap:balance; }
+
+  .cta{ display:flex; flex-wrap:wrap; gap:var(--u-phi); justify-content:center; }     /* gap = u·φ */
+  .btn{ -webkit-appearance:none; appearance:none; cursor:pointer;
+    display:inline-flex; align-items:center; gap:.55em; border:1px solid transparent;
+    border-radius:999px; font:600 var(--u)/1 inherit;
+    padding:1.03em 1.667em; transition:background .15s, border-color .15s, transform .12s; }  /* inline = block · φ */
+  .btn:active{ transform:translateY(1px); }
+  .btn-primary{ background:var(--btn-p-bg); color:var(--btn-p-fg); }
+  .btn-primary:hover{ background:var(--btn-p-hover); }
+  .btn-primary svg{ width:1.1em; height:1.1em; }
+  .btn-ghost{ background:var(--panel); color:var(--fg); border-color:var(--line); }
+  .btn-ghost:hover{ background:var(--panel-hover); border-color:var(--line-strong); }
+
+  /* boot status — empty until the user acts, then carries the boot progress text */
+  .status{ min-height:0; color:var(--muted-2); font-weight:500;
+    font-size:calc(var(--u) * .78); line-height:1.6; max-width:min(92vw,52ch); }
+  .status:empty{ display:none; }
   .status b{ color:#e6e6ea; font-weight:600; }
   .status code{ color:#e6e6ea; font-weight:600; }
 
-  /* a quiet signature: the gateway addresses ITS OWN bytes by content + the agent door. Same
-     typeface as the rest (the κ is no longer monospace) and a readable size — just dimmer. */
-  .foot{ position:fixed; left:0; right:0; bottom:calc(var(--u) * 1.5); z-index:2;
-    display:flex; flex-direction:column; align-items:center; gap:calc(var(--u) * .6);
-    color:#6f6f77; text-align:center; padding:0 6vw; }
-  .kappa{ font-size:clamp(15px, calc(var(--u) * .92), calc(var(--u) * 1.05)); letter-spacing:.02em; opacity:.9; max-width:90vw; }
-  .ag{ font-size:clamp(15px, calc(var(--u) * .92), calc(var(--u) * 1.05)); opacity:.95; }
-  .ag a{ color:#9fd2cb; text-decoration:none; }
-  .ag a:hover{ color:#c4f0e8; }
+  /* the self-address signature: this gateway IS a content-addressed object; it re-derives its own
+     κ and shows it — a quiet proof you are already inside the substrate, not on a normal website. */
+  .sig{ position:fixed; left:0; right:0; bottom:calc(var(--u) * .9); z-index:4; text-align:center;
+    padding:0 6vw; pointer-events:none; }
+  .sig span{ font-size:calc(var(--u) * .72); letter-spacing:.02em; color:var(--muted-2);
+    display:inline-flex; align-items:center; gap:.5em; }
+  .sig .dot{ width:.5em; height:.5em; border-radius:50%; background:#2dd4bf; box-shadow:0 0 .6em #2dd4bf; }
+  body.leaving .sig{ opacity:0; transition:opacity .24s ease; }
 
-  /* the composition stays centred + balanced at EVERY width — no per-breakpoint nudging */
-  /* boot handoff: dissolve the gateway content into the splash. The black bg is shared, so the page
-     never flashes — only the mark/text/doors fade as the splash animation takes over. */
-  body.leaving .cluster, body.leaving .nav, body.leaving .foot{ opacity:0; transition:opacity .24s ease; pointer-events:none; }
+  /* boot handoff: dissolve the gateway chrome into the splash. The black bg is shared, so the page
+     never flashes — only the bar + hero fade as the splash animation takes over. */
+  body.leaving .bar, body.leaving .hero{ opacity:0; transition:opacity .24s ease; pointer-events:none; }
+
+  /* ── RESPONSIVE: the golden tokens already fluidly resize everything; these only collapse the
+     secondary bar items on small widths and re-center / gently shrink the unit on tight heights so
+     the composition still never scrolls. ──────────────────────────────────────────────────────── */
+  @media (max-width: 820px){
+    .links{ display:none; }
+    .search{ width:clamp(150px, 30vw, 220px); }
+  }
+  @media (max-width: 560px){
+    /* tighten the bar so brand-mark + search + appearance toggle fit one phone row (no clipping):
+       collapse the wordmark to its mark, drop the GitHub icon (still in the hero star pill). */
+    .bar{ padding:0 var(--u); gap:calc(var(--u) * .6); }
+    .brand-name{ display:none; }
+    .ghlink{ display:none; }
+    /* keep search reachable on phones: a compact pill in the bar, results as a full-width sheet */
+    .search{ width:auto; flex:1 1 auto; min-width:0; }
+    .search .kbd{ display:none; }
+    .results{ position:fixed; left:3vw; right:3vw; width:auto; top:calc(var(--u) * 3.85 + .4em); }
+    .hero{ justify-content:center; padding-bottom:var(--u-phi); }
+    .cta{ width:100%; }
+    .btn{ flex:1; justify-content:center; }
+  }
+  @media (max-height: 640px){
+    :root{ --u: clamp(12px, 1.7vmin, 22px); --display: clamp(28px, 9.4vh, 120px); }
+    .hero{ justify-content:center; padding-top:var(--u-phi2); padding-bottom:var(--u-phi); }
+  }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 </style>
 </head>
 <body>
-<nav class="nav" aria-label="Hologram OS">
-  <a href="CONSTITUTION.md" title="The Constitution — the conscience every action is checked against (ADR-033)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l7 2.8v5.2c0 4.2-2.9 7.4-7 8.6-4.1-1.2-7-4.4-7-8.6V6z"/></svg>
-    Constitution
+
+<!-- one shared definition of the Hologram dot-mark, referenced wherever the brand glyph appears -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="holo-mark" viewBox="-104 -104 208 208"><g fill="currentColor"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></symbol></svg>
+
+<!-- ── IMMERSIVE BACKGROUND — inline vector/CSS holo-field; part of this object's own bytes ──── -->
+<div class="bg" aria-hidden="true">
+  <div class="bg-neb"></div>
+  <div class="bg-aurora"></div>
+  <div class="bg-stars"></div>
+  <div class="bg-scrim"></div>
+</div>
+
+<!-- ── TOP BAR ────────────────────────────────────────────────────────────────────────────── -->
+<header class="bar">
+  <a class="brand" href="./" aria-label="Hologram — home">
+    <svg class="mk" aria-hidden="true"><use href="#holo-mark"/></svg>
+    <span class="brand-name">HOLOGRAM</span>
   </a>
-</nav>
-
-<main class="cluster">
-
-  <!-- hero text: the HOLOGRAM wordmark, on the golden line -->
-  <svg class="word" viewBox="-7 -7 635.00 84" role="img" aria-label="HOLOGRAM" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="12"><g transform="translate(0 0)"><path d="M4.5 0V70"/><path d="M51.5 0V70"/><path d="M4.5 35H51.5"/></g><g transform="translate(71 0)"><path d="M4.5 35A30.5 30.5 0 1 0 65.5 35A30.5 30.5 0 1 0 4.5 35"/></g><g transform="translate(156 0)"><path d="M4.5 0V70"/><path d="M4.5 65.5H45"/></g><g transform="translate(216 0)"><path d="M4.5 35A30.5 30.5 0 1 0 65.5 35A30.5 30.5 0 1 0 4.5 35"/></g><g transform="translate(301 0)"><path d="M62 51A30.5 30.5 0 1 1 62 19"/><path d="M45 35H62V51"/></g><g transform="translate(387 0)"><path d="M4.5 0V70"/><path d="M4.5 4.5H30A18 18 0 0 1 30 40.5H4.5"/><path d="M24 40.5L54 70"/></g><g transform="translate(460 0)"><path d="M5 70L33 4.5L61 70"/><path d="M14.5 48H51.5"/></g><g transform="translate(541 0)"><path d="M4.5 70V0L40 50L75.5 0V70"/></g></svg>
-  <!-- the boot control: the Hologram dot-mark IS the entry button (press the brand to enter), with its label beneath -->
-  <div class="act">
-    <button class="enter" id="enter" type="button" aria-label="Boot Hologram OS — press Enter or click the Hologram mark">
-      <svg class="ico" viewBox="-104 -104 208 208" role="img" aria-label="Hologram"><g fill="currentColor"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg>
-    </button>
-    <div class="status" id="status">Press Enter to boot Hologram OS</div>
+  <nav class="links" aria-label="Primary">
+    <a href="AGENTS.md">Docs</a>
+    <a href="README.md">Blog</a>
+    <a href="CONSTITUTION.md">Changelog</a>
+  </nav>
+  <span class="grow"></span>
+  <div class="right">
+    <div class="search" role="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="text" placeholder="Search apps" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
+             role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="results" aria-label="Search Hologram apps" />
+      <span class="kbd"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+      <div id="results" class="results" role="listbox" aria-label="Hologram apps" hidden></div>
+    </div>
+    <div class="toggle" role="group" aria-label="Appearance">
+      <button type="button" data-mode="light" aria-label="Light theme" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button type="button" data-mode="dark" aria-label="Dark theme" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <button type="button" data-mode="immersive" aria-label="Immersive theme" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.4l1.62 5.34 5.34 1.62-5.34 1.62L12 16.32l-1.62-5.34L5.04 9.36l5.34-1.62z"/><path d="M18.8 3l.66 1.94 1.94.66-1.94.66-.66 1.94-.66-1.94-1.94-.66 1.94-.66z"/><path d="M5.2 15.4l.56 1.64 1.64.56-1.64.56-.56 1.64-.56-1.64L3.04 17.6l1.64-.56z"/></svg>
+      </button>
+    </div>
+    <a class="ghlink" href="https://github.com/Hologram-Technologies/hologram-os" aria-label="GitHub">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.8 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/></svg>
+    </a>
   </div>
+</header>
+
+<!-- ── HERO ───────────────────────────────────────────────────────────────────────────────── -->
+<main class="hero">
+  <a class="pill-star" href="https://github.com/Hologram-Technologies/hologram-os" aria-label="Star Hologram on GitHub">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.8 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.7 18.3.5 12 .5z"/></svg>
+    Star on GitHub
+    <span class="sep"></span>
+    <span class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></span>
+  </a>
+
+  <h1>Your Personal Supercomputer</h1>
+
+  <p class="sub">Hologram brings every object on the internet into one unified, self-verifying computer</p>
+
+  <div class="cta">
+    <button class="btn btn-primary" id="enter" type="button" aria-label="Get started — boot Hologram OS">
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <button class="btn btn-ghost" id="trydemo" type="button">Try Demo</button>
+  </div>
+
+  <div class="status" id="status" role="status" aria-live="polite"></div>
 </main>
 
+<!-- the gateway's own content address — proof this page is one self-verifying UOR object (Law L5) -->
+<div class="sig"><span><i class="dot"></i><span id="kappa">did:holo — content-addressed</span></span></div>
+
 <!-- AI agents: the full machine map is in the JSON-LD + /.well-known links in <head>; AGENTS.md is the human door. -->
-<footer class="foot">
-  <span class="kappa" id="kappa"></span>
-  <span class="ag">AI agent? Start at <a href="AGENTS.md">AGENTS.md</a></span>
-</footer>
 
 <script type="module">
   const $ = (id) => document.getElementById(id);
@@ -207,14 +448,35 @@
     document.body.style.cssText = "margin:0"; document.body.innerHTML = html;
   }
 
+  // ── Appearance mode: Light · Dark · Immersive (one tri-state control) ─────────────────────────
+  // Drives BOTH [data-theme] (the colour palette — every colour is a CSS variable) AND
+  // [data-immersive] (the inline cosmic holo-field, part of this object's own bytes). Light/Dark are
+  // plain; Immersive is dark + the full animated field. Persisted; applied before first paint by the
+  // inline <head> script above so there is no flash.
+  const MODE_KEY = "holo.gateway.mode";
+  const modeBtns = [...document.querySelectorAll(".toggle [data-mode]")];
+  function setMode(m) {
+    if (!["light", "dark", "immersive"].includes(m)) m = "immersive";
+    const de = document.documentElement;
+    de.setAttribute("data-theme", m === "light" ? "light" : "dark");
+    de.setAttribute("data-immersive", m === "immersive" ? "full" : "off");
+    modeBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", m === "light" ? "#ffffff" : "#000000");
+    try { localStorage.setItem(MODE_KEY, m); } catch {}
+  }
+  let savedMode = "immersive"; try { savedMode = localStorage.getItem(MODE_KEY) || "immersive"; } catch {}
+  setMode(savedMode);
+  modeBtns.forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
   // Live self-address: the gateway resolves ITS OWN bytes to a κ — booting is resolve-by-content (Law L5).
   (async () => {
     try {
       const buf = await (await fetch(location.href, { cache: "no-store" })).arrayBuffer();
       const hex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", buf))].map((b) => b.toString(16).padStart(2, "0")).join("");
       const short = hex.slice(0, 8) + "…" + hex.slice(-6);   // a tidy one-line κ — readable, not a tiny 64-char wrap
-      $("kappa").textContent = "this gateway is  did:holo:sha256:" + short;
-    } catch { $("kappa").textContent = "did:holo — content-addressed"; }
+      const k = $("kappa"); if (k) k.textContent = "this holospace · did:holo:sha256:" + short;
+    } catch { const k = $("kappa"); if (k) k.textContent = "did:holo — content-addressed"; }
   })();
 
   // Boot: bring up the κ / FHS Service Worker (the substrate gateway — maps the flat URL space onto
@@ -284,10 +546,146 @@
     setTimeout(() => location.replace(dest), 240);
   }
   $("enter").addEventListener("click", boot);
+  $("trydemo")?.addEventListener("click", boot);   // "Try Demo" enters the same guest shell
   // No auto-boot — the gateway stays a STATIC splash until the user acts. Boot is an explicit
-  // choice: click the button or press Enter. (A sovereign computer powers on by will, not a timer.)
-  addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); boot(); } });
+  // choice: click a button or press Enter. (A sovereign computer powers on by will, not a timer.)
+  // Enter boots ONLY when not typing in the search box (which has its own Enter → launch app).
+  addEventListener("keydown", (e) => { if (e.key === "Enter" && !(e.target.closest && e.target.closest(".search"))) { e.preventDefault(); boot(); } });
   try { $("enter").focus({ preventScroll: true }); } catch {}
+
+  // ── App search — index every native holospace, launch it in its own holospace tab ────────────
+  // The catalog is EMBEDDED (generated from Hologram Apps/apps/index.jsonld), so search is instant
+  // and works before the substrate is even up — Google-fast, zero network. Selecting an app brings
+  // up the κ Service Worker and opens the holospace launcher (holospace.html?app=…&bare=1) in a new
+  // tab: the app mounts in its OWN isolated, capability-bounded, self-contained shell (Law L1/L5).
+  const APPS = [
+    {n:"Holo Amp",f:"amp",c:"Multimedia",d:"A classic skinnable audio player, content-addressed."},
+    {n:"Holo Atlas",f:"atlas",c:"Developer",d:"A live map of every holospace — discover, verify and monitor the whole OS by content address."},
+    {n:"Holo Atlas 96",f:"atlas96",c:"Educational",d:"The Φ-Atlas-12288 structure, encoded as a self-verifying UOR object."},
+    {n:"Holo Guide",f:"book",c:"Social",d:"The Hitchhiker's Guide for AI agents — a content-addressable social hypergraph. Don't Panic."},
+    {n:"Holo BRC Miner",f:"brcminer",c:"Communication",d:"Mine, send and explore real BrowserCoin — wallet, miner and explorer in one."},
+    {n:"Holo Browser",f:"browser",c:"Communication",d:"A web browser that treats every page — web, local or holo://κ — as verifiable content."},
+    {n:"BTC Miner",f:"btc",c:"Communication",d:"A real self-custodial Bitcoin wallet and live network view, entirely in your browser."},
+    {n:"Holo Capture",f:"capture",c:"Multimedia",d:"Capture, annotate and share your screen — every capture content-addressed."},
+    {n:"Holo Cloud",f:"cloud",c:"Communication",d:"Your files — end-to-end encrypted, content-addressed, and shared without a server."},
+    {n:"Holo Code",f:"code",c:"Developer",d:"An agentic coding partner that runs entirely on your machine — local verifiable inference."},
+    {n:"Holo Docs",f:"docs",c:"Business",d:"A serverless office suite — documents, spreadsheets and slides with live co-editing."},
+    {n:"Holo Scan",f:"etherscan",c:"Communication",d:"One universal block explorer for 27 networks — verifiable, in the browser."},
+    {n:"Holo EVM",f:"evm",c:"Developer",d:"A spec-faithful Ethereum Virtual Machine that runs in your browser."},
+    {n:"Holo Files",f:"files",c:"Utilities",d:"The native file explorer for Hologram OS — one window onto the whole object universe."},
+    {n:"Holo Forge",f:"forge",c:"Developer",d:"Compile in your browser. Verify by re-derivation. Trust no server."},
+    {n:"Holo Git",f:"git",c:"Developer",d:"A self-hosted git forge — issues, pull requests and merges, serverless."},
+    {n:"Holo IPFS",f:"ipfs",c:"Communication",d:"Browse the entire IPFS space as easily as the web — every block verified."},
+    {n:"On Liberty",f:"liberty",c:"Reference",d:"On Liberty by John Stuart Mill, published as a self-verifying object."},
+    {n:"Hologram Meet",f:"meet",c:"Communication",d:"Serverless, end-to-end-encrypted video conferencing."},
+    {n:"Holo Music",f:"music",c:"Multimedia",d:"A content-addressed music library — and the whole internet as one."},
+    {n:"Holo Notepad",f:"notepad",c:"Business",d:"Your second brain — a networked, private outliner and always-on memory bank."},
+    {n:"Hologram OS",f:"os",c:"Utilities",d:"A real Debian GNU/Linux system, booted in a browser tab."},
+    {n:"Plasma Desktop",f:"plasma",c:"System",d:"Your real KDE Plasma desktop, mounted live in a holospace over VNC."},
+    {n:"Holo Player",f:"player",c:"Multimedia",d:"A content-addressed media library for your movies and shows."},
+    {n:"Holo Privacy",f:"privacy",c:"Security",d:"Control what an AI agent may learn about you — minimum disclosure, for a stated purpose."},
+    {n:"Holo Q",f:"q",c:"Productivity",d:"A real AI that thinks entirely in your browser — no server, no cloud, no API key."},
+    {n:"QEMU",f:"qemu",c:"Utilities",d:"A full machine emulator — boot other architectures in your browser."},
+    {n:"Holo SDK",f:"sdk",c:"Developer",d:"A spatial, self-authoring desktop where every window, component and world is a verifiable object."},
+    {n:"Holo Search",f:"search",c:"Utilities",d:"One search bar over the whole OS and the open web — every result verifiable."},
+    {n:"Holo Stream",f:"stream",c:"Multimedia",d:"Live streaming, recording and a creator coin — composited in the browser."},
+    {n:"Holo Terms",f:"terms",c:"Security",d:"Your machine-readable personal terms (MyTerms / IEEE 7012): you propose, each app agrees."},
+    {n:"Holo Video",f:"video",c:"Multimedia",d:"A content-addressed video player with adaptive streaming."},
+    {n:"Holo Wallet",f:"wallet",c:"Finance",d:"A self-custodial, multi-chain wallet — one seed, every chain, for humans and AI agents."},
+    {n:"Holo Workspace",f:"workspace",c:"Developer",d:"A code editor with language servers and a real filesystem, in the browser."},
+  ];
+  const CAT_HUE = { Multimedia:349, Developer:222, Communication:170, Educational:42, Social:288,
+    Business:158, Utilities:225, Reference:28, Productivity:265, Finance:145, Security:18, System:205 };
+  const FEATURED = ["q","wallet","browser","code","files","music"];
+  const Q = $("q"), RES = $("results");
+  const badgeColor = c => `hsl(${CAT_HUE[c] ?? 220} 55% 47%)`;
+  const initial = n => (n.replace(/^(Holo|Hologram)\s+/, "").trim()[0] || n[0]).toUpperCase();
+  const esc = s => s.replace(/[&<>"]/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m]));
+  const hi = (t, q) => { if (!q) return esc(t); const i = t.toLowerCase().indexOf(q); return i < 0 ? esc(t)
+    : esc(t.slice(0,i)) + "<mark>" + esc(t.slice(i,i+q.length)) + "</mark>" + esc(t.slice(i+q.length)); };
+  function score(a, q) {
+    const n = a.n.toLowerCase(), f = a.f.toLowerCase(), c = a.c.toLowerCase(), d = a.d.toLowerCase();
+    if (n === q || f === q) return 100;
+    if (n.startsWith(q) || f.startsWith(q)) return 80;
+    if (n.split(/\s+/).some(w => w.startsWith(q))) return 65;
+    if (n.includes(q) || f.includes(q)) return 50;
+    if (c.startsWith(q)) return 40;
+    if (c.includes(q) || d.includes(q)) return 25;
+    return 0;
+  }
+  let items = [], sel = -1;
+  function compute(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return FEATURED.map(f => APPS.find(a => a.f === f)).filter(Boolean);
+    return APPS.map(a => ({ a, s: score(a, q) })).filter(x => x.s > 0)
+      .sort((x, y) => y.s - x.s || x.a.n.localeCompare(y.a.n)).slice(0, 8).map(x => x.a);
+  }
+  function render() {
+    const q = Q.value.trim(), ql = q.toLowerCase();
+    items = compute(q); sel = items.length ? 0 : -1;
+    if (!items.length) { RES.innerHTML = `<div class="r-empty">No app matches “${esc(q)}”</div>`; setOpen(true); return; }
+    const head = q ? "" : `<div class="r-head">Apps</div>`;
+    RES.innerHTML = head + items.map((a, i) => `<div class="r-item" role="option" id="r${i}" data-f="${a.f}" aria-selected="${i===sel}">`
+      + `<span class="r-badge" style="background:${badgeColor(a.c)}">${initial(a.n)}</span>`
+      + `<span class="r-main"><span class="r-name">${hi(a.n, ql)}</span><span class="r-desc">${esc(a.d)}</span></span>`
+      + `<span class="r-cat">${a.c}</span><span class="r-enter">↵</span></div>`).join("");
+    setOpen(true); mark();
+  }
+  function setOpen(o) { RES.hidden = !o; Q.setAttribute("aria-expanded", String(o)); }
+  function closeRes() { RES.hidden = true; Q.setAttribute("aria-expanded", "false"); sel = -1; }
+  function mark() {
+    [...RES.querySelectorAll(".r-item")].forEach((el, i) => {
+      el.setAttribute("aria-selected", String(i === sel)); if (i === sel) el.scrollIntoView({ block: "nearest" });
+    });
+    Q.setAttribute("aria-activedescendant", sel >= 0 ? `r${sel}` : "");
+  }
+  function move(d) { if (RES.hidden) return render(); sel = (sel + d + items.length) % items.length; mark(); }
+  Q.addEventListener("input", render);
+  Q.addEventListener("focus", render);
+  Q.addEventListener("blur", () => setTimeout(closeRes, 140));
+  Q.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); move(1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+    else if (e.key === "Enter") { e.preventDefault(); if (items[sel]) launchApp(items[sel].f); }
+    else if (e.key === "Escape") { if (Q.value) { Q.value = ""; render(); } else { closeRes(); Q.blur(); } }
+  });
+  // mousedown (not click) so the result fires before the input blur hides the list
+  RES.addEventListener("mousedown", (e) => { const it = e.target.closest(".r-item"); if (it) { e.preventDefault(); launchApp(it.dataset.f); } });
+  // ⌘/Ctrl+K or "/" focuses search from anywhere
+  addEventListener("keydown", (e) => {
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); Q.focus(); Q.select(); }
+    else if (e.key === "/" && document.activeElement !== Q && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "")) { e.preventDefault(); Q.focus(); }
+  });
+
+  // Resolve the OS image root + bring up the κ Service Worker once, so launched tabs resolve through
+  // the content-addressed route. Memoised: the first launch pays for it, the rest are instant.
+  let _rootPromise;
+  function ensureRoot() {
+    return _rootPromise || (_rootPromise = (async () => {
+      let root = "system/os/";
+      for (const r of ["system/os/", "os/"]) { try { if ((await fetch(r + "holo-fhs-sw.js", { method: "HEAD", cache: "no-store" })).ok) { root = r; break; } } catch {} }
+      if ("serviceWorker" in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.register(root + "holo-fhs-sw.js", { type: "module", scope: root }).catch(() => null);
+          if (reg && !navigator.serviceWorker.controller) {
+            await new Promise((res) => { if (reg.active) return res(); const w = reg.installing || reg.waiting; if (!w) return res(); w.addEventListener("statechange", function () { if (this.state === "activated") res(); }); setTimeout(res, 4000); });
+          }
+        } catch {}
+      }
+      return root;
+    })());
+  }
+  async function launchApp(folder) {
+    closeRes();
+    if (!location.protocol.startsWith("http")) {
+      $("status").innerHTML = 'Apps boot over <b>http</b>. From this folder run<br><code>cd system &amp;&amp; node tools/serve-pages.mjs</code><br>then open <b>http://127.0.0.1:8080/</b>';
+      return;
+    }
+    const tab = window.open("about:blank", "_blank");   // open synchronously to dodge popup blockers
+    const root = await ensureRoot();
+    const url = root + "holospace.html?app=" + encodeURIComponent(folder) + "&bare=1";
+    if (tab) { try { tab.opener = null; } catch {} tab.location.replace(url); } else { location.href = url; }
+  }
 </script>
 <noscript><div style="position:fixed;inset:0;display:grid;place-items:center"><a href="os/boot.html" style="color:#2dd4bf">Enter Hologram OS →</a></div></noscript>
 </body>

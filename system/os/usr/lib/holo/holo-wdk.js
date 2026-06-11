@@ -114,6 +114,7 @@ function solTransferMessage({ fromPub, toPub, lamports, recentBlockhash }) {
 // ── Solana PDA / Associated Token Account + SPL TransferChecked (for SPL token SEND) ──────
 const TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const ATA_PROGRAM = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
+const SYS_PROGRAM = "11111111111111111111111111111111";
 const PDA_MARKER = utf8("ProgramDerivedAddress");
 const _hexOf = (u8) => [...u8].map((b) => b.toString(16).padStart(2, "0")).join("");
 const solOnCurve = (u8) => { try { ed25519.Point.fromHex(_hexOf(u8)); return true; } catch { return false; } };
@@ -132,15 +133,24 @@ export function findProgramAddress(seeds, programId) {
 export function ataAddress(owner, mint) {
   return findProgramAddress([base58.decode(owner), base58.decode(TOKEN_PROGRAM), base58.decode(mint)], ATA_PROGRAM)[0];
 }
-// a legacy message carrying one SPL TransferChecked (instruction #12): moves `amount` of `mint`
-// from the owner's ATA to the recipient's ATA, validating the mint + decimals on-chain.
-function splTransferMessage({ owner, sourceAta, destAta, mint, amount, decimals, recentBlockhash }) {
-  const keys = [base58.decode(owner), base58.decode(sourceAta), base58.decode(destAta), base58.decode(mint), base58.decode(TOKEN_PROGRAM)];
-  const header = Uint8Array.of(1, 0, 2);                          // 1 signer (owner) · 0 ro-signed · 2 ro-unsigned (mint, token prog)
-  const data = new Uint8Array(10); data[0] = 12; new DataView(data.buffer).setBigUint64(1, BigInt(amount), true); data[9] = decimals & 0xff;
-  const accIdx = Uint8Array.of(1, 3, 2, 0);                       // TransferChecked accounts: source, mint, destination, authority
-  const ix = concatBytes(Uint8Array.of(4), shortvec(accIdx.length), accIdx, shortvec(data.length), data);   // programIdIndex=4 (token program)
-  return concatBytes(header, shortvec(keys.length), ...keys, base58.decode(recentBlockhash), shortvec(1), ix);
+// a legacy message carrying TWO instructions so a send works even to a FRESH recipient:
+//   1. ATA CreateIdempotent — creates the recipient's associated token account if it doesn't exist
+//      (idempotent = a no-op if it already does; the sender funds the tiny rent).
+//   2. SPL TransferChecked (#12) — moves `amount` of `mint` from the owner's ATA to the recipient's,
+//      validating the mint + decimals on-chain.
+export function splTransferMessage({ owner, sourceAta, destAta, recipient, mint, amount, decimals, recentBlockhash }) {
+  // account keys, Solana-ordered: writable-signer · [readonly-signer] · writable-nonsigners · readonly-nonsigners
+  const order = [owner, sourceAta, destAta, recipient, mint, SYS_PROGRAM, ATA_PROGRAM, TOKEN_PROGRAM];
+  const ix = Object.fromEntries(order.map((k, i) => [k, i]));
+  const header = Uint8Array.of(1, 0, 5);                          // 1 signer · 0 ro-signed · 5 ro-unsigned (recipient,mint,sys,ata,token)
+  // ix1 — ATA CreateIdempotent (data [1]); accounts: funding, ata, wallet, mint, system, token
+  const a1 = Uint8Array.of(ix[owner], ix[destAta], ix[recipient], ix[mint], ix[SYS_PROGRAM], ix[TOKEN_PROGRAM]);
+  const i1 = concatBytes(Uint8Array.of(ix[ATA_PROGRAM]), shortvec(a1.length), a1, shortvec(1), Uint8Array.of(1));
+  // ix2 — Token TransferChecked (data [12, amount u64le, decimals]); accounts: source, mint, dest, authority
+  const d = new Uint8Array(10); d[0] = 12; new DataView(d.buffer).setBigUint64(1, BigInt(amount), true); d[9] = decimals & 0xff;
+  const a2 = Uint8Array.of(ix[sourceAta], ix[mint], ix[destAta], ix[owner]);
+  const i2 = concatBytes(Uint8Array.of(ix[TOKEN_PROGRAM]), shortvec(a2.length), a2, shortvec(d.length), d);
+  return concatBytes(header, shortvec(order.length), ...order.map((k) => base58.decode(k)), base58.decode(recentBlockhash), shortvec(2), i1, i2);
 }
 
 // ── HD derivation helpers ───────────────────────────────────────────────────────────────
@@ -250,7 +260,7 @@ function makeAccount(manager, kind, chainKey, index) {
           let decimals = options.decimals;
           if (decimals == null) { const info = await src.call("getAccountInfo", [mint, { encoding: "jsonParsed" }]); decimals = info?.value?.data?.parsed?.info?.decimals ?? 0; }
           const { value } = await src.call("getLatestBlockhash", [{ commitment: "finalized" }]);
-          const msg = splTransferMessage({ owner, sourceAta, destAta, mint, amount: options.amount, decimals, recentBlockhash: value.blockhash });
+          const msg = splTransferMessage({ owner, sourceAta, destAta, recipient: options.recipient, mint, amount: options.amount, decimals, recentBlockhash: value.blockhash });
           const sig = ed25519.sign(msg, priv);
           const txBytes = concatBytes(shortvec(1), sig, msg);
           const hash = await src.call("sendTransaction", [btoa(String.fromCharCode(...txBytes)), { encoding: "base64", skipPreflight: false }]);

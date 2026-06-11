@@ -10,7 +10,7 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { HoloWallet, makeWDK, deriveAddress, CHAINS, baseUnits, signEvmMessage, signEvmTx, signEvmTypedData, priceUsd, history, ataAddress, findProgramAddress, identity, createVault, openVault, vaultKappa, seedFromMnemonic, validateMnemonic } from "../os/usr/lib/holo/holo-wdk.js";
+import { HoloWallet, makeWDK, deriveAddress, CHAINS, baseUnits, signEvmMessage, signEvmTx, signEvmTypedData, priceUsd, history, ataAddress, findProgramAddress, splTransferMessage, identity, createVault, openVault, vaultKappa, seedFromMnemonic, validateMnemonic } from "../os/usr/lib/holo/holo-wdk.js";
 import { ed25519, base58 } from "../os/usr/lib/holo/wdk-crypto/wdk-crypto.bundle.mjs";
 import { encodeCall, hashTypedData } from "../os/usr/lib/holo/holo-eth.js";
 
@@ -72,8 +72,17 @@ const ata1 = ataAddress(a.solana, USDC);
 rec("ATA derivation is deterministic + valid base58", ata1 === ataAddress(a.solana, USDC) && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ata1), ata1);
 rec("ATA is OFF the ed25519 curve (a real PDA — no private key)", !onCurve(ata1));
 rec("ATA is owner-sensitive AND mint-sensitive (seeds wired correctly)", ataAddress(a.solana, USDC) !== ataAddress(deriveAddress("solana", seed, 1), USDC) && ataAddress(a.solana, USDC) !== ataAddress(a.solana, BONK));
+// KNOWN VECTOR — confirmed against the live chain (getAccountInfo: this owner's USDC token account
+// IS this address). ATA derivation is balance-independent, so this is a permanent ground-truth test.
+rec("ATA matches a chain-verified known vector (owner CEzN7mqP… + USDC)", ataAddress("CEzN7mqP9xoxn2HdyW6fjEJ73t7qaX9Rp2zyS6hb3iEu", USDC) === "ZDMRxJfvYxqjXeEcoNADWrFA7Qx96KxBTin8G8EPDtp");
 rec("findProgramAddress returns [addr, bump] with a valid bump", (() => { const [a2, bump] = findProgramAddress([base58.decode(a.solana)], "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"); return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a2) && bump >= 0 && bump <= 255; })());
 rec("account.transfer routes SPL by chain kind (sol has a token path)", typeof sol.transfer === "function");
+// SPL send message: CreateIdempotent (recipient ATA) + TransferChecked — verified by parsing the bytes
+const recipient = deriveAddress("solana", seed, 1);
+const splMsg = splTransferMessage({ owner: a.solana, sourceAta: ataAddress(a.solana, USDC), destAta: ataAddress(recipient, USDC), recipient, mint: USDC, amount: 1000000n, decimals: 6, recentBlockhash: base58.encode(new Uint8Array(32).fill(9)) });
+const nKeys = splMsg[3], iOff = 4 + nKeys * 32 + 32, key = (i) => base58.encode(splMsg.subarray(4 + i * 32, 36 + i * 32));
+rec("SPL send builds a 2-instruction message (CreateIdempotent + TransferChecked)", splMsg[0] === 1 && splMsg[2] === 5 && nKeys === 8 && splMsg[iOff] === 2 && key(6) === "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" && splMsg[iOff + 1] === 6 && splMsg[iOff + 3 + splMsg[iOff + 2]] === 1);
+rec("SPL TransferChecked carries discriminator 12 + decimals", (() => { const o2 = iOff + 4 + splMsg[iOff + 2] + 1; return splMsg[o2] === 7 && splMsg[o2 + 3 + splMsg[o2 + 1]] === 12; })());
 
 // 5 · IWalletAccount surface present (WDK interface adherence)
 const need = ["getAddress", "getBalance", "getTokenBalance", "sign", "signTypedData", "verify", "signTransaction", "sendTransaction", "transfer", "quoteSendTransaction", "getTransactionReceipt", "toReadOnlyAccount", "dispose"];

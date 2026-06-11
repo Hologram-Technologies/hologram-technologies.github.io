@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Holo Product Manager</title>
+  <meta name="description" content="The canonical full-cycle product-management pane for Hologram-native products — the Pragmatic Framework (37 activities in 7 categories) wired to the tools that execute it." />
+  <!-- Eat our own dog food: the pane is a Holo Product citizen — it loads the one engine, so it
+       inherits the balanced Holo UI ⊕ Holo UX foundation (palette · type · native feel · motion). -->
+  <link rel="stylesheet" href="holo-theme.css" />
+  <link rel="stylesheet" href="holo-mobile.css" />
+  <link rel="stylesheet" href="holo-phi.css" />
+  <script src="holo-theme.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--holo-bg); color: var(--holo-ink);
+      font: var(--holo-text, 1rem)/1.55 var(--holo-font-sans, ui-sans-serif, system-ui); }
+    header { padding: var(--holo-size-m, 1.618rem) var(--holo-size-l, 2.618rem) var(--holo-size-s, 1rem); border-bottom: 1px solid var(--holo-border); }
+    .title { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+    h1 { font-size: var(--holo-size-l, 2rem); margin: 0; letter-spacing: -0.02em; }
+    .tag { color: var(--holo-ink-dim); }
+    p.principle { color: var(--holo-ink-dim); max-width: 60ch; margin: .5rem 0 0; }
+    .cover { display: inline-flex; align-items: center; gap: .4rem; margin-left: auto; padding: .2rem .7rem; border: 1px solid var(--holo-border); border-radius: 999px; color: var(--holo-ink-dim); }
+    .cover b { color: var(--holo-accent); }
+    .rail { display: flex; align-items: center; gap: .5rem; color: var(--holo-ink-dim); font-size: var(--holo-text-sm, 1rem); padding: .8rem var(--holo-size-l, 2.618rem) 0; }
+    .rail .seg { flex: 1; height: 2px; background: linear-gradient(90deg, var(--holo-accent), color-mix(in srgb, var(--holo-accent) 20%, transparent)); border-radius: 2px; }
+    main { padding: var(--holo-size-m, 1.618rem) var(--holo-size-l, 2.618rem) var(--holo-size-2xl, 5rem); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--holo-size-s, 1rem); align-items: start; }
+    .cat { border: 1px solid var(--holo-border); border-radius: var(--holo-radius, 16px); background: var(--holo-surface); overflow: hidden; }
+    .cat > .h { padding: .7rem .85rem; border-bottom: 1px solid var(--holo-border); background: var(--holo-surface-2); }
+    .cat > .h .n { font-weight: 700; }
+    .cat > .h .meta { display: flex; gap: .4rem; margin-top: .2rem; }
+    .pill { font-size: var(--holo-text-sm, 1rem); padding: .05rem .5rem; border-radius: 999px; border: 1px solid var(--holo-border); color: var(--holo-ink-dim); }
+    .pill.s { color: var(--holo-accent); border-color: color-mix(in srgb, var(--holo-accent) 40%, var(--holo-border)); }
+    .cat > .b { padding: .55rem .6rem; display: flex; flex-direction: column; gap: .4rem; }
+    .box { border: 1px solid var(--holo-border); border-radius: var(--holo-radius-sm, 8px); padding: .5rem .6rem; background: var(--holo-bg); }
+    .box .bt { display: flex; align-items: center; gap: .45rem; }
+    .box .bn { font-weight: 600; }
+    .box .obl { color: var(--holo-ink-dim); font-size: var(--holo-text-sm, 1rem); margin-top: .25rem; }
+    .wire { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: .3rem; font-size: var(--holo-text-sm, 1rem); padding: .05rem .5rem; border-radius: 999px; }
+    .wire.on { color: var(--holo-ok, #3fb950); border: 1px solid color-mix(in srgb, var(--holo-ok, #3fb950) 45%, var(--holo-border)); }
+    .wire.pm { color: var(--holo-ink-dim); border: 1px dashed var(--holo-border); }
+    .dot { width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; }
+    footer { padding: var(--holo-size-m, 1.618rem) var(--holo-size-l, 2.618rem); border-top: 1px solid var(--holo-border); color: var(--holo-ink-dim); }
+    footer .m { margin: .25rem 0; }
+    .src { font-family: var(--holo-font-mono, ui-monospace, monospace); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <h1>Holo Product Manager</h1>
+      <span class="tag">full-cycle · the Pragmatic Framework, wired</span>
+      <span class="cover" id="cover">…</span>
+    </div>
+    <p class="principle" id="principle"></p>
+  </header>
+  <div class="rail"><span>Strategic</span><span class="seg"></span><span>Tactical</span></div>
+  <main><div class="grid" id="grid" aria-label="The product-management framework"></div></main>
+  <footer>
+    <div id="mantras"></div>
+    <div class="m src" id="src"></div>
+  </footer>
+
+  <script type="module">
+    import { PRINCIPLE, MANTRAS, CATEGORIES, ACTIVITIES, TOTAL, wiredActivities } from "./holo-pm.mjs";
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const tool = (p) => p ? p.split("/").pop() : null;            // the realizing tool's filename
+
+    $("#principle").textContent = PRINCIPLE;
+    const wired = wiredActivities().length;
+    $("#cover").innerHTML = `<b>${wired}</b> / ${TOTAL} activities executed on the substrate`;
+    $("#mantras").innerHTML = MANTRAS.map((m) => `<div class="m">• ${esc(m)}</div>`).join("");
+    $("#src").textContent = "source: pragmaticinstitute.com/product/framework · ADR-0066 · every box re-derives to a κ (Law L5)";
+
+    $("#grid").innerHTML = CATEGORIES.map((c) => {
+      const boxes = ACTIVITIES.filter((a) => a.cat === c.id).map((a) => {
+        const t = tool(a.realizedBy);
+        const wire = t
+          ? `<span class="wire on" title="${esc(a.realizedBy)}"><span class="dot"></span>${esc(t)}</span>`
+          : `<span class="wire pm" title="the PM's market/business judgment — NIHITO">your call</span>`;
+        return `<div class="box"><div class="bt"><span class="bn">${esc(a.label)}</span>${wire}</div><div class="obl">${esc(a.obligation)}</div></div>`;
+      }).join("");
+      return `<section class="cat"><div class="h"><div class="n">${esc(c.label)}</div>`
+        + `<div class="meta"><span class="pill s">${esc(c.axis)}</span><span class="pill">${esc(c.facing)}-facing</span></div></div>`
+        + `<div class="b">${boxes}</div></section>`;
+    }).join("");
+  </script>
+</body>
+</html>

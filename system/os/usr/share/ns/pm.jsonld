@@ -1,0 +1,625 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "schema": "https://schema.org/",
+    "hospm": "https://hologram.os/ns/pm#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "isDefinedBy": {
+      "@id": "rdfs:isDefinedBy",
+      "@type": "@id"
+    },
+    "inScheme": {
+      "@id": "skos:inScheme",
+      "@type": "@id"
+    },
+    "broader": {
+      "@id": "skos:broader",
+      "@type": "@id"
+    },
+    "prefLabel": "skos:prefLabel",
+    "definition": "skos:definition",
+    "axis": "hospm:axis",
+    "facing": "hospm:facing",
+    "realizedBy": "hospm:realizedBy",
+    "obligation": "hospm:obligation"
+  },
+  "@id": "https://hologram.os/ns/pm",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — Holo Product Manager framework (hospm:)",
+  "comment": "The canonical full-cycle product-management framework (ADR-0066), strictly adhering to the Pragmatic Framework — 37 activities in 7 categories. Mints only the new framework terms (Category · Activity · axis · facing · realizedBy · obligation); the Pragmatic categories + boxes are cited verbatim and each realizable activity is wired to the κ-object that executes it. Re-derived from holo-pm.mjs (no drift).",
+  "dcterms:source": "https://www.pragmaticinstitute.com/product/framework/",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "@graph": [
+    {
+      "@id": "hospm:Framework",
+      "@type": "rdfs:Class",
+      "label": "PM Framework",
+      "comment": "The full-cycle product-management framework.",
+      "isDefinedBy": "https://hologram.os/ns/pm"
+    },
+    {
+      "@id": "hospm:Category",
+      "@type": "rdfs:Class",
+      "label": "Framework Category",
+      "comment": "One of the 7 Pragmatic categories (Market … Support).",
+      "isDefinedBy": "https://hologram.os/ns/pm",
+      "rdfs:subClassOf": {
+        "@id": "skos:Concept"
+      }
+    },
+    {
+      "@id": "hospm:Activity",
+      "@type": "rdfs:Class",
+      "label": "Framework Activity",
+      "comment": "One of the 37 Pragmatic 'boxes' — a product-management activity.",
+      "isDefinedBy": "https://hologram.os/ns/pm",
+      "rdfs:subClassOf": {
+        "@id": "skos:Concept"
+      }
+    },
+    {
+      "@id": "hospm:axis",
+      "@type": "rdf:Property",
+      "label": "axis",
+      "comment": "strategic | tactical — where the activity sits on the Pragmatic axis.",
+      "isDefinedBy": "https://hologram.os/ns/pm",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hospm:facing",
+      "@type": "rdf:Property",
+      "label": "facing",
+      "comment": "market | product — which way the activity faces.",
+      "isDefinedBy": "https://hologram.os/ns/pm",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hospm:realizedBy",
+      "@type": "rdf:Property",
+      "label": "realized by",
+      "comment": "The Hologram κ-object/tool that executes this activity, or absent when it is the PM's judgment.",
+      "isDefinedBy": "https://hologram.os/ns/pm"
+    },
+    {
+      "@id": "hospm:obligation",
+      "@type": "rdf:Property",
+      "label": "obligation",
+      "comment": "How the activity is done (the checkable rule, or the PM's responsibility).",
+      "isDefinedBy": "https://hologram.os/ns/pm",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "https://hologram.os/ns/pm#framework",
+      "@type": [
+        "skos:ConceptScheme",
+        "hospm:Framework"
+      ],
+      "prefLabel": "Holo Product Manager — the Pragmatic Framework on the substrate (ADR-0066)",
+      "comment": "A clear and simple path from great ideas to great products — driven by market evidence, not opinion. The bridge that turns ideas into scalable, enterprise-grade products that solve real pain points.",
+      "dcterms:source": "https://www.pragmaticinstitute.com/product/framework/",
+      "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "@id": "hospm:market",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Market",
+      "definition": "Be the expert on the market: real problems, evidence, competitors, assets.",
+      "axis": "strategic",
+      "facing": "market",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:focus",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Focus",
+      "definition": "Decide where to play: the market you serve, the portfolio, the roadmap.",
+      "axis": "strategic",
+      "facing": "market",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:business",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Business",
+      "definition": "Make it a business: the plan, pricing, build-vs-buy, profitability, innovation.",
+      "axis": "strategic",
+      "facing": "product",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:planning",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Planning",
+      "definition": "Plan the product: positioning, personas, requirements, scenarios — the bridge to build.",
+      "axis": "strategic",
+      "facing": "product",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:programs",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Programs",
+      "definition": "Go to market: launch, awareness, nurturing, advocacy, growth, measurement.",
+      "axis": "tactical",
+      "facing": "market",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:enablement",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Enablement",
+      "definition": "Enable the channel: sales alignment, content, tools, training.",
+      "axis": "tactical",
+      "facing": "market",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:support",
+      "@type": [
+        "skos:Concept",
+        "hospm:Category"
+      ],
+      "prefLabel": "Support",
+      "definition": "Sustain it: support programs, operations, events, channels.",
+      "axis": "tactical",
+      "facing": "product",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:market-problems",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Market Problems",
+      "broader": "hospm:market",
+      "obligation": "Find the real, urgent, pervasive pain — the product exists to solve it (the bridge's input). NIHITO: evidence from the market, not the office.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:win-loss-analysis",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Win/Loss Analysis",
+      "broader": "hospm:market",
+      "obligation": "Learn from every won and lost deal why buyers chose or didn't — feed it back into Focus + Planning.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:distinctive-competencies",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Distinctive Competencies",
+      "broader": "hospm:market",
+      "obligation": "Name the unfair advantage. Hologram's is the substrate: content-addressed, self-verifying, serverless (κ = H(content), Law L5) — time-to-value ≈ 0.",
+      "realizedBy": "usr/lib/holo/holo-uor.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:competitive-landscape",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Competitive Landscape",
+      "broader": "hospm:market",
+      "obligation": "Know the alternatives (including 'do nothing'); position against them on the buyer's terms.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:asset-assessment",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Asset Assessment",
+      "broader": "hospm:market",
+      "obligation": "Inventory what you already have to reuse (Law L3 dedup): the κ corpus mapped by Holo Atlas.",
+      "realizedBy": "usr/lib/holo/holo-atlas.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:market-definition",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Market Definition",
+      "broader": "hospm:focus",
+      "obligation": "Define the specific market segment you will win — narrow enough to dominate.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:distribution-strategy",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Distribution Strategy",
+      "broader": "hospm:focus",
+      "obligation": "Reach: distribution is a content-addressed link (holo://κ) — serverless, no app store, share-to-run.",
+      "realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:product-portfolio",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Product Portfolio",
+      "broader": "hospm:focus",
+      "obligation": "Manage the whole portfolio of holospaces as one map (Holo Atlas) — by content truth, not popularity.",
+      "realizedBy": "usr/lib/holo/holo-atlas.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:product-roadmap",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Product Roadmap",
+      "broader": "hospm:focus",
+      "obligation": "Sequence the work themes-first; the Holo Product method (discover→deliver) is the cadence.",
+      "realizedBy": "etc/holo-product/product.uor.json",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:business-plan",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Business Plan",
+      "broader": "hospm:business",
+      "obligation": "The case: the problem, the solution, the market, the model — why this is worth doing now.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:pricing",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Pricing",
+      "broader": "hospm:business",
+      "obligation": "Capture value: pricing settles against PROVEN work/ownership (Holo Own · Settle), human-approved (Law L4).",
+      "realizedBy": "usr/lib/holo/holo-own.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:buy-build-partner",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Buy, Build or Partner",
+      "broader": "hospm:business",
+      "obligation": "Decide make-vs-reuse: compose by content address (build·run·share) — link an existing κ rather than rebuild.",
+      "realizedBy": "usr/lib/holo/holo-app.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:product-profitability",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Product Profitability",
+      "broader": "hospm:business",
+      "obligation": "Know the unit economics; value moves only through the verifiable Own/Settle rail, never a parallel ledger.",
+      "realizedBy": "usr/lib/holo/holo-own.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:innovation",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Innovation",
+      "broader": "hospm:business",
+      "obligation": "Create the new: a build is a re-derivable κ-transform (verifiable, serverless) — innovate without a server.",
+      "realizedBy": "usr/lib/holo/holo-app.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:positioning",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Positioning",
+      "broader": "hospm:planning",
+      "obligation": "Own a clear place in the buyer's mind; the product's look + experience are the canonical Holo Product foundation.",
+      "realizedBy": "etc/holo-product/product.uor.json",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:buyer-experience",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Buyer Experience",
+      "broader": "hospm:planning",
+      "obligation": "Design the whole journey to value; the Holo UX doctrine makes it native, familiar, effortless (time-to-value ≈ 0).",
+      "realizedBy": "etc/holo-ux/doctrine.uor.json",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:buyer-personas",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Buyer Personas",
+      "broader": "hospm:planning",
+      "obligation": "Model who decides to buy (≠ the user). The PM's market expertise — no tool can own it.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:user-personas",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "User Personas",
+      "broader": "hospm:planning",
+      "obligation": "Model who uses it; the experience meets the REAL user + device (capability tiers resolved, not assumed).",
+      "realizedBy": "usr/lib/holo/holo-capability.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:requirements",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Requirements",
+      "broader": "hospm:planning",
+      "obligation": "Capture market-driven requirements as a recorded decision (the Holo Product Define phase · DECISION.md/ADR).",
+      "realizedBy": "etc/holo-product/product.uor.json",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:use-scenarios",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Use Scenarios",
+      "broader": "hospm:planning",
+      "obligation": "Tell the story of use (why → how → what) in the plain voice — self-descriptive, jargon-free.",
+      "realizedBy": "usr/lib/holo/holo-voice.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:stakeholder-comm",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Stakeholder Comm.",
+      "broader": "hospm:planning",
+      "obligation": "Communicate clearly to every stakeholder in the one plain register — signal over noise.",
+      "realizedBy": "usr/lib/holo/holo-voice.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:marketing-plan",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Marketing Plan",
+      "broader": "hospm:programs",
+      "obligation": "The orchestrated plan of programs that takes the product to market.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:revenue-growth",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Revenue Growth",
+      "broader": "hospm:programs",
+      "obligation": "Grow value via verifiable ownership + settlement (Own · Settle) — new title, real value.",
+      "realizedBy": "usr/lib/holo/holo-own.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:revenue-retention",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Revenue Retention",
+      "broader": "hospm:programs",
+      "obligation": "Keep value: ownership is durable + self-verifying; a tampered title pays nothing.",
+      "realizedBy": "usr/lib/holo/holo-own.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:launch",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Launch",
+      "broader": "hospm:programs",
+      "obligation": "Ship to the world: a shared link lands a guest LIVE in the running product (Holo Share-to-Run).",
+      "realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:awareness",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Awareness",
+      "broader": "hospm:programs",
+      "obligation": "Be discovered: the native loop is share-to-run-to-remix — every output carries 'Made on Hologram'.",
+      "realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:nurturing",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Nurturing",
+      "broader": "hospm:programs",
+      "obligation": "Stay in the consideration set; the community map (Atlas) keeps products discoverable by content truth.",
+      "realizedBy": "usr/lib/holo/holo-atlas.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:advocacy",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Advocacy",
+      "broader": "hospm:programs",
+      "obligation": "Turn users into advocates: one-tap Remix forks your work into theirs (verifiable PROV-O/Title lineage).",
+      "realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:measurement",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Measurement",
+      "broader": "hospm:programs",
+      "obligation": "Measure what matters and prove it: done is proven by re-derivation (verify the κ, Law L5) and the witnessed gate — evidence, not opinion.",
+      "realizedBy": "usr/lib/holo/holo-object.mjs",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:sales-alignment",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Sales Alignment",
+      "broader": "hospm:enablement",
+      "obligation": "Align sales + marketing + product on one message and one motion.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:content",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Content",
+      "broader": "hospm:enablement",
+      "obligation": "Equip with content + ready products: the SDK scaffolder generates new holospaces on the foundation.",
+      "realizedBy": "usr/lib/holo/holo-scaffold.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:sales-tools",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Sales Tools",
+      "broader": "hospm:enablement",
+      "obligation": "Give the channel working tools: the Holo SDK is the one front door (@hologram/sdk) every product binds.",
+      "realizedBy": "usr/lib/holo/holo-sdk.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:channel-training",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Channel Training",
+      "broader": "hospm:enablement",
+      "obligation": "Train the channel to sell + support — the human enablement the PM drives.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:support-programs",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Programs",
+      "broader": "hospm:support",
+      "obligation": "Run the support programs that keep customers successful after the sale.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:operations",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Operations",
+      "broader": "hospm:support",
+      "obligation": "Keep it safe + within bounds: the fail-closed conscience gate admits only conformant, constitutional products.",
+      "realizedBy": "usr/lib/holo/holo-conscience.js",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:events",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Events",
+      "broader": "hospm:support",
+      "obligation": "Engage the market through events + community moments.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    },
+    {
+      "@id": "hospm:channels",
+      "@type": [
+        "skos:Concept",
+        "hospm:Activity"
+      ],
+      "prefLabel": "Channels",
+      "broader": "hospm:support",
+      "obligation": "Manage the support + delivery channels the product reaches customers through.",
+      "inScheme": "https://hologram.os/ns/pm#framework"
+    }
+  ]
+}

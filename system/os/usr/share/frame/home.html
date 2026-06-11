@@ -9,6 +9,9 @@
          no-ops when already isolated (holo-serve / the native engine set real headers). -->
     <script src="coi-serviceworker.min.js"></script>
     <title>Home — Hologram OS</title>
+    <!-- The boot chain already plays a power-on; Home's own green "Press Enter" gate is redundant.
+         Mark the page to skip it — hidden from the very first paint (no green flash). -->
+    <script>try{document.documentElement.classList.add("boot-skip");}catch(e){}</script>
     <style>
       :root { color-scheme: light dark;
         /* adopt the canonical Holo UI palette (ADR-0057); fallbacks preserve the dark look standalone */
@@ -122,6 +125,8 @@
       #bootsplash { position: fixed; inset: 0; z-index: 3000; background: #000; overflow: hidden;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; transition: opacity .35s ease; }
       #bootsplash.done { opacity: 0; pointer-events: none; }
+      /* boot handoff: the green power-on gate is redundant after the boot — never show it. */
+      html.boot-skip #bootsplash { display: none !important; }
       /* while booting, the splash owns the whole screen — no page scroll. */
       html.booting, html.booting body { overflow: hidden !important; height: 100%; }
       #bootsplash pre { margin: 0; white-space: pre; }
@@ -678,21 +683,24 @@ Version 0.1
       (function () {
         var sp = document.getElementById("bootsplash");
         if (!sp) return;
-        document.documentElement.classList.add("booting"); // lock page scroll
         var done = false;
         function dismiss() {
           if (done) return; done = true;
           sp.classList.add("done");
           document.documentElement.classList.remove("booting"); // restore scroll
           window.__splashDismissed = true;
-          if (window.__bootHome) window.__bootHome(); // Enter pressed → boot Home now
+          if (window.__bootHome) window.__bootHome(); // reveal Home now
           setTimeout(function () { if (sp.parentNode) sp.remove(); }, 450);
         }
+        window.__dismissSplash = dismiss;   // the greeter handoff skips this redundant splash
+        // The boot chain already played a power-on — this green "Press Enter" gate is redundant.
+        // Skip it and reveal Home directly (it's hidden from first paint via html.boot-skip).
+        if (document.documentElement.classList.contains("boot-skip")) { dismiss(); return; }
+        document.documentElement.classList.add("booting"); // (standalone fallback) lock scroll while shown
         addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " " || e.key === "Spacebar" || e.key === "Escape") { e.preventDefault(); dismiss(); }
         });
         sp.addEventListener("click", dismiss);
-        window.__dismissSplash = dismiss;   // the greeter handoff skips this redundant splash
       })();
     </script>
     <!-- OS theme runtime: resolves + applies the theme, persists it, and propagates it

@@ -15,12 +15,14 @@
       "id": "atlas",
       "mounted": true,
       "fromOS2": 45,
-      "fromApps": 74,
+      "fromApps": 75,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 1,
+      "errs": 1,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "apps/code/holospace.lock.json"
+      ]
     },
     {
       "id": "atlas96",
@@ -98,6 +100,19 @@
       "errs": 0,
       "fallbackList": [],
       "missingList": []
+    },
+    {
+      "id": "code",
+      "mounted": false,
+      "fromOS2": 9,
+      "fromApps": 2,
+      "fallbacks": 0,
+      "missing": 1,
+      "errs": 1,
+      "fallbackList": [],
+      "missingList": [
+        "apps/code/holospace.lock.json"
+      ]
     },
     {
       "id": "docs",
@@ -271,16 +286,13 @@
     {
       "id": "q",
       "mounted": true,
-      "fromOS2": 18,
-      "fromApps": 11,
+      "fromOS2": 19,
+      "fromApps": 39,
       "fallbacks": 0,
-      "missing": 2,
-      "errs": 2,
+      "missing": 0,
+      "errs": 0,
       "fallbackList": [],
-      "missingList": [
-        "apps/q/qvac-og.png",
-        "apps/q/qwen2.5-0.5b-instruct-q8_0.gguf"
-      ]
+      "missingList": []
     },
     {
       "id": "qemu",
@@ -342,13 +354,15 @@
     {
       "id": "video",
       "mounted": true,
-      "fromOS2": 27,
+      "fromOS2": 26,
       "fromApps": 22,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 1,
+      "errs": 1,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "κ:9188c372f9"
+      ]
     },
     {
       "id": "wallet",

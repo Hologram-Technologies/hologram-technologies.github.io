@@ -1,0 +1,41 @@
+{
+  "spec": "Holo Product Manager (ADR-0066) is the canonical full-cycle PM framework: it adopts the Pragmatic Framework VERBATIM (37 activities in 7 categories, strict) and wires every activity Hologram realizes to the κ-object that executes it, sealed as one self-verifying object that re-derives + whose links (the Holo Product foundation it manages + the wired tools) re-derive (Law L5). The bridge from ideas to scalable products; it can join the Holo SDK and is surfaced as the canonical pane.",
+  "authority": "ADR-0066 (Holo Product Manager) · the Pragmatic Framework (pragmaticinstitute.com/product/framework, cited verbatim) · ADR-0065 (Holo Product) · ADR-0062/0030/0057 (Holo UX/UI) · ADR-0064 (Share-to-Run) · ADR-0053 (Own/Settle) · W3C OWL 2 / RDFS / SKOS · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "holo-pm",
+    "pragmatic-framework",
+    "strict-37-boxes-7-categories",
+    "full-cycle",
+    "wired-to-tools",
+    "manages-foundation",
+    "operative",
+    "law-l5"
+  ],
+  "pmKappa": "did:holo:sha256:5596214a55b69f17babf53294b05519753eb218927c51fe203a15464b876d6a2",
+  "categories": 7,
+  "activities": 37,
+  "wired": 25,
+  "checks": {
+    "pm.uor.json exists + is a UOR object with a did": true,
+    "pm.uor.json re-derives to its content address (Law L5 — tamper-refused)": true,
+    "every link re-derives against its on-disk file — source · ontology · foundation · wired tools (Law L5)": true,
+    "exactly 7 categories, in the Pragmatic order with the official names": true,
+    "exactly 37 activities ('boxes') — the strict Pragmatic count": true,
+    "every category carries EXACTLY its Pragmatic boxes, in order (5·4·5·7·8·4·4)": true,
+    "the sealed object embeds all 7 categories + 37 activities + each obligation": true,
+    "it links + rests on the Holo Product foundation (the thing it manages)": true,
+    "the Holo Product foundation it manages is itself self-verifying (re-derives, Law L5)": true,
+    "every wired activity is REALIZED by a present tool (25/37 wired to the substrate)": true,
+    "the wiring spans the core tools (Holo UX · UI/Product · Share-to-Run · Own · App · the gate)": true,
+    "ns/pm.jsonld is byte-faithful to toOntology() (no drift — re-seal after editing the source)": true,
+    "it cites the Pragmatic Framework as its source authority": true,
+    "the framework practises the plain voice (no jargon in its categories / activities / descriptions)": true,
+    "the SDK exposes pm() and lists Holo Product Manager (it can join Holo SDK)": true,
+    "the canonical full-cycle PM PANE exists (holo-pm.html)": true
+  },
+  "linkBad": [],
+  "boxMismatch": [],
+  "missingTool": [],
+  "jargonHits": []
+}

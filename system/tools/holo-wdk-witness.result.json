@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "pass": 31,
+  "pass": 34,
   "fail": 0,
   "live": "online",
   "results": [
@@ -120,12 +120,27 @@
       "d": ""
     },
     {
+      "n": "ATA matches a chain-verified known vector (owner CEzN7mqP… + USDC)",
+      "ok": true,
+      "d": ""
+    },
+    {
       "n": "findProgramAddress returns [addr, bump] with a valid bump",
       "ok": true,
       "d": ""
     },
     {
       "n": "account.transfer routes SPL by chain kind (sol has a token path)",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "SPL send builds a 2-instruction message (CreateIdempotent + TransferChecked)",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "SPL TransferChecked carries discriminator 12 + decimals",
       "ok": true,
       "d": ""
     },

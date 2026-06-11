@@ -24,12 +24,37 @@
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0e16; color: #c9d1d9;
         font: var(--holo-text-sm, 1rem)/1.5 var(--win-font); -webkit-font-smoothing: antialiased; }
-      #world { position: fixed; inset: 0; overflow: hidden; background-color: #0a0e16;
+      #world { position: fixed; top: 84px; left: var(--holo-dock-w, 0px); right: 0; bottom: 0; overflow: hidden; background-color: #0a0e16;
         background-image:
           radial-gradient(1100px 760px at 72% -12%, rgba(31,111,235,.20), transparent 60%),
           radial-gradient(820px 640px at -8% 112%, rgba(45,212,191,.15), transparent 60%),
           radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
         background-size: auto, auto, 26px 26px; }
+      /* ── tab strip: each tab is its own editable holospace canvas (Chrome-like, per-tab scene) ── */
+      #tabstrip { position: fixed; top: 0; left: var(--holo-dock-w, 0px); right: 0; height: 40px; z-index: 60; display: flex; align-items: flex-end; gap: 4px;
+        padding: 6px 10px 0; background: var(--holo-surface); border-bottom: 1px solid var(--holo-border); overflow-x: auto; scrollbar-width: none; }
+      #tabstrip::-webkit-scrollbar { display: none; }
+      #tabstrip .tab { flex: 0 1 200px; min-width: 88px; height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 14px;
+        border: 1px solid var(--holo-border); border-bottom: 0; border-radius: var(--holo-radius) var(--holo-radius) 0 0; background: transparent;
+        color: var(--holo-ink-dim); cursor: pointer; font: var(--holo-text-sm, 1rem) var(--win-font); white-space: nowrap; }
+      #tabstrip .tab.active { background: var(--holo-surface-2); color: var(--holo-ink); }
+      #tabstrip .tab:hover:not(.active) { background: color-mix(in srgb, var(--holo-ink) 9%, transparent); color: var(--holo-ink); }
+      #tabstrip .tab .t-ttl { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+      #tabstrip .tab .t-x { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; opacity: .55; flex: 0 0 auto; }
+      #tabstrip .tab .t-x:hover { background: color-mix(in srgb, var(--holo-ink) 16%, transparent); opacity: 1; }
+      #newtab { flex: 0 0 auto; width: 30px; height: 30px; margin-bottom: 2px; border: 0; border-radius: var(--holo-radius); cursor: pointer;
+        background: transparent; color: var(--holo-ink-dim); font-size: 20px; line-height: 1; }
+      #newtab:hover { background: var(--holo-surface-2); color: var(--holo-ink); }
+      /* ── navbar / omnibox: run a holospace OR open the web (κ-verified), into a tab ── */
+      #navbar { position: fixed; top: 40px; left: var(--holo-dock-w, 0px); right: 0; height: 44px; z-index: 60; display: flex; align-items: center; justify-content: center;
+        gap: 8px; padding: 0 14px; background: var(--holo-surface); border-bottom: 1px solid var(--holo-border); }
+      #omni { display: flex; align-items: center; gap: 8px; width: min(680px, 100%); height: 32px; padding: 0 6px 0 14px;
+        background: var(--holo-bg); border: 1px solid var(--holo-border); border-radius: 999rem; }
+      #omni:focus-within { border-color: var(--accent); }
+      #omni .sec { color: var(--holo-ink-dim); display: inline-flex; }
+      #omni input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--holo-ink); outline: none; font: var(--holo-text-sm, 1rem) var(--win-font); }
+      #omni .go { width: 26px; height: 26px; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink-dim); display: grid; place-items: center; }
+      #omni .go:hover { background: var(--holo-surface-2); color: var(--accent); }
       @keyframes winIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
       holo-window { animation: winIn .16s cubic-bezier(.2,.7,.3,1); }
       /* a pure (in-shell) OSS component centers + fills its object; transparent so it's bare */
@@ -39,10 +64,10 @@
         background: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 2L5 20L10 15L13 22L16 21L13 14L20 14Z' fill='white' stroke='black' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E"); }
       .holo-cursor.down { scale: .8; }
       /* toast */
-      #toast { position: fixed; left: 50%; bottom: 92px; transform: translate(-50%, 12px); z-index: 210; background: #161b22f2; border: 1px solid #30363d; border-radius: 999px; padding: 8px 16px; font: var(--holo-text-sm, 1rem) var(--win-font); color: #c9d1d9; box-shadow: 0 8px 28px #0009; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; max-width: 80vw; }
+      #toast { position: fixed; left: 50%; bottom: 92px; transform: translate(-50%, 12px); z-index: 210; background: #161b22f2; border: 1px solid #30363d; border-radius: 999rem; padding: 8px 16px; font: var(--holo-text-sm, 1rem) var(--win-font); color: #c9d1d9; box-shadow: 0 8px 28px #0009; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; max-width: 80vw; }
       #toast.show { opacity: 1; transform: translate(-50%, 0); }
       #empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #8b949e; pointer-events: none; }
-      #empty kbd { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 2px 7px; font: inherit; color: #c9d1d9; }
+      #empty kbd { background: #21262d; border: 1px solid #30363d; border-radius: var(--holo-radius, 6px); padding: 2px 7px; font: inherit; color: #c9d1d9; }
 
       /* snap preview — the translucent target shown while dragging to an edge */
       /* window zones — the background grid (FancyZones/KWin-style) */
@@ -50,7 +75,7 @@
       #grid .zone { position: absolute; left: 0; top: 0; border: 1.5px dashed #ffffff2e; border-radius: var(--holo-radius, 12px); background: linear-gradient(#ffffff0a, #ffffff03); display: grid; place-content: center; }
       #grid .zone span { font: 700 30px var(--win-font); color: #ffffff14; }
       #snap { position: fixed; z-index: 30; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent);
-        border-radius: 10px; pointer-events: none; opacity: 0; transition: opacity .1s, all .08s; display: none; }
+        border-radius: var(--holo-radius, 10px); pointer-events: none; opacity: 0; transition: opacity .1s, all .08s; display: none; }
       #snap.on { display: block; opacity: 1; }
 
       /* HUD + dock + taskbar */
@@ -58,7 +83,7 @@
          dock's published --holo-dock-h (0 for the floating macOS dock, so the corner stays free). */
       #hud { display: none !important; position: fixed; left: 12px; bottom: calc(10px + var(--holo-dock-h, 0px)); z-index: 50; gap: 14px; align-items: center;
         font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #8b949e; background: #0d1117cc; border: 1px solid #21262d;
-        border-radius: 999px; padding: 5px 12px; backdrop-filter: blur(6px); }
+        border-radius: 999rem; padding: 5px 12px; backdrop-filter: blur(6px); }
       #hud .k { color: #58a6ff; } #hud b { color: #3fb950; font-weight: 600; } #hud .os { color: var(--accent); font-weight: 600; }
       #taskbar { position: fixed; left: calc(12px + var(--holo-dock-w, 0px)); bottom: calc(44px + var(--holo-dock-h, 0px)); z-index: 50; display: flex; gap: 6px; flex-wrap: wrap; max-width: 40vw; }
       #taskbar .chip { display: flex; align-items: center; gap: 6px; font-size: var(--holo-text-sm, 1rem); background: #161b22cc; border: 1px solid #30363d;
@@ -68,8 +93,8 @@
          handlers (#open · #files · #library · #author · #keyboard-btn, referenced by shortcuts, the
          right-click menu, and the dock) keep working. */
       #dock { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 50; display: none !important; gap: 8px;
-        background: #0d1117cc; border: 1px solid #21262d; border-radius: 14px; padding: 8px 10px; backdrop-filter: blur(8px); }
-      #dock button { font: inherit; cursor: pointer; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 9px; padding: 7px 12px; }
+        background: #0d1117cc; border: 1px solid #21262d; border-radius: var(--holo-radius, 14px); padding: 8px 10px; backdrop-filter: blur(8px); }
+      #dock button { font: inherit; cursor: pointer; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: var(--holo-radius, 9px); padding: 7px 12px; }
       #dock button:hover { background: #30363d; } #dock button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
       #dock kbd { font: var(--holo-text-sm, 1rem) ui-monospace, monospace; opacity: .85; }
 
@@ -80,11 +105,11 @@
       .cheat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 16px; padding: 16px; max-height: 60vh; overflow: auto; }
       .cheat-col h4 { margin: 0 0 8px; font: 600 var(--holo-text-sm, 1rem) var(--win-font); color: var(--accent, #1f6feb); text-transform: uppercase; letter-spacing: .05em; }
       .cheat-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; font: var(--holo-text-sm, 1rem) var(--win-font); color: #c9d1d9; }
-      .cheat-row kbd { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 2px 8px; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #e6edf3; white-space: nowrap; }
+      .cheat-row kbd { background: #21262d; border: 1px solid #30363d; border-radius: var(--holo-radius, 6px); padding: 2px 8px; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #e6edf3; white-space: nowrap; }
       .cheat-f { padding: 12px 18px; border-top: 1px solid #21262d; font: var(--holo-text-sm, 1rem) var(--win-font); color: #8b949e; }
       .cheat-f .k { color: #58a6ff; font-family: ui-monospace, monospace; }
       /* virtual keyboard — a real on-screen keyboard that mirrors physical typing */
-      #vk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 110%); z-index: 90; width: min(60rem, 98vw); background: #0d1117f2; border: 1px solid #30363d; border-bottom: 0; border-radius: 14px 14px 0 0; padding: 10px; backdrop-filter: blur(10px); transition: transform .2s cubic-bezier(.2, .7, .3, 1); box-shadow: 0 -10px 40px #0008; }
+      #vk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 110%); z-index: 90; width: min(60rem, 98vw); background: #0d1117f2; border: 1px solid #30363d; border-bottom: 0; border-radius: var(--holo-radius, 14px) 14px 0 0; padding: 10px; backdrop-filter: blur(10px); transition: transform .2s cubic-bezier(.2, .7, .3, 1); box-shadow: 0 -10px 40px #0008; }
       #vk.open { transform: translate(-50%, 0); }
       .holo-vk { display: flex; flex-direction: column; gap: 6px; }
       .vk-row { display: flex; gap: 6px; }
@@ -94,9 +119,9 @@
       .vk-key.on { background: #30363d; border-color: var(--accent, #1f6feb); color: #fff; }
 
       /* right-click context menu — native-desktop manipulation */
-      .ctx { position: fixed; z-index: 200; min-width: 184px; background: #161b22f2; border: 1px solid #30363d; border-radius: 10px; padding: 5px; box-shadow: 0 16px 40px #000b; backdrop-filter: blur(8px); display: none; font: var(--holo-text-sm, 1rem) var(--win-font); }
+      .ctx { position: fixed; z-index: 200; min-width: 184px; background: #161b22f2; border: 1px solid #30363d; border-radius: var(--holo-radius, 10px); padding: 5px; box-shadow: 0 16px 40px #000b; backdrop-filter: blur(8px); display: none; font: var(--holo-text-sm, 1rem) var(--win-font); }
       .ctx.open { display: block; }
-      .ctx button { display: flex; width: 100%; align-items: center; gap: 10px; background: none; border: 0; color: #c9d1d9; padding: 7px 10px; border-radius: 7px; cursor: pointer; text-align: left; font: inherit; }
+      .ctx button { display: flex; width: 100%; align-items: center; gap: 10px; background: none; border: 0; color: #c9d1d9; padding: 7px 10px; border-radius: var(--holo-radius, 7px); cursor: pointer; text-align: left; font: inherit; }
       .ctx button:hover { background: var(--accent, #1f6feb); color: #fff; }
       .ctx button.danger:hover { background: #e81123; }
       .ctx button .ic { width: 16px; text-align: center; opacity: .9; }
@@ -107,13 +132,13 @@
       .scrim { position: fixed; inset: 0; z-index: 100; background: #010409aa; display: none; }
       .scrim.open { display: block; }
       .sheet { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(40rem, 92vw);
-        background: #0d1117; border: 1px solid #30363d; border-radius: 14px; box-shadow: 0 24px 60px #000a; overflow: hidden; }
+        background: #0d1117; border: 1px solid #30363d; border-radius: var(--holo-radius, 14px); box-shadow: 0 24px 60px #000a; overflow: hidden; }
       .sheet input, .sheet textarea { width: 100%; background: #010409; color: #c9d1d9; border: 0; border-bottom: 1px solid #21262d; padding: 14px 16px; font: var(--holo-text-sm, 1rem) var(--win-font); outline: none; }
       .sheet textarea { font: var(--holo-text-sm, 1rem)/1.5 ui-monospace, monospace; min-height: 12rem; border-bottom: 0; resize: vertical; }
       .results { max-height: 50vh; overflow: auto; }
       .results .row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; cursor: pointer; }
       .results .row:hover, .results .row.sel { background: #161b22; }
-      .results .row img { width: 26px; height: 26px; border-radius: 6px; }
+      .results .row img { width: 26px; height: 26px; border-radius: var(--holo-radius, 6px); }
       .results .row .id { margin-left: auto; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #6e7681; }
       .sheet .bar { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 14px; border-top: 1px solid #21262d; }
       .sheet .bar button { font: inherit; cursor: pointer; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: var(--holo-radius-sm, 8px); padding: 6px 12px; }
@@ -144,7 +169,7 @@
       .libcard .kk a { color: #58a6ff; text-decoration: none; }
       .libcard .meta { padding: 10px 12px; }
       .libcard .nm { display: flex; align-items: center; gap: 8px; font: 600 var(--holo-text-sm, 1rem) var(--win-font); color: #e6edf3; }
-      .libcard .nm .lic { margin-left: auto; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; padding: 1px 6px; }
+      .libcard .nm .lic { margin-left: auto; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #8b949e; border: 1px solid #30363d; border-radius: var(--holo-radius, 6px); padding: 1px 6px; }
       .libcard .sm { font: var(--holo-text-sm, 1rem) var(--win-font); color: #8b949e; margin-top: 4px; line-height: 1.45; }
       .libcard .kk { font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #3fb950; margin-top: 8px; }
     </style>
@@ -156,6 +181,8 @@
     <script src="/.holo/sha256/ed3dfbd9aac5c4209175dc0caaf9088384e20e8e2288d2d24915352d0dd5f50d.js" data-holo-shared="holo-terms.js"></script>
   </head>
   <body>
+    <div id="tabstrip" role="tablist" aria-label="Tabs"><button id="newtab" type="button" title="New tab" aria-label="New tab">+</button></div>
+    <div id="navbar"><div id="omni"><span class="sec" title="Run an app or open the web — content-verified (Law L5)">⌕</span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Run a holospace or open the web" placeholder="Run a holospace, or open the web — name · holo://κ · ipfs:// · .eth · url" /><button class="go" id="omni-go" type="button" title="Open" aria-label="Open">→</button></div></div>
     <div id="world">
       <div id="empty">
         <div>
@@ -230,7 +257,7 @@
       const $ = (s, r = document) => r.querySelector(s);
       const world = $("#world"), snapEl = $("#snap");
       const DOCK = 96;                               // bottom strip reserved for the dock
-      const usableH = () => window.innerHeight - DOCK;
+      const usableH = () => window.innerHeight - DOCK - 84;   // also clear the tab strip + omnibox
 
       // ── native-OS adaptation — the same shell, tuned to the host ────────────────────────
       const P = profileFor();
@@ -386,7 +413,7 @@
           .nav:active{cursor:grabbing} :host([locked]) .nav{cursor:default}
           .title{flex:1;font-size: var(--holo-text-sm, 1rem);color:#c9d1d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .navright{display:flex;align-items:center;gap:8px} .ctl{display:flex;align-items:center;gap:8px}
-          .lock{width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:#6e7681;cursor:pointer;font-size: var(--holo-text-sm, 1rem)}
+          .lock{width:22px;height:22px;border:0;border-radius:var(--holo-radius, 6px);background:transparent;color:#6e7681;cursor:pointer;font-size: var(--holo-text-sm, 1rem)}
           .lock::before{content:"\\1F513"} :host([locked]) .lock::before{content:"\\1F512"} :host([locked]) .lock{color:var(--accent,#1f6feb)}
           .lock:hover{background:#ffffff14}
           /* macOS traffic-lights (left) vs Windows/Linux min/max/close (right) */
@@ -458,6 +485,41 @@
         renderGrid(); // keep the zone grid in sync (layout changes converge across tabs too)
       }
       desktop.onChange(render); render(desktop.doc());
+      // ── tabs: each tab is its OWN editable holospace canvas — a saved scene over the one window
+      //    manager. Switching tabs swaps the live world; render() rebuilds its windows. New Tab = a
+      //    fresh Build·Run·Share canvas; opening an app gives it its own tab (Chrome-like). ──
+      const tabs = [{ id: "t0", title: "New Tab", snap: null }];
+      let activeTab = 0;
+      const cloneWorld = (w) => { try { return JSON.parse(JSON.stringify(w || [])); } catch { return []; } };
+      const snapshotWorld = () => { const d = desktop.doc(); return { world: cloneWorld(d.world), layout: d.layout, focusedId }; };
+      function restoreWorld(snap) {
+        desktop.change((d) => { if (d.world.length) d.world.splice(0, d.world.length); for (const n of cloneWorld(snap && snap.world)) d.world.push(n); if (snap && snap.layout) d.layout = snap.layout; });
+        focusedId = (snap && snap.focusedId) || null;
+      }
+      function renderTabs() {
+        const strip = $("#tabstrip"), nt = $("#newtab");
+        [...strip.querySelectorAll(".tab")].forEach((t) => t.remove());
+        tabs.forEach((t, i) => {
+          const el = document.createElement("button"); el.type = "button"; el.className = "tab" + (i === activeTab ? " active" : ""); el.setAttribute("role", "tab");
+          const ttl = document.createElement("span"); ttl.className = "t-ttl"; ttl.textContent = t.title || "New Tab";
+          const x = document.createElement("span"); x.className = "t-x"; x.title = "Close tab"; x.textContent = "✕";
+          el.append(ttl, x);
+          el.onclick = (e) => { if (e.target === x) closeTab(i); else selectTab(i); };
+          strip.insertBefore(el, nt);
+        });
+      }
+      function selectTab(i) { if (i === activeTab || !tabs[i]) return; tabs[activeTab].snap = snapshotWorld(); activeTab = i; restoreWorld(tabs[i].snap); renderTabs(); }
+      function newTab(title) { tabs[activeTab].snap = snapshotWorld(); tabs.push({ id: "t" + tabs.length + Math.random().toString(36).slice(2, 5), title: title || "New Tab", snap: null }); activeTab = tabs.length - 1; restoreWorld(null); renderTabs(); return activeTab; }
+      function closeTab(i) {
+        if (tabs.length <= 1) { tabs[0].title = "New Tab"; tabs[0].snap = null; restoreWorld(null); renderTabs(); return; }
+        const wasActive = i === activeTab; tabs.splice(i, 1);
+        if (activeTab > i || activeTab >= tabs.length) activeTab = Math.max(0, activeTab - 1);
+        if (wasActive) restoreWorld(tabs[activeTab].snap);
+        renderTabs();
+      }
+      const setActiveTabTitle = (t) => { if (tabs[activeTab]) { tabs[activeTab].title = String(t || "").split("  ·  ")[0].slice(0, 40); renderTabs(); } };
+      $("#newtab").onclick = () => newTab();
+      renderTabs();
       addEventListener("resize", () => render(desktop.doc()));   // keep max/snapped windows fitted
 
       // window-manager intents from the chrome
@@ -595,7 +657,9 @@
         if (!app) return; closeSpot();
         let def = {}; try { def = await fetch(app.landing.replace(/[^/]+$/, "holospace.json")).then((r) => r.json()); } catch {}
         const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(def));
-        addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name + "  ·  " + linkFor(app.did), src: app.landing, sandbox, allow });
+        if (desktop.doc().world.length > 0) newTab(app.name);     // the app gets its OWN tab (Chrome-like); a busy canvas stays put
+        addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name + "  ·  " + linkFor(app.did), src: app.landing, sandbox, allow, state: "max" });
+        setActiveTabTitle(app.name);
       }
       // openWeb(route) — open ANY web / content address as a holospace window: the content-addressed
       // web (CID · ipfs · ipns · ENS · DNSLink · http) resolves + re-derives in Holo IPFS (Law L5); a
@@ -606,7 +670,10 @@
         let def = {}; try { def = await fetch(ipfs.landing.replace(/[^/]+$/, "holospace.json")).then((r) => r.json()); } catch {}
         const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(def));   // gate Holo IPFS too (egress = network)
         const src = ipfs.landing + "?go=" + encodeURIComponent(route.address || ("ipfs://" + route.hex));
-        addNode({ kind: "app", title: "🌐  " + (route.label || route.address || route.hex), src, sandbox, allow });
+        const label = route.label || route.address || route.hex || "web";
+        if (desktop.doc().world.length > 0) newTab("🌐 " + label);   // the page gets its OWN tab (Chrome-like)
+        addNode({ kind: "app", title: "🌐  " + label, src, sandbox, allow, state: "max" });
+        setActiveTabTitle("🌐 " + label);
       }
       $("#open").onclick = openSpot;
       // ── Share: a clean, frictionless public link to the focused app. The recipient lands in the
@@ -643,6 +710,17 @@
       $("#share-scrim").onclick = (e) => { if (e.target === $("#share-scrim")) $("#share-scrim").classList.remove("show"); };
       $("#verb-build").onclick = () => $("#author").click();   // Build → author a component → κ
       $("#verb-run").onclick = openSpot;                        // Run → open/launch any holospace (⌘K)
+      // ── omnibox: one box runs a holospace OR opens the web (κ-verified), each into its own tab ──
+      async function omniGo(input) {
+        const v = String(input || "").trim(); if (!v) return;
+        const r = classify(v, catalog);
+        if (r.kind === "web" || r.kind === "holo") return openWeb(r);   // an explicit url · holo://κ · ipfs:// · .eth
+        const a = matches(v, catalog)[0];                                // else prefer a holospace app match
+        if (a) return launch(a);
+        openWeb({ kind: "web", address: v, label: v });                  // nothing matched → treat as a web/search query
+      }
+      $("#omni-addr").addEventListener("keydown", (e) => { if (e.key === "Enter") { omniGo(e.target.value); e.target.value = ""; e.target.blur(); } });
+      $("#omni-go").onclick = () => { omniGo($("#omni-addr").value); $("#omni-addr").value = ""; };
       // ── Holo Files — the native explorer, a CORE part of the shell. The dock button + a host-native
       //    shortcut (⌘/Ctrl⇧E) open it as a window; Files posts `holo-open` to launch any holospace it
       //    surfaces (the explorer IS the substrate's file system — one window onto every κ-object). ──
@@ -762,8 +840,73 @@
         const src = s.files["index.html"];
         const obj = repo.publishSource({ name: s.identifier, source: src });   // source → κ (Law L5)
         const id = addNode({ kind: "app", srcdoc: wrapDoc(src), sandbox: "allow-scripts allow-same-origin", content: src, editKind: "paste", name: s.name, title: s.name + "  ·  " + linkFor(obj.id), w: 720, h: 520 });
-        toast("✦ scaffolded " + s.name + "  ·  " + linkFor(obj.id) + " — double-click to edit · re-renders live");
+        // Surface the FOUNDATION at the moment of creation (Holo Product, ADR-0065): a companion card
+        // shows the balanced faculties + the hybrid method (all met by construction) + the generated
+        // DECISION.md — so the method is visible as you build, not buried in a file you never open.
+        try {
+          const card = await buildDecisionCard(s);
+          addNode({ kind: "app", srcdoc: card, sandbox: "allow-scripts", content: card, editKind: "paste",
+            frameless: false, name: "Holo Product", title: "Holo Product · " + s.name + " — the foundation it's built on", w: 420, h: 560 });
+        } catch (e) { /* foundation card is additive — never block the scaffold */ }
+        toast("✦ scaffolded " + s.name + "  ·  " + linkFor(obj.id) + " — built on Holo Product · double-click to edit");
         return { id, kappa: obj.id, name: s.name };
+      }
+
+      // buildDecisionCard(s) → a self-contained, token-driven card (no hardcoded colour — it links the
+      // canonical holo-theme.css and rides --holo-*; signal over noise). It reads the foundation LIVE
+      // from holo-product.mjs (the same source the SDK's product() exposes), so the two hemispheres and
+      // the six method phases are the real doctrine, not a restatement.
+      async function buildDecisionCard(s) {
+        const P = await import("../../_shared/holo-product.mjs").catch(() => null);
+        const F = (P && P.FACULTIES) || [], M = (P && P.METHOD) || [];
+        const ux = F.filter((f) => f.hemisphere === "ux"), ui = F.filter((f) => f.hemisphere === "ui");
+        const balanced = ux.length === ui.length;
+        const E = (t) => String(t).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+        // each method phase is met BY CONSTRUCTION for a freshly scaffolded product — say how.
+        const MET = { discover: "value stated in the manifest", define: "this DECISION.md", design: "Holo UI ⊕ UX inherited",
+          build: "content-addressed κ (Law L5)", verify: "the gate app rows (#app-ui-* · #app-ux-*)", "deliver-iterate": "shared as holo://κ" };
+        const col = (title, items) => `<div class="col"><div class="h">${E(title)}</div>${items.map((f) => `<div class="fac">${E(f.label)}</div>`).join("")}</div>`;
+        const phase = (m) => `<li><span class="ok">✓</span> <b>${E(m.label)}</b> — ${E(MET[m.id] || "")}</li>`;
+        const md = (s.files["DECISION.md"] || "").split("\n").map((l) => {
+          const e = (x) => E(x).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`(.+?)`/g, "<code>$1</code>");
+          if (/^### /.test(l)) return `<h4>${e(l.slice(4))}</h4>`;
+          if (/^## /.test(l)) return `<h3>${e(l.slice(3))}</h3>`;
+          if (/^# /.test(l)) return `<h2>${e(l.slice(2))}</h2>`;
+          if (/^> /.test(l)) return `<blockquote>${e(l.slice(2))}</blockquote>`;
+          if (/^- /.test(l)) return `<div class="li">• ${e(l.slice(2))}</div>`;
+          return l.trim() ? `<p>${e(l)}</p>` : "";
+        }).join("");
+        return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../_shared/holo-theme.css">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: var(--holo-bg, #0d1117); color: var(--holo-ink, #c9d1d9);
+    font: var(--holo-text-sm, 1rem)/1.5 var(--holo-font-sans, ui-sans-serif, system-ui); padding: 1.1rem 1.2rem; }
+  .badge { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
+  .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--holo-ok, #3fb950); }
+  .sub { color: var(--holo-ink-dim, #8b949e); margin: .15rem 0 1rem; }
+  .brain { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: 1rem; }
+  .col { border: 1px solid var(--holo-border, #30363d); border-radius: var(--holo-radius-sm, 8px); padding: .55rem .65rem; background: var(--holo-surface, #161b22); }
+  .col .h { font-size: .82em; text-transform: uppercase; letter-spacing: .06em; color: var(--holo-ink-dim, #8b949e); margin-bottom: .35rem; }
+  .fac { padding: .1rem 0; }
+  h3.m { font-size: .82em; text-transform: uppercase; letter-spacing: .06em; color: var(--holo-ink-dim, #8b949e); margin: 0 0 .35rem; }
+  ul { list-style: none; margin: 0 0 1rem; padding: 0; } li { padding: .12rem 0; }
+  .ok { color: var(--holo-ok, #3fb950); font-weight: 700; }
+  .doc { border-top: 1px solid var(--holo-border, #30363d); padding-top: .7rem; }
+  .doc h2 { font-size: 1.05em; margin: .2rem 0 .5rem; } .doc h3 { font-size: .92em; margin: .8rem 0 .25rem; }
+  .doc h4 { font-size: .86em; margin: .6rem 0 .2rem; color: var(--holo-ink-dim, #8b949e); }
+  .doc p, .doc .li { margin: .2rem 0; } .doc blockquote { margin: .2rem 0; padding-left: .7rem; border-left: 2px solid var(--holo-accent, #5b8cff); color: var(--holo-ink-dim, #8b949e); }
+  code { font-family: var(--holo-font-mono, ui-monospace, monospace); background: var(--holo-surface-2, #1b2128); padding: 0 .25em; border-radius: var(--holo-radius, 4px); }
+</style></head>
+<body>
+  <div class="badge"><span class="dot"></span>Holo Product</div>
+  <div class="sub">${ux.length} UX ⊕ ${ui.length} UI faculties · ${balanced ? "balanced" : "imbalanced"} — the foundation this product is built on</div>
+  <div class="brain">${col("UX · experience", ux)}${col("UI · look", ui)}</div>
+  <h3 class="m">Method — met by construction</h3>
+  <ul>${M.map(phase).join("")}</ul>
+  <div class="doc">${md}</div>
+</body></html>`;
       }
       function promptScaffold() { const name = (typeof prompt === "function") ? prompt("Name your new holospace:", "My App") : "My App"; if (name && String(name).trim()) scaffoldApp({ name: String(name).trim() }); }
       $("#library").onclick = openLib;
@@ -881,7 +1024,7 @@
          run, magical to keep. A returning operator's signed session (greeter handoff or a prior
          sign-in) is verified (Law L5) and used instead of a guest. ════════════════════════════ -->
     <style>
-      #ident { position: fixed; top: 14px; right: 14px; z-index: 220; display: none; align-items: center; gap: 8px;
+      #ident { position: fixed; top: 92px; right: 14px; z-index: 220; display: none; align-items: center; gap: 8px;
         background: var(--holo-surface); border: 1px solid var(--holo-border); border-radius: 999rem;
         padding: 5px 6px 5px 12px; font: var(--holo-text-sm, 1rem) var(--win-font); color: var(--holo-ink);
         box-shadow: 0 6px 22px rgba(0,0,0,.45); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
@@ -894,7 +1037,7 @@
       #ident button:hover { filter: brightness(1.12); }
       /* The THREE native verbs of holospace — Build · Run · Share — the shell's ubiquitous hero trio.
          Always visible, one tap each: the whole point of a holospace, made effortless. */
-      #verbs { position: fixed; top: 14px; left: 14px; z-index: 220; display: flex; align-items: center; gap: 4px;
+      #verbs { position: fixed; top: 92px; left: calc(14px + var(--holo-dock-w, 0px)); z-index: 220; display: flex; align-items: center; gap: 4px;
         background: var(--holo-surface); border: 1px solid var(--holo-border); border-radius: 999rem; padding: 4px;
         box-shadow: 0 6px 22px rgba(0,0,0,.4); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
       #verbs button { border: 0; border-radius: 999rem; cursor: pointer; background: transparent; color: var(--holo-ink);

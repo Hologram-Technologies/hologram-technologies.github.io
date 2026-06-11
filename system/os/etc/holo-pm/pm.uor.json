@@ -1,0 +1,480 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "skos": "http://www.w3.org/2004/02/skos/core#",
+      "hospm": "https://hologram.os/ns/pm#",
+      "hosc": "https://hologram.os/ns/conformance#"
+    }
+  ],
+  "@type": [
+    "schema:CreativeWork",
+    "prov:Entity",
+    "skos:Collection"
+  ],
+  "schema:name": "Holo Product Manager — the canonical full-cycle PM framework for Hologram-native products",
+  "schema:description": "Why: a great product is a full cycle — from a real market problem, through plan and build, to launch and support — and it needs one coordinated framework, not scattered tools. How: this one self-verifying object adopts the Pragmatic Framework verbatim (37 activities in 7 categories, a clear path from idea to product) and WIRES each activity Hologram realizes to the tool that does it (Holo UX · UI · Product · Share-to-Run · Own · App · the gate), so the framework is executed, not just described. What: the bridge that turns ideas into scalable, enterprise-grade products that solve real pain points — re-derive this did and each linked tool to verify (Law L5).",
+  "schema:softwareVersion": "1.0",
+  "dcterms:conformsTo": "https://hologram.os/ns/pm",
+  "dcterms:source": "https://www.pragmaticinstitute.com/product/framework/",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "hospm:principle": "A clear and simple path from great ideas to great products — driven by market evidence, not opinion. The bridge that turns ideas into scalable, enterprise-grade products that solve real pain points.",
+  "hospm:mantras": [
+    "NIHITO — Nothing Important Happens In The Office: the truth is in the market, not the building.",
+    "Your job is to be the expert on your market and your buyer.",
+    "Buyer is not User — design for both, distinctly.",
+    "Build what sells, not just what's asked — an outside-in product."
+  ],
+  "hospm:categories": [
+    {
+      "@id": "hospm:market",
+      "prefLabel": "Market",
+      "axis": "strategic",
+      "facing": "market"
+    },
+    {
+      "@id": "hospm:focus",
+      "prefLabel": "Focus",
+      "axis": "strategic",
+      "facing": "market"
+    },
+    {
+      "@id": "hospm:business",
+      "prefLabel": "Business",
+      "axis": "strategic",
+      "facing": "product"
+    },
+    {
+      "@id": "hospm:planning",
+      "prefLabel": "Planning",
+      "axis": "strategic",
+      "facing": "product"
+    },
+    {
+      "@id": "hospm:programs",
+      "prefLabel": "Programs",
+      "axis": "tactical",
+      "facing": "market"
+    },
+    {
+      "@id": "hospm:enablement",
+      "prefLabel": "Enablement",
+      "axis": "tactical",
+      "facing": "market"
+    },
+    {
+      "@id": "hospm:support",
+      "prefLabel": "Support",
+      "axis": "tactical",
+      "facing": "product"
+    }
+  ],
+  "hospm:activities": [
+    {
+      "@id": "hospm:market-problems",
+      "broader": "hospm:market",
+      "prefLabel": "Market Problems",
+      "hospm:obligation": "Find the real, urgent, pervasive pain — the product exists to solve it (the bridge's input). NIHITO: evidence from the market, not the office."
+    },
+    {
+      "@id": "hospm:win-loss-analysis",
+      "broader": "hospm:market",
+      "prefLabel": "Win/Loss Analysis",
+      "hospm:obligation": "Learn from every won and lost deal why buyers chose or didn't — feed it back into Focus + Planning."
+    },
+    {
+      "@id": "hospm:distinctive-competencies",
+      "broader": "hospm:market",
+      "prefLabel": "Distinctive Competencies",
+      "hospm:realizedBy": "usr/lib/holo/holo-uor.mjs",
+      "hospm:obligation": "Name the unfair advantage. Hologram's is the substrate: content-addressed, self-verifying, serverless (κ = H(content), Law L5) — time-to-value ≈ 0."
+    },
+    {
+      "@id": "hospm:competitive-landscape",
+      "broader": "hospm:market",
+      "prefLabel": "Competitive Landscape",
+      "hospm:obligation": "Know the alternatives (including 'do nothing'); position against them on the buyer's terms."
+    },
+    {
+      "@id": "hospm:asset-assessment",
+      "broader": "hospm:market",
+      "prefLabel": "Asset Assessment",
+      "hospm:realizedBy": "usr/lib/holo/holo-atlas.js",
+      "hospm:obligation": "Inventory what you already have to reuse (Law L3 dedup): the κ corpus mapped by Holo Atlas."
+    },
+    {
+      "@id": "hospm:market-definition",
+      "broader": "hospm:focus",
+      "prefLabel": "Market Definition",
+      "hospm:obligation": "Define the specific market segment you will win — narrow enough to dominate."
+    },
+    {
+      "@id": "hospm:distribution-strategy",
+      "broader": "hospm:focus",
+      "prefLabel": "Distribution Strategy",
+      "hospm:realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "hospm:obligation": "Reach: distribution is a content-addressed link (holo://κ) — serverless, no app store, share-to-run."
+    },
+    {
+      "@id": "hospm:product-portfolio",
+      "broader": "hospm:focus",
+      "prefLabel": "Product Portfolio",
+      "hospm:realizedBy": "usr/lib/holo/holo-atlas.js",
+      "hospm:obligation": "Manage the whole portfolio of holospaces as one map (Holo Atlas) — by content truth, not popularity."
+    },
+    {
+      "@id": "hospm:product-roadmap",
+      "broader": "hospm:focus",
+      "prefLabel": "Product Roadmap",
+      "hospm:realizedBy": "etc/holo-product/product.uor.json",
+      "hospm:obligation": "Sequence the work themes-first; the Holo Product method (discover→deliver) is the cadence."
+    },
+    {
+      "@id": "hospm:business-plan",
+      "broader": "hospm:business",
+      "prefLabel": "Business Plan",
+      "hospm:obligation": "The case: the problem, the solution, the market, the model — why this is worth doing now."
+    },
+    {
+      "@id": "hospm:pricing",
+      "broader": "hospm:business",
+      "prefLabel": "Pricing",
+      "hospm:realizedBy": "usr/lib/holo/holo-own.mjs",
+      "hospm:obligation": "Capture value: pricing settles against PROVEN work/ownership (Holo Own · Settle), human-approved (Law L4)."
+    },
+    {
+      "@id": "hospm:buy-build-partner",
+      "broader": "hospm:business",
+      "prefLabel": "Buy, Build or Partner",
+      "hospm:realizedBy": "usr/lib/holo/holo-app.mjs",
+      "hospm:obligation": "Decide make-vs-reuse: compose by content address (build·run·share) — link an existing κ rather than rebuild."
+    },
+    {
+      "@id": "hospm:product-profitability",
+      "broader": "hospm:business",
+      "prefLabel": "Product Profitability",
+      "hospm:realizedBy": "usr/lib/holo/holo-own.mjs",
+      "hospm:obligation": "Know the unit economics; value moves only through the verifiable Own/Settle rail, never a parallel ledger."
+    },
+    {
+      "@id": "hospm:innovation",
+      "broader": "hospm:business",
+      "prefLabel": "Innovation",
+      "hospm:realizedBy": "usr/lib/holo/holo-app.mjs",
+      "hospm:obligation": "Create the new: a build is a re-derivable κ-transform (verifiable, serverless) — innovate without a server."
+    },
+    {
+      "@id": "hospm:positioning",
+      "broader": "hospm:planning",
+      "prefLabel": "Positioning",
+      "hospm:realizedBy": "etc/holo-product/product.uor.json",
+      "hospm:obligation": "Own a clear place in the buyer's mind; the product's look + experience are the canonical Holo Product foundation."
+    },
+    {
+      "@id": "hospm:buyer-experience",
+      "broader": "hospm:planning",
+      "prefLabel": "Buyer Experience",
+      "hospm:realizedBy": "etc/holo-ux/doctrine.uor.json",
+      "hospm:obligation": "Design the whole journey to value; the Holo UX doctrine makes it native, familiar, effortless (time-to-value ≈ 0)."
+    },
+    {
+      "@id": "hospm:buyer-personas",
+      "broader": "hospm:planning",
+      "prefLabel": "Buyer Personas",
+      "hospm:obligation": "Model who decides to buy (≠ the user). The PM's market expertise — no tool can own it."
+    },
+    {
+      "@id": "hospm:user-personas",
+      "broader": "hospm:planning",
+      "prefLabel": "User Personas",
+      "hospm:realizedBy": "usr/lib/holo/holo-capability.mjs",
+      "hospm:obligation": "Model who uses it; the experience meets the REAL user + device (capability tiers resolved, not assumed)."
+    },
+    {
+      "@id": "hospm:requirements",
+      "broader": "hospm:planning",
+      "prefLabel": "Requirements",
+      "hospm:realizedBy": "etc/holo-product/product.uor.json",
+      "hospm:obligation": "Capture market-driven requirements as a recorded decision (the Holo Product Define phase · DECISION.md/ADR)."
+    },
+    {
+      "@id": "hospm:use-scenarios",
+      "broader": "hospm:planning",
+      "prefLabel": "Use Scenarios",
+      "hospm:realizedBy": "usr/lib/holo/holo-voice.mjs",
+      "hospm:obligation": "Tell the story of use (why → how → what) in the plain voice — self-descriptive, jargon-free."
+    },
+    {
+      "@id": "hospm:stakeholder-comm",
+      "broader": "hospm:planning",
+      "prefLabel": "Stakeholder Comm.",
+      "hospm:realizedBy": "usr/lib/holo/holo-voice.mjs",
+      "hospm:obligation": "Communicate clearly to every stakeholder in the one plain register — signal over noise."
+    },
+    {
+      "@id": "hospm:marketing-plan",
+      "broader": "hospm:programs",
+      "prefLabel": "Marketing Plan",
+      "hospm:obligation": "The orchestrated plan of programs that takes the product to market."
+    },
+    {
+      "@id": "hospm:revenue-growth",
+      "broader": "hospm:programs",
+      "prefLabel": "Revenue Growth",
+      "hospm:realizedBy": "usr/lib/holo/holo-own.mjs",
+      "hospm:obligation": "Grow value via verifiable ownership + settlement (Own · Settle) — new title, real value."
+    },
+    {
+      "@id": "hospm:revenue-retention",
+      "broader": "hospm:programs",
+      "prefLabel": "Revenue Retention",
+      "hospm:realizedBy": "usr/lib/holo/holo-own.mjs",
+      "hospm:obligation": "Keep value: ownership is durable + self-verifying; a tampered title pays nothing."
+    },
+    {
+      "@id": "hospm:launch",
+      "broader": "hospm:programs",
+      "prefLabel": "Launch",
+      "hospm:realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "hospm:obligation": "Ship to the world: a shared link lands a guest LIVE in the running product (Holo Share-to-Run)."
+    },
+    {
+      "@id": "hospm:awareness",
+      "broader": "hospm:programs",
+      "prefLabel": "Awareness",
+      "hospm:realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "hospm:obligation": "Be discovered: the native loop is share-to-run-to-remix — every output carries 'Made on Hologram'."
+    },
+    {
+      "@id": "hospm:nurturing",
+      "broader": "hospm:programs",
+      "prefLabel": "Nurturing",
+      "hospm:realizedBy": "usr/lib/holo/holo-atlas.js",
+      "hospm:obligation": "Stay in the consideration set; the community map (Atlas) keeps products discoverable by content truth."
+    },
+    {
+      "@id": "hospm:advocacy",
+      "broader": "hospm:programs",
+      "prefLabel": "Advocacy",
+      "hospm:realizedBy": "usr/lib/holo/holo-share-chrome.js",
+      "hospm:obligation": "Turn users into advocates: one-tap Remix forks your work into theirs (verifiable PROV-O/Title lineage)."
+    },
+    {
+      "@id": "hospm:measurement",
+      "broader": "hospm:programs",
+      "prefLabel": "Measurement",
+      "hospm:realizedBy": "usr/lib/holo/holo-object.mjs",
+      "hospm:obligation": "Measure what matters and prove it: done is proven by re-derivation (verify the κ, Law L5) and the witnessed gate — evidence, not opinion."
+    },
+    {
+      "@id": "hospm:sales-alignment",
+      "broader": "hospm:enablement",
+      "prefLabel": "Sales Alignment",
+      "hospm:obligation": "Align sales + marketing + product on one message and one motion."
+    },
+    {
+      "@id": "hospm:content",
+      "broader": "hospm:enablement",
+      "prefLabel": "Content",
+      "hospm:realizedBy": "usr/lib/holo/holo-scaffold.js",
+      "hospm:obligation": "Equip with content + ready products: the SDK scaffolder generates new holospaces on the foundation."
+    },
+    {
+      "@id": "hospm:sales-tools",
+      "broader": "hospm:enablement",
+      "prefLabel": "Sales Tools",
+      "hospm:realizedBy": "usr/lib/holo/holo-sdk.js",
+      "hospm:obligation": "Give the channel working tools: the Holo SDK is the one front door (@hologram/sdk) every product binds."
+    },
+    {
+      "@id": "hospm:channel-training",
+      "broader": "hospm:enablement",
+      "prefLabel": "Channel Training",
+      "hospm:obligation": "Train the channel to sell + support — the human enablement the PM drives."
+    },
+    {
+      "@id": "hospm:support-programs",
+      "broader": "hospm:support",
+      "prefLabel": "Programs",
+      "hospm:obligation": "Run the support programs that keep customers successful after the sale."
+    },
+    {
+      "@id": "hospm:operations",
+      "broader": "hospm:support",
+      "prefLabel": "Operations",
+      "hospm:realizedBy": "usr/lib/holo/holo-conscience.js",
+      "hospm:obligation": "Keep it safe + within bounds: the fail-closed conscience gate admits only conformant, constitutional products."
+    },
+    {
+      "@id": "hospm:events",
+      "broader": "hospm:support",
+      "prefLabel": "Events",
+      "hospm:obligation": "Engage the market through events + community moments."
+    },
+    {
+      "@id": "hospm:channels",
+      "broader": "hospm:support",
+      "prefLabel": "Channels",
+      "hospm:obligation": "Manage the support + delivery channels the product reaches customers through."
+    }
+  ],
+  "hospm:coverage": {
+    "categories": 7,
+    "activities": 37,
+    "perCategory": {
+      "market": 5,
+      "focus": 4,
+      "business": 5,
+      "planning": 7,
+      "programs": 8,
+      "enablement": 4,
+      "support": 4
+    },
+    "wired": 25,
+    "distinctTools": 13
+  },
+  "hosc:authority": "ADR-0066 (Holo Product Manager) · the Pragmatic Framework (pragmaticinstitute.com/product/framework, cited verbatim) · ADR-0065 (Holo Product) · ADR-0062/0030/0057 (Holo UX/UI) · ADR-0064 (Share-to-Run) · ADR-0053 (Own/Settle) · W3C OWL 2 / RDFS / SKOS · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "hosc:witness": "tools/holo-pm-witness.mjs",
+  "links": [
+    {
+      "id": "did:holo:sha256:871473e4705ec9b65c87cfb1e34391a5ad7a3db2faa9e0edd38218728a3b5941",
+      "rel": "hospm:source",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-hxRz5HBeybZch8+x40ORpa16PbL6qeDt04IYcoo7WUE=",
+      "digestMultibase": "uEiCHFHPkcF7JtlyHz7HjQ5GlrXo9svqp4O3TghhyijtZQQ"
+    },
+    {
+      "id": "did:holo:sha256:6cb5e503cc9d12dc1eab78e24a4d5d538a83dfe1b3b56870e7f7bb197b550774",
+      "rel": "hospm:ontology",
+      "@type": "schema:DigitalDocument",
+      "leaf": true,
+      "digestSRI": "sha256-bLXlA8ydEtweq3jiSk1dU4qD3+GztWhw5/e7GXtVB3Q=",
+      "digestMultibase": "uEiBsteUDzJ0S3B6reOJKTV1TioPf4bO1aHDn97sZe1UHdA"
+    },
+    {
+      "id": "did:holo:sha256:a992b700a324da26a2e0184417b62cc079762aed7e5a3fe5cd668b4bc7d0626e",
+      "rel": "hospm:foundation",
+      "@type": "schema:CreativeWork",
+      "leaf": true,
+      "digestSRI": "sha256-qZK3AKMk2iai4BhEF7YswHl2Ku1+Wj/lzWaLS8fQYm4=",
+      "digestMultibase": "uEiCpkrcAoyTaJqLgGEQXtizAeXYq7X5aP-XNZotLx9Bibg"
+    },
+    {
+      "id": "did:holo:sha256:a992b700a324da26a2e0184417b62cc079762aed7e5a3fe5cd668b4bc7d0626e",
+      "rel": "hospm:tool:etc-holo-product-product-uor-json",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-qZK3AKMk2iai4BhEF7YswHl2Ku1+Wj/lzWaLS8fQYm4=",
+      "digestMultibase": "uEiCpkrcAoyTaJqLgGEQXtizAeXYq7X5aP-XNZotLx9Bibg"
+    },
+    {
+      "id": "did:holo:sha256:a043aba05067b98c1f3ffc88ce55bf961bf67ef348590f1c8cc8e4face80ca86",
+      "rel": "hospm:tool:etc-holo-ux-doctrine-uor-json",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-oEOroFBnuYwfP/yIzlW/lhv2fvNIWQ8cjMjk+s6AyoY=",
+      "digestMultibase": "uEiCgQ6ugUGe5jB8__IjOVb-WG_Z-80hZDxyMyOT6zoDKhg"
+    },
+    {
+      "id": "did:holo:sha256:96771efc01bdf2f32384d2d05e36541004a476249075266e48c3525e6f41feba",
+      "rel": "hospm:tool:usr-lib-holo-holo-app-mjs",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-lnce/AG98vMjhNLQXjZUEASkdiSQdSZuSMNSXm9B/ro=",
+      "digestMultibase": "uEiCWdx78Ab3y8yOE0tBeNlQQBKR2JJB1Jm5Iw1Jeb0H-ug"
+    },
+    {
+      "id": "did:holo:sha256:75b93545eb16cd99930ec93066d090ebabec99904f4cd7448ff0873980860990",
+      "rel": "hospm:tool:usr-lib-holo-holo-atlas-js",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-dbk1ResWzZmTDskwZtCQ66vsmZBPTNdEj/CHOYCGCZA=",
+      "digestMultibase": "uEiB1uTVF6xbNmZMOyTBm0JDrq-yZkE9M10SP8Ic5gIYJkA"
+    },
+    {
+      "id": "did:holo:sha256:2b916fdedb61b5d592b4b2d8fb2a717f6bbb0b2bc7c21572748e40e3b510eee7",
+      "rel": "hospm:tool:usr-lib-holo-holo-capability-mjs",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-K5Fv3tthtdWStLLY+ypxf2u7CyvHwhVydI5A47UQ7uc=",
+      "digestMultibase": "uEiArkW_e22G11ZK0stj7KnF_a7sLK8fCFXJ0jkDjtRDu5w"
+    },
+    {
+      "id": "did:holo:sha256:27416ca6efa96e495734ba64d72011df21b33239a7fe0e6d230e30cbb0a5cb45",
+      "rel": "hospm:tool:usr-lib-holo-holo-conscience-js",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-J0Fspu+pbklXNLpk1yAR3yGzMjmn/g5tIw4wy7Cly0U=",
+      "digestMultibase": "uEiAnQWym76luSVc0umTXIBHfIbMyOaf-Dm0jDjDLsKXLRQ"
+    },
+    {
+      "id": "did:holo:sha256:c0ca29b481ffb48c3c2c1423b609364e01d4305e3b3e74a3bc9b8250ef8c1e60",
+      "rel": "hospm:tool:usr-lib-holo-holo-object-mjs",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-wMoptIH/tIw8LBQjtgk2TgHUMF47PnSjvJuCUO+MHmA=",
+      "digestMultibase": "uEiDAyim0gf-0jDwsFCO2CTZOAdQwXjs-dKO8m4JQ74weYA"
+    },
+    {
+      "id": "did:holo:sha256:299caaeb7cc888f806011ec59adc2d9e51a38cbfbdb795bff586753a1ba338df",
+      "rel": "hospm:tool:usr-lib-holo-holo-own-mjs",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-KZyq63zIiPgGAR7FmtwtnlGjjL+9t5W/9YZ1OhujON8=",
+      "digestMultibase": "uEiApnKrrfMiI-AYBHsWa3C2eUaOMv723lb_1hnU6G6M43w"
+    },
+    {
+      "id": "did:holo:sha256:c3b6a11acb22055dd704c6e1b02cab588168602e91da07b4bb964abd373b9e5b",
+      "rel": "hospm:tool:usr-lib-holo-holo-scaffold-js",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-w7ahGssiBV3XBMbhsCyrWIFoYC6R2ge0u5ZKvTc7nls=",
+      "digestMultibase": "uEiDDtqEayyIFXdcExuGwLKtYgWhgLpHaB7S7lkq9NzueWw"
+    },
+    {
+      "id": "did:holo:sha256:0aaf934716567e6db3af061bf2dc11c5f543063d619238fe034a9437a3b0b9b4",
+      "rel": "hospm:tool:usr-lib-holo-holo-sdk-js",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-Cq+TRxZWfm2zrwYb8twRxfVDBj1hkjj+A0qUN6OwubQ=",
+      "digestMultibase": "uEiAKr5NHFlZ-bbOvBhvy3BHF9UMGPWGSOP4DSpQ3o7C5tA"
+    },
+    {
+      "id": "did:holo:sha256:e63e5167e38e08bea92e234530dc637270d3c0b00e6c7db034a57a524859c901",
+      "rel": "hospm:tool:usr-lib-holo-holo-share-chrome-js",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-5j5RZ+OOCL6pLiNFMNxjcnDTwLAObH2wNKV6UkhZyQE=",
+      "digestMultibase": "uEiDmPlFn444IvqkuI0Uw3GNycNPAsA5sfbA0pXpSSFnJAQ"
+    },
+    {
+      "id": "did:holo:sha256:caa8eec27beb21c16bf3425224fb25f55101db25632130ae6c5a96d93de3052d",
+      "rel": "hospm:tool:usr-lib-holo-holo-uor-mjs",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-yqjuwnvrIcFr80JSJPsl9VEB2yVjITCubFqW2T3jBS0=",
+      "digestMultibase": "uEiDKqO7Ce-shwWvzQlIk-yX1UQHbJWMhMK5sWpbZPeMFLQ"
+    },
+    {
+      "id": "did:holo:sha256:ca3c2656d008474d4b6897481d3922de4d22a9334626fedf2bebbb136ac28dd2",
+      "rel": "hospm:tool:usr-lib-holo-holo-voice-mjs",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-yjwmVtAIR01LaJdIHTki3k0iqTNGJv7fK+u7E2rCjdI=",
+      "digestMultibase": "uEiDKPCZW0AhHTUtol0gdOSLeTSKpM0Ym_t8r67sTasKN0g"
+    }
+  ],
+  "id": "did:holo:sha256:5596214a55b69f17babf53294b05519753eb218927c51fe203a15464b876d6a2"
+}

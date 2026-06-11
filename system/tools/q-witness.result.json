@@ -1,0 +1,22 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "checks": {
+    "conversation-kappa-rederives": true,
+    "message-tree-integrity-clean": true,
+    "message-tree-integrity-tamper-refused": true,
+    "sibling-fork-distinct-kappa": true,
+    "receipt-rederives": true,
+    "receipt-tamper-refused": true,
+    "receipt-output-kappa-stable": true,
+    "store-roundtrip": true
+  },
+  "failed": [],
+  "covers": [
+    "Conversations persist as content-addressed κ-objects, not a database (Law L1/L3)",
+    "The LibreChat parentMessageId branch tree is a verify-on-load Merkle-DAG (Law L5)",
+    "Tampering any message or receipt byte is refused by re-derivation",
+    "Every answer is a re-derivable PROV-O inference receipt sealed to a did:holo"
+  ],
+  "authority": "IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · W3C Subresource Integrity · UOR content-addressing (κ = H(canonical form)) · verify-by-re-derivation (Law L1/L3/L5) · LibreChat data model (reproduced)"
+}

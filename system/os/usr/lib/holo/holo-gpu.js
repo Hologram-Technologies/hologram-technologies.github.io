@@ -173,13 +173,27 @@ fn srSample(uv: vec2f) -> vec3f {
     const u = new Float32Array(8);
 
     const state = { fx: opts.fx || 0, grade: opts.grade == null ? 0.4 : opts.grade, sr: opts.sr ? 1 : 0, alive: true, frames: 0, t0: performance.now() };
-    const dpr = () => Math.min(window.devicePixelRatio || 1, opts.maxDpr || 2);
+    // Device-native target: reconstruct at the display's TRUE pixels (up to maxDpr) so a
+    // 4K/8K panel gets a genuine 4K/8K Lanczos reconstruction — then auto-throttle to keep
+    // it smooth (drop the scale if the GPU can't sustain ~60fps, climb back when it can).
+    // The caller (player) sets maxDpr per device class (desktop high · mobile/Save-Data low).
+    let maxDpr = Math.max(1, opts.maxDpr || 3);
+    let scale = 1;                                     // adaptive 0.5..1, driven by measured fps
+    const targetDpr = () => Math.min(window.devicePixelRatio || 1, maxDpr) * scale;
     function size() {
-      const w = Math.max(1, Math.round(canvas.clientWidth * dpr()));
-      const h = Math.max(1, Math.round(canvas.clientHeight * dpr()));
+      const w = Math.max(1, Math.round(canvas.clientWidth * targetDpr()));
+      const h = Math.max(1, Math.round(canvas.clientHeight * targetDpr()));
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     }
     const ro = new ResizeObserver(size); ro.observe(canvas); size();
+    let winF = 0, winT = performance.now(), winFps = 60;
+    function throttle() {                              // rolling-fps adaptive resolution
+      winF++; const now = performance.now(), dt = now - winT;
+      if (dt < 1000) return;
+      winFps = winF * 1000 / dt; winF = 0; winT = now;
+      if (winFps < 45 && scale > 0.5) scale = Math.max(0.5, scale * 0.85);
+      else if (winFps > 57 && scale < 1) scale = Math.min(1, scale * 1.08);
+    }
 
     function drawFrame() {
       size();                                           // self-heal backing ↔ CSS each frame
@@ -208,7 +222,7 @@ fn srSample(uv: vec2f) -> vec3f {
       const pass = enc.beginRenderPass({ colorAttachments: [{ view: ctx.getCurrentTexture().createView(), loadOp: "clear", storeOp: "store", clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
       pass.setPipeline(pipeline); pass.setBindGroup(0, bind); pass.draw(3); pass.end();
       device.queue.submit([enc.finish()]);
-      state.frames++;
+      state.frames++; throttle();
       return true;
     }
     function render() { if (!state.alive) return; requestAnimationFrame(render); drawFrame(); }
@@ -220,8 +234,11 @@ fn srSample(uv: vec2f) -> vec3f {
       setFx: (v) => { state.fx = Math.max(0, Math.min(1, +v || 0)); },
       setGrade: (v) => { state.grade = Math.max(0, Math.min(1, +v || 0)); },
       setSR: (on) => { state.sr = on ? 1 : 0; },
+      setMaxDpr: (v) => { maxDpr = Math.max(1, +v || 3); scale = 1; size(); },
       get fx() { return state.fx; }, get grade() { return state.grade; }, get sr() { return state.sr; },
       get srcSize() { return [video.videoWidth || 0, video.videoHeight || 0]; },
+      get target() { return [canvas.width, canvas.height]; },   // effective reconstructed output pixels
+      get winFps() { return Math.round(winFps); }, get scale() { return +scale.toFixed(2); }, get maxDpr() { return maxDpr; },
       get frames() { return state.frames; },
       get fps() { return state.frames / Math.max(0.001, (performance.now() - state.t0) / 1000); },
       dispose: () => { state.alive = false; try { ro.disconnect(); } catch {} try { device.destroy(); } catch {} },

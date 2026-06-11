@@ -777,7 +777,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -888,6 +888,75 @@
       "earl:test": {
         "@id": "https://hologram.os/conformance/os2#holo-product",
         "dcterms:title": "Holo Product is the canonical upstream foundation for building beautiful, valuable and delightful Hologram-native products (ADR-0065) — it BUNDLES and BALANCES the two already-wired faculties of the UX·&·UI diagram into one self-verifying object: five UX faculties (interaction design · wireframes · information architecture · user research · scenarios — the experience, Holo UX) and five UI faculties (visual design · colours · graphic design · layouts · typography — the look, Holo UI), each mapped to where it is already wired in the OS and each a checkable obligation, with neither hemisphere allowed to ship without the other. It also binds a HYBRID delivery method (discover · define · design · build · verify · deliver/iterate) drawn from the field's project-management frameworks (Agile · Scrum · Kanban · Waterfall · Lean · PRINCE2 · Six Sigma) — the predictive-governance-plus-agile-execution the substrate already lives (an ADR is the decision record, a witness is the definition of done, the fail-closed gate is the stage-gate, the resource budget is the Lean waste discipline, a sealed κ is the predictable artifact). The bundle is sealed as ONE UOR object (etc/holo-product/product.uor.json) that re-derives to its content address and Merkle-links BOTH hemispheres — the sealed Holo UX doctrine and the canonical Holo UI token/engine layer — so a product binds the κ rather than re-deciding the basics (Law L5); it rests on the proven Holo UI + Holo UX gate rows"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-pm",
+        "dcterms:title": "Holo Product Manager is the canonical full-cycle product-management framework for Hologram-native products + applications (ADR-0066) — the bridge that turns ideas into scalable, enterprise-grade products that solve real pain points. It STRICTLY adopts the Pragmatic Framework (pragmaticinstitute.com/product/framework) VERBATIM — 37 activities ('boxes') in 7 categories (Market · Focus · Business · Planning · Programs · Enablement · Support), on the strategic→tactical axis, a clear path from a great idea to a great product — and WIRES every activity Hologram realizes to the tool that executes it (User Personas → Holo UX capability tiers · Use Scenarios/Stakeholder Comm → the plain voice · Requirements/Roadmap/Positioning → Holo Product · Buyer Experience → Holo UX · Launch/Awareness/Advocacy → Holo Share-to-Run · Pricing/Revenue/Profitability → Holo Own·Settle · Buy-Build-Partner/Innovation → Holo App build·compose · Measurement → the witnessed gate · Operations → the conscience gate · Content/Sales Tools → the Holo SDK + scaffolder), so the framework is EXECUTED on the substrate, not just described; the market/business judgment boxes stay the PM's job (NIHITO — no tool can own them). It is sealed as ONE self-verifying UOR object (etc/holo-pm/pm.uor.json) that re-derives to its content address and Merkle-links the Holo Product foundation it manages + every wired tool (Law L5); it is surfaced as the canonical PANE (holo-pm.html) and exposed through the Holo SDK (pm()), to deliver one seamless, unified, coordinated PM framework"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#atlas96-resonator",
+        "dcterms:title": "The Atlas 96 Resonator is the Φ-Atlas-12288 boundary made PHYSICAL, AUDIBLE and PROVABLE — the whole 12,288-cell torus (T² = ℤ₄₈ × ℤ₂₅₆, verbatim upstream invariants: R96 = b % 96 · Φ(p,b) = (p << 8) | b) as an interactive fiber instrument: pull a cell, field-grab the whole structure, squeeze it until it buckles, pluck it; morph the SAME cells through 1D cycle → 2D sheet → 3D torus → 4D Clifford torus in S³; hear deformation as 96-EDO partials over the R96 classes (class c sounds at 220·2^(c/96) Hz) with truth ≙ conservation (the strain budget returns to 0). Its structure is NOT parametric — every irregular artifact of the weave (each fiber kink, each hole) is a byte of DNA(p,b) = SHA-256(atlasObjectId ‖ Φ(p,b)), zero free parameters, zero RNG, sealed in a PROV-O receipt and re-derived LIVE in the tab (Law L5); tampering ONE codepoint of the atlas object is refused with all 12,288 cells re-deriving differently. This is the decidable answer to 'how do we know the model didn't just classify the shape and apply the math formula — did the mesh capture the specific, irregular artifacts?': re-derive, or be refused"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:failed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-q-spine",
+        "dcterms:title": "Holo Q is a substrate-native chat app (LibreChat-parity spine, reimplemented natively): conversations persist as content-addressed κ-objects — NOT a database — the parentMessageId branch tree is a verify-on-load Merkle-DAG (every message links its parent's κ; regenerate/edit = a new sibling κ; fork = a new conversation referencing the SAME κ-objects, O(1), zero copy), and every answer is a re-derivable PROV-O inference receipt sealed to its own did:holo. Tampering one byte of any message or receipt is refused by re-derivation; identical (context ⊕ prompt ⊕ model ⊕ params) replays from the κ-memo in O(1) with no decode"
       },
       "earl:result": {
         "@type": "earl:TestResult",

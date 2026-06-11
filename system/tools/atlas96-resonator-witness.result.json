@@ -1,0 +1,50 @@
+{
+  "witness": "atlas96-resonator",
+  "url": "/apps/atlas96/resonator.html",
+  "tiers": {
+    "main": "webgpu",
+    "fallback": "webgl2"
+  },
+  "covers": [
+    "atlas-12288",
+    "whole-structure-modeled",
+    "fiber-physics",
+    "sonification-96edo",
+    "dimensions-1d-2d-3d-4d",
+    "artifacts-are-address-bytes",
+    "prov-o-receipt",
+    "rederives-in-tab",
+    "native-engine-holo-forge",
+    "o1-rebind-by-kappa",
+    "webgpu-tier",
+    "webgl2-fallback",
+    "8k-render",
+    "tamper-refused",
+    "law-l5"
+  ],
+  "checks": {
+    "boots": true,
+    "webgpu_tier_active_when_available": true,
+    "atlas_object_rederives": true,
+    "structure_dna_rederives": true,
+    "derivation_module_pinned": true,
+    "receipt_rederives": true,
+    "engine_compiled_natively_by_forge": true,
+    "all_12288_cells": true,
+    "fiber_weave_matches_receipt": true,
+    "physics_responds_to_pluck": false,
+    "physics_conserves": true,
+    "dimensions_1_2_3_4_finite": true,
+    "sonification_renders": true,
+    "renders_8k_class": true,
+    "tamper_refused": true,
+    "tamper_changes_every_cell": true,
+    "reboots": true,
+    "o1_rebind_by_kappa": true,
+    "background_full_rederivation": true,
+    "webgl2_fallback_works": true,
+    "no_console_errors": true
+  },
+  "errors": [],
+  "witnessed": false
+}

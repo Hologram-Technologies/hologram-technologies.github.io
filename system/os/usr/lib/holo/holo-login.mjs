@@ -52,8 +52,19 @@ export async function enroll({ label = "operator", secret, cred } = {}) {
   const mnemonic = generateMnemonic(12);
   const vault = await createVault(mnemonic, await vaultKey(secret));
   const principal = await principalFromSeed(seedFromMnemonic(mnemonic), label);
-  await store.put(record(principal, vault, cred));
+  const rec = record(principal, vault, cred);
+  // INVISIBLE first-run ceremony — self-issue the sovereign-knowledge claim set + open the social
+  // graph (Holo ZK / Holo Privacy). Non-blocking: a hiccup here never blocks sign-in.
+  try { const { firstRun } = await import("./holo-ceremony.mjs"); const c = await firstRun(principal); rec.knowledge = c.credential; rec.graph = c.graph; rec.sd = c.disclosures; } catch {}
+  await store.put(rec);
   return { principal, mnemonic, did: principal.did, vaultLink: "holo://" + vaultKappa(vault).split(":").pop() };
+}
+
+// the operator's ceremony artefacts — { knowledge (signed claim credential), graph (social-graph log),
+// disclosures (the PRIVATE salts+values, device-only) }. What Holo Privacy's gate() discloses from.
+export async function ceremonyOf(kappa) {
+  const r = await store.get(kappa);
+  return r ? { knowledge: r.knowledge || null, graph: r.graph || null, disclosures: r.sd || null } : null;
 }
 
 // unlock — returning: open this operator's vault with the biometric/passphrase secret, re-derive.
@@ -74,6 +85,17 @@ export async function recover({ mnemonic, secret, label = "operator", cred } = {
   await store.put(record(principal, vault, cred));
   return { principal, did: principal.did, vaultLink: "holo://" + vaultKappa(vault).split(":").pop() };
 }
+
+// revealMnemonic — the 12-word recovery phrase for backup. Requires the unlock secret (a fresh
+// biometric / passphrase) — an open session is NOT enough to surface the phrase (Law L1: the key).
+export async function revealMnemonic(kappa, secret) {
+  const rec = await store.get(kappa);
+  if (!rec) throw new Error("no such operator on this device");
+  return openVault(rec.vault, await vaultKey(secret)).mnemonic;       // throws on the wrong secret (AEAD)
+}
+// backed-up flag — drives the deferrable "secure your account" nudge (don't nag once they've saved it).
+export async function isBackedUp(kappa) { const r = await store.get(kappa); return !!(r && r.backedUp); }
+export async function markBackedUp(kappa, val = true) { const r = await store.get(kappa); if (r) { r.backedUp = !!val; await store.put(r); } }
 
 // unlockSeed — open this operator's vault and return the raw 64-byte BIP-39 seed, so the Holo Wallet
 // app can boot the SAME wallet (HoloWallet.openSeed) with no second vault: one unlock, one identity.

@@ -16,6 +16,7 @@
 //   Holo Privacy  window.HoloPrivacy    minimal, purpose-bound selective disclosure (W3C VC/DPV)
 //   Holo Conform  window.HoloConscience the fail-closed constitutional conscience gate (ADR-033)
 //   Holo Product  window.HoloProduct    the balanced Holo UI ⊕ Holo UX foundation + method (ADR-0065)
+//   Holo PM       window.HoloPM         the full-cycle Pragmatic PM framework, wired (ADR-0066)
 // plus the UOR primitive window.HoloObject (address/verify, Law L5) and the <holo-icon> element.
 //
 // Every function reads window.* LAZILY (on call, never at import), so module load order cannot race.
@@ -48,7 +49,7 @@ export async function ready({ onProgress } = {}) {
 export function info() {
   const ux = g.HoloUX && g.HoloUX.get ? g.HoloUX.get() : null;
   return { ui: !!g.HoloUI, ux: !!g.HoloUX, terms: !!g.HoloTerms, privacy: !!g.HoloPrivacy,
-    conform: sealed(), object: !!g.HoloObject, product: !!g.HoloProduct, tier: ux ? ux.tier : null,
+    conform: sealed(), object: !!g.HoloObject, product: !!g.HoloProduct, pm: !!g.HoloPM, tier: ux ? ux.tier : null,
     accent: (g.HoloUI && g.HoloUI.get) ? (g.HoloUI.get().theme || {}).accent || null : null };
 }
 
@@ -82,6 +83,25 @@ export async function product() {
   const ux = p.FACULTIES.filter((f) => f.hemisphere === "ux").length;
   const ui = p.FACULTIES.filter((f) => f.hemisphere === "ui").length;
   return { faculties: p.FACULTIES, method: p.METHOD, frameworks: p.FRAMEWORKS, balance: p.BALANCE, balanced: ux === ui };
+}
+
+// ── Holo Product Manager — the full-cycle PM FRAMEWORK (ADR-0066): the Pragmatic Framework (37 boxes
+// in 7 categories) wired to the tools that execute it, the bridge from idea to scalable product. The
+// canonical pane is holo-pm.html; pm() reads the framework live so an app or agent can drive the
+// full cycle (categories · activities · which tool realizes each · the principle/mantras).
+let _pmLoad = null;
+async function ensurePM() {
+  if (g.HoloPM) return g.HoloPM;
+  if (!_pmLoad) _pmLoad = import("./holo-pm.mjs").catch(() => {});
+  await _pmLoad;
+  return g.HoloPM || null;
+}
+// pm() → { principle, mantras, categories, activities, total, wired, paneUrl } — the framework, live.
+export async function pm() {
+  const m = await ensurePM();
+  if (!m) return null;
+  return { principle: m.PRINCIPLE, mantras: m.MANTRAS, categories: m.CATEGORIES, activities: m.ACTIVITIES,
+    total: m.TOTAL, wired: m.wiredActivities().length, paneUrl: new URL("./holo-pm.html", import.meta.url).href };
 }
 
 // ── Holo Terms — effective, default-deny capabilities (already gated at mount) ────────────────────

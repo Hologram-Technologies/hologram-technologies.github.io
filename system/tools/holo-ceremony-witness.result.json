@@ -1,0 +1,62 @@
+{
+  "ok": true,
+  "pass": 11,
+  "fail": 0,
+  "results": [
+    {
+      "n": "knowledge credential is signed + content-addressed (re-derives, Law L5)",
+      "ok": true,
+      "d": "did:holo:sha256:f26cae…"
+    },
+    {
+      "n": "only DIGESTS are published (raw claims never on the credential)",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "social graph opened: signed, content-addressed, EMPTY",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "discloses ONLY the chosen claim (name); the rest leak nothing",
+      "ok": true,
+      "d": "{\"name\":\"Ilya\"}"
+    },
+    {
+      "n": "multi-claim disclosure reveals exactly the chosen set",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "fabricated claim refused (digest not in the signed set)",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "tampered credential refused (a flipped digest breaks κ)",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "bilateral edge requires BOTH signatures + re-derives (Law L5)",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "a one-sided edge is NOT a real edge",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "a tampered edge (changed kind) is refused",
+      "ok": true,
+      "d": ""
+    },
+    {
+      "n": "enrol runs the ceremony silently (knowledge + graph attached)",
+      "ok": true,
+      "d": ""
+    }
+  ]
+}

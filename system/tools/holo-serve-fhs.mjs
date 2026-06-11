@@ -112,6 +112,29 @@ async function webProxy(target, res) {
   } catch (e) { res.writeHead(502, { ...COI, "content-type": "text/plain", "access-control-allow-origin": "*" }); res.end("web proxy failed: " + ((e && e.message) || e)); }
 }
 
+// dev MCP forwarder — the OS roster (/.well-known/mcp.json) declares the MCP endpoint at /mcp;
+// this realizes it on the dev host by forwarding the JSON-RPC bytes to the substrate MCP server
+// (os/mcp/holo-mcp-http.mjs, port 8787). Same-origin for the apps (COEP-safe), content-blind,
+// DEV-ONLY (not part of the sealed os/ closure — on a hosted deploy the MCP server fronts /mcp itself).
+async function mcpProxy(req, res) {
+  const H = { ...COI, "access-control-allow-origin": "*", "cache-control": "no-store" };
+  if (req.method === "OPTIONS") { res.writeHead(204, { ...H, "access-control-allow-methods": "GET,POST,DELETE,OPTIONS", "access-control-allow-headers": "content-type,accept,mcp-session-id" }); return res.end(); }
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", async () => {
+    try {
+      const fwdHeaders = { "content-type": req.headers["content-type"] || "application/json", accept: req.headers["accept"] || "application/json, text/event-stream" };
+      if (req.headers["mcp-session-id"]) fwdHeaders["mcp-session-id"] = req.headers["mcp-session-id"];
+      const r = await fetch("http://127.0.0.1:8787/mcp", { method: req.method, headers: fwdHeaders, ...(chunks.length ? { body: Buffer.concat(chunks) } : {}) });
+      const out = { ...H, "content-type": r.headers.get("content-type") || "application/json" };
+      if (r.headers.get("mcp-session-id")) out["mcp-session-id"] = r.headers.get("mcp-session-id");
+      res.writeHead(r.status, out);
+      if (r.body) { for await (const chunk of r.body) res.write(chunk); }   // stream SSE bodies through
+      res.end();
+    } catch (e) { res.writeHead(502, { ...H, "content-type": "application/json" }); res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "substrate MCP server unreachable on :8787 — start it with: node os/mcp/holo-mcp-http.mjs" } })); }
+  });
+}
+
 // dev PAIR mailbox — a CONTENT-BLIND rendezvous for "scan QR to Access" (Holo Pair). The phone POSTs
 // the E2E-encrypted, operator-signed grant under a single-use channel; the desktop GETs it (then it is
 // deleted — single-use). The relay never inspects the bytes (they are encrypted + signed; the desktop
@@ -171,6 +194,7 @@ export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: ne
     if (route === "/caps") return sendJson(res, { fetch: true, ingestAudio: false, ytdlp: HAS_YTDLP, soundcloud: HAS_YTDLP });
     if (route.startsWith("/sc/")) { scRoute(route.slice(4), new URLSearchParams((req.url || "").split("?")[1] || ""), res); return; }
     if (route === "/develop") { developRoute(req, res); return; }   // dev SR→κ-pin backend (Holo Player "Develop to 8K")
+    if (route === "/mcp") { mcpProxy(req, res); return; }           // dev MCP forwarder — realizes the roster's declared /mcp endpoint (→ the substrate MCP server on :8787)
     if ((route === "/web" || route.endsWith("/web")) && /[?&]url=/.test(req.url || "")) { webProxy(new URLSearchParams((req.url || "").split("?")[1] || "").get("url"), res); return; }
     const mPair = route.match(/^\/\.pair\/([A-Za-z0-9\-_]{8,64})$/);   // Holo Pair content-blind rendezvous
     if (mPair) { pairMailbox(req, res, mPair[1]); return; }
