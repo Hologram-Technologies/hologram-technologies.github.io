@@ -302,35 +302,25 @@
   /* power-button glyph: a crisp IEC power symbol, sized to the label's cap height and optically centred */
   .btn-primary .pwr{ width:1.16em; height:1.16em; flex:none; margin-top:-0.04em; }
   .btn-primary span{ line-height:1; }
-  /* in Immersive the hero sits on the bright cloudscape — a solid black pill reads best there, lifted
-     off the clouds with a soft shadow and a hairline edge so it feels like a real power button */
-  :root[data-immersive="full"] .btn-primary{ background:#0a0a0f; color:#fff; border-color:rgba(255,255,255,.16);
-    box-shadow:0 .35em 1.5em rgba(0,0,0,.42), inset 0 0 0 .5px rgba(255,255,255,.04); }
-  :root[data-immersive="full"] .btn-primary:hover{ background:#17171f; border-color:rgba(255,255,255,.3);
-    box-shadow:0 .45em 1.8em rgba(0,0,0,.5); }
   .btn-ghost{ background:var(--panel); color:var(--fg); border-color:var(--line); }
   .btn-ghost:hover{ background:var(--panel-hover); border-color:var(--line-strong); }
 
-  /* ── Power-up stays a solid black power button, but a SUBTLE spectrum (the desktop omnibox palette,
-     usr/share/frame/shell.html) breathes around its edge — a soft, slowly rotating glow that hints at
-     something special behind it without shouting. ──────────────────────────────────────────────────── */
+  /* ── Power-up in Immersive: a SOLID BLACK pill (the GitHub-pill ink, --panel) wearing the desktop
+     omnibox's spectrum ring — the colour lives ONLY in the 1px frame, never on the face. Two backgrounds:
+     the black fill clipped to the PADDING-box sits on top of a slowly-rotating conic spectrum clipped to
+     the BORDER-box, so only the border carries colour — exactly the technique #omni uses in
+     usr/share/frame/shell.html. (Light & Dark stay plain; only Immersive wears the holo-field.) ───────── */
   @property --pwr-spin{ syntax:"<angle>"; inherits:false; initial-value:0deg; }
   @keyframes pwr-spin{ to{ --pwr-spin:360deg; } }
-  .btn-primary{ position:relative; z-index:0; }
-  /* faint spectrum edge — a thin gradient hairline masked to the border, kept low so the button reads black */
-  .btn-primary::after{ content:""; position:absolute; inset:0; border-radius:inherit; padding:1px; pointer-events:none;
-    background:conic-gradient(from var(--pwr-spin), #ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b);
-    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
-    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
-    opacity:.4; transition:opacity .22s ease; animation:pwr-spin 9s linear infinite; }
-  /* soft bloom behind — a gentle halo hugging the edge, lifting a touch on hover */
-  .btn-primary::before{ content:""; position:absolute; inset:-1px; z-index:-1; border-radius:inherit; pointer-events:none;
-    background:conic-gradient(from var(--pwr-spin), #ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b);
-    filter:blur(8px); opacity:.32; transition:opacity .22s ease, filter .22s ease;
-    animation:pwr-spin 9s linear infinite; }
-  .btn-primary:hover::before{ opacity:.55; filter:blur(11px); }
-  .btn-primary:hover::after{ opacity:.6; }
-  @media (prefers-reduced-motion: reduce){ .btn-primary::before, .btn-primary::after{ animation:none; } }
+  :root[data-immersive="full"] .btn-primary{ color:#fff; border:1px solid transparent;
+    background:linear-gradient(var(--panel), var(--panel)) padding-box,
+      conic-gradient(from var(--pwr-spin), #ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b) border-box;
+    box-shadow:0 .35em 1.5em rgba(0,0,0,.42); animation:pwr-spin 7s linear infinite; }
+  :root[data-immersive="full"] .btn-primary:hover{
+    background:linear-gradient(var(--panel-hover), var(--panel-hover)) padding-box,
+      conic-gradient(from var(--pwr-spin), #ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b) border-box;
+    box-shadow:0 0 24px -6px rgba(120,140,255,.5), 0 .45em 1.8em rgba(0,0,0,.5); }
+  @media (prefers-reduced-motion: reduce){ :root[data-immersive="full"] .btn-primary{ animation:none; } }
 
   /* the OS-detected download glyph sits like the power glyph — cap-height, optically centred */
   .btn .os-ic{ display:inline-flex; width:1.16em; height:1.16em; flex:none; margin-top:-0.04em; }
