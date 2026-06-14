@@ -709,13 +709,13 @@
   // re-pin to a direct artifact later — they default to the release page so the button always works.
   (function () {
     const dl = $("download"); const icHost = $("os-ic"); if (!dl || !icHost) return;
-    const RELEASES = "https://github.com/humuhumu33/hologram-apps/releases/latest";
+    const RELEASES = "https://github.com/humuhumu33/apps-holo/releases/latest";
     // single-line shell installers (the canonical "verify-install IS the install"); copied to clipboard
     // so the user can paste-run, while the button also opens the release page with the OS's installer.
     const ONE_LINER = {
-      win:   'irm https://github.com/humuhumu33/hologram-apps/releases/latest/download/bootstrap.ps1 | iex',
-      mac:   'curl -fsSL https://github.com/humuhumu33/hologram-apps/releases/latest/download/bootstrap.sh | sh',
-      linux: 'curl -fsSL https://github.com/humuhumu33/hologram-apps/releases/latest/download/bootstrap.sh | sh',
+      win:   'irm https://github.com/humuhumu33/apps-holo/releases/latest/download/bootstrap.ps1 | iex',
+      mac:   'curl -fsSL https://github.com/humuhumu33/apps-holo/releases/latest/download/bootstrap.sh | sh',
+      linux: 'curl -fsSL https://github.com/humuhumu33/apps-holo/releases/latest/download/bootstrap.sh | sh',
     };
     // crisp, recognisable monochrome OS glyphs (inherit the button's ink via currentColor)
     const ICON = {
