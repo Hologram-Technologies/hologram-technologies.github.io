@@ -50,7 +50,16 @@
          every shell. Self-contained (portable --hd-* tokens), so it needs nothing but holo-theme.css. -->
     <link rel="stylesheet" href="/_shared/holo-dock.css" data-holo-shared="holo-dock.css" />
     <style>
-      :root { color-scheme: dark; --accent: #1f6feb; --win-font: system-ui, sans-serif; }
+      :root { color-scheme: dark; --accent: #1f6feb; --win-font: system-ui, sans-serif;
+        /* ── ONE golden type + spacing scale for the whole desktop (φ-stepped, legible floor) ──
+           label = every interactive label (tabs · omnibox · menus · sidebar · icons), the dominant
+           size; meta = secondary text (breadcrumbs · hints · status · κ · credit), never tiny;
+           display = titles/headings. edge = the consistent margin from the screen border. */
+        --phi: 1.618;
+        --fs-label: var(--holo-text-sm, 1rem);
+        --fs-meta: max(13px, calc(var(--fs-label) * 0.82));
+        --fs-display: calc(var(--fs-label) * var(--phi));
+        --edge: clamp(14px, 1.8vmin, 24px); }
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; overflow: hidden; color: #c9d1d9;
         background: #0a0e16 radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%) fixed;
@@ -71,12 +80,12 @@
         background-size: auto, auto, 26px 26px; }
       /* ── tab strip — Chrome-precise: tabs at the bottom edge, the active tab flush with the toolbar ── */
       #tabstrip { position: fixed; top: 0; left: var(--holo-dock-w, 0px); right: 0; height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px;
-        padding: 6px 8px 0; background: var(--holo-bg); overflow-x: auto; scrollbar-width: none; user-select: none; }
+        padding: 6px 8px 0; background: #1F1F21; overflow-x: auto; scrollbar-width: none; user-select: none; }
       #tabstrip::-webkit-scrollbar { display: none; }
-      #tabstrip .tab { flex: 0 1 240px; min-width: 52px; height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
+      #tabstrip .tab { flex: 0 1 120px; min-width: 52px; height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
         border-radius: var(--holo-radius, 9px) var(--holo-radius, 9px) 0 0; background: transparent; color: var(--holo-ink-dim);
         cursor: default; font: var(--holo-text-sm, 1rem) var(--win-font); white-space: nowrap; position: relative; transition: background .12s ease, color .12s ease; }
-      #tabstrip .tab.active { background: var(--holo-surface); color: var(--holo-ink); }   /* active tab = toolbar colour → it connects into the address bar below (Chrome) */
+      #tabstrip .tab.active { background: #1F1F21; color: var(--holo-ink); }   /* active tab = toolbar colour → it connects into the address bar below (Chrome) */
       #tabstrip .tab:not(.active):hover { background: color-mix(in srgb, var(--holo-ink) 7%, transparent); color: var(--holo-ink); }
       #tabstrip .tab.pinned { flex: 0 0 auto; width: 34px; min-width: 34px; padding: 0; justify-content: center; gap: 0; }   /* pinned = favicon-only, Chrome-style */
       #tabstrip .tab .t-fav { flex: 0 0 auto; width: 16px; height: 16px; display: grid; place-items: center; font-size: max(var(--holo-font-min, 16px), 12px); opacity: .9; }
@@ -89,7 +98,7 @@
       #newtab:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
       /* ── toolbar — Chrome layout: nav buttons · omnibox (fills) · actions ── */
       #navbar { position: fixed; top: var(--tabrow-h); left: var(--holo-dock-w, 0px); right: 0; height: var(--toolbar-h); z-index: 60; display: flex; align-items: center;
-        gap: 2px; padding: 0 10px; background: var(--holo-surface); border-bottom: 1px solid var(--holo-border); }
+        gap: 2px; padding: 0 10px; background: #1F1F21; border-bottom: 1px solid var(--holo-border); }
       #navbar .nav { width: 34px; height: 34px; flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink);
         display: grid; place-items: center; transition: background .12s ease; }
       #navbar .nav:hover:not(:disabled) { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); }
@@ -111,8 +120,12 @@
       #omni .sec svg { display: block; filter: drop-shadow(0 0 5px rgba(130,150,255,.30)); }
       #omni input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--holo-ink); outline: none; font: var(--holo-text-sm, 1rem) var(--win-font); }
       #omni input::placeholder { color: var(--holo-ink-dim); opacity: 1; }
-      #omni .go { width: 26px; height: 26px; flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink-dim); display: grid; place-items: center; transition: background .12s ease; }
-      #omni .go:hover { background: var(--holo-surface-2); color: var(--accent); }
+      #omni .go { width: 26px; height: 26px; flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+        background: var(--accent); color: #fff; box-shadow: 0 2px 7px color-mix(in srgb, var(--accent) 40%, transparent);
+        transition: filter .14s ease, transform .12s ease, box-shadow .16s ease; }
+      #omni .go:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 55%, transparent); }
+      #omni .go:active { transform: translateY(0) scale(.93); }
+      #omni .go svg { width: 15px; height: 15px; display: block; }
       @media (prefers-reduced-motion: reduce) { #omni:focus-within { animation: none; } }
       /* omnibox suggestions — a Chrome-style dropdown that fuses every corpus into one ranked list */
       .omni-sug { position: fixed; z-index: 200; background: var(--holo-surface, #0c111b); border: 1px solid var(--holo-border); border-radius: 14px;
@@ -123,7 +136,7 @@
       .omni-sug .sug-ic { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: var(--holo-ink-dim); flex: 0 0 auto; font-size: 15px; }
       .omni-sug .sug-ic img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
       .omni-sug .sug-tt { flex: 1; color: var(--holo-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: var(--holo-text-sm, 1rem) var(--win-font); }
-      .omni-sug .sug-sub { color: var(--holo-ink-dim); font-size: 12px; flex: 0 0 auto; }
+      .omni-sug .sug-sub { color: var(--holo-ink-dim); font-size: var(--fs-meta); flex: 0 0 auto; }
       /* tabs ALWAYS on top (Chrome-standard) — the tab strip is the frame; the active tab connects down into the toolbar; the address bar sits under the tabs so every tab shows its own address. */
       /* tab manipulation — rearrange · group · detach (the Chrome-grade gesture, fully in-page) */
       #tabstrip .tab.grouped { border-bottom: 2px solid var(--tg, var(--accent)); }
@@ -134,7 +147,7 @@
       #tabdetach.on { opacity: 1; }
       /* the side dock is THIS shell's menu bar — share the chrome's exact surface so dock · tabs · toolbar
          read as ONE coherent, sharp frame (flat, no light frost/bevel; border = the chrome hairline). */
-      html #holo-dock { --hd-blur-bg: var(--holo-surface); --hd-opaque-bg: var(--holo-surface); --hd-acrylic-bg: var(--holo-surface); --hd-clear-bg: var(--holo-surface); --hd-blur-fx: none; --hd-glass-border: var(--holo-border); --hd-glass-edge: transparent; --hd-ink: var(--holo-ink); --hd-ink-dim: var(--holo-ink-dim); --hd-border: var(--holo-border); --hd-surface: var(--holo-surface-2); --hd-hover: color-mix(in srgb, var(--holo-ink) 12%, transparent); }
+      html #holo-dock { --hd-blur-bg: #1F1F21; --hd-opaque-bg: #1F1F21; --hd-acrylic-bg: #1F1F21; --hd-clear-bg: #1F1F21; --hd-blur-fx: none; --hd-glass-border: var(--holo-border); --hd-glass-edge: transparent; --hd-ink: var(--holo-ink); --hd-ink-dim: var(--holo-ink-dim); --hd-border: var(--holo-border); --hd-surface: var(--holo-surface-2); --hd-hover: color-mix(in srgb, var(--holo-ink) 12%, transparent); }
       #holo-dock .holo-dock-inner { box-shadow: none; }
       /* Left-pinned, the dock is a FULL-HEIGHT rail (top:0) so the whole left bar is one uniform
          surface — no darker chrome notch above it. The tab strip + toolbar inset to its right via
@@ -166,9 +179,9 @@
       #empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #8b949e; pointer-events: none; }
       #empty kbd { background: #21262d; border: 1px solid #30363d; border-radius: var(--holo-radius, 6px); padding: 2px 7px; font: inherit; color: #c9d1d9; }
       /* desktop credit line — bottom-center, behind windows (z 1, above the wallpaper), on every tab */
-      #holo-credit { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 1; pointer-events: none;
+      #holo-credit { position: absolute; left: 50%; bottom: var(--edge); transform: translateX(-50%); z-index: 1; pointer-events: none;
         display: flex; align-items: baseline; gap: 8px; user-select: none; white-space: nowrap;
-        font: 600 11px/1 var(--win-font, ui-sans-serif, system-ui); text-transform: uppercase; }
+        font: 600 var(--fs-meta)/1 var(--win-font, ui-sans-serif, system-ui); text-transform: uppercase; }
       #holo-credit .pw { color: var(--holo-ink-dim, #8b949e); opacity: .62; letter-spacing: .22em; }
       #holo-credit .hg { font-weight: 800; letter-spacing: .26em; color: #fff;
         filter: drop-shadow(0 1px 6px rgba(0, 0, 0, .35)); }
@@ -232,7 +245,7 @@
       .folder-icon .fi-folder.has-cover::after { content: ""; position: absolute; inset: 0; border-radius: 13px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
       .folder-icon .fi-count { position: absolute; right: -5px; bottom: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
         background: var(--holo-bg, #0d1117); color: var(--holo-ink, #e6edf5); border: 1px solid var(--holo-border, #30363d);
-        font: 700 11px var(--win-font, system-ui); display: grid; place-items: center; }
+        font: 700 var(--fs-meta) var(--win-font, system-ui); display: grid; place-items: center; }
       /* app icons keep a square footprint (platform convention) sized to the golden art unit */
       .folder-icon .fi-img, .folder-icon .fi-glyph { width: calc(var(--art) * 0.84); height: calc(var(--art) * 0.84); border-radius: calc(var(--art) * 0.84 / var(--phi) / 2.3); box-shadow: 0 6px 16px rgba(0,0,0,.42); transition: transform .12s ease; }
       .folder-icon .fi-img { object-fit: cover; }
@@ -251,7 +264,7 @@
       /* folder-icon picker — a visual grid of the vendored Material folders */
       .fip { position: fixed; z-index: 260; width: 300px; max-height: 348px; overflow: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
         padding: 10px; background: var(--holo-surface, #161b22); border: 1px solid var(--holo-border, #30363d); border-radius: var(--holo-radius, 12px); box-shadow: 0 18px 50px rgba(0,0,0,.6); }
-      .fip-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--holo-ink-dim, #8b949e); cursor: pointer; font: 500 10px var(--win-font, system-ui); }
+      .fip-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--holo-ink-dim, #8b949e); cursor: pointer; font: 500 var(--fs-meta) var(--win-font, system-ui); }
       .fip-tile:hover { background: var(--holo-bg, #0d1117); border-color: var(--holo-accent, #2b6fd6); color: var(--holo-ink, #e6edf5); }
       .fip-tile img { width: 38px; height: 38px; pointer-events: none; }
       .fip-tile span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -345,19 +358,19 @@
       .wall-srch { display: flex; gap: 8px; align-items: center; padding: 2px 0 10px; position: sticky; top: 0; }
       .wall-srch input { flex: 1; background: #010409; border: 1px solid #21262d; border-radius: 999rem; padding: 9px 14px; color: #c9d1d9; font: inherit; outline: none; }
       .wall-srch input:focus { border-color: var(--accent, #1f6feb); }
-      .wall-srch .us { font: 11px ui-monospace, monospace; color: #6e7681; white-space: nowrap; }
+      .wall-srch .us { font: var(--fs-meta) ui-monospace, monospace; color: #6e7681; white-space: nowrap; }
       .wall-srch .us a { color: #58a6ff; text-decoration: none; }
-      .wall-note { font: 12px/1.5 system-ui, sans-serif; color: #8b949e; padding: 0 2px 10px; }
+      .wall-note { font: var(--fs-meta)/1.5 system-ui, sans-serif; color: #8b949e; padding: 0 2px 10px; }
       .wall-note a { color: #58a6ff; } .wall-note b { color: #c9d1d9; }
       .wall-note input { width: min(20rem, 55%); margin-left: 6px; background: #010409; border: 1px solid #21262d; border-radius: 8px; padding: 6px 10px; color: #c9d1d9; font: inherit; }
       .wall-note button { margin-left: 6px; background: #238636; border: 1px solid #2ea043; color: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; }
-      .wall-secq { font: 600 12px system-ui, sans-serif; color: #8b949e; text-transform: uppercase; letter-spacing: .04em; padding: 4px 2px; }
-      .wall-prev .wall-by { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; font: 11px system-ui, sans-serif; color: #eaf2ff; background: linear-gradient(transparent, #000a); opacity: 0; transition: opacity .12s; }
+      .wall-secq { font: 600 var(--fs-meta) system-ui, sans-serif; color: #8b949e; text-transform: uppercase; letter-spacing: .04em; padding: 4px 2px; }
+      .wall-prev .wall-by { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; font: var(--fs-meta) system-ui, sans-serif; color: #eaf2ff; background: linear-gradient(transparent, #000a); opacity: 0; transition: opacity .12s; }
       .wall-tile:hover .wall-by { opacity: 1; }
       .wall-busy { grid-column: 1 / -1; padding: 18px; text-align: center; color: #8b949e; font: 13px system-ui, sans-serif; }
       .sheet.wall-sheet.drop { outline: 2px dashed var(--accent, #1f6feb); outline-offset: -8px; }
       .wall-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #21262d; }
-      .wall-live { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; font: 12px system-ui, sans-serif; color: #9fb3d0; cursor: pointer; user-select: none; }
+      .wall-live { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; font: var(--fs-meta) system-ui, sans-serif; color: #9fb3d0; cursor: pointer; user-select: none; }
       .wall-live .sw { width: 34px; height: 18px; border-radius: 999rem; background: #30363d; position: relative; transition: background .15s; flex: 0 0 auto; }
       .wall-live .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #c9d1d9; transition: transform .15s, background .15s; }
       .wall-live.on .sw { background: var(--accent, #1f6feb); } .wall-live.on .sw::after { transform: translateX(16px); background: #fff; }
@@ -406,7 +419,7 @@
       <button class="nav" id="nav-fwd" type="button" title="Forward" aria-label="Forward" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
       <button class="nav" id="nav-reload" type="button" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button>
       <button class="nav" id="nav-home" type="button" title="Home — this tab's original view" aria-label="Home — this tab's original view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></button>
-      <div id="omni"><span class="sec" title="Hologram — one address for every object, verified by its hash (Law L5)"><svg class="holomark" viewBox="-104 -104 208 208" width="19" height="19" role="img" aria-label="Hologram"><defs><linearGradient id="omniSpec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3b6b"/><stop offset="20%" stop-color="#ff9e2c"/><stop offset="40%" stop-color="#ffe24a"/><stop offset="58%" stop-color="#46e08a"/><stop offset="74%" stop-color="#2bd4ff"/><stop offset="88%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/></linearGradient></defs><g fill="url(#omniSpec)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Search anything (UOR, URL, IPFS, Web3)" placeholder="Search anything (UOR, URL, IPFS, Web3)" /><button class="go" id="omni-go" type="button" title="Open" aria-label="Open">→</button></div>
+      <div id="omni"><span class="sec" title="Hologram — one address for every object, verified by its hash (Law L5)"><svg class="holomark" viewBox="-104 -104 208 208" width="19" height="19" role="img" aria-label="Hologram"><defs><linearGradient id="omniSpec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3b6b"/><stop offset="20%" stop-color="#ff9e2c"/><stop offset="40%" stop-color="#ffe24a"/><stop offset="58%" stop-color="#46e08a"/><stop offset="74%" stop-color="#2bd4ff"/><stop offset="88%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/></linearGradient></defs><g fill="url(#omniSpec)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Search anything" placeholder="Search anything" /><button class="go" id="omni-go" type="button" title="Open" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
       <div id="verbs" aria-label="Create, Play, Share — the three holospace verbs">
         <button id="verb-build" type="button" title="Create — author a component → a content-addressed κ">✦ <span class="vl">Create</span></button>
         <button id="verb-run" type="button" title="Play — open any holospace (⌘K)">▶ <span class="vl">Play</span></button>
