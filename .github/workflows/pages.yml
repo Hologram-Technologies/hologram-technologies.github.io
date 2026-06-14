@@ -32,6 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # self-enable Pages (GitHub Actions source) on a fresh repo, so the first push deploys with no manual settings toggle
       # Stage a lean site from the new layout (everything lives under system/, except the gateway
       # + agent/governance docs which sit at the repo root). Published: the gateway, the agent map,
       # the AGENTS + CONSTITUTION docs, the FHS image as the os/ subtree, and a root mirror of

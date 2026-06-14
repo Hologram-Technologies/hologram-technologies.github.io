@@ -102,7 +102,8 @@
       #loadbarTrack { width: 100%; height: 2px; border-radius: 2px; background: var(--lb-track); overflow: hidden; }
       #loadbarFill { height: 100%; width: 0%; background: var(--lb); border-radius: 2px; }
       body.bg-dark #loadbarFill, body.bg-immersive #loadbarFill { box-shadow: 0 0 10px rgba(255,255,255,.45); }
-      #loadbarMeta { font: 600 11px ui-monospace, monospace; letter-spacing: .14em; color: var(--dim); font-variant-numeric: tabular-nums; }
+      #loadbarMeta { font: 600 11px ui-monospace, monospace; letter-spacing: .14em; color: var(--dim); font-variant-numeric: tabular-nums; display: inline-flex; gap: .7em; align-items: center; }
+      #loadbarSpin { color: var(--lb); opacity: .9; letter-spacing: normal; }
       /* During a real boot handoff (Holo Boot → splash → OS) the plymouth client dock is
          hidden for an authentic full-screen splash; a hint to skip is shown instead. */
       body.handoff #dock { display: none; }
@@ -112,6 +113,12 @@
       #skip kbd { display: inline-block; border: 1px solid #3a4570; border-radius: 4px; padding: 1px 7px; color: #cdd6ff; background: rgba(139,92,246,.14); margin: 0 2px; }
       #skip { display: none; position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
         color: #46525c; font: 12px ui-monospace, monospace; pointer-events: none; }
+      /* boot handoff veil — the SAME #000 rise the gateway uses to hand off INTO this splash, now used
+         to hand this splash OFF into the login glass: every stage transitions through one shared black,
+         and login rises back out of it. No hard cut, no flash. */
+      body.leaving::after { content: ""; position: fixed; inset: 0; background: #000; z-index: 60; pointer-events: none; animation: bootVeil .18s linear forwards; }
+      @keyframes bootVeil { from { opacity: 0; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { body.leaving::after { animation-duration: .01s; } }
       @media (max-width: 640px) {
         #bar .k { max-width: 60vw; } #bar .stat { order: 9; flex-basis: 100%; max-width: 96vw; }
         #bar button, #bar select, #dock button, #dock select { min-height: 44px; }
@@ -282,7 +289,7 @@
            real handoff, where the active theme paints its own bar. -->
       <div id="loadbar" aria-hidden="true">
         <div id="loadbarTrack"><div id="loadbarFill"></div></div>
-        <div id="loadbarMeta"><span id="loadbarPct">0%</span></div>
+        <div id="loadbarMeta"><span id="loadbarSpin" aria-hidden="true">⠋</span><span id="loadbarPct">0%</span></div>
       </div>
     </div>
 
@@ -584,7 +591,8 @@
         return DUR_DEFAULT;
       })();
       let navigated = false, reachedAt = 0, brandVer = null;
-      function gotoNext() { if (navigated || !NEXT) return; navigated = true; cancelAnimationFrame(rafId); toast("starting " + (LABEL || "system") + "…"); location.href = NEXT; }
+      function gotoNext() { if (navigated || !NEXT) return; navigated = true; cancelAnimationFrame(rafId); toast("starting " + (LABEL || "system") + "…");
+        document.body.classList.add("leaving"); setTimeout(() => { location.href = NEXT; }, 180); }   // veil to #000, then hand off → login rises back out of the same black
       if (NEXT) document.body.classList.add("handoff");
       // Boot Menu (rEFInd) reachable via F2 during a handoff — like real firmware (F2 is page-preventable).
       const MENU = params.get("menu") || "";
@@ -784,6 +792,8 @@
         // the studio loading bar: fractional width for a smooth precise fill, integer % readout
         const lbf = document.getElementById("loadbarFill"); if (lbf) lbf.style.width = (eng.progress * 100).toFixed(2) + "%";
         const lbp = document.getElementById("loadbarPct"); if (lbp) lbp.textContent = pct + "%";
+        // a faithful braille fill of the SAME progress (denser + sharper than the line) — Holo FX
+        const lbs = document.getElementById("loadbarSpin"); if (lbs && window.HoloFX) lbs.textContent = window.HoloFX.progress(eng.progress, 6);
         if (!eng.running) setState("quit", "off");
         else if (eng.paused) setState("paused", "");
         else if (eng.progress >= 1) setState("ready", "on");
@@ -1267,5 +1277,7 @@
       function refuse(e) { $("hint").classList.remove("gone"); $("hint").textContent = "theme refused: " + e.message; setState("refused", "off"); ver.ok = false; renderVer(); }
     </script>
       <script src="_shared/holo-theme.js"></script>
+      <!-- #loadbarSpin renders a faithful braille FILL of the boot progress (Holo FX progress),
+           driven each frame from eng.progress by the boot loop above — denser + sharper than the line. -->
 </body>
 </html>

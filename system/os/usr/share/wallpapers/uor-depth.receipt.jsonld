@@ -1,0 +1,20 @@
+{
+  "@context": {
+    "prov": "http://www.w3.org/ns/prov#",
+    "holo": "https://hologram.os/ns#",
+    "dcterms": "http://purl.org/dc/terms/"
+  },
+  "@id": "holo:wallpaper/uor-depth",
+  "@type": "prov:Activity",
+  "dcterms:title": "Monocular depth map for the UOR wallpaper (2.5-D parallax)",
+  "prov:used": { "@id": "holo://sha256:2e75a2a4facc9774f5c1f3ccb43ab9c9129f2086c10879e68e3c8ed76da3009c", "holo:role": "source", "holo:name": "uor-native.jpg", "holo:width": 4600, "holo:height": 2875 },
+  "holo:transform": {
+    "holo:method": "monocular-depth",
+    "holo:engine": "Depth-Anything-V2-Small (ONNX) · ImageNet-norm · 518×518",
+    "holo:model": "holo://sha256:afb6a5c28f3b6bf1618c6e43f02073ef9dfdc70e937502d51603e57b0a1df10c",
+    "holo:modelName": "DepthAnythingV2-Small",
+    "holo:polarity": "near=bright (depth high = nearer parallax plane)"
+  },
+  "prov:generated": { "@id": "holo://sha256:8ac281672b46fd1c96e27f83e4e82877cb71cc6b7fbf1d1bade66c0eacbc57c8", "@type": "prov:Entity", "holo:name": "uor-depth.png", "holo:width": 1536, "holo:height": 960 },
+  "prov:wasAttributedTo": { "@id": "did:holo:depth-anything", "holo:law": "L5 — the pinned bytes re-derive to their κ" }
+}

@@ -1,0 +1,14 @@
+{
+  "_comment": "Law L5 pin for the OFFICIAL Model Context Protocol TypeScript SDK, consumed UNMODIFIED. holo-mcp-sdk-witness.mjs re-derives the sha256 of each ESM entry we import and REFUSES on mismatch — the same verify-by-re-derivation the substrate applies to every object, applied to our one external dependency. integrity is the npm content hash (package-lock); files are the runtime entries holo-mcp-sdk.mjs / holo-mcp-http.mjs actually import.",
+  "name": "@modelcontextprotocol/sdk",
+  "version": "1.29.0",
+  "protocolVersion": "2024-11-05",
+  "integrity": "sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==",
+  "resolved": "https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.29.0.tgz",
+  "files": {
+    "server/index.js": "8dbee2ac3001c9685ad49a2d6b2c59973ca0b223579ec353f9c2e199484591b0",
+    "server/stdio.js": "f5acc5bf1651b872f62fc574682bae010b5ac56118ed617dffd3710dbfa36b90",
+    "server/streamableHttp.js": "e811d93af3f5e62497cf208ce162761c64cfd1c79fc4a0d8c77be59e0a77360b",
+    "types.js": "962836b0f8dad85bcd398ad3ddb5ba81a7c7530c706955aa846dd8dfc02dd6a9"
+  }
+}

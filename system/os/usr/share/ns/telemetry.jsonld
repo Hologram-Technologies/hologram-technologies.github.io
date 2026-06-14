@@ -1,0 +1,127 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "otel": "https://opentelemetry.io/schemas/",
+    "hostel": "https://hologram.os/ns/telemetry#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "domain": {
+      "@id": "rdfs:domain",
+      "@type": "@id"
+    },
+    "range": {
+      "@id": "rdfs:range",
+      "@type": "@id"
+    },
+    "subClassOf": {
+      "@id": "rdfs:subClassOf",
+      "@type": "@id"
+    },
+    "closeMatch": {
+      "@id": "skos:closeMatch",
+      "@type": "@id"
+    },
+    "seeAlso": {
+      "@id": "rdfs:seeAlso",
+      "@type": "@id"
+    },
+    "isDefinedBy": {
+      "@id": "rdfs:isDefinedBy",
+      "@type": "@id"
+    }
+  },
+  "@id": "https://hologram.os/ns/telemetry",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — Holo Telemetry vocabulary (hostel:)",
+  "comment": "System-wide observability as content-addressed UOR objects (ADR-0073): the OpenTelemetry data model (Span · Metric · LogRecord · Resource · Scope) and W3C Trace Context, made self-verifying. A span IS a PROV-O Activity and its W3C trace-id / span-id are DERIVED from the content of the operation (re-derivable, Law L5); wall-clock measurements are honestly marked hostel:rederivable=false and host-attested. Mints only the genuinely-new substrate terms; every OpenTelemetry / W3C near-equivalent declares skos:closeMatch to its ratified authority. This document is itself valid JSON-LD, re-derived from holo-telemetry.mjs (no drift).",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "@graph": [
+    {
+      "@id": "hostel:Span",
+      "@type": "rdfs:Class",
+      "label": "Span",
+      "comment": "A single timed operation in a trace. A specialization of a PROV-O Activity whose W3C span-id is derived from its structural content (re-derivable, Law L5).",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "subClassOf": "prov:Activity",
+      "closeMatch": "otel:Span"
+    },
+    {
+      "@id": "hostel:Trace",
+      "@type": "rdfs:Class",
+      "label": "Trace",
+      "comment": "The DAG of spans sharing one W3C trace-id, each prov:wasInformedBy its parent. The OpenTelemetry trace expressed as a self-verifying PROV-O receipt.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "subClassOf": "prov:Entity",
+      "closeMatch": "otel:Trace"
+    },
+    {
+      "@id": "hostel:Metric",
+      "@type": "rdfs:Class",
+      "label": "Metric data point",
+      "comment": "An observed measurement (sum · gauge · histogram). Its identity (name·unit·kind·labels) re-derives; its value is host-attested, not re-derived.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "subClassOf": "prov:Entity",
+      "closeMatch": "otel:Metric"
+    },
+    {
+      "@id": "hostel:LogRecord",
+      "@type": "rdfs:Class",
+      "label": "Log record",
+      "comment": "A structured log event, optionally correlated to a span via W3C trace-id / span-id.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "subClassOf": "prov:Entity",
+      "closeMatch": "otel:LogRecord"
+    },
+    {
+      "@id": "hostel:traceId",
+      "@type": "rdf:Property",
+      "label": "trace id",
+      "comment": "The W3C Trace Context 16-byte trace identifier, here the low bytes of a content address.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "range": "xsd:hexBinary",
+      "seeAlso": "https://www.w3.org/TR/trace-context/"
+    },
+    {
+      "@id": "hostel:spanId",
+      "@type": "rdf:Property",
+      "label": "span id",
+      "comment": "The W3C Trace Context 8-byte span identifier, derived from the span's structural content (re-derivable).",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "range": "xsd:hexBinary",
+      "seeAlso": "https://www.w3.org/TR/trace-context/"
+    },
+    {
+      "@id": "hostel:rederivable",
+      "@type": "rdf:Property",
+      "label": "re-derivable",
+      "comment": "TRUE if a fact re-derives under Law L5 (structural / provenance); FALSE if it is a wall-clock measurement carried as a host-attested claim. The honest-split flag — no W3C equivalent.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "domain": "hostel:Metric",
+      "range": "xsd:boolean"
+    },
+    {
+      "@id": "hostel:measurement",
+      "@type": "rdf:Property",
+      "label": "attested measurement",
+      "comment": "A wall-clock measurement block (start/end/duration or value) signed by the local host key — NOT re-derived. Honest provenance for the one thing telemetry cannot recompute.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hostel:durationNano",
+      "@type": "rdf:Property",
+      "label": "duration (ns)",
+      "comment": "A span's wall-clock duration in nanoseconds — an attested measurement, never re-derived.",
+      "isDefinedBy": "https://hologram.os/ns/telemetry",
+      "range": "xsd:long",
+      "closeMatch": "schema:Duration"
+    }
+  ]
+}

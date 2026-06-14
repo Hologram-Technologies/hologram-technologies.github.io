@@ -12,6 +12,8 @@ import { dirname, join } from "node:path";
 import { createSdkServer } from "./holo-mcp-sdk.mjs";
 import { makeHttpApp } from "./holo-mcp-http.mjs";
 import { loadLiberty } from "./holo-liberty.mjs";
+import { loadHoloJupyter } from "./holo-jupyter.mjs";
+import { resolveAppsDir } from "./holo-mcp.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const store = new Map();
@@ -19,9 +21,12 @@ const lib = join(here, "..", "music", "library.uor.json");
 if (existsSync(lib)) { try { const doc = JSON.parse(readFileSync(lib, "utf8"));
   store.set("music/library.uor.json", doc); for (const o of doc["@graph"] || []) if (o.id) store.set(o.id, o); } catch {} }
 // the easter egg: load On Liberty into the same store + expose its read_liberty tool.
-const { toolHandlers } = loadLiberty(here, store);
+const { toolHandlers: libertyHandlers } = loadLiberty(here, store);
+// Holo Jupyter: the agent-accessible, κ-addressed Python kernel (tool declared in apps/jypyter/holospace.json).
+const { toolHandlers: jupyterHandlers } = loadHoloJupyter(here);
+const toolHandlers = { ...libertyHandlers, ...jupyterHandlers };
 const resolve = (uri) => store.get(uri) || null;
-const appsDir = join(here, "..", "apps");
+const appsDir = resolveAppsDir(here);
 
 const i = process.argv.indexOf("--http");
 if (i >= 0) {

@@ -14,7 +14,7 @@ The single gateway is `index.html`. Opening it brings up the κ Service Worker (
 
 ## Machine endpoints (for AI agents)
 - [Agent capabilities](os/.well-known/agents.json) — the single entry point to the agent stack.
-- [MCP tools](os/.well-known/mcp.json) — resolve_object · search_web · answer · verify_receipt · verify_delegation · verify_settlement · agent_passport · agent_facts · agent_reputation.
+- [MCP tools](os/.well-known/mcp.json) — the live, self-describing list (e.g. verify_object · resolve_object · own_verify · own_settle · own_passport · holo_build · holo_run · holo_share); read it from the doc, not from here.
 - [Agent facts / passport](os/.well-known/agent-facts.json)
 - [Constitution](os/.well-known/constitution.json) — the fail-closed conscience every action is checked against.
 

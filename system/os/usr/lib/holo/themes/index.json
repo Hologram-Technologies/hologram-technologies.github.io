@@ -1,0 +1,74 @@
+{
+  "spec": "Holo Theme catalog — every theme is a κ-addressed, self-verifying W3C Design Tokens (DTCG) object. Swap by κ via HoloTheme.setThemeByKappa; the engine re-derives sha256 and refuses on mismatch (Law L5). A theme may carry the FULL token surface (semantic core + color ramps + spacing/radii/elevation scales) or be a lean delta over the shared Chakra-derived foundation (ADR-0078/0079).",
+  "resolve": "fetch /_shared/themes/<file>, verify sha256(bytes) === kappa, then HoloTheme.importTheme(json).",
+  "count": 6,
+  "default": "Holo",
+  "themes": [
+    {
+      "name": "Holo",
+      "file": "holo.theme.json",
+      "did": "did:holo:sha256:e36acaf7e3811c0289766e617bfb802cadc287b919b16f0f635b7963475eefbd",
+      "kappa": "sha256:e36acaf7e3811c0289766e617bfb802cadc287b919b16f0f635b7963475eefbd",
+      "accent": {
+        "light": "#3b5bdb",
+        "dark": "#5b8cff"
+      },
+      "surface": "carries ramps + scales"
+    },
+    {
+      "name": "Holo Violet",
+      "file": "violet.theme.json",
+      "did": "did:holo:sha256:20ff93abef8ea88fc263e5eea0a7ed8dc267e11c5ebd93c422050dac5e3293eb",
+      "kappa": "sha256:20ff93abef8ea88fc263e5eea0a7ed8dc267e11c5ebd93c422050dac5e3293eb",
+      "accent": {
+        "light": "#7c3aed",
+        "dark": "#a78bfa"
+      },
+      "surface": "core delta"
+    },
+    {
+      "name": "Holo Emerald",
+      "file": "emerald.theme.json",
+      "did": "did:holo:sha256:bb6b375d387b942eb168873cfad001a425c085b1e7ffacd89f3ab1794777d7a2",
+      "kappa": "sha256:bb6b375d387b942eb168873cfad001a425c085b1e7ffacd89f3ab1794777d7a2",
+      "accent": {
+        "light": "#059669",
+        "dark": "#34d399"
+      },
+      "surface": "core delta"
+    },
+    {
+      "name": "Holo Rose",
+      "file": "rose.theme.json",
+      "did": "did:holo:sha256:aa02a116731735f73a1cae5ab7e35b339e723f3d31d9a664f93c7035c08e05ed",
+      "kappa": "sha256:aa02a116731735f73a1cae5ab7e35b339e723f3d31d9a664f93c7035c08e05ed",
+      "accent": {
+        "light": "#e11d48",
+        "dark": "#fb7185"
+      },
+      "surface": "core delta"
+    },
+    {
+      "name": "Holo Amber",
+      "file": "amber.theme.json",
+      "did": "did:holo:sha256:171f6a1c6da0de1fba0d93baa2a4ba2b5701609ca9396bdd44116b56aa8d478c",
+      "kappa": "sha256:171f6a1c6da0de1fba0d93baa2a4ba2b5701609ca9396bdd44116b56aa8d478c",
+      "accent": {
+        "light": "#d97706",
+        "dark": "#fbbf24"
+      },
+      "surface": "core delta"
+    },
+    {
+      "name": "Holo Slate",
+      "file": "slate.theme.json",
+      "did": "did:holo:sha256:2e31083017d8bf622e490ed22002ef9e10639eacbfd98e245fe4d5394593be03",
+      "kappa": "sha256:2e31083017d8bf622e490ed22002ef9e10639eacbfd98e245fe4d5394593be03",
+      "accent": {
+        "light": "#0284c7",
+        "dark": "#38bdf8"
+      },
+      "surface": "carries ramps + scales"
+    }
+  ]
+}

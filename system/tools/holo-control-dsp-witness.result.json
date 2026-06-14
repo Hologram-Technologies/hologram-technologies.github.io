@@ -1,0 +1,34 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "robust noise floor (median + MAD, not mean/stddev) so a few loud spikes do NOT inflate the floor and hide the next signal",
+    "robust z-score flags how far above the floor the current activity sits; a degenerate all-equal window does not divide by zero",
+    "low-pass EMA gives the calm steady-state view, high-pass Δ surfaces what just changed",
+    "salience = magnitude × novelty × governance-risk (egress / wallet-out / agent-write weigh heaviest), bounded to [0,1] — ranking puts the one thing worth looking at on top",
+    "thresholding WITH hysteresis: an alert latches at the high gate and releases only below the low gate, so it cannot flap in the band",
+    "classify sorts every edge into calm-by-default tiers (ambient → signal → alert)",
+    "aggregate SNR reports the fraction of activity that is genuine signal vs ambient noise — the headline KPI the dashboard optimizes",
+    "a matched filter flags the exfiltration signature (sustained egress to a NEW destination) distinctly from a lone spike or a known destination",
+    "deterministic: the same series re-derives the same classification (provable, not asserted)"
+  ],
+  "module": "Hologram Apps/apps/control/holo-control-dsp.js",
+  "checks": {
+    "median-and-mad-are-robust": true,
+    "noise-floor-resists-outliers": true,
+    "robust-sigma-guards-degenerate": true,
+    "z-score-flags-deviation": true,
+    "low-pass-smooths-high-pass-changes": true,
+    "squash-bounds-magnitude": true,
+    "salience-weights-governance-risk": true,
+    "hysteresis-no-premature-fire": true,
+    "hysteresis-latches-then-releases": true,
+    "classify-ambient-vs-alert": true,
+    "aggregate-snr-tracks-signal-fraction": true,
+    "matched-filter-exfil-signature": true,
+    "rank-puts-signal-on-top": true,
+    "deterministic-classification": true
+  },
+  "failed": [],
+  "authority": "robust statistics (median/MAD, 1.4826·MAD ≈ σ) · classical DSP (EMA low-pass, first-difference high-pass, SNR dB, matched filter) · Holo Telemetry (ADR-0073) signals · holospaces Law L5 (deterministic re-derivation)"
+}

@@ -1,0 +1,367 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "skos": "http://www.w3.org/2004/02/skos/core#",
+      "hosqvac": "https://hologram.os/ns/qvac#",
+      "hosc": "https://hologram.os/ns/conformance#"
+    }
+  ],
+  "@type": [
+    "schema:SoftwareApplication",
+    "prov:Entity",
+    "skos:Collection"
+  ],
+  "schema:name": "QVAC SDK — Tether's local AI SDK, encoded native to Hologram OS",
+  "schema:description": "Why: a builder should write QVAC code and have it run on the substrate — beautiful, fast, lean, serverless. How: this one self-verifying object encodes the QVAC contract (13 AI capabilities, the runtime + model lifecycle, P2P delegation, the OpenAI-compatible server) and binds the files that satisfy it — the source, the runtime façade, the conscience gate, and the front doors. What: every capability call is conscience-gated, runs on the substrate, and seals a re-derivable receipt; re-derive this did and each link to verify (Law L5).",
+  "schema:softwareVersion": "1.0",
+  "schema:license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "dcterms:conformsTo": "https://hologram.os/ns/qvac",
+  "dcterms:source": "https://docs.qvac.tether.io/",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "hosqvac:provenance": "QVAC SDK © Tether (Apache-2.0, docs.qvac.tether.io). Encoded native — not vendored — under holospaces Laws L1/L2/L4/L5 (github.com/Hologram-Technologies/holospaces).",
+  "hosqvac:capabilities": [
+    {
+      "@id": "hosqvac:text-generation",
+      "prefLabel": "Text Generation",
+      "api": [
+        "completion"
+      ],
+      "modelType": "llm",
+      "provisioned": true,
+      "hosqvac:obligation": "completion() streams a CompletionRun (events · final · tokenStream) and seals a receipt that re-derives."
+    },
+    {
+      "@id": "hosqvac:text-embeddings",
+      "prefLabel": "Text Embeddings",
+      "api": [
+        "embed"
+      ],
+      "modelType": "embedding",
+      "provisioned": true,
+      "hosqvac:obligation": "embed() returns a fixed-width vector that is a pure function of the text — same text, same vector."
+    },
+    {
+      "@id": "hosqvac:rag",
+      "prefLabel": "Retrieval-Augmented Generation",
+      "api": [
+        "ragIngest",
+        "ragChunk",
+        "ragSaveEmbeddings",
+        "ragSearch",
+        "ragDeleteEmbeddings",
+        "ragCloseWorkspace",
+        "ragDeleteWorkspace",
+        "ragListWorkspaces",
+        "ragReindex"
+      ],
+      "modelType": "embedding",
+      "provisioned": true,
+      "hosqvac:obligation": "A workspace ingests, chunks, embeds and searches content addressed by κ; search ranks by the embedding above."
+    },
+    {
+      "@id": "hosqvac:translation",
+      "prefLabel": "Translation",
+      "api": [
+        "translate"
+      ],
+      "modelType": "llm",
+      "provisioned": true,
+      "hosqvac:obligation": "translate() routes through completion with a target language and seals the same re-derivable receipt."
+    },
+    {
+      "@id": "hosqvac:classification",
+      "prefLabel": "Classification",
+      "api": [
+        "classify"
+      ],
+      "modelType": "embedding",
+      "provisioned": true,
+      "hosqvac:obligation": "classify() scores labels by embedding nearness — a pure function of (text, labels), re-derivable."
+    },
+    {
+      "@id": "hosqvac:multimodal",
+      "prefLabel": "Multimodal",
+      "api": [
+        "completion"
+      ],
+      "modelType": "vlm",
+      "provisioned": false,
+      "hosqvac:obligation": "completion() accepts image inputs when a vision model is bound; otherwise the call reports the missing model."
+    },
+    {
+      "@id": "hosqvac:image-generation",
+      "prefLabel": "Image Generation",
+      "api": [
+        "diffusion",
+        "upscale"
+      ],
+      "modelType": "diffusion",
+      "provisioned": false,
+      "hosqvac:obligation": "diffusion()/upscale() are present and conscience-gated; without a diffusion model bound the call reports it, never fakes pixels."
+    },
+    {
+      "@id": "hosqvac:video-generation",
+      "prefLabel": "Video Generation",
+      "api": [
+        "video"
+      ],
+      "modelType": "video",
+      "provisioned": false,
+      "hosqvac:obligation": "video() is present and gated; it reports the missing model rather than returning an empty stand-in."
+    },
+    {
+      "@id": "hosqvac:transcription",
+      "prefLabel": "Transcription (ASR)",
+      "api": [
+        "transcribe",
+        "transcribeStream"
+      ],
+      "modelType": "asr",
+      "provisioned": false,
+      "hosqvac:obligation": "transcribe()/transcribeStream() are present and gated; they report the missing ASR model honestly."
+    },
+    {
+      "@id": "hosqvac:text-to-speech",
+      "prefLabel": "Text to Speech",
+      "api": [
+        "textToSpeech",
+        "textToSpeechStream"
+      ],
+      "modelType": "tts",
+      "provisioned": false,
+      "hosqvac:obligation": "textToSpeech()/textToSpeechStream() are present and gated; they report the missing TTS model honestly."
+    },
+    {
+      "@id": "hosqvac:voice-assistant",
+      "prefLabel": "Voice Assistant",
+      "api": [
+        "transcribe",
+        "completion",
+        "textToSpeech"
+      ],
+      "modelType": "pipeline",
+      "provisioned": false,
+      "hosqvac:obligation": "The voice pipeline composes transcribe → completion → textToSpeech; it runs once those models are bound."
+    },
+    {
+      "@id": "hosqvac:vla",
+      "prefLabel": "Vision-Language-Action",
+      "api": [
+        "vla",
+        "vlaHparams",
+        "vlaPadState",
+        "vlaPreprocessImage"
+      ],
+      "modelType": "vla",
+      "provisioned": false,
+      "hosqvac:obligation": "vla() and its helpers are present and gated; without a VLA model the call reports it."
+    },
+    {
+      "@id": "hosqvac:ocr",
+      "prefLabel": "OCR",
+      "api": [
+        "ocr"
+      ],
+      "modelType": "ocr",
+      "provisioned": false,
+      "hosqvac:obligation": "ocr() is present and gated; it reports the missing OCR model rather than inventing text."
+    },
+    {
+      "@id": "hosqvac:fine-tuning",
+      "prefLabel": "Fine-tuning (LoRA)",
+      "api": [
+        "finetune"
+      ],
+      "modelType": "llm",
+      "provisioned": false,
+      "hosqvac:obligation": "finetune() starts/stops/resumes a run and reports its state; the adapter is a content-addressed object."
+    }
+  ],
+  "hosqvac:provisioned": {
+    "total": 14,
+    "live": 5
+  },
+  "hosqvac:runtimes": [
+    {
+      "@id": "hosqvac:runtime-node",
+      "prefLabel": "Node.js",
+      "upstream": true
+    },
+    {
+      "@id": "hosqvac:runtime-bare",
+      "prefLabel": "Bare",
+      "upstream": true
+    },
+    {
+      "@id": "hosqvac:runtime-expo",
+      "prefLabel": "Expo",
+      "upstream": true
+    },
+    {
+      "@id": "hosqvac:runtime-browser-wasm",
+      "prefLabel": "Browser (WebAssembly + WebGPU)",
+      "upstream": false
+    }
+  ],
+  "hosqvac:server": [
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "capability": "text-generation",
+      "call": "completion"
+    },
+    {
+      "path": "/v1/embeddings",
+      "method": "POST",
+      "capability": "text-embeddings",
+      "call": "embed"
+    },
+    {
+      "path": "/v1/audio/transcriptions",
+      "method": "POST",
+      "capability": "transcription",
+      "call": "transcribe"
+    },
+    {
+      "path": "/v1/audio/speech",
+      "method": "POST",
+      "capability": "text-to-speech",
+      "call": "textToSpeech"
+    },
+    {
+      "path": "/v1/images/generations",
+      "method": "POST",
+      "capability": "image-generation",
+      "call": "diffusion"
+    },
+    {
+      "path": "/v1/models",
+      "method": "GET",
+      "capability": null,
+      "call": "modelRegistryList"
+    }
+  ],
+  "hosqvac:symbols": [
+    "completion",
+    "embed",
+    "ragIngest",
+    "ragChunk",
+    "ragSaveEmbeddings",
+    "ragSearch",
+    "ragDeleteEmbeddings",
+    "ragCloseWorkspace",
+    "ragDeleteWorkspace",
+    "ragListWorkspaces",
+    "ragReindex",
+    "translate",
+    "classify",
+    "diffusion",
+    "upscale",
+    "video",
+    "transcribe",
+    "transcribeStream",
+    "textToSpeech",
+    "textToSpeechStream",
+    "vla",
+    "vlaHparams",
+    "vlaPadState",
+    "vlaPreprocessImage",
+    "ocr",
+    "finetune",
+    "loadModel",
+    "unloadModel",
+    "getLoadedModelInfo",
+    "getModelInfo",
+    "downloadAsset",
+    "deleteCache",
+    "modelRegistryList",
+    "modelRegistrySearch",
+    "modelRegistryGetModel",
+    "cancel",
+    "suspend",
+    "resume",
+    "state",
+    "loggingStream",
+    "invokePlugin",
+    "invokePluginStream",
+    "startQVACProvider",
+    "stopQVACProvider",
+    "heartbeat",
+    "blindRelay",
+    "profiler.enable",
+    "profiler.disable",
+    "profiler.clear",
+    "profiler.isEnabled",
+    "profiler.exportJSON",
+    "profiler.exportTable",
+    "profiler.exportSummary",
+    "profiler.getAggregates",
+    "profiler.getConfig",
+    "profiler.onRecord"
+  ],
+  "hosc:authority": "QVAC SDK (docs.qvac.tether.io, Apache-2.0) · holospaces Laws L1/L2/L4/L5 (github.com/Hologram-Technologies/holospaces) · W3C PROV-O · W3C DID Core · IETF RFC 8785 (JCS) · W3C OWL 2 / RDFS / SKOS · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "hosc:witness": "tools/qvac-witness.mjs",
+  "links": [
+    {
+      "id": "did:holo:sha256:05e68adceea39f2acea25cc5a81bf7c464224f7289ca07464c701f36e90cbafa",
+      "rel": "hosqvac:source",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-BeaK3O6jnyrOolzFqBv3xGQiT3KJygdGTHAfNukMuvo=",
+      "digestMultibase": "uEiAF5orc7qOfKs6iXMWoG_fEZCJPconKB0ZMcB826Qy6-g"
+    },
+    {
+      "id": "did:holo:sha256:306711356cd50c4d691fc3f27802ae96c678d831f723a4d0a940a2a9104cdff2",
+      "rel": "hosqvac:runtime",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-MGcRNWzVDE1pH8PyeAKulsZ42DH3I6TQqUCiqRBM3/I=",
+      "digestMultibase": "uEiAwZxE1bNUMTWkfw_J4Aq6WxnjYMfcjpNCpQKKpEEzf8g"
+    },
+    {
+      "id": "did:holo:sha256:63f3a025480b9bc3c31e162b429dab1cca2ea2c40158fdf7a24ef1db0c18a0bd",
+      "rel": "hosqvac:ontology",
+      "@type": "schema:DigitalDocument",
+      "leaf": true,
+      "digestSRI": "sha256-Y/OgJUgLm8PDHhYrQp2rHMouosQBWP33ok7x2wwYoL0=",
+      "digestMultibase": "uEiBj86AlSAubw8MeFitCnascyi6ixAFY_feiTvHbDBigvQ"
+    },
+    {
+      "id": "did:holo:sha256:27416ca6efa96e495734ba64d72011df21b33239a7fe0e6d230e30cbb0a5cb45",
+      "rel": "hosqvac:conscience",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-J0Fspu+pbklXNLpk1yAR3yGzMjmn/g5tIw4wy7Cly0U=",
+      "digestMultibase": "uEiAnQWym76luSVc0umTXIBHfIbMyOaf-Dm0jDjDLsKXLRQ"
+    },
+    {
+      "id": "did:holo:sha256:deec9fbfde96b3df3155835741ebb744594befea81b2eae41273b0084ff74cc0",
+      "rel": "hosqvac:sdk",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-3uyfv96Ws98xVYNXQeu3RFlL7+qBsurkEnOwCE/3TMA=",
+      "digestMultibase": "uEiDe7J-_3paz3zFVg1dB67dEWUvv6oGy6uQSc7AIT_dMwA"
+    },
+    {
+      "id": "did:holo:sha256:8cf1ae46d652a207aab0b3fc9c11ebb3d01f1420e758b5f77d609641816f8a4e",
+      "rel": "hosqvac:scaffold",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-jPGuRtZSogeqsLP8nBHrs9AfFCDnWLX3fWCWQYFvik4=",
+      "digestMultibase": "uEiCM8a5G1lKiB6qws_ycEeuz0B8UIOdYtfd9YJZBgW-KTg"
+    }
+  ],
+  "id": "did:holo:sha256:8ad47ca8f2d98541e62f6d6282f52298449b2ef73de4d2ee092d986074ff79e7"
+}

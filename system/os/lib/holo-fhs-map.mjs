@@ -26,12 +26,13 @@ export function fhsMap(rel) {
   if (rel === "apps-witness.result.json") return "srv/apps-witness.result.json";
   // The boot chain: rEFInd (boot.html at root) → Plymouth (splash.html) → SDDM (login.html)
   // → shell (home.html) → editor (workspace.html). All in /usr/share/frame.
-  if (["holospace.html", "home.html", "find.html", "splash.html", "login.html", "workspace.html", "pair.html"].includes(rel)) return "usr/share/frame/" + rel;
+  if (["shell.html", "holospace.html", "home.html", "find.html", "splash.html", "login.html", "workspace.html", "pair.html", "omni.html"].includes(rel)) return "usr/share/frame/" + rel;   // shell.html = the ONE canonical holospace shell (in OS2); omni.html = the κ-resolve lab
   if (rel === "boot.html") return "boot/index.html";                  // the bootloader, served at the root
   // …the bootloader's OWN asset subdir is physically boot/boot/, so `boot/<x>` maps one level deeper.
   if (/^boot\/(refind\.conf|boot-manifest\.json|icons\/|themes\/|make-boot\.mjs)/.test(rel)) return "boot/boot/" + rel.slice(5);
   if (["holo-boot-sw.js", "coi-serviceworker.min.js"].includes(rel)) return "boot/" + rel;
-  if (["holo-sw.js", "holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "browser-sw.js"].includes(rel)) return "lib/" + rel;
+  if (rel === "holo-fhs-sw.js") return "holo-fhs-sw.js";              // the content-addressed delivery worker lives at the os/ root (registered relative by the gateway)
+  if (["holo-sw.js", "holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "holo-heal-boot.mjs", "browser-sw.js"].includes(rel)) return "lib/" + rel;
   if (["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-uor.mjs", "holo-object.mjs", "holo-wire.mjs"].includes(rel)) return "sbin/" + rel;
   if (["manifest.webmanifest", "os-closure.json"].includes(rel)) return "etc/" + rel;
   if (["icon-192.png", "icon-512.png"].includes(rel)) return "usr/share/icons/" + rel;

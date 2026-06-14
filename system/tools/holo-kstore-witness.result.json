@@ -1,0 +1,40 @@
+{
+  "witnessed": true,
+  "passed": 5,
+  "failed": 0,
+  "covers": [
+    "an object resolves by its κ from the κ-route and",
+    "a wrong κ is REFUSED — the origin is one untrust",
+    "the 2nd-and-later resolve is the SUB-MILLISECOND",
+    "opening a real app the 2nd time rebinds its WHOL",
+    "the resident hot path is CACHE-RESIDENT — a κ→vi"
+  ],
+  "results": [
+    {
+      "name": "an object resolves by its κ from the κ-route and VERIFIES by re-derivation (Law L5)",
+      "ok": true,
+      "detail": "151982 bytes · cold 18.2 ms"
+    },
+    {
+      "name": "a wrong κ is REFUSED — the origin is one untrusted CDN (Law L5)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the 2nd-and-later resolve is the SUB-MILLISECOND in-memory rebind",
+      "ok": true,
+      "detail": "warm 0.54 µs (33704× vs cold)"
+    },
+    {
+      "name": "opening a real app the 2nd time rebinds its WHOLE manifest from memory, sub-millisecond",
+      "ok": true,
+      "detail": "files (18 objs, cell 8527) · cold 24.4 ms → warm 0.240 ms"
+    },
+    {
+      "name": "the resident hot path is CACHE-RESIDENT — a κ→view lookup is sub-µs and contiguous-arena byte access is single-digit ns (L1/L2, earned by locality)",
+      "ok": true,
+      "detail": "lookup 27 ns · resident byte 1.3 ns"
+    }
+  ],
+  "spec": "The in-browser content-addressed κ-store (the store IS the memory, Law L3): resolve any object by its κ through memory → OPFS → the κ-route, verified by re-derivation (Law L5); the 2nd-and-later open is the sub-millisecond in-memory rebind"
+}

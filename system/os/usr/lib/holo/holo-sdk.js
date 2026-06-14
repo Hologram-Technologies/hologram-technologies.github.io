@@ -46,9 +46,13 @@ export async function ready({ onProgress } = {}) {
 }
 
 // a plain snapshot of what is wired right now — for status UIs and quick diagnostics.
+// Terms + Privacy are HOST-enforced: an app needs no in-frame module to be governed — running framed
+// under the host (the normal case) means both gates are active above it. So report them as wired when
+// the module is present OR the app is framed under the host (where holo-gov.js carries them).
 export function info() {
   const ux = g.HoloUX && g.HoloUX.get ? g.HoloUX.get() : null;
-  return { ui: !!g.HoloUI, ux: !!g.HoloUX, terms: !!g.HoloTerms, privacy: !!g.HoloPrivacy,
+  const governed = !!(g.top && g.top !== g);                          // framed under a host that governs
+  return { ui: !!g.HoloUI, ux: !!g.HoloUX, terms: !!g.HoloTerms || governed, privacy: !!g.HoloPrivacy || governed,
     conform: sealed(), object: !!g.HoloObject, product: !!g.HoloProduct, pm: !!g.HoloPM, tier: ux ? ux.tier : null,
     accent: (g.HoloUI && g.HoloUI.get) ? (g.HoloUI.get().theme || {}).accent || null : null };
 }
@@ -104,14 +108,47 @@ export async function pm() {
     total: m.TOTAL, wired: m.wiredActivities().length, paneUrl: new URL("./holo-pm.html", import.meta.url).href };
 }
 
+// ── QVAC SDK — Tether's local AI SDK, encoded native (ADR-0067) ────────────────────────────────────
+// The full QVAC contract (text generation · embeddings · RAG · translation · classification + the
+// weight-gated capabilities, the model lifecycle, the OpenAI-compatible server) on the substrate:
+// every call is conscience-gated and seals a re-derivable receipt (Law L5). The default brain is the
+// deterministic reference floor (always runs, no download); bind Holo Q (QVAC WebGPU) for a real LLM.
+// Lazy-loads holo-qvac.js (it self-registers window.HoloQVAC).
+let _qvacLoad = null;
+async function ensureQVAC() {
+  if (g.HoloQVAC) return g.HoloQVAC;
+  if (!_qvacLoad) _qvacLoad = import("./holo-qvac.js").catch(() => {});   // path-served/dev; prod via the import map
+  await _qvacLoad;
+  return g.HoloQVAC || null;
+}
+// qvac() → the bound HoloQVAC surface (loadModel · completion · embed · rag* · serve · openai · …),
+// so an app or an AGENT can run on-device AI with one import and prove every answer (Law L5).
+export async function qvac() { return await ensureQVAC(); }
+
 // ── Holo Terms — effective, default-deny capabilities (already gated at mount) ────────────────────
 export function getCapabilities() { return (g.HoloTerms && g.HoloTerms.standing) ? g.HoloTerms.standing() : null; }
 
 // ── Holo Privacy — minimal, purpose-bound selective disclosure (default-deny) ─────────────────────
 // disclose({ purpose, recipient, claims, reveal? }) → a W3C Verifiable Presentation, or null.
+// Privacy is HOST-enforced, like Terms: the wallet/keys live in the host, not this frame. When this
+// app runs framed (the normal case), route the request UP to the host gate (holo-gov.js), which
+// stamps the recipient from what it mounted (un-forgeable) and gates under the user's stance. Only a
+// top-level page with its own wallet uses the in-frame gate directly. Either way: default-deny.
 export async function disclose(request = {}) {
-  if (!g.HoloPrivacy || !g.HoloPrivacy.gate) return null;
-  return g.HoloPrivacy.gate(request);
+  if (g.HoloPrivacy && g.HoloPrivacy.walletStored && g.HoloPrivacy.walletStored() && g.HoloPrivacy.gate) return g.HoloPrivacy.gate(request);
+  const hc = hostPrivacy(); if (hc) return await hc.gate(request);                 // framed → the host gate
+  return (g.HoloPrivacy && g.HoloPrivacy.gate) ? g.HoloPrivacy.gate(request) : null;
+}
+// hostPrivacy() — reach the HOST privacy gate over postMessage, even if THIS frame never loaded
+// holo-privacy.js (the wallet/keys live in the host, by design). Null when not framed. Lazily wired.
+let _hostPriv;
+function hostPrivacy() {
+  if (_hostPriv !== undefined) return _hostPriv;
+  const top = g.top; if (!top || top === g) return (_hostPriv = null);
+  let seq = 0; const pending = new Map();
+  g.addEventListener("message", (e) => { const d = e.data; if (!d || d.type !== "holo-privacy:res") return; const p = pending.get(d.id); if (!p) return; pending.delete(d.id); d.error ? p.rej(new Error(d.error)) : p.res(d.result); });
+  _hostPriv = { gate: (req) => new Promise((res) => { const id = ++seq; pending.set(id, { res, rej: () => res(null) }); top.postMessage({ type: "holo-privacy:rpc", id, method: "gate", args: req }, "*"); setTimeout(() => { if (pending.has(id)) { pending.delete(id); res(null); } }, 8000); }) };
+  return _hostPriv;
 }
 
 // ── Holo Conform — the fail-closed conscience gate (ADR-033) ──────────────────────────────────────
@@ -139,6 +176,48 @@ export async function build(source, opts) { const a = await ensureApp(); if (!a)
 export async function run(ref, opts) { const a = await ensureApp(); if (!a) throw new Error("HoloApp not loaded"); return a.run(ref, opts); }
 // share is pure: the κ IS the share (holo://κ) — no dependency, resolvable anywhere by content.
 export function share(kappa, { base = "" } = {}) { const hex = String(kappa).split(":").pop(); return { kappa, holo: "holo://" + hex, url: (base || "") + "#k=" + encodeURIComponent(kappa) }; }
+
+// ── Holo Route — typed semantic streams · the routing plane (ADR-0069): the DATAFLOW siblings of
+// build/run/share. A pipeline is a content-addressed graph of deterministic κ-transforms whose seams are
+// type-checked by re-derivation BEFORE a byte flows; the whole run seals as one self-verifying PROV-O κ.
+// `pipe(a).to(b).to(c)` (fluent) and `route([a,b,c], input)` (declarative) read like a shell pipe but are
+// typed + verifiable. Wraps window.HoloRoute (holo-route.mjs) over the same κ-store as build/run/share.
+async function ensureRoute() {
+  if (g.HoloRoute) return g.HoloRoute;
+  await ensureApp();                                              // Route rides the app's κ-store
+  try { await import("./holo-route.mjs"); } catch (e) {}          // self-registers window.HoloRoute on holo-app-ready
+  return await waitFor("HoloRoute");
+}
+const normStage = (s) => (typeof s === "string" ? { kappa: s, entry: "main", in: "i32", out: "i32" } : { entry: "main", in: "i32", out: "i32", ...s });
+const specOf = (stages) => { const n = stages.map(normStage); return { entry: n[0].in, exit: n[n.length - 1].out, stages: n }; };
+// pipe(κ) → a fluent builder: .to(κ).run(input) / .seal(input). A stage is a κ or { kappa, entry, in, out }.
+export async function pipe(first) { const r = await ensureRoute(); if (!r) throw new Error("HoloRoute not loaded"); return r.pipe(first); }
+// route(stages, input, opts?) → run the dataflow (opts.seal → seal+share; opts.stream → yield list elements).
+export async function route(stages, input, opts) { const r = await ensureRoute(); if (!r) throw new Error("HoloRoute not loaded"); return r.route(stages, input, opts); }
+// sealRoute(stages, input) → seal the pipeline to one self-verifying κ (then share() it like any object).
+export async function sealRoute(stages, input) { const r = await ensureRoute(); if (!r) throw new Error("HoloRoute not loaded"); return r.seal(specOf(stages), input); }
+// verifyRoute(routeκ) → re-derive the sealed pipeline (L5) AND re-run it; reproduce the final output κ.
+export async function verifyRoute(routeKappa) { const r = await ensureRoute(); if (!r) throw new Error("HoloRoute not loaded"); return r.verify(routeKappa); }
+
+// ── Holo Telemetry — system-wide observability, native to the substrate (ADR-0073): the OpenTelemetry
+// data model + W3C Trace Context as content-addressed UOR objects (not a Prometheus scraper). A span IS
+// a PROV-O Activity whose W3C trace-id / span-id are DERIVED from the operation's content (re-derivable,
+// Law L5); wall-clock numbers are honestly host-attested, never re-derived; telemetry is local-only by
+// default and egress is conscience-gated (Law L1). Wraps window.HoloTelemetry over the same κ-store.
+async function ensureTelemetry() {
+  if (g.HoloTelemetry) return g.HoloTelemetry;
+  await ensureApp();                                             // telemetry rides the app's κ-store
+  try { await import("./holo-telemetry.mjs"); } catch (e) {}     // self-registers window.HoloTelemetry on holo-app-ready
+  return await waitFor("HoloTelemetry");
+}
+// telemetry() → the runtime ({ tracer, meter, logger, inject, extract, verify, exportTo }).
+export async function telemetry() { const t = await ensureTelemetry(); if (!t) throw new Error("HoloTelemetry not loaded"); return t; }
+// trace(name) → a tracer; .startSpan(name, opts) → a span; tracer.seal() → one self-verifying trace κ.
+export async function trace(name, version) { const t = await ensureTelemetry(); if (!t) throw new Error("HoloTelemetry not loaded"); return t.tracer(name, version); }
+// meter(name) → a meter (counter · gauge · histogram); each .record(v, attrs) seals a metric data-point κ.
+export async function meter(name) { const t = await ensureTelemetry(); if (!t) throw new Error("HoloTelemetry not loaded"); return t.meter(name); }
+// verifyTelemetry(κ) → re-derive a signal's W3C id / metric-id / log-id from its content (Law L5).
+export async function verifyTelemetry(kappa) { const t = await ensureTelemetry(); if (!t) throw new Error("HoloTelemetry not loaded"); return t.verify(kappa); }
 
 // ── Holo Own — verifiable, self-sovereign OWNERSHIP, ambient in every holospace (ADR-053) ─────────
 // Wraps holo-own.mjs (Title · transfer · anchor · settle) + holo-own-rail.js (the real Holo Wallet
@@ -221,10 +300,37 @@ export function on(event, fn) {
   return () => root.removeEventListener(event, fn);
 }
 
+// ── Holo Commands — let the HOST (and Q, the voice agent) DRIVE this app (the in-app task bridge) ──
+// "open amp" launches it; registerCommand("play", …) is how Q then makes it PLAY. An app opts in by
+// registering named actions; the shell posts {type:"holo-app:command", id, name, params} into this
+// frame and gets back {type:"holo-app:command-result", id, result|error}. Default-deny: only registered
+// names run. The inbox boots once, lazily, and mirrors the host privacy bridge shape so it feels native.
+const _holoCmds = new Map();
+let _cmdWired = false;
+function bootCommandInbox() {
+  if (_cmdWired || typeof g.addEventListener !== "function") return; _cmdWired = true;
+  g.addEventListener("message", async (e) => {
+    const d = e.data; if (!d || d.type !== "holo-app:command") return;
+    const reply = (extra) => { try { (e.source || g.parent || g.top).postMessage(Object.assign({ type: "holo-app:command-result", id: d.id }, extra), "*"); } catch (_) {} };
+    if (d.name === "__commands") return reply({ result: Array.from(_holoCmds.keys()) });    // discovery
+    const fn = _holoCmds.get(d.name);
+    if (!fn) return reply({ error: "no such command: " + d.name });
+    try { reply({ result: await fn(d.params || {}) }); }
+    catch (err) { reply({ error: (err && err.message) || String(err) }); }
+  });
+}
+// registerCommand(name, fn) — expose an action the shell/agent can invoke. Returns an unregister fn.
+export function registerCommand(name, fn) {
+  if (typeof name !== "string" || typeof fn !== "function") throw new Error("registerCommand(name, fn): a string name and a function");
+  bootCommandInbox(); _holoCmds.set(name, fn);
+  return () => _holoCmds.delete(name);
+}
+export function commands() { return Array.from(_holoCmds.keys()); }
+
 // ── aggregate (for `import HoloSDK from "@hologram/sdk"`, destructuring, and the window global) ────
 export const HoloSDK = { ready, info, getTheme, setAccent, setLayout, onThemeChange, getTier, refreshTier,
   onTierChange, getCapabilities, disclose, evaluate, evaluateText, sealed, object, address, verify, icon, on,
-  build, run, share,
+  qvac, build, run, share, pipe, route, sealRoute, verifyRoute, registerCommand, commands,
   setOperator, operator, mintTitle, transferTitle, ownerOf, verifyTitle, anchorTitle, sellTitle, own,
   resolveChain, chainPrincipal, anchorOn, payOn, chain };
 if (typeof window !== "undefined") window.HoloSDK = HoloSDK;

@@ -109,7 +109,7 @@ set("the bundle practises the plain voice (no jargon in its faculties / method /
 const sdk = read("usr/lib/holo/holo-sdk.js");
 const scaffold = read("usr/lib/holo/holo-scaffold.js");
 const sdkWired = /export\s+(?:async\s+)?function\s+product\b/.test(sdk) && /HoloProduct/.test(sdk);
-const scaffoldWired = /builtOn:\s*["']holo-product["']/.test(scaffold)
+const scaffoldWired = /builtOn:[^,\n]*["']holo-product["']/.test(scaffold)   // plain apps build on the foundation (a QVAC app rests on it via qvac-sdk)
   && /hologram\.os\/ns\/product/.test(scaffold) && /DECISION\.md/.test(scaffold);
 set("Holo Product is OPERATIVE — the SDK exposes product() AND the scaffolder builds new products on the foundation (manifest builtOn + conformsTo + a DECISION.md method record)", sdkWired && scaffoldWired);
 

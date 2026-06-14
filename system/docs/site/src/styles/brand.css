@@ -1,0 +1,73 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Hologram OS docs — brand layer over Starlight.
+
+   Why: the docs should feel like they belong to the gateway, not a generic
+   template. Match the gateway's palette (near-black ground, violet→teal accent,
+   the holo dot-mark) so moving from index.html into the docs is seamless.
+
+   How: override Starlight's accent + gray ramps and a few surface tokens. Nothing
+   structural — Starlight keeps doing the layout, search, and dark mode.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Violet accent (gateway --fg accent #8b5cf6), with a teal companion for marks. */
+  --sl-color-accent-low: #1f1147;
+  --sl-color-accent: #8b5cf6;
+  --sl-color-accent-high: #d6c8ff;
+  --holo-teal: #2dd4bf;
+
+  /* Tight, sharp UI: slightly smaller radius and a hairline that reads crisp. */
+  --sl-border-radius: 0.5rem;
+}
+
+/* Dark theme — the gateway's signature: true-black ground, violet hairlines. */
+:root[data-theme='dark'] {
+  --sl-color-bg: #000;
+  --sl-color-bg-nav: rgba(0, 0, 0, 0.72);
+  --sl-color-bg-sidebar: #050507;
+  --sl-color-bg-inline-code: #14141a;
+  --sl-color-hairline: #1c1c22;
+  --sl-color-hairline-light: #262629;
+  --sl-color-gray-7: #0b0b0f;
+  --sl-color-gray-6: #14141a;
+}
+
+/* Light theme — the gateway's inverse palette. */
+:root[data-theme='light'] {
+  --sl-color-accent-low: #ede7ff;
+  --sl-color-accent: #6d28d9;
+  --sl-color-accent-high: #2a1758;
+}
+
+/* Crisp text rendering, matching the gateway. */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+/* The site-title logo + wordmark, sized and spaced to feel deliberate. */
+.site-title img {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.site-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Cards: a touch sharper than default — hairline edge, accent on hover. */
+.card {
+  border-color: var(--sl-color-hairline);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.card:hover {
+  border-color: var(--sl-color-accent);
+}
+
+/* The hero/lead paragraph under an H1 reads as a sub-line, like the gateway. */
+.sl-markdown-content > p:first-of-type {
+  font-size: var(--sl-text-lg);
+  color: var(--sl-color-white);
+}

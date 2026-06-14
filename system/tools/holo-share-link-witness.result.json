@@ -1,0 +1,43 @@
+{
+  "witnessed": true,
+  "passed": 5,
+  "failed": 0,
+  "app": "notepad",
+  "rootK": "did:holo:sha256:583bc449920da08605bb2e5405f76bed663369a2bbfdd9ad61b861a7d49c70e2",
+  "shareLink": "/holospace.html?app=notepad#k=did:holo:sha256:583bc449920da08605bb2e5405f76bed663369a2bbfdd9ad61b861a7d49c70e2",
+  "covers": [
+    "the share link OPENS and RENDERS the app fullscreen in a",
+    "a delivery Service Worker is live (the app runs on a con",
+    "the app runs on the ONE Holo Runtime delivery worker (ho",
+    "the app SELF-RESOLVES by its content address (κ-route re",
+    "the 2nd open is served network-free from the κ-cache (x-"
+  ],
+  "results": [
+    {
+      "name": "the share link OPENS and RENDERS the app fullscreen in a COLD browser (the Telegram tap)",
+      "ok": true,
+      "detail": "notepad · 269 ms · body 478 · notepad/index.html#k=6vvaLQ1-_m4c3FCXAE2ZpB29-kSrMi-l"
+    },
+    {
+      "name": "a delivery Service Worker is live (the app runs on a content worker, not bare HTTP)",
+      "ok": true,
+      "detail": "holo-fhs-sw.js"
+    },
+    {
+      "name": "the app runs on the ONE Holo Runtime delivery worker (holo-fhs-sw.js — the κ-cache), not the older per-app worker",
+      "ok": true,
+      "detail": "holo-fhs-sw.js"
+    },
+    {
+      "name": "the app SELF-RESOLVES by its content address (κ-route returns its bytes)",
+      "ok": true,
+      "detail": "index κ b33c0a2d8347…"
+    },
+    {
+      "name": "the 2nd open is served network-free from the κ-cache (x-holo-cache: hit) — the runtime advantage",
+      "ok": true,
+      "detail": "cache: hit · warm reload 410 ms"
+    }
+  ],
+  "spec": "A holo app is shareable by one content link (holospace.html?app=<ref>#k=<κ>). Tapped in a cold, fresh browser (the Telegram path), it opens and renders the app fullscreen with the Share-to-Run chrome, self-resolves the app by its content address, runs on the ONE Holo Runtime delivery worker (holo-fhs-sw.js, the κ-cache), and the 2nd open is network-free."
+}

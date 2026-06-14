@@ -1,0 +1,113 @@
+{
+  "witnessed": false,
+  "passed": 13,
+  "failed": 5,
+  "covers": [
+    "the default boot ('/') routes to the ONE",
+    "the canonical shell is served from OS2 (",
+    "the served shell IS the spatial holospac",
+    "the rEFInd boot loader hands off to the ",
+    "the boot chain interposes the greeter fo",
+    "the greeter's default session + fallback",
+    "holospace.html folds a normal app link i",
+    "no duplicate DEFAULT shell in the catalo",
+    "the old duplicate shell CODE is retired ",
+    "the retired shells are unreachable — no ",
+    "the ONE shared embed guard exists in the",
+    "the shell is sealed in the OS-wide κ-rou",
+    "the shell is anchored on the unified UOR"
+  ],
+  "results": [
+    {
+      "name": "the default boot ('/') routes to the ONE canonical shell",
+      "ok": true,
+      "detail": "/shell.html"
+    },
+    {
+      "name": "the canonical shell is served from OS2 (os/usr/share/frame/shell.html)",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "the served shell IS the spatial holospace shell (tab strip · omnibar · app canvas)",
+      "ok": true,
+      "detail": "markers"
+    },
+    {
+      "name": "the rEFInd boot loader hands off to the shell",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the boot chain interposes the greeter for the shell (rEFInd → SDDM → shell)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the greeter's default session + fallback target the shell",
+      "ok": true,
+      "detail": "holo-sddm.js"
+    },
+    {
+      "name": "holospace.html folds a normal app link into the shell",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no duplicate DEFAULT shell in the catalog (a kept self-contained app is exempt)",
+      "ok": true,
+      "detail": "40 apps · self-contained exempt: org.hologram.HoloBrowser"
+    },
+    {
+      "name": "the old duplicate shell CODE is retired (holospaces/browser · holospaces/sdk · apps/sdk)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the retired shells are unreachable — no fallback serves them (kept self-contained apps exempt)",
+      "ok": true,
+      "detail": "sdk=404"
+    },
+    {
+      "name": "the ONE shared embed guard exists in the OS runtime (holo-embed.js)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no app renders its own tab strip when embedded — each carries the embed guard (no double-drawn frame)",
+      "ok": false,
+      "detail": "unguarded: files"
+    },
+    {
+      "name": "the shell is sealed in the OS-wide κ-route closure (a did:holo content address)",
+      "ok": true,
+      "detail": "κ 5215bf6da1c0efcc…"
+    },
+    {
+      "name": "the served shell RE-DERIVES to its sealed κ — tamper-refused (Law L5)",
+      "ok": false,
+      "detail": "served a1e5c7617e66 ≠ sealed 5215bf6da1c0"
+    },
+    {
+      "name": "the shell resolves BY CONTENT at /.holo/sha256/<κ> (substrate-addressable, not path-only)",
+      "ok": false,
+      "detail": "HTTP 404"
+    },
+    {
+      "name": "the shell loader is Secure-Boot-pinned (rEFInd re-derives + refuses a mismatch, Law L5)",
+      "ok": false,
+      "detail": "stale pin"
+    },
+    {
+      "name": "the shell is anchored on the unified UOR substrate (carries its did:holo:blake3 σ-axis κ)",
+      "ok": true,
+      "detail": "blake3 0f4d9f89622f3f49…"
+    },
+    {
+      "name": "the served shell RE-DERIVES to its substrate κ via OS2 BLAKE3 (≡ substrate kappa(), Law L5 / CC-51)",
+      "ok": false,
+      "detail": "served 222f435706a5 ≠ sealed 0f4d9f89622f"
+    }
+  ],
+  "spec": "Hologram OS — one canonical holospace shell (shell.html, in OS2): the default and only launcher for every app; duplicates retired; the embed guard enforced for every app"
+}

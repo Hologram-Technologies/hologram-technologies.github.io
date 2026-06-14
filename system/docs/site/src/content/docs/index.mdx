@@ -1,0 +1,95 @@
+---
+title: What is Hologram OS?
+description: A sovereign, serverless internet computer that boots in the browser. Every object is self-verifying — its identity is the hash of its content (Law L5).
+audience: [users, developers, agents]
+---
+
+import { Card, CardGrid, LinkCard, Aside } from '@astrojs/starlight/components';
+
+Hologram OS is a **sovereign, serverless internet computer**: a content-addressable
+storage · compute · networking substrate that boots entirely in your browser,
+rooted in your own hardware. No server, no install, no account.
+
+Think of it like **git for the whole internet**. Every object is named by the
+hash of its content, so you never ask a server to vouch for a file — you re-derive
+its hash and check it yourself. Identity is intrinsic, not granted.
+
+## Why it matters
+
+Trust on today's internet rests on servers and accounts you cannot inspect. You
+ask a *location* for a file and believe whatever it returns. Hologram OS removes
+that act of faith — and the benefit depends on where you sit.
+
+<CardGrid>
+  <Card title="Developers" icon="laptop">
+    Build on a substrate where **done is provable, not asserted**. A component
+    ships only when its conformance row is witnessed and the gate stays green.
+  </Card>
+  <Card title="AI agents" icon="seti:default">
+    Every door hands back a **self-verifying object you re-derive**. Discover
+    tools over MCP, act, and prove each step — no trusted server in the loop.
+  </Card>
+  <Card title="Users" icon="rocket">
+    Run a computer you **fully own**, on your own hardware, from a single file.
+    Deny the origin and the byte-identical, verified OS still boots.
+  </Card>
+</CardGrid>
+
+## How it works
+
+**Law L5 — verify by re-derivation.** Every object's identity is the hash of its
+content: `did:holo:sha256:H(canonical-form)`. To trust anything, re-derive its
+hash and compare. A single altered byte yields a different hash and is refused.
+This holds at every level of the object graph.
+
+> Verify, don't trust.
+
+Every action is checked against the fail-closed **Constitution** — itself an
+object you re-derive, so a single altered byte in *it* is refused too.
+
+The substrate stands on three axes:
+
+<CardGrid>
+  <Card title="Storage" icon="document">
+    The content-addressed **κ-route** resolves any object by its hash and verifies
+    it on receipt. The store is the memory.
+  </Card>
+  <Card title="Compute" icon="setting">
+    Runs in the browser on your own hardware — WASM virtual machines, WebGPU, a
+    browser-native LLM engine. Login binds the session to the device.
+  </Card>
+  <Card title="Networking" icon="random">
+    A serverless peer mesh. The origin gateway is one CDN among peers, not an
+    authority — deny it and the verified OS still boots.
+  </Card>
+</CardGrid>
+
+The single gateway is `index.html`. Opening it starts the κ Service Worker and
+enters the boot chain — rEFInd → Plymouth → SDDM → PrimeOS.
+
+```http
+GET os/.holo/sha256/<hex>
+```
+
+Resolve any object by its hash; the result is self-verifying — you re-derive the
+hash and compare before you trust it.
+
+## Start here
+
+<CardGrid>
+  <LinkCard
+    title="Quickstart"
+    description="Boot the OS, build against it, or connect an agent — three paths, one substrate."
+    href="/quickstart"
+  />
+  <LinkCard
+    title="Boot Hologram OS"
+    description="Open the gateway and power on a sovereign computer in your browser."
+    href="/"
+  />
+</CardGrid>
+
+<Aside type="note" title="More on the way">
+  Core concepts, For developers, For AI agents, and the auto-generated tool
+  reference are authored in the next increment.
+</Aside>

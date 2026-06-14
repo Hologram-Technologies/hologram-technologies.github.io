@@ -1,0 +1,23 @@
+{
+  "spec": "Hologram OS suspend/resume — dehydrate ↔ rehydrate a live run to a content-addressed checkpoint κ: freeze the provenance DAG + the live frontier into one self-verifying object, restore it exactly (Law L5), and pause · migrate · resume with no server and no loss of proof (resume reaches the same final receipt κ as an uninterrupted run)",
+  "authority": "W3C PROV-O · W3C DID Core · W3C Subresource Integrity · IETF RFC 8785 (JCS) · holospaces Laws L1/L3/L5 · ADR-025 (UOR envelope) · ADR-045 (Holo Orchestrate work receipt)",
+  "witnessed": true,
+  "covers": [
+    "suspend-resume",
+    "dehydrate-rehydrate",
+    "checkpoint",
+    "resumable-orchestration",
+    "migrate",
+    "tamper-evident",
+    "law-l5"
+  ],
+  "checks": {
+    "roundTrips": true,
+    "checkpointAddressed": true,
+    "resumeEqualsUninterrupted": true,
+    "tamperRefused": true,
+    "migratesToFreshStore": true,
+    "authorityNotWidened": true,
+    "provenanceIntact": true
+  }
+}

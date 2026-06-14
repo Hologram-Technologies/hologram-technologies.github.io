@@ -14,7 +14,7 @@
 
 import { readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { fhsMap } from "../os/lib/holo-fhs-map.mjs";
 
@@ -22,15 +22,27 @@ const here = dirname(fileURLToPath(import.meta.url));
 const OS = join(here, "../os");
 const CLOSURE = join(OS, "etc/os-closure.json");
 const checkOnly = process.argv.includes("--check");
+// the substrate σ-axis + finite-torus coordinate, so a reseal PRESERVES the dual-axis anchoring
+// (did:holo:sha256 serve key ⊕ did:holo:blake3 substrate anchor ⊕ atlas placement), never strips it.
+const { blake3hex } = await import(pathToFileURL(join(OS, "usr/lib/holo/holo-blake3.mjs")));
+const { atlasCoord, ATLAS } = await import(pathToFileURL(join(OS, "usr/lib/holo/holo-atlas-coord.mjs")));
 
-const entry = (buf) => {
+const entry = (buf, old = {}) => {
   const dig = createHash("sha256").update(buf).digest();
-  return {
+  const e = {
     kappa: "did:holo:sha256:" + dig.toString("hex"),
     sri: "sha256-" + dig.toString("base64"),
     multibase: "u" + Buffer.concat([Buffer.from([0x12, 0x20]), dig]).toString("base64url"),
     bytes: buf.length,
   };
+  // preserve (and freshly re-derive) the σ-axis anchor + atlas coordinate when the old entry carried them
+  if (Array.isArray(old.alsoKnownAs) && old.alsoKnownAs.some((a) => /blake3/.test(String(a)))) {
+    const blakeHex = blake3hex(buf);
+    e.alsoKnownAs = [...old.alsoKnownAs.filter((a) => !/blake3/.test(String(a))), "did:holo:blake3:" + blakeHex];
+    if (old["holo:within"]) e["holo:within"] = ATLAS.object;
+    if (old["holo:atlasCoordinate"]) e["holo:atlasCoordinate"] = atlasCoord(blakeHex);
+  }
+  return e;
 };
 
 const doc = JSON.parse(readFileSync(CLOSURE, "utf8"));
@@ -40,7 +52,7 @@ for (const [key, old] of Object.entries(closure)) {
   const phys = fhsMap(key) || key;   // null-mapped paths (e.g. splash/splash-manifest.json) serve literally
   const abs = join(OS, phys);
   if (!existsSync(abs) || !statSync(abs).isFile()) continue;     // missing → not served → never 409
-  const e = entry(readFileSync(abs));
+  const e = entry(readFileSync(abs), old);
   if (e.kappa === old.kappa) continue;
   drifted++;
   console.log(`  ↻ ${key}\n      ${old.kappa.slice(0, 30)}… → ${e.kappa.slice(0, 30)}…`);

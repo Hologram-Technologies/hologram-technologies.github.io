@@ -39,6 +39,7 @@ export function idbBackend({ db = "holo", store = "kappa" } = {}) {
     get: (k) => tx("readonly", (s) => s.get(k)),
     set: (k, bytes) => tx("readwrite", (s) => s.put(bytes, k)),
     has: (k) => tx("readonly", (s) => s.getKey(k)).then((v) => v != null),
+    del: (k) => tx("readwrite", (s) => s.delete(k)),   // evict by κ (for content-addressed GC)
   };
 }
 
@@ -50,5 +51,6 @@ export function memBackend() {
     get: async (k) => m.get(k) || null,
     set: async (k, bytes) => { m.set(k, bytes); },
     has: async (k) => m.has(k),
+    del: async (k) => { m.delete(k); },
   };
 }

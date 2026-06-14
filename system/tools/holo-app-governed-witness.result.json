@@ -1,0 +1,18 @@
+{
+  "spec": "Holo Terms (capability gate) and Holo Privacy (disclosure gate) are core OS functions enforced at the HOST for every mounted holospace: the host loads both + the governance module, clamps capabilities through the Terms gate before mounting, brokers privacy with a host-asserted recipient (the app never holds the wallet/keys), and surfaces one shield per focused app. Universal by construction — proven at the host, so no app can be an ungoverned island.",
+  "authority": "IEEE 7012-2025 (MyTerms) · W3C VC/DPV (selective disclosure) · ADR-031 (Holo Conform — spec governance, build-gated separately) · holo-launch.mount (capability sandbox) · static analysis of the canonical host frames",
+  "witnessed": true,
+  "covers": [
+    "holo-terms",
+    "holo-privacy",
+    "host-enforced",
+    "every-application",
+    "default-deny",
+    "surfaced"
+  ],
+  "frames": [
+    "shell.html",
+    "holospace.html"
+  ],
+  "gaps": []
+}

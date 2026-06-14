@@ -525,3 +525,59 @@ export function forgeReceipt({ sourceKappa, compilerKappa, flagsKappa, artifactK
 export const jcs = (v) => Array.isArray(v) ? "[" + v.map(jcs).join(",") + "]"
   : (v && typeof v === "object") ? "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}"
   : JSON.stringify(v);
+
+// ─────────────────────────── Zig frontend (ADR-0075) — bundled in one Forge ──────────────────────
+// Holo Forge's second source language, kept in THIS module so the substrate has ONE Forge with two
+// frontends: Holo-C (the pure JS compiler above, compiled in-process) and Zig. Zig is an external
+// toolchain, so to preserve what makes this module valuable — pure · isomorphic · zero-dependency — the
+// Zig path takes the actual compile as an INJECTED runner: `toolchain(source, flags) → wasm bytes`, which
+// the Node CLI/witness fills with the pinned `zig` and a browser would fill with the pinned wasm
+// toolchain. This module owns only the re-derivable CONTRACT — the canonical flags, the closed-module
+// guard, and the same forgeReceipt — so a Zig build is the same κ-transform as a Holo-C build:
+// κ(source) ⊕ κ(compiler) ⊕ κ(flags) → κ(artifact). Proven byte-reproducible across paths, and lean
+// (a no_std/no_alloc 212-byte closed module that runs on holo-forge-run at ~2 ns/call) in ADR-0075.
+export const ZIG_LANG = "zig";
+// the canonical, deterministic Zig→WASM recipe — freestanding (no host imports), ReleaseSmall (lean),
+// no entry point (a reactor library). no_std/no_alloc is a property of the source, not a flag.
+export const ZIG_FLAGS = ["build-exe", "-target", "wasm32-freestanding", "-O", "ReleaseSmall", "-fno-entry"];
+
+// the closed-module guard — a structural scan of the Wasm import section (id 2), pure + browser-safe. A
+// re-derivable computation admits only modules with ZERO host imports (Laws L4/L5); same contract as
+// holo-forge-run.admits, inlined so this module stays standalone.
+function zigImportsCount(wasm) {
+  const b = wasm instanceof Uint8Array ? wasm : new Uint8Array(wasm);
+  if (b.length < 8 || b[0] !== 0x00 || b[1] !== 0x61 || b[2] !== 0x73 || b[3] !== 0x6d) throw new CompileError("toolchain did not return a WebAssembly module");
+  let i = 8;
+  const uleb = () => { let r = 0, s = 0, c; do { c = b[i++]; r |= (c & 0x7f) << s; s += 7; } while (c & 0x80); return r >>> 0; };
+  while (i < b.length) { const id = b[i++], len = uleb(); if (id === 2) return uleb(); i += len; }
+  return 0;
+}
+
+// compileZig({ source, exports, toolchain, compilerKappa, hash, flags }) → { lang, wasm, exports, version,
+// artifactKappa?, receipt? }. `toolchain(source, flags) → Uint8Array` is the pinned compiler (Node: the zig
+// binary; browser: zig.wasm); `compilerKappa` is that toolchain's κ; `hash(bytes) → hex` is the platform κ
+// (sha256hex in Node, WebCrypto in the browser) — kept OUT of this pure module per Law L2, omit it to get
+// just the bytes. Refuses a non-closed module (it would not be re-derivable). Identical source ⊕ toolchain
+// ⊕ flags ⇒ identical wasm ⇒ identical artifact κ, on every platform.
+export function compileZig({ source, exports = [], toolchain, compilerKappa = null, hash = null, flags = ZIG_FLAGS }) {
+  if (typeof source !== "string") throw new CompileError("source must be a string");
+  if (typeof toolchain !== "function") throw new CompileError("compileZig needs an injected `toolchain(source, flags)` runner (the pinned zig)");
+  const allFlags = [...flags, ...exports.map((e) => `--export=${e}`)];
+  const wasm = toolchain(source, allFlags);
+  if (!(wasm instanceof Uint8Array)) throw new CompileError("toolchain must return wasm bytes (Uint8Array)");
+  const n = zigImportsCount(wasm);
+  if (n !== 0) throw new CompileError(`Zig produced a non-closed module: ${n} host import(s) — not re-derivable. Compile freestanding with no host calls, or pre-link via Holo Link (ADR-0060).`);
+  const out = { lang: ZIG_LANG, wasm, exports, version: VERSION };
+  if (typeof hash === "function") {
+    const enc = (s) => new TextEncoder().encode(s);
+    const artifactKappa = `did:holo:sha256:${hash(wasm)}`;
+    out.artifactKappa = artifactKappa;
+    out.receipt = forgeReceipt({
+      sourceKappa: `did:holo:sha256:${hash(enc(source))}`,
+      compilerKappa,
+      flagsKappa: `did:holo:sha256:${hash(enc(jcs(allFlags)))}`,
+      artifactKappa, lang: ZIG_LANG, exports,
+    });
+  }
+  return out;
+}

@@ -286,11 +286,16 @@
   .sub{ margin:0; color:var(--muted); line-height:1.5; max-width:min(92vw, 40ch);
     font-size:var(--sub); text-wrap:balance; }
 
-  .cta{ display:flex; flex-wrap:wrap; gap:var(--u-phi); justify-content:center; }     /* gap = u·φ */
+  /* equal-width CTAs: an inline grid of two 1fr tracks shrink-wrapped to content → BOTH columns take
+     the widest button's width, so the pills are identical regardless of label or font. gap = u·φ. */
+  .cta{ display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:var(--u-phi); max-width:100%; }
   .btn{ -webkit-appearance:none; appearance:none; cursor:pointer;
-    display:inline-flex; align-items:center; gap:.55em; border:1px solid transparent;
-    border-radius:999px; font:600 var(--u)/1 inherit;
+    display:inline-flex; align-items:center; justify-content:center; gap:.55em; border:1px solid transparent;
+    border-radius:999px; font:600 var(--u)/1 inherit; white-space:nowrap;
     padding:1.12em 2.3em; transition:background .15s, border-color .15s, transform .12s; }  /* matched to reference pill width */
+  /* both CTAs share ONE golden width — u·φ⁵ — so they're identical pills, centred, on the φ¹ gap above */
+  .cta .btn{ min-width:calc(var(--u-phi4) * var(--phi)); }                                  /* = u·φ⁵ ≈ 11.09u */
+  .btn span{ line-height:1; }                              /* equal cap-height line box → equal pill height */
   .btn:active{ transform:translateY(1px); }
   .btn-primary{ background:var(--btn-p-bg); color:var(--btn-p-fg); }
   .btn-primary:hover{ background:var(--btn-p-hover); }
@@ -305,6 +310,44 @@
     box-shadow:0 .45em 1.8em rgba(0,0,0,.5); }
   .btn-ghost{ background:var(--panel); color:var(--fg); border-color:var(--line); }
   .btn-ghost:hover{ background:var(--panel-hover); border-color:var(--line-strong); }
+
+  /* ── Power-up stays a solid black power button, but a SUBTLE spectrum (the desktop omnibox palette,
+     usr/share/frame/shell.html) breathes around its edge — a soft, slowly rotating glow that hints at
+     something special behind it without shouting. ──────────────────────────────────────────────────── */
+  @property --pwr-spin{ syntax:"<angle>"; inherits:false; initial-value:0deg; }
+  @keyframes pwr-spin{ to{ --pwr-spin:360deg; } }
+  .btn-primary{ position:relative; z-index:0; }
+  /* faint spectrum edge — a thin gradient hairline masked to the border, kept low so the button reads black */
+  .btn-primary::after{ content:""; position:absolute; inset:0; border-radius:inherit; padding:1px; pointer-events:none;
+    background:conic-gradient(from var(--pwr-spin), #ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+    opacity:.4; transition:opacity .22s ease; animation:pwr-spin 9s linear infinite; }
+  /* soft bloom behind — a gentle halo hugging the edge, lifting a touch on hover */
+  .btn-primary::before{ content:""; position:absolute; inset:-1px; z-index:-1; border-radius:inherit; pointer-events:none;
+    background:conic-gradient(from var(--pwr-spin), #ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b);
+    filter:blur(8px); opacity:.32; transition:opacity .22s ease, filter .22s ease;
+    animation:pwr-spin 9s linear infinite; }
+  .btn-primary:hover::before{ opacity:.55; filter:blur(11px); }
+  .btn-primary:hover::after{ opacity:.6; }
+  @media (prefers-reduced-motion: reduce){ .btn-primary::before, .btn-primary::after{ animation:none; } }
+
+  /* the OS-detected download glyph sits like the power glyph — cap-height, optically centred */
+  .btn .os-ic{ display:inline-flex; width:1.16em; height:1.16em; flex:none; margin-top:-0.04em; }
+  .btn .os-ic svg{ width:100%; height:100%; }
+  /* Free Download is frosted glass: a translucent pane that blurs the cloudscape behind it, with a
+     soft inner highlight and hairline edge so it reads as a real pane of glass, not a flat panel. */
+  #download{ background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.28);
+    -webkit-backdrop-filter:blur(14px) saturate(1.3); backdrop-filter:blur(14px) saturate(1.3);
+    box-shadow:0 .4em 1.4em rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.35); }
+  #download:hover{ background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.45); }
+  /* Immersive sits on the bright cloudscape — black ink + a darker glass edge so the pill reads clearly */
+  :root[data-immersive="full"] #download{ color:#000; border-color:rgba(0,0,0,.22);
+    box-shadow:0 .4em 1.4em rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.5); }
+  :root[data-immersive="full"] #download:hover{ background:rgba(255,255,255,.28); border-color:rgba(0,0,0,.34); }
+  :root[data-theme="light"] #download{ background:rgba(20,20,28,.06); border-color:rgba(20,20,28,.14);
+    box-shadow:0 .4em 1.4em rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.6); }
+  :root[data-theme="light"] #download:hover{ background:rgba(20,20,28,.1); border-color:rgba(20,20,28,.22); }
 
   /* boot status — empty until the user acts, then carries the boot progress text */
   .status{ min-height:0; color:var(--muted-2); font-weight:500;
@@ -322,10 +365,10 @@
     vertical-align:middle; margin-right:.55em; position:relative; top:-0.06em; }
   .sig .kx{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.95em; opacity:1; margin-left:.5em; white-space:nowrap;
     pointer-events:auto; --holo-accent:currentColor; }   /* interactive (the .sig wrapper is pointer-events:none); braille in the same ink as the text */
+  .sig .kx, .sig .kx.holo-k-rev{ border-bottom:0; }       /* drop HoloFX's dotted κ underline in the gateway signature */
   .sig .khint{ display:none; font-size:.78em; opacity:.5; letter-spacing:.02em; margin-left:.45em; white-space:nowrap; }
   .sig #kx[data-holo-k-upgraded] ~ .khint{ display:inline; }   /* the hint appears only once the live braille κ is mounted */
-  .sig .uor{ color:var(--fg); text-decoration:none; pointer-events:auto; border-bottom:1px solid currentColor; }
-  .sig .uor:hover{ border-bottom-color:currentColor; }
+  .sig .uor{ color:#000; text-decoration:none; pointer-events:auto; border-bottom:0; }
   body.leaving .sig{ opacity:0; transition:opacity .16s ease; }
 
   /* boot handoff — ONE continuous power-on, no intermediate beat: a solid #000 veil rises FAST (no
@@ -333,7 +376,7 @@
      same black (#000), so the splash's reveal seams straight out of this veil — the only motion the
      user sees is darken → boot animation, with nothing flashing in between. */
   body.leaving .bar, body.leaving .hero, body.leaving #vanta{ pointer-events:none; }
-  body.leaving::after{ content:""; position:fixed; inset:0; background:#000; z-index:60; pointer-events:none; animation:bootToBlack .16s linear forwards; }
+  body.leaving::after{ content:""; position:fixed; inset:0; background:#000; z-index:60; pointer-events:none; animation:bootToBlack .18s linear forwards; }  /* shared boot-veil timing (== splash) */
   @keyframes bootToBlack{ from{ opacity:0; } to{ opacity:1; } }
 
   /* ── RESPONSIVE: the golden tokens already fluidly resize everything; these only collapse the
@@ -382,10 +425,10 @@
 <header class="bar">
   <a class="brand" href="./" aria-label="Hologram — home">
     <svg class="mk" aria-hidden="true"><use href="#holo-mark"/></svg>
-    <span class="brand-name">HOLOGRAM</span>
+    <span class="brand-name">HOLOGRAM OS</span>
   </a>
   <nav class="links" aria-label="Primary">
-    <a href="AGENTS.md">Docs</a>
+    <a href="docs/">Docs</a>
     <a href="README.md">Blog</a>
     <a href="CONSTITUTION.md">Changelog</a>
   </nav>
@@ -433,13 +476,19 @@
       <svg class="pwr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.4 7.9a8 8 0 1 0 11.2 0"/></svg>
       <span>Power up</span>
     </button>
+    <!-- the native tier: a one-link download+install of the Hologram Tauri host. The glyph auto-detects
+         the visitor's OS (Windows · macOS · Linux · Android · iOS) so the offer reads as "for you". -->
+    <a class="btn btn-ghost" id="download" href="#" rel="noopener" aria-label="Free Download — install the native Hologram app">
+      <span class="os-ic" id="os-ic" aria-hidden="true"></span>
+      <span>Free Download</span>
+    </a>
   </div>
 
   <div class="status" id="status" role="status" aria-live="polite"></div>
 </main>
 
 <!-- the gateway's own content address — proof this page is one self-verifying UOR object (Law L5) -->
-<div class="sig"><i class="dot"></i><span id="kappa">This page is its own fingerprint — a self-verifying <a class="uor" href="https://uor.foundation/" target="_blank" rel="noopener noreferrer">UOR</a> object <span id="kx" class="kx">computing…</span><span class="khint">hover to read · click to copy</span></span></div>
+<div class="sig"><i class="dot"></i><span id="kappa">Self-verifying <a class="uor" href="https://uor.foundation/" target="_blank" rel="noopener noreferrer">UOR</a> object <span id="kx" class="kx">computing…</span></span></div>
 
 <!-- AI agents: the full machine map is in the JSON-LD + /.well-known links in <head>; AGENTS.md is the human door. -->
 
@@ -645,12 +694,12 @@
     // the desktop. The user always passes login; we never drop them straight onto the desktop. The rEFInd
     // boot MENU stays one keypress away (F2) during the splash, like real firmware.
     const loginURL = new URL(root + "login.html", location.href).href + "?" + new URLSearchParams({
-      next: "apps/sdk/index.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg",
+      next: "shell.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg",   // canonical landing: the PrimeOS holospace desktop
     }).toString();
     const splash = root + "splash.html?" + new URLSearchParams({
       next: loginURL,
       menu: new URL(root + "boot/index.html", location.href).href,
-      label: "Hologram OS", logo: "boot/icons/os_hologram.svg", theme: "holo-pulse", duration: "5",
+      label: "Hologram OS", logo: "boot/icons/os_hologram.svg", theme: "holo-pulse", duration: "4",
     }).toString();
     // navigate the instant the black veil has settled (≈160ms), regardless of how long the SW took — the
     // splash's first paint is the same #000, so this hands off with no flash and no extra animation beat
@@ -662,6 +711,53 @@
   // Enter boots ONLY when not typing in the search box (which has its own Enter → launch app).
   addEventListener("keydown", (e) => { if (e.key === "Enter" && !(e.target.closest && e.target.closest(".search"))) { e.preventDefault(); boot(); } });
   try { $("enter").focus({ preventScroll: true }); } catch {}
+
+  // ── Free Download — the native Hologram (Tauri) host, offered for the visitor's own OS ───────────
+  // We sniff the platform once, swap in the matching glyph, and point the button at the install path
+  // for that OS. Desktop → the content-addressed one-link installer (bootstrap re-derives the κ and
+  // refuses a tampered byte, Law L5); mobile → the store / latest release. All routes are easy to
+  // re-pin to a direct artifact later — they default to the release page so the button always works.
+  (function () {
+    const dl = $("download"); const icHost = $("os-ic"); if (!dl || !icHost) return;
+    const RELEASES = "https://github.com/humuhumu33/hologram-apps/releases/latest";
+    // single-line shell installers (the canonical "verify-install IS the install"); copied to clipboard
+    // so the user can paste-run, while the button also opens the release page with the OS's installer.
+    const ONE_LINER = {
+      win:   'irm https://github.com/humuhumu33/hologram-apps/releases/latest/download/bootstrap.ps1 | iex',
+      mac:   'curl -fsSL https://github.com/humuhumu33/hologram-apps/releases/latest/download/bootstrap.sh | sh',
+      linux: 'curl -fsSL https://github.com/humuhumu33/hologram-apps/releases/latest/download/bootstrap.sh | sh',
+    };
+    // crisp, recognisable monochrome OS glyphs (inherit the button's ink via currentColor)
+    const ICON = {
+      win:   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4.6 10.6 3.6V11H3V4.6Zm0 14.8 7.6 1V13H3v6.4ZM11.6 3.4 21 2v9.6h-9.4V3.4Zm0 17.2L21 22v-9.4h-9.4v8Z"/></svg>',
+      mac:   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.9-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.4-1-2.4-3.6Zm-2.3-6.6c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.7-1.2Z"/></svg>',
+      linux: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2 0-3.2 1.8-3.2 4 0 1.3.1 2.4-.5 3.5-.6 1-1.7 1.9-2.6 3.4-.9 1.5-1.4 3-1 3.8.3.6 1 .6 1.5 1 .5.5.7 1.3 1.3 1.7.6.4 1.6.4 2.4.6.7.2 1.3.7 2.6.7s1.9-.5 2.6-.7c.8-.2 1.8-.2 2.4-.6.6-.4.8-1.2 1.3-1.7.5-.4 1.2-.4 1.5-1 .4-.8-.1-2.3-1-3.8-.9-1.5-2-2.4-2.6-3.4-.6-1.1-.5-2.2-.5-3.5 0-2.2-1.2-4-3.2-4Zm-1.4 5.2c.4 0 .7.4.7.9s-.3.9-.7.9-.7-.4-.7-.9.3-.9.7-.9Zm2.8 0c.4 0 .7.4.7.9s-.3.9-.7.9-.7-.4-.7-.9.3-.9.7-.9Zm-1.4 2.3c.8 0 1.9.7 1.9 1.2 0 .3-.5.5-1 .7-.4.2-.6.4-.9.4s-.5-.2-.9-.4c-.5-.2-1-.4-1-.7 0-.5 1.1-1.2 1.9-1.2Z"/></svg>',
+      android:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 9h12v8a1 1 0 0 1-1 1h-1v3a1 1 0 0 1-2 0v-3h-2v3a1 1 0 0 1-2 0v-3H9a1 1 0 0 1-1-1V9Zm-2 0a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0v-5a1 1 0 0 1 1-1Zm16 0a1 1 0 0 1 1 1v5a1 1 0 0 1-2 0v-5a1 1 0 0 1 1-1ZM7.5 8a4.5 4.5 0 0 1 9 0H7.5Zm1.7-3.9-.8-1.3a.3.3 0 0 1 .5-.3l.8 1.4a5.6 5.6 0 0 1 4.6 0l.8-1.4a.3.3 0 0 1 .5.3l-.8 1.3M10 6h.01M14 6h.01"/></svg>',
+      ios:   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.9-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.4-1-2.4-3.6Zm-2.3-6.6c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.7-1.2Z"/></svg>',
+    };
+    const LABEL = { win:"Windows", mac:"macOS", linux:"Linux", android:"Android", ios:"iOS" };
+    function detectOS() {
+      const ua = navigator.userAgent || "";
+      const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+      if (/Android/i.test(ua)) return "android";
+      if (/iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(plat) && navigator.maxTouchPoints > 1)) return "ios";
+      if (/Win/i.test(plat) || /Windows/i.test(ua)) return "win";
+      if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) return "mac";
+      if (/Linux|X11/i.test(plat) || /Linux/i.test(ua)) return "linux";
+      return "win";
+    }
+    const os = detectOS();
+    icHost.innerHTML = ICON[os] || ICON.win;
+    dl.href = RELEASES;                                  // every OS's installer is one click away here
+    dl.setAttribute("aria-label", "Free Download — install the native Hologram app for " + (LABEL[os] || "your device"));
+    dl.title = "Free Download · Hologram for " + (LABEL[os] || "your device");
+    dl.addEventListener("click", (e) => {
+      e.preventDefault();
+      const cmd = ONE_LINER[os];                         // desktop: stage the content-addressed installer
+      if (cmd) { try { navigator.clipboard && navigator.clipboard.writeText(cmd); } catch {} }
+      try { window.open(RELEASES, "_blank", "noopener"); } catch { location.href = RELEASES; }
+    });
+  })();
 
   // ── App search — index every native holospace, launch it in its own holospace tab ────────────
   // The catalog is EMBEDDED (generated from Hologram Apps/apps/index.jsonld), so search is instant

@@ -28,7 +28,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
     <path d="M52 4 L96 30 V74 L52 100 L8 74 V30 Z"/><path d="M8 30 L52 56 L96 30"/><path d="M52 56 V100"/>
   </g>
   <text x="226" y="158" fill="#ffffff" font-family="${FONT}" font-size="54" font-weight="700" letter-spacing="-1">Hologram OS</text>
-  <text x="92" y="332" fill="#ffffff" font-family="${FONT}" font-size="94" font-weight="800" letter-spacing="-3">Build · Run · Share</text>
+  <text x="92" y="332" fill="#ffffff" font-family="${FONT}" font-size="94" font-weight="800" letter-spacing="-3">Create · Play · Share</text>
   <text x="94" y="416" fill="#c9c3ea" font-family="${FONT}" font-size="38" font-weight="500">Serverless apps you share with a link.</text>
   <text x="94" y="470" fill="#c9c3ea" font-family="${FONT}" font-size="38" font-weight="500">Opens instantly — no install, no sign-in.</text>
   <text x="94" y="566" fill="#857fa6" font-family="ui-monospace, SFMono-Regular, monospace" font-size="25">a sovereign internet computer · runs in your browser</text>

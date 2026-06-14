@@ -1,0 +1,22 @@
+{
+  "head": "did:holo:sha256:99f440812c1a51cc3803eb3a8732f21c92ae37ffdb55658811897011ae813c81",
+  "@context": {
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "hojup": "https://hologram.os/ns/jupiter#"
+  },
+  "@type": [
+    "prov:Entity",
+    "hojup:Venue"
+  ],
+  "schema:name": "Jupiter venue descriptor",
+  "hojup:sealedBody": {
+    "name": "Jupiter",
+    "api": "https://lite-api.jup.ag",
+    "quote": "https://lite-api.jup.ag/swap/v1/quote",
+    "swap": "https://lite-api.jup.ag/swap/v1/swap",
+    "programV6": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+    "chain": "solana",
+    "caip2": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+  }
+}

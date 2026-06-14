@@ -153,6 +153,34 @@ export function splTransferMessage({ owner, sourceAta, destAta, recipient, mint,
   return concatBytes(header, shortvec(order.length), ...order.map((k) => base58.decode(k)), base58.decode(recentBlockhash), shortvec(2), i1, i2);
 }
 
+// ── sign a pre-built Solana transaction (the Jupiter-swap seam) ───────────────────────────
+// Jupiter (holo-jupiter.js) returns a fully-formed v0 VersionedTransaction with zeroed signature
+// slots; the wallet fills ONLY its own slot. The private key never leaves WDK — holo-jupiter hands
+// us base64 and gets signed base64 back. Works for legacy and v0 (the version byte sets bit 0x80).
+const _b64ToBytes = (s) => { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+const _b64FromBytes = (u) => { let s = ""; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); };
+const _shortvecDec = (buf, off) => { let v = 0, sh = 0, p = off; for (;;) { const b = buf[p++]; v |= (b & 0x7f) << sh; if (!(b & 0x80)) break; sh += 7; } return [v, p]; };
+export function signSolanaRawTx(b64, priv, pub) {
+  const bytes = _b64ToBytes(b64);
+  const [sigCount, p1] = _shortvecDec(bytes, 0);
+  const message = bytes.subarray(p1 + 64 * sigCount);
+  const sigs = []; for (let i = 0; i < sigCount; i++) sigs.push(bytes.slice(p1 + 64 * i, p1 + 64 * i + 64));
+  const versioned = (message[0] & 0x80) !== 0; let off = versioned ? 1 : 0;
+  const numReqSig = message[off]; off += 3;                       // header: reqSig, roSigned, roUnsigned
+  const [keyCount, kp] = _shortvecDec(message, off); off = kp;
+  const want = base58.encode(pub); let slot = -1;
+  for (let i = 0; i < keyCount; i++) { const k = message.subarray(off, off + 32); off += 32; if (i < numReqSig && base58.encode(k) === want) slot = i; }
+  if (slot < 0) throw new Error("wallet key is not a required signer of this transaction");
+  sigs[slot] = ed25519.sign(message, priv);
+  return _b64FromBytes(concatBytes(shortvec(sigCount), ...sigs, message));
+}
+
+// A failover Solana source (.call) over a list of public RPCs — same no-custodian shape as failoverRpc.
+export function solanaSource(urls) {
+  const list = (urls || []).filter(Boolean);
+  return { async call(m, p) { let e; for (const u of list) { try { return await new SolanaSource(u).call(m, p); } catch (x) { e = x; } } throw e || new Error("all Solana RPC endpoints failed"); } };
+}
+
 // ── HD derivation helpers ───────────────────────────────────────────────────────────────
 const seedBytes = (seed) => (typeof seed === "string" ? mnemonicToSeedSync(seed) : seed);
 function deriveKey(kind, seed, index) {
@@ -194,6 +222,7 @@ function makeAccount(manager, kind, chainKey, index) {
     async getAddress() { return kind === "evm" ? evmAddress(priv) : kind === "btc" ? BTC.deriveAddress(priv, c.network) : solAddress(priv); },
     async sign(message) { return kind === "sol" ? signSolMessage(message, priv) : signEvmMessage(message, priv); },
     async signTypedData(typedData) { if (kind !== "evm") throw new Error("signTypedData (EIP-712) is EVM-only"); return signEvmTypedData(typedData, priv); },
+    async signRawSolanaTx(b64) { if (kind !== "sol") throw new Error("signRawSolanaTx is Solana-only"); return signSolanaRawTx(b64, priv, pub); },
     async verify(message, signature) {
       if (kind === "sol") return ed25519.verify(base58.decode(signature), utf8(message), pub);
       return signEvmMessage(message, priv).toLowerCase() === String(signature).toLowerCase();
@@ -426,6 +455,28 @@ export class HoloWallet {
   async signMessage({ chain, message, index = 0 }) {
     if (!(await this._gate({ type: "sign", chain, message, address: await this.address(chain, index) }))) throw new Error("Signature request denied");
     return (await this.account(chain, index)).sign(message);
+  }
+  // EIP-712 typed-data signing (the dapp/exchange digest, e.g. a Hyperliquid action) — gated, default-deny.
+  async signTypedData({ chain, typedData, index = 0 }) {
+    if (!(await this._gate({ type: "signTypedData", chain, typedData, address: await this.address(chain, index) }))) throw new Error("Signature request denied");
+    return (await this.account(chain, index)).signTypedData(typedData);
+  }
+
+  // Solana spot SWAP via Jupiter — the WDK Swidge seam's live provider. The route is untrusted:
+  // holo-jupiter re-derives a min-out floor, asserts the sealed Jupiter program, and simulates BEFORE
+  // the gate fires, so the human approves verified numbers. Then — and only then — the key signs.
+  // `amount` is human decimal in the input token's units; `inputDecimals` defaults to SOL (9).
+  async swap({ inputMint, outputMint, amount, slippageBps = 50, inputDecimals = CHAINS.solana.decimals, index = 0 }) {
+    const { swap, JUPITER } = await import("./holo-jupiter.js");
+    const acc = await this.account("solana", index);
+    const userPublicKey = await acc.getAddress();
+    const source = solanaSource(CHAINS.solana.rpcs || [CHAINS.solana.rpc]);
+    const base = parseUnits(amount, inputDecimals).toString();           // → integer base units (Jupiter's unit)
+    return swap({ inputMint, outputMint, amount: base, slippageBps, userPublicKey }, {
+      source,
+      sign: (b64) => acc.signRawSolanaTx(b64),
+      approve: (info) => this._gate({ type: "swap", chain: "solana", venue: JUPITER.name, address: userPublicKey, inputMint, outputMint, amount: String(amount), ...info }),
+    });
   }
 }
 

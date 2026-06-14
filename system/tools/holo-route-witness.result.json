@@ -1,0 +1,41 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "typed semantic streams: a content-addressed pipeline of deterministic κ-transforms runs the dataflow (i32 and str)",
+    "the HOST is the pipe — a typed STRING value crosses isolated stage memories (lower into the stage's own memory, lift the result), the canonical-ABI lift/lower at the stage boundary (Holo Link's isolated-component model)",
+    "typed seams are checked by re-derivation BEFORE a byte flows — a type-mismatched seam (str→i32) is refused at assembly with a precise message; a stage missing its entry export is refused (verified against its pinned bytes)",
+    "Law L3 — re-running the same (stageκ ⊕ inputκ) is an O(1) rebind, not a recompute",
+    "the whole run SEALS as one self-verifying PROV-O κ (the pipeline is an object) reachable from one holo://κ",
+    "Law L5 — holding only the sealed κ re-derives the object AND re-runs it, reproducing the final output κ byte-for-byte",
+    "Law L5 — a tampered stage OR a tampered seal refuses the whole pipeline (re-derivation across the dataflow)",
+    "the Holo Constitution (ADR-0033) — a blocking conscience verdict halts the flow at stage dispatch, fail-closed"
+  ],
+  "stages": {
+    "sq": "did:holo:sha256:c1edcdaa8db43175f660374b37a07ec118da486aa980e0aa99b687c6f5ce8e16",
+    "inc": "did:holo:sha256:07fe2297c4a1d882fd5b4d1c342a477dc59f7b9afb60b8c2fbc3747e6958cf6d",
+    "upper": "did:holo:sha256:30afa1d2aba44b74fa23bc711d127a153b4aa2445c1b51e9f071e65cecad5ab2",
+    "reverse": "did:holo:sha256:3bb917bbc9ed8c5fa32a6ee3cbea3d027b120d6f190a98c670a0c7290a71c16d"
+  },
+  "sealed": {
+    "kappa": "did:holo:sha256:1db53782a261c054ffc8de900a48389ec905bef9b56bc554a5fc95aaf338e95d",
+    "value": 50,
+    "activities": 2
+  },
+  "checks": {
+    "stages-are-kappa-objects": true,
+    "i32-pipeline-runs-the-dataflow": true,
+    "semantic-string-stream-crosses-stages": true,
+    "typed-seam-mismatch-refused-before-run": true,
+    "missing-entry-export-refused": true,
+    "L3-identical-stage-input-rebinds-O(1)": true,
+    "pipeline-seals-to-one-self-verifying-kappa": true,
+    "share-the-pipeline-kappa": true,
+    "L5-sealed-pipeline-re-derives": true,
+    "L5-tampered-stage-refuses-pipeline": true,
+    "L5-tampered-seal-refuses": true,
+    "conscience-gate-halts-the-flow": true
+  },
+  "failed": [],
+  "authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · WHATWG Streams · UOR-ADDR · Holo Constitution (ADR-0033) · Law L1/L3/L5"
+}

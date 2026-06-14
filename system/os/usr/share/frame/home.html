@@ -12,6 +12,17 @@
     <!-- The boot chain already plays a power-on; Home's own green "Press Enter" gate is redundant.
          Mark the page to skip it — hidden from the very first paint (no green flash). -->
     <script>try{document.documentElement.classList.add("boot-skip");}catch(e){}</script>
+    <!-- Holo Voice → Kokoro TTS: kokoro-js imports these as bare specifiers; map them to the vendored,
+         same-origin copies so Q's voice runs 100% serverless (no CDN). Must precede any module script. -->
+    <script type="importmap">
+    { "imports": {
+      "@huggingface/transformers": "/_shared/voice/vendor/kokoro/transformers/transformers.js",
+      "phonemizer": "/_shared/voice/vendor/kokoro/phonemizer.js",
+      "path": "/_shared/voice/vendor/kokoro/stub.js",
+      "fs": "/_shared/voice/vendor/kokoro/stub.js",
+      "fs/promises": "/_shared/voice/vendor/kokoro/stub.js"
+    }}
+    </script>
     <style>
       :root { color-scheme: light dark;
         /* adopt the canonical Holo UI palette (ADR-0057); fallbacks preserve the dark look standalone */
@@ -177,7 +188,7 @@ Version 0.1
           <input name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search every holospace, spec, doc and object…" style="flex:1;min-width:16rem;border-radius:999px;padding:.55rem 1rem" aria-label="Search the Hologram OS" />
           <button class="primary" type="submit" style="border-radius:999px">🔍 Holo Search</button>
         </form>
-        <p class="hint" style="margin:.5rem 0 0">Holo Search — OpenSearch-faithful, ranked by HoloRank; every result re-derives to its <span class="k">did:holo</span> (Law L5). Press Enter to open.</p>
+        <p class="hint" style="margin:.5rem 0 0">Holo Search — one box over the whole OS and the open web. Every result is verified before it opens. Press Enter to open.</p>
       </div>
 
       <h2>New holospace</h2>
@@ -189,15 +200,15 @@ Version 0.1
           </div>
           <div>
             <label for="harch">Architecture</label>
-            <select id="harch" title="The guest's instruction-set architecture — fixed for its life (part of its content-addressed identity, Law L1 / ADR-021).">
+            <select id="harch" title="The processor type this space runs on — chosen once when it's created and fixed for its life.">
               <option value="riscv64">riscv64 (RV64GC)</option>
               <option value="aarch64">aarch64 (ARMv8-A)</option>
             </select>
           </div>
           <button id="create" class="primary" disabled>Create devcontainer</button>
         </div>
-        <p class="hint">The architecture is chosen once, at launch — like an instance type in a cloud console. It is part of the holospace's identity (the same config under two ISAs is two distinct holospaces), so it cannot be changed afterward. Everything else (lifecycle · network · storage · access) is editable per guest in its settings.</p>
-        <label for="dcjson">devcontainer.json (validated against the Dev Container spec — CC-4)</label>
+        <p class="hint">The processor type is chosen once, when the space is created, and can't be changed afterward — it's part of what makes this space itself. Everything else (lifecycle, network, storage, access) you can change anytime in its settings.</p>
+        <label for="dcjson">devcontainer.json (standard Dev Container format)</label>
         <textarea id="dcjson" spellcheck="false">{
   "name": "my-devcontainer",
   "image": "mcr.microsoft.com/devcontainers/base:debian-12",
@@ -215,8 +226,7 @@ Version 0.1
         </tbody>
       </table>
       <p class="muted" style="margin-top:1rem">
-        roster κ <span id="roster" class="k">—</span> · the browser is a peer that
-        <em>is</em> the substrate (Law L1); your holospaces are content in the store (Law L3).
+        Your spaces live in this browser, on your machine — nothing is kept on a server.
       </p>
 
       <h2>Conformance specs</h2>
@@ -244,11 +254,11 @@ Version 0.1
           <h3>Details <span class="lock">· fixed at launch 🔒</span></h3>
           <dl class="details">
             <dt>Architecture</dt><dd><span id="d-arch" class="badge arch">—</span></dd>
-            <dt>Identity (κ)</dt><dd class="k" id="d-kappa">—</dd>
+            <dt>Identity</dt><dd class="k" id="d-kappa">—</dd>
             <dt>Source</dt><dd class="muted" id="d-source">—</dd>
             <dt>Status</dt><dd id="d-status">—</dd>
           </dl>
-          <p class="hint">Identity, architecture, and source are content-addressed — immutable by construction (Law L1).</p>
+          <p class="hint">These define what this space is — so they're set once when it's created and never change.</p>
         </section>
 
         <section>
@@ -259,7 +269,7 @@ Version 0.1
             <button class="sm" data-life="resume">Resume</button>
             <button class="sm danger" data-life="terminate">Terminate</button>
           </div>
-          <p class="hint">Publishes a lifecycle Configuration (CC-28); the running instance resolves, verifies, and applies it over the control channel (ADR-018).</p>
+          <p class="hint">Start, pause, resume, or stop this space. The change is sent to it and applied safely.</p>
         </section>
 
         <section>
@@ -275,7 +285,7 @@ Version 0.1
             <label class="toggle"><input type="checkbox" id="d-announce" /> announce</label>
             <button class="sm" id="d-network">Apply network</button>
           </div>
-          <p class="hint">Forwarded guest ports become app-preview URLs; fetch/announce govern the guest's substrate connectivity.</p>
+          <p class="hint">A forwarded port becomes a link you can open. Fetch and announce control how this space reaches the network.</p>
         </section>
 
         <section>
@@ -285,17 +295,17 @@ Version 0.1
             <input id="d-quota" type="number" min="0" placeholder="512" />
             <button class="sm" id="d-quota-apply">Set quota</button>
           </div>
-          <p class="hint">A byte ceiling on the guest's content in the store.</p>
+          <p class="hint">The most storage this space is allowed to use.</p>
         </section>
 
         <section>
           <h3>Access</h3>
           <div class="field">
-            <label for="d-grant">Grant κ</label>
-            <input id="d-grant" placeholder="blake3:… principal/capability" />
+            <label for="d-grant">Grant access</label>
+            <input id="d-grant" placeholder="identity or capability to grant" />
             <button class="sm" id="d-grant-apply">Grant</button>
           </div>
-          <p class="hint">Grant a content-addressed principal access to this guest (CC-1 self-sovereign identity).</p>
+          <p class="hint">Let another identity open and use this space.</p>
         </section>
       </div>
     </aside>
@@ -377,7 +387,7 @@ Version 0.1
       function render() {
         const v = JSON.parse(console0.view());
         $("operator").textContent = v.operator || "(signed out)";
-        $("roster").textContent = console0.roster_kappa() || "—";
+        { const r = $("roster"); if (r) r.textContent = console0.roster_kappa() || "—"; }
         const tbody = $("rows");
         if (v.holospaces.length === 0) {
           tbody.innerHTML = '<tr><td colspan="6" class="muted">No holospaces yet — sign in and create one.</td></tr>';
@@ -445,7 +455,7 @@ Version 0.1
           // Real: publish a lifecycle configuration the instance applies (no stub).
           const cfg = configure(k, [{ lifecycle: "suspend" }]);
           m.status = "suspended"; render();
-          toast(m.name + " — published suspend config " + cfg.slice(0, 22) + "… (the instance applies it over the substrate)");
+          toast(m.name + " — suspend settings sent; the space will apply them");
         } else if (act === "settings") {
           openDrawer(k);
         } else if (act === "remove") {
@@ -525,7 +535,7 @@ Version 0.1
       };
       $("d-grant-apply").onclick = () => {
         const principal = $("d-grant").value.trim();
-        if (!principal) return toast("enter a principal κ to grant");
+        if (!principal) return toast("enter an identity to grant");
         applyToDrawer([{ grant: principal }], "grant");
       };
 
@@ -559,7 +569,7 @@ Version 0.1
         console0.sign_in(new TextEncoder().encode("operator-self-sovereign-key"));
         $("create").disabled = false;
         render();
-        toast("signed in — a self-sovereign, content-addressed identity (CC-1)");
+        toast("signed in — your identity stays private to you");
       };
 
       $("create").onclick = () => {
@@ -733,6 +743,13 @@ Version 0.1
       }
     </style>
     <script src="_shared/holo-dock.js" defer></script>
+    <!-- Holo Voice (ADR-Holo-Voice): serverless, OS-wide voice navigation. A floating mic
+         (push-to-talk / Alt+V) captures ONE utterance, an on-device recognizer (the HoloQVAC voice
+         seam → Whisper on WebGPU / Moonshine on WASM) turns it into text, an intent router maps it to
+         a real OS action (open app · show desktop · search · theme), and the OS confirms out loud via
+         on-device speechSynthesis. Nothing leaves the device. Hidden behind the boot splash. -->
+    <style> html.booting #holo-voice-btn, html.booting #holo-voice-hud, html.booting #holo-voice-menu { display: none; } </style>
+    <script src="_shared/holo-voice.js" defer></script>
     <!-- Holo Desk: the substrate-native DESKTOP — a wallpaper plane + icon grid over the writable OPFS
          Home (/home/user/Desktop). It feels native in any browser (right-click "New ▸ Folder", inline
          rename, drag to arrange), reskins to the host OS (Windows/macOS) via HoloPlatform, renders every
@@ -742,6 +759,17 @@ Version 0.1
     <style> html.booting #holo-desk { display: none; } </style>
     <script src="_shared/holo-icons.js" defer></script>
     <script src="_shared/holo-desk.js" defer></script>
+    <!-- Holo Widgets: the runtime for editable, holo-native desktop objects (clock, note, focus, the
+         vinyl disc, …). Each floats on this top plane, drags/resizes/edits in place, and shares by
+         content address. MUST load before holo-vinyl so the vinyl type is registered before restore.
+         Add widgets from the desktop's New menu; hidden behind the boot splash. -->
+    <style> html.booting .hw-widget { display: none; } </style>
+    <script src="_shared/holo-widgets.js" defer></script>
+    <!-- Holo Vinyl: the music disc — now a Holo Widget type for its floating instances (it rides the
+         runtime's frame), plus the persistent dock tile so sound keeps flowing across app frames.
+         Add it from the desktop's New ▸ Vinyl Player; hidden behind the boot splash. -->
+    <style> html.booting .hv-widget { display: none; } </style>
+    <script src="_shared/holo-vinyl.js" defer></script>
     <!-- Holo Terms (MyTerms / IEEE 7012): the desktop entry point to your machine-readable personal
          terms. The shield opens the Holo Terms control center; hidden behind the boot splash. -->
     <style> html.booting #holo-terms-btn { display: none; } </style>

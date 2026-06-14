@@ -86,12 +86,27 @@
     var flat = resolveAliases(flatten(json));
     var get = function (p) { return flat[p] ? flat[p].value : undefined; };
     var vars = {};
-    // colors → light-dark(light, dark)
-    COLORS.forEach(function (name) {
+    // colors → light-dark(light, dark). The fixed core names are always considered; in addition
+    // ANY other color.light.* / color.dark.* leaf passes through generically (e.g. full ramps like
+    // gray-500, blue-600) → --holo-<name>, so a theme can carry the complete token surface, not just
+    // the core. Mode-independent colors (a ramp value present only once) emit a plain value.
+    var colorNames = {};
+    COLORS.forEach(function (n) { colorNames[n] = 1; });
+    for (var p in flat) {
+      var m = /^color\.(light|dark)\.(.+)$/.exec(p);
+      if (m) colorNames[m[2]] = 1;
+    }
+    Object.keys(colorNames).forEach(function (name) {
       var l = get("color.light." + name), d = get("color.dark." + name);
       if (l == null && d == null) return;
       vars["--holo-" + name] = (l != null && d != null) ? "light-dark(" + l + ", " + d + ")" : String(l != null ? l : d);
     });
+    // scales → --holo-<name> (spacing, radii, weights, line-heights, tracking, shadows…): any
+    // scale.* leaf passes through, with dots in the leaf path becoming dashes (scale.space.4 → space-4).
+    for (var sp in flat) {
+      var sm = /^scale\.(.+)$/.exec(sp);
+      if (sm) vars["--holo-" + sm[1].replace(/\./g, "-")] = String(flat[sp].value);
+    }
     // typography
     if (get("font.family.sans") != null) vars["--holo-font-sans"] = fontValue(get("font.family.sans"));
     if (get("font.family.serif") != null) vars["--holo-font-serif"] = fontValue(get("font.family.serif"));

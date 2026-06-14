@@ -1,0 +1,211 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "schema": "https://schema.org/",
+    "af": "https://agentfacts.org/schema/v1#",
+    "bt": "https://hologram.os/ns/bittensor#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "domain": { "@id": "rdfs:domain", "@type": "@id" },
+    "range": { "@id": "rdfs:range", "@type": "@id" },
+    "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
+    "subPropertyOf": { "@id": "rdfs:subPropertyOf", "@type": "@id" },
+    "closeMatch": { "@id": "skos:closeMatch", "@type": "@id" },
+    "isDefinedBy": { "@id": "rdfs:isDefinedBy", "@type": "@id" }
+  },
+  "@id": "https://hologram.os/ns/bittensor",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — Bittensor projection vocabulary (bt:)",
+  "comment": "The small namespace Holo Bittensor (ADR-0071) mints: the Bittensor / Subtensor terms its content-addressed projection needs and that have NO W3C / community equivalent. Mint-nothing discipline (ADR-024): a term with a near-equivalent declares skos:closeMatch to it; the genuinely Bittensor-specific economic terms (netuid, hotkey, stake, consensus, incentive, dividends, emission) stand alone. Everything else in the projection reuses Project NANDA's af: vocabulary, DCAT, PROV-O, schema.org, DCMI Terms, and W3C DID/VC unchanged — a Bittensor neuron is projected as a valid NANDA AgentFacts object, not a Hologram-minted type. This document is itself valid JSON-LD. Authority: Bittensor SDK (https://docs.learnbittensor.org/sdk/bt-api-ref), Subtensor, Yuma consensus.",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "dcterms:source": "https://docs.learnbittensor.org/sdk/bt-api-ref",
+  "@graph": [
+    {
+      "@id": "bt:MetagraphSnapshot",
+      "@type": "rdfs:Class",
+      "label": "Metagraph Snapshot",
+      "comment": "The state of one Bittensor subnet at one block, canonicalized and content-addressed: a κ-rooted catalogue of every neuron's AgentFacts whose did:holo commits to the pinned block hash, so it re-derives against the chain (Law L5). A specialization of a DCAT catalogue and a PROV entity.",
+      "subClassOf": "dcat:Catalog",
+      "closeMatch": "prov:Entity",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:Neuron",
+      "@type": "rdfs:Class",
+      "label": "Neuron",
+      "comment": "A participant (miner or validator) on a Bittensor subnet, identified by its hotkey. Projected as a NANDA AgentFacts object and a did:pkh chain principal in the one κ graph — never identified by its axon endpoint (Law L1).",
+      "subClassOf": "schema:SoftwareApplication",
+      "closeMatch": "af:AgentFacts",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:Attestation",
+      "@type": "rdfs:Class",
+      "label": "Stake Attestation",
+      "comment": "A re-derivable reputation claim derived from a neuron's Yuma consensus weights at a block — capital-backed and Sybil-resistant. Its auditTrail IS the snapshot κ (the proof, not a self-reported number), so it cannot be gamed (Holo AgentTrust, ADR-039). A specialization of a schema.org Rating.",
+      "subClassOf": "schema:Rating",
+      "closeMatch": "prov:Entity",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:netuid",
+      "@type": "rdf:Property",
+      "label": "netuid",
+      "comment": "The numeric id of the Bittensor subnet a neuron belongs to. Bittensor-specific; no standard equivalent.",
+      "range": "xsd:integer",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:uid",
+      "@type": "rdf:Property",
+      "label": "uid",
+      "comment": "The neuron's slot index within its subnet's metagraph at the snapshot block.",
+      "range": "xsd:integer",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:hotkey",
+      "@type": "rdf:Property",
+      "label": "hotkey",
+      "comment": "The neuron's ss58 hot account — its serving/identity key. This is the neuron's identity (a did:pkh principal), not its location.",
+      "range": "xsd:string",
+      "closeMatch": "schema:identifier",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:coldkey",
+      "@type": "rdf:Property",
+      "label": "coldkey",
+      "comment": "The neuron's ss58 cold account — its custody/stake-owning key.",
+      "range": "xsd:string",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:axon",
+      "@type": "rdf:Property",
+      "label": "axon",
+      "comment": "The neuron's advertised serving endpoint (host:port). A TRANSPORT hint resolved from the snapshot, NEVER an identity (Law L1).",
+      "range": "xsd:string",
+      "closeMatch": "schema:url",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:role",
+      "@type": "rdf:Property",
+      "label": "role",
+      "comment": "Whether the neuron acts as a miner or a validator at the snapshot block.",
+      "range": "xsd:string",
+      "closeMatch": "schema:roleName",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:stake",
+      "@type": "rdf:Property",
+      "label": "stake",
+      "comment": "The neuron's total staked TAO at the snapshot block — the capital backing its consensus weight.",
+      "range": "xsd:decimal",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:rank",
+      "@type": "rdf:Property",
+      "label": "rank",
+      "comment": "The neuron's rank within the Yuma consensus at the snapshot block (0..1).",
+      "range": "xsd:decimal",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:trust",
+      "@type": "rdf:Property",
+      "label": "trust",
+      "comment": "The neuron's trust score — the fraction of validators that set a non-zero weight on it (0..1).",
+      "range": "xsd:decimal",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:consensus",
+      "@type": "rdf:Property",
+      "label": "consensus",
+      "comment": "The neuron's stake-weighted Yuma consensus weight at the snapshot block (0..1) — the network's capital-backed agreement on its value. Projected as the schema:ratingValue of its Attestation.",
+      "range": "xsd:decimal",
+      "closeMatch": "schema:ratingValue",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:incentive",
+      "@type": "rdf:Property",
+      "label": "incentive",
+      "comment": "The neuron's incentive (the mining reward share it earns) at the snapshot block.",
+      "range": "xsd:decimal",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:dividends",
+      "@type": "rdf:Property",
+      "label": "dividends",
+      "comment": "The neuron's dividends (the validating reward share it earns) at the snapshot block.",
+      "range": "xsd:decimal",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:emission",
+      "@type": "rdf:Property",
+      "label": "emission",
+      "comment": "The neuron's per-block TAO emission at the snapshot block.",
+      "range": "xsd:decimal",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:block",
+      "@type": "rdf:Property",
+      "label": "block",
+      "comment": "The Subtensor block height the snapshot was taken at.",
+      "range": "xsd:integer",
+      "closeMatch": "dcterms:date",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:blockHash",
+      "@type": "rdf:Property",
+      "label": "block hash",
+      "comment": "The Subtensor block hash the snapshot is pinned to — Bittensor's own Merkle commitment to chain state, which the snapshot's did:holo commits to in turn (the bridge that makes the projection re-derive against the chain).",
+      "range": "xsd:string",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:caip",
+      "@type": "rdf:Property",
+      "label": "caip",
+      "comment": "The CAIP-2 chain id of the Subtensor chain (polkadot:<genesis-hash-prefix>) — the chain-agnostic name under which a hotkey becomes a did:pkh principal (composes the Chain Abstraction Layer, holo-chain).",
+      "range": "xsd:string",
+      "closeMatch": "schema:identifier",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:neuronCount",
+      "@type": "rdf:Property",
+      "label": "neuron count",
+      "comment": "The number of neurons captured in a metagraph snapshot.",
+      "range": "xsd:integer",
+      "closeMatch": "dcat:recordCount",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    },
+    {
+      "@id": "bt:attestation",
+      "@type": "rdf:Property",
+      "label": "attestation",
+      "comment": "Links a metagraph snapshot to a neuron's content-addressed stake Attestation (a Merkle edge in the catalogue).",
+      "domain": "bt:MetagraphSnapshot",
+      "range": "bt:Attestation",
+      "closeMatch": "schema:hasPart",
+      "isDefinedBy": "https://hologram.os/ns/bittensor"
+    }
+  ]
+}

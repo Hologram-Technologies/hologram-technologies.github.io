@@ -1,0 +1,30 @@
+{
+  "witnessed": false,
+  "checks": {
+    "closureReDerives": false,
+    "rootReDerives": false,
+    "selfContained": true,
+    "conscienceGated": true,
+    "provReceipt": true,
+    "permissionModes": true,
+    "substrateTools": true,
+    "providerSeam": true,
+    "localDrivesTools": true,
+    "holoQAgentic": true,
+    "delegatesToHoloQ": true,
+    "agentArmsModel": true,
+    "manifestConforms": true
+  },
+  "failed": [
+    "closureReDerives — 23 files · 1 mismatch · 0 unresolved",
+    "rootReDerives — did:holo:sha256:f2f29c4f… vs did:holo:sha256:ac7fc099…"
+  ],
+  "covers": [
+    "Holo Code is a substrate-native, sovereign reproduction of the Claude Code terminal agent — its whole closure RE-DERIVES to its content address (Law L5), self-contained over the OS runtime (0 fallbacks)",
+    "The inference brain is pluggable: a LOCAL deterministic provider that turns a request into a REAL substrate tool call (no model download), AND the Holo Q (QVAC WebGPU, ADR-0052) on-device LLM — the model is armed with the tool schemas + a coding-agent persona and runs the desktop-Claude agentic loop, reasoning and emitting Qwen2.5 function-calls that the agent executes conscience-gated over the substrate and feeds back until it answers; the integration COMPOSES Holo Q's own loader→engine + tool wire-format (toolSystemPrompt/parseToolCalls), and greedy decode is deterministic so the turn re-derives (an inference receipt, Law L5)",
+    "Permission is the fail-closed conscience gate (ADR-033) — the agent evaluates every tool call and refuses when unsealed; the familiar Claude Code modes (default · plan · auto · acceptEdits · bypass) layer on the constitutional floor",
+    "The tool catalog (read · write · edit · glob · grep · verify · build · run · share) operates over the holo-files content-addressed VFS, each result carrying the did:holo κ of the bytes it touched",
+    "Every session seals to a re-derivable PROV-O work receipt (steps · target κ · conscience verdict) — a session you can prove, not just remember"
+  ],
+  "authority": "re-derivation of the shipped bytes + execution of the shipped provider logic (no browser, no server)"
+}

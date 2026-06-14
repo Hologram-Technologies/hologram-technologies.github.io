@@ -41,33 +41,36 @@ function el(tag, props = {}, ...kids) {
 
 // Button.qml — #4682b4 → active #266294 → pressed #064264; white bold text; inner white focus
 // border; 200ms ColorAnimation; PointingHandCursor.
+// The Hologram greeter button — a φ-proportioned (h≈44 = 27·φ) brand-teal pill on the dark glass
+// card; soft lift + glow on hover, never a colour an SDDM raster shipped. Reduced-motion-safe.
 export function Button({ text = "Button", width, onClick }) {
   const b = el("button", { class: "sddm-btn", type: "button" }, text);
-  b.style.cssText = `min-width:${width || 80}px;height:${Math.round(30 * 1)}px;border:0;color:#fff;font-weight:700;
-    font-size:14px;cursor:pointer;border-radius:2px;background:#4682b4;transition:background .2s,box-shadow .2s;
-    box-shadow:inset 0 0 0 0 rgba(255,255,255,0);padding:0 12px;`;
-  const set = (bg, focus) => { b.style.background = bg; b.style.boxShadow = focus ? "inset 0 0 0 1px #fff" : "inset 0 0 0 0 rgba(255,255,255,0)"; };
-  b.addEventListener("mouseenter", () => set("#266294", true));
-  b.addEventListener("mouseleave", () => set("#4682b4", false));
-  b.addEventListener("mousedown", () => set("#064264", true));
-  b.addEventListener("mouseup", () => set("#266294", true));
-  b.addEventListener("focus", () => set("#266294", true));
-  b.addEventListener("blur", () => set("#4682b4", false));
+  b.style.cssText = `min-width:${width || 144}px;height:44px;border:0;border-radius:13px;color:#04130d;
+    font-weight:700;font-size:15px;letter-spacing:.01em;cursor:pointer;padding:0 22px;
+    background:linear-gradient(135deg,#7defc9,#34d3a6);box-shadow:0 8px 26px rgba(52,211,166,.30);
+    transition:transform .15s ease,box-shadow .2s ease,filter .2s ease;`;
+  const rest = () => { b.style.transform = ""; b.style.boxShadow = "0 8px 26px rgba(52,211,166,.30)"; b.style.filter = ""; };
+  const hov = () => { b.style.transform = "translateY(-1px)"; b.style.boxShadow = "0 13px 32px rgba(52,211,166,.46)"; b.style.filter = "brightness(1.05)"; };
+  b.addEventListener("mouseenter", hov);
+  b.addEventListener("mouseleave", rest);
+  b.addEventListener("focus", hov);
+  b.addEventListener("blur", rest);
+  b.addEventListener("mousedown", () => { b.style.transform = "translateY(0) scale(.98)"; });
+  b.addEventListener("mouseup", hov);
   if (onClick) b.addEventListener("click", onClick);
   return b;
 }
 
 // TextBox.qml — white bg, 1px border #ababab; hover #5692c4; focus #266294; black text;
 // 8px inner inset (TextInput width = parent − 16); 100ms transition.
-export function TextBox({ password = false, value = "", placeholder = "", height = 30, onEnter } = {}) {
+export function TextBox({ password = false, value = "", placeholder = "", height = 44, onEnter } = {}) {
   const i = el("input", { type: password ? "password" : "text", placeholder, autocomplete: password ? "current-password" : "off" });
   i.value = value;
-  i.style.cssText = `width:100%;height:${height}px;box-sizing:border-box;background:#fff;color:#000;
-    border:1px solid #ababab;border-radius:0;padding:0 8px;font-size:14px;outline:none;transition:border-color .1s;`;
-  i.addEventListener("mouseenter", () => { if (document.activeElement !== i) i.style.borderColor = "#5692c4"; });
-  i.addEventListener("mouseleave", () => { if (document.activeElement !== i) i.style.borderColor = "#ababab"; });
-  i.addEventListener("focus", () => { i.style.borderColor = "#266294"; });
-  i.addEventListener("blur", () => { i.style.borderColor = "#ababab"; });
+  i.style.cssText = `width:100%;height:${height}px;box-sizing:border-box;background:rgba(255,255,255,.045);color:#eef1ff;
+    border:1px solid rgba(125,239,201,.20);border-radius:12px;padding:0 14px;font-size:15px;outline:none;text-align:center;
+    transition:border-color .15s,background .15s,box-shadow .15s;`;
+  i.addEventListener("focus", () => { i.style.borderColor = "rgba(125,239,201,.65)"; i.style.background = "rgba(255,255,255,.07)"; i.style.boxShadow = "0 0 0 4px rgba(52,211,166,.10)"; });
+  i.addEventListener("blur", () => { i.style.borderColor = "rgba(125,239,201,.20)"; i.style.background = "rgba(255,255,255,.045)"; i.style.boxShadow = "none"; });
   if (onEnter) i.addEventListener("keydown", (e) => { if (e.key === "Enter") onEnter(e); });
   return i;
 }
@@ -129,7 +132,7 @@ export const textConstants = {
 // so it is the single canonical holospace shell. The Platform Manager (devcontainer console) and
 // the standalone editor/terminal are folded into selectable sessions, no longer rival default shells.
 const SESSIONS = [
-  { id: "primeos", name: "PrimeOS", loader: "apps/sdk/index.html" },
+  { id: "primeos", name: "PrimeOS", loader: "shell.html" },
   { id: "manager", name: "Platform Manager", loader: "home.html?manage" },
   { id: "debian", name: "Debian (terminal)", loader: "os.html" },
   { id: "workspace", name: "Workspace (VS Code)", loader: "workspace.html" },
@@ -181,9 +184,16 @@ function pairOverlay({ svg, onCancel }) {
 
 // createGreeter(params) — wires the real SDDM API to the self-sovereign + hardware-bound backend.
 export async function createGreeter(params) {
-  const NEXT = params.get("next") || "apps/sdk/index.html";
+  // CANONICAL LANDING — every sign-in (operator OR guest) ends on the PrimeOS holospace desktop
+  // (SESSIONS[0] = shell.html). A boot entry MAY request a specific session via ?next=<loader> (the
+  // rEFInd menu offers Debian / Workspace / Manager); if next names a KNOWN session we honour it,
+  // otherwise we ALWAYS fall back to the canonical desktop — so a stale or unknown next (e.g. a legacy
+  // apps/sdk/index.html) can never strand anyone off the desktop. There is exactly one default.
+  const CANONICAL_SESSION = 0;                           // SESSIONS[0] = primeos = shell.html, the one holospace desktop
+  const NEXT = params.get("next") || "shell.html";
   const loaderBase = NEXT.split("?")[0];                 // the loader the boot entry asked for (sans query)
-  const defaultSessionIndex = Math.max(0, SESSIONS.findIndex((s) => s.loader.split("?")[0] === loaderBase));
+  const matchedSession = SESSIONS.findIndex((s) => s.loader.split("?")[0] === loaderBase);
+  const defaultSessionIndex = matchedSession >= 0 ? matchedSession : CANONICAL_SESSION;
 
   const users = await roster().catch(() => []);
   const host = await measure().catch(() => null);
@@ -213,6 +223,16 @@ export async function createGreeter(params) {
     return { url, token };
   }
 
+  // enterShell(url) — the ONE handoff to the desktop, fired at the very END of every sign-in path (not on
+  // the tap). No fullscreen (it jumps); instead the greeter's view plays a glass-unfog on loginSucceeded
+  // and we redirect once the frost has cleared. The desktop wears the same aurora wallpaper and fades in,
+  // so the seam is invisible. Guarded so repeated taps can't double-navigate.
+  function enterShell(url, delay = 850) {
+    if (sddm.__entering) return; sddm.__entering = true;
+    sddm.__pendingUrl = url;
+    setTimeout(() => { location.href = url; }, delay);
+  }
+
   const sddm = {
     hostName,
     canPowerOff: true, canReboot: true,
@@ -230,8 +250,7 @@ export async function createGreeter(params) {
         if (match) principal = await unlock(match.kappa, password);
         else principal = await enroll({ label: name, passphrase: password });   // first run / new identity
         const { url } = await establish(principal, session);
-        sddm.__pendingUrl = url;
-        setTimeout(() => { location.href = url; }, 850);
+        enterShell(url);
       } catch (e) {
         emit("informationMessage", /passphrase/i.test(e.message || "") ? "Wrong passphrase" : (e.message || "Login failed"));
         emit("loginFailed");
@@ -248,8 +267,7 @@ export async function createGreeter(params) {
       const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
       const finish = async (principal) => {
         const { url } = await establish(principal, session);
-        sddm.__pendingUrl = url;
-        setTimeout(() => { location.href = url; }, 850);
+        enterShell(url);
       };
       // passphrase path: unlock an existing key, or enrol a new one wrapped with a typed secret.
       const viaPassphrase = async () => {
@@ -310,8 +328,7 @@ export async function createGreeter(params) {
         if (!op) throw new Error("This device doesn't recognise that identity");
         const principal = await unlock(op.kappa, secret);         // re-derives κ (Law L5)
         const { url } = await establish(principal, session);
-        sddm.__pendingUrl = url;
-        setTimeout(() => { location.href = url; }, 850);
+        enterShell(url);
       } catch (e) {
         // A real biometric cancel/timeout → report it. Anything else (no PRF, unknown passkey) →
         // fall back to the Name field so the operator can still sign in or enrol.
@@ -349,8 +366,7 @@ export async function createGreeter(params) {
         emit("loginSucceeded");
         const sep = session.loader.includes("?") ? "&" : "?";
         const u = `${session.loader}${sep}operator=${encodeURIComponent(got.operator)}&host=${encodeURIComponent(host ? host.hostKappa : "")}&session=${encodeURIComponent(got.grant.id)}&via=pair`;
-        sddm.__pendingUrl = u;
-        setTimeout(() => { location.href = u; }, 850);
+        enterShell(u);
       } catch (e) {
         const msg = "Phone sign-in failed: " + (e && e.message || e);
         if (sddm.__pairing && sddm.__pairing.ui) sddm.__pairing.ui.status(msg); else emit("informationMessage", msg);
@@ -365,11 +381,25 @@ export async function createGreeter(params) {
         const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
         emit("informationMessage", "Entering as guest…");
         const { url } = await establish(principal, session, { guest: true });
-        sddm.__pendingUrl = url;
-        setTimeout(() => { location.href = url; }, 350);
+        enterShell(url);
         return url;
       } catch (e) {
         emit("informationMessage", "Guest sign-in failed: " + (e && e.message || e));
+        emit("loginFailed");
+      }
+    },
+    // sddm.unlockPass(kappa, secret) — direct passphrase unlock of a chosen operator (the lock-screen
+    // PIN/passphrase box). Biometric stays the primary via unlockDevice(); this is the typed fallback.
+    async unlockPass(kappa, secret) {
+      const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
+      try {
+        if (!secret) { emit("informationMessage", "Enter your passphrase"); emit("loginFailed"); return; }
+        emit("informationMessage", "Verifying…");
+        const principal = await unlock(kappa, secret);            // holo-login.unlock → re-derives κ (Law L5)
+        const { url } = await establish(principal, session);
+        enterShell(url);
+      } catch (e) {
+        emit("informationMessage", /wrong|passphrase|decrypt|aead|tag|secret/i.test((e && e.message) || "") ? "That passphrase didn't work" : ((e && e.message) || "Sign-in failed"));
         emit("loginFailed");
       }
     },

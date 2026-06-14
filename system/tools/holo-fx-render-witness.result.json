@@ -1,0 +1,171 @@
+{
+  "spec": "Holo FX (unicode-animations adoption) renders + animates in a real browser, reduced-motion aware",
+  "witnessed": true,
+  "results": [
+    {
+      "name": "engine exposes all 18 spinners",
+      "ok": true,
+      "detail": "18 names"
+    },
+    {
+      "name": "Instrument vocabulary present (braille·scan·dna·cascade)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "gridToBraille(makeGrid(4,2)) === ⠀",
+      "ok": true,
+      "detail": "\"⠀\""
+    },
+    {
+      "name": "scan interval = 70ms (faithful to spec)",
+      "ok": true,
+      "detail": "70ms"
+    },
+    {
+      "name": "HoloFX.loader helper present",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "scan loader renders a braille glyph",
+      "ok": true,
+      "detail": "glyphs: ⠀⠀⠀⠀⡇⠀⠀⠀⣿⠀⠀⠀⢸⡇⠀⠀⠀⣿⠀⠀⠀⢸⡇⠀⠀⠀⣿⠀⠀⠀⢸⡇⠀⠀⠀⣿⠀⠀⠀⢸"
+    },
+    {
+      "name": "scan loader ANIMATES (frames change)",
+      "ok": true,
+      "detail": "10 distinct frames"
+    },
+    {
+      "name": "reduced-motion shows a single static frame (no timer)",
+      "ok": true,
+      "detail": "1 frame(s): ⣿⠀⠀⠀"
+    },
+    {
+      "name": "hash→braille is faithful (cell = U+2800 | byte)",
+      "ok": true,
+      "detail": "32 cells, first 0x283f"
+    },
+    {
+      "name": "auto-scan upgrades a did:holo digest in text",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "κ braille STREAMS (frames change)",
+      "ok": true,
+      "detail": "8 distinct frames"
+    },
+    {
+      "name": "hover reveals the hash underneath",
+      "ok": true,
+      "detail": "did:holo:sha256:3ff288d0c06a…"
+    },
+    {
+      "name": "hover shows a copy button beside the hash",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "clicking copy puts the FULL κ on the clipboard",
+      "ok": true,
+      "detail": "did:holo:sha256:3ff288d0…"
+    },
+    {
+      "name": "copy confirms with a check state",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "leaving resumes the stream + removes the button",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "auto-detects EVM 0x address (20 bytes) → faithful braille",
+      "ok": true,
+      "detail": "20 cells (want 20)"
+    },
+    {
+      "name": "  EVM 0x address (20 bytes) hover reveals + copy the full address",
+      "ok": true,
+      "detail": "0x529084000985…"
+    },
+    {
+      "name": "auto-detects did:key ed25519 (34 bytes) → faithful braille",
+      "ok": true,
+      "detail": "34 cells (want 34)"
+    },
+    {
+      "name": "  did:key ed25519 (34 bytes) hover reveals + copy the full address",
+      "ok": true,
+      "detail": "did:key:z6Mkha…"
+    },
+    {
+      "name": "auto-detects BTC bech32 (20-byte program) → faithful braille",
+      "ok": true,
+      "detail": "20 cells (want 20)"
+    },
+    {
+      "name": "  BTC bech32 (20-byte program) hover reveals + copy the full address",
+      "ok": true,
+      "detail": "bc1qw508d6qejx…"
+    },
+    {
+      "name": "meter(v) is a faithful braille level bar (0·½·1)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "graph() plots a faithful braille sparkline",
+      "ok": true,
+      "detail": "rising ramp → ⣀⠤⠒⠉"
+    },
+    {
+      "name": "scope() renders a LIVE braille waveform",
+      "ok": true,
+      "detail": "10 frames"
+    },
+    {
+      "name": "audioScope() wires an analyser without throwing",
+      "ok": true,
+      "detail": "9-cell readout"
+    },
+    {
+      "name": "audioScope() turns real sound into a moving braille EQ",
+      "ok": true,
+      "detail": "1 frames, signal=true"
+    },
+    {
+      "name": "Holo Q tokens/sec → a LIVE braille sparkline",
+      "ok": true,
+      "detail": "24 frames"
+    },
+    {
+      "name": "Holo Q shows the numeric rate alongside",
+      "ok": true,
+      "detail": "\"45 tok/s\""
+    },
+    {
+      "name": "Holo Code tokens/sec → a LIVE braille sparkline beside the byline",
+      "ok": true,
+      "detail": "21 frames"
+    },
+    {
+      "name": "Holo Code shows the numeric rate",
+      "ok": true,
+      "detail": "\"32 tok/s\""
+    },
+    {
+      "name": "Holo Music: scope reads an analyser into a braille spectrum",
+      "ok": true,
+      "detail": "14-cell"
+    },
+    {
+      "name": "Holo Music: real signal moves the braille spectrum",
+      "ok": true,
+      "detail": "signal=true"
+    }
+  ]
+}

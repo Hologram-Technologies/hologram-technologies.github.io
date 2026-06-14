@@ -3,18 +3,21 @@
 // beautiful, serverless, content-addressed holospace — its index.html (auto-wired to the five OS core
 // modules, QVAC-style @hologram/sdk imports, embedded schema.org JSON-LD conformance), holospace.json
 // manifest, and icon.svg. ONE source of templates, two front ends: the CLI (tools/create-holospace.mjs)
-// writes the files + drives the build pipeline; the browser playground (apps/sdk) calls scaffold() live.
+// writes the files + drives the build pipeline; the shell (shell.html) calls scaffold() live.
 
 export const pascal = (s) => String(s).replace(/[^a-z0-9]+/gi, " ").trim().split(/\s+/).map((w) => w[0].toUpperCase() + w.slice(1)).join("");
 
 // scaffold(opts) → { id, identifier, name, summary, category, accent, minimal, manifest, files }
 // files = { "holospace.json": string, "index.html": string, "icon.svg": string } — ready to write.
 export function scaffold(opts = {}) {
-  let { id, name, summary, category, accent, minimal } = opts;
+  let { id, name, summary, category, accent, minimal, qvac } = opts;
+  qvac = !!qvac;                                                  // --qvac → an on-device AI holospace on the QVAC SDK (ADR-0067)
   if (!name) name = "Holo " + pascal(id);
   const identifier = "org.hologram." + (pascal(name).startsWith("Holo") ? pascal(name) : "Holo" + pascal(name));
-  if (!summary) summary = `${name} — a serverless, content-addressed holospace, auto-wired to Holo UI · UX · Terms · Privacy · Conform.`;
-  if (!category) category = "Utility";
+  if (!summary) summary = qvac
+    ? `${name} — an on-device AI holospace on the QVAC SDK: it runs a model in your browser, private and serverless, and proves every answer (Law L5).`
+    : `${name} — a serverless, content-addressed holospace, auto-wired to Holo UI · UX · Terms · Privacy · Conform.`;
+  if (!category) category = qvac ? "AI" : "Utility";
   if (!accent) accent = "";
   minimal = !!minimal;
 
@@ -33,11 +36,13 @@ export function scaffold(opts = {}) {
     applicationCategory: category,
     // Built ON the Holo Product foundation (ADR-0065): it inherits the balanced Holo UI ⊕ Holo UX
     // faculties (via the wired engines below) and follows the hybrid method (see DECISION.md).
-    builtOn: "holo-product",
+    // A QVAC app is builtOn the QVAC SDK (ADR-0067), which itself rests on Holo Product; a plain app is
+    // builtOn Holo Product directly. Either way it inherits the balanced Holo UI ⊕ Holo UX faculties.
+    builtOn: qvac ? "qvac-sdk" : "holo-product",
     conforms: { specs: ["holo-sdk", "holo-terms", "holo-privacy", "holo-conform", "did-core", "json-ld", "sri", "wcag"] },
     capabilities: { storage: [identifier] },
-    shared: ["holo-sdk.js"],
-    engines: [],
+    shared: qvac ? ["holo-sdk.js", "holo-qvac.js"] : ["holo-sdk.js"],
+    engines: qvac ? ["qvac-engine"] : [],
   };
 
   // A simple themed glyph — currentColor so it inherits the accent.
@@ -48,12 +53,15 @@ export function scaffold(opts = {}) {
 </svg>
 `;
 
-  // The five core modules, as data-holo-shared siblings. Classic vs module per each file's form.
+  // The core modules, as data-holo-shared siblings. Classic vs module per each file's form.
+  // Holo Terms + Holo Privacy are NOT loaded per-app: they are CORE host functions, enforced for every
+  // holospace at the host that mounts it (holo-gov.js — the capability gate clamps the sandbox; the
+  // privacy gate is brokered with a host-asserted recipient, default-deny) and surfaced as one shield
+  // per app. So an app inherits both for free — no in-frame module, no duplicate badge. Disclosure is
+  // reached through the SDK (`disclose(...)`), which routes UP to the host gate.
   const CORE_SCRIPTS = [
     `<script src="../../_shared/holo-ui-kernel.js"></script>`,
     `<script type="module" src="../../_shared/holo-ux.js"></script>`,
-    `<script src="../../_shared/holo-terms.js"></script>`,
-    `<script src="../../_shared/holo-privacy.js"></script>`,
     `<script type="module" src="../../_shared/holo-conscience.js"></script>`,
     `<script type="module" src="../../_shared/holo-app.mjs"></script>`,
   ];
@@ -83,8 +91,43 @@ export function scaffold(opts = {}) {
       { "@id": "https://www.w3.org/TR/WCAG22/" },
       { "@id": "https://github.com/Hologram-Technologies/holospaces" },
       { "@id": "https://hologram.os/ns/product" },
+      ...(qvac ? [{ "@id": "https://hologram.os/ns/qvac" }, { "@id": "https://docs.qvac.tether.io/" }] : []),
     ],
   });
+
+  // The QVAC panel (only for --qvac): a real, always-running on-device chat. It streams from the
+  // QVAC SDK's reference brain with no model download, conscience-gated, and shows the verifiable
+  // receipt κ of each answer (Law L5). Bind Holo Q (QVAC WebGPU) and the same panel runs a real LLM.
+  const qvacSection = !qvac ? "" : `
+      <section class="qvac" aria-label="On-device AI — the QVAC SDK" style="margin-top: var(--holo-size-m, 1.618rem); border-top: 1px solid var(--holo-border); padding-top: var(--holo-size-m, 1.618rem)">
+        <div class="brand" style="margin-bottom:.6rem"><span class="logo"><holo-icon name="auto_awesome" size="20" aria-hidden="true"></holo-icon></span><strong>On-device AI</strong><span class="k" id="qprov" style="margin-left:auto">reference brain</span></div>
+        <div id="qlog" style="display:flex; flex-direction:column; gap:.5rem; min-height:2.6rem; margin-bottom:.6rem"></div>
+        <form id="qform" style="display:flex; gap:.5rem">
+          <input id="qin" autocomplete="off" placeholder="Ask anything — runs on your device, private" style="flex:1; min-height:44px; padding:0 .8rem; color:var(--holo-ink); background:var(--holo-surface-2); border:1px solid var(--holo-border); border-radius:12px; font:inherit" />
+          <button class="primary" type="submit"><holo-icon name="send" size="18" aria-hidden="true"></holo-icon> Run</button>
+        </form>
+        <div id="qkappa" class="k" style="margin-top:.5rem; color:var(--holo-ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap"></div>
+      </section>`;
+  const qvacScript = !qvac ? "" : `
+    <script type="module">
+      // The QVAC SDK, native: one import, on-device AI, every answer a re-derivable receipt (ADR-0067).
+      import { qvac } from "@hologram/sdk";
+      const $q = (s) => document.querySelector(s);
+      const Q = await qvac();
+      if (Q) { try { $q("#qprov").textContent = Q.provider().id + " brain"; } catch (e) {} }
+      const line = (who, html) => { const d = document.createElement("div"); d.innerHTML = '<span class="k">' + who + '</span> ' + html; $q("#qlog").appendChild(d); return d; };
+      $q("#qform").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = $q("#qin"); const text = input.value.trim(); if (!text || !Q) return;
+        input.value = ""; line("you", text.replace(/</g, "&lt;"));
+        const out = line("ai", "…");
+        const run = Q.completion({ modelId: "LLAMA_3_2_1B_INST_Q4_0", history: [{ role: "user", content: text }], stream: true });
+        let acc = "";
+        for await (const tok of run.tokenStream) { acc += tok; out.innerHTML = '<span class="k">ai</span> ' + acc.replace(/</g, "&lt;"); }
+        const final = await run.final;
+        if (final && final.receipt && final.receipt.id) { $q("#qkappa").textContent = "receipt " + final.receipt.id; $q("#qkappa").title = final.receipt.id; }
+      });
+    <\/script>`;
 
   const indexHtml = `<!doctype html>
 <html lang="en">
@@ -99,7 +142,7 @@ export function scaffold(opts = {}) {
     <link rel="stylesheet" href="../../_shared/holo-phi.css" />
     <!-- the SDK is imported by the familiar QVAC-style specifier; gen-imports pins this map to
          holo-sdk.js's content address (κ), so "@hologram/sdk" resolves by content (Law L1), no npm. -->
-    <script type="importmap">{ "imports": { "@hologram/sdk": "../../_shared/holo-sdk.js", "@hologram/app": "../../_shared/holo-app.mjs" } }</script>
+    <script type="importmap">{ "imports": { "@hologram/sdk": "../../_shared/holo-sdk.js", "@hologram/app": "../../_shared/holo-app.mjs", "@hologram/qvac": "../../_shared/holo-qvac.js" } }</script>
     <!-- W3C semantic-web: the app describes itself (schema.org) + declares its conformance as JSON-LD. -->
     <script type="application/ld+json">${ld}</script>
     <style>
@@ -149,7 +192,7 @@ export function scaffold(opts = {}) {
       </div>
       <div id="out" role="status" aria-live="polite"></div>
       <!-- build · run · share — the three native verbs, present in every holospace (ADR-0051). -->
-      <section style="margin-top: var(--holo-size-m, 1.618rem)"><holo-app></holo-app></section>
+      <section style="margin-top: var(--holo-size-m, 1.618rem)"><holo-app></holo-app></section>${qvacSection}
       <footer><span class="dot" id="seal"></span><span class="k" id="did">verifying…</span><span class="k" id="foundation" style="margin-left:auto"></span></footer>
     </main>
 
@@ -218,7 +261,7 @@ export function scaffold(opts = {}) {
         const r = evaluate({});
         say("conscience → " + r.outcome + (sealed() ? " (constitution sealed, Law L5)" : " (fail-closed: unsealed)"));
       });
-    </script>
+    </script>${qvacScript}
   </body>
 </html>
 `;

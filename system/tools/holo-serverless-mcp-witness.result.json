@@ -1,0 +1,28 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "the MCP engine is ISOMORPHIC by construction — holo-mcp-core.mjs + the in-page transport import no node:* / require() / SDK; their only dependency (holo-object) is node-free, so they run in a browser / Service Worker",
+    "the core answers the full MCP surface + the standardized application-agnostic core (holo_describe → a self-verifying W3C capability card) with zero server",
+    "build·run·share execute serverlessly on an injected forge (window.HoloApp); without one they report honestly",
+    "the serverless capability card is byte-identical to the Node core's — single source of truth",
+    "the in-page MessagePort transport round-trips a real MCP request/response (the canonical browser-native transport)",
+    "the shipped Service Worker (holo-fhs-sw.js) carries the serverless MCP endpoint — every statically-hosted holospace answers /mcp + /~<app>/mcp with no origin server (Law L1/L4)"
+  ],
+  "checks": {
+    "core-node-free": true,
+    "browser-transport-node-free": true,
+    "only-dep-node-free": true,
+    "initialize": true,
+    "standardized-core-present": true,
+    "describe-self-verifies": true,
+    "capabilities-resource": true,
+    "build-run-share-serverless": true,
+    "forge-honest-without-app": true,
+    "card-parity-with-node-core": true,
+    "in-page-messageport-transport": true,
+    "service-worker-serverless-mcp": true
+  },
+  "failed": [],
+  "authority": "W3C Model Context Protocol (2024-11-05) · W3C Service Workers · schema.org · W3C PROV-O · UOR content-addressing (Law L1/L4/L5)"
+}

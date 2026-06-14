@@ -1,0 +1,42 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "system-wide observability as content-addressed UOR objects (OpenTelemetry data model + W3C Trace Context), NOT a Prometheus scraper — a span IS a PROV-O Activity whose κ is a content address",
+    "Law L5 — holding only a signal's κ re-derives its W3C span-id / metric-id / log-id from the structural content; a tampered structural field breaks the id (verify-don't-trust)",
+    "the honest split — wall-clock timing and measured values are marked hostel:rederivable=false and host-attested (a signed claim), never falsely claimed as re-derived",
+    "a trace is a self-verifying PROV-O DAG — child spans prov:wasInformedBy their parent under one W3C trace-id; the whole trace re-derives",
+    "W3C Trace Context — `traceparent` injects in exact 00-trace-span-flags form and round-trips; malformed / all-zero ids are refused per the Recommendation",
+    "metrics (sum·gauge·histogram) and log records seal to κ-objects whose identity re-derives and correlate to spans via W3C ids",
+    "Law L1 private-first — telemetry is LOCAL-ONLY by default; egress requires explicit consent AND passes the conscience gate (default-deny, fail-closed), then exports genuine OTLP/JSON (OpenTelemetry interop)",
+    "determinism — the same operation re-derives the same W3C ids from content, not the clock (a re-runnable witness, Law L2)"
+  ],
+  "span": {
+    "kappa": "did:holo:sha256:40a1802cf8e6966f6e098d59eb1e1946b72cce10f94d5ec01bfa840ff22e63e8",
+    "traceId": "17821407cb64693793ac094f96adf863",
+    "spanId": "531b951ecb96c6d7"
+  },
+  "trace": {
+    "kappa": "did:holo:sha256:f4d0c6bb1cca96b5edd1445655599fea85d9f3eea96d293888419a8b95d8c163",
+    "spans": 2
+  },
+  "checks": {
+    "span-is-a-content-addressed-prov-activity": true,
+    "L5-span-id-re-derives-from-content": true,
+    "honest-split-walltime-is-attested-not-rederived": true,
+    "L5-tampered-structural-field-refused": true,
+    "trace-is-a-self-verifying-prov-dag": true,
+    "L5-trace-re-derives": true,
+    "w3c-traceparent-round-trips": true,
+    "w3c-traceparent-rejects-malformed": true,
+    "metric-identity-re-derives-value-attested": true,
+    "log-record-re-derives-and-correlates": true,
+    "L1-local-only-by-default": true,
+    "L1-egress-conscience-gated-then-otlp": true,
+    "deterministic-ids-content-not-clock": true,
+    "sealed-doctrine-object-re-derives": true,
+    "sealed-doctrine-tampered-link-refused": true
+  },
+  "failed": [],
+  "authority": "OpenTelemetry data model + OTLP · W3C Trace Context · W3C PROV-O · W3C DID Core · IETF RFC 8785 (JCS) · UOR-ADDR · Holo Constitution (ADR-0033) · Law L1/L2/L5"
+}

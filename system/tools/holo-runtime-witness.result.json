@@ -1,0 +1,68 @@
+{
+  "spec": "The Holo Runtime is the single canonical native runtime for the entire Hologram OS and its applications: it lives once at os/usr/lib/holo, the one flat→FHS map routes every app's `/_shared/` reference to it, and no engine is duplicated between the runtime and any app bundle (apps carry only app-only engines). It DECLARES the substrate capabilities every app inherits — the content-addressed store (holo-kstore.js: arena L1/L2 → OPFS → κ-route, Law L5), the content-verify delivery wire (holo-fhs-sw.js: κ-keyed CacheStorage, app-byte L5, network-free re-open, registered at root scope by the gateway), and the content-derived addressing axes (σ-axis BLAKE3 + Φ-Atlas-12288) — each living once and bound by apps, with the behavioral guarantees resting on the proven #kstore and #sw-cache rows.",
+  "witnessed": true,
+  "covers": [
+    "single-runtime",
+    "one-route",
+    "no-duplicates",
+    "declares-capabilities",
+    "store-bound-once",
+    "delivery-root-scope",
+    "rests-on-proven-rows"
+  ],
+  "appOnlyEngines": [
+    "brcminer/_shared/brc-core/holo-core.js",
+    "brcminer/_shared/prism-argon2id/argon2id-wasm.js",
+    "brcminer/_shared/prism-argon2id/argon2id.js",
+    "brcminer/_shared/prism-argon2id/blake2b.js",
+    "brcminer/_shared/prism-argon2id/prism-argon2id.js",
+    "brcminer/_shared/prism-argon2id/setup.js",
+    "trade/_shared/holo-hl-conscience.mjs",
+    "trade/_shared/holo-hyperliquid-exchange.mjs",
+    "trade/_shared/vendor/hyperliquid-sdk.mjs",
+    "trade/_shared/vendor/hyperliquid-sdk.uor.json",
+    "trade/_shared/vendor/lightweight-charts.standalone.production.js"
+  ],
+  "results": [
+    {
+      "name": "Holo Runtime is defined (os/lib/holo-runtime.mjs)",
+      "ok": true,
+      "detail": "Holo Runtime v1.1.0"
+    },
+    {
+      "name": "the runtime is physically present at its one root",
+      "ok": true,
+      "detail": "usr/lib/holo"
+    },
+    {
+      "name": "the one flat→FHS map collapses `_shared/` to the single runtime",
+      "ok": true,
+      "detail": "_shared/holo-theme.js→usr/lib/holo/holo-theme.js  ·  apps/etherscan/_shared/holo-theme.js→usr/lib/holo/holo-theme.js"
+    },
+    {
+      "name": "no app bundles an engine that already lives in the Holo Runtime (zero duplicates)",
+      "ok": true,
+      "detail": "11 app-only engine(s) kept, 0 duplicated · 1 self-contained exempt: browser"
+    },
+    {
+      "name": "the runtime declares its canonical capabilities — content-addressed store + content-verify delivery + addressing axes (the ONE definition every app inherits)",
+      "ok": true,
+      "detail": "store · delivery · addressing"
+    },
+    {
+      "name": "every declared store/addressing engine lives once in the runtime root, and the one map routes every app's `_shared/<engine>` reference to it (an app BINDS it, never copies it)",
+      "ok": true,
+      "detail": "holo-kstore.js · holo-blake3.mjs · holo-atlas-coord.mjs"
+    },
+    {
+      "name": "the content-verify delivery worker is present, routed, and registered at root scope by the gateway — every nested app inherits content-verified, network-free delivery with no per-app wiring",
+      "ok": true,
+      "detail": "holo-fhs-sw.js · routed:true · gateway-registered:true"
+    },
+    {
+      "name": "the runtime's store + delivery guarantees rest on the PROVEN behavioral rows (#kstore + #sw-cache witnessed in real Chromium), not on this declaration alone",
+      "ok": true,
+      "detail": "store(#kstore):true · delivery(#sw-cache):true"
+    }
+  ]
+}

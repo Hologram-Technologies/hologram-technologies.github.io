@@ -5,8 +5,9 @@ first; see [README.md](README.md) for the full picture.
 
 > **AI agents — start at [`/.well-known/agents.json`](system/os/.well-known/agents.json)** (a self-verifying
 > discovery doc): every agent door (MCP · NANDA · A2A · Agent Skills) and the agent-stack verbs.
-> Connect over MCP with `npx hologram-mcp`, then call `agent_facts`, `agent_reputation`,
-> `verify_receipt`, `verify_delegation`, `verify_settlement`, `agent_passport` — every result is a
+> Connect over MCP with `npx hologram-mcp`, then call the tools it advertises — read the live list
+> with `tools/list` or from [`mcp.json`](system/os/usr/lib/holo/mcp/.well-known/mcp.json) (e.g.
+> `verify_object`, `resolve_object`, `own_verify`, `own_settle`, `own_passport`). Every result is a
 > self-verifying object you re-derive (Law L5). Verify, don't trust.
 >
 > **Boot the OS:** open [`index.html`](index.html) — the single gateway. It resolves the whole OS
@@ -61,7 +62,7 @@ Rules:
 | Agent authorization (capability delegation) | `holo-delegate.mjs` · `delegate-witness.mjs` · `delegate/index.jsonld` — UCAN capability chains: A grants B a scoped, revocable authority that is one object (UCAN ⊕ UOR ⊕ VC); escalation caught by re-derivation (principal alignment + attenuation), policy engine scopes args, revocation invalidates the subtree | 0042 |
 | Verifiable multi-agent orchestration (the work receipt) | `holo-orchestrate.mjs` · `orchestrate-witness.mjs` · `orchestrate/index.jsonld` — a content-addressed execution DAG whose κ proves a whole collaboration: each step links the agent's NANDA identity ⊕ AgentTrust reputation ⊕ its UCAN delegation ⊕ its inputs ⊕ a **Constitution conscience verdict** (PROV-O); re-deriving the answer proves every step passed the conscience gate; the keystone composing 034·039·042·033 | 0045 |
 | Verifiable settlement (pay against proven work) | `holo-settle.mjs` · `settle-witness.mjs` · `settle/index.jsonld` — a payer-signed x402-NP order releases a payment voucher per contributing agent ONLY if the work receipt re-derives + every step authorized + conscience-accepted (release ⇐ verifyDeep); tampered work pays nothing; the voucher κ is the txId; the capstone composing 045·042·033 → the trustless agent economy | 0048 |
-| Agent discovery + use (the entry point) | `.well-known/agents.json` (self-verifying, lists every door + verb) · `mcp/holo-agent-mcp.mjs` (the stack as MCP tools: agent_facts · agent_reputation · verify_receipt · verify_delegation · verify_settlement · agent_passport) · `agents-mcp-witness.mjs` — an AI agent connects (`npx hologram-mcp`), discovers, and calls; every result self-verifying | 0049 |
+| Agent discovery + use (the entry point) | `.well-known/agents.json` (self-verifying, lists every door) · `mcp/holo-mcp.mjs` (the MCP server; its live tool list — `own_verify` · `own_settle` · `own_passport` · the `bittensor_*` agent-economy tools — is published at `.well-known/mcp.json` and via `tools/list`) — an AI agent connects (`npx hologram-mcp`), discovers, and calls; every result self-verifying | 0049 |
 | Decisions / method specs | `docs/adr/` · `docs/specs/` | — |
 
 ## Conventions

@@ -1,0 +1,32 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "Law L5 on the dependency — the official @modelcontextprotocol/sdk is PINNED (holo-mcp-sdk.pin.json) and the witness re-derives the sha256 of every imported ESM entry, failing on a single changed byte",
+    "the Hologram MCP server runs ON the real SDK Server, driven by the real SDK Client over the SDK's own transport — initialize · tools/list · tools/call · resources/read all spec-conformant (2024-11-05)",
+    "the SDK path serves the STANDARDIZED core (holo_describe) + every substrate verb + app tools, and executes them (holo_build over the SDK)",
+    "holo_describe returns a self-verifying W3C capability card, also published as the standard resource holo://capabilities",
+    "PARITY — the official-SDK tier and the dependency-free browser/edge core expose a byte-identical tool surface (the SDK path delegates to the one core handler)"
+  ],
+  "sdk": {
+    "name": "@modelcontextprotocol/sdk",
+    "version": "1.29.0",
+    "protocolVersion": "2024-11-05",
+    "filesPinned": 4
+  },
+  "checks": {
+    "sdk-pin-re-derives": true,
+    "sdk-version-pinned": true,
+    "sdk-protocol-version": true,
+    "sdk-initialize": true,
+    "sdk-serves-standardized-core": true,
+    "sdk-serves-substrate-verbs": true,
+    "sdk-serves-app-tool": true,
+    "sdk-executes-builtin": true,
+    "sdk-describe-self-verifies": true,
+    "sdk-capabilities-resource": true,
+    "sdk-core-parity": true
+  },
+  "failed": [],
+  "authority": "W3C Model Context Protocol (2024-11-05) · the official @modelcontextprotocol/sdk (pinned, unmodified) · IETF RFC 8785 (JCS) · UOR content-addressing (Law L5)"
+}

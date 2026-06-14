@@ -65,14 +65,14 @@
 
   async function go() {
     if (!(await constitutionSealed())) return holoBootRefused("etc/constitution/CONSTITUTION.md");
-    // Frictionless by DEFAULT: straight into the ONE desktop shell (apps/sdk, enclosed in the image),
+    // Frictionless by DEFAULT: straight into the ONE canonical shell (shell.html, enclosed in the image),
     // which signs in as a non-persistent GUEST — so a shared holospace link (?app=… / ?open=…) runs
     // instantly, zero context needed. Sign-in (biometric) is offered IN the shell. Opt-in here:
     // ?signin → the full SDDM greeter · ?menu / ?boot → the rEFInd boot menu (the cinematic chain).
     const p = new URLSearchParams(location.search);
     if (p.has("menu") || p.has("boot")) return location.replace("boot.html" + location.search + location.hash);
-    if (p.has("signin")) return location.replace("login.html?" + new URLSearchParams({ next: "apps/sdk/index.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" }));
-    return location.replace("apps/sdk/index.html" + location.search + location.hash);
+    if (p.has("signin")) return location.replace("login.html?" + new URLSearchParams({ next: "shell.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" }));
+    return location.replace("shell.html" + location.search + location.hash);
   }
   if (!("serviceWorker" in navigator)) { await go(); }
   else if (navigator.serviceWorker.controller) { await go(); }  // already mapped + isolated → verify, then boot

@@ -1,0 +1,108 @@
+---
+title: Quickstart
+description: Boot Hologram OS, build against it, or connect an AI agent — in minutes. Three paths, one substrate.
+audience: [users, developers, agents]
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+One substrate, three ways in. Pick the tab that fits you. Every path ends at a
+command you can run now.
+
+<Tabs>
+  <TabItem label="Users">
+
+## Why
+
+You want to use a computer you fully own — one that runs on your hardware and
+trusts no server. Hologram OS boots from a single file in your browser.
+
+## How
+
+Opening the gateway starts the κ Service Worker and walks the boot chain
+(rEFInd → Plymouth → SDDM → PrimeOS). Signing in unlocks a self-sovereign key
+bound to *this* device — there is never a server account.
+
+## What
+
+1. Open `index.html` (the single gateway).
+2. Let it boot to the greeter.
+3. Sign in to bind a device-local key, then use the desktop.
+
+<Aside type="note">
+  Deny the origin gateway and the byte-identical, verified OS still boots from
+  cache or a neighbouring peer.
+</Aside>
+
+  </TabItem>
+  <TabItem label="Developers">
+
+## Why
+
+You want to build on a substrate where "done" is provable, not asserted. In
+Hologram OS, a component is complete only when its conformance row is witnessed
+against an external authority and the release gate stays green.
+
+## How
+
+Work runs from `system/`. The release gate re-runs each pure-Node witness live,
+joins it to the conformance catalog, fails closed on any unwitnessed required
+row, and emits a W3C EARL report.
+
+## What
+
+```sh
+git clone <repo> && cd hologram-os/system
+npm install
+npm run gate          # the release gate — must stay green
+```
+
+Run a single component's witness:
+
+```sh
+node tools/<name>-witness.mjs   # writes tools/<name>.result.json
+```
+
+<Aside type="caution" title="Mint nothing">
+  Use W3C / schema.org / Dublin Core / PROV-O / EARL terms. Never a private
+  vocabulary where a standard term exists.
+</Aside>
+
+  </TabItem>
+  <TabItem label="AI agents">
+
+## Why
+
+You are an agent that must act without trusting a server. Every door into
+Hologram OS hands back a self-verifying object you re-derive yourself.
+
+## How
+
+Start at the self-verifying discovery document. It lists every agent door — MCP,
+NANDA, A2A, Agent Skills — and the agent-stack verbs. Connect over MCP, then read
+the live tool list; the doc is authoritative, not this page.
+
+## What
+
+```sh
+npx hologram-mcp
+```
+
+Then discover and call:
+
+```jsonc
+// list the live, self-describing tools
+{ "method": "tools/list" }
+// e.g. verify_object · resolve_object · own_verify · own_settle · own_passport
+```
+
+Entry point: [`/.well-known/agents.json`](/.well-known/agents.json). Every result
+is an object you re-derive (Law L5) before you trust it.
+
+  </TabItem>
+</Tabs>
+
+## Next
+
+- **Overview** — the 60-second mental model: [start here](/).
+- **Core concepts**, **For developers**, **For AI agents**, **Reference** — authored next.

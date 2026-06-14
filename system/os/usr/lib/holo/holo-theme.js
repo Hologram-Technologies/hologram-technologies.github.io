@@ -62,6 +62,101 @@
     } catch (e) {}
   })();
 
+  // Bootstrap the Holo FX motion engine (the OS's faithful adoption of unicode-animations):
+  // window.HoloFX — one sharp, content-addressed loading vocabulary (braille · scan · dna ·
+  // cascade) for every surface. Same canonical wire as Holo UX (Law L2): every Holo Theme
+  // citizen gets it with NO per-app script tag. Classic script (sets window.HoloFX), idempotent.
+  (function bootHoloFx() {
+    try {
+      if (window.HoloFX || document.querySelector('script[src*="holo-fx.js"]')) return;
+      var s = document.createElement("script"); s.src = SHARED + "holo-fx.js";
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+  })();
+
+  // Bootstrap the canonical κ→render path (window.HoloRender): the ONE lean, low-latency way every app
+  // displays a content-addressed UOR object — resolve by κ (arena-cached), verify by re-derivation, mount
+  // its ORIGINAL bytes (no compiler on the hot path). Same canonical wire as Holo UX / FX / Telemetry (Law
+  // L2): every Holo Theme citizen gets it with NO per-app script tag. The renderer rides the substrate's
+  // SINGLE resolver (resolveByKappa) + κ-route when present, else its own re-derive fallback (same L5 law).
+  (function bootHoloRender() {
+    try {
+      if (window.HoloRender || window.__holoRenderBoot) return;
+      window.__holoRenderBoot = 1;
+      var code =
+        'import HoloRender from "' + SHARED + 'holo-render.js";\n' +
+        'const route = (h) => "/.holo/sha256/" + h;\n' +
+        'let resolver;\n' +
+        'try { const m = await import("/holo-resolver.mjs"); const store = new Map();\n' +
+        '  const src = async (k) => { try { const r = await fetch(route(String(k).split(":").pop())); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch (e) { return null; } };\n' +
+        '  resolver = (k) => m.resolveByKappa(k, [src], store); } catch (e) {}\n' +
+        'try { await HoloRender.configure({ base: "/", route, resolver }); window.HoloRender = HoloRender;\n' +
+        '  (document.documentElement || document).dispatchEvent(new Event("holo-render-ready")); } catch (e) { console.warn("holo-render boot:", e); }\n';
+      var s = document.createElement("script"); s.type = "module"; s.textContent = code;
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+  })();
+
+  // Clean chrome (Law L2, one universal wire): the OS injects a row of per-app floating "chrome" tiles
+  // (Open Holo UI · capture-a-thought · go-live · capture-screen · manage). They clutter every app's
+  // surface; remove them OS-wide for the cleanest UX. One CSS rule applies in every app that loads the
+  // engine — no per-app edit. These actions remain reachable from the shell/dock, not over each app.
+  (function bootCleanChrome() {
+    try {
+      if (document.getElementById("holo-clean-chrome")) return;
+      var s = document.createElement("style"); s.id = "holo-clean-chrome";
+      s.textContent = "#holo-themedash-btn,#holo-notepad-btn,#holo-stream-btn,#holo-capture-btn,#holo-manage-btn{display:none!important}";
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+  })();
+
+  // Bootstrap the Remix layer (window.HoloEdit): right-click any κ-object → Inspect · Edit · Share · Move ·
+  // Hide · Delete; an edit forks a NEW κ (auto-persisted, re-derivable, shareable). Same canonical wire as
+  // UX / FX / Render (Law L2): the shell — the container for every app — and every app inherit it with NO
+  // per-app tag, and agents get the identical powers via window.HoloEdit.api. Idempotent (it self-guards).
+  (function bootHoloEdit() {
+    try {
+      if (window.HoloEdit || document.querySelector('script[src*="holo-edit.js"]')) return;
+      var s = document.createElement("script"); s.defer = true; s.src = SHARED + "holo-edit.js";
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+  })();
+
+  // Bootstrap Holo Telemetry (ADR-0073): system-wide observability native to the substrate — the
+  // OpenTelemetry data model + W3C Trace Context as content-addressed UOR objects (window.HoloTelemetry).
+  // Same canonical wire as Holo UX / FX (Law L2): every Holo Theme citizen gets it with NO per-app script
+  // tag. The module self-registers on holo-app-ready; once ready, a tiny PerformanceObserver BRIDGE turns
+  // the existing perf marks/measures every app already emits into local spans — instrumentation with no
+  // per-app code. Telemetry stays LOCAL by default (Law L1); nothing is exported without an explicit,
+  // conscience-gated consent. Idempotent + additive (the module guards its own effects).
+  (function bootHoloTelemetry() {
+    try {
+      if (window.HoloTelemetry || document.querySelector('script[src*="holo-telemetry.mjs"]')) return;
+      var s = document.createElement("script"); s.type = "module"; s.src = SHARED + "holo-telemetry.mjs";
+      (document.head || document.documentElement).appendChild(s);
+      // the one canonical bridge: existing PerformanceObserver "measure" entries → local spans. Best-effort,
+      // gated by reduced-data-cost intent and never exporting — pure local self-observation.
+      var bridge = function () {
+        try {
+          if (!window.HoloTelemetry || window.__holoTelemetryBridge) return;
+          window.__holoTelemetryBridge = true;
+          if (typeof PerformanceObserver === "undefined") return;
+          var tr = window.HoloTelemetry.tracer("perf", "1.0");
+          var po = new PerformanceObserver(function (list) {
+            for (var i = 0; i < list.getEntries().length; i++) {
+              var e = list.getEntries()[i];
+              try { tr.startSpan(e.name, { kind: "internal", attributes: { entryType: e.entryType }, start: e.startTime })
+                .end({ end: e.startTime + (e.duration || 0) }); } catch (x) {}
+            }
+          });
+          po.observe({ entryTypes: ["measure"] });
+        } catch (x) {}
+      };
+      if (window.HoloTelemetry) bridge();
+      else if (document.documentElement) document.documentElement.addEventListener("holo-telemetry-ready", bridge, { once: true });
+    } catch (e) {}
+  })();
+
   var KEY = "holo.theme.v1";            // one OS-wide choice, shared same-origin
   var TKEY = "holo.theme.tokens.v1";    // imported DTCG theme (JSON)
   var CKEY = "holo.theme.tokens.css.v1";// its compiled CSS (fast init, no format module)
@@ -162,7 +257,52 @@
       return t;
     });
   }
-  function clearTheme() { themeJson = null; injectTokens(""); try { localStorage.removeItem(TKEY); localStorage.removeItem(CKEY); } catch (e) {} applyLookAndFeel(null, {}); broadcastTokens("", null); apply(); }
+  function clearTheme() { themeJson = null; injectTokens(""); try { localStorage.removeItem(TKEY); localStorage.removeItem(CKEY); localStorage.removeItem(KKEY); } catch (e) {} applyLookAndFeel(null, {}); broadcastTokens("", null); apply(); }
+
+  // ── κ-addressed theme catalog — themes as content-addressed, self-verifying UOR objects ─────────
+  // A theme is a DTCG object served at /_shared/themes/<file>; its identity is κ = sha256 of its bytes.
+  // setThemeByKappa fetches it, RE-DERIVES sha256, refuses on mismatch (Law L5), then applies it live.
+  var _themes = null;             // cached themes/index.json entries
+  var KKEY = "holo.theme.kappa.v1";  // the active κ-theme (so the studio can highlight it)
+  function listThemes() {
+    if (_themes) return Promise.resolve(_themes);
+    return fetch(SHARED + "themes/index.json").then(function (r) { return r.ok ? r.json() : { themes: [] }; })
+      .then(function (j) { _themes = (j && j.themes) || []; return _themes; })
+      .catch(function () { _themes = []; return _themes; });
+  }
+  function sha256Hex(buf) {
+    if (!(globalThis.crypto && crypto.subtle)) return Promise.resolve(null);
+    return crypto.subtle.digest("SHA-256", buf).then(function (d) {
+      var b = new Uint8Array(d), s = ""; for (var i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, "0"); return s;
+    });
+  }
+  function setThemeByKappa(kappa) {
+    var want = String(kappa).replace(/^sha256:/, "");
+    return listThemes().then(function (themes) {
+      var t = themes.filter(function (x) { return x.kappa === "sha256:" + want || x.kappa === kappa || x.name === kappa; })[0];
+      if (!t) return { ok: false, errors: ["unknown theme " + kappa] };
+      return fetch(SHARED + "themes/" + t.file).then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(new Error("theme fetch failed")); })
+        .then(function (buf) {
+          return sha256Hex(buf).then(function (hex) {
+            // self-verify: the bytes must re-derive the claimed κ (Law L5). null = no SubtleCrypto (file://) → skip.
+            var hexWant = t.kappa.replace(/^sha256:/, "");
+            if (hex && hex !== hexWant) return { ok: false, errors: ["κ mismatch — theme bytes do not re-derive (Law L5)"] };
+            var json; try { json = JSON.parse(new TextDecoder().decode(buf)); } catch (e) { return { ok: false, errors: ["invalid theme JSON"] }; }
+            // Applying a theme hands AESTHETIC governance to it: clear any ad-hoc accent/typeface
+            // override so the theme's own tokens win (accessibility — font scale/min/density — is kept).
+            if (state.accent || state.fontFamily) set({ accent: "", fontFamily: "" });
+            return importTheme(json).then(function (res) { if (res.ok) { try { localStorage.setItem(KKEY, t.kappa); } catch (e) {} } return res; });
+          });
+        });
+    }).catch(function (e) { return { ok: false, errors: [String(e.message || e)] }; });
+  }
+  function setTheme(nameOrKappa) {
+    return listThemes().then(function (themes) {
+      var t = themes.filter(function (x) { return x.kappa === nameOrKappa || x.name === nameOrKappa || x.file === nameOrKappa; })[0];
+      return t ? setThemeByKappa(t.kappa) : { ok: false, errors: ["unknown theme " + nameOrKappa] };
+    });
+  }
+  function activeThemeKappa() { try { return localStorage.getItem(KKEY) || null; } catch (e) { return null; } }
 
   var root = document.documentElement;
   var isTop = (window.parent === window);
@@ -612,9 +752,12 @@
       gM.appendChild(row); gM.appendChild(file);
       var hint = el("div", {}, "Adjust the controls above, then Export to save & share your theme — or Import one.");
       hint.style.cssText = "font-size:var(--holo-text-sm,.8rem);color:var(--holo-ink-dim);margin-top:2px"; gM.appendChild(hint);
-      var browse = el("button", {}, "🎨 Browse theme gallery…");
+      // The canonical, full appearance surface is Holo Control (the Holo UI app's Appearance panel):
+      // themes + accent + typography + accessibility + import/fork, all live. This quick panel stays for
+      // fast in-place tweaks; the button below opens the complete control panel (ADR-0079).
+      var browse = el("button", {}, "🎚 Open Holo Control — full appearance settings");
       browse.style.cssText = "margin-top:8px;min-height:40px;border:1px solid var(--holo-border);background:transparent;color:inherit;border-radius:10px;cursor:pointer;font:inherit;font-size:var(--holo-text-sm)";
-      browse.onclick = function () { try { window.open(SHARED + "../themes.html", "_blank"); } catch (e) {} };
+      browse.onclick = function () { try { window.open(SHARED + "../apps/ui/index.html#appearance", "_blank"); } catch (e) {} };
       gM.appendChild(browse);
       p.appendChild(gM);
 
@@ -673,6 +816,10 @@
     // Portable themes (DTCG): import a token file/object, export the current theme, clear back to OS default.
     importTheme: importTheme, exportTheme: exportTheme, clearTheme: clearTheme,
     getThemeJson: function () { return themeJson ? JSON.parse(JSON.stringify(themeJson)) : null; },
+    // κ-addressed theme catalog: list the content-addressed DTCG themes, and swap to one by κ (or name).
+    // setThemeByKappa re-derives sha256 and refuses on mismatch (Law L5) before applying — live, OS-wide.
+    listThemes: listThemes, setTheme: setTheme, setThemeByKappa: setThemeByKappa, activeThemeKappa: activeThemeKappa,
+    setVar: function (name, val) { setVar(name, val); root.dispatchEvent(new CustomEvent("holo-theme-change", { detail: state, bubbles: false })); },
     // Global Theme (KDE Look-and-Feel package adopted as one κ-object): import flows through
     // importTheme, then surfaces the look-and-feel block (icons/decoration/layout/splash) to the shell.
     applyGlobalTheme: applyGlobalTheme,

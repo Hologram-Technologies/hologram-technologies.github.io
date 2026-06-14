@@ -9,21 +9,38 @@
 //   node tools/holo-serve-fhs.mjs [port=8300]
 
 import http from "node:http";
-import { readFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname } from "node:path";
 import { spawn } from "node:child_process";
+import { Readable } from "node:stream";
+import { createHash } from "node:crypto";                 // re-derivation at the κ-route's substrate fallback (Law L5)
 import { fhsMap } from "../os/lib/holo-fhs-map.mjs";     // the ONE flat→FHS mapping (shared with the Pages SW)
+import { identiconSvg } from "../os/usr/lib/holo/holo-identicon.mjs";   // content-derived OG-card visual
+import { buildAppRegistry, descriptor, handle as mcpHandle } from "../os/usr/lib/holo/mcp/holo-mcp.mjs";   // per-app MCP surface (dependency-free core)
+import { handleApi, collectNdjson, collectSse } from "../os/usr/lib/holo/api/holo-api-core.mjs";   // per-app unified REST API (κ-stream ingress/egress)
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const OS2 = join(here, "../os");
 export const APPS = "C:/Users/pavel/Desktop/Hologram Apps";          // the separate apps repo
 export const ORIG = "C:/Users/pavel/Desktop/hologram-os/os";
 
+// the pretty-share helpers: an app's display name (from the content-addressed catalog) + its root κ.
+let _cat = null;
+function appMeta(id) {
+  try {
+    const lock = JSON.parse(readFileSync(join(APPS, "apps", id, "holospace.lock.json"), "utf8"));
+    if (!_cat) { try { _cat = JSON.parse(readFileSync(join(APPS, "apps", "index.jsonld"), "utf8"))["dcat:dataset"] || []; } catch { _cat = []; } }
+    const e = _cat.find((a) => String(a["dcat:landingPage"] || "").split("/")[1] === id || String(a["schema:identifier"] || "").toLowerCase().endsWith(id));
+    return { name: (e && e["schema:name"]) || ("Holo " + id[0].toUpperCase() + id.slice(1)), summary: (e && e["schema:description"]) || "Running on Hologram — live on your device. Private. No install.", root: lock.root };
+  } catch { return null; }
+}
+
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".json": "application/json", ".jsonld": "application/ld+json", ".map": "application/json", ".wasm": "application/wasm",
   ".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".ico": "image/x-icon", ".webp": "image/webp",
-  ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".gz": "application/gzip", ".webmanifest": "application/manifest+json", ".txt": "text/plain" };
+  ".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".gz": "application/gzip", ".webmanifest": "application/manifest+json", ".txt": "text/plain",
+  ".md": "text/markdown", ".ts": "text/plain", ".tsx": "text/plain", ".py": "text/plain", ".yml": "text/plain", ".yaml": "text/plain", ".toml": "text/plain", ".sh": "text/plain", ".rs": "text/plain", ".c": "text/plain", ".h": "text/plain", ".md5": "text/plain" };
 const COI = { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "credentialless", "Cross-Origin-Resource-Policy": "cross-origin" };
 
 // ── dev media backend: the host /caps + /sc/* routes Holo Music expects. SoundCloud has no
@@ -46,7 +63,7 @@ function ytdlp(args, wantText = false) {
   });
 }
 // /sc/<sub> → search | resolve | track | stream (the contract holo-stations.js consumes)
-async function scRoute(sub, params, res) {
+async function scRoute(sub, params, res, req) {
   if (!HAS_YTDLP) return sendJson(res, { error: "yt-dlp not installed on host" });
   try {
     if (sub === "search") { const n = Math.min(50, parseInt(params.get("n") || "24", 10) || 24); const q = params.get("q") || "";
@@ -55,19 +72,106 @@ async function scRoute(sub, params, res) {
     if (!/^https?:\/\/(?:[\w-]+\.)?(?:soundcloud\.com|snd\.sc)\//i.test(url)) return sendJson(res, { error: "not a SoundCloud url" });
     if (sub === "resolve") return sendJson(res, await ytdlp(["-J", "--flat-playlist", "--no-warnings", url]));
     if (sub === "track") return sendJson(res, await ytdlp(["-J", "--no-warnings", url]));
-    if (sub === "stream") {                                  // resolve a progressive (http) mp3 → 302 to the CDN; <audio> plays it directly
+    if (sub === "stream") {                                  // resolve a progressive (http) mp3 and PIPE it same-origin (so Holo Audio can shape it)
       const direct = (await ytdlp(["-f", "http_mp3_128/http_mp3_0/bestaudio[protocol^=http]/bestaudio", "-g", "--no-warnings", url], true)).split("\n")[0].trim();
       if (!/^https?:/.test(direct)) return sendJson(res, { error: "no progressive stream" });
-      res.writeHead(302, { ...COI, Location: direct, "cache-control": "no-store" }); return res.end();
+      return pipeUpstream(direct, req, res);
     }
     return sendJson(res, { error: "unknown sc route" });
   } catch (e) { return sendJson(res, { error: String((e && e.message) || e).slice(0, 300) }); }
 }
 
-// hex → os-relative path, from the OS-wide closure (the κ-route's name table).
+// basic SSRF hygiene: only proxy public http(s) — refuse loopback / private / link-local hosts.
+function publicHttpUrl(raw) {
+  let u; try { u = new URL(raw); } catch { return null; }
+  if (!/^https?:$/.test(u.protocol)) return null;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost") || h === "metadata.google.internal" ||
+      /^(127\.|10\.|169\.254\.|192\.168\.|0\.0\.0\.0|::1$|\[::1\])/.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return null;
+  return u;
+}
+// Pipe a remote audio stream through the host so the browser sees SAME-ORIGIN bytes — the
+// precondition for routing it through Holo Audio (Web Audio taints/silences cross-origin media).
+// Forwards Range (seeking) and the live body untouched. Dev-only, like the /sc/* routes.
+async function pipeUpstream(rawUrl, req, res) {
+  const u = publicHttpUrl(rawUrl); if (!u) return sendJson(res, { error: "refused url" }, 400);
+  const reqHeaders = { "user-agent": "Mozilla/5.0 (HoloMusic)", accept: "*/*" };
+  if (req.headers.range) reqHeaders.range = req.headers.range;
+  let up; try { up = await fetch(u, { headers: reqHeaders, redirect: "follow" }); } catch (e) { return sendJson(res, { error: "upstream: " + e.message }, 502); }
+  if (!up.ok && up.status !== 206) { try { up.body && up.body.cancel(); } catch {} return sendJson(res, { error: "upstream HTTP " + up.status }, 502); }
+  const out = { ...COI, "cache-control": "no-store", "accept-ranges": up.headers.get("accept-ranges") || "bytes" };
+  for (const k of ["content-type", "content-length", "content-range"]) { const v = up.headers.get(k); if (v) out[k] = v; }
+  if (!out["content-type"]) out["content-type"] = "audio/mpeg";
+  res.writeHead(up.status, out);
+  if (!up.body) return res.end();
+  const node = Readable.fromWeb(up.body);
+  req.on("close", () => { try { node.destroy(); } catch {} });
+  node.on("error", () => { try { res.end(); } catch {} });
+  node.pipe(res);
+}
+
+// /weather?q=<city>  (or ?lat=&lon=) → open-meteo geocode + current conditions, proxied same-origin.
+// Privacy by design: the Holo Widgets weather tile sends a USER-TYPED city — never device GPS — and
+// the HOST (not the browser) talks to open-meteo, so no third party sees the user's IP+coords pairing.
+// open-meteo is keyless. Dev-only companion route, like /sc/* and /web (absent on static Pages, where
+// the widget simply degrades to "offline"). Not part of the sealed os/ closure or the W3C gate.
+async function weatherRoute(params, res) {
+  try {
+    const unit = /^f/i.test(params.get("unit") || "") ? "fahrenheit" : "celsius";
+    let lat = parseFloat(params.get("lat")), lon = parseFloat(params.get("lon")), place = (params.get("place") || "").trim();
+    const q = (params.get("q") || "").trim();
+    if ((!isFinite(lat) || !isFinite(lon)) && q) {
+      const g = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=" + encodeURIComponent(q));
+      const gj = await g.json(); const hit = gj && gj.results && gj.results[0];
+      if (!hit) return sendJson(res, { error: "place not found" }, 404);
+      lat = hit.latitude; lon = hit.longitude; place = place || [hit.name, hit.country_code].filter(Boolean).join(", ");
+    }
+    if (!isFinite(lat) || !isFinite(lon)) return sendJson(res, { error: "need ?q=<city> or ?lat=&lon=" }, 400);
+    const f = await fetch("https://api.open-meteo.com/v1/forecast?current=temperature_2m,weather_code,is_day&temperature_unit=" + unit + "&latitude=" + lat + "&longitude=" + lon);
+    const fj = await f.json(); const cur = fj && fj.current;
+    if (!cur) return sendJson(res, { error: "no forecast" }, 502);
+    return sendJson(res, { ok: true, place: place || (lat.toFixed(2) + "," + lon.toFixed(2)), temp: Math.round(cur.temperature_2m), code: cur.weather_code, day: cur.is_day !== 0, unit: unit === "fahrenheit" ? "F" : "C" });
+  } catch (e) { return sendJson(res, { error: String((e && e.message) || e).slice(0, 200) }, 502); }
+}
+
+// κ → os-relative path — the κ-route's DUAL-AXIS name table. Every object resolves by its OS serving
+// key (did:holo:sha256) AND its unified-substrate σ-axis κ (did:holo:blake3, the alsoKnownAs alias) —
+// folded over BOTH the OS-wide closure AND every app's lock closure, so any byte in the whole OS or
+// any app is fetchable on the shared substrate by either content address, re-derived (Law L5).
 const closure = (() => { try { return JSON.parse(readFileSync(join(OS2, "etc/os-closure.json"), "utf8")).closure || {}; } catch { return {}; } })();
-const hexToPath = new Map();
-for (const [p, v] of Object.entries(closure)) { const k = typeof v === "string" ? v : (v.kappa || v.did || v["@id"] || ""); const hex = String(k).split(":").pop(); if (hex) hexToPath.set(hex, p); }
+const hexToPath = new Map();      // sha256 hex → path
+const blakeToPath = new Map();    // blake3 hex → path (the substrate σ-axis)
+const indexEntry = (p, v) => {
+  if (typeof v === "string") { const hex = v.split(":").pop(); if (hex && !hexToPath.has(hex)) hexToPath.set(hex, p); return; }
+  if (!v || typeof v !== "object") return;
+  const sha = String(v.kappa || v.did || v["@id"] || "").split(":").pop(); if (sha && !hexToPath.has(sha)) hexToPath.set(sha, p);
+  for (const aka of (v.alsoKnownAs || [])) { const b = /^did:holo:blake3:([0-9a-f]{64})$/.exec(String(aka)); if (b && !blakeToPath.has(b[1])) blakeToPath.set(b[1], p); }
+};
+for (const [p, v] of Object.entries(closure)) indexEntry(p, v);
+// fold in every app's lock closure (Hologram Apps), so an app's OWN bytes also resolve by content
+try { for (const id of readdirSync(join(APPS, "apps"))) { try {
+  const lk = JSON.parse(readFileSync(join(APPS, "apps", id, "holospace.lock.json"), "utf8")).closure || {};
+  for (const [p, v] of Object.entries(lk)) indexEntry(p, v);
+} catch {} } } catch {}
+
+// Fold in the FULL substrate index (etc/substrate-index.json): EVERY object across the repo set
+// (OS2 + Apps), keyed path→{sha256,blake3}. This makes the κ-route authoritative over the WHOLE
+// content-addressed universe — any object is dereferenceable by its identity (did:holo:sha256), not
+// only the runnable closure. Keys are root-prefixed (os2/… · apps/…) with the absolute repo roots in
+// `.roots`, so an object OUTSIDE the served web tree (a doc, a spec) still resolves by κ. Served bytes
+// are RE-DERIVED before admission (serveByKappa, Law L5). Dev affordance: in prod the SW serves the
+// closure and heals the rest from IPFS/mesh — location is a latency choice, never the identity (Law L1).
+const hexToAbs = new Map();       // sha256 hex → absolute file path (full substrate; re-derived on serve)
+try {
+  const si = JSON.parse(readFileSync(join(OS2, "etc/substrate-index.json"), "utf8"));
+  const roots = si.roots || {};
+  for (const [key, v] of Object.entries(si.objects || {})) {
+    const hex = String((v && (v.sha256 || v.did || v["@id"])) || "").split(":").pop();
+    if (!hex || !/^[0-9a-f]{64}$/.test(hex) || hexToAbs.has(hex)) continue;
+    const prefix = key.split("/")[0], root = roots[prefix];
+    if (root) hexToAbs.set(hex, join(root, key.slice(prefix.length + 1)));
+  }
+} catch {}
 
 // os-relative path → OS2 FHS physical path. The mapping itself is the ONE shared rule in
 // os/lib/holo-fhs-map.mjs — used verbatim by the Pages Service Worker (os/holo-fhs-sw.js), so
@@ -77,13 +181,35 @@ export function fhsOf(rel) { const p = fhsMap(rel); return p ? join(OS2, p) : nu
 
 // resolve an os-relative path to bytes: OS2 first, else original. {buf, src} | null
 function readRel(rel, stats) {
+  const isApp = rel.startsWith("apps/");
   // apps resolve from the separate Hologram Apps repo (a holospace boots from anywhere by κ)
-  if (rel.startsWith("apps/")) { const a = join(APPS, rel); if (existsSync(a) && statSync(a).isFile()) { stats.apps++; return { buf: readFileSync(a), rel }; } }
+  if (isApp) { const a = join(APPS, rel); if (existsSync(a) && statSync(a).isFile()) { stats.apps++; return { buf: readFileSync(a), rel }; } }
   const f = fhsOf(rel);
   if (f && existsSync(f) && statSync(f).isFile()) { stats.os2++; return { buf: readFileSync(f), rel }; }
-  const o = join(ORIG, rel);
-  if (existsSync(o) && statSync(o).isFile()) { stats.orig.add(rel); return { buf: readFileSync(o), rel }; }
+  // Law L1 (content, not location): an app resolves ONLY from its own content-addressed image
+  // (Hologram Apps + the OS2 vendored holospaces), NEVER by path-borrowing from the legacy os/ —
+  // so a retired app is truly gone (404), not silently served from the old monolith. The legacy
+  // gap-fallback survives only for OS-spine files OS2 hasn't vendored yet.
+  if (!isApp) { const o = join(ORIG, rel); if (existsSync(o) && statSync(o).isFile()) { stats.orig.add(rel); return { buf: readFileSync(o), rel }; } }
   return null;
+}
+
+// serveByKappa — the κ-route's SUBSTRATE fallback: when a sha256 hex isn't in the runnable closure,
+// read the object by its content hash from disk, RE-DERIVE its sha256, and serve ONLY on a match
+// (Law L5). This dereferences ANY object in the content-addressed universe by its identity alone
+// (Law L1) — a doc, a spec, an app's internal — re-derived, not trusted.
+function serveByKappa(hex, route, res, stats) {
+  const abs = hexToAbs.get(hex);
+  if (abs && existsSync(abs) && statSync(abs).isFile()) {
+    const buf = readFileSync(abs);
+    if (createHash("sha256").update(buf).digest("hex") === hex) {
+      stats.os2++;
+      const ext = extname(route).toLowerCase() || extname(abs).toLowerCase();
+      res.writeHead(200, { ...COI, "content-type": TYPES[ext] || "application/octet-stream", "cache-control": "no-store", "x-holo-verified": "sha256" });
+      return res.end(buf);
+    }
+  }
+  stats.miss.add("κ:" + hex.slice(0, 10)); res.writeHead(404, COI); return res.end("κ not in substrate index");
 }
 
 // dev WEB proxy — Holo Browser fetches `<base>web?url=<URL>` to load the LIVE web2 (server-side, so
@@ -134,6 +260,84 @@ async function mcpProxy(req, res) {
     } catch (e) { res.writeHead(502, { ...H, "content-type": "application/json" }); res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "substrate MCP server unreachable on :8787 — start it with: node os/mcp/holo-mcp-http.mjs" } })); }
   });
 }
+
+// PER-APP MCP — every holospace is its own MCP server (its declared tools/resources + the universal
+// substrate verbs), reachable at /~<app>/mcp with discovery at /~<app>/.well-known/mcp.json. This is
+// what makes any holo-native app INSTANTLY agent-accessible: point an MCP host at one app, get exactly
+// that app's surface. "Per-app server" is a registry FILTER over the one in-process engine (shared
+// forge κ-store), not N processes — and unlike the aggregate /mcp it needs no separate :8787 process.
+const _appManifest = (id) => { try { return JSON.parse(readFileSync(join(APPS, "apps", id, "holospace.json"), "utf8")); } catch { return null; } };
+// a per-app resolver over the app's OWN declared resources: index each resource doc (and its @graph
+// nodes) by content address so resolve_object / declarative handlers serve self-verifying objects.
+function appMcpResolver(id, manifest) {
+  const store = new Map();
+  const load = (uri) => { const tail = String(uri).split("/").pop();
+    for (const c of [join(APPS, uri), join(APPS, "apps", id, tail), join(APPS, "apps", uri)])
+      try { if (existsSync(c) && statSync(c).isFile()) return JSON.parse(readFileSync(c, "utf8")); } catch {}
+    return null; };
+  for (const r of (manifest && manifest.resources) || []) { const doc = load(r.uri);
+    if (doc) { store.set(r.uri, doc); for (const o of doc["@graph"] || []) if (o.id) store.set(o.id, o); } }
+  return (uri) => store.get(uri) || null;
+}
+function appMcp(req, res, id) {
+  const manifest = _appManifest(id);
+  const H = { ...COI, "access-control-allow-origin": "*", "cache-control": "no-store" };
+  if (!manifest) { res.writeHead(404, { ...H, "content-type": "application/json" }); return res.end(JSON.stringify({ error: "no such holospace: " + id })); }
+  if (req.method === "OPTIONS") { res.writeHead(204, { ...H, "access-control-allow-methods": "POST,OPTIONS", "access-control-allow-headers": "content-type,accept" }); return res.end(); }
+  const registry = buildAppRegistry({ ...manifest, id });
+  const resolve = appMcpResolver(id, manifest);
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", async () => {
+    let body; try { body = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"); } catch { res.writeHead(400, { ...H, "content-type": "application/json" }); return res.end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } })); }
+    try { const out = await mcpHandle(body, { registry, resolve });   // the dependency-free JSON-RPC core
+      res.writeHead(200, { ...H, "content-type": "application/json" }); res.end(JSON.stringify(out)); }
+    catch (e) { res.writeHead(500, { ...H, "content-type": "application/json" }); res.end(JSON.stringify({ jsonrpc: "2.0", id: body && body.id || null, error: { code: -32000, message: (e && e.message) || String(e) } })); }
+  });
+}
+const appMcpWellKnown = (res, id) => {
+  const manifest = _appManifest(id);
+  const H = { ...COI, "access-control-allow-origin": "*", "cache-control": "no-store", "content-type": "application/json" };
+  if (!manifest) { res.writeHead(404, H); return res.end(JSON.stringify({ error: "no such holospace: " + id })); }
+  const doc = { ...descriptor(buildAppRegistry({ ...manifest, id })), transport: "streamable-http", endpoint: `/~${id}/mcp`,
+    note: "Per-app MCP discovery — this holospace's tools + the universal substrate verbs; resources are self-verifying UOR objects (Law L5)." };
+  res.writeHead(200, H); res.end(JSON.stringify(doc, null, 2));
+};
+
+// PER-APP UNIFIED REST API — every holospace exposes /~<app>/api/* (ingress + egress of κ-addressed
+// object streams) over the SAME registry/resolver as MCP. A dev-persistent ingest store per app lets
+// POST /o → GET /o/<κ> round-trip. The price is opt-in (a holospace.json `apiPrice`) → HTTP 402.
+const _apiStores = new Map();   // appId → Map(κ → object) (dev ingest store; OPFS/κ-store in the browser tier)
+const apiStoreOf = (id) => { let s = _apiStores.get(id); if (!s) { s = new Map(); _apiStores.set(id, s); } return s; };
+function appApi(req, res, id, sub) {
+  const manifest = _appManifest(id);
+  const H = { ...COI, "access-control-allow-origin": "*", "cache-control": "no-store" };
+  if (!manifest) { res.writeHead(404, { ...H, "content-type": "application/json" }); return res.end(JSON.stringify({ error: "no such holospace: " + id })); }
+  const registry = buildAppRegistry({ ...manifest, id });
+  const store = apiStoreOf(id);
+  const mcpResolve = appMcpResolver(id, manifest);
+  const resolve = async (k) => store.get(k) || mcpResolve(k);
+  const price = manifest.apiPrice || null;                          // opt-in monetisation (HTTP 402)
+  const headers = Object.fromEntries(Object.entries(req.headers).map(([k, v]) => [k.toLowerCase(), v]));
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", async () => {
+    const raw = Buffer.concat(chunks).toString("utf8");
+    let body = raw; if (raw && (headers["content-type"] || "").includes("json")) { try { body = JSON.parse(raw); } catch {} }
+    const ctx = { appId: id, registry, resolve, store, price, now: Date.now(),
+      stream: (q) => defaultApiStream(registry, resolve) };
+    try {
+      const out = await handleApi({ method: req.method, path: "/" + sub.replace(/^\/+/, ""), query: Object.fromEntries(new URLSearchParams((req.url || "").split("?")[1] || "")), headers, body }, ctx);
+      if (out.iterator) {   // a κ-object stream → SSE if the client asked, else NDJSON
+        const wantSse = (headers.accept || "").includes("text/event-stream");
+        res.writeHead(out.status, { ...H, ...(out.headers || {}), "content-type": wantSse ? "text/event-stream" : "application/x-ndjson" });
+        return res.end(wantSse ? await collectSse(out.iterator) : await collectNdjson(out.iterator));
+      }
+      res.writeHead(out.status, { ...H, ...(out.headers || {}) }); res.end(out.body || "");
+    } catch (e) { res.writeHead(500, { ...H, "content-type": "application/json" }); res.end(JSON.stringify({ error: "api_error", message: (e && e.message) || String(e) })); }
+  });
+}
+async function* defaultApiStream(registry, resolve) { for (const r of registry.resources || []) { const o = await resolve(r.uri); if (o) yield o; } }
 
 // dev PAIR mailbox — a CONTENT-BLIND rendezvous for "scan QR to Access" (Holo Pair). The phone POSTs
 // the E2E-encrypted, operator-signed grant under a single-use channel; the desktop GETs it (then it is
@@ -187,36 +391,111 @@ function developRoute(req, res) {
   });
 }
 
+// dev WATCH-TOGETHER relay — a content-blind room: GET = an SSE downstream, POST = a
+// message broadcast to every OTHER peer in the room. Carries playback sync + WebRTC
+// signalling for reaction cameras (the relay never inspects the payload). DEV-ONLY
+// (mirrors the Holo Pair mailbox; a hosted relay/mesh plays this role on a static deploy).
+const ROOMS = new Map();                                   // roomId -> Map(peerId -> res)
+function roomRoute(req, res, roomId) {
+  const peer = new URLSearchParams((req.url || "").split("?")[1] || "").get("peer") || Math.random().toString(36).slice(2);
+  let room = ROOMS.get(roomId); if (!room) { room = new Map(); ROOMS.set(roomId, room); }
+  if (req.method === "GET") {
+    res.writeHead(200, { ...COI, "content-type": "text/event-stream", "cache-control": "no-store", "connection": "keep-alive", "access-control-allow-origin": "*" });
+    res.write(": ok\n\n"); room.set(peer, res);
+    const ka = setInterval(() => { try { res.write(": ka\n\n"); } catch {} }, 25000);
+    req.on("close", () => {
+      clearInterval(ka); room.delete(peer);
+      const bye = `data: ${JSON.stringify({ k: "bye", from: peer })}\n\n`;
+      for (const r of room.values()) { try { r.write(bye); } catch {} }
+      if (!room.size) ROOMS.delete(roomId);
+    });
+    return;
+  }
+  if (req.method === "POST") {
+    const chunks = []; let n = 0;
+    req.on("data", (c) => { n += c.length; if (n > 200000) req.destroy(); else chunks.push(c); });
+    req.on("end", () => {
+      res.writeHead(204, { ...COI, "access-control-allow-origin": "*" }); res.end();
+      const data = Buffer.concat(chunks).toString();
+      for (const [pid, r] of room) { if (pid === peer) continue; try { r.write(`data: ${data}\n\n`); } catch {} }
+    });
+    return;
+  }
+  res.writeHead(405, COI); res.end();
+}
+
 export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: new Set() }) {
   return (req, res) => {
     let route = decodeURIComponent((req.url || "/").split("?")[0].split("#")[0]);
     // dev media backend — capability probe + SoundCloud (yt-dlp) proxy, served same-origin
     if (route === "/caps") return sendJson(res, { fetch: true, ingestAudio: false, ytdlp: HAS_YTDLP, soundcloud: HAS_YTDLP });
-    if (route.startsWith("/sc/")) { scRoute(route.slice(4), new URLSearchParams((req.url || "").split("?")[1] || ""), res); return; }
+    if (route.startsWith("/sc/")) { scRoute(route.slice(4), new URLSearchParams((req.url || "").split("?")[1] || ""), res, req); return; }
+    if (route === "/audio-proxy") { pipeUpstream(new URLSearchParams((req.url || "").split("?")[1] || "").get("url") || "", req, res); return; }
+    if (route === "/weather") { weatherRoute(new URLSearchParams((req.url || "").split("?")[1] || ""), res); return; }   // dev weather proxy for the Holo Widgets weather tile
     if (route === "/develop") { developRoute(req, res); return; }   // dev SR→κ-pin backend (Holo Player "Develop to 8K")
+    const mRoom = route.match(/^\/room\/([\w-]{4,64})$/);            // dev Watch-Together room relay (SSE + POST)
+    if (mRoom) { roomRoute(req, res, mRoom[1]); return; }
     if (route === "/mcp") { mcpProxy(req, res); return; }           // dev MCP forwarder — realizes the roster's declared /mcp endpoint (→ the substrate MCP server on :8787)
     if ((route === "/web" || route.endsWith("/web")) && /[?&]url=/.test(req.url || "")) { webProxy(new URLSearchParams((req.url || "").split("?")[1] || "").get("url"), res); return; }
     const mPair = route.match(/^\/\.pair\/([A-Za-z0-9\-_]{8,64})$/);   // Holo Pair content-blind rendezvous
     if (mPair) { pairMailbox(req, res, mPair[1]); return; }
-    // Hologram OS boots into HOLO BROWSER — the universal navigator over the UOR content-addressable
-    // substrate (the "spaceship"): every object (an app, a holospace, the live web, a holo://κ, an
-    // IPFS CID, the native AI) is reached the same way, fetched/minted/re-derived + verified (Law L5),
-    // in one tab model. The spatial desktop (apps/sdk) is just one object you can navigate to; the
-    // Platform Manager is folded behind /home.html?manage.
+    const mAppApi = route.match(/^\/~([a-z0-9._-]{1,40})\/api(?:\/(.*))?$/i);            // per-app unified REST API (κ-stream ingress/egress)
+    if (mAppApi) { appApi(req, res, mAppApi[1], mAppApi[2] || ""); return; }
+    const mAppWk = route.match(/^\/~([a-z0-9._-]{1,40})\/\.well-known\/mcp\.json$/i);   // per-app MCP discovery
+    if (mAppWk) { appMcpWellKnown(res, mAppWk[1]); return; }
+    const mAppMcp = route.match(/^\/~([a-z0-9._-]{1,40})\/mcp$/i);                       // per-app MCP endpoint (JSON-RPC)
+    if (mAppMcp) { appMcp(req, res, mAppMcp[1]); return; }
+    // PRETTY SHARE LINK (/~<app>#k=<cid>): a short, attractive Telegram-ready address. The path is a
+    // human HINT; the #k= (a CIDv1, client-side) is the TRUTH that re-derives (Law L5). The route
+    // serves the share-to-run boot page with a per-app Open Graph card so the chat preview is a
+    // beautiful, content-derived κ-identicon — not a raw URL. /~<app>/og.svg is that identicon.
+    const mTilde = route.match(/^\/~([a-z0-9._-]{1,40})(\/og\.svg)?$/i);
+    if (mTilde) {
+      const meta = appMeta(mTilde[1]);
+      if (!meta) { res.writeHead(404, COI); return res.end("no such holospace: " + mTilde[1]); }
+      if (mTilde[2]) {   // /~<app>/og.svg → the content-derived identicon card
+        res.writeHead(200, { ...COI, "content-type": "image/svg+xml; charset=utf-8", "cache-control": "max-age=600" });
+        return res.end(identiconSvg(meta.root, { size: 320, label: meta.name }));
+      }
+      const boot = readRel("holospace.html", stats);
+      if (!boot) { res.writeHead(404, COI); return res.end("boot page missing"); }
+      const host = req.headers.host || ("127.0.0.1");
+      const img = `http://${host}/~${mTilde[1]}/og.svg`;
+      const og = `\n  <base href="/">\n  <meta property="og:type" content="website">`
+        + `\n  <meta property="og:title" content="${meta.name.replace(/"/g, "&quot;")}">`
+        + `\n  <meta property="og:description" content="${meta.summary.replace(/"/g, "&quot;")}">`
+        + `\n  <meta property="og:image" content="${img}">`
+        + `\n  <meta name="twitter:card" content="summary_large_image">`
+        + `\n  <meta name="twitter:image" content="${img}">`
+        + `\n  <meta name="holo:app" content="${mTilde[1]}">`;
+      const html = boot.buf.toString("utf8").replace(/<head>/i, "<head>" + og);
+      res.writeHead(200, { ...COI, "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+      return res.end(html);
+    }
+    // Hologram OS boots into THE ONE canonical holospace shell (os/usr/share/frame/shell.html) — the
+    // single desktop that hosts every app from the Hologram Apps repo in its canvas, by content address
+    // (Law L5). It is the default AND only shell: the greeter, deep-links and holospace.html all route
+    // here. The web, a holo://κ, an IPFS CID and the native AI are all reached from its omnibar.
     if (route === "/" || route === "") {
       const qs = (req.url || "").includes("?") ? "?" + (req.url.split("?")[1] || "") : "";
-      res.writeHead(302, { ...COI, Location: "/apps/browser/index.html" + qs });
+      res.writeHead(302, { ...COI, Location: "/shell.html" + qs });
       return res.end();
     }
     let rel;
     const m = route.match(/^\/\.holo\/sha256\/([a-f0-9]{64})(?:\.\w+)?$/i);
-    if (m) { rel = hexToPath.get(m[1].toLowerCase()); if (!rel) { stats.miss.add("κ:" + m[1].slice(0, 10)); res.writeHead(404, COI); return res.end("κ not in closure index"); } }
+    const mb = route.match(/^\/\.holo\/blake3\/([a-f0-9]{64})(?:\.\w+)?$/i);   // the unified-substrate σ-axis route
+    if (m) { rel = hexToPath.get(m[1].toLowerCase()); if (!rel) return serveByKappa(m[1].toLowerCase(), route, res, stats); }   // closure miss → the full-substrate κ-route, re-derived (Law L5)
+    else if (mb) { rel = blakeToPath.get(mb[1].toLowerCase()); if (!rel) { stats.miss.add("blake3:" + mb[1].slice(0, 10)); res.writeHead(404, COI); return res.end("blake3 κ not in substrate index"); } }
     else if (/^\/\.holo\/sha256\/.+/i.test(route)) { const tail = route.replace(/^\/\.holo\/sha256\//i, ""); rel = tail.includes("/") ? tail : "_shared/" + tail; }  // gen-imports left a path/filename in the κ slot → resolve as a normal path
     else { rel = route.replace(/^\/+/, "") || "home.html"; if (rel.endsWith("/")) rel += "index.html"; }
     const got = readRel(rel, stats);
     if (!got) { stats.miss.add(rel); res.writeHead(404, COI); return res.end("not found: " + rel); }
     const ext = extname(m ? rel : route).toLowerCase() || extname(rel).toLowerCase();
-    res.writeHead(200, { ...COI, "content-type": TYPES[ext] || "application/octet-stream", "cache-control": "no-store" });
+    // Vendored model artifacts (weights + ORT wasm) are pinned/content-addressed → safe to CACHE so the
+    // browser reuses them (and ORT's compiled-wasm cache) across reloads instead of recompiling every
+    // time. That cold recompile is what makes first use feel laggy. Re-vendoring? hard-reload to bust it.
+    const heavy = /\.(wasm|onnx|bin)$/.test(rel) || rel.includes("voice/vendor/");
+    res.writeHead(200, { ...COI, "content-type": TYPES[ext] || "application/octet-stream", "cache-control": heavy ? "public, max-age=86400" : "no-store" });
     res.end(got.buf);
   };
 }
@@ -229,6 +508,6 @@ export function startServer(port = 0) {
 
 if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/")}` || process.argv[1].endsWith("holo-serve-fhs.mjs")) {
   const { port } = await startServer(parseInt(process.argv[2] || "8300", 10));
-  console.log(`holo-serve-fhs: OS2 booting at  http://127.0.0.1:${port}/   →  the ONE desktop shell (apps/sdk; the gateways take the SDDM greeter → this same shell)`);
-  console.log(`  closure index: ${hexToPath.size} κ → paths`);
+  console.log(`holo-serve-fhs: OS2 booting at  http://127.0.0.1:${port}/   →  the ONE canonical shell (/shell.html, in OS2; the gateways take the SDDM greeter → this same shell)`);
+  console.log(`  κ-route index: ${hexToPath.size} sha256 · ${blakeToPath.size} blake3 (substrate σ-axis) → paths · ${hexToAbs.size} full-substrate objects (re-derived)`);
 }

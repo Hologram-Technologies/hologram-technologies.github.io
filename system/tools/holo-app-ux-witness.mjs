@@ -32,6 +32,13 @@ const OS = join(here, "../os");
 const APPS = process.env.HOLO_APPS_DIR || "C:/Users/pavel/Desktop/Hologram Apps/apps";
 
 const ENGINE = ["holo-theme.js", "holo-ui-kernel.js", "holo-ui.js", "holo-ux.js"];
+
+// Verbatim-vendored exemption (mirrors holo-app-wired-witness): a full third-party distribution
+// shipped UNMODIFIED can't load the engine without forking upstream + resealing its whole closure.
+// It's held to the vendoring contract, not the inherit-the-doctrine contract — listed explicitly so
+// the exception is auditable. Because it doesn't load the engine, it also can't inherit the shared
+// reduced-motion guard; the vendored distro carries its own motion behavior, outside our wire.
+const VENDORED_EXEMPT = new Set(["jypyter"]);
 const read = (p) => { try { return readFileSync(p, "utf8"); } catch { return ""; } };
 
 const appIds = existsSync(APPS)
@@ -57,7 +64,7 @@ let doctrine = null; try { doctrine = JSON.parse(read(join(OS, "etc/holo-ux/doct
 const sealedOk = !!(doctrine && doctrine.id && verify(doctrine));
 
 // ── 3 · INHERIT — every app loads the engine (→ inherits holo-ux.js) ──────────────────────────────
-const unwired = appIds.filter((id) => !ENGINE.some((f) => effectiveHtml(id).includes(f)));
+const unwired = appIds.filter((id) => !VENDORED_EXEMPT.has(id) && !ENGINE.some((f) => effectiveHtml(id).includes(f)));
 
 // ── 4 · VOICE — every app's manifest is jargon-free (signal-over-noise, the plain register) ───────
 const jargonApps = [];
@@ -88,6 +95,7 @@ const themeCss = read(join(OS, "usr/lib/holo/holo-theme.css"));
 const osMotionGuard = /@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)/.test(themeCss)
   && /animation-duration:[^;]*!important/.test(themeCss) && /transition-duration:[^;]*!important/.test(themeCss);
 const motionOverride = appIds.filter((id) => {
+  if (VENDORED_EXEMPT.has(id)) return false;                // verbatim-vendored: outside our motion wire
   const html = effectiveHtml(id);
   const ownGuard = /prefers-reduced-motion/.test(html);
   const hardMotion = /(animation|transition)[^;:{}]*:[^;{}]*!important/i.test(visibleMarkup(html));

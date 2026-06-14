@@ -1,0 +1,27 @@
+{
+  "note": "Ratchet baseline for Holo UI COMPOSITION coverage. 'floors' is the min canonical-object mount sites (HoloRender.render call sites + distinct library-κ references) required per app's authored index.html; the witness FAILS on any DECREASE. Apps may only gain composition — the corpus converges to a consistent, library-composed UI. Identity reskins legitimately stay at 0. New apps default to their first sealed value.",
+  "libraryObjects": 477,
+  "total": 6,
+  "perApp": {
+    "cloud": {
+      "renderSites": 1,
+      "libObjects": 1,
+      "composed": 1
+    },
+    "etherscan": {
+      "renderSites": 2,
+      "libObjects": 3,
+      "composed": 3
+    },
+    "files": {
+      "renderSites": 2,
+      "libObjects": 2,
+      "composed": 2
+    }
+  },
+  "floors": {
+    "cloud": 1,
+    "etherscan": 3,
+    "files": 2
+  }
+}

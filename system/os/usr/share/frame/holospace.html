@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-holo-boot="off">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -16,16 +16,25 @@
   #msg { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 2rem; }
   #msg code { color: #8b5cf6; } a { color: #2dd4bf; text-decoration: none; } a:hover { text-decoration: underline; }
   .apps { margin-top: 1rem; line-height: 2.4; }
+  #bootfx { font: 600 1.05rem/1 ui-monospace, Menlo, Consolas, monospace; }
+  #bootfx .hfx-s { color: #8b5cf6; font-size: 1.15em; }
+  #bootfx .hfx-t { color: #9b95c4; }
 </style>
 </head>
 <body>
-<div id="msg">Resolving holospace…</div>
-<!-- Holo Terms (MyTerms / IEEE 7012): the host GATE. Loaded gate-only (no badge on the bare
-     projection — the mounted app renders the badge) so the projection can intersect the app's
-     declared capabilities with the user's standing term + signed agreement record before granting
-     anything. window.HoloTerms is defined synchronously; gate() does its work lazily. -->
-<script>window.__holoTermsBadge = false;</script>
+<div id="msg"><div id="bootfx">Resolving holospace…</div></div>
+<!-- Holo FX (the OS's faithful unicode-animations adoption): a sharp `scan` sweep replaces the
+     static boot text. Classic script → window.HoloFX is ready before the deferred module runs. -->
+<script src="_shared/holo-fx.js"></script>
+<!-- Holo governance (core, host-enforced): Holo Terms (MyTerms / IEEE 7012) is the capability GATE —
+     the projection intersects the app's declared capabilities with the user's standing term + signed
+     agreement before granting anything. Holo Privacy is the disclosure gate — this host owns the
+     wallet/keys; the mounted app holds nothing and must ask the host (holo-gov.js brokers it, stamping
+     the recipient from what it mounted). holo-gov.js SURFACES one shield per app — Terms · Privacy —
+     so enforcement is visible. window.HoloTerms is defined synchronously; gate() does its work lazily. -->
 <script src="_shared/holo-terms.js"></script>
+<script src="_shared/holo-privacy.js"></script>
+<script src="_shared/holo-gov.js"></script>
 <!-- Share-to-Run chrome (ADR-064): the OS-level guest journey (run · remix · share · save), laid
      OVER the app's sandboxed frame on a SHARED landing only. Loaded defer so window.HoloShareChrome
      is defined before the projection finishes mounting; renders nothing unless asked. -->
@@ -35,7 +44,9 @@ import { mount, parseLink } from "./holo-launch.mjs";
 import { sealConstitution } from "./_shared/holo-admit.mjs";
 
 const msg = document.getElementById("msg");
-const die = (html) => { msg.innerHTML = html; };
+// Sharp `scan` sweep while we resolve + mount the holospace (Holo FX / unicode-animations).
+const bootFx = window.HoloFX ? window.HoloFX.loader(document.getElementById("bootfx"), { name: "scan", label: "Resolving holospace…" }) : null;
+const die = (html) => { if (bootFx) bootFx.stop(""); msg.innerHTML = html; };
 
 // Sovereign delivery (ADR-026): when enabled (?sovereign=1), the OS-wide κ Service Worker
 // (holo-boot-sw.js, brought up by the guarded module below) serves the WHOLE OS by content from
@@ -57,7 +68,13 @@ const swEnabled = (() => {
 
 // The single LINK: ?app=<did:holo | id>  or  #holo://<hex>. Identity is content (Law L1).
 const params = new URLSearchParams(location.search);
-const raw = params.get("app") || decodeURIComponent(location.hash.replace(/^#/, "")) || "";
+// the PRETTY share route /~<app>#k=<cid>: the app id comes from the path (a human hint) — the server
+// injects <meta name="holo:app"> for the OG crawler; the #k= CID is the shareable content handle and
+// the served app bytes still re-derive to their κ (Law L5, the runtime worker). Path id is tried after
+// an explicit ?app= but before the bare-hash fallback.
+const pathApp = (location.pathname.match(/^\/~([a-z0-9._-]{1,40})/i) || [])[1]
+  || ((document.querySelector('meta[name="holo:app"]') || {}).content || "");
+const raw = params.get("app") || pathApp || decodeURIComponent(location.hash.replace(/^#/, "")) || "";
 const link = parseLink(raw);
 
 async function boot() {
@@ -94,24 +111,27 @@ async function boot() {
   const grant = window.HoloTerms ? await window.HoloTerms.gate(def) : undefined;
   const m = mount({ def, lock, grant });
 
-  // Bring up the κ Service Worker BEFORE mounting, so the app's subresources route through it and
-  // load BY CONTENT — verified (Law L5), from anywhere (holo-sw.js + holo-resolver, A29). Proven
-  // pattern (the IPFS holospace): no `serviceWorker.ready` await (it can hang); wait on
-  // statechange→activated + a MessageChannel handshake, with a timeout fallback so the app still
-  // loads if the SW can't come up.
+  // Bring up the ONE Holo Runtime delivery worker BEFORE mounting, so a SHARED app runs on the SAME
+  // ultra-low-latency runtime as the rest of the OS (Law L2 — one canonical delivery wire, not a
+  // separate share-path worker). holo-fhs-sw.js content-verifies every byte (Law L5; app bytes too —
+  // it lazily folds each app's own lock into its L5 index), serves verified bytes from a κ-keyed
+  // CacheStorage (the 2nd open is network-free + deduped), and stamps COI headers. It SELF-LOADS the
+  // OS closure + app locks, so no closure handshake is needed (unlike the older A29 per-app worker);
+  // clients.claim() on activate controls this page without a reload. No `serviceWorker.ready` await
+  // (it can hang); wait on statechange→activated with a timeout fallback so the app still loads cold.
   if ("serviceWorker" in navigator && !sovereign && swEnabled) {
     await Promise.race([(async () => {
-      const reg = await navigator.serviceWorker.register("./holo-sw.js", { type: "module" });
-      const active = reg.active || await new Promise((res) => {
-        const w = reg.installing || reg.waiting; if (!w) return res(null);
-        w.addEventListener("statechange", function h() { if (this.state === "activated") { w.removeEventListener("statechange", h); res(reg.active); } });
+      const reg = await navigator.serviceWorker.register("/holo-fhs-sw.js", { type: "module" });
+      if (reg.active) return;
+      await new Promise((res) => {
+        const w = reg.installing || reg.waiting; if (!w) return res();
+        w.addEventListener("statechange", function h() { if (this.state === "activated") { w.removeEventListener("statechange", h); res(); } });
       });
-      if (active) await new Promise((res) => { const ch = new MessageChannel(); ch.port1.onmessage = res; active.postMessage({ closure: m.closure }, [ch.port2]); });
     })().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
   } else if ("serviceWorker" in navigator && !swEnabled) {
-    // dev / SW-off: actively unregister any stale per-app SW so iterating never leaves one
+    // dev / SW-off: actively unregister any stale delivery SW so iterating never leaves one
     // controlling — the package path-loads from the origin instead. (Re-enable with ?sw=1.)
-    try { for (const r of await navigator.serviceWorker.getRegistrations()) if (/holo-sw\.js/.test(((r.active || r.installing || r.waiting) || {}).scriptURL || "")) await r.unregister(); } catch {}
+    try { for (const r of await navigator.serviceWorker.getRegistrations()) if (/holo-(fhs-)?sw\.js/.test(((r.active || r.installing || r.waiting) || {}).scriptURL || "")) await r.unregister(); } catch {}
   }
 
   // Mount it in an ISOLATED, capability-bounded frame: a WHATWG <iframe sandbox> in its own realm
@@ -124,8 +144,13 @@ async function boot() {
   f.src = "./" + landing;                                   // (the κ-service-worker resolver — serve every
                                                             //  subresource by content, from anywhere — is the next step)
   document.title = `${m.name} · holospace`;
+  if (bootFx) bootFx.stop("");
   msg.remove();
   document.body.appendChild(f);
+  // Holo governance (holo-gov.js): bind the VERIFIED identity of what we mounted so the host privacy
+  // broker stamps disclosures AS this app (un-forgeable) and the Terms · Privacy shields reflect it.
+  const govId = { did: m.id || null, id: (def && (def.id || def["schema:identifier"])) || null, name: m.name || "app" };
+  f.addEventListener("load", () => { try { if (window.HoloGov && f.contentWindow) { window.HoloGov.register(f.contentWindow, govId); window.HoloGov.focus(govId); } } catch (e) {} });
   // Hand the share-to-run chrome (ADR-064) the verified identity of what we just mounted.
   return { name: m.name, kappa: m.id, link: m.link, raw };
 }
@@ -141,15 +166,21 @@ if (params.get("bare") === "1" || shared) {
   boot().then((ctx) => { if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); })
         .catch((e) => die("Boot failed: <code>" + (e && e.message || e) + "</code>"));
 } else {
+  // Normal link → the ONE canonical shell (os/usr/share/frame/shell.html), which hosts the app in its
+  // canvas. (?bare / shared #k= stay above as standalone mounts — the deliberate kiosk / guest mode.)
   const p = new URLSearchParams();
   if (raw) p.set("open", raw);
   if (params.get("sw")) p.set("sw", params.get("sw"));
-  location.replace("./apps/sdk/index.html" + (p.toString() ? "?" + p : ""));
+  location.replace("/shell.html" + (p.toString() ? "?" + p : ""));
 }
 </script>
 <!-- Sovereign delivery (ADR-026), guarded: a no-op unless ?sovereign=1 / localStorage.holoSovereign,
      when it boots the OS-wide κ Service Worker so EVERY holospace's bytes resolve by content from
      cache → peers → origin, re-derived (Law L5). Ramp-gated by holo-boot-sw-browser-witness.mjs. -->
 <script type="module" src="./holo-boot-sw-register.mjs"></script>
+<!-- Autonomous self-healing (ADR-0067): keep the OS whole with no user action — on idle, re-verify
+     every κ-object (Law L5) and recover any that drifted from a non-origin source (IPFS · mesh); the
+     sealed anchor is never auto-healed. Guarded end-to-end: it can never block or break boot. -->
+<script type="module" src="./holo-heal-boot.mjs"></script>
 </body>
 </html>

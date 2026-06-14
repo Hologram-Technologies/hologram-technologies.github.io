@@ -4,94 +4,396 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hologram OS — Sign in</title>
-<!-- The DISPLAY MANAGER for Hologram OS — SDDM (https://github.com/sddm/sddm), projected into
-     the browser. This page no longer TRANSCRIBES the theme: it EXECUTES the real, verbatim
-     upstream QML. Holo QML (/_shared/holo-qml.mjs) parses the genuine data/themes/<theme>/Main.qml
-     — installed + content-addressed under /usr/share/sddm/ — builds its live object tree, evaluates
-     its property bindings, and renders it to the DOM, exactly the way Holo Splash runs Plymouth's
-     real .script themes (holo-plymouth.js) and Holo Boot runs rEFInd. The one substitution the
-     holospaces spec mandates: sddm.login() does NOT call PAM — it UNLOCKS a self-sovereign key
-     bound to this device (Law L1, holo-identity), wired here by the unchanged holo-sddm context.
-     100% serverless. Witness: tools/qml-engine-witness.mjs (vs the Qt 6 QML Reference). -->
+<!-- AI agents: machine-readable sign-in instructions live in <script id="holo-agent-login"> (JSON) and on
+     window.HoloLogin. Guest = act now (or load ?guest=1). Ask Human = request the person to approve. -->
+<meta name="ai-agent-login" content="See script#holo-agent-login (JSON) or window.HoloLogin. Options: guest (act now, ?guest=1) · ask-human (request the person)." />
+<!-- The Hologram lock screen — a sheet of frosted glass over the desktop. It wears the desktop's own
+     wallpaper (the "aurora" plane), blurred behind an acrylic layer, so signing in feels like the glass
+     lifting to reveal the workspace beneath. The avatar + name + sign-in float on the glass (Windows-
+     lock vocabulary); accounts sit bottom-left, power/another-device bottom-right, AI-agent help bottom-
+     center. Auth is the unchanged self-sovereign unlock (unlockDevice biometric · unlockPass · access · guest). -->
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #07041a;
-    font-family: "Oxygen", "Segoe UI", system-ui, -apple-system, sans-serif; }
-  #stage { position: fixed; inset: 0; }
-  #fallback { position: fixed; inset: 0; display: none; place-items: center; color: #cbd5e1;
-    font: 13px/1.6 ui-monospace, monospace; text-align: center; padding: 24px; }
+  /* ── GOLDEN-RATIO DESIGN SYSTEM ───────────────────────────────────────────────────────────────
+     One fluid unit --u (the rhythm + label size) and powers of φ govern every size, gap and control,
+     so the lock screen is one self-similar golden composition at any screen size.
+       type   · name = u·φ   label = u   meta = u·.8
+       layout · avatar = u·φ⁴   field = avatar·φ²   gaps = u·φⁿ
+     Clarity first: a centred avatar → name → one action, nothing else competing. */
+  :root {
+    color-scheme: dark;
+    --phi: 1.618;
+    --ease: cubic-bezier(.4, 0, .2, 1);            /* the one shared boot easing (gateway · splash · login · shell) */
+    --u: clamp(14px, 1.9vmin, 18px);
+    --g1: calc(var(--u) * 1.618);                  /* φ¹ */
+    --g2: calc(var(--u) * 2.618);                  /* φ² */
+    --avatar: clamp(94px, calc(var(--u) * 6.854), 132px);   /* φ⁴ */
+    --field: min(86vw, calc(var(--avatar) * 2.618));        /* avatar·φ² */
+    --fs-name: calc(var(--u) * 1.618);
+    --fs-label: var(--u);
+    --fs-meta: calc(var(--u) * .8);
+    --accent: #7defc9; --accent-2: #34d3a6;
+    --ink: #f4f7fc; --ink-dim: rgba(228,234,247,.74); --ink-faint: rgba(228,234,247,.5);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased;
+    font-family: "Segoe UI", system-ui, -apple-system, "Oxygen", sans-serif; color: var(--ink);
+    background: #000; }   /* first paint is the SAME black the splash hands off on — no seam, no flash */
+
+  /* the desktop wallpaper (aurora) + soft aurora lights, so the frost has depth to blur */
+  .wall { position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%); }
+  .wall i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; }
+  .wall .a { left: 8%; top: 12%; width: 42vw; height: 42vw; background: radial-gradient(circle, rgba(52,211,166,.55), transparent 62%); }
+  .wall .b { right: 6%; bottom: 4%; width: 46vw; height: 46vw; background: radial-gradient(circle, rgba(64,99,214,.5), transparent 62%); }
+  .wall .c { left: 44%; top: 48%; width: 30vw; height: 30vw; background: radial-gradient(circle, rgba(125,239,201,.28), transparent 62%); }
+  /* the glass: frost the wallpaper + lights behind into a soft acrylic sheet */
+  .frost { position: fixed; inset: 0; z-index: 1; background: rgba(7, 11, 22, .46);
+    -webkit-backdrop-filter: blur(80px) saturate(1.35) brightness(.92); backdrop-filter: blur(80px) saturate(1.35) brightness(.92); }
+
+  .lock { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: var(--g2); }
+  .panel { display: flex; flex-direction: column; align-items: center; text-align: center; width: var(--field); max-width: 92vw; }
+  /* avatar — a φ⁴ ring; the operator's hue + initials (or a default silhouette) */
+  .avatar { width: var(--avatar); height: var(--avatar); border-radius: 50%; display: grid; place-items: center; color: #fff;
+    font-size: calc(var(--avatar) * .37); font-weight: 600; letter-spacing: .02em; user-select: none;
+    box-shadow: 0 .85em 2.6em rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.7), 0 0 0 6px rgba(255,255,255,.06); }
+  .avatar svg { width: 62%; height: 62%; opacity: .92; }
+  .avatar.pulse { animation: avp 1.6s ease-in-out infinite; }
+  @keyframes avp { 0%,100% { box-shadow: 0 .85em 2.6em rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.7), 0 0 0 6px rgba(52,211,166,.18); }
+                   50% { box-shadow: 0 .85em 2.6em rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.7), 0 0 0 16px rgba(52,211,166,0); } }
+  .name { margin: var(--g1) 0 0; font-size: var(--fs-name); font-weight: 300; letter-spacing: .005em; line-height: 1.1; text-shadow: 0 2px 18px rgba(0,0,0,.45); }
+  /* the operator's sovereign identity, alive but quiet: did:holo κ as streaming braille (hover to read) */
+  .kid { margin: calc(var(--u) * .45) 0 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: var(--fs-meta);
+    letter-spacing: 1px; opacity: .6; --holo-accent: var(--accent); --holo-text: #e7f6ef; }
+  .sub { margin: var(--u) 0 0; font-size: var(--fs-meta); color: var(--ink-dim); text-shadow: 0 1px 8px rgba(0,0,0,.4); }
+
+  /* the sign-in box (Windows lock vocabulary) */
+  .auth { margin-top: var(--g1); display: flex; flex-direction: column; align-items: center; gap: var(--u); width: 100%; }
+  .box { position: relative; width: 100%; }
+  .box input { width: 100%; height: var(--g2); border-radius: calc(var(--u) * .7); padding: 0 var(--g2) 0 var(--g1); font-size: var(--fs-label); color: #fff;
+    background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.22); outline: none; font-family: inherit;
+    transition: border-color .15s, background .15s, box-shadow .15s; }
+  .box input::placeholder { color: rgba(255,255,255,.6); }
+  .box input:focus { border-color: rgba(125,239,201,.85); background: rgba(255,255,255,.17); box-shadow: 0 0 0 4px rgba(52,211,166,.18); }
+  .box .submit { position: absolute; right: calc(var(--u) * .32); top: 50%; transform: translateY(-50%); width: calc(var(--g2) - var(--u) * .64); height: calc(var(--g2) - var(--u) * .64); border: 0; border-radius: calc(var(--u) * .5); cursor: pointer;
+    display: grid; place-items: center; color: #06140f; background: linear-gradient(135deg, var(--accent), var(--accent-2)); transition: filter .15s, transform .12s; }
+  .box .submit:hover { filter: brightness(1.06); } .box .submit:active { transform: translateY(-50%) scale(.95); }
+  .box .submit svg { width: 1.18em; height: 1.18em; }
+  /* primary biometric action */
+  .bio { width: 100%; height: var(--g2); border: 0; border-radius: calc(var(--u) * .7); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: calc(var(--u) * .55);
+    font-size: var(--fs-label); font-weight: 600; color: #06140f; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 .7em 1.6em rgba(52,211,166,.32);
+    font-family: inherit; transition: transform .12s, box-shadow .18s, filter .18s; }
+  .bio:hover { transform: translateY(-1px); box-shadow: 0 .9em 2em rgba(52,211,166,.46); filter: brightness(1.05); }
+  .bio:active { transform: translateY(0) scale(.99); }
+  .bio:disabled { opacity: .7; cursor: default; }
+  .bio svg { width: 1.18em; height: 1.18em; }
+  .alt { background: none; border: 0; color: var(--ink-dim); font-size: var(--fs-meta); font-family: inherit; cursor: pointer; padding: calc(var(--u) * .25) calc(var(--u) * .5); border-radius: calc(var(--u) * .4); transition: color .15s; }
+  .alt:hover { color: #fff; }
+  .status { min-height: calc(var(--u) * 1.25); font-size: var(--fs-meta); color: #b6f0db; text-shadow: 0 1px 8px rgba(0,0,0,.4); }
+  .status.err { color: #ffb4b4; }
+  .status .hfx-load { justify-content: center; }
+  .status .hfx-load .hfx-s { color: var(--accent); } .status .hfx-load .hfx-t { color: #b6f0db; }
+
+  /* bottom-left account switcher */
+  .users { position: fixed; left: var(--g1); bottom: var(--g1); z-index: 3; display: flex; flex-direction: column; gap: calc(var(--u) * .3); max-width: min(40vw, 280px); }
+  .chip { display: flex; align-items: center; gap: calc(var(--u) * .6); padding: calc(var(--u) * .4) var(--u) calc(var(--u) * .4) calc(var(--u) * .4); border-radius: calc(var(--u) * .7); cursor: pointer; border: 1px solid transparent;
+    background: rgba(255,255,255,.06); transition: background .15s, border-color .15s; }
+  .chip:hover { background: rgba(255,255,255,.12); }
+  .chip.on { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.18); }
+  .chip .pic { width: calc(var(--u) * 2); height: calc(var(--u) * 2); border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: var(--fs-meta); font-weight: 600; flex: 0 0 auto; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.5); }
+  .chip .pic svg { width: 1.15em; height: 1.15em; }
+  .chip .lab { font-size: var(--fs-label); color: #eef1fb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* bottom-right controls */
+  .controls { position: fixed; right: var(--g1); bottom: var(--g1); z-index: 3; display: flex; gap: calc(var(--u) * .4); align-items: center; }
+  .ctl { width: calc(var(--u) * 2.5); height: calc(var(--u) * 2.5); border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    color: #e7ecf7; background: rgba(255,255,255,.07); transition: background .15s, color .15s; }
+  .ctl:hover { background: rgba(255,255,255,.16); color: #fff; }
+  .ctl svg { width: 1.2em; height: 1.2em; }
+  .pop { position: fixed; right: var(--g1); bottom: calc(var(--g1) + var(--u) * 2.9); z-index: 4; display: none; flex-direction: column; min-width: calc(var(--u) * 10);
+    background: rgba(22,26,38,.92); border: 1px solid rgba(255,255,255,.12); border-radius: calc(var(--u) * .7); padding: calc(var(--u) * .35);
+    box-shadow: 0 20px 50px rgba(0,0,0,.5); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  .pop.on { display: flex; }
+  .pop button { display: flex; align-items: center; gap: calc(var(--u) * .55); padding: calc(var(--u) * .6) calc(var(--u) * .65); border: 0; border-radius: calc(var(--u) * .45); background: transparent; color: #e7ecf7;
+    font-size: var(--fs-label); font-family: inherit; cursor: pointer; text-align: left; } .pop button:hover { background: rgba(255,255,255,.1); }
+  .pop button svg { width: 1em; height: 1em; opacity: .85; }
+
+  /* bottom-center AI-agent affordance — a quiet, discoverable door for autonomous agents */
+  .agentlink { position: fixed; left: 50%; bottom: var(--g1); transform: translateX(-50%); z-index: 3; display: inline-flex; align-items: center; gap: calc(var(--u) * .45);
+    padding: calc(var(--u) * .5) var(--u); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; background: rgba(255,255,255,.06); color: var(--ink-dim);
+    font-size: var(--fs-meta); font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
+  .agentlink:hover { background: rgba(255,255,255,.13); color: #fff; }
+  .agentlink svg { width: 1.1em; height: 1.1em; }
+  .agentpanel { position: fixed; left: 50%; bottom: calc(var(--g1) + var(--u) * 2.8); transform: translateX(-50%); z-index: 5; display: none; width: min(92vw, calc(var(--u) * 22)); text-align: left;
+    background: rgba(18,22,34,.95); border: 1px solid rgba(255,255,255,.12); border-radius: var(--g1); padding: var(--g1) var(--g1) var(--u);
+    box-shadow: 0 24px 60px rgba(0,0,0,.55); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); }
+  .agentpanel.on { display: block; }
+  .agentpanel h2 { margin: 0 0 calc(var(--u) * .25); font-size: var(--fs-label); font-weight: 600; }
+  .agentpanel .ap-lead { margin: 0 0 calc(var(--u) * .4); font-size: var(--fs-meta); color: var(--ink-dim); line-height: 1.5; }
+  .ap-opt { padding: var(--u) 0 calc(var(--u) * .25); border-top: 1px solid rgba(255,255,255,.09); }
+  .ap-h { display: flex; align-items: center; gap: calc(var(--u) * .45); font-size: var(--fs-label); font-weight: 600; margin-bottom: calc(var(--u) * .3); }
+  .ap-h svg { width: 1.05em; height: 1.05em; opacity: .92; }
+  .ap-opt p { margin: 0 0 calc(var(--u) * .6); font-size: var(--fs-meta); color: var(--ink-dim); line-height: 1.5; }
+  .ap-opt button { width: 100%; height: calc(var(--u) * 2.6); border: 0; border-radius: calc(var(--u) * .55); cursor: pointer; font-size: var(--fs-label); font-weight: 600; color: #06140f;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-family: inherit; transition: filter .15s; } .ap-opt button:hover { filter: brightness(1.05); }
+  .ap-opt.secondary button { background: rgba(255,255,255,.13); color: #eef1fb; }
+  .ap-opt code { display: block; margin-top: calc(var(--u) * .5); font-size: var(--fs-meta); color: rgba(180,240,219,.9); font-family: ui-monospace, "Cascadia Code", monospace; }
+  .agentcall { position: fixed; top: var(--g1); left: 50%; transform: translateX(-50%); z-index: 6; display: none; align-items: center; gap: calc(var(--u) * .5);
+    padding: calc(var(--u) * .6) var(--g1); border-radius: calc(var(--u) * .7); background: rgba(52,211,166,.16); border: 1px solid rgba(52,211,166,.5); color: #d6f7ec; font-size: var(--fs-meta); }
+  .agentcall.on { display: inline-flex; }
+  .agentcall svg { width: 1.1em; height: 1.1em; flex: 0 0 auto; }
+
+  /* top-center session pill — shown ONLY when a non-default session was requested (the rEFInd menu),
+     so the canonical holospace-desktop sign-in stays clean and uncluttered. */
+  .session { position: fixed; top: var(--g1); left: 50%; transform: translateX(-50%); z-index: 4; display: none; align-items: center; gap: calc(var(--u) * .45);
+    padding: calc(var(--u) * .42) var(--u); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; background: rgba(255,255,255,.06); color: var(--ink-dim); font-size: var(--fs-meta); }
+  .session.on { display: inline-flex; }
+  .session svg { width: 1.05em; height: 1.05em; opacity: .9; }
+  .agentcall.on ~ .session.on { top: calc(var(--g1) + var(--u) * 3); }   /* never sit on top of the agent banner */
+
+  /* POWER-ON INTRO — login rises out of the same #000 the splash handed off on: the aurora + frost
+     bloom up and the panel settles in. It is the visual inverse of the unfog below, so power-on and
+     sign-in feel like one continuous motion. Shared --ease throughout. */
+  @keyframes bootFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes bootRise { from { opacity: 0; transform: translateY(10px) scale(.99); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+  .wall  { animation: bootFade .9s var(--ease) both; }
+  .frost { animation: bootFade .9s var(--ease) both; }
+  .panel { animation: bootRise .7s var(--ease) .14s both; }
+  .users, .controls, .agentlink, .session { animation: bootFade .8s var(--ease) .28s both; }
+
+  /* GLASS UNFOGGING — on sign-in the frost clears (blur 80→0, tint → transparent) and the lock UI lifts
+     away while the aurora gently pushes in, as if you step through the clearing glass into your space.
+     The desktop wears the same aurora + fades in (see the shell), so the redirect lands without a seam. */
+  body.unfog .frost { animation: defog .8s cubic-bezier(.4,0,.2,1) forwards; }
+  body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .agentlink, body.unfog .agentpanel, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: lift .72s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; }
+  body.unfog .wall { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; }
+  @keyframes defog { to { background: rgba(7,11,22,0); -webkit-backdrop-filter: blur(0) saturate(1) brightness(1); backdrop-filter: blur(0) saturate(1) brightness(1); } }
+  @keyframes lift { to { opacity: 0; transform: translateY(-10px) scale(1.03); filter: blur(3px); } }
+  @keyframes pushin { to { transform: scale(1.08); } }
+  @keyframes defogRM { to { background: rgba(7,11,22,0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+  @keyframes liftRM { to { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wall i, .avatar.pulse { animation: none; }
+    .wall, .frost, .panel, .users, .controls, .agentlink, .session { animation: none; }   /* no power-on motion */
+    body.unfog .frost { animation: defogRM .45s ease forwards; }
+    body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .agentlink, body.unfog .agentpanel, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: liftRM .45s ease forwards; }
+    body.unfog .wall { animation: none; }
+  }
+  #fallback { position: fixed; inset: 0; display: none; place-items: center; color: #cbd5e1; z-index: 9;
+    font: var(--fs-meta)/1.6 ui-monospace, monospace; text-align: center; padding: 24px; }
   #fallback.on { display: grid; }
   #fallback code { color: #f87171; display: block; margin-top: 8px; word-break: break-all; max-width: 600px; }
-  /* "Continue as guest" — the frictionless door beside biometric Access (the viral default path). */
-  #guestlink { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
-    background: rgba(255,255,255,.08); color: #e8eaf2; border: 1px solid rgba(255,255,255,.20);
-    border-radius: 999px; padding: 9px 22px; font: 16px/1 "Oxygen", "Segoe UI", system-ui, sans-serif;
-    cursor: pointer; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); opacity: 0;
-    transition: opacity .3s ease, background .15s; pointer-events: none; }
-  #guestlink.show { opacity: 1; pointer-events: auto; }
-  #guestlink:hover { background: rgba(255,255,255,.16); }
-  #guestlink:active { transform: translateX(-50%) scale(.97); }
+  /* tight screens: keep the account switcher narrow and lift the agent door clear of the corner chrome */
+  @media (max-width: 560px) {
+    .users { max-width: 42vw; }
+    .agentlink { bottom: calc(var(--g1) + var(--u) * 2.9); }
+  }
 </style>
 </head>
 <body>
-<div id="stage"></div>
+<div class="wall"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+<div class="frost"></div>
+<main class="lock"><div class="panel" id="panel"></div></main>
+<div class="users" id="users"></div>
+<div class="pop" id="powmenu"></div>
+<div class="controls" id="controls"></div>
+<button class="agentlink" id="agentbtn" aria-haspopup="dialog" aria-controls="agentpanel"></button>
+<section class="agentpanel" id="agentpanel" role="region" aria-label="AI agent sign-in instructions" data-agent-login></section>
+<div class="agentcall" id="agentcall"></div>
+<div class="session" id="session" title="the session this sign-in will open"></div>
 <div id="fallback"><div>The display manager could not start.<code id="fallbackMsg"></code></div></div>
-<button id="guestlink" type="button">Continue as guest →</button>
 
+<!-- Machine-readable sign-in instructions for AI agents. Always present in the DOM, even before scripts run. -->
+<script type="application/json" id="holo-agent-login">
+{
+  "service": "Hologram OS sign-in",
+  "audience": "ai-agent",
+  "summary": "Two ways for an AI agent to sign in. You can do 'guest' yourself; 'ask-human' needs the person.",
+  "options": [
+    {
+      "id": "guest",
+      "title": "Guest",
+      "persistent": false,
+      "requiresHuman": false,
+      "do": { "navigate": "?guest=1", "click": "#agent-guest", "call": "window.HoloLogin.guest()" },
+      "result": "An instant, private, ephemeral session. No biometric and no human needed. Nothing persists after the session ends."
+    },
+    {
+      "id": "ask-human",
+      "title": "Ask Human",
+      "persistent": true,
+      "requiresHuman": true,
+      "do": { "click": "#agent-askhuman", "call": "window.HoloLogin.askHuman()", "then": "ask the person to approve sign-in with their device biometric" },
+      "result": "Surfaces a request for the person to approve sign-in with their device biometric (Windows Hello / Touch ID). An agent cannot complete this alone."
+    }
+  ]
+}
+</script>
+
+<!-- Holo FX (faithful unicode-animations): the operator's did:holo identity as streaming braille +
+     a sharp `scan` spinner during the sign-in ceremony. Classic script → window.HoloFX ready first. -->
+<script src="_shared/holo-fx.js"></script>
 <script type="module">
-import { QmlEngine, parseThemeConf, createDomBackend } from "./_shared/holo-qml.mjs";
-import { Button, TextBox, PasswordBox, ComboBox, Clock, createGreeter } from "./_shared/holo-sddm.js";
+import { createGreeter } from "./_shared/holo-sddm.js";
+import { teeReason, teeName } from "./_shared/holo-webauthn.mjs";
 
-const stage = document.getElementById("stage");
-const fetchText = async (url) => { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`${url} → ${r.status}`); return r.text(); };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const initials = (n) => (String(n || "").trim().split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join("") || "·").toUpperCase();
+const hueCss = (a, fallback) => `hsl(${(a && a.hue != null ? a.hue : fallback) | 0} 52% 46%)`;
+const I = {
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 6l6 6-6 6"/></svg>',
+  fp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.5 11a6.5 6.5 0 0 1 13 0"/><path d="M8.5 11a3.5 3.5 0 0 1 7 0v2.6"/><path d="M12 11v4.4"/><path d="M8.6 14.2V16"/><path d="M15.4 15.4V18"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8.4" r="4.1"/><path d="M3.8 20.4a8.2 8.2 0 0 1 16.4 0z"/></svg>',
+  power: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3.5v8"/><path d="M6.8 6.4a7.5 7.5 0 1 0 10.4 0"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.4"/><path d="M11 18h2"/></svg>',
+  restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>',
+  ghost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19a6.5 6.5 0 0 1 13 0"/></svg>',
+  robot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="8" width="15" height="11" rx="3"/><path d="M12 8V4.5M9.2 13h.01M14.8 13h.01M9.5 16h5"/><path d="M2.5 12v3M21.5 12v3"/></svg>',
+  session: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+};
+
+// Fullscreen is owned by the greeter: it flags + requests it ONCE at the very end of the chosen sign-in
+// path (holo-sddm.js → enterShell), just before the desktop is revealed. The page never requests it on tap.
 
 try {
-  // 1 · which theme? read SDDM's real config; fall back to the upstream default if it has no Main.qml.
-  const sddmConf = parseThemeConf(await fetchText("etc/sddm.conf").catch(() => "Current=maldives"));
-  // /etc/sddm.conf keeps ThemeDir absolute (faithful SDDM); normalise to a base-relative URL so
-  // it resolves through the SW under a /<repo>/ project site as well as a root site.
-  const themesDir = (sddmConf.ThemeDir || "usr/share/sddm/themes").replace(/\/$/, "").replace(/^\//, "");
-  let themeName = sddmConf.Current || "maldives";
-  let themeDir = `${themesDir}/${themeName}`;
-  let qml;
-  try { qml = await fetchText(`${themeDir}/Main.qml`); }
-  catch { themeName = "maldives"; themeDir = `${themesDir}/maldives`; qml = await fetchText(`${themeDir}/Main.qml`); }
+  const params = new URLSearchParams(location.search);
+  const ctx = await createGreeter(params);
+  const sddm = ctx.sddm;
+  window.__holoGreeter = ctx;
+  if ((params.get("guest") === "1" || params.get("as") === "guest") && sddm.guest) { sddm.guest(); }
+  else {
+    const users = (ctx.userModel.users || []);
+    const reason = await teeReason();
+    const st = { users, hasBio: !reason, bioName: teeName(), selected: users[0] || null };
+    let busyFx = null;
+    const stopBusy = () => { if (busyFx) { try { busyFx.stop(""); } catch (e) {} busyFx = null; } };
+    const setStatus = (t, err) => { stopBusy(); const el = $("panel").querySelector(".status"); if (el) { el.textContent = t || ""; el.className = "status" + (err ? " err" : ""); } if (err) window.__lastErr = t; };
+    // a sign-in step in progress → a sharp `scan` braille sweep beside the message (Holo FX)
+    const setBusy = (m) => { stopBusy(); const el = $("panel").querySelector(".status"); if (!el) return; el.className = "status"; if (window.HoloFX) busyFx = window.HoloFX.loader(el, { name: "scan", label: m || "" }); else el.textContent = m || ""; };
+    sddm.connect("informationMessage", (m) => setBusy(m));
+    sddm.connect("loginFailed", () => setStatus(window.__lastErr || "Try again", true));
+    sddm.connect("loginSucceeded", () => { setStatus("Welcome — opening your space…"); document.body.classList.add("unfog"); });
 
-  // 2 · the real SDDM greeter context (sddm.login → holo-identity, userModel, sessionModel, …),
-  //     unchanged, plus the theme's real theme.conf merged into `config` (Qt.resolvedUrl base = themeDir).
-  const ctx = await createGreeter(new URLSearchParams(location.search));
-  let themeConf = {}; try { themeConf = parseThemeConf(await fetchText(`${themeDir}/theme.conf`)); } catch {}
-  ctx.config = { ...ctx.config, ...themeConf };
-  if (!ctx.config.defaultBackground) ctx.config.defaultBackground = ctx.config.background;
+    // window.HoloLogin — the agent-facing API (mirrors script#holo-agent-login)
+    window.HoloLogin = {
+      options: (() => { try { return JSON.parse($("holo-agent-login").textContent).options; } catch { return []; } })(),
+      guest() { sddm.guest(); return "Signing in as Guest (ephemeral, private)."; },
+      askHuman() {
+        $("agentpanel").classList.remove("on"); $("agentcall").classList.add("on");
+        const av = $("panel").querySelector(".avatar"); if (av) av.classList.add("pulse");
+        setStatus("An AI agent asked you to sign in — approve above.");
+        return "Requested. Ask the human to approve sign-in with their device biometric; you cannot complete this alone.";
+      },
+    };
 
-  // 3 · run the real QML and mount it
-  const backend = createDomBackend({ Button, TextBox, PasswordBox, ComboBox, Clock });
-  const engine = new QmlEngine({ backend, context: ctx, baseUrl: `${themeDir}/`, onWarn: (m) => console.warn("[holo-qml]", m) });
-  engine.load(qml);
-  const rn = engine.root && engine.root.node;
-  if (rn) { rn.style.position = "fixed"; rn.style.inset = "0"; rn.style.width = "100vw"; rn.style.height = "100vh"; }
-  engine.mount(stage);
-  const remeasure = () => requestAnimationFrame(() => requestAnimationFrame(() => engine.measureImplicit()));
-  remeasure();
-  if (ctx.sddm) ctx.sddm.refresh = remeasure;   // QML reveal() calls sddm.refresh() to re-fit the card
-  window.__holoQml = engine;     // introspectable by agents / the render_qml MCP tool
-
-  // "Continue as guest" — the frictionless door beside biometric Access. Mints an ephemeral,
-  // non-persistent key (sddm.guest()) and enters the ONE desktop shell; the operator can sign in
-  // later from inside the shell. Same path the headless ?guest=1 URL takes.
-  const gl = document.getElementById("guestlink");
-  if (gl && ctx.sddm && ctx.sddm.guest) { gl.classList.add("show"); gl.addEventListener("click", () => { gl.textContent = "Entering…"; ctx.sddm.guest(); }); }
-
-  // Seamless headless access: /login.html?guest=1 enters as a non-persistent guest immediately —
-  // the one-URL door for an AI agent (a human taps "Continue as guest" instead). `next` is honoured.
-  const q = new URLSearchParams(location.search);
-  if ((q.get("guest") === "1" || q.get("as") === "guest") && ctx.sddm && ctx.sddm.guest) { ctx.sddm.guest(); }
-  else
-  // Component.onCompleted focuses the field; nudge it once layout settles
-  setTimeout(() => { const f = stage.querySelector("input"); if (f && document.activeElement !== f) f.focus(); }, 60);
+    renderCenter(st, sddm);
+    renderUsers(st, sddm);
+    renderControls(sddm);
+    renderAgent(sddm);
+    renderSession(ctx);
+  }
 } catch (e) {
-  document.getElementById("fallback").classList.add("on");
-  document.getElementById("fallbackMsg").textContent = String(e && e.message || e);
+  $("fallback").classList.add("on"); $("fallbackMsg").textContent = String(e && e.message || e);
   console.error("[login] display manager failed:", e);
+}
+
+function avatarHtml(u, big) {
+  const cls = big ? "avatar" : "pic";
+  if (u) return `<div class="${cls}" style="background:linear-gradient(140deg, ${hueCss(u.avatar, 210)}, ${hueCss({ hue: (u.avatar && u.avatar.hue || 210) + 26 }, 236)})">${esc(initials(u.label))}</div>`;
+  return `<div class="${cls}" style="background:linear-gradient(140deg,#5b6b86,#3a455c)">${I.person}</div>`;
+}
+
+function renderCenter(st, sddm) {
+  const firstRun = !st.selected;
+  const p = $("panel");
+  if (firstRun) {
+    p.innerHTML = `${avatarHtml(null, true)}
+      <h1 class="name">Set up this device</h1>
+      <div class="auth">
+        <div class="box"><input id="namein" type="text" autocomplete="name" placeholder="Your name" /><button class="submit" id="go" title="Create">${I.arrow}</button></div>
+        <div class="sub">${st.hasBio ? "Secured by " + esc(st.bioName) : "You’ll set a passphrase"}</div>
+        <div class="status"></div>
+      </div>`;
+    const nameEl = p.querySelector("#namein"), go = p.querySelector("#go");
+    const submit = () => { const n = (nameEl.value || "").trim(); if (!n) { nameEl.focus(); return; } go.disabled = true; sddm.access(n); };
+    go.onclick = submit; nameEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    setTimeout(() => nameEl.focus(), 40);
+    return;
+  }
+  const u = st.selected;
+  p.innerHTML = `${avatarHtml(u, true)}
+    <h1 class="name">${esc(u.label || "Welcome")}</h1>
+    ${u.kappa ? `<div class="kid" data-holo-kappa="${esc(u.kappa)}" title="${esc(u.kappa)}"></div>` : ``}
+    <div class="auth">
+      ${st.hasBio && u.cred ? `<button class="bio" id="bio">${I.fp}Unlock with ${esc(st.bioName)}</button><button class="alt" id="altpass">Use passphrase</button>` : ``}
+      <div class="box" id="passbox" ${st.hasBio && u.cred ? 'style="display:none"' : ''}><input id="passin" type="password" autocomplete="current-password" placeholder="Passphrase" /><button class="submit" id="go" title="Sign in">${I.arrow}</button></div>
+      <div class="status"></div>
+    </div>`;
+  const kid = p.querySelector(".kid"); if (kid && window.HoloFX) window.HoloFX.kappa(kid, undefined, { width: 12 });   // identity κ → a short streaming-braille window (hover for the full did:holo)
+  const bio = p.querySelector("#bio"), passbox = p.querySelector("#passbox"), passin = p.querySelector("#passin"), go = p.querySelector("#go"), alt = p.querySelector("#altpass");
+  if (bio) bio.onclick = () => { bio.disabled = true; sddm.unlockDevice(); };
+  if (alt) alt.onclick = () => { passbox.style.display = ""; alt.style.display = "none"; if (bio) bio.style.display = "none"; passin.focus(); };
+  const submit = () => { const v = passin.value; if (!v) { passin.focus(); return; } go.disabled = true; sddm.unlockPass(u.kappa, v); };
+  go.onclick = submit; passin.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+  setTimeout(() => { (bio || passin).focus && (bio || passin).focus(); }, 40);
+}
+
+function renderUsers(st, sddm) {
+  const host = $("users");
+  const chips = st.users.map((u) => `<div class="chip ${st.selected && u.kappa === st.selected.kappa ? "on" : ""}" data-k="${esc(u.kappa)}">${avatarHtml(u, false)}<span class="lab">${esc(u.label || "Operator")}</span></div>`);
+  chips.push(`<div class="chip" data-guest="1"><div class="pic" style="background:linear-gradient(140deg,#5b6b86,#3a455c)">${I.ghost}</div><span class="lab">Guest</span></div>`);
+  host.innerHTML = chips.join("");
+  host.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    if (c.dataset.guest) { sddm.guest(); return; }
+    st.selected = st.users.find((u) => u.kappa === c.dataset.k) || st.selected;
+    renderCenter(st, sddm);
+    renderUsers(st, sddm);
+  }));
+}
+
+// renderSession — surface a tiny pill ONLY when a non-default session was requested (rEFInd menu),
+// so the operator sees what they're signing into. The canonical holospace desktop shows nothing.
+function renderSession(ctx) {
+  const sm = ctx && ctx.sessionModel; const el = $("session");
+  if (!sm || !el) return;
+  const idx = sm.lastIndex || 0, s = (sm.sessions || [])[idx];
+  if (!s || idx === 0) return;                       // index 0 = the canonical desktop → keep it clean
+  el.innerHTML = `${I.session}<span>${esc(s.name)}</span>`;
+  el.title = "Signing in to: " + (s.name || "") + " (" + (s.loader || "") + ")";
+  el.classList.add("on");
+}
+
+function renderControls(sddm) {
+  $("controls").innerHTML = `<button class="ctl" id="phone" title="Sign in with another device">${I.phone}</button><button class="ctl" id="pow" title="Power">${I.power}</button>`;
+  $("powmenu").innerHTML = `<button id="restart">${I.restart}Restart</button><button id="shutdown">${I.power}Shut down</button>`;
+  $("phone").onclick = () => { sddm.pairWithPhone(); };
+  const pow = $("pow"), menu = $("powmenu");
+  pow.onclick = (e) => { e.stopPropagation(); menu.classList.toggle("on"); };
+  document.addEventListener("click", () => menu.classList.remove("on"));
+  $("powmenu").querySelector("#restart").onclick = () => sddm.reboot();
+  $("powmenu").querySelector("#shutdown").onclick = () => sddm.powerOff();
+}
+
+// renderAgent — the discoverable AI-agent sign-in help (mirrors script#holo-agent-login + window.HoloLogin)
+function renderAgent(sddm) {
+  $("agentbtn").innerHTML = `${I.robot}AI agent`;
+  $("agentpanel").innerHTML = `
+    <h2>Signing in as an AI agent</h2>
+    <p class="ap-lead">Two ways to proceed — you can do <b>Guest</b> yourself; <b>Ask Human</b> needs the person.</p>
+    <div class="ap-opt"><div class="ap-h">${I.ghost} Guest</div>
+      <p>Instant, private, throwaway identity. No human and no biometric needed — nothing is saved after the session.</p>
+      <button id="agent-guest">Continue as Guest</button>
+      <code>or load this page with ?guest=1</code></div>
+    <div class="ap-opt secondary"><div class="ap-h">${I.person} Ask Human</div>
+      <p>A saved, sovereign identity needs the person’s device biometric (Windows Hello / Touch ID) — you can’t do that yourself. Ask them to approve.</p>
+      <button id="agent-askhuman">Ask the human to sign in</button></div>`;
+  $("agentcall").innerHTML = `${I.robot}<span>An AI agent is requesting access — sign in below to approve.</span>`;
+  $("agentbtn").onclick = (e) => { e.stopPropagation(); $("agentpanel").classList.toggle("on"); };
+  $("agentpanel").addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", () => $("agentpanel").classList.remove("on"));
+  $("agent-guest").onclick = () => window.HoloLogin.guest();
+  $("agent-askhuman").onclick = () => window.HoloLogin.askHuman();
 }
 </script>
 </body>

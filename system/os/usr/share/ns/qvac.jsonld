@@ -1,0 +1,380 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "hosqvac": "https://hologram.os/ns/qvac#",
+    "label": "rdfs:label",
+    "comment": "rdfs:comment",
+    "subClassOf": {
+      "@id": "rdfs:subClassOf",
+      "@type": "@id"
+    },
+    "isDefinedBy": {
+      "@id": "rdfs:isDefinedBy",
+      "@type": "@id"
+    },
+    "inScheme": {
+      "@id": "skos:inScheme",
+      "@type": "@id"
+    },
+    "prefLabel": "skos:prefLabel",
+    "api": "hosqvac:api",
+    "modelType": "hosqvac:modelType",
+    "provisioned": "hosqvac:provisioned",
+    "obligation": "hosqvac:obligation"
+  },
+  "@id": "https://hologram.os/ns/qvac",
+  "@type": "owl:Ontology",
+  "label": "Hologram OS — QVAC SDK, encoded native (hosqvac:)",
+  "comment": "The QVAC SDK (docs.qvac.tether.io) encoded as a self-verifying contract on the substrate (ADR-0067): its 13 AI capabilities, runtime + model lifecycle, P2P delegation and OpenAI-compatible server, each a checkable obligation. Mints only the genuinely-new QVAC terms (Capability · InferenceReceipt · Provider · Runtime · api · provisioned); provenance and activity reuse PROV-O, schema.org and DID Core unchanged. Re-derived from holo-qvac.mjs (no drift).",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "dcterms:source": "https://docs.qvac.tether.io/",
+  "@graph": [
+    {
+      "@id": "hosqvac:SDK",
+      "@type": "rdfs:Class",
+      "label": "QVAC SDK",
+      "comment": "The encoded QVAC contract: one local AI interface satisfied by the substrate, serverless and content-addressed.",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "subClassOf": "skos:ConceptScheme"
+    },
+    {
+      "@id": "hosqvac:Capability",
+      "@type": "rdfs:Class",
+      "label": "AI Capability",
+      "comment": "One QVAC AI capability (text generation, embeddings, RAG, …), invoked by named public symbols and holding a checkable obligation.",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "subClassOf": "skos:Concept"
+    },
+    {
+      "@id": "hosqvac:InferenceReceipt",
+      "@type": "rdfs:Class",
+      "label": "Inference Receipt",
+      "comment": "A PROV-O activity that proves one inference: it commits to model ⊕ input ⊕ params ⊕ engine → output and a conscience verdict, and re-derives to its content address (Law L5).",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "subClassOf": "prov:Activity"
+    },
+    {
+      "@id": "hosqvac:Provider",
+      "@type": "rdfs:Class",
+      "label": "Inference Provider",
+      "comment": "A pluggable brain behind the contract: the deterministic reference provider (the always-run floor) or an on-device model engine (Holo Q / QVAC WebGPU).",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "subClassOf": "prov:SoftwareAgent"
+    },
+    {
+      "@id": "hosqvac:Runtime",
+      "@type": "rdfs:Class",
+      "label": "Runtime",
+      "comment": "A host the SDK runs on: QVAC's Node · Bare · Expo, plus the substrate's browser (WebAssembly + WebGPU).",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "subClassOf": "skos:Concept"
+    },
+    {
+      "@id": "hosqvac:api",
+      "@type": "rdf:Property",
+      "label": "api symbol",
+      "comment": "A public QVAC symbol a capability is invoked by (kept verbatim for familiarity).",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hosqvac:modelType",
+      "@type": "rdf:Property",
+      "label": "model type",
+      "comment": "The model class a capability needs (llm · embedding · diffusion · asr · tts · vlm · vla · ocr).",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "hosqvac:provisioned",
+      "@type": "rdf:Property",
+      "label": "provisioned",
+      "comment": "Whether a substrate backend produces a real, re-derivable result now (true) or the call honestly reports a missing model (false).",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "range": "xsd:boolean"
+    },
+    {
+      "@id": "hosqvac:obligation",
+      "@type": "rdf:Property",
+      "label": "obligation",
+      "comment": "The checkable rule a capability holds. OS-specific QVAC term.",
+      "isDefinedBy": "https://hologram.os/ns/qvac",
+      "range": "xsd:string"
+    },
+    {
+      "@id": "https://hologram.os/ns/qvac#capabilities",
+      "@type": [
+        "skos:ConceptScheme",
+        "hosqvac:SDK"
+      ],
+      "prefLabel": "QVAC AI capabilities — 13, encoded native (ADR-0067)",
+      "comment": "The QVAC capability surface, each a substrate obligation.",
+      "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "@id": "hosqvac:text-generation",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Text Generation",
+      "api": [
+        "completion"
+      ],
+      "modelType": "llm",
+      "provisioned": true,
+      "obligation": "completion() streams a CompletionRun (events · final · tokenStream) and seals a receipt that re-derives.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:text-embeddings",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Text Embeddings",
+      "api": [
+        "embed"
+      ],
+      "modelType": "embedding",
+      "provisioned": true,
+      "obligation": "embed() returns a fixed-width vector that is a pure function of the text — same text, same vector.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:rag",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Retrieval-Augmented Generation",
+      "api": [
+        "ragIngest",
+        "ragChunk",
+        "ragSaveEmbeddings",
+        "ragSearch",
+        "ragDeleteEmbeddings",
+        "ragCloseWorkspace",
+        "ragDeleteWorkspace",
+        "ragListWorkspaces",
+        "ragReindex"
+      ],
+      "modelType": "embedding",
+      "provisioned": true,
+      "obligation": "A workspace ingests, chunks, embeds and searches content addressed by κ; search ranks by the embedding above.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:translation",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Translation",
+      "api": [
+        "translate"
+      ],
+      "modelType": "llm",
+      "provisioned": true,
+      "obligation": "translate() routes through completion with a target language and seals the same re-derivable receipt.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:classification",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Classification",
+      "api": [
+        "classify"
+      ],
+      "modelType": "embedding",
+      "provisioned": true,
+      "obligation": "classify() scores labels by embedding nearness — a pure function of (text, labels), re-derivable.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:multimodal",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Multimodal",
+      "api": [
+        "completion"
+      ],
+      "modelType": "vlm",
+      "provisioned": false,
+      "obligation": "completion() accepts image inputs when a vision model is bound; otherwise the call reports the missing model.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:image-generation",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Image Generation",
+      "api": [
+        "diffusion",
+        "upscale"
+      ],
+      "modelType": "diffusion",
+      "provisioned": false,
+      "obligation": "diffusion()/upscale() are present and conscience-gated; without a diffusion model bound the call reports it, never fakes pixels.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:video-generation",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Video Generation",
+      "api": [
+        "video"
+      ],
+      "modelType": "video",
+      "provisioned": false,
+      "obligation": "video() is present and gated; it reports the missing model rather than returning an empty stand-in.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:transcription",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Transcription (ASR)",
+      "api": [
+        "transcribe",
+        "transcribeStream"
+      ],
+      "modelType": "asr",
+      "provisioned": false,
+      "obligation": "transcribe()/transcribeStream() are present and gated; they report the missing ASR model honestly.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:text-to-speech",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Text to Speech",
+      "api": [
+        "textToSpeech",
+        "textToSpeechStream"
+      ],
+      "modelType": "tts",
+      "provisioned": false,
+      "obligation": "textToSpeech()/textToSpeechStream() are present and gated; they report the missing TTS model honestly.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:voice-assistant",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Voice Assistant",
+      "api": [
+        "transcribe",
+        "completion",
+        "textToSpeech"
+      ],
+      "modelType": "pipeline",
+      "provisioned": false,
+      "obligation": "The voice pipeline composes transcribe → completion → textToSpeech; it runs once those models are bound.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:vla",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Vision-Language-Action",
+      "api": [
+        "vla",
+        "vlaHparams",
+        "vlaPadState",
+        "vlaPreprocessImage"
+      ],
+      "modelType": "vla",
+      "provisioned": false,
+      "obligation": "vla() and its helpers are present and gated; without a VLA model the call reports it.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:ocr",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "OCR",
+      "api": [
+        "ocr"
+      ],
+      "modelType": "ocr",
+      "provisioned": false,
+      "obligation": "ocr() is present and gated; it reports the missing OCR model rather than inventing text.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:fine-tuning",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Capability"
+      ],
+      "prefLabel": "Fine-tuning (LoRA)",
+      "api": [
+        "finetune"
+      ],
+      "modelType": "llm",
+      "provisioned": false,
+      "obligation": "finetune() starts/stops/resumes a run and reports its state; the adapter is a content-addressed object.",
+      "inScheme": "https://hologram.os/ns/qvac#capabilities"
+    },
+    {
+      "@id": "hosqvac:runtime-node",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Runtime"
+      ],
+      "prefLabel": "Node.js"
+    },
+    {
+      "@id": "hosqvac:runtime-bare",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Runtime"
+      ],
+      "prefLabel": "Bare"
+    },
+    {
+      "@id": "hosqvac:runtime-expo",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Runtime"
+      ],
+      "prefLabel": "Expo"
+    },
+    {
+      "@id": "hosqvac:runtime-browser-wasm",
+      "@type": [
+        "skos:Concept",
+        "hosqvac:Runtime"
+      ],
+      "prefLabel": "Browser (WebAssembly + WebGPU)"
+    }
+  ]
+}

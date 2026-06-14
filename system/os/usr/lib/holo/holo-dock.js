@@ -20,6 +20,7 @@
   try { if (W.top !== W.self) return; } catch (e) { return; }   // top-level desktop chrome only
 
   var DOC = document, root = DOC.documentElement;
+  var VINYL_ID = "holo.vinyl";                                    // a live tile: the Holo Vinyl disc (shared with holo-vinyl.js)
 
   // ── resolve our own location → siblings (css · config · platform · catalog · logo) ──
   var SELF = (DOC.currentScript && DOC.currentScript.src) ||
@@ -139,7 +140,12 @@
     } catch (e) {}
     return false;
   }
-  function orientNow() { return isFullscreen() ? "bottom" : "left"; }
+  function orientNow() {
+    var side = STATE.holo && STATE.holo.dockSide;             // a user-chosen pin overrides the auto placement
+    if (side === "left" || side === "right" || side === "top" || side === "bottom" || side === "free") return side;
+    return isFullscreen() ? "bottom" : "left";
+  }
+  function clampN(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function frame() { return DOC.getElementById("holoframe"); }
   function hf() { return DOC.getElementById("hf-frame"); }
   function isFramed() { var f = frame(); return !!(f && f.classList.contains("open")); }
@@ -188,6 +194,7 @@
     STATE.holo = STATE.holo || {};
     var h = effectiveHolo();
     STATE.holo.pins = h.pins; STATE.holo.glass = h.glass; STATE.holo.magnify = h.magnify; STATE.holo.showClock = h.showClock; STATE.holo.showHome = h.showHome;
+    STATE.holo.dockSide = h.dockSide || null; STATE.holo.collapsed = !!h.collapsed; STATE.holo.dockX = h.dockX != null ? h.dockX : null; STATE.holo.dockY = h.dockY != null ? h.dockY : null;
     return saveOverride(STATE.holo);
   }
   function setPins(pins) { STATE.holo = STATE.holo || {}; STATE.holo.pins = pins.slice(); render(); persist(); }
@@ -265,18 +272,20 @@
     var dock = el("nav", { id: "holo-dock", "class": "holo-dense" + (wasReady ? " ready" : ""), "aria-label": "Dock", "data-glass": holo.glass || "blur" });
     STATE.orient = orientNow();
     dock.setAttribute("data-orient", STATE.orient);
+    if (STATE.orient === "free") { dock.style.left = clampN(holo.dockX != null ? holo.dockX : 60, 0, W.innerWidth - 64) + "px"; dock.style.top = clampN(holo.dockY != null ? holo.dockY : 80, 0, W.innerHeight - 120) + "px"; }
+    if (holo.collapsed) dock.classList.add("holo-dock--collapsed");
     if (wantsMagnify(holo)) dock.classList.add("holo-dock--magnify");
     var inner = el("div", { "class": "holo-dock-inner" });
 
     var sdk = inSdk();
     STATE.renderedSdk = sdk;
+    var homeBtn = null;
     if (holo.showHome !== false) {
-      var startLabel = sdk ? "Open holospace" : "Show desktop";
+      var foldLabel = holo.collapsed ? "Unfold the dock" : "Fold the dock — drag to move it";
       var logoImg = el("img", { "class": "holo-dock-icon holo-dock-logo", src: LOGO_URL, alt: "Hologram", draggable: "false" });
       logoImg.addEventListener("error", function () { var s = el("span", { "class": "holo-dock-icon", html: HOME_SVG }); if (this.parentNode) this.parentNode.replaceChild(s, this); });
-      var home = el("button", { "class": "holo-dock-tile holo-dock-home", title: startLabel, "aria-label": startLabel }, [logoImg]);
-      home.addEventListener("click", startAction);
-      inner.appendChild(home);
+      homeBtn = el("button", { "class": "holo-dock-tile holo-dock-home", title: foldLabel, "aria-label": foldLabel }, [logoImg]);
+      inner.appendChild(homeBtn);                              // click → fold/unfold (wireDockMove); drag → move the dock
     }
 
     var list = el("ol", { "class": "holo-dock-items" });
@@ -289,7 +298,7 @@
     if (sdk) {
       // Build · (Run = the home/start button) · Share — the three native holospace verbs, ubiquitous.
       var actions = el("div", { "class": "holo-dock-actions" });
-      actions.appendChild(actionBtn("Build — author a component → κ", NEW_SVG, function () { clickEl("author"); }));
+      actions.appendChild(actionBtn("Create — author a component", NEW_SVG, function () { clickEl("author"); }));
       actions.appendChild(actionBtn("Share — a link anyone can open instantly (no sign-in)", SHARE_SVG, function () { clickEl("share-btn"); }));
       actions.appendChild(actionBtn("Component library", LIB_SVG, function () { clickEl("library"); }));
       actions.appendChild(actionBtn("Virtual keyboard", KBD_SVG, function () { clickEl("keyboard-btn"); }));
@@ -305,6 +314,7 @@
     if (prev) prev.replaceWith(dock); else DOC.body.appendChild(dock);
     dockEl = dock;
     wireDrag(list);
+    wireDockMove(dock, inner, homeBtn);
     tick();
     updateRunning();
     measure();
@@ -312,8 +322,22 @@
     if (W.ResizeObserver) { try { if (ro) ro.disconnect(); ro = new ResizeObserver(measure); ro.observe(inner); } catch (e) {} }
   }
 
+  // a live tile: the Holo Vinyl disc — shows artwork, spins clockwise while playing, tap = play/pause
+  function vinylTile(id) {
+    var li = el("li", { "class": "holo-dock-item holo-dock-vinyl", "data-app": id, "data-key": id, draggable: "true" });
+    var disc = W.HoloVinyl.dockTile();                            // the live disc element, bound to the persistent player
+    var tile = el("button", { "class": "holo-dock-tile", title: "Music — tap to play/pause", "aria-label": "Music — tap to play or pause" }, [disc]);
+    li.appendChild(tile);
+    li.appendChild(el("span", { "class": "holo-dock-dot" }));
+    li.appendChild(el("span", { "class": "holo-dock-label", text: "Music" }));
+    li.addEventListener("contextmenu", function (e) { e.preventDefault(); openItemMenu(e, id); });
+    bindLongPress(li, function (e) { openItemMenu(e, id); });
+    return li;
+  }
+
   // single object tile
   function item(id) {
+    if (id === VINYL_ID && W.HoloVinyl && W.HoloVinyl.dockTile) return vinylTile(id);
     var info = appInfo(id);
     var li = el("li", { "class": "holo-dock-item", "data-app": id, "data-key": id, draggable: "true" });
     var img = el("img", { "class": "holo-dock-icon", src: iconSrc(id), alt: "", draggable: "false" });
@@ -353,6 +377,7 @@
     if (inSdk()) { var dirs = sdkOpenSrcs().map(dirOf); Object.keys(STATE.catalog).forEach(function (id) { var i = STATE.catalog[id]; if (i.dir && dirs.indexOf(i.dir) >= 0) run[id] = 1; }); }
     else { var cur = currentAppId(); if (cur) run[cur] = 1; }
     dockEl.querySelectorAll(".holo-dock-item").forEach(function (li) {
+      if (li.classList.contains("holo-dock-vinyl")) return;      // the music disc owns its own running/playing state
       var running = false;
       if (li.getAttribute("data-app")) running = !!run[li.getAttribute("data-app")];
       else if (li.getAttribute("data-group")) { var g = groupById(li.getAttribute("data-group")); running = !!(g && g.items.some(function (m) { return run[m]; })); }
@@ -377,10 +402,13 @@
     if (STATE.orient === "left") {
       root.style.setProperty("--holo-dock-w", Math.round(rect.width) + "px");
       root.style.setProperty("--holo-dock-h", "0px");
-    } else {
+    } else if (STATE.orient === "bottom") {
       var p = STATE.profile || {}, floating = p.os === "macos" || p.os === "ipados";
       root.style.setProperty("--holo-dock-h", Math.round(floating ? 0 : rect.height) + "px");
       root.style.setProperty("--holo-dock-w", "0px");
+    } else {                                                   // right / top / free → float over the content (reserve nothing)
+      root.style.setProperty("--holo-dock-w", "0px");
+      root.style.setProperty("--holo-dock-h", "0px");
     }
   }
   function reorient() { if (!dockEl) return; var o = orientNow(); if (o !== STATE.orient) { STATE.orient = o; dockEl.setAttribute("data-orient", o); } measure(); }
@@ -416,6 +444,53 @@
     });
   }
 
+  // ── move the WHOLE dock: drag its empty area (or the H logo) to pin it to ANY edge — or drop it in
+  //    the open to float free — and press the H logo (no drag) to fold / unfold. Pointer-based, so it
+  //    composes with the HTML5 tile reorder above (which only fires on the draggable tiles). ──────────
+  function snapSide(x, y) {
+    var EDGE = 96, w = W.innerWidth, h = W.innerHeight;
+    var dl = x, dr = w - x, dt = y, db = h - y, m = Math.min(dl, dr, dt, db);
+    if (m > EDGE) return null;                                  // dropped in the open → float free
+    return m === dl ? "left" : m === dr ? "right" : m === dt ? "top" : "bottom";
+  }
+  function toggleCollapse() { STATE.holo = STATE.holo || {}; STATE.holo.collapsed = !STATE.holo.collapsed; render(); persist(); reveal(); }
+  function placeFree(dock, x, y) {
+    dock.setAttribute("data-orient", "free");
+    dock.style.right = "auto"; dock.style.bottom = "auto";
+    dock.style.left = clampN(x - 26, 0, W.innerWidth - 64) + "px";
+    dock.style.top = clampN(y - 26, 0, W.innerHeight - 120) + "px";
+  }
+  function wireDockMove(dock, inner, homeBtn) {
+    var moving = false, did = false, sx = 0, sy = 0, onHome = false;
+    function move(e) {
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moving && (dx * dx + dy * dy) < 36) return;          // ~6px threshold → tell a click from a drag
+      if (!moving) { moving = true; did = true; dock.classList.add("holo-dock--moving"); DOC.body.style.userSelect = "none"; }
+      placeFree(dock, e.clientX, e.clientY);
+    }
+    function up(e) {
+      DOC.removeEventListener("pointermove", move, true);
+      DOC.removeEventListener("pointerup", up, true);
+      DOC.body.style.userSelect = "";
+      if (!did) { if (onHome) toggleCollapse(); return; }       // a plain click on the H logo → fold / unfold
+      moving = false; dock.classList.remove("holo-dock--moving");
+      STATE.holo = STATE.holo || {};
+      var side = snapSide(e.clientX, e.clientY);
+      if (side) { STATE.holo.dockSide = side; STATE.holo.dockX = null; STATE.holo.dockY = null; }
+      else { STATE.holo.dockSide = "free"; STATE.holo.dockX = clampN(e.clientX - 26, 0, W.innerWidth - 64); STATE.holo.dockY = clampN(e.clientY - 26, 0, W.innerHeight - 120); }
+      render(); persist(); reveal();
+    }
+    inner.addEventListener("pointerdown", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      var t = e.target;
+      onHome = !!(homeBtn && (t === homeBtn || homeBtn.contains(t)));
+      if (!onHome && t.closest && t.closest(".holo-dock-item, .holo-dock-action, .holo-dock-add, .holo-dock-clock")) return;  // tiles / actions keep their own behavior
+      did = false; moving = false; sx = e.clientX; sy = e.clientY;
+      DOC.addEventListener("pointermove", move, true);
+      DOC.addEventListener("pointerup", up, true);
+    });
+  }
+
   // ── long-press (touch menus) ───────────────────────────────────────────────────────────────────
   function bindLongPress(node, cb) {
     var t = null, sx = 0, sy = 0;
@@ -441,7 +516,7 @@
     title.addEventListener("change", function () { renameGroup(id, title.value.trim() || "Group"); });
     title.addEventListener("keydown", function (e) { if (e.key === "Enter") this.blur(); });
     head.appendChild(title);
-    head.appendChild(el("span", { "class": "holo-dock-fly-k", title: "the bundle's content fingerprint — everything is an object", text: "holo://" + groupFp(g) }));
+    head.appendChild(el("span", { "class": "holo-dock-fly-k", title: "A verifiable id for this group", text: "holo://" + groupFp(g) }));
     fly.appendChild(head);
     var grid = el("div", { "class": "holo-dock-fly-grid" });
     g.items.forEach(function (mid) {
@@ -471,30 +546,51 @@
     setTimeout(function () { DOC.addEventListener("pointerdown", onFlyDown, true); }, 0);
   }
   function positionFly(fly, li) {
-    var r = li ? li.getBoundingClientRect() : { left: 60, top: 80, right: 60, bottom: 120 };
+    var r = li ? li.getBoundingClientRect() : { left: 60, top: 80, right: 60, bottom: 120, width: 0, height: 40 };
     var fr = fly.getBoundingClientRect();
+    var b = deskBoundsD();
     var vertical = STATE.orient === "left";
     var x, y;
-    if (vertical) { x = r.right + 10; y = Math.min(Math.max(8, r.top + r.height / 2 - fr.height / 2), W.innerHeight - fr.height - 8); }
-    else { y = r.top - fr.height - 10; x = Math.min(Math.max(8, r.left + r.width / 2 - fr.width / 2), W.innerWidth - fr.width - 8); }
-    fly.style.left = Math.max(8, x) + "px"; fly.style.top = Math.max(8, y) + "px";
+    if (vertical) { x = r.right + 10; if (x + fr.width > b.maxX) { var lf = r.left - fr.width - 10; if (lf >= b.minX) x = lf; } y = r.top + r.height / 2 - fr.height / 2; }
+    else { y = r.top - fr.height - 10; if (y < b.minY) y = r.bottom + 10; x = r.left + r.width / 2 - fr.width / 2; }
+    x = Math.max(b.minX, Math.min(x, Math.max(b.minX, b.maxX - fr.width)));
+    y = Math.max(b.minY, Math.min(y, Math.max(b.minY, b.maxY - fr.height)));
+    fly.style.left = x + "px"; fly.style.top = y + "px";
   }
   function mbtnPlain(label, fn) { var b = el("button", { type: "button", text: label }); b.addEventListener("click", function () { fn(); }); return b; }
 
   // ── menus ────────────────────────────────────────────────────────────────────────────────────
   function closeMenu() { var m = DOC.querySelector(".holo-dock-menu"); if (m) m.remove(); DOC.removeEventListener("pointerdown", onDocDown, true); }
   function onDocDown(e) { if (!e.target.closest(".holo-dock-menu")) closeMenu(); }
+  // keep menus/flyouts fully inside the desktop, clear of the dock rail (its reserved --holo-dock-w/-h)
+  function deskBoundsD() {
+    var gs = getComputedStyle(root);
+    var dW = parseFloat(gs.getPropertyValue("--holo-dock-w")) || 0;
+    var dH = parseFloat(gs.getPropertyValue("--holo-dock-h")) || 0;
+    return { minX: 8 + dW, minY: 8, maxX: W.innerWidth - 8, maxY: W.innerHeight - 8 - dH };
+  }
   function placeMenu(menu, x, y) {
     DOC.body.appendChild(menu);
-    var r = menu.getBoundingClientRect();
-    menu.style.left = Math.max(8, Math.min(x, W.innerWidth - r.width - 8)) + "px";
-    menu.style.top = Math.max(8, Math.min(y, W.innerHeight - r.height - 8)) + "px";
-    if (y > W.innerHeight - r.height - 16) menu.style.top = Math.max(8, y - r.height) + "px";
+    var b = deskBoundsD(), r = menu.getBoundingClientRect();
+    menu.style.left = Math.max(b.minX, Math.min(x, Math.max(b.minX, b.maxX - r.width))) + "px";
+    menu.style.top = Math.max(b.minY, Math.min(y, Math.max(b.minY, b.maxY - r.height))) + "px";
     setTimeout(function () { DOC.addEventListener("pointerdown", onDocDown, true); }, 0);
   }
   function mbtn(label, fn, opts) { var b = el("button", Object.assign({ type: "button", text: label }, opts || {})); b.addEventListener("click", function () { closeMenu(); fn(); }); return b; }
   function openItemMenu(e, id) {
     closeMenu();
+    if (id === VINYL_ID && W.HoloVinyl) {                         // the live music disc — music actions, not app-launch ones
+      var vmenu = el("div", { "class": "holo-dock-menu", role: "menu" }, [el("div", { "class": "holo-dock-menu-head", text: "Music" })]);
+      var playing = W.HoloVinyl.dockPlaying && W.HoloVinyl.dockPlaying();
+      vmenu.appendChild(mbtn(playing ? "Pause" : "Play", function () { W.HoloVinyl.dockToggle(); }));
+      vmenu.appendChild(mbtn("Quick preview", function () { W.HoloVinyl.dockPreview(); }));
+      vmenu.appendChild(mbtn("Open full player", function () { W.HoloVinyl.dockOpenFull(); }));
+      vmenu.appendChild(mbtn("Change set…", function () { W.HoloVinyl.dockEdit(); }));
+      vmenu.appendChild(el("hr"));
+      vmenu.appendChild(mbtn("Remove from dock", function () { setPins(pins().filter(function (x) { return entryKey(x) !== id; })); }));
+      placeMenu(vmenu, e.clientX, e.clientY);
+      return;
+    }
     var info = appInfo(id), arr = pins(), isPinned = indexOfKey(arr, id) >= 0;
     var menu = el("div", { "class": "holo-dock-menu", role: "menu" }, [el("div", { "class": "holo-dock-menu-head", text: info.name })]);
     menu.appendChild(mbtn("Open", function () { launch(id); }));
@@ -588,13 +684,16 @@
 
   // ── public API (scriptable + IDE-inspectable) ────────────────────────────────────────────────
   W.HoloDock = {
-    version: "0.2",
+    version: "0.3",
     pin: function (id) { if (indexOfKey(pins(), id) < 0) setPins(pins().concat([id])); },
     unpin: function (id) { setPins(pins().filter(function (x) { return entryKey(x) !== id; })); },
     remove: function (id) { setPins(pins().filter(function (x) { return entryKey(x) !== id; })); },
     setPins: setPins, setGlass: setGlass,
+    setSide: function (s) { STATE.holo = STATE.holo || {}; STATE.holo.dockSide = (s === "left" || s === "right" || s === "top" || s === "bottom" || s === "free") ? s : null; STATE.holo.dockX = null; STATE.holo.dockY = null; render(); persist(); reveal(); },
+    collapse: function (b) { STATE.holo = STATE.holo || {}; STATE.holo.collapsed = (b == null ? !STATE.holo.collapsed : !!b); render(); persist(); reveal(); },
     bundle: bundle, ungroup: ungroup, addToGroup: addToGroup, removeFromGroup: removeFromGroup,
     launch: launch, revealDesktop: revealDesktop,
+    catalog: function () { return STATE.catalog || {}; },
     config: function () { return { default: STATE.def, override: STATE.holo, effective: effectiveHolo(), profile: STATE.profile }; },
     refresh: render,
   };

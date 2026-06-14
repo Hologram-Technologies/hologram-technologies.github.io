@@ -1,0 +1,66 @@
+{
+  "witnessed": true,
+  "passed": 8,
+  "failed": 0,
+  "sample": [
+    "notepad",
+    "files",
+    "search",
+    "wallet",
+    "music",
+    "git"
+  ],
+  "covers": [
+    "a κ round-trips losslessly through its CIDv1 (cid → κ ==",
+    "the CIDv1 is shorter than the did:holo form AND a standa",
+    "the κ-identicon is DETERMINISTIC from the content addres",
+    "the pretty route serves a per-app OPEN GRAPH card the ch",
+    "the OG image is the content-derived identicon SVG (valid",
+    "the clean /~app#k=<cid> link OPENS and RENDERS the app i",
+    "the shared app runs on the ONE Holo Runtime delivery wor",
+    "the CID in the link DECODES to the app's real κ — the sh"
+  ],
+  "results": [
+    {
+      "name": "a κ round-trips losslessly through its CIDv1 (cid → κ === original) — the address is shorter, not different",
+      "ok": true,
+      "detail": "6/6 · notepad:59c files:59c search:59c wallet:59c music:59c git:59c"
+    },
+    {
+      "name": "the CIDv1 is shorter than the did:holo form AND a standard, IPFS-interoperable spelling (bafkrei…, multibase base32 · multicodec raw · sha2-256)",
+      "ok": true,
+      "detail": "did 80c → cid 59c"
+    },
+    {
+      "name": "the κ-identicon is DETERMINISTIC from the content address (same κ → same picture) and distinct per app — the picture IS the proof, prettier",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the pretty route serves a per-app OPEN GRAPH card the chat crawler can read (og:title · og:image · twitter card) — a beautiful preview, no JS",
+      "ok": true,
+      "detail": "og:title=\"Holo Notepad\""
+    },
+    {
+      "name": "the OG image is the content-derived identicon SVG (valid, deterministic, served image/svg+xml)",
+      "ok": true,
+      "detail": "2382 bytes"
+    },
+    {
+      "name": "the clean /~app#k=<cid> link OPENS and RENDERS the app in a COLD browser (the short Telegram link)",
+      "ok": true,
+      "detail": "notepad · 273 ms · body 462"
+    },
+    {
+      "name": "the shared app runs on the ONE Holo Runtime delivery worker (holo-fhs-sw.js)",
+      "ok": true,
+      "detail": "holo-fhs-sw.js"
+    },
+    {
+      "name": "the CID in the link DECODES to the app's real κ — the short address is self-verifying, not a lookup (Law L1: name is a hint, κ is the truth)",
+      "ok": true,
+      "detail": "bafkreicyhpceteq… → …d49c70e2"
+    }
+  ],
+  "spec": "An external share address is made shorter (κ spelled as a lossless, IPFS-interoperable CIDv1 — ~30% shorter than the did:holo form), cleaner (/~<app>#k=<cid> route), and prettier (a per-app Open Graph card with a deterministic, content-derived κ-identicon the chat crawler reads from static HTML) — without breaking decentralized interoperability: the path name is a hint, the #k= CID is a lossless spelling of the κ that re-derives to the app's content address, and the served app bytes are re-derived by the runtime worker (Law L5). NOTE: the dev server injects the per-app OG meta to prove the mechanism; a static host needs the build to pre-render per-app /~<app> pages (or host templating). The generic card + CID + clean route work on any host."
+}

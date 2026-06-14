@@ -1,0 +1,48 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "every holospace exposes a SINGLE UNIFIED REST API at /~<app>/api — a standardized, content-addressed κ-stream surface for the open web (humans · external API-gated apps · agents), over the same κ-store/registry as MCP (no parallel infra)",
+    "INGRESS (POST /o, POST /stream) imports objects → their κ (the server re-derives the address, Law L2); EGRESS (GET /o/<κ>, GET /stream as NDJSON/SSE) exports SELF-VERIFYING κ-objects (re-derive to verify, Law L5)",
+    "the descriptor is OpenAPI 3.1 ⊕ JSON-LD (schema.org) — the REST twin of the MCP capability card; the rendered open semantic web",
+    "HTTP 402 pay-per-κ-object-stream monetisation with a REAL token rail: the payer signs a κ-bound PERMIT (binding app + resource + amount + nonce + deadline) that is verified LOCALLY by ed25519 (no node, no chain) — no trusted-amount field, a forged/inflated permit fails the signature; the permit is CONSUMED single-use in a content-addressed spend ledger (replay → already_spent); present it directly for pay-per-κ, or POST it to /settle for a time-boxed self-verifying entitlement; fiat is a pluggable adapter",
+    "isomorphic by construction (node-free engine) and mounted on every tier — the dev server AND the serverless Service Worker (no origin server)",
+    "WIRED TO HOLO WALLET + THE PLASMA STABLECOIN RAIL — a 402 names the exact gas-abstracted USD₮0 (or any token) transfer; fetchPaid drives the wallet's default-deny human-approval seam to pay it and retries → 200; the Plasma tx is single-use (replay refused), bound to the app's payout address + the resource κ; on-chain finality is a pluggable confirm adapter"
+  ],
+  "sample": {
+    "ingestedKappa": "did:holo:sha256:d851655c45ceb6301e90a6d8016d33dabc2eaac9a36cbf222ea93a7d1487e5a8",
+    "entitlement": "did:holo:sha256:acd2e3321116e50a9e7b153856a9ebd7d42ecfce045e689a8427df9b84153801",
+    "price": {
+      "amount": 0.01,
+      "unit": "HOLO",
+      "per": "stream"
+    }
+  },
+  "checks": {
+    "api-core-node-free": true,
+    "descriptor-openapi-jsonld": true,
+    "descriptor-ingress-egress-actions": true,
+    "ingress-returns-kappa": true,
+    "egress-402-challenge": true,
+    "permit-verifies-locally": true,
+    "settle-mints-self-verifying-entitlement": true,
+    "entitlement-verifies-pure": true,
+    "forged-permit-refused": true,
+    "forged-settle-402": true,
+    "replay-permit-already-spent": true,
+    "egress-unlocked": true,
+    "egress-stream-self-verifying": true,
+    "ingress-stream": true,
+    "tampered-entitlement-refused": true,
+    "direct-permit-pay-per-kappa": true,
+    "mounted-dev-server": true,
+    "mounted-service-worker-serverless": true,
+    "402-names-plasma-stablecoin": true,
+    "fetchPaid-seamless-unlock": true,
+    "plasma-tx-single-use": true,
+    "plasma-wrong-payee-refused": true,
+    "pay-seam-node-free": true
+  },
+  "failed": [],
+  "authority": "OpenAPI 3.1 · schema.org + W3C JSON-LD + PROV-O · HTTP 402 Payment Required (x402/L402 family) · W3C Service Workers · UOR content-addressing (Law L1/L2/L5)"
+}

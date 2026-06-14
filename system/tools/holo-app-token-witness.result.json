@@ -1,7 +1,7 @@
 {
   "spec": "Holo UI color + shape conformance is ratcheted across every served app: no app may add a hardcoded hex color or px border-radius that bypasses the canonical --holo-* palette/radius tokens beyond its committed baseline. Color is identity (adopt-vs-own), so existing values are not force-rewritten — the ratchet prevents regression and drives new code to the tokens.",
   "authority": "ADR-0030 (Holo UI) · ADR-0023 (the --holo-* token contract + adopt-vs-own) · ADR-0057 · the 'betterer' no-new-violations ratchet · static analysis of the served app repo",
-  "witnessed": true,
+  "witnessed": false,
   "covers": [
     "holo-ui",
     "color-tokens",
@@ -10,8 +10,48 @@
     "ratchet",
     "adopt-vs-own"
   ],
-  "appsScanned": 34,
-  "baselinedTotal": 1713,
-  "regressions": [],
-  "improvements": []
+  "appsScanned": 41,
+  "baselinedTotal": 1594,
+  "regressions": [
+    {
+      "app": "browser",
+      "was": 73,
+      "now": 76,
+      "added": 3,
+      "detail": {
+        "hex": 56,
+        "radius": 20,
+        "bypass": 76
+      }
+    },
+    {
+      "app": "cosmos",
+      "was": 0,
+      "now": 8,
+      "added": 8,
+      "detail": {
+        "hex": 7,
+        "radius": 1,
+        "bypass": 8
+      }
+    },
+    {
+      "app": "ipfs",
+      "was": 61,
+      "now": 65,
+      "added": 4,
+      "detail": {
+        "hex": 50,
+        "radius": 15,
+        "bypass": 65
+      }
+    }
+  ],
+  "improvements": [
+    {
+      "app": "music",
+      "was": 87,
+      "now": 80
+    }
+  ]
 }

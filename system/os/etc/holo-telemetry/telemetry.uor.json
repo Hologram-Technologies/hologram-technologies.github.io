@@ -1,0 +1,97 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "schema": "https://schema.org/",
+      "prov": "http://www.w3.org/ns/prov#",
+      "dcterms": "http://purl.org/dc/terms/",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    {
+      "skos": "http://www.w3.org/2004/02/skos/core#",
+      "hostel": "https://hologram.os/ns/telemetry#",
+      "hosc": "https://hologram.os/ns/conformance#"
+    }
+  ],
+  "@type": [
+    "schema:CreativeWork",
+    "prov:Entity",
+    "skos:Collection"
+  ],
+  "schema:name": "Holo Telemetry — system-wide observability native to the UOR substrate",
+  "schema:description": "Why: a system should be observable without trusting whatever number an emitter reports, and without running a foreign scraper. How: adopt the OpenTelemetry data model (Span · Metric · LogRecord · Resource · Scope) and W3C Trace Context as content-addressed UOR objects — a span IS a PROV-O Activity whose W3C trace-id / span-id are DERIVED from the operation's content (re-derivable, Law L5); the κ-store is the collector, graph traversal is the query, Pin/Own is the exporter, the conscience gate is the privacy boundary; Prometheus's central scraper is rejected. The honest split: wall-clock measurements are marked hostel:rederivable=false and host-attested — never claimed as re-derived. What: every holospace binds this object's κ and emits via window.HoloTelemetry (auto-wired system-wide by the theme runtime, Law L2); re-derive this did and each linked source κ to verify (Law L5).",
+  "schema:softwareVersion": "1.0",
+  "dcterms:conformsTo": "https://hologram.os/ns/telemetry",
+  "dcterms:license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "hostel:adopts": [
+    {
+      "@id": "https://opentelemetry.io/",
+      "prefLabel": "OpenTelemetry data model + OTLP",
+      "rel": "data model + wire"
+    },
+    {
+      "@id": "https://www.w3.org/TR/trace-context/",
+      "prefLabel": "W3C Trace Context",
+      "rel": "trace propagation (traceparent)"
+    },
+    {
+      "@id": "http://www.w3.org/ns/prov#",
+      "prefLabel": "W3C PROV-O",
+      "rel": "a span is a prov:Activity; a trace is a PROV-O DAG"
+    }
+  ],
+  "hostel:rejects": {
+    "@id": "https://prometheus.io/",
+    "prefLabel": "Prometheus central scraper",
+    "reason": "a long-running server that trusts the emitter — a foreign runtime the substrate forbids (verify, don't trust)"
+  },
+  "hostel:honestSplit": "STRUCTURAL/provenance facts re-derive under Law L5 (hostel:rederivable=true); WALL-CLOCK measurements are host-attested, never re-derived (hostel:rederivable=false).",
+  "hostel:signals": [
+    "hostel:Span",
+    "hostel:Trace",
+    "hostel:Metric",
+    "hostel:LogRecord"
+  ],
+  "hosc:authority": "ADR-0073 (Holo Telemetry) · OpenTelemetry data model + OTLP · W3C Trace Context · W3C PROV-O + DID Core · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · the Holo Constitution (ADR-0033) · verify by re-derivation (Law L5) · private-first (Law L1)",
+  "hosc:witness": "tools/holo-telemetry-witness.mjs",
+  "links": [
+    {
+      "id": "did:holo:sha256:14ed831a53ea692689de4f461b219a27446c8ee02f57dff04758ba90a11e125a",
+      "rel": "hostel:ontology",
+      "@type": "schema:DigitalDocument",
+      "leaf": true,
+      "digestSRI": "sha256-FO2DGlPqaSaJ3k9GGyGaJ0RsjuAvV9/wR1i6kKEeElo=",
+      "digestMultibase": "uEiAU7YMaU-ppJoneT0YbIZonRGyO4C9X3_BHWLqQoR4SWg"
+    },
+    {
+      "id": "did:holo:sha256:c48a308cc513f2bd5b93c8bd57112370977d225846753ea2f9375c7e2ab219ed",
+      "rel": "hostel:runtime",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-xIowjMUT8r1bk8i9VxEjcJd9IlhGdT6i+TdcfiqyGe0=",
+      "digestMultibase": "uEiDEijCMxRPyvVuTyL1XESNwl30iWEZ1PqL5N1x-KrIZ7Q"
+    },
+    {
+      "id": "did:holo:sha256:3042553cb5008772b14ddf2225da250d46f5c357fd9d756a639938d0d9c48403",
+      "rel": "hostel:store",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-MEJVPLUAh3KxTd8iJdolDUb1w1f9nXVqY5k40NnEhAM=",
+      "digestMultibase": "uEiAwQlU8tQCHcrFN3yIl2iUNRvXDV_2ddWpjmTjQ2cSEAw"
+    },
+    {
+      "id": "did:holo:sha256:1151d746d7ab22c0ecd0daf10ff5e51d5a72ed06e10a927fee7f9796df6a211c",
+      "rel": "hostel:address",
+      "@type": "schema:SoftwareSourceCode",
+      "leaf": true,
+      "digestSRI": "sha256-EVHXRterIsDs0NrxD/XlHVpy7QbhCpJ/7n+Xlt9qIRw=",
+      "digestMultibase": "uEiARUddG16siwOzQ2vEP9eUdWnLtBuEKkn_uf5eW32ohHA"
+    }
+  ],
+  "id": "did:holo:sha256:7cb0e884213c41aadd0b1c6a31d03e9126775cf2188b4181bd63092925a4151c"
+}

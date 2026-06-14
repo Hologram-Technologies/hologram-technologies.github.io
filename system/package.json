@@ -15,8 +15,16 @@
     "qml-witness": "node tools/qml-engine-witness.mjs",
     "qml-render": "node tools/qml-render-witness.mjs",
     "qml-mcp": "node tools/qml-mcp-witness.mjs",
+    "reseal": "node tools/reseal-drift.mjs",
+    "watch-reseal": "node tools/watch-reseal.mjs",
     "seal-greeter": "node tools/seal-greeter.mjs",
     "seal-login": "node tools/seal-login-closure.mjs",
+    "seal-qvac": "node tools/seal-qvac.mjs",
+    "qvac-witness": "node tools/qvac-witness.mjs",
     "mcp-build": "node crates/holospaces-mcp/build.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1"
   }
 }

@@ -1,0 +1,112 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Control renders + functions in a real browser: boots, binds Holo UI tokens, loads the DSP core, populates real edges from the live catalog, ranks/switches/inspects, runs a conscience-gated control action that seals a receipt, and is honest where a feed is unwired",
+  "witnessed": true,
+  "results": [
+    {
+      "name": "boots — the command center mounts",
+      "ok": true,
+      "detail": "Holo Control"
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Holo UI tokens bound (--holo-bg/-ink/-accent)",
+      "ok": true,
+      "detail": "bg=light-dark(#f5f7fa, #0b0d10) accent=rgb(10, 132, 255)"
+    },
+    {
+      "name": "DSP core loaded and computes",
+      "ok": true,
+      "detail": "v1.0"
+    },
+    {
+      "name": "real edges populate from the app catalog",
+      "ok": true,
+      "detail": "36 app edges, 82 total"
+    },
+    {
+      "name": "real network ingress edges appear (Performance API)",
+      "ok": true,
+      "detail": "1 ingress"
+    },
+    {
+      "name": "SNR hero + stat tiles render",
+      "ok": true,
+      "detail": "snr=0% stats=Edges,Ingress,Egress"
+    },
+    {
+      "name": "Apps & Agents lens renders ranked edge cards",
+      "ok": true,
+      "detail": "80 cards"
+    },
+    {
+      "name": "inspector opens with throttle/restrict/pause/cut controls",
+      "ok": true,
+      "detail": "4 controls"
+    },
+    {
+      "name": "a control action changes the edge state",
+      "ok": true,
+      "detail": "throttled"
+    },
+    {
+      "name": "the control action seals a verifiable receipt (κ)",
+      "ok": true,
+      "detail": "did:holo:sha256:24e93736…"
+    },
+    {
+      "name": "a Holo Telemetry runtime is live (own or system)",
+      "ok": true,
+      "detail": "wired"
+    },
+    {
+      "name": "real telemetry signals stream (spans/metrics/logs as κ-objects)",
+      "ok": true,
+      "detail": "4 signals · log/span"
+    },
+    {
+      "name": "a streamed signal VERIFIES live — re-derives (Law L5)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "W3C traceparent / runtime status shown in the header",
+      "ok": true,
+      "detail": "00-c889c618b248fb0f…"
+    },
+    {
+      "name": "inject⇄extract round-trips W3C Trace Context",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "seal trace → one PROV-O trace κ; verify re-derives the DAG",
+      "ok": true,
+      "detail": "did:holo:sha256:23b160…"
+    },
+    {
+      "name": "adopt context → correlated child span under the external trace",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "toOtlp() emits OpenTelemetry OTLP + verifyAttestation() runs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "unwired feed shows honest 'no signal' (no fabricated balance)",
+      "ok": true,
+      "detail": "No wallet connectedConnect Holo Wallet t…"
+    },
+    {
+      "name": "birds-eye renders the radial edge graph",
+      "ok": true,
+      "detail": "82 edges, 87 nodes"
+    }
+  ]
+}

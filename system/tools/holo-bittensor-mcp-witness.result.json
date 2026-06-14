@@ -1,0 +1,33 @@
+{
+  "spec": "Holo Bittensor (ADR-0071) is usable by AI agents over MCP — bittensor_snapshot · bittensor_agentfacts · bittensor_infer · bittensor_settle are advertised, JSON-Schema'd tools returning self-verifying UOR objects (Law L5): an agent maps a subnet, reads a neuron's dual-trust AgentFacts, queries a miner and re-derives the inference receipt, and settles TAO against proven work — without trusting any server; a tampered object is refused through verify_object",
+  "authority": "W3C Model Context Protocol (2024-11-05) · Bittensor SDK (bt-api-ref) · Project NANDA AgentFacts · W3C DID Core + VC Data Integrity + PROV-O + DCAT · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
+  "witnessed": true,
+  "covers": [
+    "bittensor-mcp",
+    "agents-as-clients",
+    "self-verifying",
+    "dual-trust",
+    "inference-receipt",
+    "settlement",
+    "law-l5"
+  ],
+  "checks": {
+    "bittensor_snapshot advertised in tools/list": true,
+    "bittensor_agentfacts advertised in tools/list": true,
+    "bittensor_infer advertised in tools/list": true,
+    "bittensor_settle advertised in tools/list": true,
+    "bittensor_infer declares a JSON-Schema input (prompt)": true,
+    "bittensor_snapshot returns a self-verifying catalogue (re-derive, Law L5)": true,
+    "bittensor_snapshot pins the block hash + lists the subnet's neurons": true,
+    "bittensor_snapshot is deterministic (same catalogue κ)": true,
+    "bittensor_agentfacts returns a self-verifying AgentFacts (re-derive, Law L5)": true,
+    "bittensor_agentfacts is dual-trust (the neuron's hotkey signature verifies)": true,
+    "bittensor_infer answers + returns a self-verifying receipt (Law L5)": true,
+    "the receipt re-verifies through the agent's verify_object tool": true,
+    "a tampered inference receipt is refused (verify_object false)": true,
+    "bittensor_settle pays every proven step (self-verifying vouchers, testnet)": true,
+    "the work receipt is self-verifying (the PROV-O collaboration DAG, Law L5)": true
+  },
+  "passed": 15,
+  "failed": 0
+}

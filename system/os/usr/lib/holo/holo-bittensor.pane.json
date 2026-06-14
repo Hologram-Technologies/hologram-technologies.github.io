@@ -1,0 +1,779 @@
+{
+  "netuid": 1,
+  "block": 4210000,
+  "blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+  "catalog": {
+    "@context": {
+      "schema": "https://schema.org/",
+      "dcterms": "http://purl.org/dc/terms/",
+      "dcat": "http://www.w3.org/ns/dcat#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "bt": "https://hologram.os/ns/bittensor#",
+      "rel": "schema:additionalType",
+      "links": {
+        "@id": "schema:hasPart",
+        "@container": "@set"
+      }
+    },
+    "@type": [
+      "dcat:Catalog",
+      "schema:DataCatalog",
+      "bt:MetagraphSnapshot",
+      "prov:Entity"
+    ],
+    "dcterms:title": "Holo Bittensor — subnet 1 metagraph @ block 4210000 (content-addressed Internet-of-Agents catalogue)",
+    "dcterms:conformsTo": "https://agentfacts.org/schema/v1",
+    "dcterms:source": "subtensor json-rpc · polkadot:2f0555cc76fc2840 · block 4210000",
+    "dcterms:created": "2026-06-12T00:00:00Z",
+    "bt:netuid": 1,
+    "bt:block": 4210000,
+    "bt:blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+    "bt:caip": "polkadot:2f0555cc76fc2840",
+    "bt:neuronCount": 3,
+    "links": [
+      {
+        "id": "did:holo:sha256:95afe1c8eab8b3fe9124253cf0bcb0bd51d0124bfd05a716a87851fffaec5df2",
+        "rel": "dcat:dataset",
+        "@type": [
+          "schema:SoftwareApplication",
+          "af:AgentFacts",
+          "bt:Neuron"
+        ],
+        "digestSRI": "sha256-j44cYH+Q9DBsVpReaALdbnFpTfZnN14qvqlsTUJbrpM=",
+        "digestMultibase": "uEiCPjhxgf5D0MGxWlF5oAt1ucWlN9mc3Xiq-qWxNQluukw"
+      },
+      {
+        "id": "did:holo:sha256:a0ac2df7692a1bf19aa91d9fdc7f0d6353738c3726e843e8b7a7089811ff980e",
+        "rel": "bt:attestation",
+        "@type": [
+          "prov:Entity",
+          "schema:Rating",
+          "bt:Attestation"
+        ],
+        "digestSRI": "sha256-9vE1BE+0sWFGPEVX/iWaptUd5WY2Vu8IDqwx8ia5wTI=",
+        "digestMultibase": "uEiD28TUET7SxYUY8RVf-JZqm1R3lZjZW7wgOrDHyJrnBMg"
+      },
+      {
+        "id": "did:holo:sha256:f9ef6458578b435ed6e56b06fda503c3892470fdab044072189fe2bd116be5a7",
+        "rel": "dcat:dataset",
+        "@type": [
+          "schema:SoftwareApplication",
+          "af:AgentFacts",
+          "bt:Neuron"
+        ],
+        "digestSRI": "sha256-DFP6wK4XRG36Z4jDvLIERZy1djJ6hzKioZYkow6E09M=",
+        "digestMultibase": "uEiAMU_rArhdEbfpniMO8sgRFnLV2MnqHMqKhliSjDoTT0w"
+      },
+      {
+        "id": "did:holo:sha256:4336b2f61434d29cc1eea4b7a6fcdae97d0bd2f7aeedb9d3619aeb2933d982e0",
+        "rel": "bt:attestation",
+        "@type": [
+          "prov:Entity",
+          "schema:Rating",
+          "bt:Attestation"
+        ],
+        "digestSRI": "sha256-sXZVtGGeDGm+XD319QIiz4GtdqAfYv+9hhQusDWIXLE=",
+        "digestMultibase": "uEiCxdlW0YZ4Mab5cPfX1AiLPga12oB9i_72GFC6wNYhcsQ"
+      },
+      {
+        "id": "did:holo:sha256:81d482f5a3e99aa287d3930e72de023d244506f909ce46da9dd160b8d8cb0cb4",
+        "rel": "dcat:dataset",
+        "@type": [
+          "schema:SoftwareApplication",
+          "af:AgentFacts",
+          "bt:Neuron"
+        ],
+        "digestSRI": "sha256-3DkK7lR516hB3godXQaYJWCKtkqCe5nGhMUsEbbzGow=",
+        "digestMultibase": "uEiDcOQruVHnXqEHeCh1dBpglYIq2SoJ7mcaExSwRtvMajA"
+      },
+      {
+        "id": "did:holo:sha256:a06c2b08acb1adb37293f9819dc27e9be718968126c353195dc5c164bb7b0bb5",
+        "rel": "bt:attestation",
+        "@type": [
+          "prov:Entity",
+          "schema:Rating",
+          "bt:Attestation"
+        ],
+        "digestSRI": "sha256-YU3QxNl6dWAzJ9fIKi/h9FZm2qgFn7awrDS3B4fzM3Y=",
+        "digestMultibase": "uEiBhTdDE2Xp1YDMn18gqL-H0VmbaqAWftrCsNLcHh_Mzdg"
+      }
+    ],
+    "id": "did:holo:sha256:27c2226d725f9629494c413d3256727fb02148a93483ab8da99e50c13f254ccb",
+    "alsoKnownAs": [
+      "did:holo:blake3:0d454f75d671f5fdc49640b3a048a283102f8e2eb53e0da211ef53f030aa55a4"
+    ]
+  },
+  "neurons": [
+    {
+      "uid": 0,
+      "role": "validator",
+      "hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "did": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "task": "Text prompting — instruct/chat completion",
+      "stake": 12840.5,
+      "consensus": 0.91,
+      "trust": 0.98,
+      "incentive": 0,
+      "facts": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "dcterms": "http://purl.org/dc/terms/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#",
+          "label": "schema:name",
+          "description": "schema:description",
+          "version": "schema:version",
+          "provider": "schema:provider",
+          "documentationUrl": "schema:documentation",
+          "jurisdiction": "schema:spatialCoverage",
+          "agent_name": "af:agent_name",
+          "endpoints": "af:endpoints",
+          "capabilities": "af:capabilities",
+          "skills": "af:skills",
+          "evaluations": "af:evaluations",
+          "certification": "af:certification"
+        },
+        "@type": [
+          "schema:SoftwareApplication",
+          "af:AgentFacts",
+          "bt:Neuron"
+        ],
+        "agent_name": "@DID:bittensor:5grwvaef5z",
+        "label": "Bittensor neuron 0 · subnet 1",
+        "description": "Text prompting — instruct/chat completion",
+        "version": "1.0",
+        "documentationUrl": "https://docs.learnbittensor.org/sdk/bt-api-ref",
+        "jurisdiction": "decentralized",
+        "provider": {
+          "name": "Bittensor subnet 1",
+          "url": "https://hologram.os",
+          "did": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+        },
+        "endpoints": {
+          "static": [
+            "bittensor+tcp://192.0.2.10:8091",
+            "https://hologram.os/mcp"
+          ],
+          "adaptive_resolver": {
+            "url": "https://hologram.os/.holo/",
+            "policies": [
+              "content-address",
+              "law-l5-reverify"
+            ]
+          }
+        },
+        "capabilities": {
+          "modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "batch": true,
+          "authentication": {
+            "methods": [
+              "none"
+            ],
+            "requiredScopes": []
+          }
+        },
+        "skills": [
+          {
+            "id": "subnet-1",
+            "description": "Text prompting — instruct/chat completion",
+            "inputModes": [
+              "application/json"
+            ],
+            "outputModes": [
+              "application/ld+json"
+            ],
+            "supportedLanguages": [
+              "en"
+            ]
+          }
+        ],
+        "bt:netuid": 1,
+        "bt:uid": 0,
+        "bt:hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "bt:coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "bt:axon": "192.0.2.10:8091",
+        "bt:role": "validator",
+        "bt:stake": 12840.5,
+        "bt:rank": 0.93,
+        "bt:trust": 0.98,
+        "bt:consensus": 0.91,
+        "bt:incentive": 0,
+        "bt:dividends": 0.041,
+        "bt:emission": 0,
+        "proof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "created": "2026-06-12T00:00:00Z",
+          "verificationMethod": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "GWPDQ+5+SLQP+7lfFxyuACxSMS7xhQoqYCnAc1DV9tqVymaNKTPDoHDGBzWq0Wb3wKojS0yvQGQLdMN4tpcFBQ==",
+          "publicKeyHex": "bde620eb9682b10983e0e4f26e2b287b6212679e6f144427ffd366ef823a2885"
+        },
+        "id": "did:holo:sha256:95afe1c8eab8b3fe9124253cf0bcb0bd51d0124bfd05a716a87851fffaec5df2",
+        "alsoKnownAs": [
+          "did:holo:blake3:991d1c6d8b3e79cd30c2e8d7d3460523e595f2b43b0349872169089b0c73f13f"
+        ]
+      },
+      "attestation": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "prov:Entity",
+          "schema:Rating",
+          "bt:Attestation"
+        ],
+        "schema:about": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "schema:ratingValue": 0.91,
+        "schema:bestRating": 1,
+        "schema:worstRating": 0,
+        "prov:wasDerivedFrom": null,
+        "bt:netuid": 1,
+        "bt:block": 4210000,
+        "bt:blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+        "bt:stake": 12840.5,
+        "bt:trust": 0.98,
+        "bt:incentive": 0,
+        "bt:dividends": 0.041,
+        "af:evaluations": {
+          "performanceScore": 0.91,
+          "availability90d": 0.98,
+          "lastAudited": "2026-06-12T00:00:00Z",
+          "auditTrail": null,
+          "auditorID": "yuma-consensus@subnet-1"
+        },
+        "id": "did:holo:sha256:a0ac2df7692a1bf19aa91d9fdc7f0d6353738c3726e843e8b7a7089811ff980e",
+        "alsoKnownAs": [
+          "did:holo:blake3:1742d8471c9442d12d058d949b7c95aeeed42858fd13e190a2f8c0933dc1d503"
+        ]
+      }
+    },
+    {
+      "uid": 1,
+      "role": "miner",
+      "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+      "did": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+      "task": "Text prompting — instruct/chat completion",
+      "stake": 980.2,
+      "consensus": 0.69,
+      "trust": 0.88,
+      "incentive": 0.073,
+      "facts": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "dcterms": "http://purl.org/dc/terms/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#",
+          "label": "schema:name",
+          "description": "schema:description",
+          "version": "schema:version",
+          "provider": "schema:provider",
+          "documentationUrl": "schema:documentation",
+          "jurisdiction": "schema:spatialCoverage",
+          "agent_name": "af:agent_name",
+          "endpoints": "af:endpoints",
+          "capabilities": "af:capabilities",
+          "skills": "af:skills",
+          "evaluations": "af:evaluations",
+          "certification": "af:certification"
+        },
+        "@type": [
+          "schema:SoftwareApplication",
+          "af:AgentFacts",
+          "bt:Neuron"
+        ],
+        "agent_name": "@DID:bittensor:5fhnew46xg",
+        "label": "Bittensor neuron 1 · subnet 1",
+        "description": "Text prompting — instruct/chat completion",
+        "version": "1.0",
+        "documentationUrl": "https://docs.learnbittensor.org/sdk/bt-api-ref",
+        "jurisdiction": "decentralized",
+        "provider": {
+          "name": "Bittensor subnet 1",
+          "url": "https://hologram.os",
+          "did": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+        },
+        "endpoints": {
+          "static": [
+            "bittensor+tcp://192.0.2.11:8091",
+            "https://hologram.os/mcp"
+          ],
+          "adaptive_resolver": {
+            "url": "https://hologram.os/.holo/",
+            "policies": [
+              "content-address",
+              "law-l5-reverify"
+            ]
+          }
+        },
+        "capabilities": {
+          "modalities": [
+            "text"
+          ],
+          "streaming": false,
+          "batch": true,
+          "authentication": {
+            "methods": [
+              "none"
+            ],
+            "requiredScopes": []
+          }
+        },
+        "skills": [
+          {
+            "id": "subnet-1",
+            "description": "Text prompting — instruct/chat completion",
+            "inputModes": [
+              "application/json"
+            ],
+            "outputModes": [
+              "application/ld+json"
+            ],
+            "supportedLanguages": [
+              "en"
+            ]
+          }
+        ],
+        "bt:netuid": 1,
+        "bt:uid": 1,
+        "bt:hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "bt:coldkey": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+        "bt:axon": "192.0.2.11:8091",
+        "bt:role": "miner",
+        "bt:stake": 980.2,
+        "bt:rank": 0.71,
+        "bt:trust": 0.88,
+        "bt:consensus": 0.69,
+        "bt:incentive": 0.073,
+        "bt:dividends": 0,
+        "bt:emission": 0.061,
+        "proof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "created": "2026-06-12T00:00:00Z",
+          "verificationMethod": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "6qjkYXFm37N3cC1JTOsYqGqcEyXZ4b6CMchUYYIAhHZ5qmCePNxhvUQg9htmbZzXt9h1jH8A+Zct/XuKX4EmDA==",
+          "publicKeyHex": "67dee17e62dbeec5de4b38ac054cbdb2aa85734ade9383c03436dc14dfd992ca"
+        },
+        "id": "did:holo:sha256:f9ef6458578b435ed6e56b06fda503c3892470fdab044072189fe2bd116be5a7",
+        "alsoKnownAs": [
+          "did:holo:blake3:1dfcbf5aa5b3d9af36b77bc19818140fe417d80f007e077d5758d59907542368"
+        ]
+      },
+      "attestation": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "prov:Entity",
+          "schema:Rating",
+          "bt:Attestation"
+        ],
+        "schema:about": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "schema:ratingValue": 0.69,
+        "schema:bestRating": 1,
+        "schema:worstRating": 0,
+        "prov:wasDerivedFrom": null,
+        "bt:netuid": 1,
+        "bt:block": 4210000,
+        "bt:blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+        "bt:stake": 980.2,
+        "bt:trust": 0.88,
+        "bt:incentive": 0.073,
+        "bt:dividends": 0,
+        "af:evaluations": {
+          "performanceScore": 0.69,
+          "availability90d": 0.88,
+          "lastAudited": "2026-06-12T00:00:00Z",
+          "auditTrail": null,
+          "auditorID": "yuma-consensus@subnet-1"
+        },
+        "id": "did:holo:sha256:4336b2f61434d29cc1eea4b7a6fcdae97d0bd2f7aeedb9d3619aeb2933d982e0",
+        "alsoKnownAs": [
+          "did:holo:blake3:7a6bddb6798ba342ea8599885e6a52eb406ef4fd78049438f81a51e1c9f233c2"
+        ]
+      }
+    },
+    {
+      "uid": 2,
+      "role": "miner",
+      "hotkey": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+      "did": "did:pkh:polkadot:2f0555cc76fc2840:5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+      "task": "Text embeddings — semantic vectors",
+      "stake": 1450,
+      "consensus": 0.62,
+      "trust": 0.82,
+      "incentive": 0.058,
+      "facts": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "dcterms": "http://purl.org/dc/terms/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#",
+          "label": "schema:name",
+          "description": "schema:description",
+          "version": "schema:version",
+          "provider": "schema:provider",
+          "documentationUrl": "schema:documentation",
+          "jurisdiction": "schema:spatialCoverage",
+          "agent_name": "af:agent_name",
+          "endpoints": "af:endpoints",
+          "capabilities": "af:capabilities",
+          "skills": "af:skills",
+          "evaluations": "af:evaluations",
+          "certification": "af:certification"
+        },
+        "@type": [
+          "schema:SoftwareApplication",
+          "af:AgentFacts",
+          "bt:Neuron"
+        ],
+        "agent_name": "@DID:bittensor:5daanrj7vh",
+        "label": "Bittensor neuron 2 · subnet 1",
+        "description": "Text embeddings — semantic vectors",
+        "version": "1.0",
+        "documentationUrl": "https://docs.learnbittensor.org/sdk/bt-api-ref",
+        "jurisdiction": "decentralized",
+        "provider": {
+          "name": "Bittensor subnet 1",
+          "url": "https://hologram.os",
+          "did": "did:pkh:polkadot:2f0555cc76fc2840:5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+        },
+        "endpoints": {
+          "static": [
+            "bittensor+tcp://192.0.2.12:8091",
+            "https://hologram.os/mcp"
+          ],
+          "adaptive_resolver": {
+            "url": "https://hologram.os/.holo/",
+            "policies": [
+              "content-address",
+              "law-l5-reverify"
+            ]
+          }
+        },
+        "capabilities": {
+          "modalities": [
+            "text",
+            "application/json"
+          ],
+          "streaming": false,
+          "batch": true,
+          "authentication": {
+            "methods": [
+              "none"
+            ],
+            "requiredScopes": []
+          }
+        },
+        "skills": [
+          {
+            "id": "subnet-1",
+            "description": "Text embeddings — semantic vectors",
+            "inputModes": [
+              "application/json"
+            ],
+            "outputModes": [
+              "application/ld+json"
+            ],
+            "supportedLanguages": [
+              "en"
+            ]
+          }
+        ],
+        "bt:netuid": 1,
+        "bt:uid": 2,
+        "bt:hotkey": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+        "bt:coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "bt:axon": "192.0.2.12:8091",
+        "bt:role": "miner",
+        "bt:stake": 1450,
+        "bt:rank": 0.64,
+        "bt:trust": 0.82,
+        "bt:consensus": 0.62,
+        "bt:incentive": 0.058,
+        "bt:dividends": 0,
+        "bt:emission": 0.049,
+        "proof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "created": "2026-06-12T00:00:00Z",
+          "verificationMethod": "did:pkh:polkadot:2f0555cc76fc2840:5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "1v4R0ZYr6Ai3x2zEEfpa8ceIQOASm8Z5IR3fmevS8y5nfVvWzYtW8gIi696ntDzwi1P0Wm0N3brBdrOZiyljAg==",
+          "publicKeyHex": "c9868f9927d6f781eb8b1f7acd1d7ba3eea88e247c435a85eb96b17bd257cfd9"
+        },
+        "id": "did:holo:sha256:81d482f5a3e99aa287d3930e72de023d244506f909ce46da9dd160b8d8cb0cb4",
+        "alsoKnownAs": [
+          "did:holo:blake3:b1a02fd17319899c3c3b1eece9db7905403db05bc764c5cd5009b6e0248ba05a"
+        ]
+      },
+      "attestation": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "prov:Entity",
+          "schema:Rating",
+          "bt:Attestation"
+        ],
+        "schema:about": "did:pkh:polkadot:2f0555cc76fc2840:5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+        "schema:ratingValue": 0.62,
+        "schema:bestRating": 1,
+        "schema:worstRating": 0,
+        "prov:wasDerivedFrom": null,
+        "bt:netuid": 1,
+        "bt:block": 4210000,
+        "bt:blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+        "bt:stake": 1450,
+        "bt:trust": 0.82,
+        "bt:incentive": 0.058,
+        "bt:dividends": 0,
+        "af:evaluations": {
+          "performanceScore": 0.62,
+          "availability90d": 0.82,
+          "lastAudited": "2026-06-12T00:00:00Z",
+          "auditTrail": null,
+          "auditorID": "yuma-consensus@subnet-1"
+        },
+        "id": "did:holo:sha256:a06c2b08acb1adb37293f9819dc27e9be718968126c353195dc5c164bb7b0bb5",
+        "alsoKnownAs": [
+          "did:holo:blake3:3d48a44068879942b9ef3d3fbce0325b72f90eea665b5a0d9a358842e558df7d"
+        ]
+      }
+    }
+  ],
+  "inferences": [
+    {
+      "prompt": "What is the capital of France?",
+      "answer": "Paris.",
+      "receipt": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "dcterms": "http://purl.org/dc/terms/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "prov:Activity",
+          "bt:Inference"
+        ],
+        "dcterms:created": "2026-06-12T00:00:00Z",
+        "prov:wasAttributedTo": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "prov:used": {
+          "bt:neuron": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "bt:hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "bt:netuid": 1,
+          "bt:block": 4210000,
+          "bt:blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+          "bt:snapshot": "did:holo:sha256:27c2226d725f9629494c413d3256727fb02148a93483ab8da99e50c13f254ccb",
+          "bt:promptKappa": "sha256:115049a298532be2f181edb03f766770c0db84c22aff39003fec340deaec7545",
+          "bt:params": {
+            "decode": "greedy-argmax"
+          }
+        },
+        "prov:generated": {
+          "bt:responseKappa": "sha256:bdff8c417ab50e95e95cce16035a3799c7e00104de4a7b3453f06728c620faf7",
+          "schema:text": "Paris."
+        },
+        "proof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "created": "2026-06-12T00:00:00Z",
+          "verificationMethod": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "wK+rvKe6VGm+BdOr7avNBMx684nvZKb1oT3fTp2gyK1BHKKaMeMDPaa2Ulp1FvXZqLxd35/7LWvfYkqFCyAzDw==",
+          "publicKeyHex": "bde620eb9682b10983e0e4f26e2b287b6212679e6f144427ffd366ef823a2885"
+        },
+        "id": "did:holo:sha256:d89a7b22666d6c8841ad478784310dcdccc1997da7998ad25305189bdb4514e8",
+        "alsoKnownAs": [
+          "did:holo:blake3:5adfe5f7459a5c774848e5daf787555adb0663df531a35e4ba6327a96cb7fc05"
+        ]
+      }
+    },
+    {
+      "prompt": "And of Japan?",
+      "answer": "Tokyo.",
+      "receipt": {
+        "@context": {
+          "schema": "https://schema.org/",
+          "dcterms": "http://purl.org/dc/terms/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "af": "https://agentfacts.org/schema/v1#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "prov:Activity",
+          "bt:Inference"
+        ],
+        "dcterms:created": "2026-06-12T00:00:00Z",
+        "prov:wasAttributedTo": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "prov:used": {
+          "bt:neuron": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+          "bt:hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+          "bt:netuid": 1,
+          "bt:block": 4210000,
+          "bt:blockHash": "0xefda35d35d4c3c5acc5e8f65489e1c1ff05a86f151143f29cd01fc1e3660b34a",
+          "bt:snapshot": "did:holo:sha256:27c2226d725f9629494c413d3256727fb02148a93483ab8da99e50c13f254ccb",
+          "bt:promptKappa": "sha256:2b090877b76f160be3ce8fb97d195ef740910ee9367c0d91a815e8021a2e6c0b",
+          "bt:params": {
+            "decode": "greedy-argmax"
+          }
+        },
+        "prov:generated": {
+          "bt:responseKappa": "sha256:68604665ee1fc3bc01dd8241da658e86af165226b86a77833e30aa0dd6c0c7d0",
+          "schema:text": "Tokyo."
+        },
+        "proof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "created": "2026-06-12T00:00:00Z",
+          "verificationMethod": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "F31gDdTtzHTEqtW7T9s+eBlMfGJ1y2BdDU7ZmWY53IRftHWVkWWfZC/q4Eu2YOwLznMDF1K1XD6BYYWoW9gOCg==",
+          "publicKeyHex": "67dee17e62dbeec5de4b38ac054cbdb2aa85734ade9383c03436dc14dfd992ca"
+        },
+        "id": "did:holo:sha256:53354d443f93af225636a68d53dfb7cd41f2343dc19a69754bfd3ed11b58fcda",
+        "alsoKnownAs": [
+          "did:holo:blake3:f22c4602258a7c35d2d20eff9f94b5917394d47b7870a2910865f686256cf642"
+        ]
+      }
+    }
+  ],
+  "settlement": {
+    "workReceipt": {
+      "@context": {
+        "schema": "https://schema.org/",
+        "dcterms": "http://purl.org/dc/terms/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "bt": "https://hologram.os/ns/bittensor#",
+        "rel": "schema:additionalType",
+        "links": {
+          "@id": "schema:hasPart",
+          "@container": "@set"
+        }
+      },
+      "@type": [
+        "prov:Activity",
+        "prov:Collection",
+        "bt:WorkReceipt"
+      ],
+      "dcterms:created": "2026-06-12T00:00:00Z",
+      "bt:stepCount": 2,
+      "links": [
+        {
+          "id": "did:holo:sha256:d89a7b22666d6c8841ad478784310dcdccc1997da7998ad25305189bdb4514e8",
+          "rel": "prov:hadMember",
+          "@type": [
+            "prov:Activity",
+            "bt:Inference"
+          ],
+          "digestSRI": "sha256-p0rn075I611FirbWuRRj6GFSQmOG9l6XfKhPlh/0r4k=",
+          "digestMultibase": "uEiCnSufTvkjrXUWKtta5FGPoYVJCY4b2Xpd8qE-WH_SviQ"
+        },
+        {
+          "id": "did:holo:sha256:53354d443f93af225636a68d53dfb7cd41f2343dc19a69754bfd3ed11b58fcda",
+          "rel": "prov:hadMember",
+          "@type": [
+            "prov:Activity",
+            "bt:Inference"
+          ],
+          "digestSRI": "sha256-M0eIYmn/TRLMEL8aSubzQES4d2VHNFyUC/KNmwHxX64=",
+          "digestMultibase": "uEiAzR4hiaf9NEswQvxpK5vNARLh3ZUc0XJQL8o2bAfFfrg"
+        }
+      ],
+      "id": "did:holo:sha256:418383384d65a1f2c356f4f13b0edaea5a509f83c463766f16acc1620e2929e4",
+      "alsoKnownAs": [
+        "did:holo:blake3:f5d95327cd2ec5f4feff50563a8881b392381b5ec86e86797556c4028b2527d2"
+      ]
+    },
+    "released": [
+      {
+        "@context": {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "bt:Voucher",
+          "schema:Order",
+          "prov:Entity"
+        ],
+        "bt:workReceipt": "did:holo:sha256:418383384d65a1f2c356f4f13b0edaea5a509f83c463766f16acc1620e2929e4",
+        "bt:step": "did:holo:sha256:d89a7b22666d6c8841ad478784310dcdccc1997da7998ad25305189bdb4514e8",
+        "bt:payee": "did:pkh:polkadot:2f0555cc76fc2840:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "schema:price": 0.5,
+        "schema:priceCurrency": "TAO",
+        "bt:network": "testnet",
+        "prov:wasDerivedFrom": "did:holo:sha256:d89a7b22666d6c8841ad478784310dcdccc1997da7998ad25305189bdb4514e8",
+        "dcterms:created": "2026-06-12T00:00:00Z",
+        "bt:payer": "did:key:ed25519:bceaf6af6da152e54a54460e87ad3c3a3747d5897f0d850b512f8319cf9f8dd8",
+        "payerProof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "verificationMethod": "did:key:ed25519:bceaf6af6da152e54a54460e87ad3c3a3747d5897f0d850b512f8319cf9f8dd8",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "mCE4tcZRqRRb8ZlWBXIM2Zp4WH+CAoEZ06p8KjOy5/X1lLerdPBocJ+LyLep50KvceKGSgv3mvQmpiFufQuyDQ==",
+          "publicKeyHex": "bceaf6af6da152e54a54460e87ad3c3a3747d5897f0d850b512f8319cf9f8dd8"
+        },
+        "id": "did:holo:sha256:8d09750268a880762e49122b44d4ec129ca44916a4570b552f86eeb97938813c",
+        "alsoKnownAs": [
+          "did:holo:blake3:0ff0a7b2fd3f72b260a8b4e1d7be38dfa4754105edb93b3624e6e9b513c685d3"
+        ]
+      },
+      {
+        "@context": {
+          "schema": "https://schema.org/",
+          "prov": "http://www.w3.org/ns/prov#",
+          "bt": "https://hologram.os/ns/bittensor#"
+        },
+        "@type": [
+          "bt:Voucher",
+          "schema:Order",
+          "prov:Entity"
+        ],
+        "bt:workReceipt": "did:holo:sha256:418383384d65a1f2c356f4f13b0edaea5a509f83c463766f16acc1620e2929e4",
+        "bt:step": "did:holo:sha256:53354d443f93af225636a68d53dfb7cd41f2343dc19a69754bfd3ed11b58fcda",
+        "bt:payee": "did:pkh:polkadot:2f0555cc76fc2840:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "schema:price": 0.5,
+        "schema:priceCurrency": "TAO",
+        "bt:network": "testnet",
+        "prov:wasDerivedFrom": "did:holo:sha256:53354d443f93af225636a68d53dfb7cd41f2343dc19a69754bfd3ed11b58fcda",
+        "dcterms:created": "2026-06-12T00:00:00Z",
+        "bt:payer": "did:key:ed25519:bceaf6af6da152e54a54460e87ad3c3a3747d5897f0d850b512f8319cf9f8dd8",
+        "payerProof": {
+          "type": "DataIntegrityProof",
+          "cryptosuite": "eddsa-jcs-2022",
+          "verificationMethod": "did:key:ed25519:bceaf6af6da152e54a54460e87ad3c3a3747d5897f0d850b512f8319cf9f8dd8",
+          "proofPurpose": "assertionMethod",
+          "proofValue": "RPGjbEPXG2aDBGVdlqQ9DF90yR13MrbQk7Pp2TPMt6JJsxCSOvVul8GMGt8FRT+RNXQSoJ238xOVvgW3nq1dBg==",
+          "publicKeyHex": "bceaf6af6da152e54a54460e87ad3c3a3747d5897f0d850b512f8319cf9f8dd8"
+        },
+        "id": "did:holo:sha256:04eb9330ab4db14d18b97b500b89dc6c43cf250c13739b65ae38d9035d8dfe19",
+        "alsoKnownAs": [
+          "did:holo:blake3:f27cfeb16ce937f5a02d43b507cbaf32bb317678e6be4ddadeae2394e212bfab"
+        ]
+      }
+    ],
+    "withheld": [],
+    "network": "testnet"
+  },
+  "authority": "https://docs.learnbittensor.org/sdk/bt-api-ref"
+}

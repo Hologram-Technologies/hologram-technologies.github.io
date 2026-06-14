@@ -590,7 +590,7 @@
         // self-sovereign, hardware-bound sign-in before the desktop; media/kiosk loaders boot
         // straight. The greeter is interposed as the splash's `next`, so the real flow is
         // bootloader → Plymouth → SDDM → shell (faithful to a real Linux desktop boot).
-        const isSession = /^(home|os|workspace)\.html|^apps\/sdk\//.test(e.loader || "");
+        const isSession = /^(shell|home|os|workspace)\.html|^apps\/sdk\//.test(e.loader || "");
         const target = isSession
           ? "login.html?" + new URLSearchParams({ next: url, label: e.title,
               logo: "boot/icons/" + (e.icon || "os_unknown") + ".svg" }).toString()

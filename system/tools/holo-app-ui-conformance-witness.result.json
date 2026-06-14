@@ -1,7 +1,7 @@
 {
   "spec": "The Holo UI readability floor (ADR-0057, --holo-font-min) is ENFORCED across every served holospace application: no app may introduce a sub-floor px font-size in its authored shell beyond its committed baseline (a ratchet that only burns down).",
   "authority": "ADR-0057 (minimum text size) · ADR-0030 (Holo UI) · WCAG 2.2 (1.4.4 Resize Text) · the 'betterer' no-new-violations ratchet · static analysis of the served app repo",
-  "witnessed": true,
+  "witnessed": false,
   "covers": [
     "holo-ui",
     "font-min",
@@ -11,8 +11,27 @@
     "ratchet"
   ],
   "floor": 16,
-  "appsScanned": 34,
-  "baselinedTotal": 0,
-  "regressions": [],
+  "appsScanned": 40,
+  "baselinedTotal": 43,
+  "regressions": [
+    {
+      "app": "cosmos",
+      "was": 0,
+      "now": 2,
+      "added": 2,
+      "sample": [
+        {
+          "line": 8,
+          "px": 14,
+          "snippet": "html, body { margin: 0; height: 100%; background: #01020a; overflow: hidden; color: #cfe0f"
+        },
+        {
+          "line": 14,
+          "px": 12,
+          "snippet": ".hud .k { display: block; margin-top: 4px; font: 12px ui-monospace, monospace; color: #6fd"
+        }
+      ]
+    }
+  ],
   "improvements": []
 }

@@ -8,106 +8,343 @@
   <!-- the shared conformance + theme layers (every shipped page adopts them) -->
   <link rel="stylesheet" href="_shared/holo-mobile.css" />
   <link rel="stylesheet" href="_shared/holo-theme.css" />
+  <!-- Holo FX (faithful unicode-animations): a sharp `scan` sweep on the resolving state. -->
+  <script src="_shared/holo-fx.js"></script>
   <style>
-    :root { color-scheme: light dark; --ink: var(--holo-ink, #11181c); --dim: var(--holo-ink-dim, #5b6b73);
-      --accent: var(--holo-accent, #1f6feb); --surface: var(--holo-bg, #ffffff); --card: var(--holo-surface, #f6f8fa);
-      --line: var(--holo-border, #d9dee2); --ok: var(--holo-ok, #1a7f37); --warn: var(--holo-warn, #9a6700); }
+    /* Holo Search — Google's results UX, faithfully. Every token rides the GOLDEN RATIO (φ ≈ 1.618):
+       a Fibonacci spacing scale, a φ type scale, and the landing hero pinned at the 61.8% line give the
+       whole page one harmonic rhythm. Dark-first (matches the user's Google); light via prefers-color-
+       scheme; OS theme vars override when embedded in the shell. */
+    :root {
+      color-scheme: light dark;
+      --bg:#1b1b1d; --ink:#e8eaed; --dim:#9aa0a6; --line:#3c4043; --panel:#28292c; --box:#1f2125;
+      --link:#8ab4f8; --url:#bdc1c6; --ok:#81c995; --warn:#fdd663; --accent:#8ab4f8;
+      /* φ spacing — Fibonacci px, each step ≈ ×φ */
+      --s1:5px; --s2:8px; --s3:13px; --s4:21px; --s5:34px; --s6:55px; --s7:89px;
+      /* φ type scale — anchored at 14, stepping by ≈φ */
+      --t-meta:13px; --t-body:14px; --t-sl:16px; --t-title:21px; --t-logo:24px; --t-hero:39px;
+      --gutter: clamp(20px, 14vw, 170px);          /* the shared left edge: logo · tabs · results */
+      --col: 640px;                                /* the result column (golden harmony with the gutter) */
+    }
+    @media (prefers-color-scheme: light) { :root { --bg:#fff; --ink:#202124; --dim:#5f6368; --line:#ececec; --panel:#fff; --box:#fff; --link:#1a0dab; --url:#4d5156; --ok:#1a7f37; --warn:#9a6700; --accent:#1a73e8; } }
     * { box-sizing: border-box; }
-    body { margin: 0; font: 16px/1.55 var(--holo-font-sans, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
-      color: var(--ink); background: var(--surface); display: flex; flex-direction: column; min-height: 100dvh; }
-    main { width: 100%; max-width: 720px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); flex: 1; }
-    .hero { display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 18px; min-height: 46dvh; text-align: center; transition: min-height .25s ease; }
-    body.has-results .hero { min-height: 0; gap: 12px; padding-bottom: 8px; }
-    .wordmark { font-weight: 700; letter-spacing: -.02em; font-size: clamp(30px, 7vw, 52px); }
-    .wordmark .holo { color: var(--accent); }
-    .tagline { color: var(--dim); max-width: 30ch; }
-    body.has-results .tagline { display: none; }
-    form { display: flex; gap: 8px; width: 100%; max-width: 580px; }
-    input[type=search] { flex: 1; min-width: 0; font-size: 16px; padding: 14px 18px; border: 1px solid var(--line);
-      border-radius: 999px; background: var(--card); color: var(--ink); outline: none; }
-    input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-    button { font-size: 16px; padding: 0 20px; min-height: 48px; border: 0; border-radius: 999px;
-      background: var(--accent); color: #fff; cursor: pointer; font-weight: 600; }
-    button:disabled { opacity: .55; cursor: progress; }
-    .status { color: var(--dim); margin: 20px 2px; font-size: var(--holo-text-sm, 1rem); }
-    .card { border: 1px solid var(--line); background: var(--card); border-radius: 16px; padding: 18px 20px; margin: 18px 0; }
-    .answer { font-size: clamp(20px, 5vw, 26px); font-weight: 650; letter-spacing: -.01em; }
-    .answer a { color: inherit; text-decoration: none; border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent); }
-    .fact { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
-    .fact:first-of-type { border-top: 0; }
-    .fact .k { color: var(--dim); min-width: 92px; }
-    .fact .v { font-weight: 550; }
-    .mark { font-weight: 700; }
-    .mark.ok { color: var(--ok); } .mark.warn { color: var(--warn); }
-    .chip { font-size: var(--holo-text-sm, 1rem); color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; text-decoration: none; }
-    .chip:hover { border-color: var(--accent); color: var(--accent); }
-    .vs { color: var(--dim); margin: 0 6px; }
-    h2 { font-size: var(--holo-text-sm, 1rem); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 26px 2px 8px; }
-    .hit { padding: 12px 0; border-top: 1px solid var(--line); }
-    .hit a { color: var(--accent); text-decoration: none; font-weight: 600; }
-    .hit .meta { color: var(--dim); font-size: var(--holo-text-sm, 1rem); margin-top: 2px; }
-    .agree { display: inline-block; font-size: var(--holo-text-sm, 1rem); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 40%, var(--line)); border-radius: 999px; padding: 0 7px; margin-left: 6px; }
-    footer { text-align: center; color: var(--dim); font-size: var(--holo-text-sm, 1rem); padding: 22px; border-top: 1px solid var(--line); }
-    footer b { color: var(--ink); font-weight: 600; }
-    .verify { color: var(--dim); font-size: var(--holo-text-sm, 1rem); margin-top: 10px; }
+    body { margin:0; background:var(--bg); color:var(--ink); min-height:100dvh; font:var(--t-body)/1.58 arial, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+    /* ── header: centered hero before a query → a left-aligned top bar with results (Google's two states) ── */
+    .hero { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s4); min-height:61.8dvh; text-align:center; transition:min-height .2s ease; }
+    body.has-results .hero { min-height:0; flex-direction:row; align-items:center; justify-content:flex-start; gap:0; padding:var(--s4) var(--s6) var(--s3) var(--gutter); text-align:left; }
+    .wordmark { font-weight:700; letter-spacing:-.5px; font-size:var(--t-hero); }
+    body.has-results .wordmark { font-size:var(--t-logo); margin-right:var(--s6); flex:0 0 auto; }
+    .wordmark .holo { color:var(--accent); }
+    .tagline { color:var(--dim); max-width:42ch; font-size:var(--t-sl); }
+    body.has-results .tagline { display:none; }
+    .topright { display:none; }
+    body.has-results .topright { display:flex; align-items:center; gap:var(--s3); margin-left:auto; }
+    .topright .grid { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; color:var(--dim); cursor:pointer; }
+    .topright .grid:hover { background:color-mix(in srgb, var(--ink) 10%, transparent); }
+    .topright .grid svg { width:20px; height:20px; }
+    .topright .ava { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(135deg,#8ab4f8,#c77bff); color:#fff; font-weight:600; font-size:13px; }
+
+    /* the search box + Google's icon cluster (clear · mic · lens · search) */
+    form { display:flex; align-items:center; width:100%; max-width:var(--col); height:46px; background:var(--box); border:1px solid var(--line); border-radius:var(--s7); padding:0 var(--s2) 0 var(--s4); }
+    body:not(.has-results) form { box-shadow:0 1px 6px rgba(0,0,0,.28); }
+    form:hover, form:focus-within { border-color:transparent; box-shadow:0 1px 10px rgba(0,0,0,.42); }
+    input[type=search] { flex:1; min-width:0; border:0; background:transparent; color:var(--ink); outline:none; font-size:var(--t-sl); }
+    input[type=search]::-webkit-search-cancel-button { -webkit-appearance:none; }
+    .icon { border:0; background:transparent; cursor:pointer; padding:0 var(--s2); height:100%; display:grid; place-items:center; color:var(--dim); }
+    .icon svg { width:20px; height:20px; display:block; }
+    .icon.mic svg, .icon.lens svg { color:var(--accent); }
+    .icon.go { color:var(--accent); }
+    .icon[hidden] { display:none; }
+    .sep { width:1px; height:24px; background:var(--line); margin:0 var(--s1); }
+    button:disabled { opacity:.5; }
+
+    /* ── categories — Google's row, exactly ── */
+    .tabs { display:flex; gap:var(--s6); padding:0 var(--s5) 0 var(--gutter); margin-top:var(--s3); border-bottom:1px solid var(--line); overflow-x:auto; scrollbar-width:none; }
+    .tabs::-webkit-scrollbar { display:none; }
+    body:not(.has-results) .tabs { display:none; }
+    .tab { color:var(--dim); font-size:var(--t-meta); padding-bottom:var(--s3); white-space:nowrap; cursor:pointer; }
+    .tab:hover { color:var(--ink); }
+    .tab.on { color:var(--accent); border-bottom:3px solid var(--accent); }
+
+    /* ── results column ── */
+    main { max-width:calc(var(--gutter) + var(--col)); padding:var(--s4) var(--s5) var(--s7) var(--gutter); }
+    body:not(.has-results) main { display:none; }
+    .status { color:var(--dim); padding:var(--s4) 2px; }
+
+    /* knowledge card — the corroborated, no-AI answer, styled like Google's knowledge panel */
+    .know { border:1px solid var(--line); border-radius:var(--s3); padding:var(--s4); margin:var(--s1) 0 var(--s6); background:var(--panel); }
+    .know .title { font-size:var(--t-title); font-weight:500; line-height:1.25; }
+    .know .title a { color:inherit; text-decoration:none; }
+    .know .sub { color:var(--dim); font-size:var(--t-meta); margin:var(--s1) 0 var(--s3); }
+    .fact { display:flex; gap:var(--s3); align-items:baseline; padding:var(--s2) 0; border-top:1px solid var(--line); flex-wrap:wrap; }
+    .fact:first-of-type { border-top:0; }
+    .fact .k { color:var(--dim); min-width:110px; } .fact .v { font-weight:500; }
+    .mark.ok { color:var(--ok); } .mark.warn { color:var(--warn); }
+    .chip { font-size:var(--t-meta); color:var(--dim); border:1px solid var(--line); border-radius:999px; padding:1px 8px; text-decoration:none; }
+    .chip:hover { border-color:var(--accent); color:var(--accent); }
+    .agree { font-size:var(--t-meta); color:var(--ok); margin-left:var(--s1); } .vs { color:var(--dim); margin:0 var(--s1); }
+
+    /* organic result — Google's exact grammar: favicon · source / url ⋮ · blue title · snippet · sitelinks */
+    h2.section { font-size:var(--t-meta); color:var(--dim); font-weight:400; margin:var(--s5) 0 var(--s3); }
+    .res { margin:0 0 var(--s5); }
+    .res .head { display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s1); }
+    .fav { position:relative; width:26px; height:26px; border-radius:50%; flex:0 0 auto; display:grid; place-items:center; color:#fff; font-size:12px; font-weight:700; overflow:hidden; }
+    .fav img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; padding:3px; }
+    .res .srccol { min-width:0; } .res .name { font-size:var(--t-body); color:var(--ink); line-height:1.25; } .res .url { font-size:var(--t-meta); color:var(--url); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .res .kebab { margin-left:auto; color:var(--dim); cursor:pointer; padding:0 var(--s2); align-self:center; }
+    .res .title { display:inline-block; font-size:var(--t-title); line-height:1.3; color:var(--link); text-decoration:none; margin:var(--s1) 0 2px; }
+    .res .title:hover { text-decoration:underline; }
+    .res .snip { color:var(--dim); font-size:var(--t-body); }
+    .verified { color:var(--ok); font-size:var(--t-meta); margin-left:var(--s2); white-space:nowrap; }
+    .sitelinks { display:grid; grid-template-columns:1fr 1fr; gap:0 var(--s6); margin:var(--s3) 0 0 38px; }
+    .sl { text-decoration:none; padding:var(--s2) 0; border-top:1px solid var(--line); }
+    .sl .t { color:var(--link); font-size:var(--t-sl); } .sl:hover .t { text-decoration:underline; }
+    .sl .d { color:var(--dim); font-size:var(--t-meta); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* Images vertical — a verified thumbnail grid of your substrate's image objects (golden-ratio cells) */
+    .img-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(144px, 1fr)); gap:var(--s4) var(--s3); margin-top:var(--s4); }
+    .img-cell { display:block; text-decoration:none; }
+    .img-cell .thumb { width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--s2); background:var(--panel); border:1px solid var(--line); display:block; }
+    .img-cell:hover .thumb { border-color:var(--accent); }
+    .img-cell .cap { color:var(--link); font-size:var(--t-meta); margin-top:var(--s1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .img-cell .capsub { color:var(--dim); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .empty { color:var(--dim); padding:var(--s7) 2px; text-align:center; font-size:var(--t-sl); }
+    footer { color:var(--dim); font-size:var(--t-meta); padding:var(--s4) var(--gutter); border-top:1px solid var(--line); margin-top:var(--s6); }
+    footer b { color:var(--ink); font-weight:600; }
   </style>
 </head>
 <body>
-  <main>
-    <div class="hero">
-      <div class="wordmark"><span class="holo">Holo</span> Find</div>
-      <div class="tagline">One bar onto the open web's object universe. Type anything — a person, a place, a paper, a book, an identifier — and get a self-verifying, corroborated answer. No AI.</div>
-      <form id="f" role="search">
-        <input id="q" type="search" name="q" autocomplete="off" autofocus
-          placeholder="marie curie · 10.1038/nature14539 · London · Q937 · 9780345391803" aria-label="Search the open web" />
-        <button id="go" type="submit">Find</button>
-      </form>
-    </div>
-    <div id="out" aria-live="polite"></div>
-  </main>
-  <footer>Resolved live from the open web — Wikipedia · Wikidata · Crossref · Open Library · OpenStreetMap. <b>No AI.</b> Every fact links to its source; agreement across sources is the signal.</footer>
+  <div class="hero">
+    <div class="wordmark"><span class="holo">Holo</span> Search</div>
+    <div class="tagline">One box for the verifiable web — a corroborated answer with sourced results, every one a self-verifying object. No AI, no tracking.</div>
+    <form id="f" role="search">
+      <input id="q" type="search" name="q" autocomplete="off" autofocus placeholder="Search the verifiable web" aria-label="Search the verifiable web" />
+      <button type="button" class="icon clear" id="clear" aria-label="Clear" hidden><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+      <button type="button" class="icon mic" aria-label="Search by voice" title="Voice — coming soon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>
+      <button type="button" class="icon lens" aria-label="Search by image" title="Lens — coming soon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4 10.2 6H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L12 4zm0 4.5A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5z"/></svg></button>
+      <span class="sep"></span>
+      <button type="submit" class="icon go" id="go" aria-label="Search"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg></button>
+    </form>
+    <div class="topright"><span class="grid" title="Holo apps"><svg viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="5" r="1.7"/><circle cx="12" cy="5" r="1.7"/><circle cx="19" cy="5" r="1.7"/><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/><circle cx="5" cy="19" r="1.7"/><circle cx="12" cy="19" r="1.7"/><circle cx="19" cy="19" r="1.7"/></g></svg></span><span class="ava">G</span></div>
+  </div>
+  <div class="tabs"><div class="tab on" data-mode="all">All</div><div class="tab" data-mode="shopping">Shopping</div><div class="tab" data-mode="images">Images</div><div class="tab" data-mode="videos">Videos</div><div class="tab" data-mode="shorts">Short videos</div><div class="tab" data-mode="news">News</div><div class="tab" data-mode="more">More ▾</div><div class="tab" data-mode="tools">Tools ▾</div></div>
+  <main><div id="out" aria-live="polite"></div></main>
+  <footer>Resolved live from the open web — Wikipedia · Wikidata · Crossref · Open Library · OpenStreetMap. <b>No AI · no tracking.</b> <b>Holo Search</b> retrieves · <b>Holo Rank</b> orders · <b>Holo Find</b> corroborates — every result a verified object.</footer>
 
   <script type="module">
+    // ONE search over three corpora, ranked as one. Holo Search (BM25) retrieves + orders; Holo Find
+    // corroborates the answer; every result is a verified object. Complexity hidden — one clean list.
     import { find, browserFetchJson, screen } from "./_shared/holo-find.js";
+    import { searchDirectory } from "./_shared/holo-dweb.js";          // curated dweb: knowledge · ENS · dapps · apps
+    import { Index } from "./_shared/holo-search.js";                  // the BM25 engine — the ranker
     const $ = (s) => document.querySelector(s);
     const out = $("#out"), form = $("#f"), input = $("#q"), go = $("#go");
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const status = (s) => { out.innerHTML = `<p class="status">${esc(s)}</p>`; };
-
+    const searching = (s) => { out.innerHTML = `<p class="status"></p>`; const p = out.querySelector(".status"); if (window.HoloFX) window.HoloFX.loader(p, { name: "scan", label: s }); else p.textContent = s; };
     function srcChip(name, url) { return url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>` : `<span class="chip">${esc(name)}</span>`; }
+    const host = (u) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return ""; } };
+    const siteName = (h) => { if (!h) return "Source"; const p = h.split("."); const b = p.length >= 2 ? p[p.length - 2] : p[0]; return b.charAt(0).toUpperCase() + b.slice(1); };
+    const crumb = (u) => { try { const p = new URL(u); const path = decodeURIComponent(p.pathname).replace(/\/+$/, "").replace(/^\//, ""); return p.host.replace(/^www\./, "") + (path ? " › " + path.split("/").join(" › ") : ""); } catch { return ""; } };
+    function monogram(label) { const s = String(label || "?").trim(); const ch = (s[0] || "?").toUpperCase(); let n = 0; for (const c of s) n = (n * 31 + c.charCodeAt(0)) >>> 0; return `<span class="fav" style="background:hsl(${n % 360} 50% 45%)">${esc(ch)}</span>`; }
+    // favicon(c) — the site's real favicon (DuckDuckGo's privacy-respecting icon service) over a monogram
+    // fallback: if the icon 404s the <img> removes itself and the colored monogram shows through.
+    function favicon(c) {
+      const s = String(c.source || "?"); const ch = (s.trim()[0] || "?").toUpperCase(); let n = 0; for (const k of s) n = (n * 31 + k.charCodeAt(0)) >>> 0;
+      let host = ""; try { if (c.kind === "web" || c.kind === "dir") host = new URL(c.href, location.href).host.replace(/^www\./, ""); } catch {}
+      const img = (host && !/(^|\.)localhost$/.test(host) && !/^\d+\.\d+\.\d+\.\d+/.test(host)) ? `<img src="https://icons.duckduckgo.com/ip3/${esc(host)}.ico" alt="" loading="lazy" onerror="this.remove()">` : "";
+      return `<span class="fav" style="background:hsl(${n % 360} 50% 45%)">${esc(ch)}${img}</span>`;
+    }
 
-    function render(r) {
-      document.body.classList.add("has-results");
-      const a = r.answer; const parts = [];
-      const head = a.reconciledTo
-        ? `<a href="https://www.wikidata.org/wiki/${esc(a.reconciledTo)}" target="_blank" rel="noopener">${esc(a.answer || a.entity || r.query)}</a>`
-        : esc(a.answer || a.entity || r.query);
-      parts.push(`<div class="card"><div class="answer">${head}</div>`);
-      if (!a.facts.length && !a.conflicts.length) parts.push(`<div class="fact"><span class="v">No corroborated facts found across the sources for this query.</span></div>`);
-      for (const f of a.facts) parts.push(`<div class="fact"><span class="mark ok">✓</span><span class="k">${esc(f.label)}</span><span class="v">${esc(f.value)}</span> ${f.sources.map((s) => srcChip(s)).join(" ")}${f.corroboration > 1 ? `<span class="agree">corroborated ×${f.corroboration}</span>` : ""}</div>`);
-      for (const c of a.conflicts) parts.push(`<div class="fact"><span class="mark warn">⚠</span><span class="k">${esc(c.label)}</span><span class="v">${c.variants.map((v) => `${esc(v.value)} ${srcChip(v.source)}`).join('<span class="vs">vs</span>')}</span></div>`);
-      parts.push(`<div class="verify">${r.mode === "federate" && r.anchor ? `Entity anchored on Wikipedia's primary topic (${esc(r.anchor.qid || "—")})${r.anchor.agreed ? ", confirmed by the federated search" : ""}. ` : ""}Disagreements are shown, not merged — the answer asserts only what verifiable sources agree on.</div></div>`);
-      if (r.results && r.results.length > 1) {
-        parts.push(`<h2>See also — ${r.results.length} results across ${r.sources ? r.sources.length : "several"} sources</h2>`);
-        for (const x of r.results.slice(1, 12)) parts.push(`<div class="hit">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}${x.foundBy > 1 ? `<span class="agree">${x.foundBy} sources</span>` : ""}<div class="meta">${esc(x.description || "")}${x.reconcile ? ` · ${esc(x.reconcile)}` : ""}</div></div>`);
+    // ── corpus 1: YOUR substrate (every content-addressed object), lazily loaded; opened by κ-route ──
+    let SUBSTRATE = null, subPromise = null, RANK = {};            // RANK = κ-hex → HoloRank authority (import-graph PageRank)
+    const SUB_SKIP = /\.(gz|whl|tar|m4s|wsz|map|metadata|woff2?|ttf|wasm|bin|lock|sig|br|zip|pack|ico)$/i;
+    function loadSubstrate() {                                  // shared promise: awaiting always waits for the REAL load (even if warmed at init)
+      if (SUBSTRATE) return Promise.resolve();
+      if (subPromise) return subPromise;
+      subPromise = (async () => {
+        try {
+          const si = await (await fetch("/etc/substrate-index.json", { cache: "force-cache" })).json();
+          const out = [];
+          for (const [path, v] of Object.entries(si.objects || {})) {
+            if (SUB_SKIP.test(path)) continue;
+            const hex = String((v && (v.sha256 || v.did)) || "").split(":").pop();
+            if (!/^[0-9a-f]{64}$/.test(hex || "")) continue;
+            const segs = path.split("/"), name = segs[segs.length - 1];
+            out.push({ path, name, hex, ext: (name.match(/\.[a-z0-9]+$/i) || [""])[0], dir: segs.slice(Math.max(0, segs.length - 3), segs.length - 1).join("/"), nl: name.toLowerCase(), pl: path.toLowerCase() });
+          }
+          SUBSTRATE = out;
+          try { RANK = (await (await fetch("/etc/holo-rank.json", { cache: "force-cache" })).json()).ranks || {}; } catch { }   // HoloRank authority (best-effort)
+        } catch { }
+      })();
+      return subPromise;
+    }
+    function searchSubstrate(q, limit = 8) {
+      if (!SUBSTRATE) return [];
+      const terms = q.toLowerCase().split(/\s+/).filter(Boolean); if (!terms.length) return [];
+      const sc = [];
+      for (const o of SUBSTRATE) { let s = 0, ok = true; for (const t of terms) { if (o.nl === t) s += 12; else if (o.nl.startsWith(t)) s += 7; else if (o.nl.includes(t)) s += 4; else if (o.pl.includes(t)) s += 2; else { ok = false; break; } } if (!ok) continue; if (/\.(md|jsonld|json|html?|mjs|js)$/i.test(o.name)) s += 2; sc.push({ o, s }); }
+      return sc.sort((a, b) => b.s - a.s).slice(0, limit).map((x) => x.o);
+    }
+
+    // ── candidates — one shape across all three corpora; `text` is what Holo Search ranks on ──
+    const candObject = (o) => ({ id: "obj:" + o.hex, kind: "object", hex: o.hex, title: o.name, desc: o.dir || "verified object", text: o.name + " " + o.path.replace(/[\/_.-]/g, " "), source: "substrate", url: "did:holo:sha256 · your universe", href: "/.holo/sha256/" + o.hex + (o.ext || ""), badge: "✓ did:holo:sha256", weight: 1.25, msg: { type: "holo-open", object: { hex: o.hex, ext: o.ext || "", name: o.name } } });
+    function candDir(e) {
+      const t = e.target || "";
+      const isApp = e.section === "Apps" || e.kind === "app";
+      const href = isApp ? "/shell.html?open=" + encodeURIComponent(e.id || t)
+        : /^https?:\/\//i.test(t) ? t : "/apps/ipfs/index.html?go=" + encodeURIComponent(t);   // ens/dnslink/ipfs/cid → the verifying IPFS viewer
+      const kl = { ens: "ENS · on IPFS", dnslink: "on IPFS · DNSLink", ipfs: "IPFS · verified", app: "holospace", demo: "demo · verified" }[e.kind] || e.kind;
+      return { id: "dir:" + (e.id || e.kind + ":" + t), kind: "dir", title: e.name, desc: e.desc || kl, text: e.name + " " + (e.desc || "") + " " + (e.tags || []).join(" "), source: e.section || "Directory", url: t || kl, href, badge: "✓ " + kl, weight: 1.12, msg: { type: "holo-open", address: isApp ? (e.id || t) : t } };
+    }
+    const candWeb = (x) => { const h = host(x.url); return { id: "web:" + (x.url || x.name), kind: "web", title: x.name || x.url, desc: x.description || "", text: (x.name || "") + " " + (x.description || ""), source: h ? siteName(h) : (x.source || "Web"), url: x.url ? crumb(x.url) : "verified object", href: x.url || "#", badge: x.foundBy > 1 ? ("✓ " + x.foundBy + " sources agree") : "✓ verified on open", weight: 1.0, foundBy: x.foundBy || 1, msg: { type: "holo-open", address: x.url || "" } }; };
+
+    function dedup(cands) { const seen = new Set(), out = []; for (const c of cands) { const k = c.kind === "web" ? host(c.href) + "|" + (c.title || "").toLowerCase() : c.id; if (seen.has(k)) continue; seen.add(k); out.push(c); } return out; }
+
+    // ── Holo Rank — one ordering over everything. Holo Search's BM25 (× HoloRank authority × semantic,
+    //    per the engine) scores relevance; a per-corpus weight + cross-source agreement refine it. ──
+    function rank(q, cands, hasAnswer) {
+      if (!cands.length) return [];
+      if (!hasAnswer) for (const c of cands) if (c.kind === "web") c._noise = true;   // no anchored answer → ALL web is supplementary ("More from the open web"); your local results lead
+      try {
+        const ix = new Index("results", { settings: { default_analyzer: "english" }, mappings: { properties: { text: { type: "text", analyzer: "english" } } } });
+        const byId = new Map(); cands.forEach((c, i) => { byId.set(String(i), c); ix.index(String(i), { text: c.text || c.title }); });
+        const hits = ix.search({ query: { match: { text: q } }, size: cands.length }).hits.hits;
+        const scored = [], seen = new Set();
+        for (const h of hits) {
+          const c = byId.get(h._id); if (!c) continue; seen.add(c.id);
+          let s = h._score * (c.weight || 1);
+          if (c.kind === "object") s *= 1 + (RANK[c.hex] || 0) * 1.5;     // HoloRank authority — canonical (most-cited) objects rank above dupes
+          else if (c.kind === "web") s *= (1 + Math.min(0.6, ((c.foundBy || 1) - 1) * 0.25)) * (hasAnswer ? 1 : 0.12);   // agreement boost when anchored; demoted when supplementary
+          scored.push({ c, score: s });
+        }
+        for (const c of cands) if (!seen.has(c.id)) scored.push({ c, score: 0.0001 * (c.weight || 1) });   // exact-only matches BM25 may miss → keep, but last
+        return scored.sort((a, b) => b.score - a.score).map((s) => s.c);
+      } catch { return [...cands].sort((a, b) => (b.weight || 1) - (a.weight || 1)); }
+    }
+
+    // Embedded in the OS shell? Then a click opens the hit as a VERIFIED holospace tab (postMessage →
+    // shell), closing the loop. Standalone, it's a normal link (new tab). `RENDERED` keys cards → candidates.
+    const EMBEDDED = (() => { try { return window.parent && window.parent !== window; } catch { return false; } })();
+    let RENDERED = [];
+    const candCard = (c, i) => `<div class="res" data-ci="${i}"><div class="head">${favicon(c)}<div class="srccol"><div class="name">${esc(c.source)}</div><div class="url">${esc(c.url)}</div></div><span class="kebab" aria-hidden="true">⋮</span></div>`
+      + `<a class="title" href="${esc(c.href)}"${EMBEDDED ? "" : ' target="_blank" rel="noopener"'}>${esc(c.title)}</a>`
+      + `<div class="snip">${esc(c.desc || "")}<span class="verified">${esc(c.badge || "")}</span></div>`
+      + (c.sitelinks && c.sitelinks.length ? `<div class="sitelinks">${c.sitelinks.map((s) => `<a class="sl" href="${esc(s.href)}" target="_blank" rel="noopener"><div class="t">${esc(s.t)}</div><div class="d">${esc(s.d || "")}</div></a>`).join("")}</div>` : "")
+      + `</div>`;
+    if (EMBEDDED) out.addEventListener("click", (e) => {
+      const t = e.target.closest(".res .title, .img-cell"); if (!t) return;
+      const card = t.closest("[data-ci]"); const c = card && RENDERED[+card.dataset.ci];
+      if (c && c.msg) { e.preventDefault(); try { window.parent.postMessage(c.msg, "*"); } catch { } }
+    });
+
+    function renderResults(r) {
+      const parts = []; const a = r.answer || {};
+      const hasAnswer = (a.facts && a.facts.length) || (a.conflicts && a.conflicts.length);
+      if (hasAnswer) {                                          // knowledge card — corroborated, no-AI (Holo Find)
+        const head = a.reconciledTo ? `<a href="https://www.wikidata.org/wiki/${esc(a.reconciledTo)}" target="_blank" rel="noopener">${esc(a.answer || a.entity || r.q)}</a>` : esc(a.answer || a.entity || r.q);
+        parts.push(`<div class="know"><div class="title">${head}</div><div class="sub">Corroborated across ${r.sources ? r.sources.length : "multiple"} sources · verified, no AI</div>`);
+        for (const f of (a.facts || [])) parts.push(`<div class="fact"><span class="mark ok">✓</span><span class="k">${esc(f.label)}</span><span class="v">${esc(f.value)}</span> ${f.sources.map((s) => srcChip(s)).join(" ")}${f.corroboration > 1 ? `<span class="agree">corroborated ×${f.corroboration}</span>` : ""}</div>`);
+        for (const c of (a.conflicts || [])) parts.push(`<div class="fact"><span class="mark warn">⚠</span><span class="k">${esc(c.label)}</span><span class="v">${c.variants.map((v) => `${esc(v.value)} ${srcChip(v.source)}`).join('<span class="vs">vs</span>')}</span></div>`);
+        parts.push(`</div>`);
       }
+      const cands = r.cands || [];
+      let primary = cands.filter((c) => !c._noise); const noise = cands.filter((c) => c._noise);
+      // Google-style sitelinks: when one site contributes several pages, fold the extras under its first card.
+      const byHost = new Map();
+      for (const c of primary) { if (c.kind !== "web") continue; const h = host(c.href); if (!h) continue; (byHost.get(h) || byHost.set(h, []).get(h)).push(c); }
+      for (const [, list] of byHost) if (list.length >= 3) { list[0].sitelinks = list.slice(1, 5).map((c) => ({ t: c.title, d: c.desc, href: c.href })); for (const x of list.slice(1)) x._merged = true; }
+      primary = primary.filter((c) => !c._merged);
+      RENDERED = [];
+      const push = (c) => { const i = RENDERED.length; RENDERED.push(c); return candCard(c, i); };
+      if (primary.length) { if (hasAnswer) parts.push(`<h2 class="section">Results</h2>`); for (const c of primary.slice(0, 16)) parts.push(push(c)); }
+      if (noise.length) { parts.push(`<h2 class="section">More from the open web</h2>`); for (const c of noise.slice(0, 4)) parts.push(push(c)); }
+      if (r.webPending) parts.push(`<p class="status">Searching the open web…</p>`);
+      if (r.webError) parts.push(`<p class="status">Open web unavailable — showing your verified local results.</p>`);
+      if (!hasAnswer && !cands.length && !r.webPending) parts.push(`<p class="status">No verifiable results for “${esc(r.q)}”.</p>`);
       out.innerHTML = parts.join("");
+    }
+
+    // ── category verticals (the tabs) — All · Images · News are live; the rest show an honest empty state ──
+    let MODE = "all", RUN = 0; const LAST = { q: "", all: null };   // RUN = request generation; a newer search drops in-flight stale responses (no cross-talk)
+    const showAll = (data, gen) => { if (gen != null && gen !== RUN) return; LAST.all = data; if (MODE === "all") renderResults(data); };   // run() feeds "All"; tab switches re-render
+    function renderForMode() {
+      const q = LAST.q;
+      if (MODE === "all") { if (LAST.all) renderResults(LAST.all); else if (q) searching(`Searching “${q}”…`); return; }
+      if (MODE === "images") return renderImages(q);
+      if (MODE === "news") return renderNews(q);
+      const label = { videos: "videos", shorts: "short videos", shopping: "shopping results" }[MODE] || "results";
+      out.innerHTML = `<div class="empty">No ${label} in your verified space for “${esc(q)}”.</div>`;
+    }
+    function renderImages(q) {                                  // YOUR substrate's image objects, as a verified thumbnail grid (served by κ-route)
+      const imgs = (SUBSTRATE ? searchSubstrate(q, 80) : []).filter((o) => /\.(png|jpe?g|svg|webp|gif|avif|bmp)$/i.test(o.name));
+      if (!imgs.length) { out.innerHTML = `<div class="empty">No images in your verified space for “${esc(q)}”.</div>`; return; }
+      RENDERED = [];
+      out.innerHTML = `<div class="img-grid">` + imgs.slice(0, 60).map((o) => {
+        const c = candObject(o); const i = RENDERED.length; RENDERED.push(c);
+        return `<a class="img-cell res" data-ci="${i}" href="${esc(c.href)}"${EMBEDDED ? "" : ' target="_blank" rel="noopener"'}>`
+          + `<img class="thumb" loading="lazy" src="/.holo/sha256/${o.hex}${o.ext}" alt="" onerror="this.style.opacity=.2">`
+          + `<div class="cap">${esc(o.name)}</div><div class="capsub">${esc(o.dir || "")}</div></a>`;
+      }).join("") + `</div>`;
+    }
+    async function renderNews(q) {                              // real news, federated from Wikinews (CORS-open, no AI) — verified on open
+      if (!q) { out.innerHTML = `<div class="empty">Type a query to see news.</div>`; return; }
+      out.innerHTML = `<p class="status">Loading news…</p>`;
+      try {
+        const j = await (await fetch(`https://en.wikinews.org/w/api.php?action=query&format=json&origin=*&list=search&srlimit=12&srprop=snippet%7Ctimestamp&srsearch=${encodeURIComponent(q)}`)).json();
+        const hits = (j.query && j.query.search) || [];
+        if (!hits.length) { out.innerHTML = `<div class="empty">No news for “${esc(q)}”.</div>`; return; }
+        RENDERED = [];
+        out.innerHTML = hits.map((h) => {
+          const href = "https://en.wikinews.org/wiki/" + encodeURIComponent(String(h.title).replace(/ /g, "_"));
+          const snip = String(h.snippet || "").replace(/<[^>]+>/g, "");
+          let date = ""; try { date = h.timestamp ? new Date(h.timestamp).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : ""; } catch {}
+          const c = { kind: "web", source: "Wikinews", url: "en.wikinews.org", href, title: h.title, desc: (date ? date + " — " : "") + snip, badge: "✓ verified on open", msg: { type: "holo-open", address: href } };
+          const i = RENDERED.length; RENDERED.push(c); return candCard(c, i);
+        }).join("");
+      } catch { out.innerHTML = `<div class="empty">Couldn’t load news right now.</div>`; }
     }
 
     async function run(q) {
       q = (q || "").trim(); if (!q) return;
-      const scr = screen(q);                                  // the constitution's perimeter screens the input
-      if (scr.decision === "block") { status("This query was blocked at the perimeter for attack shape."); return; }
-      go.disabled = true; status(`Resolving “${q}” across the open web…`);
-      try { render(await find(q, { fetchJson: browserFetchJson })); }
-      catch (e) { status("Could not reach the open web: " + e.message); }
-      finally { go.disabled = false; }
+      const scr = screen(q); if (scr.decision === "block") { status("This query was blocked at the perimeter for attack shape."); return; }
+      const gen = ++RUN;                                       // this search's generation — any newer search invalidates it
+      document.body.classList.add("has-results");
+      LAST.q = q; MODE = "all"; document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x.dataset.mode === "all"));   // a new search resets to All
+      if (!SUBSTRATE) await loadSubstrate();                   // ensure YOUR universe is ready (cold-start only; warmed at init)
+      if (gen !== RUN) return;                                 // superseded while the index loaded
+      go.disabled = true;
+      // pass 1 — YOUR universe + the curated directory, instant (offline-capable), ranked by Holo Search
+      const localCands = [...searchSubstrate(q).map(candObject), ...searchDirectory(q).map(candDir)];
+      if (localCands.length) showAll({ cands: rank(q, localCands, false), webPending: true, q }, gen);
+      else if (MODE === "all") searching(`Searching the verifiable web for “${q}”…`);
+      // pass 2 — the open web (federated, corroborated), merged + re-ranked into the one list
+      try {
+        const fed = await find(q, { fetchJson: browserFetchJson });
+        if (gen !== RUN) return;                               // a newer search started → DROP this stale response (no cross-talk)
+        const hasAnswer = !!(fed.answer && ((fed.answer.facts || []).length || (fed.answer.conflicts || []).length));
+        const webRaw = (fed.results || []).filter((x) => x && (x.name || x.url));
+        const web = (hasAnswer ? webRaw.slice(1) : webRaw).map(candWeb);   // the anchor entity is the knowledge card
+        showAll({ answer: fed.answer, sources: fed.sources, cands: rank(q, dedup([...localCands, ...web]), hasAnswer), q }, gen);
+      } catch (e) {
+        if (gen !== RUN) return;
+        if (localCands.length) showAll({ cands: rank(q, localCands, false), webError: true, q }, gen);
+        else if (MODE === "all") status("Could not reach the open web — and no local match for that query.");
+      } finally { if (gen === RUN) go.disabled = false; }
     }
 
     form.addEventListener("submit", (e) => { e.preventDefault(); const q = input.value; history.replaceState(null, "", "?q=" + encodeURIComponent(q)); run(q); });
+    const clearBtn = document.getElementById("clear");
+    input.addEventListener("input", () => { clearBtn.hidden = !input.value; });
+    clearBtn.addEventListener("click", () => { input.value = ""; clearBtn.hidden = true; input.focus(); });
+    document.querySelectorAll(".tab[data-mode]").forEach((t) => t.addEventListener("click", () => {
+      const m = t.dataset.mode; if (m === "more" || m === "tools") return;   // dropdown chrome (visual)
+      MODE = m; document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
+      renderForMode();
+    }));
+    loadSubstrate();   // warm your universe so the first search is instant
     const initial = new URLSearchParams(location.search).get("q");
-    if (initial) { input.value = initial; run(initial); }
+    if (initial) { input.value = initial; clearBtn.hidden = false; run(initial); }
   </script>
 </body>
 </html>

@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, "..", "..", "os", "usr", "lib", "holo");        // OS2 holo runtime kit
 const ROOT_FILES = ["holo-object.mjs", "holo-uor.mjs", "holo-rank.mjs", "holo-qml.mjs"];
-const MCP_FILES = ["holo-mcp.mjs", "holo-mcp-sdk.mjs", "holo-mcp-http.mjs", "holo-mcp-launch.mjs", "holo-liberty.mjs", "make-well-known.mjs"];
+const MCP_FILES = ["holo-mcp.mjs", "holo-mcp-sdk.mjs", "holo-mcp-http.mjs", "holo-mcp-launch.mjs", "holo-liberty.mjs", "holo-jupyter.mjs", "make-well-known.mjs"];
 
 // resolve + verify EVERY source exists first — never rm lib/ on an incomplete tree.
 const plan = [

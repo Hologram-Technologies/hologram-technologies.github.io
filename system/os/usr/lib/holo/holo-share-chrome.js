@@ -148,7 +148,7 @@
   async function doShare(ctx) {
     const url = shareUrl(ctx);
     const data = { title: (ctx.name || "A Hologram app") + " · on hologram",
-      text: "Opens on any device and runs instantly — no install, verified by its content hash.", url };
+      text: "Opens on any device and runs instantly — no install, always verified.", url };
     try {
       if (navigator.share && (!navigator.canShare || navigator.canShare(data))) { await navigator.share(data); return; }
     } catch (e) { if (e && e.name === "AbortError") return; }
@@ -158,7 +158,7 @@
 
   // ── remix: open YOUR editable copy in the World shell (the build surface). ────────────
   function doRemix(ctx) {
-    const u = new URL("apps/sdk/index.html", location.href);
+    const u = new URL("/shell.html", location.href);
     u.searchParams.set("open", ctx.raw || ctx.kappa || "");
     u.searchParams.set("remix", "1");
     location.href = u.href;
@@ -185,7 +185,7 @@
     const sheet = el("div", { class: NS + "-sheet" }, [
       el("h3", { text: signedIn ? "Save to your Space" : "Keep this — create your Space" }),
       el("p", { text: signedIn
-        ? "This app lives in your Space, on every device you sign in to. Private, yours, verified by its content hash."
+        ? "This app lives in your Space, on every device you sign in to. Private, yours, and always verified."
         : "You’re running this as a guest. Create your Space to keep it forever and open it on any device — it takes one tap with your device’s passkey. No password, no email." }),
       el("ul", {}, [li("Your apps, saved and synced to your key"), li("Open your Space on any device"), li("Private by default — your key never leaves the device")]),
       el("div", { class: NS + "-actions" }, [

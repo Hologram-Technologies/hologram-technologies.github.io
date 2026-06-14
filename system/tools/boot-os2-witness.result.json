@@ -1,18 +1,21 @@
 {
   "spec": "Hologram OS2 — the lean, FHS-shaped, content-addressed OS boots in a real browser via the κ-route serving layer",
-  "witnessed": true,
-  "covers": [
-    "os2-boot",
-    "kappa-route",
-    "fhs-serving"
-  ],
+  "witnessed": false,
+  "covers": [],
   "served": {
-    "fromOS2": 38,
+    "fromOS2": 114,
     "fromAppsRepo": 12,
-    "fellBackToOriginal": 0,
-    "missing": 0,
-    "gap": [],
-    "missingList": []
+    "fellBackToOriginal": 3,
+    "missing": 2,
+    "gap": [
+      "holo-lan-relay-client.mjs",
+      "holo-lan.mjs",
+      "privacy/policies.json"
+    ],
+    "missingList": [
+      "vendor/importmap.json",
+      "_shared/d5cd5a6e750"
+    ]
   },
   "results": [
     {
@@ -33,7 +36,7 @@
     {
       "name": "the app's package was served (index.html + holospace.json)",
       "ok": true,
-      "detail": "0 missing"
+      "detail": "2 missing"
     },
     {
       "name": "captured a screenshot of the booted OS",
@@ -42,8 +45,8 @@
     },
     {
       "name": "no fatal page errors",
-      "ok": true,
-      "detail": "clean"
+      "ok": false,
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
     }
   ]
 }

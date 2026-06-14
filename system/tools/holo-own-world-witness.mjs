@@ -34,7 +34,7 @@ const browser = await chromium.launch();
 try {
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
   const errs = []; page.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); }); page.on("pageerror", (e) => errs.push(String(e)));
-  await page.goto(`${base}/apps/sdk/index.html`, { waitUntil: "load", timeout: 30000 });
+  await page.goto(`${base}/shell.html`, { waitUntil: "load", timeout: 30000 });
   await page.waitForFunction(() => window.__worldReady === true, { timeout: 20000 });
   rec("World shell boots with the ownership module wired", true);
   rec("ambient ownership hooks present (__world.own)", await page.evaluate(() => !!(window.__world && window.__world.own && window.__world.own.claim && window.__world.own.sheet)));

@@ -1,0 +1,66 @@
+{
+  "witnessed": false,
+  "passed": 7,
+  "failed": 1,
+  "apps": 40,
+  "sample": [
+    "files",
+    "notepad",
+    "wallet",
+    "search",
+    "git",
+    "forge"
+  ],
+  "covers": [
+    "EVERY app has a single content-derived ROOT κ — the whole ap",
+    "EVERY closure entry of EVERY app carries its κ — no app byte",
+    "the ONE Holo Runtime Service Worker controls the page — ever",
+    "each sampled app's 1st open verifies + fills the κ-cache (ca",
+    "each sampled app's 2nd open is NETWORK-FREE from the κ-keyed",
+    "each sampled app SELF-RESOLVES by its content address — its ",
+    "a wrong κ is REFUSED for every sampled app — the origin is o"
+  ],
+  "results": [
+    {
+      "name": "EVERY app has a single content-derived ROOT κ — the whole app collapses to one address you can share",
+      "ok": true,
+      "detail": "40/40 apps"
+    },
+    {
+      "name": "EVERY closure entry of EVERY app carries its κ — no app byte is trusted by location (Law L1)",
+      "ok": true,
+      "detail": "40/40 apps fully κ-pinned"
+    },
+    {
+      "name": "a sampled leaf of EVERY app RE-DERIVES to its pinned κ — apps self-resolve from content, not path (Law L5)",
+      "ok": false,
+      "detail": "39/40 re-derive · browser:03f53d9f≠f0ba7cdf"
+    },
+    {
+      "name": "the ONE Holo Runtime Service Worker controls the page — every app is delivered through it (no per-app opt-in)",
+      "ok": true,
+      "detail": "6 apps"
+    },
+    {
+      "name": "each sampled app's 1st open verifies + fills the κ-cache (cache MISS, Law L5)",
+      "ok": true,
+      "detail": "files:miss notepad:miss wallet:miss search:miss git:miss forge:miss"
+    },
+    {
+      "name": "each sampled app's 2nd open is NETWORK-FREE from the κ-keyed content cache (x-holo-cache: hit) — the runtime advantage",
+      "ok": true,
+      "detail": "files:hit notepad:hit wallet:hit search:hit git:hit forge:hit"
+    },
+    {
+      "name": "each sampled app SELF-RESOLVES by its content address — its index returns from the κ-route and the bytes match its κ",
+      "ok": true,
+      "detail": "files:✓ notepad:✓ wallet:✓ search:✓ git:✓ forge:✓"
+    },
+    {
+      "name": "a wrong κ is REFUSED for every sampled app — the origin is one untrusted CDN (Law L5)",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "spec": "Every holo app (all 34) is content-addressed end-to-end — one root κ, every closure entry κ-pinned, leaves re-derive (Law L5) — so it self-resolves from its content address and is shareable by one link. A sample driven in real Chromium proves each is delivered through the ONE content-verify Holo Runtime Service Worker (no per-app opt-in), L5-verified, self-resolving by κ, with a network-free 2nd open from the κ-keyed content cache."
+}

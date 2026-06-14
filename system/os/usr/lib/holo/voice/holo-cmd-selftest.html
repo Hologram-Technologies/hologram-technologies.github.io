@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Holo in-app command bridge — self-test app</title>
+<!-- A throwaway "app" that opts into the in-app task bridge by registering commands via the SDK.
+     Used to verify holo-voice.js callApp()/appCommands() end-to-end (shell → app → result). -->
+<body style="font:14px system-ui;margin:1rem;color:#cdd6e6;background:#0b0e16">
+<div id="log">registering…</div>
+<script type="module">
+  import { registerCommand, commands } from "/_shared/holo-sdk.js";
+  const log = (m) => { document.getElementById("log").textContent = m; };
+  registerCommand("echo", (p) => ({ say: "echo: " + (p.query || p.text || ""), got: p }));
+  registerCommand("play", (p) => { window.__played = p.query || "something"; return { say: "Playing " + (p.query || "something") + "." }; });
+  registerCommand("pause", () => { window.__paused = true; return { say: "Paused." }; });
+  log("ready · commands: " + commands().join(", "));
+</script>
+</body>

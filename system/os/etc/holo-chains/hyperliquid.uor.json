@@ -1,0 +1,43 @@
+{
+  "head": "did:holo:sha256:b8938d7af7ae25b516c306fd9abcdf83fe6dc17e7790c8c748d5062ef5cf3a3d",
+  "@context": {
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "hostrade": "https://hologram.os/ns/trade#"
+  },
+  "@type": [
+    "prov:Entity",
+    "hostrade:Venue"
+  ],
+  "schema:name": "Hyperliquid venue descriptor",
+  "hostrade:sealedBody": {
+    "name": "Hyperliquid",
+    "info": "https://api.hyperliquid.xyz/info",
+    "exchange": "https://api.hyperliquid.xyz/exchange",
+    "ws": "wss://api.hyperliquid.xyz/ws",
+    "testnet": {
+      "info": "https://api.hyperliquid-testnet.xyz/info",
+      "exchange": "https://api.hyperliquid-testnet.xyz/exchange",
+      "ws": "wss://api.hyperliquid-testnet.xyz/ws"
+    },
+    "hyperEVM": {
+      "caip2": "eip155:999",
+      "chainId": 999,
+      "rpc": "https://rpc.hyperliquid.xyz/evm",
+      "nativeCurrency": "HYPE"
+    },
+    "hyperEVMTestnet": {
+      "caip2": "eip155:998",
+      "chainId": 998,
+      "rpc": "https://rpc.hyperliquid-testnet.xyz/evm"
+    },
+    "arbitrumBridge2": {
+      "chain": "eip155:42161",
+      "address": "0x2df1c51e09aecf9cacb7bc98cb1742757f163df7",
+      "token": "USDC",
+      "note": "RE-VERIFY against official docs before production deposit."
+    },
+    "signatureChainId": "0x66eee",
+    "phantomAgentChainId": 1337
+  }
+}

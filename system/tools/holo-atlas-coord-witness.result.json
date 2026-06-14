@@ -1,0 +1,60 @@
+{
+  "witnessed": true,
+  "passed": 8,
+  "failed": 0,
+  "objects": 13242,
+  "distinctCells": 6386,
+  "covers": [
+    "the coordinate math is VERBATIM upstream (Φ · page",
+    "the finite torus is exactly the upstream space (ℤ₄",
+    "every object maps INSIDE the finite torus (Φ round",
+    "every object's coordinate RE-DERIVES from its κ al",
+    "the content→torus embedding USES the space (object",
+    "the space is FINITE per level (12,288) and content",
+    "the canonical shell self-declares its ATLAS96 coor",
+    "every holospace is ONE self-describing atlas objec"
+  ],
+  "results": [
+    {
+      "name": "the coordinate math is VERBATIM upstream (Φ · page · byte · R96 · dims match atlas-12288's resonator-geometry.js)",
+      "ok": true,
+      "detail": "R96=96 · Φ verbatim"
+    },
+    {
+      "name": "the finite torus is exactly the upstream space (ℤ₄₈ × ℤ₂₅₆ = 12,288 cells · 96 classes)",
+      "ok": true,
+      "detail": "48×256=12288"
+    },
+    {
+      "name": "every object maps INSIDE the finite torus (Φ round-trips: phiEncode(page,byte)===cell)",
+      "ok": true,
+      "detail": "13242/13242 in-torus"
+    },
+    {
+      "name": "every object's coordinate RE-DERIVES from its κ alone — attribute-derived, self-verifying (Law L5)",
+      "ok": true,
+      "detail": "13242/13242 re-derive"
+    },
+    {
+      "name": "the content→torus embedding USES the space (objects spread across cells + all 96 R96 classes)",
+      "ok": true,
+      "detail": "6386 distinct cells · 96/96 R96 classes"
+    },
+    {
+      "name": "the space is FINITE per level (12,288) and content-addressing is acyclic ⇒ infinitely nestable, no recursion",
+      "ok": true,
+      "detail": "finite torus + acyclic Merkle DAG"
+    },
+    {
+      "name": "the canonical shell self-declares its ATLAS96 coordinate + its sealed κ yields a real in-torus point (a point in — and itself an — atlas)",
+      "ok": true,
+      "detail": "cell 9224 · page 36 · byte 8 · R96 8"
+    },
+    {
+      "name": "every holospace is ONE self-describing atlas object — the shell + every app's ROOT carries its self-coordinate (re-derived from its identity)",
+      "ok": true,
+      "detail": "shell ✓ · 40/40 app roots"
+    }
+  ],
+  "spec": "Every UOR object has a deterministic, self-verifying coordinate in the finite Φ-Atlas-12288 torus (verbatim atlas-12288 math), derived purely from its content address (κ); finite per level + acyclic ⇒ infinitely nestable without recursion; a coordinate NAMESPACE, not an isolation/compute layer"
+}

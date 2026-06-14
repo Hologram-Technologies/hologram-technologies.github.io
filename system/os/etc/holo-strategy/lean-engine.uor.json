@@ -1,0 +1,30 @@
+{
+  "head": "did:holo:sha256:03b7c670d060e5bdca02e92f040bec8b4795995ea6a2593df6845af7bd09ae6d",
+  "@context": {
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "hostrat": "https://hologram.os/ns/strategy#",
+    "spdx": "http://spdx.org/rdf/terms#"
+  },
+  "@type": [
+    "prov:Entity",
+    "hostrat:Engine",
+    "schema:SoftwareApplication"
+  ],
+  "schema:name": "QuantConnect LEAN",
+  "schema:softwareVersion": "90261c89ee592bd2aeb45f612b2a1b8fe1c33ad6",
+  "schema:license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "schema:codeRepository": "https://github.com/QuantConnect/Lean",
+  "hostrat:vendoredBy": "anchor-by-reference (Law L4): bytes in the operator's build, identity pinned here",
+  "hostrat:sealedBody": {
+    "name": "QuantConnect LEAN",
+    "license": "Apache-2.0",
+    "head": "90261c89ee592bd2aeb45f612b2a1b8fe1c33ad6",
+    "binaries": {
+      "QuantConnect.Lean.Engine.dll": "849f1aefdee3894027208a766b42c63332987fca02c2028bd17702ff3ebee286",
+      "QuantConnect.Common.dll": "5ad6a011deeaca1d81836d43c6f9d8f2f25121693d9f0213aaaa5fa460c67a0c",
+      "QuantConnect.Algorithm.dll": "cd2995edde54b804a8d1191cf17a2f5765a5f0c5fdbcd53508a7b6d463546c1c",
+      "QuantConnect.Lean.Launcher.dll": "8ed2dd5f58d7d5692047f3c452126a2de0ca583cb5e050bfd036a579bd043e8a"
+    }
+  }
+}

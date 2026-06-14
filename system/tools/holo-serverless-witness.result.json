@@ -1,0 +1,45 @@
+{
+  "witnessed": false,
+  "passed": 5,
+  "failed": 1,
+  "covers": [
+    "the shipped delivery worker (holo-fhs-sw.js) is ",
+    "the shipped delivery worker carries NO server, p",
+    "the shipped delivery worker IS a serverless MCP ",
+    "the companion backends (sc · develop · room · mc",
+    "the dev server is a DEV TOOL, not part of the se"
+  ],
+  "results": [
+    {
+      "name": "the shipped delivery worker (holo-fhs-sw.js) is PURE content-route + Law-L5 verify (both axes, refuse-on-mismatch)",
+      "ok": true,
+      "detail": "κ-route + re-derive + 409"
+    },
+    {
+      "name": "the shipped delivery worker carries NO server, proxy, or backend logic",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "name": "the shipped delivery worker IS a serverless MCP endpoint (answers /mcp + /~<app>/mcp client-side, no server)",
+      "ok": true,
+      "detail": "SW-served MCP"
+    },
+    {
+      "name": "the companion backends (sc · develop · room · mcp · web) live ONLY in the dev server",
+      "ok": true,
+      "detail": "all in holo-serve-fhs.mjs"
+    },
+    {
+      "name": "the dev server is a DEV TOOL, not part of the sealed image (no os-closure pin, not referenced by the SW)",
+      "ok": true,
+      "detail": "tools/ only"
+    },
+    {
+      "name": "the OS boots + runs serverless from static + the SW alone (#boot, 0 server fallbacks)",
+      "ok": false,
+      "detail": "witnessed · served ? os2 / ? apps / 0 fallbacks"
+    }
+  ],
+  "spec": "The shipped Hologram OS (sealed os-closure + the content-verify Service Worker, on a dumb static host) is 100% serverless: the worker is pure content-delivery + Law-L5 verification; the optional companion backends are confined to the dev server (a tool, not shipped); boot/run/resolve/verify need no server"
+}

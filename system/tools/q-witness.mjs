@@ -15,6 +15,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const APP = new URL("../../../Hologram Apps/apps/q/core/", import.meta.url);
 const { makeChatStore, mapBackend, makeStore } = await import(new URL("store.js", APP));
 const { sealReceipt, verifyIntegrity, kappaTokens } = await import(new URL("kappa.js", APP));
+const { makeAgents } = await import(new URL("agents.js", APP));
+const { makePromptsLib, detectVariables, fillVariables } = await import(new URL("promptsLib.js", APP));
+const { makeMemory } = await import(new URL("memory.js", APP));
+const { parseToolCalls, sealToolReceipt, toolSystemPrompt } = await import(new URL("tools.js", APP));
+const { parseArtifacts } = await import(new URL("../render/artifacts.js", APP));
 
 const checks = {}, failed = [];
 const ok = (name, cond, detail) => { checks[name] = !!cond; if (!cond) failed.push(name + (detail ? ` — ${detail}` : "")); return !!cond; };
@@ -77,6 +82,45 @@ try {
   const loaded = await fresh.loadConversation(convId);
   ok("store-roundtrip", loaded && loaded.ok && loaded.conv.id === conv.id, "cold load did not re-verify");
 
+  // ── the POWER features (LibreChat parity, substrate-native) ──────────────────────────────
+
+  // 7 · agents are κ-objects: save → pointer → get re-verifies; tamper → refused
+  const agents = makeAgents(cs);
+  const ag = await agents.save({ name: "Guide", instructions: "Be a guide.", tools: ["verify_object"], conversation_starters: ["What is κ?"] });
+  ok("agent-kappa-sealed", !!ag.kappa && ag.kappa.startsWith("did:holo:sha256:"), "no κ");
+  const agBack = await agents.get(ag.id);
+  ok("agent-rederives", !!agBack && agBack.name === "Guide" && agBack.tools.includes("verify_object"), "agent did not re-verify");
+  await cs.store._corrupt(ag.kappa, (o) => { o["lc:agent"].instructions = "Be evil."; });
+  ok("agent-tamper-refused", (await agents.get(ag.id)) === null, "tampered agent still loaded");
+
+  // 8 · prompts library: production version is a κ-object; {{variables}} parse + fill
+  const plib = makePromptsLib(cs);
+  const g = await plib.save({ name: "Explainer", command: "explain", prompt: "Explain {{topic}} at a {{level:beginner|expert}} level.", type: "text" });
+  const prod = await plib.production(g.groupId);
+  ok("prompt-production-kappa", !!prod && !!prod.kappa, "no production version");
+  const vars = detectVariables(prod.prompt);
+  ok("prompt-variables", vars.length === 2 && vars[0].name === "topic" && vars[1].options && vars[1].options.length === 2, JSON.stringify(vars));
+  ok("prompt-fill", fillVariables(prod.prompt, { "topic": "κ", "level:beginner|expert": "expert" }) === "Explain κ at a expert level.", "fill mismatch");
+
+  // 9 · memory: set/inject as κ-objects; the local tools exist for the agentic loop
+  const mem = makeMemory(cs);
+  const ms = await mem.set("favorite_color", "The user's favorite color is mint green.");
+  ok("memory-set-kappa", ms.ok && ms.kappa.startsWith("did:holo:sha256:"), ms.error || "no κ");
+  ok("memory-injection", (await mem.injection()).includes("favorite_color"), "injection missing key");
+  ok("memory-local-tools", mem.localTools().map((x) => x.def.name).join(",") === "set_memory,delete_memory", "local tools wrong");
+  ok("memory-key-validated", !(await mem.set("Bad Key!", "x")).ok, "invalid key accepted");
+
+  // 10 · the MCP tool loop wire format: tool_call parse + per-call PROV-O receipt re-derives
+  const calls = parseToolCalls('before <tool_call>\n{"name":"search_web","arguments":{"query":"uor"}}\n</tool_call> after');
+  ok("toolcall-parse", calls.length === 1 && calls[0].name === "search_web" && calls[0].arguments.query === "uor", JSON.stringify(calls));
+  ok("toolprompt-declares", toolSystemPrompt([{ name: "t1", description: "d", inputSchema: { type: "object" } }]).includes("<tools>"), "no tools block");
+  const trec = await sealToolReceipt({ server: "hologram", tool: "search_web", args: { query: "uor" }, resultText: "result", ok: true });
+  ok("toolreceipt-rederives", (await verifyIntegrity(trec)).ok, "tool receipt id != address(body)");
+
+  // 11 · artifacts: the :::artifact wire format parses (identifier · type · title · fenced content)
+  const arts = parseArtifacts(':::artifact{identifier="demo-page" type="text/html" title="Demo"}\n```html\n<h1>Hi</h1>\n```\n:::');
+  ok("artifact-parse", arts.length === 1 && arts[0].identifier === "demo-page" && arts[0].type === "text/html" && arts[0].content === "<h1>Hi</h1>", JSON.stringify(arts));
+
 } catch (e) {
   ok("witness-ran", false, String((e && e.stack) || e));
 }
@@ -87,8 +131,11 @@ const result = {
   covers: [
     "Conversations persist as content-addressed κ-objects, not a database (Law L1/L3)",
     "The LibreChat parentMessageId branch tree is a verify-on-load Merkle-DAG (Law L5)",
-    "Tampering any message or receipt byte is refused by re-derivation",
+    "Tampering any message, receipt, or agent byte is refused by re-derivation",
     "Every answer is a re-derivable PROV-O inference receipt sealed to a did:holo",
+    "Agents, prompt versions, memories and artifacts are themselves κ-objects",
+    "The MCP tool loop's wire format parses and every tool call seals its own PROV-O receipt",
+    "Prompt-library {{variables}} (incl. option dropdowns) detect and fill exactly",
   ],
   authority: "IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · W3C Subresource Integrity · UOR content-addressing (κ = H(canonical form)) · verify-by-re-derivation (Law L1/L3/L5) · LibreChat data model (reproduced)",
 };

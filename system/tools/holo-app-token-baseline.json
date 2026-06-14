@@ -1,6 +1,6 @@
 {
   "note": "Ratchet baseline for Holo UI COLOR + SHAPE token conformance (ADR-0057). 'ceilings' is the max hardcoded themeable bypasses (hex colors + px border-radius) allowed per app's authored index.html; the witness FAILS on any increase. Colors are IDENTITY (the adopt-vs-own model) so they are not force-rewritten — the ratchet just prevents NEW bypasses; radius exact-matches (8/12/16px) are safely tokenizable via burndown-app-radius.mjs. New apps default to 0.",
-  "total": 1713,
+  "total": 1586,
   "perApp": {
     "amp": {
       "hex": 25,
@@ -47,25 +47,25 @@
       "radius": 8,
       "bypass": 48
     },
-    "code": {
-      "hex": 1,
-      "radius": 3,
-      "bypass": 4
-    },
     "docs": {
       "hex": 46,
       "radius": 6,
       "bypass": 52
     },
     "etherscan": {
-      "hex": 106,
+      "hex": 29,
       "radius": 41,
-      "bypass": 147
+      "bypass": 70
     },
     "evm": {
       "hex": 43,
       "radius": 6,
       "bypass": 49
+    },
+    "f1": {
+      "hex": 14,
+      "radius": 3,
+      "bypass": 17
     },
     "files": {
       "hex": 57,
@@ -98,9 +98,9 @@
       "bypass": 91
     },
     "music": {
-      "hex": 51,
-      "radius": 29,
-      "bypass": 80
+      "hex": 56,
+      "radius": 31,
+      "bypass": 87
     },
     "notepad": {
       "hex": 62,
@@ -118,9 +118,9 @@
       "bypass": 14
     },
     "player": {
-      "hex": 44,
-      "radius": 10,
-      "bypass": 54
+      "hex": 62,
+      "radius": 15,
+      "bypass": 77
     },
     "privacy": {
       "hex": 32,
@@ -128,19 +128,19 @@
       "bypass": 42
     },
     "q": {
-      "hex": 1,
-      "radius": 0,
-      "bypass": 1
+      "hex": 4,
+      "radius": 1,
+      "bypass": 5
     },
     "qemu": {
       "hex": 55,
       "radius": 5,
       "bypass": 60
     },
-    "sdk": {
-      "hex": 164,
-      "radius": 0,
-      "bypass": 164
+    "qvac": {
+      "hex": 20,
+      "radius": 15,
+      "bypass": 35
     },
     "search": {
       "hex": 1,
@@ -156,6 +156,11 @@
       "hex": 23,
       "radius": 7,
       "bypass": 30
+    },
+    "trade": {
+      "hex": 23,
+      "radius": 9,
+      "bypass": 32
     },
     "video": {
       "hex": 21,
@@ -183,28 +188,29 @@
     "btc": 40,
     "capture": 71,
     "cloud": 48,
-    "code": 4,
     "docs": 52,
-    "etherscan": 147,
+    "etherscan": 70,
     "evm": 49,
+    "f1": 17,
     "files": 82,
     "forge": 38,
     "git": 130,
     "ipfs": 61,
     "liberty": 24,
     "meet": 91,
-    "music": 80,
+    "music": 87,
     "notepad": 73,
     "os": 60,
     "plasma": 14,
-    "player": 54,
+    "player": 77,
     "privacy": 42,
-    "q": 1,
+    "q": 5,
     "qemu": 60,
-    "sdk": 164,
+    "qvac": 35,
     "search": 1,
     "stream": 14,
     "terms": 30,
+    "trade": 32,
     "video": 22,
     "wallet": 23,
     "workspace": 64

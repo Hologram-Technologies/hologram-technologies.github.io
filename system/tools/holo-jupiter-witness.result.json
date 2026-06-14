@@ -1,0 +1,32 @@
+{
+  "spec": "Holo Swap — the Solana spot-liquidity rail (Jupiter as the WDK Swidge provider): the off-chain route is NEVER trusted, it is enforced on-chain. The sealed venue descriptor re-derives to its κ (a swapped host/program is refused); an independently re-derived min-out FLOOR rejects a threshold weaker than the chosen slippage; the BUILT transaction must invoke the sealed Jupiter program AND be paid by the wallet's own key; the swap is SIMULATED before signing; and the key signs only behind the default-deny human gate, which shows the verified numbers. Solana spot beside Hyperliquid perps — one verifiable terminal, one wallet seam.",
+  "authority": "Jupiter (developers.jup.ag) by reference · UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · CAIP-2 (solana:) · holospaces Laws L1/L4/L5 · holo-solana (ed25519 κ) + holo-wdk (default-deny gate) by reference",
+  "witnessed": true,
+  "covers": [
+    "solana-spot-swap",
+    "jupiter",
+    "wdk-swidge-provider",
+    "venue-kappa",
+    "min-out-floor",
+    "sealed-program-assertion",
+    "fee-payer-assertion",
+    "default-deny",
+    "law-l5"
+  ],
+  "checks": {
+    "sealed Jupiter venue re-derives (κ == head)": true,
+    "venue sealedBody matches the engine's JUPITER constant": true,
+    "tampered venue host is REFUSED (κ mismatch)": true,
+    "tampered venue program is REFUSED (κ mismatch)": true,
+    "floor: 1.000000 out @ 50bps → 995000 floor": true,
+    "Jupiter threshold BELOW our floor is REFUSED (ok=false)": true,
+    "0bps floor equals outAmount (no silent slippage)": true,
+    "parseVersionedTx recovers fee-payer": true,
+    "parseVersionedTx recovers invoked program": true,
+    "a well-formed Jupiter swap PASSES assertSwapTx": true,
+    "a swap whose fee-payer ≠ wallet is REFUSED": true,
+    "a swap that does NOT invoke sealed Jupiter is REFUSED": true
+  },
+  "passed": 12,
+  "failed": 0
+}

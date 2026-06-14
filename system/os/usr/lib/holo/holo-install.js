@@ -42,7 +42,7 @@
   // claim web+hologram:// + web+holo:// links (best-effort; the manifest also declares them on install).
   try {
     if (navigator.registerProtocolHandler) {
-      var h = ROOT + "apps/browser/index.html?go=%s";
+      var h = ROOT + "shell.html?open=%s";   // the canonical shell resolves holo:// · did · web from its omnibar
       navigator.registerProtocolHandler("web+hologram", h);
       navigator.registerProtocolHandler("web+holo", h);
     }
@@ -91,7 +91,7 @@
       ok.addEventListener("click", function () { setDismissed(); hidePill(); });
       pill.appendChild(ok);
     } else {
-      txt.innerHTML = "<b>Install Hologram</b><span>one tap — runs without a browser</span>";
+      txt.innerHTML = "<b>Install Hologram</b><span>one tap — opens like an app</span>";
       var go = DOC.createElement("button"); go.className = "hi-go"; go.type = "button"; go.textContent = "Install";
       go.addEventListener("click", doInstall);
       pill.appendChild(go);

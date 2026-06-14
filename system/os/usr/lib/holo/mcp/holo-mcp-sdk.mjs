@@ -19,14 +19,14 @@ import { ListResourcesRequestSchema, ReadResourceRequestSchema, ListToolsRequest
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { buildRegistry, scanManifests, getPrompt, paginate, SAMPLE_URI, sampleObject } from "./holo-mcp.mjs";
+import { buildRegistry, buildAppRegistry, scanManifests, resolveAppsDir, getPrompt, paginate, SAMPLE_URI, sampleObject, CAPABILITIES_URI, capabilityCard, handle as coreHandle } from "./holo-mcp.mjs";
 import { verify, jcs } from "../holo-object.mjs";
 
 // createSdkServer({ manifests | appsDir, resolve, toolHandlers }) → a real SDK Server whose
 // resources/tools are generated from holospace.json manifests and backed by the UOR substrate.
-export function createSdkServer({ manifests, appsDir, resolve, toolHandlers } = {}) {
-  const registry = buildRegistry(manifests || scanManifests(appsDir));
-  const resolveR = (uri) => uri === SAMPLE_URI ? sampleObject() : (resolve ? resolve(uri) : null);   // built-in sample
+export function createSdkServer({ manifests, appManifest, appsDir, resolve, toolHandlers } = {}) {
+  const registry = appManifest ? buildAppRegistry(appManifest) : buildRegistry(manifests || scanManifests(appsDir));
+  const resolveR = (uri) => uri === SAMPLE_URI ? sampleObject() : uri === CAPABILITIES_URI ? capabilityCard(registry) : (resolve ? resolve(uri) : null);   // built-ins: sample + the standardized capability card
   const server = new Server({ name: registry.server.name, version: registry.server.version },
     { capabilities: { resources: { subscribe: true }, tools: {}, prompts: {}, completions: {}, logging: {} } });
 
@@ -62,12 +62,6 @@ export function createSdkServer({ manifests, appsDir, resolve, toolHandlers } = 
       }
       return { content: [{ type: "text", text: JSON.stringify(results) }] };
     }
-    if (name === "verify_object") {
-      if (!args.object || typeof args.object !== "object") return { content: [{ type: "text", text: "verify_object requires an 'object' argument (a UOR object)" }], isError: true };
-      return { content: [{ type: "text", text: JSON.stringify({ verified: verify(args.object), did: args.object?.id }) }] };
-    }
-    if (name === "resolve_object") { const o = resolveR(args.uri);
-      return o ? { content: [{ type: "text", text: jcs(o) }] } : { content: [{ type: "text", text: "not found: " + args.uri }], isError: true }; }
     if (name === "ask_model") {   // INVERSE direction: the holospace asks the agent's model (MCP sampling)
       try {
         const r = await server.createMessage({ messages: [{ role: "user", content: { type: "text", text: String(args.prompt || "") } }], maxTokens: args.maxTokens || 512 });
@@ -84,9 +78,13 @@ export function createSdkServer({ manifests, appsDir, resolve, toolHandlers } = 
       try { const r = await server.listRoots(); return { content: [{ type: "text", text: JSON.stringify(r.roots) }] }; }
       catch (e) { return { content: [{ type: "text", text: "roots unavailable (no roots capability): " + e.message }], isError: true }; }
     }
-    if (toolHandlers && toolHandlers[name]) return { content: [{ type: "text", text: String(await toolHandlers[name](args)) }] };
-    if (registry.tools.some((t) => t.name === name)) return { content: [{ type: "text", text: `tool '${name}' is declared by a holospace; wire its handler` }], isError: true };
-    throw new Error(`unknown tool: ${name}`);   // genuinely unknown → proper JSON-RPC error
+    // EVERYTHING ELSE → the ONE dependency-free core handler (single source of truth). The SDK path and
+    // the browser/edge core thus stay in LOCKSTEP — the SDK server automatically serves every built-in
+    // (holo_describe · verify_object · resolve_object · holo_build/run/share · own_* · bittensor_* …), the
+    // declared κ / projection handlers, and the toolHandlers escape hatch. Parity is structural, not copied.
+    const r = await coreHandle({ jsonrpc: "2.0", id: req.id ?? 1, method: "tools/call", params: { name, arguments: args } }, { registry, resolve: resolveR, toolHandlers });
+    if (r.error) throw new Error(r.error.message);   // genuinely unknown → proper JSON-RPC error
+    return r.result;
   });
 
   server.setRequestHandler(ListPromptsRequestSchema, async (req) => {
@@ -129,6 +127,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const lib = join(here, "..", "music", "library.uor.json");
   if (existsSync(lib)) { try { const doc = JSON.parse(readFileSync(lib, "utf8"));
     store.set("music/library.uor.json", doc); for (const o of doc["@graph"] || []) if (o.id) store.set(o.id, o); } catch {} }
-  const { server } = createSdkServer({ appsDir: join(here, "..", "apps"), resolve: (uri) => store.get(uri) || null });
+  const { server } = createSdkServer({ appsDir: resolveAppsDir(here), resolve: (uri) => store.get(uri) || null });
   await server.connect(new StdioServerTransport());
 }

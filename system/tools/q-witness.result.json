@@ -9,14 +9,31 @@
     "receipt-rederives": true,
     "receipt-tamper-refused": true,
     "receipt-output-kappa-stable": true,
-    "store-roundtrip": true
+    "store-roundtrip": true,
+    "agent-kappa-sealed": true,
+    "agent-rederives": true,
+    "agent-tamper-refused": true,
+    "prompt-production-kappa": true,
+    "prompt-variables": true,
+    "prompt-fill": true,
+    "memory-set-kappa": true,
+    "memory-injection": true,
+    "memory-local-tools": true,
+    "memory-key-validated": true,
+    "toolcall-parse": true,
+    "toolprompt-declares": true,
+    "toolreceipt-rederives": true,
+    "artifact-parse": true
   },
   "failed": [],
   "covers": [
     "Conversations persist as content-addressed κ-objects, not a database (Law L1/L3)",
     "The LibreChat parentMessageId branch tree is a verify-on-load Merkle-DAG (Law L5)",
-    "Tampering any message or receipt byte is refused by re-derivation",
-    "Every answer is a re-derivable PROV-O inference receipt sealed to a did:holo"
+    "Tampering any message, receipt, or agent byte is refused by re-derivation",
+    "Every answer is a re-derivable PROV-O inference receipt sealed to a did:holo",
+    "Agents, prompt versions, memories and artifacts are themselves κ-objects",
+    "The MCP tool loop's wire format parses and every tool call seals its own PROV-O receipt",
+    "Prompt-library {{variables}} (incl. option dropdowns) detect and fill exactly"
   ],
   "authority": "IETF RFC 8785 (JCS) · W3C PROV-O · W3C DID Core · W3C Subresource Integrity · UOR content-addressing (κ = H(canonical form)) · verify-by-re-derivation (Law L1/L3/L5) · LibreChat data model (reproduced)"
 }

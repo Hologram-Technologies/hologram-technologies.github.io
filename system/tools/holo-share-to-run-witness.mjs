@@ -46,7 +46,7 @@ if (chromium) {
     rec("frame document loads on a shared (#k=) link", !!resp && resp.status() === 200, `HTTP ${resp && resp.status()}`);
 
     const mounted = await waitFor(page, () => { const f = document.querySelector("#frame"); return !!(f && f.getAttribute("src")); });
-    const stillFrame = /\/holospace\.html/.test(page.url());   // a shared link must NOT redirect to apps/sdk
+    const stillFrame = /\/holospace\.html/.test(page.url());   // a shared link must NOT redirect to the shell
     rec("the app mounts fullscreen on a shared link (no redirect to the World shell)", mounted && stillFrame, page.url());
 
     const chromeUp = await waitFor(page, () => !!document.querySelector(".holo-sc-root"));
@@ -56,7 +56,12 @@ if (chromium) {
       const root = document.querySelector(".holo-sc-root");
       if (!root) return null;
       const btns = [...root.querySelectorAll(".holo-sc-btn")].map((b) => b.textContent.trim());
-      const chip = (root.querySelector(".holo-sc-chip") || {}).textContent || "";
+      // The chip shows the verified κ. The OS-wide Holo FX may RENDER it as braille (kappaScan),
+      // preserving the hex in title / aria-label / data-holo-kappa (hover reveals it) — so read the
+      // real address from there, falling back to the text. The κ is shown either way.
+      const chipEl = root.querySelector(".holo-sc-chip");
+      const fromAttrs = (e) => e && (e.getAttribute("data-holo-kappa") || e.getAttribute("title") || e.getAttribute("aria-label") || "");
+      const chip = chipEl ? (fromAttrs(chipEl) || fromAttrs(chipEl.querySelector("[data-holo-kappa],[title],[aria-label]")) || chipEl.textContent || "") : "";
       const brand = (root.querySelector(".holo-sc-brand") || {}).textContent || "";
       const hello = !!document.querySelector(".holo-sc-hello");
       return { btns, chip, brand, hello };
@@ -82,7 +87,7 @@ if (chromium) {
     // ── 3 · the SEED: the World shell's Share emits the magic (#k=) link — the share modal, its QR
     //        and Copy/Open all carry it — and that link lands the NEXT guest back in the chrome. ──
     const page3 = await ctx.newPage();
-    await page3.goto(`${base}/apps/sdk/index.html?open=${APP}&sw=0`, { waitUntil: "load", timeout: 30000 });
+    await page3.goto(`${base}/shell.html?open=${APP}&sw=0`, { waitUntil: "load", timeout: 30000 });
     const shareReady = await waitFor(page3, () => !!document.querySelector("#share-btn"), 80, 250);
     await sleep(2800);                                          // let ?open= auto-launch the app node
     let emitted = "";

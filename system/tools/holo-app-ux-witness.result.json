@@ -1,7 +1,7 @@
 {
   "spec": "Every served holospace app strictly adheres to the canonical Holo UX doctrine (ADR-0062): it inherits the whole doctrine by loading the one engine (holo-theme.js bootstraps holo-ux.js — the native-OS feel, capability tier, resource budget and propagation reach every app with no per-app script, Law L2); its manifest holds the plain voice (signal over noise); it honors prefers-reduced-motion through the OS-wide guard every app inherits (sacred resources · WCAG 2.3.3); and its modifier keys are native-adaptive (no unconditional Apple-only glyph — the host's modifier is derived, or rendered by the inherited data-holo-shortcut rewriter). Read-only static analysis of the served app repo.",
   "authority": "ADR-0062 (Holo UX doctrine) · ADR-0030/0057 (Holo UI) · W3C UA Client Hints (host modifier) · WCAG 2.2 (2.3.3 Animation from Interactions · 1.4.x readability) · the plain voice register (holo-voice.mjs) · RAIL / W3C Web Performance · static analysis of the served app repo",
-  "witnessed": true,
+  "witnessed": false,
   "covers": [
     "holo-ux",
     "every-application",
@@ -13,22 +13,24 @@
     "sacred-resources",
     "strict-conformance"
   ],
-  "appsScanned": 34,
+  "appsScanned": 41,
   "doctrineKappa": "did:holo:sha256:3216467f8b36f76889c53ab26860ecad0c67099cb2ba1e2b51c4f2adee0b5721",
   "checks": {
     "the carrier is intact — holo-theme.js bootstraps holo-ux.js (every engine-loading app inherits the doctrine)": true,
     "the canonical Holo UX doctrine object exists + re-derives to its content address (Law L5)": true,
-    "every served app loads the engine → inherits Holo UX (native-OS feel · tier · obligations)": true,
+    "every served app loads the engine → inherits Holo UX (native-OS feel · tier · obligations)": false,
     "every app's manifest is jargon-free (signal-over-noise · the plain voice register)": true,
-    "every app honors prefers-reduced-motion — the OS provides one universal guard + every app inherits it + none overrides it (sacred resources · WCAG 2.3.3)": true,
+    "every app honors prefers-reduced-motion — the OS provides one universal guard + every app inherits it + none overrides it (sacred resources · WCAG 2.3.3)": false,
     "no app shows an unconditional Apple-only modifier glyph (⌘/⌥) — the modifier adapts to the host (native-adaptive)": true,
     "the inherited runtime offers the data-holo-shortcut rewriter so apps adapt the modifier with no per-app branch": true
   },
-  "unwired": [],
+  "unwired": [
+    "cosmos"
+  ],
   "jargonApps": [],
   "reducedMotion": {
     "osGuard": true,
-    "everyAppInherits": true,
+    "everyAppInherits": false,
     "overrides": []
   },
   "nativeAdaptive": {

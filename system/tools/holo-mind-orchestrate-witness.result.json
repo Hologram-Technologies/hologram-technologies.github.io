@@ -1,0 +1,27 @@
+{
+  "spec": "Holo Mind Phase 4 (ADR-0081) — orchestration at scale: parallel sub-agents (each an ordinary conscience-gated loop run) compose into ONE self-verifying PROV-O work DAG (Holo Orchestrate idiom, ADR-0045 — the root κ proves the whole collaboration, verifyDeep re-runs every sub-receipt, a tampered sub breaks the root); and scheduled tasks as re-derivable κ-objects whose firing is a runtime event (the clock is an INPUT at the edge — dueTasks is pure, so the core re-derives; in-tab, serverless, fires only while the tab is open — honest scope, no background server).",
+  "authority": "W3C PROV-O (prov:wasInformedBy — the work DAG) · W3C DID Core · IETF RFC 8785 (JCS) · W3C Subresource Integrity · UOR-ADDR (κ = H(canonical form)) · Holo Orchestrate (ADR-0045, the verifiable multi-agent work receipt) · Holo Delegate (ADR-0042, UCAN-scoped sub-authority) · the Holo Constitution conscience gate (ADR-033) · holospaces Laws L1/L2/L3/L4/L5",
+  "witnessed": true,
+  "covers": [
+    "holo-mind-orchestrate",
+    "parallel-sub-agents",
+    "work-receipt",
+    "scheduled-tasks",
+    "ucan-delegation",
+    "attenuation",
+    "revocation",
+    "law-l1",
+    "law-l4",
+    "law-l5"
+  ],
+  "checks": {
+    "workReceiptComposes": true,
+    "tamperBreaksWork": true,
+    "workReceiptReDerives": true,
+    "scheduledTaskReDerives": true,
+    "dueLogic": true,
+    "delegationAttenuates": true,
+    "delegationScopes": true,
+    "delegationRevokes": true
+  }
+}

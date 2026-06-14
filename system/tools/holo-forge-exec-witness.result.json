@@ -1,0 +1,59 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "a computation is a re-derivable κ-transform: κ(module) ⊕ κ(input) → κ(output), reproduced from the receipt with no server (Law L5, extended from files & builds to runs)",
+    "WebAssembly Core 2.0 runs deterministically in any browser, 100% serverless: same module+input ⇒ same output bytes & κ",
+    "general purpose: scalar evaluation (fib/gcd) AND arbitrary byte→byte transforms, both verified in-engine",
+    "closed-module guard: a module that imports a host is refused — only self-contained, re-derivable runs are admitted",
+    "tamper refused: a flipped module byte changes its κ (and fails validation); a flipped output byte changes the output κ",
+    "the execution receipt is a self-verifying PROV-O UOR object (prov:used module+input → prov:generated output)",
+    "composition: the run's module κ IS the Forge build receipt's artifact κ — verified build → verified execution, one chain"
+  ],
+  "run": {
+    "engine": "holo-forge-run/1.0.0 · wasm-core-2.0 deterministic executor",
+    "compilerKappa": "did:holo:sha256:5b2138a09585ae94e74147693a74d022038d3e52353869a396389e3c183bede4",
+    "sourceKappa": "did:holo:sha256:b7ebafeaa5e8fc1ce97c861ada2be2015f454277085119b939e3898839d337e7",
+    "flagsKappa": "did:holo:sha256:d30413f8ea351c78be8f73f0984a63c0fc92b3ab51f79592f44965c1699f5b19",
+    "moduleKappa": "did:holo:sha256:a7d914d7ff0840d45dd5834a75f395ae2d2ec5fc84f976d752811a2f4e03e424",
+    "inputKappa": "did:holo:sha256:ed3a6aca898eb420308b96c8ff0448a917877e23a9e399a5ff394ec7ef8fbda1",
+    "outputKappa": "did:holo:sha256:f103ed75a6b94f5b37227befc61cf9110037e1cf788b75a88f7663972e71dd7d",
+    "buildReceipt": "did:holo:sha256:3b61f85c8bbbdf59a03ca8a9b655cbd74bfd53f5085eb52a350a0de8470082c1",
+    "execReceipt": "did:holo:sha256:482308da03dce957aa8409ae481af9582d6f31de283faad49153d261d2481ceb",
+    "moduleBytes": 213,
+    "inputBytes": 50,
+    "outputBytes": 50,
+    "exports": [
+      "fib",
+      "gcd",
+      "transform"
+    ],
+    "sri": "sha256-8QPtdaa5T1s3Invvxhz5EQA34c94i3Woj3Zjly5x3X0="
+  },
+  "checks": {
+    "deterministic-bytes": true,
+    "deterministic-kappa": true,
+    "scalar-correct": true,
+    "buffer-correct": true,
+    "buffer-roundtrip": true,
+    "closed-module-admitted": true,
+    "open-module-detected": true,
+    "open-module-refused": true,
+    "module-tamper-refused": true,
+    "output-tamper-refused": true,
+    "re-derivation-reproduces-output": true,
+    "receipt-seals": true,
+    "receipt-verifies": true,
+    "receipt-links-module": true,
+    "receipt-links-input": true,
+    "receipt-links-output": true,
+    "receipt-tamper-refused": true,
+    "composes-with-build": true,
+    "module-pinned": true,
+    "input-pinned": true,
+    "output-pinned": true,
+    "receipt-pinned": true
+  },
+  "failed": [],
+  "authority": "W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · W3C DID Core · W3C PROV-O · UOR-ADDR · Law L4/L5"
+}

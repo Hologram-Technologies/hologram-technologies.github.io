@@ -169,6 +169,8 @@
   }
   function sealedLayout() {
     var base = { "@type": "hosc:DesktopLayout", version: ST.manifest.version || 1, wallpaper: ST.manifest.wallpaper || "aurora", items: ST.manifest.items || {} };
+    // fold the live Holo Widgets board into the SAME address, so one κ carries icons AND widgets.
+    try { var snap = (W.HoloWidgets && W.HoloWidgets.snapshot) ? W.HoloWidgets.snapshot() : null; if (snap && snap.length) base.widgets = snap; } catch (e) {}
     return Obj.address(base).then(function (id) { var sealed = { id: id }; for (var k in base) sealed[k] = base[k]; return sealed; });
   }
   function saveManifest() {
@@ -299,7 +301,7 @@
     var cell = el("div", { "class": "holo-desk-icon", tabindex: "0", "data-path": node.path, title: displayName(node) });
     var glyph = el("div", { "class": "holo-desk-glyph holo-desk-glyph--" + kindClass }); glyph.appendChild(glyphFor(node));
     // every object carries its content address — a verify badge that re-derives on hover (Law L5).
-    if (node.kind !== "dir") glyph.appendChild(el("span", { "class": "vbadge", title: "content-addressed — hover to verify (Law L5)" }, [holoIcon(DEFAULT_SET, "shield-check")]));
+    if (node.kind !== "dir") glyph.appendChild(el("span", { "class": "vbadge", title: "Verified — hover to check" }, [holoIcon(DEFAULT_SET, "shield-check")]));
     var label = el("div", { "class": "holo-desk-label", text: displayName(node) });
     cell.appendChild(glyph); cell.appendChild(label);
     if (ST.sel.has(node.path)) cell.classList.add("is-selected");
@@ -314,7 +316,7 @@
     if (cell._verified || node.kind === "dir") return; cell._verified = true;
     Promise.resolve(Files.verify(node)).then(function (v) {
       var b = cell.querySelector(".vbadge"); if (!b) return;
-      if (v && v.derived) { cell.classList.add("verified"); b.title = "verified ✓ — did:holo:sha256:" + v.derived; }
+      if (v && v.derived) { cell.classList.add("verified"); b.title = "Verified ✓ — " + v.derived; }
     }).catch(function () {});
   }
 
@@ -461,7 +463,7 @@
         return f.arrayBuffer().then(function (buf) { return Files.createFile(ST.cwd, name, buf); }).then(function () { made.push(name); });
       });
     });
-    chain.then(refresh).then(function () { pushUndo({ type: "create", names: made }); toast("Imported " + made.length + " item" + (made.length === 1 ? "" : "s") + " · content-addressed on write"); }).catch(function () { toast("Import failed"); });
+    chain.then(refresh).then(function () { pushUndo({ type: "create", names: made }); toast("Imported " + made.length + " item" + (made.length === 1 ? "" : "s")); }).catch(function () { toast("Import failed"); });
   }
   function resolveDrop(str) {
     str = String(str || "").trim(); if (!str) return;
@@ -473,7 +475,7 @@
     }
     if (/^https?:\/\//i.test(str)) { var host = str.replace(/^https?:\/\//i, "").split("/")[0]; return createObjectPin({ id: str, label: host, url: str, icon: { set: DEFAULT_SET, name: "world" } }); }
     var name = uniqueName("Dropped text", ".txt");
-    Promise.resolve(Files.createFile(ST.cwd, name, str)).then(refresh).then(function () { toast("Saved dropped text · content-addressed"); });
+    Promise.resolve(Files.createFile(ST.cwd, name, str)).then(refresh).then(function () { toast("Saved dropped text"); });
   }
   function shortId(s) { var h = hexOf(s); return (/^https?:/i.test(s) ? s : (s.split(":")[0] + " " + h.slice(0, 8))).slice(0, 28); }
 
@@ -659,8 +661,11 @@
       { icon: "folder", label: "Folder", fn: newFolder },
       { icon: "file-text", label: "Text Document", fn: newTextDoc },
       { icon: "apps", label: "App shortcut…", fn: newAppShortcut },
-      { icon: "link", label: "Pin object by κ / URL…", fn: pinByPrompt },
+      { icon: "link", label: "Pin by link or URL…", fn: pinByPrompt },
     ]));
+    // editable holo-native widgets (clock · weather · tasks · focus · the vinyl disc · …) — open the
+    // visual gallery for seamless discovery + one-click add, right from the desktop right-click.
+    menu.appendChild(mItem("Add widget…", function () { try { (W.HoloWidgets && W.HoloWidgets.openGallery) ? W.HoloWidgets.openGallery() : toast("Holo Widgets unavailable"); } catch (e) {} }));
     if (ST.clip) menu.appendChild(mItem("Paste", function () { paste(); }));
     menu.appendChild(el("hr"));
     menu.appendChild(subMenuBtn("Change wallpaper", WALLPAPERS.map(function (w) { return { label: (ST.manifest.wallpaper === w.id ? "● " : "○ ") + w.name, fn: function () { setWallpaper(w.id); } }; })));
@@ -702,9 +707,9 @@
     if (node._holo) return clip(node._holo, "Copied " + node._holo);
     if (node._oid) return clip(node._oid, "Copied " + node._oid);
     if (node.kind === "app" && node._appId) return clip("holospace.html?app=" + node._appId, "Copied app link");
-    Promise.resolve(Files.verify(node)).then(function (v) { if (v && v.derived) clip("holo://" + v.derived, "Copied holo:// link (content address)"); else toast("No content address"); }).catch(function () { toast("No content address"); });
+    Promise.resolve(Files.verify(node)).then(function (v) { if (v && v.derived) clip("holo://" + v.derived, "Copied a verifiable link to this item"); else toast("No link available"); }).catch(function () { toast("No link available"); });
   }
-  function copyDeskKappa() { sealedLayout().then(function (s) { clip("holo://" + hexOf(s.id), "Copied your desktop κ — the whole arrangement is one address"); }).catch(function () { toast("Could not derive desktop κ"); }); }
+  function copyDeskKappa() { sealedLayout().then(function (s) { clip("holo://" + hexOf(s.id), "Copied a link to your whole desktop layout"); }).catch(function () { toast("Could not copy desktop link"); }); }
 
   // ── icon picker ───────────────────────────────────────────────────────────────────────────────
   function openPicker(node) {
@@ -720,7 +725,7 @@
     var count = el("span", { "class": "pk-count" });
     var controls = el("div", { "class": "pk-controls" }, [search, setSel, count]);
     var grid = el("div", { "class": "pk-grid" });
-    var kappa = el("div", { "class": "pk-kappa", text: "each icon is a content-addressed UOR object (did:holo)" });
+    var kappa = el("div", { "class": "pk-kappa", text: "Each icon is its own verifiable object" });
     var def = el("button", { "class": "pk-btn ghost", type: "button", text: "Use default" });
     var apply = el("button", { "class": "pk-btn primary", type: "button", text: "Apply", disabled: "" });
     var foot = el("div", { "class": "pk-foot" }, [kappa, def, apply]);
@@ -816,7 +821,7 @@
     if (node.kind === "dir") { kRow.querySelector("dd").innerHTML = "<span class='pr-badge pend'>folder (container)</span>"; return; }
     Promise.resolve(Files.verify(node)).then(function (v) {
       var dd = kRow.querySelector("dd");
-      if (v && v.derived) dd.innerHTML = "<span class='pr-badge ok'>content-addressed ✓</span> did:holo:sha256:" + esc2(v.derived);
+      if (v && v.derived) dd.innerHTML = "<span class='pr-badge ok'>verified ✓</span> did:holo:sha256:" + esc2(v.derived);
       else dd.innerHTML = "<span class='pr-badge no'>unverifiable</span>";
     }).catch(function () { kRow.querySelector("dd").innerHTML = "<span class='pr-badge no'>unverifiable</span>"; });
   }

@@ -17,6 +17,14 @@ const SHARED = "C:/Users/pavel/Desktop/Hologram OS2/system/os/usr/lib/holo";   /
 
 const { sha256hex, sriOf, mbSha256 } = await import(pathToFileURL(join(HOLOGRAM_OS, "holo-uor.mjs")));
 const { makeObject, contentLink } = await import(pathToFileURL(join(HOLOGRAM_OS, "holo-object.mjs")));
+// the substrate σ-axis: BLAKE3 over the raw bytes, byte-identical to hologram's kappa() (KAT-proven,
+// holo-blake3-witness). Every closure entry is DUAL-AXIS: did:holo:sha256 (the OS serving key) AND a
+// did:holo:blake3 alsoKnownAs (the unified UOR substrate anchor) — so the app resolves on the substrate.
+const { blake3hex } = await import(pathToFileURL(join(SHARED, "holo-blake3.mjs")));
+// the holospace's own self-verifying coordinate in the finite Φ-Atlas-12288 torus, derived purely from
+// its root identity — so the lock IS the single self-describing object: identity ⊕ substrate axis ⊕
+// atlas position ⊕ sub-objects. Each app is a point in — and itself an — atlas (finite, acyclic, nestable).
+const { atlasCoord, ATLAS } = await import(pathToFileURL(join(SHARED, "holo-atlas-coord.mjs")));
 
 const TYPE = { ".html": "schema:WebPage", ".js": "schema:SoftwareSourceCode", ".mjs": "schema:SoftwareSourceCode",
   ".css": "schema:SoftwareSourceCode", ".json": "schema:Dataset", ".jsonld": "schema:Dataset", ".hc": "schema:SoftwareSourceCode",
@@ -31,7 +39,7 @@ const closure = {}, links = [];
 const add = (abs, rel) => {
   if (closure[rel]) return;
   const bytes = readFileSync(abs), hex = sha256hex(bytes);
-  closure[rel] = { kappa: `did:holo:sha256:${hex}`, sri: sriOf(bytes), multibase: mbSha256(bytes), bytes: bytes.length };
+  closure[rel] = { kappa: `did:holo:sha256:${hex}`, sri: sriOf(bytes), multibase: mbSha256(bytes), bytes: bytes.length, alsoKnownAs: [`did:holo:blake3:${blake3hex(bytes)}`] };
   links.push({ ...contentLink("schema:hasPart", `sha256:${hex}`, typeOf(rel)), "schema:name": rel });
 };
 
@@ -39,9 +47,14 @@ for (const p of walk(APP_DIR)) if (basename(p) !== "holospace.lock.json")
   add(p, `apps/${APP}/` + relative(APP_DIR, p).split("\\").join("/"));
 for (const dep of def.shared || []) {
   const d = dep.replace(/\/$/, ""), dp = join(SHARED, d);
-  if (!existsSync(dp)) throw new Error(`missing shared dep at ${dp}`);
-  if (statSync(dp).isDirectory()) { for (const f of walk(dp)) add(f, "_shared/" + relative(SHARED, f).split("\\").join("/")); }
-  else add(dp, `_shared/${d}`);
+  if (existsSync(dp)) {                                          // an OS-runtime shared lib → vendor under _shared/
+    if (statSync(dp).isDirectory()) { for (const f of walk(dp)) add(f, "_shared/" + relative(SHARED, f).split("\\").join("/")); }
+    else add(dp, `_shared/${d}`);
+  } else if (existsSync(join(APP_DIR, d))) {
+    continue;                                                    // an APP-VENDORED bundle (webamp/ · holo-evm/ · videojs/) — already walked + dual-axis-hashed as apps/<id>/<dep> above
+  } else {
+    throw new Error(`missing shared dep (neither OS _shared nor app-local): ${dep}`);
+  }
 }
 const gate = join(SHARED, "holo-conscience.js");
 if (existsSync(gate)) add(gate, "_shared/holo-conscience.js");
@@ -69,7 +82,9 @@ console.log(`root ${prev.root} → ${root.id}`);
 console.log(`files ${Object.keys(prev.closure || {}).length} → ${Object.keys(closure).length}`);
 console.log("changed:\n  " + (changed.length ? changed.join("\n  ") : "(none)"));
 
-const lock = { "@context": { dcterms: "http://purl.org/dc/terms/" },
-  root: root.id, identifier: def.id, algo: "sha256", files: Object.keys(closure).length, closure };
+const lock = { "@context": { dcterms: "http://purl.org/dc/terms/", holo: "https://hologram.os/ns#" },
+  root: root.id, identifier: def.id, algo: "sha256",
+  "holo:within": ATLAS.object, "holo:atlasCoordinate": atlasCoord(root.id),   // self-coordinate (a point in — and itself an — atlas)
+  files: Object.keys(closure).length, closure };
 writeFileSync(join(APP_DIR, "holospace.lock.json"), JSON.stringify(lock, null, 2) + "\n");
 console.log(`✓ wrote apps/${APP}/holospace.lock.json`);

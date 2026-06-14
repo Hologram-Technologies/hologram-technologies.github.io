@@ -1,0 +1,40 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "every holospace is its own MCP server — buildAppRegistry(manifest) yields an app-scoped surface (the app's tools + the universal substrate verbs) with a scoped server name",
+    "per-app ISOLATION — one app's registry never leaks another app's tools",
+    "a declared tool's handler is a CONTENT ADDRESS (κ): a wasm transform run on the forge; the result object self-verifies (Law L5) and RE-DERIVES to the same κ across runs (deterministic, trustless)",
+    "a declarative resolve+select handler projects a content-addressed object and seals the projection as its own self-verifying UOR object",
+    "the dependency-free core answers the MCP surface: initialize · tools/list · tools/call; a declared tool with no handler is honestly reported",
+    "a STANDARDIZED, application-agnostic core (holo_describe) is present on every app and returns a self-verifying W3C capability card — schema.org SoftwareApplication + a schema:Action per tool + conformsTo MCP — so an agent introspects ANY holospace uniformly; also published as the standard resource holo://capabilities"
+  ],
+  "sample": {
+    "handlerKappa": "did:holo:sha256:4d42cf6e22b277dc28bcfd432a12d93563c048b10241bd37280bd9d200ee1593",
+    "doubleResult": 42,
+    "resultKappa": "did:holo:sha256:08fdcf68159d17d79e614390ac327fd94f2939e8b64290210b4afcb4a399f740",
+    "projection": "0xABC123"
+  },
+  "checks": {
+    "handler-built": true,
+    "app-scoped-server": true,
+    "app-tool-advertised": true,
+    "schema-carried": true,
+    "isolation-no-leak": true,
+    "initialize": true,
+    "tools-list": true,
+    "kappa-handler-runs": true,
+    "kappa-result-self-verifies": true,
+    "kappa-result-re-derives": true,
+    "resolve-handler-runs": true,
+    "declared-no-handler-honest": true,
+    "holo_describe-present": true,
+    "card-self-verifies": true,
+    "card-is-software-application": true,
+    "card-conforms-to-mcp": true,
+    "card-app-agnostic": true,
+    "card-as-standard-resource": true
+  },
+  "failed": [],
+  "authority": "W3C Model Context Protocol (2024-11-05) · W3C WebAssembly Core 2.0 · IETF RFC 8785 (JCS) · UOR content-addressing (Law L1/L2/L5)"
+}

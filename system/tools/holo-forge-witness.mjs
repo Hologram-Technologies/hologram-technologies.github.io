@@ -75,11 +75,15 @@ const receipt = seal(receiptObj);
 // fixed-width integer types + casts, and void functions (so real vendored C compiles verbatim).
 // Each step moved the compiler's κ (and the receipt embedding it); the fixture source/artifact are
 // UNCHANGED — the additions compile every existing program to byte-identical wasm.
+// Re-pinned 2026-06-13: holo-forge.mjs gained a SECOND frontend, compileZig (ADR-0075), bundled in
+// the one Forge — a purely-additive change, so the Holo-C fixture source/artifact are UNCHANGED (it
+// still compiles every program to byte-identical wasm); only the compiler κ and the receipt embedding
+// it moved.
 const PIN = {
-  compiler: "did:holo:sha256:9f1ff6cf0f57ee19bcc817f6a204630b00897171cb6bf6da063ab8235494e1a6",
+  compiler: "did:holo:sha256:5b2138a09585ae94e74147693a74d022038d3e52353869a396389e3c183bede4",
   source: "did:holo:sha256:8951cf3781168cb9dccf7533caf4d8c2c56484c3a6fca3193d61e9234d0ef700",
   artifact: "did:holo:sha256:48d118b77c3912ffc8e647d3e6242667f75aff22c857677a4dbc9d07b65d7919",
-  receipt: "did:holo:sha256:915c0c2f38ea91dacd6ee228d32b5bff8a72bb999f1545815f4b7385ba08242d",
+  receipt: "did:holo:sha256:d66808ecf830f473968ded6f056c201ba7c890bcdc1dda00047b74a49bd57456",
 };
 
 // ── 1 · the compiler is itself a content-addressed object (the "compiler on the substrate") ──

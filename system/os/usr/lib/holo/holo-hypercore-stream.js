@@ -1,20 +1,21 @@
 // holo-hypercore-stream.js — Hyperliquid HyperCore real-time WebSocket.
 //
 // One socket, many subscriptions. `allMids` is the global live price ticker (every
-// market re-prices continuously); per-coin `trades` is the live trade firehose and
-// `l2Book` is the live order book. Views subscribe what they need and unsubscribe on
-// leave. Auto-reconnect; on reconnect the active subscriptions are re-sent.
+// market re-prices continuously); per-coin `trades` is the live trade firehose,
+// `l2Book` is the live order book, and `candle` (coin + interval) is the live OHLCV
+// bar. Views subscribe what they need and unsubscribe on leave. Auto-reconnect; on
+// reconnect the active subscriptions are re-sent.
 
 export class HcStream {
   constructor(ws = "wss://api.hyperliquid.xyz/ws") {
     this.url = ws; this.wsk = null; this.closed = false; this.connected = false;
     this.active = new Map();                              // key -> subscription object
-    this.listeners = { mids: new Set(), trade: new Set(), book: new Set(), status: new Set() };
+    this.listeners = { mids: new Set(), trade: new Set(), book: new Set(), candle: new Set(), status: new Set() };
     this.mids = {}; this.backoff = 700;
   }
   on(ev, cb) { this.listeners[ev].add(cb); return () => this.listeners[ev].delete(cb); }
   _emit(ev, x) { for (const cb of this.listeners[ev]) { try { cb(x); } catch {} } }
-  _key(sub) { return sub.type + (sub.coin ? ":" + sub.coin : ""); }
+  _key(sub) { return sub.type + (sub.coin ? ":" + sub.coin : "") + (sub.interval ? ":" + sub.interval : ""); }
   connect() {
     if (this.closed) return this;
     let ws; try { ws = new WebSocket(this.url); } catch { this._re(); return this; }
@@ -34,6 +35,7 @@ export class HcStream {
     if (m.channel === "allMids") { this.mids = m.data?.mids || this.mids; this._emit("mids", this.mids); }
     else if (m.channel === "trades") { for (const t of (m.data || [])) this._emit("trade", t); }
     else if (m.channel === "l2Book") { this._emit("book", m.data); }
+    else if (m.channel === "candle") { this._emit("candle", m.data); }
   }
   close() { this.closed = true; try { this.wsk && this.wsk.close(); } catch {} this.wsk = null; }
 }

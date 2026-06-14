@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" data-embedded>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holo Bittensor — the decentralized intelligence market, content-addressed</title>
+<!-- Holo UI: inherit the canonical --holo-* tokens when served alongside the engine (optional). -->
+<link rel="stylesheet" href="holo-theme.css">
+<style>
+  :root { color-scheme: dark light; }
+  body {
+    margin: 0; padding: clamp(1rem, 3vw, 2rem);
+    font-family: var(--holo-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+    font-size: var(--holo-font-base, 1rem); line-height: 1.5;
+    background: var(--holo-bg, #0b0e14); color: var(--holo-ink, #e6e9ef);
+  }
+  a { color: var(--holo-accent, #7aa2f7); }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.15rem; margin: 1.75rem 0 .75rem; border-bottom: 1px solid var(--holo-border, #232838); padding-bottom: .35rem; }
+  .sub { color: var(--holo-ink-dim, #9aa3b2); margin: 0 0 1rem; }
+  .k { font-family: var(--holo-font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace); font-size: .82rem; word-break: break-all; color: var(--holo-ink-dim, #9aa3b2); }
+  .grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+  .card {
+    background: var(--holo-surface, #131722); border: 1px solid var(--holo-border, #232838);
+    border-radius: var(--holo-radius, 12px); padding: 1rem; display: flex; flex-direction: column; gap: .5rem;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .role { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; padding: .15rem .5rem; border-radius: 999px; background: var(--holo-chip, #1c2233); color: var(--holo-ink-dim, #9aa3b2); }
+  .role.validator { background: color-mix(in srgb, var(--holo-accent, #7aa2f7) 22%, transparent); color: var(--holo-accent, #7aa2f7); }
+  .bar { height: .4rem; border-radius: 999px; background: var(--holo-border, #232838); overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--holo-accent, #7aa2f7); }
+  .meta { display: flex; gap: 1rem; flex-wrap: wrap; color: var(--holo-ink-dim, #9aa3b2); font-size: .85rem; }
+  .badge { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; padding: .15rem .5rem; border-radius: 999px; border: 1px solid transparent; }
+  .badge.ok { color: #7ee787; background: color-mix(in srgb, #7ee787 14%, transparent); border-color: color-mix(in srgb, #7ee787 30%, transparent); }
+  .badge.bad { color: #ff7b72; background: color-mix(in srgb, #ff7b72 14%, transparent); border-color: color-mix(in srgb, #ff7b72 30%, transparent); }
+  .badge.dual { color: var(--holo-accent, #7aa2f7); background: color-mix(in srgb, var(--holo-accent, #7aa2f7) 12%, transparent); }
+  button {
+    font: inherit; cursor: pointer; padding: .5rem .9rem; border-radius: var(--holo-radius-sm, 8px);
+    border: 1px solid var(--holo-border, #232838); background: var(--holo-surface, #131722); color: var(--holo-ink, #e6e9ef);
+  }
+  button:hover { border-color: var(--holo-accent, #7aa2f7); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--holo-border, #232838); font-size: .9rem; }
+  th { color: var(--holo-ink-dim, #9aa3b2); font-weight: 600; }
+  .answer { background: var(--holo-surface, #131722); border: 1px solid var(--holo-border, #232838); border-radius: var(--holo-radius, 12px); padding: 1rem; margin-top: .75rem; }
+  .note { color: var(--holo-ink-dim, #9aa3b2); font-size: .85rem; margin-top: .5rem; }
+  .prompts { display: flex; gap: .5rem; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <h1>Holo Bittensor</h1>
+  <p class="sub">The live decentralized intelligence market, projected into the substrate as self-verifying objects. Every κ below is <strong>re-derived in this tab</strong> (Law&nbsp;L5) — trust the math, not this page.</p>
+
+  <div id="head"></div>
+
+  <h2>Subnet map</h2>
+  <p class="sub">Each neuron is a NANDA AgentFacts record ⊕ a self-verifying UOR object ⊕ a hotkey-signed VC ⊕ a <span class="k" style="display:inline">did:pkh</span> chain principal. The badge re-derives its content address here.</p>
+  <div id="map" class="grid"></div>
+
+  <h2>Query a miner</h2>
+  <p class="sub">A miner's answer seals to a re-derivable PROV-O inference receipt bound to the neuron, subnet and block. Pick a question:</p>
+  <div id="prompts" class="prompts"></div>
+  <div id="infer"></div>
+
+  <h2>Settlement — pay TAO only against proven work</h2>
+  <p class="sub">The inference receipts compose into a PROV-O work receipt; a TAO voucher releases per step only if the work re-derives and the conscience accepts. <strong>Tampered work pays nothing.</strong> Testnet-gated.</p>
+  <div id="settle"></div>
+
+<script type="module">
+const $ = (s, r = document) => r.querySelector(s);
+const el = (t, props = {}, ...kids) => { const n = Object.assign(document.createElement(t), props); for (const k of kids) n.append(k); return n; };
+const short = (s, n = 10) => { s = String(s); return s.length > 2 * n ? s.slice(0, n) + "…" + s.slice(-n) : s; };
+const pct = (x) => Math.round((x || 0) * 100);
+
+// ── in-tab Law-L5 verification: re-derive a UOR object's did:holo:sha256 from its own content.
+// Mirrors holo-object.address EXACTLY (strip id + alsoKnownAs, RFC-8785-style JCS, SHA-256).
+const jcs = (v) => Array.isArray(v) ? "[" + v.map(jcs).join(",") + "]"
+  : (v && typeof v === "object") ? "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}"
+  : JSON.stringify(v);
+async function reKappa(obj) {
+  const { id, alsoKnownAs, ...content } = obj;
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(jcs(content)));
+  return "did:holo:sha256:" + [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function verifyBadge(obj, label = "re-derives") {
+  const b = el("span", { className: "badge" }, "…");
+  reKappa(obj).then((k) => { const ok = k === obj.id; b.className = "badge " + (ok ? "ok" : "bad"); b.textContent = (ok ? "✓ " : "✗ ") + label; });
+  return b;
+}
+const blakeAlias = (o) => (o.alsoKnownAs || []).find((a) => a.startsWith("did:holo:blake3:"));
+
+const D = await fetch("./holo-bittensor.pane.json").then((r) => r.json());
+
+// ── header
+const head = $("#head");
+head.append(
+  el("div", { className: "row" },
+    el("div", {}, el("strong", {}, `subnet ${D.netuid} · block ${D.block.toLocaleString()}`),
+      el("div", { className: "k" }, `catalogue ${short(D.catalog.id, 14)}`),
+      el("div", { className: "k" }, `block hash ${short(D.blockHash, 12)} (pinned)`)),
+    await verifyBadge(D.catalog, "catalogue re-derives")));
+
+// ── subnet map
+const map = $("#map");
+for (const n of D.neurons) {
+  const card = el("div", { className: "card" });
+  card.append(
+    el("div", { className: "row" },
+      el("strong", {}, `uid ${n.uid}`),
+      el("span", { className: "role " + (n.role === "validator" ? "validator" : "") }, n.role)),
+    el("div", {}, n.task || ""),
+    el("div", { className: "k" }, n.did),
+    el("div", { className: "meta" }, el("span", {}, `stake ${n.stake} τ`), el("span", {}, `consensus ${pct(n.consensus)}%`), el("span", {}, `trust ${pct(n.trust)}%`)),
+    el("div", { className: "bar" }, el("i", { style: `width:${pct(n.consensus)}%` })),
+    el("div", { className: "row" }, await verifyBadge(n.facts, "AgentFacts re-derives"),
+      el("span", { className: "badge dual", title: blakeAlias(n.facts) }, "⊕ blake3 σ-axis")));
+  map.append(card);
+}
+
+// ── query a miner
+const prompts = $("#prompts"), infer = $("#infer");
+const showInfer = async (rec) => {
+  infer.replaceChildren();
+  const box = el("div", { className: "answer" });
+  box.append(
+    el("div", { className: "row" }, el("strong", {}, "“" + rec.receipt["prov:generated"]["schema:text"] + "”"), await verifyBadge(rec.receipt, "receipt re-derives")),
+    el("div", { className: "note" }, `answered by ${short(rec.receipt["prov:used"]["bt:hotkey"], 8)} · subnet ${rec.receipt["prov:used"]["bt:netuid"]} · block ${rec.receipt["prov:used"]["bt:block"].toLocaleString()}`),
+    el("div", { className: "k" }, rec.receipt.id),
+    el("div", { className: "note" }, "Honest: a stochastic answer is receipt-verifiable, not reproducible — the receipt binds what was asked, what returned, by whom, at which block."));
+  infer.append(box);
+};
+D.inferences.forEach((rec, i) => prompts.append(el("button", { onclick: () => showInfer(rec) }, rec.prompt)));
+if (D.inferences[0]) showInfer(D.inferences[0]);
+
+// ── settlement
+const settle = $("#settle");
+const table = el("table");
+table.append(el("tr", {}, el("th", {}, "payee (neuron)"), el("th", {}, "amount"), el("th", {}, "voucher κ"), el("th", {}, "verify")));
+for (const v of D.settlement.released) {
+  table.append(el("tr", {},
+    el("td", { className: "k" }, short(v["bt:payee"], 12)),
+    el("td", {}, `${v["schema:price"]} ${v["schema:priceCurrency"]}`),
+    el("td", { className: "k" }, short(v.id, 12)),
+    el("td", {}, await verifyBadge(v, "voucher re-derives"))));
+}
+settle.append(
+  el("div", { className: "row" }, el("strong", {}, `${D.settlement.released.length} step(s) paid · ${D.settlement.withheld.length} withheld · ${D.settlement.network}`), await verifyBadge(D.settlement.workReceipt, "work receipt re-derives")),
+  table,
+  el("div", { className: "note" }, "Each voucher κ is the txId. Corrupt any step and the work receipt fails to re-derive — the release is refused. Live mainnet TAO is gated behind the wallet's human-approval seam."));
+</script>
+</body>
+</html>

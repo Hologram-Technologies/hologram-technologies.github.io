@@ -63,10 +63,10 @@ if (chromium) {
     }
     const dec = decodeURIComponent(bf);
     rec("rEFInd boots (Secure-Boot verified) → hands off to Plymouth with SDDM interposed",
-      /splash\.html/.test(bf) && /login\.html/.test(dec) && /apps(%2f|\/)sdk/i.test(dec),
+      /splash\.html/.test(bf) && /login\.html/.test(dec) && /shell\.html/i.test(dec),
       dec ? dec.slice(dec.indexOf("splash")) .slice(0, 80) : "no handoff");
 
-    const greeterUrl = `${base}/login.html?` + new URLSearchParams({ next: "apps/sdk/index.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" });
+    const greeterUrl = `${base}/login.html?` + new URLSearchParams({ next: "shell.html", label: "Hologram OS", logo: "boot/icons/os_hologram.svg" });
 
     // ── 2 · the greeter is the REAL SDDM theme, run by the QML engine (not a transcription) ──
     await page.goto(greeterUrl, { waitUntil: "load", timeout: 30000 });
@@ -93,7 +93,7 @@ if (chromium) {
 
     // ── 3 · the login GATEWAY contract: ENROLL a self-sovereign key + open a session EXACTLY as the
     //        greeter's sddm.login()/access() do (the same holo-identity + holo-host modules), bound to
-    //        THIS machine's measured hardware, then hand off to the ONE shell (apps/sdk). Driving the
+    //        THIS machine's measured hardware, then hand off to the ONE shell (shell.html). Driving the
     //        specific greeter widget (classic Login vs the Access card) is the greeter's own concern;
     //        this proves the cryptographic + handoff contract EVERY sign-in path funnels through. ──
     const sess = await page.evaluate(async (b) => {
@@ -101,7 +101,7 @@ if (chromium) {
       const host = await import(b + "/_shared/holo-host.mjs");
       const h = await host.measure().catch(() => null);
       const principal = await id.enroll({ label: "ilya", passphrase: "correct horse battery staple" });
-      const token = await id.openSession(principal, { session: "primeos", next: "apps/sdk/index.html", host: h ? h.hostKappa : "" });
+      const token = await id.openSession(principal, { session: "primeos", next: "shell.html", host: h ? h.hostKappa : "" });
       sessionStorage.setItem("holo.session", JSON.stringify(token));
       return { operator: principal.kappa, host: h ? h.hostKappa : "", session: token.id };
     }, base);
@@ -119,8 +119,8 @@ if (chromium) {
     rec("the session assertion re-derives + signature-verifies (Law L5)",
       verify.ok && verify.op === operator && verify.host === host && verify.session === session, verify.ok ? "verified" : "no/invalid token");
 
-    // ── 4b · hand off to the ONE shell (apps/sdk) → it verifies the session (L5) + stamps operator ⊗ host ──
-    await page.goto(`${base}/apps/sdk/index.html?` + new URLSearchParams({ operator, host, session }), { waitUntil: "load", timeout: 30000 });
+    // ── 4b · hand off to the ONE shell (shell.html) → it verifies the session (L5) + stamps operator ⊗ host ──
+    await page.goto(`${base}/shell.html?` + new URLSearchParams({ operator, host, session }), { waitUntil: "load", timeout: 30000 });
     await page.waitForFunction(() => window.__worldReady === true, { timeout: 20000 }).catch(() => {});
     await sleep(2000);
     const shell = await page.evaluate(() => ({
@@ -128,7 +128,7 @@ if (chromium) {
       operator: document.getElementById("operator")?.textContent || "",
       host: document.getElementById("hostchip")?.textContent || "",
     }));
-    rec("the ONE shell (apps/sdk) receives the handoff: sovereign operator + host stamped, desktop ready",
+    rec("the ONE shell (shell.html) receives the handoff: sovereign operator + host stamped, desktop ready",
       shell.worldReady && /ilya/.test(shell.operator) && /this machine/i.test(shell.host),
       `op="${shell.operator}" host="${shell.host}" ready=${shell.worldReady}`);
 
@@ -145,7 +145,7 @@ if (chromium) {
     const chain404 = not404.filter((p) => CHAIN.test(p));
     const shell404 = not404.filter((p) => !CHAIN.test(p));
     rec("the login chain serves with no missing resources (404s)", chain404.length === 0, chain404.join(", ") || "clean");
-    if (shell404.length) console.log(`   note — shell (apps/sdk) gaps, out of scope for login: ${[...new Set(shell404)].join(", ")}`);
+    if (shell404.length) console.log(`   note — shell (shell.html) gaps, out of scope for login: ${[...new Set(shell404)].join(", ")}`);
     await browser.close();
   } catch (e) { if (browser) await browser.close().catch(() => {}); rec("browser login flow completed without throwing", false, String((e && e.message) || e)); }
 }

@@ -18,6 +18,7 @@ import { makeApp } from "../holo-app.mjs";
 import { makeStore, memBackend } from "../holo-store.js";
 import { sha256hex } from "../holo-uor.mjs";
 import * as own from "../holo-own.mjs";
+import * as bt from "../holo-bittensor.mjs";
 
 export const PROTOCOL_VERSION = "2024-11-05";
 const SERVER = { name: "hologram-os", version: "0.1.0", title: "Hologram OS" };
@@ -33,12 +34,59 @@ function forgeApp() {
   return _forge;
 }
 
+// execDeclaredHandler(tool, args, ctx) → an MCP tools/call result, or null if the tool declares no
+// `handler` (so the caller can fall through to the Node toolHandlers escape hatch). This is the
+// keystone that makes an app-declared tool EXECUTABLE — natively, by content address, no per-app
+// glue. Two re-derivable handler kinds (effectful/ingest tools stay on ctx.toolHandlers, since they
+// can't be a closed transform — e.g. wallet_send reads RPC and signs):
+//   resolve — a declarative projection over content-addressed objects: fill {arg} templates into a
+//             URI, resolve it (the resolved object is itself self-verifying), optionally `select` a
+//             dot-path, and seal the projection as its own self-verifying UOR object (Law L5).
+//   kappa   — a compiled WASM transform run on the forge (the holo_run path): the handler IS a
+//             content address, so the agent re-derives the artifact (Law L5) AND, the forge being
+//             deterministic, recomputes the same result κ. v1 ABI: i32 args/result (Holo-C is
+//             int-typed; richer string/JSON ABIs are a future frontend, not hand-rolled here).
+async function execDeclaredHandler(tool, args, ctx) {
+  const h = tool && tool.handler;
+  if (!h || typeof h !== "object") return null;
+  const text = (s) => ({ content: [{ type: "text", text: typeof s === "string" ? s : JSON.stringify(s) }] });
+  if (typeof h.resolve === "string") {                                  // declarative projection
+    const uri = h.resolve.replace(/\{(\w+)\}/g, (_, k) => (args[k] != null ? String(args[k]) : ""));
+    const obj = ctx.resolve ? ctx.resolve(uri) : null;
+    if (!obj) return { ...text("resolve handler: not found — " + uri), isError: true };
+    if (!h.select) return text(jcs(obj));                               // the object already self-verifies
+    const value = String(h.select).split(".").reduce((o, k) => (o == null ? o : o[k]), obj);
+    const result = makeObject(new Map(), { type: ["prov:Entity", "schema:Dataset"], "schema:name": "Holo MCP projection",
+      "prov:wasGeneratedBy": { "@type": "prov:Activity", algorithm: "resolve+select" },
+      "prov:used": obj.id || uri, select: h.select, value });           // seal the projection → self-verifying
+    return text({ value, result });
+  }
+  if (typeof h.kappa === "string") {                                    // content-addressed WASM transform
+    if ((h.abi || "i32") !== "i32") return { ...text(`κ-handler abi '${h.abi}' unsupported (v1: i32)`), isError: true };
+    try {
+      const r = await forgeApp().run(h.kappa);
+      const fn = r.exports[h.fn];
+      if (typeof fn !== "function") return { ...text(`κ-handler: no export '${h.fn}' in ${h.kappa}`), isError: true };
+      const names = Array.isArray(h.params) ? h.params : Object.keys((tool.inputSchema && tool.inputSchema.properties) || {});
+      const ints = names.map((n) => args[n] | 0);
+      const out = fn(...ints);
+      const result = makeObject(new Map(), { type: ["prov:Entity", "schema:Dataset"], "schema:name": "Holo MCP κ-handler result",
+        "prov:wasGeneratedBy": { "@type": "prov:Activity", algorithm: "forge-run", handler: r.kappa, fn: h.fn },
+        args: ints, result: out });                                     // κ commits to {artifact κ, fn, args, result}
+      return text({ result: out, object: result });
+    } catch (e) { return { ...text("κ-handler error: " + ((e && e.message) || e)), isError: true }; }
+  }
+  return null;
+}
+
 // Built-in tools every Hologram MCP server exposes — the self-verifying superpower.
 const BUILTIN_TOOLS = [
   { name: "verify_object", description: "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
     inputSchema: { type: "object", properties: { object: { type: "object" } }, required: ["object"] } },
   { name: "resolve_object", description: "Resolve a did:holo / holo:// resource to its self-verifying UOR object.",
     inputSchema: { type: "object", properties: { uri: { type: "string" } }, required: ["uri"] } },
+  { name: "holo_describe", description: "The STANDARDIZED, application-agnostic capability card for THIS holospace — present identically on every Holo app's MCP server. One call returns a self-verifying W3C JSON-LD object (schema.org SoftwareApplication + a schema:Action per tool with its input schema + published resources + conformsTo + MCP protocol metadata): who the app is, what it can do, how to invoke it. Re-derive the card's id to verify it (Law L5). The uniform entry point for an agent to introspect ANY holospace. No args (also published as the resource holo://capabilities).",
+    inputSchema: { type: "object", properties: {} } },
   { name: "ask_model", description: "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client.",
     inputSchema: { type: "object", properties: { prompt: { type: "string" }, maxTokens: { type: "number" } }, required: ["prompt"] } },
   { name: "ask_user", description: "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client.",
@@ -64,12 +112,26 @@ const BUILTIN_TOOLS = [
     inputSchema: { type: "object", properties: { kappa: { type: "string", description: "artifact or source κ" }, source: { type: "string", description: "Holo-C source (if no kappa)" }, fn: { type: "string", description: "exported function to call" }, args: { type: "array", items: { type: "number" }, description: "i32 args for fn" } } } },
   { name: "holo_share", description: "SHARE a built app: the κ IS the share. Returns { kappa, holo (holo://κ), url } — location-independent, self-verifying, self-compiling; the recipient resolves it from cache/peers/IPFS/origin, re-derives it (Law L5), and runs it, with no server. Agents collaborate by passing κ.",
     inputSchema: { type: "object", properties: { kappa: { type: "string", description: "the artifact or source κ to share" } }, required: ["kappa"] } },
+  { name: "holo_compile_model", description: "COMPILE a neural-network model into a content-addressed .holo κ-object. Pass an ONNX model as { onnxBase64 } (or { url } to fetch one); the REAL hologram-ai compiler (import → optimize → lower → compile, ADR-0017) runs in WebAssembly — in the browser or Node, no server, no toolchain. Compiling is a κ-transform (κ(onnx) ⊕ κ(compiler) → κ(holo)). Returns { ok, kappa (the compiled model's did:holo), sourceKappa (the ONNX κ), compilerKappa, bytes, ports ({inputs,outputs} each with dtype + shape), holoBase64 (the archive bytes — re-derive: sha256(decode)==kappa, Law L5), receipt (a self-verifying PROV-O compile receipt κ) }. Turns ANY ONNX model into a substrate-native, shareable, re-derivable object — the general model front-end that broadens the catalog beyond the hand-built ternary engine. Serverless (Law L1/L5).",
+    inputSchema: { type: "object", properties: { onnxBase64: { type: "string", description: "the ONNX model bytes, base64-encoded" }, url: { type: "string", description: "or a URL to fetch the ONNX model from (ingest boundary)" } } } },
+  { name: "holo_inspect", description: "INSPECT a UOR object — the agent side of the on-screen Inspect (identical to what a human sees right-clicking an object). Pass the object's bytes as `source`; returns { kappa (re-derived did:holo), type (bundle·module·svg·json·text), bytes, children (the composition DAG — child κ's, for a bundle), exports (for a module) }. Self-verifying: the κ is derived from the bytes you passed (Law L5). Use it to understand an object before remixing it.",
+    inputSchema: { type: "object", properties: { source: { type: "string", description: "the object's bytes as text (e.g. from holo_resolve)" } }, required: ["source"] } },
+  { name: "holo_remix", description: "REMIX an object → a NEW self-verifying object (the agent side of on-screen Edit; identical to a human's). Pass the edited `source` (optionally the `parent` κ it was forked from). Returns { kappa (new did:holo = sha256 of the bytes), holo (holo://κ), parent, link }. `link` is a SELF-CONTAINED, cross-device, serverless share URL (`/apps/ui/render.html#k=<κ>&o=<gzipped bytes>`): the recipient — human in a browser, or another agent — decodes it, re-derives the κ (Law L5), and renders it on ANY device with no server. An edit is a FORK (a new κ), never a mutation (Law L1). The remix loop for agents: holo_resolve → holo_inspect → holo_remix → hand the link to a human/agent.",
+    inputSchema: { type: "object", properties: { source: { type: "string", description: "the edited object bytes as text" }, parent: { type: "string", description: "optional κ this was forked from" } }, required: ["source"] } },
   { name: "own_verify", description: "Verify a content-addressed OWNERSHIP chain (ADR-053 Titles): re-derive every Title κ, check each transfer's signature + authority (the current owner, or an attenuated UCAN delegation) + lineage (Law L5 / SEC-2), and report who owns it NOW. Returns { ok, owner (σ-axis κ), ownerDid (did:holo), head, errors, result } — `result` is a SELF-VERIFYING UOR object (re-derive its id, Law L5). An agent verifies ownership without trusting any server. An agent ACQUIRES ownership by signing a Title locally (its own holo-identity) and verifying the extended chain here.",
     inputSchema: { type: "object", properties: { titles: { type: "array", items: { type: "object" }, description: "the Title chain, genesis→head" }, delegations: { type: "object", description: "optional { titleκ: delegation } proofs for delegated transfers" } }, required: ["titles"] } },
   { name: "own_settle", description: "Settle value against a PROVEN Title (ADR-053/048): releases a voucher ONLY if the ownership chain re-derives AND the payer's order commits to the proven head — pay against proven ownership, not claimed. Keyless + anyone-runs; a tampered/unproven Title releases nothing. Returns { released, voucher } (voucher κ = the idempotent txId).",
     inputSchema: { type: "object", properties: { order: { type: "object", properties: { subject: { type: "string" }, amount: { type: "object" }, buyer: { type: "string" } }, required: ["subject"] }, titles: { type: "array", items: { type: "object" } }, delegations: { type: "object" } }, required: ["order", "titles"] } },
   { name: "own_passport", description: "An ownership passport for an object: verify its Title chain and summarise { owner, ownerDid, verified, history (number of transfers), head } as a SELF-VERIFYING UOR object (re-derive its id, Law L5). The agent-facing 'who owns this, provably' tool.",
     inputSchema: { type: "object", properties: { titles: { type: "array", items: { type: "object" } } }, required: ["titles"] } },
+  { name: "bittensor_snapshot", description: "Project a Bittensor subnet's metagraph at a block into the substrate's agent fabric (ADR-0071): returns a κ-rooted dcat:Catalog of neuron AgentFacts whose root did:holo PINS the block hash — a self-verifying UOR object you re-derive (verify_object, Law L5). A Bittensor subnet IS a NANDA registry. Reading the chain is an INGEST BOUNDARY (Subtensor public JSON-RPC); omit args for the deterministic sample subnet. Returns { root, catalog, netuid, block, blockHash, neurons:[{hotkey,did,factsId,consensus,stake}], records }.",
+    inputSchema: { type: "object", properties: { snapshot: { type: "object", description: "optional { netuid, block, blockHash, neurons:[…] }; omit for the sample subnet" } } } },
+  { name: "bittensor_agentfacts", description: "Project ONE Bittensor neuron to a dual-trust AgentFacts document (ADR-0071/034): on the same bytes a valid NANDA AgentFacts record · a self-verifying UOR object (re-derive its id) · a W3C VC signed by the neuron's hotkey · a did:pkh chain principal. Returns { agentFacts (self-verifying), did, dualTrust (the hotkey signature verifies) }.",
+    inputSchema: { type: "object", properties: { hotkey: { type: "string", description: "the neuron's ss58 hotkey (defaults to the sample subnet's first neuron)" }, neuron: { type: "object", description: "or a full neuron object" } } } },
+  { name: "bittensor_infer", description: "Query a Bittensor miner and seal the answer as a re-derivable PROV-O inference receipt (ADR-0071, Holo Q idiom ADR-0052) bound to the neuron/subnet/block + signed by the hotkey. A stochastic answer is RECEIPT-verifiable (re-derive its id; the response κ binds the text), not reproducible. Returns { answer, receipt (self-verifying), verified }.",
+    inputSchema: { type: "object", properties: { prompt: { type: "string" }, hotkey: { type: "string", description: "which neuron (defaults to the sample subnet's validator)" } }, required: ["prompt"] } },
+  { name: "bittensor_settle", description: "Pay TAO ONLY against PROVEN work (ADR-0071, Orchestrate ADR-045 + Settle ADR-048): composes the inference receipts into a PROV-O work-receipt DAG and releases a TAO voucher per step only if the work re-derives AND the conscience gate accepts — tampered work pays nothing. TESTNET-GATED. Returns { workReceipt, released:[voucher…], withheld, network, verified }.",
+    inputSchema: { type: "object", properties: { prompts: { type: "array", items: { type: "string" }, description: "the questions to settle (defaults to two sample prompts)" }, taoPerStep: { type: "number" } } } },
 ];
 
 // Built-in prompts — reusable, agent-facing templates that teach the self-verifying model.
@@ -88,8 +150,33 @@ export const SAMPLE_URI = "holo://sample";
 export const sampleObject = () => makeObject(new Map(), { type: ["schema:CreativeWork", "prov:Entity"],
   "schema:name": "Hologram OS sample object",
   "schema:description": "A self-verifying UOR object — re-derive its id from its content to verify it (Law L5)." });
+// The STANDARDIZED, application-agnostic capability card — published at a fixed URI on EVERY holospace.
+export const CAPABILITIES_URI = "holo://capabilities";
+// capabilityCard(registry) → a self-verifying W3C JSON-LD description of a holospace's agent surface:
+// schema.org SoftwareApplication + one schema:Action per tool (with its input schema) + the published
+// resources + what it conformsTo + the MCP protocol metadata. APP-AGNOSTIC: identical shape for every
+// app, so an agent introspects ANY holospace the same way — who it is, what it can do, how to invoke it
+// — and VERIFIES it by re-deriving the card's id (Law L5). This is the open-semantic-web bridge: the
+// same bytes are MCP discovery, a schema.org/PROV-O document, and a content-addressed UOR object.
+export function capabilityCard(registry) {
+  return makeObject(new Map(), {
+    type: ["schema:SoftwareApplication", "prov:Entity"],
+    "schema:name": registry.server.title || registry.server.name,
+    "schema:identifier": registry.server.name,
+    "schema:softwareVersion": registry.server.version,
+    "schema:applicationCategory": "Holospace",
+    "schema:operatingSystem": "Hologram OS",
+    "dct:conformsTo": ["https://spec.modelcontextprotocol.io", "https://hologram.os/conformance/os2#holo-shell-mcp"],
+    mcp: { protocolVersion: PROTOCOL_VERSION, transport: "streamable-http", capabilities: { tools: {}, resources: {}, prompts: {} } },
+    "schema:potentialAction": (registry.tools || []).map((t) => ({ "@type": "schema:Action",
+      "schema:name": t.name, "schema:description": t.description || "", "schema:object": t.inputSchema || { type: "object" }, ...(t.app ? { app: t.app } : {}) })),
+    "schema:subjectOf": (registry.resources || []).map((r) => ({ "@type": "schema:CreativeWork",
+      "@id": r.uri, "schema:name": r.name, "schema:encodingFormat": r.mimeType || "application/ld+json" })),
+  });
+}
 const BUILTIN_RESOURCES = [
   { uri: SAMPLE_URI, name: "Sample UOR object", description: "A built-in self-verifying object; re-derive its id to verify it (Law L5).", mimeType: "application/ld+json", type: "schema:CreativeWork" },
+  { uri: CAPABILITIES_URI, name: "Holospace capability card", description: "The standardized, application-agnostic W3C capability card for this holospace — self-verifying (Law L5).", mimeType: "application/ld+json", type: "schema:SoftwareApplication" },
 ];
 
 // getPrompt(registry, name, args) → { description, messages } (MCP prompts/get result).
@@ -106,6 +193,16 @@ export const paginate = (items, cursor, size = 50) => {
   const page = items.slice(start, start + size);
   return { page, nextCursor: start + size < items.length ? String(start + size) : undefined };
 };
+
+// resolveAppsDir(here) → where the holospace manifests live. The apps may live in a SEPARATE repo
+// (a dev checkout) or be colocated under the served root (a hosted deploy): honor HOLO_APPS_DIR,
+// else fall back to the OS-tree sibling apps/. One knob keeps every entrypoint pointed at the same
+// manifests, so the agent surface is generated from where the apps actually are (not an empty dir).
+export function resolveAppsDir(here) {
+  const env = typeof process !== "undefined" && process.env && process.env.HOLO_APPS_DIR;
+  if (env && existsSync(env)) return env;
+  return join(here, "..", "apps");
+}
 
 // scanManifests(appsDir) → every apps/<id>/holospace.json (the _example template is skipped).
 export function scanManifests(appsDir) {
@@ -126,11 +223,21 @@ export function buildRegistry(manifests = []) {
     for (const r of m.resources || []) resources.push({ uri: r.uri, name: r.name, description: r.description,
       mimeType: r.mimeType || "application/ld+json", type: r.type, app: m.name });
     for (const t of m.tools || []) if (!tools.some((x) => x.name === t.name))
-      tools.push({ name: t.name, description: t.description, inputSchema: t.inputSchema || { type: "object" }, app: m.name });
+      tools.push({ name: t.name, description: t.description, inputSchema: t.inputSchema || { type: "object" }, handler: t.handler, app: m.name });
     for (const p of m.prompts || []) if (!prompts.some((x) => x.name === p.name))
       prompts.push({ name: p.name, description: p.description, arguments: p.arguments || [], render: () => p.messages || [] });
   }
   return { server: SERVER, resources, tools, prompts };
+}
+
+// buildAppRegistry(manifest) → the capability set for ONE app (its tools/resources/prompts + the
+// universal substrate built-ins). "Per-app server" is just this filter, not a new process: one
+// engine, N mountpoints, a shared forge κ-store. The server name carries the app so an agent that
+// connects to a single app sees a coherent, app-scoped surface (and no other app's tools leak in).
+export function buildAppRegistry(manifest) {
+  const reg = buildRegistry(manifest ? [manifest] : []);
+  if (manifest && manifest.name) reg.server = { ...SERVER, name: "hologram-os/" + (manifest.id || manifest.name), title: manifest.name };
+  return reg;
 }
 
 // Agentic-framework interop — the MCP tool registry projects deterministically to the tool
@@ -145,7 +252,7 @@ export const toAnthropicTools = (registry) => registry.tools.map((t) => ({
 // descriptor(registry) → the discovery document to publish at .well-known/mcp.json.
 export const descriptor = (registry) => ({ mcpVersion: PROTOCOL_VERSION, server: registry.server,
   resources: registry.resources.map(({ uri, name, mimeType }) => ({ uri, name, mimeType })),
-  tools: registry.tools.map(({ name, description }) => ({ name, description })),
+  tools: registry.tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
   prompts: (registry.prompts || []).map(({ name, description }) => ({ name, description })) });
 
 // handle(req, ctx) → a JSON-RPC 2.0 response. ctx: { registry, resolve(uri)→object|null,
@@ -162,7 +269,7 @@ export async function handle(req, ctx) {
       return reply({ resources: registry.resources.map(({ uri, name, description, mimeType }) => ({ uri, name, description, mimeType })) });
     case "resources/read": {
       const uri = req.params?.uri;
-      const obj = uri === SAMPLE_URI ? sampleObject() : (ctx.resolve ? ctx.resolve(uri) : null);
+      const obj = uri === SAMPLE_URI ? sampleObject() : uri === CAPABILITIES_URI ? capabilityCard(registry) : (ctx.resolve ? ctx.resolve(uri) : null);
       if (!obj) return fail(-32602, "resource not found: " + uri);
       return reply({ contents: [{ uri, mimeType: "application/ld+json", text: jcs(obj) }] });
     }
@@ -179,7 +286,8 @@ export async function handle(req, ctx) {
       if (name === "verify_object") {
         if (!args.object || typeof args.object !== "object") return reply({ ...text("verify_object requires an 'object' argument (a UOR object)"), isError: true });
         return reply({ ...text({ verified: verifyObject(args.object), did: args.object?.id }) }); }
-      if (name === "resolve_object") { const o = args.uri === SAMPLE_URI ? sampleObject() : (ctx.resolve ? ctx.resolve(args.uri) : null);
+      if (name === "holo_describe") return reply(text(jcs(capabilityCard(registry))));   // STANDARDIZED app-agnostic capability card
+      if (name === "resolve_object") { const o = args.uri === SAMPLE_URI ? sampleObject() : args.uri === CAPABILITIES_URI ? capabilityCard(registry) : (ctx.resolve ? ctx.resolve(args.uri) : null);
         return o ? reply(text(jcs(o))) : reply({ ...text("not found: " + args.uri), isError: true }); }
       if (name === "verify_batch") {
         if (!Array.isArray(args.objects)) return reply({ ...text("verify_batch requires an 'objects' array"), isError: true });
@@ -256,6 +364,48 @@ export async function handle(req, ctx) {
         if (typeof args.kappa !== "string") return reply({ ...text("holo_share requires a 'kappa'"), isError: true });
         return reply(text(forgeApp().share(args.kappa)));
       }
+      if (name === "holo_compile_model") {
+        let onnx = null;
+        if (typeof args.onnxBase64 === "string" && args.onnxBase64) { try { onnx = new Uint8Array(Buffer.from(args.onnxBase64, "base64")); } catch (e) {} }
+        else if (typeof args.url === "string" && args.url) { try { onnx = new Uint8Array(await (await fetch(args.url)).arrayBuffer()); } catch (e) { return reply({ ...text("holo_compile_model: fetch failed — " + ((e && e.message) || e)), isError: true }); } }
+        if (!onnx || !onnx.length) return reply({ ...text("holo_compile_model requires 'onnxBase64' or 'url' (an ONNX model)"), isError: true });
+        try {
+          const ai = await import("../q/holo-q-ai.js");
+          const holo = await ai.compile({ onnx });                       // the real ONNX→.holo compile (ADR-0017), in wasm
+          const ports = await ai.describe({ archive: holo });
+          const holoBytes = holo instanceof Uint8Array ? holo : new Uint8Array(holo);
+          const kappa = "did:holo:sha256:" + sha256hex(Buffer.from(holoBytes));        // the compiled model IS its content address (Law L1)
+          const sourceKappa = "did:holo:sha256:" + sha256hex(Buffer.from(onnx));
+          const eng = ai.engineBytes();
+          const compilerKappa = eng ? "did:holo:sha256:" + sha256hex(Buffer.from(eng)) : null;
+          // a self-verifying PROV-O compile receipt: κ commits to {onnx κ ⊕ compiler κ → holo κ, ports}
+          const receipt = makeObject(new Map(), { type: ["prov:Activity", "prov:Entity", "schema:SoftwareSourceCode"],
+            "schema:name": "Holo model compilation",
+            "prov:wasGeneratedBy": { "@type": "prov:Activity", algorithm: "hologram-ai ONNX→.holo (ADR-0017)", compiler: compilerKappa },
+            "prov:used": { onnx: sourceKappa }, "prov:generated": { holo: kappa, bytes: holoBytes.length, inputs: ports.inputs, outputs: ports.outputs } });
+          return reply(text({ ok: true, kappa, sourceKappa, compilerKappa, bytes: holoBytes.length, ports, holoBase64: Buffer.from(holoBytes).toString("base64"), receipt }));
+        } catch (e) { return reply({ ...text("holo_compile_model error: " + ((e && e.message) || e)), isError: true }); }
+      }
+      if (name === "holo_inspect") {
+        if (typeof args.source !== "string") return reply({ ...text("holo_inspect requires a 'source' string (the object's bytes as text)"), isError: true });
+        const src = args.source, hex = sha256hex(Buffer.from(src, "utf8")); const head = src.replace(/^\s+/, "");
+        const childK = (c) => { const o = []; if (typeof c === "string" && /sha256:/.test(c)) o.push(c.replace(/^.*sha256:/, "holo://sha256:")); if (c && c.kappa) o.push(c.kappa); if (c && c.bundle) o.push(c.bundle); if (c && c.children) o.push(...[].concat(c.children).flatMap(childK)); return o; };
+        let type = "text", children = [], exports = [];
+        if (head.startsWith("<svg") || head.startsWith("<?xml")) type = "svg";
+        else if (head[0] === "{" || head[0] === "[") { try { const j = JSON.parse(src); if (j && j["@type"] === "holo:Bundle") { type = "bundle"; children = [...new Set((j.children || []).flatMap(childK))]; } else type = "json"; } catch (e) { type = "text"; } }
+        else if (/\b(export|import)\b/.test(src)) { type = "module"; const m = src.match(/export\s*\{([^}]+)\}/); if (m) m[1].split(",").forEach((x) => { const n = x.split(/\s+as\s+/).pop().trim(); if (n && n !== "type") exports.push(n); }); }
+        return reply(text({ kappa: "did:holo:sha256:" + hex, type, bytes: Buffer.byteLength(src, "utf8"), children, exports }));
+      }
+      if (name === "holo_remix") {
+        if (typeof args.source !== "string") return reply({ ...text("holo_remix requires a 'source' string (the edited bytes)"), isError: true });
+        const bytes = Buffer.from(args.source, "utf8"), hex = sha256hex(bytes);
+        // a SELF-VERIFYING cross-device link: gzip the bytes into the URL fragment next to the κ; the
+        // recipient re-derives the κ (Law L5) before rendering — opens on any device, no server.
+        const zlib = await import("node:zlib");
+        const o = "g" + zlib.gzipSync(bytes).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const link = "/apps/ui/render.html#k=holo%3A%2F%2Fsha256%3A" + hex + "&o=" + o;
+        return reply(text({ ok: true, kappa: "did:holo:sha256:" + hex, holo: "holo://sha256:" + hex, parent: args.parent || null, link, bytes: bytes.length, selfVerifying: true }));
+      }
       if (name === "ask_model") { if (ctx.sampler) return reply(text(await ctx.sampler(args)));
         return reply({ ...text("ask_model (sampling) needs a sampling-capable connection — use the SDK server"), isError: true }); }
       if (name === "ask_user" || name === "list_roots") return reply({ ...text(`${name} needs a live agent connection (server→client) — use the SDK server`), isError: true });
@@ -281,8 +431,42 @@ export async function handle(req, ctx) {
           subject: (head && head["@id"]) || null, owner: v.owner || null, ownerDid: v.ownerDid || null, verified: v.ok, history: args.titles.length });
         return reply(text({ owner: v.owner, ownerDid: v.ownerDid, verified: v.ok, history: args.titles.length, head: head && head["@id"], result }));
       }
-      if (ctx.toolHandlers && ctx.toolHandlers[name]) return reply(text(await ctx.toolHandlers[name](args)));
-      if (registry.tools.some((t) => t.name === name)) return reply({ ...text(`tool '${name}' is declared by a holospace; wire its handler`), isError: true });
+      if (name === "bittensor_snapshot") {
+        const snap = (args.snapshot && typeof args.snapshot === "object") ? args.snapshot : bt.sampleSubnet();
+        try {
+          const p = bt.project(snap);
+          return reply(text({ root: p.catalog.id, catalog: p.catalog, netuid: snap.netuid, block: snap.block, blockHash: snap.blockHash,
+            neurons: p.neurons.map((x) => ({ hotkey: x.neuron.hotkey, did: x.facts.provider.did, factsId: x.facts.id, consensus: x.neuron.consensus, stake: x.neuron.stake })),
+            records: p.records }));
+        } catch (e) { return reply({ ...text("bittensor_snapshot error: " + ((e && e.message) || e)), isError: true }); }
+      }
+      if (name === "bittensor_agentfacts") {
+        const snap = bt.sampleSubnet();
+        const n = (args.neuron && typeof args.neuron === "object") ? args.neuron
+          : snap.neurons.find((x) => x.hotkey === args.hotkey) || snap.neurons[0];
+        const facts = bt.buildAgentFacts({ ...n, netuid: n.netuid || snap.netuid });
+        return reply(text({ agentFacts: facts, did: facts.id, dualTrust: bt.verifyProof(facts) }));
+      }
+      if (name === "bittensor_infer") {
+        if (typeof args.prompt !== "string" || !args.prompt.trim()) return reply({ ...text("bittensor_infer requires a 'prompt'"), isError: true });
+        const snap = bt.sampleSubnet();
+        const n = snap.neurons.find((x) => x.hotkey === args.hotkey) || snap.neurons[0];
+        const receipt = bt.queryNeuron({ ...n, netuid: snap.netuid }, args.prompt, { decode: "greedy-argmax" }, { block: snap.block, blockHash: snap.blockHash });
+        return reply(text({ answer: receipt["prov:generated"]["schema:text"], receipt, verified: bt.verifyInferenceReceipt(receipt) }));
+      }
+      if (name === "bittensor_settle") {
+        const snap = bt.sampleSubnet();
+        const prompts = (Array.isArray(args.prompts) && args.prompts.length) ? args.prompts : ["What is the capital of France?", "And of Japan?"];
+        const store = new Map();
+        const receipts = prompts.map((q, i) => bt.queryNeuron({ ...snap.neurons[i % snap.neurons.length], netuid: snap.netuid }, q, { decode: "greedy-argmax" }, { block: snap.block, blockHash: snap.blockHash }));
+        const { receipt: work } = bt.buildWorkReceipt({ receipts, store });
+        const { released, withheld } = bt.settle({ workReceipt: work, store, taoPerStep: typeof args.taoPerStep === "number" ? args.taoPerStep : 0.5 });
+        return reply(text({ workReceipt: work, released, withheld, network: "testnet", verified: released.every((v) => bt.verifySettlement(v, store)) }));
+      }
+      const declared = registry.tools.find((t) => t.name === name);
+      if (declared && declared.handler) { const r = await execDeclaredHandler(declared, args, ctx); if (r) return reply(r); }   // NATIVE: run the declared κ / projection handler
+      if (ctx.toolHandlers && ctx.toolHandlers[name]) return reply(text(await ctx.toolHandlers[name](args)));                   // effectful/ingest escape hatch
+      if (declared) return reply({ ...text(`tool '${name}' is declared by a holospace; wire its handler`), isError: true });
       return fail(-32602, "unknown tool: " + name);
     }
     default: return fail(-32601, "method not found: " + req.method);

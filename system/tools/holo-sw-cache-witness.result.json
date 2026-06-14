@@ -1,0 +1,40 @@
+{
+  "witnessed": true,
+  "passed": 5,
+  "failed": 0,
+  "covers": [
+    "the delivery Service Worker registers and CONTROLS the p",
+    "the SW VERIFIES app bytes too, not just OS — an app file",
+    "a wrong κ is REFUSED (not in the content index) — app by",
+    "the 1st open is a cache MISS (origin fetch + verify + co",
+    "the 2nd open is NETWORK-FREE — served from the κ-keyed c"
+  ],
+  "results": [
+    {
+      "name": "the delivery Service Worker registers and CONTROLS the page (the live app-mount path)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the SW VERIFIES app bytes too, not just OS — an app file's κ resolves on the κ-route (its lock closure is folded into the L5 index)",
+      "ok": true,
+      "detail": "apps/files/index.html · κ b44f876993d8…"
+    },
+    {
+      "name": "a wrong κ is REFUSED (not in the content index) — app bytes are content, not trusted-by-location (Law L5)",
+      "ok": true,
+      "detail": "bogus κ → 404"
+    },
+    {
+      "name": "the 1st open is a cache MISS (origin fetch + verify + content-cache fill)",
+      "ok": true,
+      "detail": "x-holo-cache: miss · 11.9 ms"
+    },
+    {
+      "name": "the 2nd open is NETWORK-FREE — served from the κ-keyed content cache (deduped, no re-hash), x-holo-cache: hit",
+      "ok": true,
+      "detail": "x-holo-cache: hit · 3.25 ms (4× vs cold)"
+    }
+  ],
+  "spec": "The shell mounts apps as iframes that fetch by path through the content-addressed Service Worker. The SW verifies app bytes (folds each app's lock closure into the L5 index, refuses a wrong κ) and serves verified bytes from a κ-keyed content cache, so the 2nd open is network-free and deduped. The page-side κ-store arena cannot serve a child iframe; the SW content cache is the honest live-runtime re-open path (network-free ms, not sub-µs)."
+}

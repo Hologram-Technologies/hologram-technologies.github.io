@@ -25,6 +25,14 @@ const APPS = process.env.HOLO_APPS_DIR || "C:/Users/pavel/Desktop/Hologram Apps/
 // substring match catches every adoption form.
 const ENGINE = ["holo-theme.js", "holo-ui-kernel.js", "holo-ui.js"];
 
+// Verbatim-vendored exemption: a few apps are full third-party distributions shipped UNMODIFIED
+// (the vendoring principle — no handwritten app code). Injecting the Holo UI engine into their
+// build-generated HTML would fork upstream and force a reseal of their whole multi-hundred-MB
+// closure, for no real gain (the OS still themes the host frame around them). Such an app is held
+// to the vendoring contract instead of the wiring contract — listed here so the exception is
+// explicit and auditable, never silent. jypyter = the full JupyterLite distro (see app-vendoring).
+const VENDORED_EXEMPT = new Set(["jypyter"]);
+
 const appIds = existsSync(APPS)
   ? readdirSync(APPS).filter((n) => { try { return statSync(join(APPS, n, "index.html")).isFile(); } catch { return false; } })
   : [];
@@ -39,13 +47,14 @@ function effectiveHtml(id) {
   return html;
 }
 
-const unwired = [];
+const unwired = [], exempt = [];
 for (const id of appIds) {
-  if (!ENGINE.some((f) => effectiveHtml(id).includes(f))) unwired.push(id);
+  if (ENGINE.some((f) => effectiveHtml(id).includes(f))) continue;   // wired
+  (VENDORED_EXEMPT.has(id) ? exempt : unwired).push(id);             // exempt (verbatim-vendored) vs a real gap
 }
 
 const witnessed = appIds.length > 0 && unwired.length === 0;
-console.log(`Holo UI wiring — ${appIds.length} apps scanned`);
+console.log(`Holo UI wiring — ${appIds.length} apps scanned${exempt.length ? ` (${exempt.length} verbatim-vendored exempt: ${exempt.join(", ")})` : ""}`);
 console.log(unwired.length
   ? `FAIL — ${unwired.length} app(s) NOT wired to the Holo UI engine: ${unwired.join(", ")}`
   : `PASS — every native application loads the Holo UI engine (canonical params reach every instance)`);
@@ -57,6 +66,7 @@ writeFileSync(join(here, "holo-app-wired-witness.result.json"), JSON.stringify({
   covers: ["holo-ui", "wired-to-upstream", "shell-defined-params", "every-application", "persistence"],
   engineEntrypoints: ENGINE,
   appsScanned: appIds.length,
+  vendoredExempt: exempt,
   unwired,
 }, null, 2) + "\n");
 

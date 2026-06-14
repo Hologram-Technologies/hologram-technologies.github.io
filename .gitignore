@@ -7,3 +7,7 @@ system/tools/*.png
 _forge_serve.mjs
 _serveq.mjs
 .claude/
+
+# Holo Voice model weights — content-addressed artifacts, NOT source. Fetched + hash-verified by
+# tools/vendor-voice-model.mjs (run it once after clone). See holo-models for the artifact store.
+system/os/usr/lib/holo/voice/vendor/

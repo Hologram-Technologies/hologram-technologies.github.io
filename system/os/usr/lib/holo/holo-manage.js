@@ -131,7 +131,7 @@
     if (document.getElementById("holo-manage-btn")) return;
     const style = document.createElement("style"); style.id = "holo-manage-css"; style.textContent = CSS; document.head.appendChild(style);
     btnEl = document.createElement("button"); btnEl.id = "holo-manage-btn"; btnEl.type = "button";
-    btnEl.setAttribute("aria-label", "Manage this holospace (κ-verified)"); btnEl.title = "Manage this holospace — self-verify & self-manage";
+    btnEl.setAttribute("aria-label", "Manage this holospace"); btnEl.title = "Manage this holospace";
     btnEl.setAttribute("aria-haspopup", "dialog"); btnEl.setAttribute("aria-expanded", "false"); btnEl.innerHTML = ICON;
     backdropEl = document.createElement("div"); backdropEl.id = "holo-manage-backdrop";
     panelEl = document.createElement("div"); panelEl.id = "holo-manage-panel"; panelEl.setAttribute("role", "dialog"); panelEl.setAttribute("aria-label", "Holospace self-management");
@@ -219,7 +219,7 @@
       <div class="ft"><span>Holo Container · Law L5</span><span>${esc(loaderOf())}</span></div>`;
     panelEl.querySelector("#hm-reload").onclick = () => location.reload();
     panelEl.querySelector("#hm-reverify").onclick = refresh;
-    panelEl.querySelector("#hm-copy").onclick = async () => { try { await navigator.clipboard.writeText(lastKappa || ""); toast("κ copied"); } catch { toast(lastKappa || ""); } };
+    panelEl.querySelector("#hm-copy").onclick = async () => { try { await navigator.clipboard.writeText(lastKappa || ""); toast("Address copied"); } catch { toast(lastKappa || ""); } };
     panelEl.querySelector("#hm-share").onclick = async () => {
       // Share-to-Run (ADR-064): hand off a link that lands the recipient in the chrome — the app runs
       // INSTANTLY, fullscreen, verified, with Remix · Share · Save laid over it (a guest, no sign-in),
@@ -240,8 +240,8 @@
       catch { W.prompt ? W.prompt("Share this Hologram link:", link) : toast(link); }
     };
     panelEl.querySelector("#hm-all").onclick = openManager;
-    const snap = panelEl.querySelector("#hm-snapshot"); if (snap) snap.onclick = () => toast("state persists in OPFS (the store is the memory · Law L3)");
-    const cp = panelEl.querySelector("#hm-checkpoint"); if (cp) cp.onclick = async () => { try { await host.checkpoint(); toast("checkpointed (κ-snapshot)"); } catch (e) { toast("checkpoint: " + (e.message || e)); } };
+    const snap = panelEl.querySelector("#hm-snapshot"); if (snap) snap.onclick = () => toast("Your work is saved on this device");
+    const cp = panelEl.querySelector("#hm-checkpoint"); if (cp) cp.onclick = async () => { try { await host.checkpoint(); toast("Checkpoint saved"); } catch (e) { toast("Checkpoint failed: " + (e.message || e)); } };
     const st = panelEl.querySelector("#hm-stop"); if (st) st.onclick = () => { try { host.stop(); toast("stopping…"); } catch {} };
     // live-ish stats tick while open
     clearInterval(panelEl._tick); panelEl._tick = setInterval(() => { const el = panelEl.querySelector("#hm-stats"); if (el && panelEl.classList.contains("on")) el.textContent = "up " + uptime() + (heap() ? " · " + heap() : ""); else clearInterval(panelEl._tick); }, 1000);
@@ -259,10 +259,10 @@
   let lastKappa = "";
   async function refresh() {
     const chip = panelEl.querySelector("#hm-kchip"), kaddr = panelEl.querySelector("#hm-kaddr"); if (!chip) return;
-    chip.className = "chip info"; chip.textContent = "κ checking…";
+    chip.className = "chip info"; chip.textContent = "Verifying…";
     const v = await verify(); lastKappa = v.kappa;
     if (kaddr) { kaddr.textContent = "holo://" + shortK(v.kappa); kaddr.title = "holo://" + v.kappa; }
-    const map = { verified: ["ok", "✓ κ verified"], attested: ["ok", "✓ κ self-attested"], mismatch: ["bad", "✗ κ MISMATCH"], error: ["bad", "κ error"], unknown: ["info", "κ —"] };
+    const map = { verified: ["ok", "✓ Verified"], attested: ["ok", "✓ Self-signed"], mismatch: ["bad", "✗ Verification failed"], error: ["bad", "Verification error"], unknown: ["info", "—"] };
     const [cls, label] = map[v.state] || map.unknown; chip.className = "chip " + cls; chip.textContent = label; chip.title = v.detail || "";
     // reflect on the button too (self-verifying at a glance)
     if (btnEl) btnEl.style.borderColor = v.state === "mismatch" ? "#f85149" : v.state === "verified" || v.state === "attested" ? "#2a3340" : "#2a3340";
@@ -282,7 +282,15 @@
 
   function boot() {
     if (!isBrowser) return;
-    inject(); installParentBridge();
+    installParentBridge();                          // always — lets a parent shell drive manage headlessly
+    // The overlay (the Manage button + the capture·stream·theme·notepad launcher icons) is shown ONLY
+    // when this holospace runs STANDALONE (top-level). Embedded in a parent shell — the SDK shell,
+    // holospace.html, the share-to-run chrome — the parent OWNS the chrome, so the per-app overlay is
+    // pure duplication: we suppress it. Less is more, one frame per holospace. The HoloManage API
+    // (window.HoloManage) stays available either way, so nothing that drives manage programmatically breaks.
+    let framed = false; try { framed = window.top !== window.self; } catch { framed = true; }   // cross-origin parent ⇒ framed
+    if (framed) return;
+    inject();
     // If we fell back to floating because the bar wasn't laid out yet (some apps build
     // their chrome after load), retry docking once the bar appears.
     if (btnEl && btnEl.classList.contains("float")) {

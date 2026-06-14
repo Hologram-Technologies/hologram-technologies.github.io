@@ -1,7 +1,7 @@
 {
   "spec": "Holo UI is the single canonical UI source; --holo-font-min (ADR-0057) is the readability FLOOR. The canonical token layer clamps up to it and no first-party UI hardcodes sub-floor px text that bypasses it (verbatim SDDM/Plymouth reproductions exempt).",
   "authority": "ADR-0030 (Holo UI façade) · ADR-0057 (minimum text size) · WCAG 2.2 readability · verify by static analysis of the served token layer + first-party chrome",
-  "witnessed": true,
+  "witnessed": false,
   "covers": [
     "holo-ui",
     "font-min",
@@ -19,11 +19,258 @@
     "holo-mobile.css floors form controls to --holo-font-min": true
   },
   "contractOk": true,
-  "scanned": 111,
+  "scanned": 128,
   "fidelityExempt": [
     "os/usr/lib/holo/holo-sddm.js",
     "os/usr/share/frame/login.html",
     "os/usr/share/frame/splash.html"
   ],
-  "violations": []
+  "violations": [
+    {
+      "file": "os/usr/lib/holo/holo-voice-lab.js",
+      "line": 33,
+      "px": 12,
+      "snippet": "panel.style.cssText = \"position:fixed;left:14px;bottom:14px;z-index:2147483647;width:260px"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice-lab.js",
+      "line": 38,
+      "px": 11,
+      "snippet": "+ '<div style=\"margin-top:8px;opacity:.55;font-size:11px\">QLab.report() · QLab.autotune() "
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 747,
+      "px": 14,
+      "snippet": "\"font:14px/1.4 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);opacity"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 749,
+      "px": 13,
+      "snippet": "\"#holo-voice-menu h4{margin:0 0 .5rem;font-size:13px;opacity:.7;font-weight:600}\" +"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 761,
+      "px": 12,
+      "snippet": "\"#holo-voice-menu .hv-note{margin-top:.5rem;font-size:12px;opacity:.6;line-height:1.35}\";"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 844,
+      "px": 14,
+      "snippet": "\"#holo-live .hl-you{margin-top:1.6rem;min-height:1.4em;max-width:min(680px,86vw);text-alig"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 846,
+      "px": 12,
+      "snippet": "\"#holo-live .hl-hint{margin-top:1.4rem;color:var(--holo-ink,#9fb0c8);opacity:.5;font:600 1"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 849,
+      "px": 13,
+      "snippet": "\"#holo-live .hl-sub{margin-top:.55rem;color:var(--holo-ink,#aebbd2);opacity:.62;text-align"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-voice.js",
+      "line": 852,
+      "px": 15,
+      "snippet": "\"font:600 15px/1 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);-webk"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 19,
+      "px": 15,
+      "snippet": "font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100vh; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 22,
+      "px": 13.5,
+      "snippet": ".sub { color:var(--dim); margin:0 0 26px; font-size:13.5px; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 28,
+      "px": 15,
+      "snippet": "#addr { flex:1; min-width:0; border:0; background:transparent; color:var(--ink); outline:n"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 29,
+      "px": 14,
+      "snippet": "#go { border:0; border-radius:10px; padding:9px 18px; background:var(--accent); color:#fff"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 33,
+      "px": 12,
+      "snippet": "padding:5px 12px; font:12px var(--mono); cursor:pointer; transition:.12s; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 35,
+      "px": 12,
+      "snippet": ".toggle { margin-left:auto; display:flex; align-items:center; gap:7px; color:var(--dim); f"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 36,
+      "px": 12.5,
+      "snippet": ".steps { margin:22px 0 0; font:12.5px var(--mono); color:var(--dim); display:grid; gap:3px"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 44,
+      "px": 11,
+      "snippet": ".badge { font:11px var(--mono); padding:3px 9px; border-radius:7px; border:1px solid var(-"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 46,
+      "px": 13,
+      "snippet": ".verify { margin-left:auto; font-weight:600; font-size:13px; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 51,
+      "px": 12.5,
+      "snippet": ".row .k { color:var(--dim); font-size:12.5px; padding-top:2px; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 52,
+      "px": 12.5,
+      "snippet": ".row .v { font:12.5px var(--mono); color:var(--ink); word-break:break-all; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 55,
+      "px": 11,
+      "snippet": ".prov span { font:11px var(--mono); padding:2px 8px; border-radius:6px; background:#0e1726"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 59,
+      "px": 12,
+      "snippet": ".preview .pt { padding:10px 20px; color:var(--dim); font-size:12px; display:flex; gap:10px"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 60,
+      "px": 12,
+      "snippet": ".preview pre { margin:0; padding:0 20px 18px; font:12px var(--mono); color:#aeb9d0; white-"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 64,
+      "px": 11.5,
+      "snippet": ".foot { margin-top:30px; color:#4a5573; font-size:11.5px; line-height:1.7; }"
+    },
+    {
+      "file": "os/usr/share/frame/omni.html",
+      "line": 92,
+      "px": 13,
+      "snippet": "<span id=\"title\" style=\"font:13px var(--mono);color:var(--dim);overflow:hidden;text-overfl"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 283,
+      "px": 11,
+      "snippet": ".wall-srch .us { font: 11px ui-monospace, monospace; color: #6e7681; white-space: nowrap; "
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 285,
+      "px": 12,
+      "snippet": ".wall-note { font: 12px/1.5 system-ui, sans-serif; color: #8b949e; padding: 0 2px 10px; }"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 289,
+      "px": 12,
+      "snippet": ".wall-secq { font: 600 12px system-ui, sans-serif; color: #8b949e; text-transform: upperca"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 290,
+      "px": 11,
+      "snippet": ".wall-prev .wall-by { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; "
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 292,
+      "px": 13,
+      "snippet": ".wall-busy { grid-column: 1 / -1; padding: 18px; text-align: center; color: #8b949e; font:"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 295,
+      "px": 12,
+      "snippet": ".wall-live { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; borde"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1576,
+      "px": 13,
+      "snippet": "background:#1e1e1e;color:#cccccc;font:13px/1.5 var(--win-font,ui-sans-serif,system-ui);"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1589,
+      "px": 11,
+      "snippet": ".cs-side-h{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9d9d9d;padd"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1595,
+      "px": 11,
+      "snippet": ".cs-side-foot{padding:9px 14px;border-top:1px solid #1b1b1b;color:#6f7782;font:11px var(--"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1601,
+      "px": 12.5,
+      "snippet": ".cs-tab{display:flex;align-items:center;gap:8px;padding:0 16px;background:#1e1e1e;color:#f"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1606,
+      "px": 12.5,
+      "snippet": "padding:5px 14px;font:600 12.5px var(--win-font,system-ui);cursor:pointer;display:flex;ali"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1613,
+      "px": 13,
+      "snippet": "font:13px/1.5 var(--holo-font-mono,ui-monospace,monospace);user-select:none;white-space:pr"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1616,
+      "px": 13,
+      "snippet": "font:13px/1.5 var(--holo-font-mono,ui-monospace,monospace);white-space:pre;tab-size:2;over"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1628,
+      "px": 11.5,
+      "snippet": "font-size:11.5px;color:#9fb0c8}"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1634,
+      "px": 11,
+      "snippet": ".cs-pv-bar .m{font:11px var(--holo-font-mono,ui-monospace,monospace);color:#7c8aa0}"
+    },
+    {
+      "file": "os/usr/share/frame/shell.html",
+      "line": 1640,
+      "px": 11.5,
+      "snippet": "font-size:11.5px;transform:translateY(8px);opacity:0;transition:transform .3s cubic-bezier"
+    }
+  ]
 }
