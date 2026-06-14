@@ -21,6 +21,10 @@ import { ipfsPeer, bridgePeer } from "./sbin/holo-peers.mjs"; // recovery transp
 import * as holoIpfs from "./usr/lib/holo/holo-ipfs.js";      // a sha-256 κ IS a CIDv1 sha2-256 — IPFS adopted, not bridged (import-safe: no network, no top-level effects)
 
 const BASE = new URL(self.registration.scope).pathname;       // "/" at a root/user site, "/<repo>/" under a project site
+// DEV (localhost) — live source is edited on disk, so the closure's κ pins are intentionally stale.
+// In dev we serve PATH requests FRESH (no by-κ cache, no L5 refusal) so edits show without a reload;
+// κ-route requests stay content-addressed/cached (immutable by definition). Prod keeps full L1/L5.
+const DEV = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(self.location.hostname);
 const COI = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "credentialless",
@@ -266,9 +270,13 @@ self.addEventListener("fetch", (event) => {
       expect = BYPATH.get(rel) || null;                       // the pinned (sha256) κ for this path, if any
     }
 
+    // κ-routes are content-addressed (immutable) → always cacheable + verified. PATH requests bypass the
+    // by-κ cache AND L5 refusal in DEV (localhost) so live source edits show without a reload; prod is unchanged.
+    const isKRoute = !!(m || mb), trustCache = isKRoute || !DEV;
+
     // tier 0 · the content cache: if this name has a known κ and that κ's VERIFIED bytes are already
     // resident, serve them network-free (no origin fetch, no re-hash — they were verified at store time).
-    if (expect) {
+    if (expect && trustCache) {
       const cache = await caches.open(KCACHE);
       const hit = await cache.match(kKey(axis, expect));
       if (hit) return finalize(await hit.arrayBuffer(), hit, rel, { "x-holo-cache": "hit" });
@@ -278,19 +286,20 @@ self.addEventListener("fetch", (event) => {
     let resp;
     try { resp = await fetch(BASE + phys, { cache: "no-store" }); }   // SW-initiated → does not re-enter this handler
     catch (e) {                                               // origin unreachable (offline / denied) → SELF-HEAL from a non-origin source before giving up
-      const healed = expect ? await heal(rel, expect, axis, null) : null;
+      const healed = expect && trustCache ? await heal(rel, expect, axis, null) : null;
       return healed || new Response("holo-fhs-sw: fetch failed for " + phys, { status: 502, headers: COI });
     }
     if (resp.status !== 200 && phys !== rel) {                // fallback: a host that serves the FLAT name (e.g. the dev server streams apps live at apps/<id>/* rather than the vendored FHS path). κ re-derivation below still guards it.
       try { const alt = await fetch(BASE + rel, { cache: "no-store" }); if (alt.status === 200) resp = alt; } catch {}
     }
     if (resp.status !== 200) {                                // origin has no copy → SELF-HEAL the pinned κ from a non-origin source before passing the error through
-      const healed = expect ? await heal(rel, expect, axis, resp) : null;
+      const healed = expect && trustCache ? await heal(rel, expect, axis, resp) : null;
       return healed || withHeaders(resp.body, resp);
     }
 
-    // Law L5: re-derive the bytes against the pinned κ ON ITS AXIS; refuse a mismatch. Unpinned files pass.
-    if (expect) {
+    // Law L5: re-derive the bytes against the pinned κ ON ITS AXIS; refuse a mismatch. (κ-routes always;
+    // PATH requests in PROD. In DEV a pinned path is served FRESH — its closure pin is intentionally stale.)
+    if (expect && trustCache) {
       const buf = await resp.arrayBuffer();
       const got = axis === "blake3" ? blake3hex(new Uint8Array(buf)) : await sha256hex(buf);
       if (got !== expect) {                                   // tampered/wrong origin byte → SELF-HEAL: recover the SAME κ from a non-origin source, re-derived; only refuse if no source can
@@ -301,6 +310,7 @@ self.addEventListener("fetch", (event) => {
       try { (await caches.open(KCACHE)).put(kKey(axis, expect), withHeaders(buf.slice(0), resp)); } catch {}   // cache the VERIFIED (un-rewritten) bytes by κ — deduped, network-free next time
       return out;
     }
+    if (expect) return finalize(await resp.arrayBuffer(), resp, rel, { "x-holo-cache": "dev-fresh" });   // DEV path request: served fresh, never cached, never refused
     if (BASE !== "/" && HTMLISH(rel)) return finalize(await resp.arrayBuffer(), resp, rel);   // unpinned HTML still needs the subpath re-root
     return withHeaders(resp.body, resp);
   })());
