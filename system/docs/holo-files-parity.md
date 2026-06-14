@@ -1,5 +1,52 @@
 # Holo Files ⇄ Files (files-community/Files) — feature-parity matrix
 
+> **Gap-audit punch-list** (grounded in `../Hologram Apps/apps/files/index.html`, ~1000 lines, audited
+> 2026-06-14). What's DONE, what's MISSING/PARTIAL, prioritized. Unification C1–C3 (desktop ⇄ explorer,
+> one bidirectional model) is complete.
+>
+> **Already shipped:** 5 view modes (details/list/tiles/grid/columns) + per-folder memory · sidebar ·
+> breadcrumb · tabs · **dual-pane** · sort/group/filter · search (local + web) · QuickLook · properties
+> pane · **κ Verify (L5)** · **tags** (colored, sidebar) · rename · new folder · delete (confirm) ·
+> compress/extract · share (κ link) · upload/download · materialize-from-κ · send-to-Holo-Cloud ·
+> basic keyboard nav (Backspace/Enter/Space) · multi-select + shift-range · **desktop unification**.
+>
+> **P0 — core parity, high value**
+> 1. **Cut / Copy / Paste file clipboard** (CopyItem·CutItem·PasteItem·PasteItemToSelection) — today only
+>    drag-move + "copy κ link" exist; no copy/cut/paste of items between folders.
+> 2. **Undo / Redo** (Undo·Redo) — none today (delete says "cannot be undone"). *Cheap win:* every edit
+>    already derives a new κ, so undo = previous κ.
+> 3. **Recycle Bin + restore** (DeleteItem→recycle · RestoreRecycleBin · EmptyRecycleBin) — delete is
+>    currently permanent; κ-adapt: a Recycle κ-folder.
+> 4. **Full keyboard map** (Rename=F2 · Ctrl+C/X/V · Ctrl+A select-all · Ctrl+Shift+N · arrow-key grid
+>    navigation) — only Backspace/Enter/Space exist now.
+> 5. **Command palette** (OpenCommandPalette) — missing.
+>
+> **P1 — familiar / expected**
+> 6. **Open with…** (OpenWith · OpenInIDE→Create studio) — missing; open is type-default only.
+> 7. **New file** (CreateFile) — model has it; no "New file" command in the UI (only New folder).
+> 8. **Real Favorites / Pin** (PinFolderToSidebar·Unpin) — the sidebar "Pinned" group is hardcoded to the
+>    first 3 locations; needs a real user pin action persisted as a κ list.
+> 9. **Show hidden / file-extension toggles** (ToggleShowHiddenItems·ToggleShowFileExtensions·ToggleDotFiles) — missing.
+> 10. **Box / rubber-band selection** (marquee) — missing (only click + shift/ctrl).
+> 11. **Editable address bar** (EditPath) — breadcrumb is read-only; the search box doubles as a κ resolver. Add type-a-path/κ-to-go.
+> 12. **Create shortcut** (CreateShortcut·PasteItemAsShortcut) — missing; κ-adapt: a tiny κ-ref object.
+>
+> **P2 — advanced / polish**
+> 13. **Set as wallpaper / background** (SetAs*) — missing here; reuse the shell's κ wallpaper system.
+> 14. **Image rotate** (RotateLeft/Right) — missing; κ-adapt: transform → new κ.
+> 15. **Compact overlay / PiP** (ToggleCompactOverlay) — missing.
+> 16. **Tabbed Properties dialog** (General·Details·Security→κ/owner·Customize) — today a single pane.
+> 17. **Git actions completeness** (Clone·Pull·Push·Sync·Init) — partial; route to Holo Gitea.
+> 18. **PlayAll** (a media folder → the player) — missing.
+>
+> **N/A (no κ/OS meaning):** FormatDrive · RunAsAdmin/AnotherUser/PowerShell · InstallDriver/Cert ·
+> NTFS alternate-data-streams · StorageSense (see the full table below for reasons).
+>
+> Suggested order: P0.2 Undo (cheapest, highest safety win) → P0.3 Recycle → P0.1 clipboard → P0.4 keymap
+> → P0.5 palette → P1. Each is an independently shippable slice.
+
+---
+
 **Purpose.** The single source of truth for re-creating [files-community/Files](https://github.com/files-community/Files)
 (MIT, C#/C++ WinUI 3 + Win32) as **Holo Files** — a κ-native explorer that unifies files, folders and
 the desktop. This matrix makes "strictly adhere / feature-complete" *provable*: every Files command
