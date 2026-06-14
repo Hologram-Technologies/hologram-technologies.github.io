@@ -42,21 +42,42 @@ const MIME = { html: "text/html", js: "text/javascript", mjs: "text/javascript",
 const mimeOf = (rel) => MIME[String(rel).split(".").pop().toLowerCase()] || "application/octet-stream";
 
 // ── SUBPATH REWRITE (the "served at /<repo>/" follow-up). The OS image's flat URL space is rooted at
-// the ORIGIN ("/_shared/…", "/usr/…", a module `import "/sbin/…"`). At a ROOT site BASE is "/" and those
-// already resolve; under a PROJECT site BASE is "/<repo>/os/" and an origin-absolute reference escapes the
-// SW scope and 404s. Fix it WHERE the bytes are served, deployment-agnostic: re-root every flat reference at
-// BASE as the HTML leaves the worker. Two mechanisms cover the two kinds of reference:
+// the ORIGIN ("/_shared/…", "/usr/…", a module `import "/sbin/…"`, a runtime `fetch("/.holo/…")`). At a ROOT
+// site BASE is "/" and those already resolve; under a PROJECT site BASE is "/<repo>/os/" and an origin-absolute
+// reference escapes the SW scope and 404s. Fix it WHERE the bytes are served, deployment-agnostic: re-root
+// every flat reference at BASE as the HTML leaves the worker. THREE mechanisms cover the three kinds of ref:
 //   · an import map re-roots ES-module specifiers (static + dynamic import) — the only thing that can.
-//   · an attribute rewrite re-roots origin-absolute src/href on <script>/<link>/<img>/…
+//   · an attribute rewrite re-roots origin-absolute src/href present in the static HTML.
+//   · a tiny inline shim re-roots the RUNTIME boundaries the first two can't reach — fetch()/XHR/Worker URLs
+//     and src/href on nodes inserted at runtime (innerHTML icons, thumbnails) — onto BASE.
 // Applied to a COPY *after* κ re-derivation, so Law L5 still guards the canonical bytes (the pins are on the
 // un-rewritten file). No-op at a root deploy (BASE === "/"), so dev + user-site boots are byte-unchanged.
 const HTMLISH = (rel) => rel === "" || rel.endsWith("/") || /\.html?$/i.test(rel);
 const SUBPATH_PREFIXES = ["_shared", "sbin", "usr", "lib", "lib64", "pkg", "apps", "etc", "var", "opt", "srv", "boot", "bin", "home", "root", "mnt", "media", ".well-known", ".holo"];
+const TOPLEVEL_MODULES = ["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-uor.mjs", "holo-object.mjs", "holo-wire.mjs", "holo-sw.js", "holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "holo-heal-boot.mjs", "browser-sw.js"];   // OS modules imported as a bare-root specifier "/holo-*.mjs" (fhsMap routes them to sbin/ or lib/)
+const FLAT_SRC = "^/(?:" + SUBPATH_PREFIXES.map((p) => p.replace(/[.]/g, "\\.")).join("|") + ")(?:/|$)";   // matches an origin-absolute OS-flat path "/usr/…", "/.holo/…" — NOT a BASE-rooted one
 const reroot = (v) => (typeof v === "string" && /^\/(?!\/)/.test(v)) ? BASE + v.slice(1) : v;   // origin-absolute "/x" → "BASE x"; leaves //, https://, bare, relative alone
 const rerootMap = (obj) => { const o = {}; for (const [k, v] of Object.entries(obj || {})) o[reroot(k)] = (v && typeof v === "object") ? rerootMap(v) : reroot(v); return o; };
+// subpathBoot() — the inline runtime shim, as a classic <script> that runs before any module. It wraps
+// fetch/XHR/Worker and watches the DOM, re-rooting only origin-absolute OS-flat paths (FLAT_SRC) onto BASE;
+// everything else (relative, BASE-rooted, cross-origin) passes untouched. Self-contained, no deps.
+function subpathBoot() {
+  return "<script>(function(){try{"
+    + "var B=" + JSON.stringify(BASE) + ";if(B===\"/\")return;self.__HOLO_BASE__=B;"
+    + "var F=new RegExp(" + JSON.stringify(FLAT_SRC) + ");"
+    + "function rr(u){try{var x=new URL(u,document.baseURI);if(x.origin===location.origin&&F.test(x.pathname)){x.pathname=B+x.pathname.slice(1);return x.href;}}catch(e){}return u;}"
+    + "var of=self.fetch;if(of)self.fetch=function(i,n){try{i=(i&&i.url)?new Request(rr(i.url),i):rr(i);}catch(e){}return of.call(this,i,n);};"
+    + "try{var xo=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){try{arguments[1]=rr(u);}catch(e){}return xo.apply(this,arguments);};}catch(e){}"
+    + "try{var W=self.Worker;if(W){self.Worker=function(u,o){return new W(rr(u),o);};self.Worker.prototype=W.prototype;}}catch(e){}"
+    + "function fx(el){if(el&&el.getAttribute)[\"src\",\"href\"].forEach(function(a){var v=el.getAttribute(a);if(v&&F.test(v))el.setAttribute(a,B+v.slice(1));});}"
+    + "function sc(n){if(n.nodeType===1){fx(n);if(n.querySelectorAll)[].forEach.call(n.querySelectorAll(\"[src],[href]\"),fx);}}"
+    + "try{new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var a=ms[i].addedNodes;for(var j=0;j<a.length;j++)sc(a[j]);}}).observe(document.documentElement||document,{childList:true,subtree:true});}catch(e){}"
+    + "}catch(e){}})();</script>";
+}
 function subpathHtml(text) {
   if (BASE === "/") return text;                                  // root/user site: flat refs already resolve
   const prefixImports = {}; for (const p of SUBPATH_PREFIXES) prefixImports["/" + p + "/"] = BASE + p + "/";
+  for (const n of TOPLEVEL_MODULES) prefixImports["/" + n] = BASE + n;   // bare-root module files (e.g. import "/holo-resolver.mjs")
   // Merge into the page's OWN import map if it has one (a SECOND map is a hard error), re-rooting its
   // existing absolute targets/scopes too; else inject a fresh map. Either way the prefix entries re-root
   // every flat ES-module specifier the OS code imports.
@@ -68,10 +89,9 @@ function subpathHtml(text) {
     if (map.scopes) merged.scopes = rerootMap(map.scopes);
     return `<script type="importmap">${JSON.stringify(merged)}</script>`;
   });
-  if (!mapped) {
-    const tag = `<script type="importmap">${JSON.stringify({ imports: prefixImports })}</script>`;
-    out = /<head[^>]*>/i.test(out) ? out.replace(/<head[^>]*>/i, (m) => m + tag) : tag + out;   // import map must precede any module <script>
-  }
+  // Inject the runtime shim FIRST (classic, before any module), then a fresh import map if the page had none.
+  const inject = subpathBoot() + (mapped ? "" : `<script type="importmap">${JSON.stringify({ imports: prefixImports })}</script>`);
+  out = /<head[^>]*>/i.test(out) ? out.replace(/<head[^>]*>/i, (m) => m + inject) : inject + out;
   out = out.replace(/(\s(?:src|href))="\/(?!\/)/g, (_m, attr) => attr + '="' + BASE);   // origin-absolute src/href attrs → BASE-rooted (skips // protocol-relative)
   return out;
 }
