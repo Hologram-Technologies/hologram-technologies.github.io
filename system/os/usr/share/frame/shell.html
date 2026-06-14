@@ -1718,16 +1718,27 @@
       const projDesk = () => { try { return (desktop.doc().world || []).map(projDeskNode); } catch (e) { return []; } };
       const bcastDesk = () => { try { deskBC.postMessage({ t: "tree", tree: projDesk() }); } catch (e) {} };
       // explorer → shell mutations (bidirectional unification): apply to the desktop world, re-broadcast
-      function mutateDesk(id, fn) { const n = findNode(id); if (n) { patch(id, fn); return true; } let done = false; desktop.change((d) => { (function walk(arr) { for (const x of arr || []) { if (x.id === id) { fn(x); done = true; return; } if (x.items) walk(x.items); } })(d.world); }); return done; }
-      function deleteDesk(id) { if (findNode(id)) { removeNode(id); return; } desktop.change((d) => { (function walk(arr) { for (let i = 0; i < (arr || []).length; i++) { if (arr[i].id === id) { arr.splice(i, 1); return true; } if (arr[i].items && walk(arr[i].items)) return true; } return false; })(d.world); }); }
+      // Desktop structural ops run on a PLAIN snapshot, then wholesale-replace the world — the same
+      // proven idiom restoreWorld() uses on every tab switch. This sidesteps CvRDT-proxy quirks with
+      // nested splice and keeps mkdir/rename/delete/move (incl. nested + every move transition) robust.
+      function deskApply(fn) { desktop.change((d) => { const w = JSON.parse(JSON.stringify(d.world || [])); fn(w); d.world.splice(0, d.world.length); for (const n of w) d.world.push(n); }); }
+      function plainFind(w, id) { for (const x of w || []) { if (x.id === id) return x; if (x.items) { const r = plainFind(x.items, id); if (r) return r; } } return null; }
+      function plainPull(w, id) {
+        const ti = w.findIndex((x) => x.id === id); if (ti >= 0) { const c = w[ti]; w.splice(ti, 1); return c; }
+        let out = null; (function rec(arr) { for (const x of arr) { if (x.items) { const ix = x.items.findIndex((it) => it.id === id); if (ix >= 0) { out = x.items[ix]; x.items.splice(ix, 1); return true; } if (rec(x.items)) return true; } } return false; })(w); return out;
+      }
+      function plainDrop(w, nd, destId) {
+        if (!destId) { nd.x = 90 + w.length * 30; nd.y = 80 + w.length * 26; nd.state = "normal"; if (nd.kind === "folder") nd.frameless = true; w.push(nd); return true; }
+        const f = plainFind(w, destId); if (f && f.kind === "folder") { f.items = f.items || []; delete nd.x; delete nd.y; f.items.push(nd); return true; } return false;
+      }
       function applyDeskOp(m) {
         try {
           if (m.op === "mkdir") {
-            if (m.parentId) mutateDesk(m.parentId, (n) => { if (n.kind === "folder") { n.items = n.items || []; n.items.push({ id: nid(), kind: "folder", title: m.name || "untitled folder", items: [], collapsed: true }); } });
+            if (m.parentId) deskApply((w) => { const f = plainFind(w, m.parentId); if (f && f.kind === "folder") { f.items = f.items || []; f.items.push({ id: nid(), kind: "folder", title: m.name || "untitled folder", items: [], collapsed: true }); } });
             else { const id = newFolder(); if (m.name) patch(id, (n) => { n.title = m.name; }); }
-          } else if (m.op === "rename") { mutateDesk(m.id, (n) => { n.title = m.name; n.name = m.name; }); }
-          else if (m.op === "delete") { deleteDesk(m.id); }
-          else if (m.op === "move" && m.parentId && m.id !== m.parentId) { const src = findNode(m.id); if (src) bundle(m.id, m.parentId); }
+          } else if (m.op === "rename") { deskApply((w) => { const n = plainFind(w, m.id); if (n) { n.title = m.name; n.name = m.name; } }); }
+          else if (m.op === "delete") { deskApply((w) => { plainPull(w, m.id); }); }
+          else if (m.op === "move" && m.id !== m.parentId) { deskApply((w) => { const nd = plainPull(w, m.id); if (nd) { if (!plainDrop(w, nd, m.parentId || "")) plainDrop(w, nd, ""); } }); }
           bcastDesk();
         } catch (e) { try { console.warn("desk op:", e); } catch (x) {} }
       }
