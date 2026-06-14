@@ -241,28 +241,39 @@ function sortNodes(list) {
 }
 
 // ── the public VFS — list any node's children, read bytes, verify (Law L5) ──────────────────
+// NOTE: indices 0..4 are referenced by the explorer chrome (at=… deep-links, holospaces count).
+// New roots are APPENDED to keep those stable — Desktop is index 5.
 export const ROOTS = () => [
-  node({ name: "Desktop", path: "desktop:", kind: "location", source: "desktop", writable: true, role: "your holospace desktop — folders · apps · objects (the SAME model the shell shows)", glyph: "desktop" }),
   node({ name: "Home", path: "/home/user", kind: "location", source: "opfs", writable: true, role: "your writable space · OPFS", glyph: "home" }),
   node({ name: "This Hologram", path: "/", kind: "location", source: "fhs", role: "the OS as a content-addressed graph", glyph: "drive" }),
   node({ name: "Holospaces", path: "holospaces:", kind: "location", source: "holospaces", role: "every app, by κ", glyph: "apps" }),
   node({ name: "OS Runtime", path: "os:", kind: "location", source: "osruntime", role: "the OS-wide closure · path → κ", glyph: "chip" }),
   node({ name: "Holo Cloud", path: "cloud:", kind: "location", source: "cloud", writable: true, role: "your private, end-to-end-encrypted cloud · synced with Holo Cloud", glyph: "cloud", _cloudPath: "/" }),
+  node({ name: "Desktop", path: "desktop:", kind: "location", source: "desktop", writable: true, role: "your holospace desktop — folders · apps · objects (the SAME model the shell shows)", glyph: "desktop" }),
 ];
 
 // ── DESKTOP unification — the explorer and the shell's desktop are ONE model ─────────────────
 // The shell holds the live desktop world (folders · app-icons · objects). It broadcasts a plain
 // projection over BroadcastChannel "holo-desk:tree" (and answers {t:"req"}); the explorer mirrors
 // it as the "Desktop" location. No second model — a live projection of the one desktop world.
-let _deskTree = null, _deskWaiters = [];
+let _deskTree = null, _deskWaiters = [], _deskListeners = [];
 if (typeof BroadcastChannel !== "undefined") {
   try {
     const dbc = new BroadcastChannel("holo-desk:tree");
-    dbc.onmessage = (e) => { const m = e.data; if (m && m.t === "tree") { _deskTree = m.tree || []; const w = _deskWaiters; _deskWaiters = []; w.forEach((r) => r(_deskTree)); } };
+    dbc.onmessage = (e) => { const m = e.data; if (m && m.t === "tree") { _deskTree = m.tree || []; const w = _deskWaiters; _deskWaiters = []; w.forEach((r) => r(_deskTree)); _deskListeners.forEach((cb) => { try { cb(_deskTree); } catch (x) {} }); } };
     dbc.postMessage({ t: "req" });
     W.__holoDeskBC = dbc;
   } catch (e) {}
 }
+const deskPost = (msg) => { try { W.__holoDeskBC && W.__holoDeskBC.postMessage(msg); } catch (e) {} };
+const deskIdOf = (loc) => (loc && loc._deskId) || (loc && loc.path && loc.path.startsWith("desktop:") ? loc.path.slice("desktop:".length) : "");
+// ── desktop MUTATIONS (explorer → shell): the shell applies them to the one desktop world, then
+//    re-broadcasts the tree (Law: the desktop owns the model; the explorer requests changes). ──
+export const deskMkdir = (locOrParent, name) => deskPost({ t: "op", op: "mkdir", parentId: deskIdOf(locOrParent), name: name || "untitled folder" });
+export const deskRename = (n, name) => deskPost({ t: "op", op: "rename", id: deskIdOf(n), name });
+export const deskRemove = (n) => deskPost({ t: "op", op: "delete", id: deskIdOf(n) });
+export const deskMove = (n, destLoc) => deskPost({ t: "op", op: "move", id: deskIdOf(n), parentId: deskIdOf(destLoc) });
+export function onDesktopChange(cb) { _deskListeners.push(cb); return () => { const i = _deskListeners.indexOf(cb); if (i >= 0) _deskListeners.splice(i, 1); }; }
 function deskTree(timeout = 700) {
   if (_deskTree) return Promise.resolve(_deskTree);
   return new Promise((res) => { _deskWaiters.push(res); try { W.__holoDeskBC && W.__holoDeskBC.postMessage({ t: "req" }); } catch (e) {}
@@ -506,6 +517,7 @@ export async function compressToZip(nodes, destDirPath = "/home/user", zipName =
 }
 
 export const HoloFiles = { ROOTS, list, read, verify, realPath, platform, skinFor, mkdir, createFile, writeFile, rename, remove, moveHome, copyHome, fmtBytes, mimeOf, kindOf, extOf, FHS,
-  sendToCloud, cloudShareLink, searchAll, resolveInput, materialize, webSearch, freeSpace, extractZip, compressToZip };
+  sendToCloud, cloudShareLink, searchAll, resolveInput, materialize, webSearch, freeSpace, extractZip, compressToZip,
+  deskMkdir, deskRename, deskRemove, deskMove, onDesktopChange };
 if (typeof window !== "undefined") window.HoloFiles = HoloFiles;
 export default HoloFiles;

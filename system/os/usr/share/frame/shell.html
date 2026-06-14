@@ -1608,6 +1608,7 @@
             const items = [];
             if (n.appRef) items.push({ label: "Open app", ic: "▶", act: () => { const a = catalog.find((x) => x.id === n.appRef); if (a) launch(a); } }, { label: "Detach app → folder", ic: "⊟", act: () => detachFolderApp(id) });
             else items.push({ label: n.collapsed ? "Open" : "Collapse to icon", ic: n.collapsed ? "📂" : "📁", act: () => n.collapsed ? openFolder(id) : collapseFolder(id) });
+            if (!n.appRef) items.push({ label: "Open in Files", ic: "🗂", act: () => openHolospaceApp("org.hologram.HoloFiles", "go=desktop:" + id, "Holo Files") });   // deep-link → the SAME folder in the explorer (unification)
             items.push({ label: "Rename", ic: "✎", act: () => { if (n.collapsed || n.appRef) renameFolder(id); else { collapseFolder(id); setTimeout(() => renameFolder(id), 60); } } });
             items.push({ label: "Assign to app…", ic: "◆", act: () => pickFolderApp(id, e.clientX, e.clientY) });
             if (!n.appRef) items.push({ label: "Change icon…", ic: "🎨", act: () => pickFolderIcon(id, e.clientX, e.clientY) }, { label: "Change cover…", ic: "🖼", act: () => setFolderCover(id) }, { label: "Unbundle all", ic: "📂", act: () => unbundleAll(id) });
@@ -1716,7 +1717,21 @@
         items: (n.kind === "folder" && Array.isArray(n.items)) ? n.items.map(projDeskNode) : undefined });
       const projDesk = () => { try { return (desktop.doc().world || []).map(projDeskNode); } catch (e) { return []; } };
       const bcastDesk = () => { try { deskBC.postMessage({ t: "tree", tree: projDesk() }); } catch (e) {} };
-      deskBC.onmessage = (e) => { if (e.data && e.data.t === "req") bcastDesk(); };
+      // explorer → shell mutations (bidirectional unification): apply to the desktop world, re-broadcast
+      function mutateDesk(id, fn) { const n = findNode(id); if (n) { patch(id, fn); return true; } let done = false; desktop.change((d) => { (function walk(arr) { for (const x of arr || []) { if (x.id === id) { fn(x); done = true; return; } if (x.items) walk(x.items); } })(d.world); }); return done; }
+      function deleteDesk(id) { if (findNode(id)) { removeNode(id); return; } desktop.change((d) => { (function walk(arr) { for (let i = 0; i < (arr || []).length; i++) { if (arr[i].id === id) { arr.splice(i, 1); return true; } if (arr[i].items && walk(arr[i].items)) return true; } return false; })(d.world); }); }
+      function applyDeskOp(m) {
+        try {
+          if (m.op === "mkdir") {
+            if (m.parentId) mutateDesk(m.parentId, (n) => { if (n.kind === "folder") { n.items = n.items || []; n.items.push({ id: nid(), kind: "folder", title: m.name || "untitled folder", items: [], collapsed: true }); } });
+            else { const id = newFolder(); if (m.name) patch(id, (n) => { n.title = m.name; }); }
+          } else if (m.op === "rename") { mutateDesk(m.id, (n) => { n.title = m.name; n.name = m.name; }); }
+          else if (m.op === "delete") { deleteDesk(m.id); }
+          else if (m.op === "move" && m.parentId && m.id !== m.parentId) { const src = findNode(m.id); if (src) bundle(m.id, m.parentId); }
+          bcastDesk();
+        } catch (e) { try { console.warn("desk op:", e); } catch (x) {} }
+      }
+      deskBC.onmessage = (e) => { const m = e.data; if (!m) return; if (m.t === "req") bcastDesk(); else if (m.t === "op") applyDeskOp(m); };
       setTimeout(bcastDesk, 0);   // initial publish for any explorer already open
       bc.onmessage = (e) => {
         const m = e.data; if (!m || m.from === ME) return;
