@@ -1116,6 +1116,41 @@
         addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen) toggle(false); });
       })();
 
+      // ── Holo Identity — the ONE bundle. Tapping the identity chip opens identity.html (you · wallet ·
+      //    agents · security) as a right-docked panel. Re-mounts each open; bridges its messages. ──
+      (function wireIdentity() {
+        const chip = $("#ident"); if (!chip) return;
+        const st = document.createElement("style");
+        st.textContent = "#identity-panel{position:fixed;inset:0;z-index:9100;pointer-events:none}" +
+          "#identity-panel .ip-scrim{position:absolute;inset:0;background:color-mix(in srgb,#000 40%,transparent);opacity:0;transition:opacity .28s}" +
+          "#identity-panel .ip-dock{position:absolute;top:0;right:0;height:100%;width:min(400px,94vw);background:var(--holo-bg,#0b0d12);border-left:1px solid var(--holo-border);box-shadow:-26px 0 70px -22px rgba(0,0,0,.6);transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);overflow:hidden}" +
+          "#identity-panel .ip-dock iframe{width:100%;height:100%;border:0;display:block;background:var(--holo-bg,#0b0d12)}" +
+          "#identity-panel.on{pointer-events:auto}#identity-panel.on .ip-scrim{opacity:1}#identity-panel.on .ip-dock{transform:translateX(0)}";
+        document.head.appendChild(st);
+        let panel, frame, open = false, busy = false;
+        function build() {
+          panel = document.createElement("div"); panel.id = "identity-panel";
+          panel.innerHTML = '<div class="ip-scrim"></div><aside class="ip-dock" role="dialog" aria-label="Holo Identity"><iframe title="Holo Identity"></iframe></aside>';
+          document.body.appendChild(panel); frame = panel.querySelector("iframe");
+          panel.querySelector(".ip-scrim").onclick = () => toggle(false);
+        }
+        function toggle(next) {
+          if (!panel) build();
+          next = next === undefined ? !open : next;
+          if (next) { if (busy || open) return; busy = true; frame.src = "/identity.html?t=" + Date.now(); void panel.offsetWidth; panel.classList.add("on"); open = true; busy = false; }
+          else { if (!open) return; panel.classList.remove("on"); open = false; setTimeout(() => { if (!open && frame) frame.src = "about:blank"; }, 340); }
+        }
+        // tapping the chip (avatar/name OR the Sign-in affordance) opens the one identity surface
+        chip.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); toggle(); });
+        addEventListener("keydown", (e) => { if (e.key === "Escape" && open) toggle(false); });
+        addEventListener("message", (e) => {
+          if (e.origin !== location.origin || !e.data || e.data.type !== "holo-identity") return;
+          const a = e.data.action;
+          if (a === "open-wallet") { toggle(false); const wb = $("#wallet-btn"); if (wb) setTimeout(() => wb.click(), 360); }
+          else if (a === "signed-in" || a === "signed-out") { setTimeout(() => location.reload(), 200); }
+        });
+      })();
+
       // ── Chrome-grade tab manipulation (in-page, serverless): drag to REARRANGE · drag DOWN to DETACH
       //    (the app pops out as a window on your Home desktop) · drag onto another tab to GROUP. Many
       //    holospaces live in ONE browser tab — no tab sprawl; native windows come later. ──────────────
@@ -2426,11 +2461,14 @@
           /* RIGHT DOCK (the Holo Wallet gesture): the studio is a body-level aside on the right; the live
              desktop/holospace PERSISTS to its left (squeezed by --holo-aside-w) and is edited IN PLACE —
              zero mirror. Slides in from the edge; ONE column (chrome on top · code-or-chat below). */
+          /* visibility is NOT gated on a transition (a backgrounded tab pauses transitions, which would
+             leave an opacity-faded dock stuck invisible). The dock is opaque on mount; only the transform
+             SLIDE animates — a paused slide just leaves it a harmless ~26px off, still fully visible. */
           #create-studio{position:fixed;top:0;right:0;bottom:0;left:auto;width:clamp(380px,36vw,520px);z-index:60;
             display:flex;flex-direction:column;background:#0a0a0b;color:#e7e7ea;
-            font:14px/1.5 var(--win-font,ui-sans-serif,system-ui);opacity:0;transform:translateX(24px);
-            box-shadow:-24px 0 64px -34px #000;transition:opacity .34s ease,transform .42s cubic-bezier(.2,.85,.25,1)}
-          #create-studio.on{opacity:1;transform:none}
+            font:14px/1.5 var(--win-font,ui-sans-serif,system-ui);transform:translateX(26px);
+            box-shadow:-24px 0 64px -34px #000;transition:transform .42s cubic-bezier(.2,.85,.25,1)}
+          #create-studio.on{transform:none}
           /* the composer fills the dock; the mirror stage is GONE (the live desktop is the canvas). The
              chrome bar (Preview/Code · κ · Publish) sits on top in either mode; PREVIEW hides the code area
              (watch the live desktop), CODE hides the chat (edit source) — both apply live via liveEdit. */
@@ -2444,26 +2482,25 @@
           .cs-devpane{position:absolute;inset:0;display:none;width:100%;height:100%;border:0;background:var(--holo-bg,#0b0d10)}
           #create-studio.dev .cs-devpane{display:block}
           #create-studio.dev .cs-codeview{display:none}
-          .cs-chead{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid #1d1d21}
+          .cs-chead{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid #1d1d21}
           .cs-logo{width:27px;height:27px;border-radius:8px;background:linear-gradient(135deg,#ff7eb3,#ff8a5b);flex:0 0 auto}
           .cs-brand{display:flex;flex-direction:column;line-height:1.25;min-width:0}
           .cs-brand b{font-size:14px;display:flex;align-items:center;gap:5px}
           .cs-brand small{font-size:11px;color:#7c7c84;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .cs-chead .ic{margin-left:auto;display:flex;gap:12px;color:#7c7c84;font-size:16px}
-          .cs-thread{flex:1;overflow-y:auto;min-height:0;padding:8px 2px 4px;display:flex;flex-direction:column}
-          .cs-msg{padding:2px 18px;margin:12px 0;font-size:14px;line-height:1.65;color:#d6d6da}
-          .cs-msg.assistant{border-left:2px solid #2f6fed55;font-style:italic}
-          .cs-msg .k{font-style:normal;font-family:var(--holo-font-mono,ui-monospace,monospace);color:#7c9cff;font-size:12px}
+          .cs-thread{flex:1;overflow-y:auto;min-height:0;padding:6px 14px 4px;display:flex;flex-direction:column}
+          .cs-msg{padding:0;margin:14px 0;font-size:14px;line-height:1.7;color:#d2d2d8}
+          .cs-msg.assistant{font-style:italic;color:#cfcfd6}
+          .cs-msg .k{font-style:normal;font-family:var(--holo-font-mono,ui-monospace,monospace);color:#7c9cff;font-size:12.5px}
           .cs-msg.user{align-self:flex-end;font-style:normal;background:#1d1d22;border:1px solid #28282e;border-radius:13px;
-            padding:9px 13px;margin:12px 14px;max-width:84%}
-          .cs-acts{display:flex;gap:15px;color:#62626a;font-size:14px;margin:6px 0 0 18px}
-          .cs-acts span{cursor:pointer}.cs-acts span:hover{color:#c4c4c8}
+            padding:9px 13px;margin:14px 0;max-width:86%}
           .cs-suggest{display:flex;align-items:center;gap:8px;margin:6px 14px 2px;font-size:13px;color:#9a9aa2}
           .cs-suggest .gp{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
           .cs-suggest .pill{background:#2563eb;color:#fff;border-radius:8px;padding:4px 11px;cursor:pointer;font-weight:500}
           .cs-suggest .x{cursor:pointer;color:#7c7c84}
-          .cs-composer{margin:10px 12px 12px;border:1px solid #2a2a31;border-radius:17px;background:#161619;padding:11px 13px;
-            transition:border-color .15s}
+          .cs-composer{margin:10px 14px 14px;border:1px solid #2a2a31;border-radius:16px;background:#161619;padding:12px 14px;
+            transition:border-color .15s,box-shadow .15s}
+          .cs-composer:focus-within{box-shadow:0 0 0 3px #2563eb22}
           .cs-composer:focus-within{border-color:#3a3a44}
           .cs-composer textarea{width:100%;background:transparent;border:0;outline:none;color:#e7e7ea;resize:none;
             font:14px/1.5 var(--win-font,ui-sans-serif,system-ui);min-height:24px;max-height:170px;display:block}
@@ -2481,26 +2518,24 @@
           .cs-send:hover{background:#1d5fe0}
           /* ── TOP of the dock: the chrome bar (Preview/Code · κ · Publish), and the Code editor when in
                 CODE mode. In PREVIEW mode this is just the slim bar; the live desktop is the canvas. ── */
-          .cs-preview{order:1;flex:0 0 auto;display:flex;flex-direction:column;min-width:0;position:relative;
-            opacity:0;transition:opacity .4s ease .06s}
+          .cs-preview{order:1;flex:0 0 auto;display:flex;flex-direction:column;min-width:0;position:relative}
           #create-studio.code .cs-preview{flex:1 1 auto;min-height:0}
-          #create-studio.on .cs-preview{opacity:1}
-          .cs-chrome{display:flex;align-items:center;gap:9px;padding:5px 11px}
-          .cs-seg{display:flex;background:#161619;border:1px solid #232327;border-radius:8px;padding:2px}
+          .cs-chrome{display:flex;align-items:center;gap:8px;padding:12px 14px 10px}
+          .cs-seg{display:flex;background:#161619;border:1px solid #232327;border-radius:8px;padding:2px;flex:0 0 auto}
           .cs-seg button{border:0;background:transparent;color:#9a9aa2;font:600 12px var(--win-font,system-ui);
             padding:3px 11px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px}
           .cs-seg button.on{background:#26262c;color:#eaf2ff}
           .cs-iconbtn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#9a9aa2;cursor:pointer;font-size:15px}
           .cs-iconbtn:hover{background:#1c1c20;color:#e7e7ea}
-          .cs-addr{display:flex;align-items:center;gap:9px;background:#161619;border:1px solid #232327;border-radius:8px;
-            padding:3px 11px;color:#9a9aa2;font-size:12px;flex:0 1 360px;margin:0 auto;min-width:0}
+          .cs-addr{display:flex;align-items:center;gap:8px;background:#161619;border:1px solid #232327;border-radius:8px;
+            height:28px;box-sizing:border-box;padding:0 10px;color:#9a9aa2;font-size:12px;flex:1 1 auto;margin:0;min-width:0}
           .cs-addr .dot{width:7px;height:7px;border-radius:50%;background:#3fb950;flex:0 0 auto;transition:transform .2s}
           .cs-addr .dot.beat{animation:csBeat .5s ease}
           @keyframes csBeat{0%{transform:scale(1)}45%{transform:scale(1.9);box-shadow:0 0 9px #3fb950}100%{transform:scale(1)}}
           .cs-addr .u{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
             font-family:var(--holo-font-mono,ui-monospace,monospace)}
           .cs-addr .ai{cursor:pointer;color:#8a8a92}.cs-addr .ai:hover{color:#e7e7ea}
-          .cs-cact{margin-left:auto;display:flex;align-items:center;gap:9px}
+          .cs-cact{display:flex;align-items:center;gap:8px;flex:0 0 auto}
           .cs-act{display:flex;align-items:center;gap:5px;height:28px;padding:0 11px;line-height:1;box-sizing:border-box;background:#161619;border:1px solid #232327;color:#c7c7cf;border-radius:8px;font:600 12px var(--win-font,system-ui);cursor:pointer}
           .cs-act:hover{background:#1d1d22;color:#fff}
           .cs-avatar{width:27px;height:27px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);flex:0 0 auto}
@@ -2508,9 +2543,9 @@
           .cs-done{display:flex;align-items:center;gap:6px;background:#2563eb;color:#fff;border:0;border-radius:8px;
             height:28px;padding:0 12px;line-height:1;font:600 12px var(--win-font,system-ui);cursor:pointer;box-sizing:border-box}
           .cs-done:hover{background:#1d5fe0}
-          .cs-import{display:flex;align-items:center;gap:6px;background:#21262d;color:#c9d1d9;border:1px solid #30363d;
+          .cs-import{display:flex;align-items:center;gap:5px;white-space:nowrap;background:#21262d;color:#c9d1d9;border:1px solid #30363d;
             border-radius:8px;height:28px;padding:0 11px;line-height:1;font:600 12px var(--win-font,system-ui);
-            cursor:pointer;box-sizing:border-box;margin-right:8px}
+            cursor:pointer;box-sizing:border-box}
           .cs-import:hover{background:#2d333b;border-color:#3d444d;color:#fff}
           /* the seamless import field — slides down under the chrome bar; paste anything, Enter */
           .cs-importbar{position:absolute;left:0;right:0;top:0;z-index:6;display:flex;gap:8px;align-items:center;
@@ -2554,16 +2589,6 @@
           .cs-status .seg.k:hover{text-decoration:underline}
           .cs-status .dotk{width:6px;height:6px;border-radius:50%;background:#7ee787;display:inline-block}
           .cs-roview{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#7c7c84;padding:30px;font-size:13px}
-          .cs-tools{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;gap:3px;
-            background:#16161acc;border:1px solid #2a2a31;border-radius:13px;padding:5px;backdrop-filter:blur(10px);opacity:0;
-            transition:opacity .3s ease .2s}
-          #create-studio.on .cs-tools{opacity:1}
-          .cs-tools button{width:32px;height:32px;border:0;background:transparent;color:#b0b0b8;border-radius:9px;cursor:pointer;font-size:15px}
-          .cs-tools button:hover,.cs-tools button.on{background:#26262c;color:#fff}
-          .cs-fab{position:absolute;bottom:26px;width:38px;height:38px;border-radius:11px;background:#16161acc;border:1px solid #2a2a31;
-            color:#b0b0b8;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(10px);font-size:16px;opacity:0;transition:opacity .3s ease .2s}
-          #create-studio.on .cs-fab{opacity:1}
-          .cs-fab.l{left:26px}.cs-fab.r{right:26px}
           [data-holo-motion="reduced"] #create-studio,[data-holo-motion="reduced"] #create-studio *{transition:none!important;animation:none!important}
         `; document.head.appendChild(s);
       }
@@ -2584,16 +2609,12 @@
         const k0 = r.editable ? repo.publishSource({ name: node.name || "app", source: r.src }).id : (node.appDid || node.kappa || "");
         const kShort = "holo://" + String(k0).split(":").pop().slice(0, 12) + (k0 ? "…" : "");
         const addr = r.mirror.url || kShort;
-        const welcome = r.editable
-          ? 'This is <b style="font-style:normal">' + csEsc(name) + '</b> — live on your device, content-addressed at <span class="k">' + kShort + '</span>. Paste HTML/CSS/JS and I render it instantly, or open <b style="font-style:normal">Code</b> to edit. Every change derives a new κ.'
-          : 'This is <b style="font-style:normal">' + csEsc(name) + '</b> — an external page, mirrored live. Open it with ↗. (It has no local source to edit here.)';
         const ov = document.createElement("div"); ov.id = "create-studio";
         ov.innerHTML =
           '<div class="cs-chat">' +
             '<div class="cs-chead"><div class="cs-logo"></div><div class="cs-brand"><b>' + csEsc(name) + ' <span style="color:#7c7c84">⌄</span></b>' +
               '<small>Previewing live</small></div><div class="ic"><span title="History">⟲</span><span title="Panel">▥</span></div></div>' +
-            '<div class="cs-thread" id="cs-thread"><div class="cs-msg assistant">' + welcome + '</div>' +
-              '<div class="cs-acts"><span title="Undo">↺</span><span title="Good">👍</span><span title="Bad">👎</span><span title="Copy" id="cs-copy">⧉</span><span title="More">⋯</span></div></div>' +
+            '<div class="cs-thread" id="cs-thread"></div>' +   // starts empty — the thread fills as you build
             '<div class="cs-suggest" id="cs-suggest" style="display:none"><div class="gp"><span>⌕</span><span>Review your holospace</span><span title="info">ⓘ</span></div>' +
               '<span class="pill" id="cs-sug-go">Review</span><span class="x" id="cs-sug-x">✕</span></div>' +
             '<div class="cs-composer"><textarea id="cs-ask" rows="1" placeholder="Ask Holo to build…" spellcheck="false"></textarea>' +
@@ -2620,16 +2641,14 @@
               '</div>' +
               '<iframe class="cs-devpane" id="cs-dev" title="Holo DevTools" allow="clipboard-write"></iframe>' +   // DEV mode: the κ-CDP-backed Chrome DevTools (ADR-0095), lazily mounted
             '</div>' +
-            '<div class="cs-fab l" title="Menu">≡</div><div class="cs-fab r" title="Search">⌕</div>' +
-            '<div class="cs-tools"><button class="on" title="Select">▭</button><button title="Text">T</button>' +
-              '<button title="Draw">✎</button><button title="Comment">💬</button></div>' +
           '</div>';
         document.body.appendChild(ov);   // a BODY-LEVEL right dock (like Wallet) — the desktop persists beside it
         document.body.classList.add("cs-active");   // Create mode → hide the desktop Privacy shield
         // squeeze the desktop so the live holospace PERSISTS to the dock's left (the Holo Wallet gesture);
         // nudge a few resize ticks so floating widgets re-anchor to the new centre across the glide.
-        void ov.offsetWidth;
+        void ov.offsetWidth;   // flush the opacity:0/translateX start state so the slide-in transition fires
         document.documentElement.style.setProperty("--holo-aside-w", (ov.offsetWidth || 460) + "px");
+        ov.classList.add("on");   // REVEAL the dock DIRECTLY (not via rAF — rAF is throttled when the tab is backgrounded; the obsolete mirror-FLIP lift no longer reveals it)
         (function reflow() { let n = 0; const t = setInterval(function () { try { dispatchEvent(new Event("resize")); } catch (e) {} if (++n >= 8) clearInterval(t); }, 45); })();
         const $$ = (id) => ov.querySelector("#" + id);
         const fa = $$("cs-fa"), fb = $$("cs-fb"), stage = $$("cs-stage"), dot = $$("cs-dot"), urlEl = $$("cs-url");
@@ -2741,11 +2760,11 @@
           const code = v === "code", dev = v === "dev";
           ov.classList.toggle("code", code); ov.classList.toggle("dev", dev);
           cv.classList.toggle("on", code);
-          tabCode.classList.toggle("on", code); if (tabDev) tabDev.classList.toggle("on", dev); tabPv.classList.toggle("on", !code && !dev);
+          if (tabCode) tabCode.classList.toggle("on", code); if (tabDev) tabDev.classList.toggle("on", dev); tabPv.classList.toggle("on", !code && !dev);
           if (dev) mountDev();
           if (code) setTimeout(function () { if (studio.focusCode) studio.focusCode(); else if (ta) ta.focus(); }, 0);
         }
-        tabPv.onclick = function () { view("pv"); }; tabCode.onclick = function () { view("code"); }; if (tabDev) tabDev.onclick = function () { view("dev"); };
+        tabPv.onclick = function () { view("pv"); }; if (tabCode) tabCode.onclick = function () { view("code"); }; if (tabDev) tabDev.onclick = function () { view("dev"); };
         // ── chat: post messages; markup is rendered live (a real, local build) ──
         function addMsg(role, html) { const m = document.createElement("div"); m.className = "cs-msg " + role; m.innerHTML = html; thread.appendChild(m); thread.scrollTop = thread.scrollHeight; return m; }
         // ── Build: a natural-language prompt → the OS-wide trinity GENERATES a holospace (ADR-0087),
@@ -3074,7 +3093,7 @@
             const m = addMsg("assistant", 'Building <b style="font-style:normal">' + csEsc(v) + '</b>…');
             holoBuild(v, m).catch(function (e) { m.innerHTML = 'Build error: ' + csEsc(String((e && e.message) || e)); });
           }
-          else if (studio.editable) setTimeout(function () { addMsg("assistant", 'I render any HTML/CSS/JS you send instantly — paste a snippet and watch it go live, or open <b style="font-style:normal">Code</b> to edit. Each change is content-addressed.'); }, 120);
+          else if (studio.editable) setTimeout(function () { addMsg("assistant", 'I render any HTML/CSS/JS you send instantly — paste a snippet and watch it go live, or switch to <b style="font-style:normal">Dev</b> to inspect. Each change is content-addressed.'); }, 120);
           else setTimeout(function () { addMsg("assistant", "This page is mirrored from an external source — there's nothing to edit locally. Open it with ↗, or create a fresh holospace from Home."); }, 120);
         }
         $$("cs-send").onclick = send;
@@ -3084,7 +3103,7 @@
         // ── chrome actions ──
         $$("cs-refresh").onclick = function () { const f = fa.classList.contains("on") ? fa : fb; if (r.mirror.url) f.src = f.src; else { studio.lastK = null; render(studio.applyLive ? ta.value : r.src); } toast("↻ reloaded"); };
         $$("cs-ext").onclick = function () { const u = r.mirror.url || linkFor(studio.lastSavedK); if (u) window.open(u, "_blank", "noopener"); };
-        $$("cs-done").onclick = function () { closeCreate(true); };        $$("cs-copy").onclick = function () { try { navigator.clipboard.writeText(linkFor(studio.lastSavedK)); toast("link copied ✦"); } catch (e) {} };
+        $$("cs-done").onclick = function () { closeCreate(true); };
         // ── Import (left of Publish): paste a GitHub URL · holo:// κ · did:holo app/object id → it loads
         //    LIVE into the studio (preview + editable source), ready to remix or Publish. Seamless: one
         //    field, Enter, done — auto-detects + runs the governed pipeline via window.HoloImportAny. ──
@@ -3119,7 +3138,6 @@
         $$("cs-import").onclick = csImport;
         $$("cs-sug-x").onclick = function () { $$("cs-suggest").remove(); };
         $$("cs-sug-go").onclick = function () { addMsg("assistant", "Your holospace is one self-contained, content-addressed object (holo://…) — it loads instantly, runs serverless, and any guest can open it with no sign-in. Solid foundation. ✦"); };
-        [...ov.querySelectorAll(".cs-tools button")].forEach(function (b) { b.onclick = function () { ov.querySelectorAll(".cs-tools button").forEach(function (x) { x.classList.remove("on"); }); b.classList.add("on"); }; });
         ov.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); closeCreate(true); } });
         // ── the lift: FLIP the live window into the preview pane (content-continuous) ──
         const fromRect = r.winEl ? r.winEl.getBoundingClientRect() : null;

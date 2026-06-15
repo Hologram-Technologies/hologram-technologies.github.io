@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script src="coi-serviceworker.min.js"></script>
+    <title>Holo Identity</title>
+    <meta name="description" content="Holo Identity — one sovereign, self-verifying key for you and your agents. Post-quantum. Serverless. The wallet and your agents are facets of this one identity." />
+    <style>
+      :root { color-scheme: dark;
+        --bg: var(--holo-bg, #0b0d12); --ink: var(--holo-ink, #e8edf6); --dim: var(--holo-ink-dim, #9aa6b8);
+        --line: var(--holo-border, #232a36); --acc: var(--holo-accent, #4f8cff); --good: var(--holo-ok, #2fcf6f);
+        --surface: color-mix(in srgb, var(--ink) 5%, transparent); --surface2: color-mix(in srgb, var(--ink) 9%, transparent);
+        --r: var(--holo-radius, 14px); --r-sm: var(--holo-radius-sm, 10px); --pill: 999px;
+        --s-2xs: .382rem; --s-xs: .618rem; --s-s: 1rem; --s-m: 1.618rem; --s-l: 2.618rem; }
+      * { box-sizing: border-box; } html, body { height: 100%; margin: 0; }
+      body { background: radial-gradient(130% 90% at 50% -12%, color-mix(in srgb, var(--acc) 18%, var(--bg)) 0%, var(--bg) 55%);
+        color: var(--ink); font: 1rem/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden; }
+      .mono { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; }
+      a { color: var(--acc); text-decoration: none; } button { font: inherit; }
+      main { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--s-m) var(--s-s) var(--s-l); max-width: 30rem; width: 100%; margin: 0 auto; }
+
+      /* identity header */
+      .who { display: flex; align-items: center; gap: var(--s-s); margin-bottom: var(--s-2xs); }
+      .av { width: var(--s-l); height: var(--s-l); border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center;
+        font-weight: 800; font-size: 1.25rem; color: #06210f; background: var(--good); }
+      .who h1 { margin: 0; font-size: 1.4rem; font-weight: 800; letter-spacing: -.02em; }
+      .who .role { color: var(--dim); font-size: .82rem; font-weight: 600; }
+      .lede { color: var(--dim); margin: 0 0 var(--s-m); max-width: 26rem; }
+      .kbadges { display: flex; flex-wrap: wrap; gap: var(--s-2xs); margin: var(--s-xs) 0 var(--s-m); }
+      .badge { display: inline-flex; align-items: center; gap: .35rem; font: 600 .76rem ui-sans-serif; color: var(--ink);
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--pill); padding: .28rem .66rem; }
+      .badge.ok { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+      .badge .k { color: var(--dim); cursor: pointer; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* facet rows */
+      .row { display: flex; align-items: center; gap: var(--s-s); width: 100%; text-align: left; cursor: pointer;
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: var(--s-s); margin-bottom: var(--s-2xs); color: var(--ink); transition: border-color .14s, background .14s; }
+      .row:hover { border-color: var(--acc); background: var(--surface2); }
+      .row .ic { width: 2.2rem; height: 2.2rem; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; background: var(--surface2); color: var(--acc); }
+      .row .ic svg { width: 1.2rem; height: 1.2rem; } .row .m { flex: 1 1 auto; min-width: 0; }
+      .row .m b { display: block; font-size: .98rem; } .row .m span { color: var(--dim); font-size: .82rem; }
+      .row .chev { color: var(--dim); } .row .chev svg { width: 1.1rem; height: 1.1rem; }
+      h3 { font: 700 .74rem ui-sans-serif; color: var(--dim); text-transform: uppercase; letter-spacing: .07em; margin: var(--s-m) 0 var(--s-xs); }
+
+      .agent { display: flex; align-items: center; gap: .7rem; padding: .6rem .2rem; border-bottom: 1px solid var(--line); }
+      .agent:last-of-type { border-bottom: 0; } .agent .d { width: 1.6rem; height: 1.6rem; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; background: var(--surface2); font-size: .8rem; }
+      .agent .m { flex: 1 1 auto; min-width: 0; } .agent .m b { display: block; font-size: .9rem; } .agent .m span { color: var(--dim); font-size: .74rem; }
+      .agent .caps { color: var(--dim); font-size: .72rem; white-space: nowrap; }
+      .empty { color: var(--dim); font-size: .88rem; padding: .4rem .2rem .8rem; }
+
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; font: 600 .95rem ui-sans-serif;
+        color: #06210f; background: var(--good); border: 0; border-radius: var(--r-sm); padding: .72rem 1.1rem; cursor: pointer; width: 100%; transition: filter .12s; }
+      .btn:hover { filter: brightness(1.06); } .btn.ghost { color: var(--ink); background: transparent; border: 1px solid var(--line); }
+      .btn.ghost:hover { border-color: var(--acc); } .btn svg { width: 1.05rem; height: 1.05rem; }
+      .foot { display: flex; gap: var(--s-2xs); margin-top: var(--s-m); }
+      .note { color: var(--dim); font-size: .8rem; margin-top: var(--s-s); }
+      .hidden { display: none !important; }
+
+      /* mint sheet */
+      .scrim { position: fixed; inset: 0; background: color-mix(in srgb, #000 55%, transparent); display: none; place-items: end center; z-index: 40; }
+      .scrim.on { display: grid; }
+      .sheet { width: 100%; max-width: 30rem; background: var(--bg); border: 1px solid var(--line); border-bottom: 0;
+        border-radius: var(--holo-radius-lg, 18px) var(--holo-radius-lg, 18px) 0 0; padding: var(--s-m) var(--s-s) var(--s-l); }
+      .sheet h2 { margin: 0 0 .3rem; font-size: 1.15rem; } label { display: block; font-size: .8rem; color: var(--dim); margin: var(--s-s) 0 .3rem; }
+      input { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .6rem .7rem; }
+      .caplist { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+      .cap { font: 600 .8rem ui-sans-serif; color: var(--dim); background: var(--surface); border: 1px solid var(--line); border-radius: var(--pill); padding: .3rem .7rem; cursor: pointer; }
+      .cap.on { color: #06210f; background: var(--good); border-color: var(--good); }
+      .err { color: var(--holo-danger, #ff6b6b); font-size: .82rem; min-height: 1.1em; margin-top: .4rem; }
+      .toast { position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--line);
+        border-radius: var(--pill); padding: .5rem .9rem; font-size: .85rem; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
+      .toast.on { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- GUEST -->
+      <section id="guest" class="hidden">
+        <svg width="56" height="56" viewBox="0 0 24 24" style="margin:1rem 0"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--acc)"/><stop offset="1" stop-color="var(--good)"/></linearGradient></defs><path fill="url(#g)" d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z"/></svg>
+        <h1 style="margin:.2rem 0">Sign in to Hologram</h1>
+        <p class="lede">One tap creates your key — for every app, chain and agent. No password, no server. Only you can re-derive it.</p>
+        <button class="btn" id="guestSignin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 11c0 3 0 5-1 7M7.5 8.5a5 5 0 0 1 9 2.5c0 3-.5 5-1.5 7M5 11a7 7 0 0 1 12-5"/></svg> Sign in with Biometrics</button>
+        <p class="err" id="guestErr"></p>
+      </section>
+
+      <!-- SIGNED IN -->
+      <section id="me" class="hidden">
+        <div class="who"><span class="av" id="av">·</span><div><h1 id="label">—</h1><div class="role" id="role">Player</div></div></div>
+        <p class="lede">One sovereign key. Your wallet and your agents are facets of it — nothing acts beyond what you grant.</p>
+        <div class="kbadges">
+          <span class="badge ok" id="pqBadge" title="Verified by re-derivation (Ed25519 ‖ ML-DSA, Law L5)">🛡 Post-quantum secured</span>
+          <span class="badge"><span class="k mono" id="kid" title="your identity address — tap to copy">did:holo —</span></span>
+        </div>
+
+        <button class="row" id="walletRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><path d="M16 13h.01"/></svg></span><span class="m"><b>Wallet</b><span>Hold and move value — every chain, one tap to sign.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+
+        <h3>Agents</h3>
+        <p class="note" style="margin:0 0 .4rem">Helpers that act for you — each gets only the powers you grant, and only you can revoke.</p>
+        <div id="agentList"></div>
+        <button class="btn ghost" id="newAgent" style="margin-top:.6rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> New agent</button>
+
+        <h3>Security</h3>
+        <button class="row" id="backupRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M5 11V8a7 7 0 0 1 14 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg></span><span class="m"><b>Recovery phrase</b><span>Your only backup — save it offline. There is no reset.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+
+        <div class="foot"><button class="btn ghost" id="signout">Sign out</button></div>
+        <p class="note">Sign out clears this session only. Your key stays sealed on this device until you unlock it again.</p>
+      </section>
+    </main>
+
+    <!-- mint agent -->
+    <div class="scrim" id="mintScrim"><div class="sheet">
+      <h2>New agent</h2>
+      <p class="note" style="margin:.1rem 0 0">It gets its own key and only the powers you check — sealed so only it can read what you share.</p>
+      <label>Name</label><input id="agentName" placeholder="e.g. Scout" />
+      <label>Can</label>
+      <div class="caplist" id="caps"></div>
+      <p class="err" id="mintErr"></p>
+      <div class="foot"><button class="btn ghost" id="mintCancel">Cancel</button><button class="btn" id="mintGo">Create agent</button></div>
+    </div></div>
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+      import * as login from "/_shared/holo-login.mjs";
+      import { verifySession } from "/_shared/holo-identity.mjs";
+      import { teeAvailable, teeAssert, teeEnroll } from "/_shared/holo-webauthn.mjs";
+      import { mintNpc, delegate } from "/_shared/holo-delegate.mjs";
+
+      const $ = (id) => document.getElementById(id);
+      const show = (id) => { for (const s of document.querySelectorAll("main > section")) s.classList.add("hidden"); $(id).classList.remove("hidden"); };
+      const short = (k, n = 7) => { k = String(k || ""); return k.length > 2 * n + 3 ? k.slice(0, n) + "…" + k.slice(-n) : k; };
+      const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 1800); };
+      const copy = (s) => navigator.clipboard?.writeText(s).then(() => toast("copied"));
+      const AGENTS_KEY = (kappa) => "holo.agents:" + kappa;
+      const ALL_CAPS = ["read", "wallet:read", "q.agent", "schedule"];
+
+      let op = null, identity = null;
+
+      async function boot() {
+        try { const tok = JSON.parse(sessionStorage.getItem("holo.session") || "null"); identity = tok ? await verifySession(tok) : null; } catch {}
+        try { op = await login.currentOperator(); } catch {}
+        if (!op && (!identity || identity.guest)) return show("guest");
+        renderMe();
+      }
+
+      function renderMe() {
+        const label = (identity && identity.label) || (op && op.label) || "You";
+        const kappa = (identity && identity.operator) || (op && op.kappa) || "";
+        const pq = !!(identity && identity.pqPub);
+        const npc = identity && identity.subjectType === "npc";
+        $("av").textContent = (label[0] || "·").toUpperCase();
+        $("label").textContent = label;
+        $("role").textContent = npc ? "Agent" : "Player";
+        $("pqBadge").classList.toggle("hidden", !pq);
+        $("kid").textContent = short(kappa, 8); $("kid").onclick = () => copy(kappa);
+        renderAgents(kappa);
+        show("me");
+      }
+
+      function renderAgents(kappa) {
+        let list = []; try { list = JSON.parse(localStorage.getItem(AGENTS_KEY(kappa)) || "[]"); } catch {}
+        const el = $("agentList");
+        if (!list.length) { el.innerHTML = `<div class="empty">No agents yet. Create one to let it act for you — safely.</div>`; return; }
+        el.innerHTML = list.map((a) => `<div class="agent"><span class="d">${(a.name || "A")[0].toUpperCase()}</span><div class="m"><b>${a.name || "Agent"}</b><span class="mono">${short(a.kappa, 6)}</span></div><span class="caps">${(a.caps || []).join(" · ")}</span></div>`).join("");
+      }
+
+      // wallet is a facet — ask the shell to open it
+      $("walletRow").onclick = () => { try { window.parent.postMessage({ type: "holo-identity", action: "open-wallet" }, location.origin); } catch {} };
+      $("backupRow").onclick = () => toast("Recovery phrase opens in the Wallet → Settings");
+
+      // guest → biometric sign-in (mints the key)
+      $("guestSignin").onclick = async () => {
+        $("guestErr").textContent = "Creating your key…";
+        try {
+          if (!(await teeAvailable().catch(() => false))) throw new Error("no-bio");
+          const { credentialId, secret } = await teeEnroll({ name: "Hologram" });
+          const { principal } = await login.enroll({ label: "operator", secret, cred: credentialId });
+          const { openSession } = await import("/_shared/holo-identity.mjs");
+          sessionStorage.setItem("holo.session", JSON.stringify(await openSession(principal, { session: "primeos" })));
+          op = await login.currentOperator().catch(() => null);
+          try { window.parent.postMessage({ type: "holo-identity", action: "signed-in" }, location.origin); } catch {}
+          await boot();
+        } catch (e) { $("guestErr").textContent = /no-bio|WebAuthn|support/i.test(e.message) ? "Biometrics unavailable on this device." : (/cancel/i.test(e.message) ? "Cancelled — tap to try again." : ("Couldn't set up: " + e.message)); }
+      };
+
+      $("signout").onclick = () => {
+        try { sessionStorage.removeItem("holo.session"); } catch {}
+        try { window.parent.postMessage({ type: "holo-identity", action: "signed-out" }, location.origin); } catch {}
+        location.reload();
+      };
+
+      // ── mint an agent (re-authorise to sign the grant) ──
+      let selCaps = new Set(["read"]);
+      function openMint() {
+        selCaps = new Set(["read"]); $("agentName").value = ""; $("mintErr").textContent = "";
+        $("caps").innerHTML = ALL_CAPS.map((c) => `<button class="cap ${selCaps.has(c) ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
+        for (const b of $("caps").querySelectorAll(".cap")) b.onclick = () => { const c = b.dataset.c; selCaps.has(c) ? selCaps.delete(c) : selCaps.add(c); b.classList.toggle("on"); };
+        $("mintScrim").classList.add("on");
+      }
+      $("newAgent").onclick = openMint;
+      $("mintCancel").onclick = () => $("mintScrim").classList.remove("on");
+      $("mintGo").onclick = async () => {
+        const name = $("agentName").value.trim() || "Agent";
+        if (!op) return ($("mintErr").textContent = "Sign in first.");
+        $("mintErr").textContent = "Authorising…";
+        try {
+          // re-authorise the Player to SIGN the grant (the key never leaves the vault)
+          let secret;
+          if (op.cred && await teeAvailable().catch(() => false)) secret = (await teeAssert({ credentialId: op.cred })).secret;
+          else { secret = prompt("Enter your passphrase to authorise this agent"); if (!secret) throw new Error("cancelled"); }
+          const pc = await login.unlock(op.kappa, secret);            // → the signing principal (Ed25519 ‖ ML-DSA)
+          const npc = mintNpc(name);
+          const caps = [...selCaps];
+          await delegate(pc, npc, { capabilities: caps, notAfter: null });
+          const key = AGENTS_KEY(op.kappa);
+          let list = []; try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
+          list.unshift({ name, kappa: npc.kappa, caps, at: new Date().toISOString() });
+          localStorage.setItem(key, JSON.stringify(list));
+          $("mintScrim").classList.remove("on"); renderAgents(op.kappa); toast("Agent created · " + name);
+        } catch (e) { $("mintErr").textContent = /cancel|wrong|denied/i.test(e.message) ? "Couldn't authorise — try again." : ("Failed: " + e.message); }
+      };
+
+      boot();
+    </script>
+  </body>
+</html>

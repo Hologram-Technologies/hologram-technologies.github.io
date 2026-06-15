@@ -20,6 +20,7 @@ const CLOSURE = join(OS, "etc/os-closure.json");
 // serve-rel key → physical FHS path (mirrors holo-serve-fhs fhsOf, inverted).
 const FILES = {
   "login.html": "usr/share/frame/login.html",
+  "identity.html": "usr/share/frame/identity.html",            // the unified Holo Identity bundle (you · wallet · agents · security)
   "splash.html": "usr/share/frame/splash.html",                 // Plymouth splash (absorbed into OS2)
   "workspace.html": "usr/share/frame/workspace.html",           // the Monaco workspace loader (absorbed)
   "_shared/holo-qml.mjs": "usr/lib/holo/holo-qml.mjs",          // the QML engine the greeter runs on

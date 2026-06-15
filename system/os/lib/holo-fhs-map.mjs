@@ -26,7 +26,7 @@ export function fhsMap(rel) {
   if (rel === "apps-witness.result.json") return "srv/apps-witness.result.json";
   // The boot chain: rEFInd (boot.html at root) → Plymouth (splash.html) → SDDM (login.html)
   // → shell (home.html) → editor (workspace.html). All in /usr/share/frame.
-  if (["shell.html", "holospace.html", "home.html", "find.html", "splash.html", "login.html", "workspace.html", "pair.html", "omni.html"].includes(rel)) return "usr/share/frame/" + rel;   // shell.html = the ONE canonical holospace shell (in OS2); omni.html = the κ-resolve lab
+  if (["shell.html", "holospace.html", "home.html", "find.html", "splash.html", "login.html", "identity.html", "workspace.html", "pair.html", "omni.html"].includes(rel)) return "usr/share/frame/" + rel;   // shell.html = the ONE canonical holospace shell (in OS2); identity.html = the unified Holo Identity bundle; omni.html = the κ-resolve lab
   if (rel === "boot.html") return "boot/index.html";                  // the bootloader, served at the root
   // …the bootloader's OWN asset subdir is physically boot/boot/, so `boot/<x>` maps one level deeper.
   if (/^boot\/(refind\.conf|boot-manifest\.json|icons\/|themes\/|make-boot\.mjs)/.test(rel)) return "boot/boot/" + rel.slice(5);
