@@ -62,6 +62,19 @@ capability, ceremony = trust graph, PROV-O = PC→NPC lineage). External agentic
 (NANDA-aligned: Hermes, OpenClaw, Virtuals OS, MOCA Proof) are **interop targets via export/import**,
 **not** bundled integrations — anything unwired is a stated gap, never an implied verification.
 
+### 1b. The wallet is the single canonical authentication gateway (LANDED, verified)
+
+κ-identity and wallet authentication are **one thing**, because they are one seed seen two ways: the
+BIP-39 seed projects to the identity κ (`did:holo:sha256` of its Ed25519 pubkey) AND every chain's
+wallet key (BIP-44) AND the content-addressed vault (`vaultKappa`). So **unlocking the wallet IS signing
+in to Hologram**: one biometric (or passphrase) opens the one vault and, from the SAME κ + secret,
+(a) hands the wallet its seed and (b) establishes the OS session — `openSession(principal)` signed by the
+same seed-derived principal (hybrid Ed25519 ‖ ML-DSA), written to `holo.session`. There is no second
+login. Self-sealed (vault committed by content address, on-device, no custody), self-verified (κ, vault,
+session, and every address re-derive — Law L5), sovereign (biometric/seed only, post-quantum). Wired in
+`apps/wallet/index.html` (`signInOS()` on both unlock paths + the guest mint); verified live: a wallet
+unlock writes a hybrid-signed `holo.session` whose operator κ equals the wallet's κ.
+
 ## Laws & standards
 
 holospaces **L1** (identity is content), **L3** (idempotent κ), **L4** (anchor-by-reference, vendored
