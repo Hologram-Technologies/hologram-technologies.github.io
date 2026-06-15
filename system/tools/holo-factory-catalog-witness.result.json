@@ -1,0 +1,27 @@
+{
+  "spec": "Holo Factory CANDIDATE CATALOG (ADR-0097) — the live enumeration of fixable targets so triage locates WITHOUT the user passing candidates (the last seam to fully hands-off on real holospaces): with a catalog wired, Q.factory.watch('keep my notepad working') finds the surface and closes the loop unattended. The catalog COMPOSES injected providers (each { list() → candidates }) plus a self-register seam target(id, spec), de-duping by id. Built-ins: liveEditProvider (every live mounted holospace surface — write via the governed agentEdit door, read via an injected κ→source resolver) and kRouteResolver (κ → source over /.holo/sha256/<hex>, Law L5). HONEST: no resolver ⇒ read omitted, no agentEdit ⇒ write omitted (never fakes a door).",
+  "authority": "W3C DID Core · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical form), the κ-route) · the Holo Constitution conscience gate (ADR-033, agentEdit default-deny) · Holo Live Edit (the ONE governed edit primitive) · Holo Factory ADR-0097 · Holo Mind ADR-0081 (injected-faculty isomorphism) · holospaces Laws L1/L4/L5",
+  "witnessed": true,
+  "covers": [
+    "holo-factory",
+    "candidate-catalog",
+    "self-register",
+    "live-targets",
+    "hands-off",
+    "law-l4",
+    "law-l5"
+  ],
+  "checks": {
+    "mergesAndDedups": true,
+    "targetSelfRegister": true,
+    "liveEditWrite": true,
+    "liveEditRead": true,
+    "honestDegrade": true,
+    "kRouteResolver": true,
+    "catalogFeedsTriage": true
+  },
+  "notes": {
+    "core": "os/usr/lib/holo/q/holo-factory-catalog.mjs",
+    "basis": "createCatalog(providers)+target(); liveEditProvider over HoloLiveEdit; kRouteResolver over /.holo/sha256/"
+  }
+}

@@ -24,7 +24,7 @@
 export const DREAM_MODEL = {
   id: "DREAM_V0_INSTRUCT_7B", label: "Dream v0 Instruct 7B (diffusion)",
   modelType: "llm", decode: "diffusion", params: "7B", format: "holo-q4",
-  backbone: "qwen2.5-7b", maskTokenId: 151666, eosTokenId: 151643, provisioned: false,
+  backbone: "qwen2.5-7b", maskTokenId: 151666, eosTokenId: 151643, provisioned: true,
   source: "Dream-org/Dream-v0-Instruct-7B (Apache-2.0)",
 };
 
@@ -123,11 +123,14 @@ export function createDiffusionProvider(cfg = {}) {
 export function describeDiffusion() {
   return {
     model: DREAM_MODEL, defaults: DEFAULTS, decodeFamily: "diffusion",
-    provisioned: false, kernel: "webgpu-masked-diffusion (pending, ADR-0083)",
-    controlPlane: "deterministic (schedule + confidence-ranked unmask + greedy) — re-derivable here",
+    provisioned: true, kernel: "webgpu-masked-diffusion (LIVE — /apps/q gpu.diffuse, q3f κ-object; bind via bindDiffusionEngine)",
+    controlPlane: "deterministic (schedule + confidence-ranked unmask + greedy) — re-derivable here; the GPU half is engine.diffuse",
+    modes: "infill (both-sided surgical edit — proven) · generate (append; coherent when steps≈length)",
     validated: {
-      where: "Dream-7B int4 (group-64 RTN), CPU reference, holo_dream_q4_stream.py",
-      determinism: "temperature=0 → byte-identical output κ across two passes (2a67997cb7b1725d)",
+      where: "Dream-7B q3f κ-object on the custom WebGPU engine, operator HW (Brave), /apps/q _bench.html",
+      determinism: "temperature=0 → byte-identical output ids across two passes (__dfdet ✓ IDENTICAL)",
+      infill: "function add(a,b){ return [??] } → return a + b; — both-sided, correct, ~4.5s",
+      generation: "coherent at steps≈length (48step/48tok); collapses if steps≪length (greedy small-quant)",
       property: "satisfies κ(prompt ⊕ model ⊕ params ⊕ engine) → κ(output); pass count fixed by steps",
     },
     receipt: "decode-agnostic — completion() seals the SAME PROV-O InferenceReceipt (params commit to the schedule)",
@@ -143,4 +146,26 @@ export async function bindDiffusionBrain(cfg = {}) {
   return Q.useBrain(createDiffusionProvider(cfg));
 }
 
-export default { DREAM_MODEL, DEFAULTS, schedule, decode, createDiffusionProvider, describeDiffusion, bindDiffusionBrain };
+// bindDiffusionEngine(opts) → make the seam LIVE on the real WebGPU engine. The decode() loop above is the
+// pure, Node-re-derivable CONTROL PLANE (the receipt spec); THIS loads its hardware half —
+// holo-q-diffusion-engine.mjs → /apps/q core engine.diffuse, the Dream-7B q3f κ-object on the custom
+// WebGPU engine (cross-repo, mirror of holo-voice-gpu-brain.mjs). Exposes window.HoloQDiffusion with
+// infill()/generate(). Infill (both-sided surgical edit) is the on-HW-proven, differentiated mode — the
+// FIRST capability wired (short spans, deterministic, ~4.5s); long-form generation rides the same engine.
+// Returns the engine handle, or a structured reason if WebGPU/engine load fails (never fakes — Law L5).
+export async function bindDiffusionEngine(opts = {}) {
+  const g = (typeof window !== "undefined") ? window : globalThis;
+  try {
+    const mod = await import("./holo-q-diffusion-engine.mjs");
+    const eng = mod.createDiffusionEngine(opts);
+    if (opts.preload) await eng.load(opts.onProgress);                 // optional eager κ-object build
+    g.HoloQDiffusion = eng;                                            // the edit/infill door + console handle
+    const Q = g.HoloQVAC;
+    if (Q && typeof Q.useDiffusion === "function") { try { Q.useDiffusion(eng); } catch (e) {} }   // façade hook if present (optional)
+    return { connected: true, engine: eng, handle: "window.HoloQDiffusion" };
+  } catch (e) {
+    return { connected: false, reason: String((e && e.message) || e) };
+  }
+}
+
+export default { DREAM_MODEL, DEFAULTS, schedule, decode, createDiffusionProvider, describeDiffusion, bindDiffusionBrain, bindDiffusionEngine };

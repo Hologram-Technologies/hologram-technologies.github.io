@@ -1,0 +1,26 @@
+{
+  "spec": "Holo Factory SEMANTIC TRIAGE (ADR-0097) — the factory finds the target itself. A natural-language signal is embedded (EmbeddingGemma-300m, the OS's verified embedder) and matched BY MEANING against the live candidate surfaces, not by keyword — so the user states intent ('the add function is broken', 'keep my notepad working') and the factory LOCATES what to fix or watch, then the tender registers a check for it. Pure given the injected embed(); deterministic cosine ranking ⇒ re-derivable. HONEST (Law L5): nothing above the similarity threshold ⇒ NO target — it reports it can't locate, it does not guess (mirrors never-fakes-green).",
+  "authority": "W3C DID Core · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical form)) · EmbeddingGemma-300m (ADR-0096, the verified any-browser embedder) · Holo Factory ADR-0097 · Holo Mind ADR-0081 (injected-faculty isomorphism) · holospaces Laws L1/L4/L5",
+  "witnessed": true,
+  "covers": [
+    "holo-factory",
+    "semantic-triage",
+    "embedding-locate",
+    "never-guesses",
+    "self-locating",
+    "law-l4",
+    "law-l5"
+  ],
+  "checks": {
+    "ranksByMeaning": true,
+    "locateThreshold": true,
+    "honestNoGuess": true,
+    "deterministic": true,
+    "discoverRegisters": true,
+    "discoverThenFix": true
+  },
+  "notes": {
+    "core": "os/usr/lib/holo/q/holo-factory-triage.mjs",
+    "basis": "createTriage{embed} → rank/locate; tender.discover() registers the located check; live embedder = HoloVoice.embed (EmbeddingGemma)"
+  }
+}

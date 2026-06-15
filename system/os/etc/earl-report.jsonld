@@ -64,7 +64,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
@@ -110,7 +110,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
@@ -202,7 +202,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -794,6 +794,29 @@
         "dcterms:title": "Hologram OS"
       },
       "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-shared-ref",
+        "dcterms:title": "SHARED-REF INTEGRITY — no silent κ drift: every app's content-addressed _shared reference (`src=\"/.holo/sha256/<hex>\" data-holo-shared=\"<name>\"`) pins the CURRENT bytes of the lib it names. When a canonical _shared lib is edited its κ moves; an app still pinning the old hex then 404s on the κ-route (which re-derives from disk, Law L5) and 409s under the content-verify Service Worker in production — the lib never loads, its global is undefined, and the app throws at runtime with NO build-time error (the failure mode that broke Holo Terms). This witness re-derives κ(name) for every data-holo-shared ref across all served app HTMLs and fails closed on any mismatch, so seal drift goes red at the gate instead of silently dark in the browser. The read-only twin of repin-shared-refs.mjs (the one-command heal); green here ⟺ `repin-shared-refs --check` is clean"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
         "@id": "https://hologram.os/conformance/os2#holo-route",
         "dcterms:title": "ROUTING PLANE — typed semantic streams (Holo Route, ADR-0069): the THIRD composition boundary, the *data* boundary, beside Holo Link's *call* boundary (ADR-0060) and Holo Orchestrate's *collaboration* boundary (ADR-0045). A pipeline is a content-addressed dataflow graph of deterministic κ-transforms — `pipe(a).to(b).to(c)` — whose SEAMS are type-checked by re-derivation BEFORE a byte flows (a type-mismatched seam, or a stage missing its entry export, is refused at assembly with a precise message); the HOST is the pipe — it lowers a typed value (i32 · str · bytes) into a stage's OWN linear memory and lifts the result back, the canonical-ABI lift/lower at the stage boundary (Holo Link's isolated-component model); each stage runs as a verifiable κ-transform accepted only after re-deriving its κ (Law L5); a shared (stageκ ⊕ inputκ) is an O(1) rebind (Law L3); the conscience gates each stage dispatch (ADR-0033, fail-closed); and the whole run SEALS as one self-verifying PROV-O κ any peer re-runs with no server — a tampered stage OR a tampered seal refuses the whole pipeline. Being an object, the pipeline is shareable · ownable · settleable · delegable. The UNIX pipe, typed and verifiable; mint nothing"
       },
@@ -823,7 +846,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
@@ -1553,6 +1576,167 @@
         "dcterms:title": "Hologram OS"
       },
       "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-devtools-cdp",
+        "dcterms:title": "Holo DevTools — the κ-CDP backend (ADR-0095): the F12 developer environment, native to the substrate and equally usable by humans, AI agents, and Holo Q. The vendored Chrome devtools-frontend is the cheap UI half (a CDP client over a Connection); this is the load-bearing half — a PURE dispatcher that speaks a faithful SUBSET of the Chrome DevTools Protocol where every handle (nodeId · backendNodeId · objectId · requestId) is an ALIAS for a κ, so it is witnessed in Node against the REAL substrate (holo-object + holo-scene) with no browser. DOM domain ⇄ the scene manifest tree (ADR-0089): #document → holo-scene → one holo-object node per placed κ-object, each carrying its κ (Law L1), and the node ⇄ κ map round-trips (backendNodeId ⇄ κ) and RE-DERIVES identically from the content-addressed scene order (Law L1/L5). Network domain = the κ-stream timeline (the differentiator, not HTTP): each requestId IS a κ, and the response carries the substrate columns — axis (sha256/blake3) · found · the L5 verify badge (resolve + verifyDeep) — which goes RED on a tampered κ (re-derivation refuses it, Law L5). Runtime.evaluate is FAIL-CLOSED through the injected conscience (no gate → refused; a blocking gate refuses; an accepting gate routes through Q and seals a PROV-O-shaped receipt — who · verb · effect κ), mirroring Q.agent (ADR-0091, Law L4). ONE backend, THREE doors with no forked logic: humans speak raw CDP (serve) over the cross-frame bus, AI agents call the MCP tool adapter (devtools_query_dom/_inspect/_network/_eval) which returns a self-verifying JSON-LD/UOR envelope (schema.org ⊕ PROV-O ⊕ DID), NOT a raw CDP frame — CDP stays the human door's PRIVATE transport (the §7 T1 resolution that backs the 100%-W3C claim) — and Holo Q calls a first-class inspect verb; all three land on the SAME dispatch. Unmapped methods degrade gracefully (a clean 'unsupported', a faithful SUBSET); repeat inspection of an unchanged κ is stable (the κ-memo IS the cache, Law L3). Witnessed tools/holo-devtools-cdp-witness.mjs (14/14). DESIGN STAGE: this is the backend spine (Bet B); the vendored-frontend mount + transport bind, the remaining domains (CSS/Sources/Memory/Performance/Application), and the dedicated #holo-devtools-conform W3C row are the staged remainder of ADR-0095's 8-stage plan"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-widgets-modes",
+        "dcterms:title": "The four preset desktop widget MODES (Focused · Learn · Work · Play) are beautiful, golden-ratio-true compositions wired to REAL holo-native widgets and apps — no mockups, no dead tiles. Each is a curated scene over the Holo Widgets runtime (holo-widgets.js defineScene, {mode:true}); the right-click desktop switch (HoloWidgets.setMode) is NON-DESTRUCTIVE — leaving a mode saves its own per-mode board and the sticky Q voice orb survives every switch (ADR-0088/0089 per-holospace boards). GOLDEN RATIO is the discipline, not decoration: one φ width ladder (hero:secondary:header = φ:φ = 400:247:153) sizes every tile and makes the primary:secondary split φ:1; widgets place on the real golden cuts (the upper line 0.382 and the complementary lower line 0.618, ratio φ) and focal heroes centre on the golden gridline via GPX, never dead-centre; margins are the existing φ³ MARGIN (Play relaxes one φ-step). FOCUSED is truly minimal — one hero (your intention note) on the focal point (0.382), a focus timer on 0.618, the time held quietly; no quote, three tiles, vast calm. LEARN is a φ:1 two-column study space (a reading/notes surface over a sprint timer · resources · Q as a copilot launch tile), distinct from Work. WORK is a workspace — to-do hero + schedule + the machine in the header — with REAL app launch tiles (Files · Code · Wallet, opened by org.hologram id through window.HoloShell.openApp) anchoring the lower-left, the bottom-right kept clear for the orb. PLAY puts the vinyl disc up front on the focal point with roomier margins. The new `launch` widget is the only app surface on the calm board — it opens the live holospace (or summons Q) via the shell's own launcher, no iframe; its label holds the 16px readability floor (ADR-0057, max(--holo-font-min,…)). FIRST BOOT lands first-time users in Focused (seedFirstRun → setMode('focused')). Witnessed tools/holo-widgets-modes-witness.mjs (19/19) — re-derives the φ ladder + golden cuts numerically and source-asserts every scene composes real widgets, the launch tiles open real apps, the switch is non-destructive, and the floor holds."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:failed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-widgets-snap",
+        "dcterms:title": "The Holo Widgets SNAP ENGINE — seamless, delightful, magnetic position anchoring for every object on a holospace tab, powered by interact.js (MIT) vendored UNMODIFIED. Dragging or resizing any widget snaps to (1) SIBLING edges + centres (Figma-style alignment across all objects on the tab), (2) the canvas GOLDEN anchors — the φ gridlines 0.382/0.618, the margins, the centre — and (3) a fine pixel grid; the pull is magnetic within a small range and releases cleanly beyond it (non-sticky). interact.js is THE engine: vendored at /_shared/interactjs/interact.min.js by tools/vendor-interactjs.mjs (the npm tarball pinned by sha512 integrity, Law L5), loaded SAME-ORIGIN (no CDN at runtime, SW-content-verified), driving interact.draggable + resizable + the snap/grid/restrictSize modifiers; positions stay the runtime's own {x,y,w,h} (clampPos bounds, dock/aside/top aware) so the scene manifest + reflow are untouched (ADR-0088/0089). GRACEFUL by construction — the hand-rolled pointer drag stays active (gated by w._snap) when interact is absent or offline, so it always works; tap and double-tap are preserved (interact distinguishes tap from drag). Applies to EVERY widget on EVERY tab and engages from the first frame once interact is ready. ATLAS96 stays the CONTENT coordinate (κ→cell), not a screen grid — the layout grid is a separate, resolution-independent φ lattice (the right tool for pixels). Witnessed tools/holo-widgets-snap-witness.mjs (14/14) — re-derives the nearest-line snap math numerically (magnetic-within-range · null-beyond · sibling+golden targets) and source-asserts the interact.js wiring, the integrity pin, the same-origin load, the gated fallback, and tap/double preservation. (The vendored bundle is a .gitignored content artifact; the witness is bundle-independent.)"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-devtools-bridge",
+        "dcterms:title": "Holo DevTools — the vendored-frontend ⇄ κ-backend TRANSPORT BINDING (ADR-0095, Bet A). The κ-CDP backend (#holo-devtools-cdp) proved the substrate half; this proves the OTHER unknown — that the REAL Chrome devtools-frontend, vendored UNMODIFIED (chrome-devtools-frontend@1.0.1645245, tarball pinned by sha512 integrity, Law L5; the built front_end/ is a .gitignored content-addressed artifact fetched by tools/vendor-chrome-devtools.mjs), drives that backend over the Q cross-frame bus with NO fork of the UI. devtools-frontend talks to its embedder through ONE seam, read FROM THE VENDORED SOURCE (not memory): OUT — MainConnection.sendRawMessage → InspectorFrontendHostInstance.sendMessageToBackend(message) (core/sdk/Connections.ts:47); IN — MainConnection subscribes to the host events emitter for DispatchMessage and delivers event.data (Connections.ts:30,52-53; core/host/InspectorFrontendHostAPI.ts Events.DispatchMessage='dispatchMessage'). So holo-devtools-host.mjs installs a globalThis.InspectorFrontendHost whose sendMessageToBackend forwards each CDP frame over the EXISTING holo-privacy:rpc bus (method:'cdp', brokered by holo-gov.js exactly like q.summon/q.remote.*, the caller's identity asserted un-forgeably) to HoloDevToolsServe (holo-devtools-serve.mjs, the twin of HoloQServe) — and re-delivers replies/events as DispatchMessage. CDP stays the human door's PRIVATE transport (ADR-0095 §7 T1). The witness reconstructs MainConnection's EXACT contract and runs it over a mock of the bus (the holo-q-bridge-witness pattern): a CDP DOM.getDocument round-trips the scene tree BY κ, concurrent frames multiplex by id, the Network κ-stream verify badge survives the transport (Law L5), Runtime.evaluate is FAIL-CLOSED end-to-end and routes through Q + seals a receipt when the shell is governed (Law L4), and a malformed frame is refused not crashed. It also asserts the binding targets the real vendored seam, so a version bump that moves it turns RED. Witnessed tools/holo-devtools-bridge-witness.mjs (10/10; committed-result — re-running needs the vendored bundle, like the browser witnesses). PENDING: live-in-browser boot of the full UI (preview smoke), the holo-gov.js 'cdp' branch wired into the live shell, the remaining CDP domains, and the #holo-devtools-conform W3C row"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-devtools-domains",
+        "dcterms:title": "Holo DevTools — the REMAINING CDP domains over the κ substrate + the live-shell governance branch (ADR-0095). Bet B proved DOM/Network/Runtime; this extends the κ-CDP backend across the rest of the F12 surface, each mapped to a real substrate fact: CSS — the Styles panel resolves the --holo-* design tokens (ADR-0023/0030) AND surfaces the readability FLOOR (--holo-font-min, ADR-0057) as an un-overridable !important rule (the WCAG / §7 T2 resolution, made visible); Sources — Debugger.getScriptSource returns the source κ's text (publishSource → SoftwareSourceCode, ADR-0055) with the L5 verify badge, SOURCE-by-κ NOT a live V8 debugger (the ADR-0095 §8 honest non-goal); Memory — the HeapProfiler snapshot IS the κ store (node=κ-object · edges=links[] the Merkle-DAG, ADR-0060 · dedup visible: distinctKappa===store size, one κ stored once); Performance — substrate counters (CDP frames · κ resolves · store objects · link edges) with wall-clock HOST-ATTESTED (rederivable=false), never faked (the Holo Telemetry honesty split, ADR-0073); Application — Storage.getUsageAndQuota reports κ-store usage + the live scene. Graceful degradation holds across the larger surface (unmapped → clean 'unsupported', §8). GOV BRANCH: holo-gov.js routes the human DevTools frame's method:'cdp' to W.HoloDevToolsServe (holo-devtools-serve.mjs), FAIL-CLOSED (no authority ⇒ refused) with the caller identity host-asserted via byWin — the design's 'holo-gov.js gains ONE branch' claim, realized and asserted against the real edited file (the same grounding the bridge witness uses on Connections.ts). Witnessed tools/holo-devtools-domains-witness.mjs (9/9, pure-Node, in gate LIVE). PENDING: the HoloDevTools holospace app entry that installs window.HoloDevToolsServe in the live shell, the live-in-browser UI paint (gated on a BUILT bundle — npm ships source, see flow-map §5), and the #holo-devtools-conform W3C row"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-devtools-shell",
+        "dcterms:title": "Holo DevTools — the SHELL INSTALL (ADR-0095): the running shell serves CDP to a DevTools holospace frame, 100% SERVERLESS and κ-anchored, with the vendored Chrome UI loaded UNMODIFIED. The only first-party code is the glue — the authority install + the live-scene projection; devtools itself is untouched. holo-devtools-ui.js PROJECTS the live desktop's sealed UOR objects into a string-valued κ-store (Map.get O(1), the κ-memo IS the cache — Law L3) and installs window.HoloDevToolsServe = the κ-CDP backend over BROWSER/SW-SAFE resolve + verifyDeep (no Node Buffer — re-derive the address, identical Law-L5 semantics in browser/SW/Node, Law L2); a tampered κ is refused (the RED verify badge, L5). shell.html imports it beside the other authorities (window.HoloTrinity/HoloMind/HoloQServe), so holo-gov.js routes the DevTools frame's method:'cdp' straight to it (the one branch, fail-closed, byWin identity). The holospace entry holo-devtools.html installs the embedder host shim (globalThis.InspectorFrontendHost) bound to the parent over the holo-privacy:rpc bus (no socket → low latency) BEFORE loading the VENDORED devtools entrypoint (front_end/entrypoints/inspector/inspector.js) — every path same-origin /_shared, no CDN, no WebSocket (100% serverless). Witnessed tools/holo-devtools-shell-witness.mjs (10/10, pure-Node over the guarded install path: browser-safe resolve/verify re-derive + refuse a tamper; installDevToolsServe answers a real CDP DOM.getDocument + Network frame BY κ over the projected store; the shell wiring + the serverless entry are asserted against the real files). HONEST: the vendored UI PAINTS once a BUILT front_end bundle is present — npm ships TypeScript source, so the build/extract is the remaining vendoring step (flow-map §5; Chrome 149 locally is the cheap source). The authority + transport are live and proven now; the pixels await the built bytes."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-devtools-realf12",
+        "dcterms:title": "Holo DevTools — REAL Chrome F12, fully functioning, in THREE tiers over ONE vendored frontend (ADR-0095, the pixels the earlier rows awaited). The breakthrough: the vendored devtools-frontend never paints over the embedder InspectorFrontendHost shim, but paints flawlessly over a real WebSocket — so holo-devtools.html installs a FAKE window.WebSocket (installHoloBridgeWebSocket) that bridges ws.send/onmessage to a κ backend over the parent's holo-privacy:rpc bus; the frontend uses its PROVEN WebSocketConnection code path and cannot tell a bridged frame from a socket frame. TIER 1 — PURE WEB, no native host, no extension: because a holospace is a SAME-ORIGIN iframe, holo-devtools-live-backend.mjs reflects its LIVE document as CDP — the REAL DOM tree (DOM.getDocument/requestChildNodes → setChildNodes), the REAL CSSOM (CSS.getComputedStyleForNode + getMatchedStylesForNode from the live styleSheets), REAL eval in the page (Runtime.evaluate via contentWindow.eval, FAIL-CLOSED through the conscience — L4), and REAL Overlay highlight injected into the iframe. Every node's backendNodeId ALIASES a κ (the holospace κ for the root, [data-holo-k] for tagged objects — Law L1/L2), and EVERY edit (DOM.setAttributeValue/setOuterHTML/CSS.setStyleTexts) re-seals the source → a NEW κ through the ONE liveEdit primitive (ADR-0093) — so every object in the holospace is exposed AND editable through the dev environment, and the whole tree stays content-addressed (a tampered source is refused, L5). TIER 3 — NATIVE: the Tauri host is WebView2 = Chromium; --remote-debugging-port exposes the real Chrome DevTools Protocol on a localhost-only port (holo_devtools_targets), and the frontend connects over a real socket for genuine F12 of the live page — CDP stays the human door's PRIVATE transport (§7 T1). FALLBACK — the κ-scene backend (#holo-devtools-shell) paints over the same bridge for a non-editable holospace. All three answer the flat-protocol correctly (Target auto-attach emits one attachedToTarget; the page session id is echoed on every response and tagged on every event; the documentElement carries frameId; Runtime.enable emits the default execution context) — the exact shapes captured from a real Chromium CDP backend as the conformance oracle. Witnessed tools/holo-devtools-live-witness.mjs (29/29, pure-Node over a mock document — real DOM/CSS shapes · setChildNodes event · gated real eval · session routing · edit→κ via liveEdit · Overlay injection); browser-verified in a plain tab: Elements paints the real holospace DOM and navigation drives 2636 CDP calls through the bridge (matched styles, computed styles, child-node expansion, node selection, hover highlight). HONEST non-goal: true V8 breakpoint stepping + heap snapshots need the real debugger (the native tier, or a future extension); everything else — Elements · Styles · Console · Overlay · Application — is real."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
         "@id": "https://hologram.os/conformance/os2#qvac-sdk",
         "dcterms:title": "The QVAC SDK (docs.qvac.tether.io) is encoded NATIVE to Hologram OS (ADR-0067) — Tether's local AI SDK as one self-verifying contract on the substrate, so a builder writes QVAC code and it just runs: beautiful, fast, lean, serverless. It encodes the WHOLE QVAC surface — the 13 AI capabilities (text generation · embeddings · RAG · translation · classification · multimodal · image · video · transcription · text-to-speech · voice assistant · VLA · OCR · fine-tuning), the model lifecycle (a model is a content-addressed κ-disk, so loading verifies it), the runtime (cancel · suspend · resume · state · logging · profiler), P2P delegation and the OpenAI-compatible server — and SATISFIES it on the substrate: every capability call passes the fail-closed conscience gate (ADR-033), runs over the browser-native engine (a deterministic reference brain that ALWAYS runs with no download now; Holo Q / QVAC WebGPU, ADR-0052, when a model is bound), and seals a re-derivable PROV-O inference receipt — so local inference is PROVABLE, not just asserted (identical inputs replay the same κ; a tampered output is refused). The witness RUNS the shipped runtime façade in Node (a real completion streams tokens and its receipt re-derives; embeddings/RAG/classify are deterministic). Serverless: the OpenAI /v1 routes are answered by a Service-Worker fetch handler, no process, no port (Law L1/L4). Operative: the Holo SDK exposes qvac() and the scaffolder builds QVAC apps on the contract (builtOn qvac-sdk + @hologram/qvac + conformsTo the ns), so any builder ships an on-device AI holospace in one command. Encoded — not vendored — under the holospaces Laws; honest where weights are absent (the call reports the missing model, never fakes output)"
       },
@@ -1624,6 +1808,397 @@
       "earl:test": {
         "@id": "https://hologram.os/conformance/os2#holo-mind",
         "dcterms:title": "Holo Mind PHASE 0 (ADR-0081) — agency is an OS-wide ambient κ-transform, not a single app. The re-derivable core (os/usr/lib/holo/holo-mind.mjs) composes ONE verb surface from the three agent doors that already exist (MCP ADR-0047 · agents ADR-0049 · skills ADR-0035), de-duped and capped; runs the intent → plan → act → seal loop where every step passes the EXISTING fail-closed conscience (ADR-033) before dispatch (a blocked step seals nothing, dispatches nothing — self-discipline as a structural property); and seals each action as a self-verifying PROV-O work receipt (ADR-045 shape) that re-derives byte-for-byte (Law L5) — a human action and an agent action through the IDENTICAL surface sealing the IDENTICAL shape. Identical asks replay O(1) (Law L3); no new store, transport, or trust root (Law L4). Witnessed 8/8 (the loop core is a pure function of injected plan/gate/dispatch, the holo-suspend pattern; the eighth check proves the isomorphic sealer is BYTE-IDENTICAL to the canonical Node envelope). SHELL-WIRED + gate-enforced: os/usr/share/frame/shell.html imports os/usr/lib/holo/holo-mind-ui.js, exposing window.HoloMind whose loop draws its roster from the LIVE doors (window.HoloMCP.descriptor ⊕ /.well-known/skills/index.json), gates every step through window.HoloConscience.evaluate (fail-closed until the constitution self-verifies), and dispatches through window.HoloMCP (the serverless in-page MCP transport) — and this row is required + in gate.mjs LIVE. Pending: the os-closure.json κ-pin for the two new served modules (offline precache + dual-axis anchor — the re-lock cascade, the same build step ADR-0052 defers for Holo Q; until then the SW falls back to network for them, never 409s), and the LEARNING κ-transform (the trace corpus + governed self-evolution, Phase 2). See docs/specs/holo-mind-implementation.md."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-mind-evolve",
+        "dcterms:title": "Holo Mind PHASE 2 (ADR-0081) — the LEARNING κ-transform: κ(trace-corpus) ⊕ κ(optimizer) → κ(improved-skill), the skill writeback ADR-0035 deferred (\"a deterministic projection, not a mutable store\"), now GOVERNED and re-derivable. The trace corpus (os/usr/lib/holo/holo-mind-evolve.mjs) is an append-only, content-addressed chain — rewriting any PAST trace changes its κ and breaks every successor (Law L5, the AgentTrust hash-linked-chain idiom ADR-0039). A SkillRevision mints a NEW κ linking its parent (prov:wasRevisionOf) and what it derived from (prov:wasDerivedFrom the corpus head ⊕ the optimizer); it is IN FORCE only when EVERY governed condition holds — tests pass · within the size ceiling · conscience accepts · operator-ratified · cooling-off elapsed (mirrors the constitution's own governed succession, ADR-033 rule 4) — and the in-force fact is itself RE-DERIVED from the sealed gate, so a forged inForce over a failing gate is refused; the parent κ is preserved forever (rollback = re-pin the parent). Built on the adaptive-immune-classifier pattern (ADR-033: a learned model as a PURE FUNCTION of a content-addressed corpus) generalized from defense to all competence; the loop's LEARN step appends a trace per run and window.HoloMind.evolve runs the optimizer through the registered model. HONEST BOUNDARY: the optimizer's PROPOSAL is a stochastic LLM generation, NOT reproducible (ADR-0052's non-verifiable mode) — L5 holds over the AUDIT TRAIL (which corpus, which gates, ratified by whom), not the search. Witnessed (tools/holo-mind-evolve-witness.mjs, 10/10). PROMOTED: the trace corpus + the learned skills are DURABLE (write-through to the OS's OWN κ-store — holo-store.js idbBackend over the existing 'holo'/'kappa' IndexedDB, no new infrastructure, Law L4 — hydrated at boot so learning accumulates across reloads and tabs, Law L3), and an in-force revision RE-PROJECTS into the live roster (its SKILL.md frontmatter becomes a roster entry that WINS de-dup, the ADR-0035 writeback) so an evolved skill ACTUALLY CHANGES BEHAVIOR — verified live in a real browser (the corpus head + the learned skill survive a fresh page load; the evolved skill leads the roster). Required + in gate.mjs LIVE."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-mind-soul",
+        "dcterms:title": "Holo Mind PHASE 3 (ADR-0081) — the SOUL, one objective made operational. (1) INTRINSIC DRIVES (anima's digital_desire, os/usr/lib/holo/holo-mind-soul.mjs): homeostatic urges (epistemic hunger Hₑ, fitness Fₐ) that PROPOSE curiosity/self goals — a proposal is NEVER an act; it raises a holo:Intent that runs the ordinary loop where the fail-closed conscience (ADR-033) gates every step, so self-discipline is STRUCTURAL (no path from a drive to an effect can skip the gate). The drive state is integer-only (no clock/random) so a tick re-derives (Law L5, the holo-heal idiom). (2) The COHERENCE measure — the soul's utility (maximize SIGNAL over NOISE): DETERMINISTIC and re-derivable ON PURPOSE (signal = a re-derivable + novel effect; noise = the unverifiable or duplicate), so the objective CANNOT be Goodharted by a model self-grade; the five JUDGED output-court principles (Care · Fairness · Autonomy · Responsibility · Justice, ADR-033 judgeOutput) are the model-judged measure of a GOOD action, wired at the loop's VERIFY (stochastic — honest boundary). (3) Self-verifying USER + SELF models: a deepening PRIVATE-FIRST user model (adapts to + teaches the user) and a persistent self identity with a divergence score (anima's SelfModel); κ-objects, revisioned (prov:wasRevisionOf), DURABLE (the OS κ-store), NEVER published (Law L1 + Data Sovereignty / Holo Privacy). Witnessed tools/holo-mind-soul-witness.mjs (8/8, incl. the REAL output court blocking PII on the Dignity red line); wired live into holo-mind-ui.js (window.HoloMind.drives / proposeGoals / runProposals / updateUser / snapshotSelf / primeDirective); required + in gate.mjs LIVE."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-mind-orchestrate",
+        "dcterms:title": "Holo Mind PHASE 4 (ADR-0081) — orchestration at scale. PARALLEL SUB-AGENTS: a sub-agent is an ordinary conscience-gated Holo Mind loop run; orchestrate (os/usr/lib/holo/holo-mind-orchestrate.mjs + the binding) runs N CONCURRENTLY (Promise.all over runLoop — content-addressed seals can't collide; the corpus head is touched ONCE, after the barrier, no race) and composes ONE self-verifying PROV-O WORK RECEIPT over their receipts — the Holo Orchestrate idiom (ADR-0045): the root κ is proof of the WHOLE collaboration, verifyDeep re-runs every sub-receipt with no orchestrator to trust, and a TAMPERED sub-receipt breaks the root (Law L5). Each sub-agent's every step still passes the fail-closed conscience (ADR-033) — orchestration adds reach, never a gate bypass; scoped sub-authority rides the existing UCAN seam (ADR-0042). SCHEDULED TASKS: a holo:ScheduledTask is a re-derivable κ-object {utterance, everyMs}; an OPT-IN in-tab ticker (window.HoloMind.startScheduler) fires DUE tasks through the gated loop, the CLOCK read at the EDGE (Date.now in the ticker; dueTasks is PURE) so the core stays re-derivation-safe — honest scope: serverless + in-tab, tasks fire only while the tab is open (no background server, like cron / Claude Desktop). UCAN-SCOPED SUB-AGENT DELEGATION (ADR-0042, re-expressed substrate-native): each sub-agent acts under a holo:Delegation — a NARROWED, revocable capability (a scoped verb set ⊆ its granter's; the attenuation chain is content-addressed via prov:wasDerivedFrom, so ESCALATION is caught by re-derivation); orchestrate ATTENUATES each sub-agent's roster to its grant, and REVOKING a delegation (window.HoloMind.revoke) invalidates its whole SUBTREE → that sub-agent is refused; the work receipt commits to the delegation κ each sub acted under (who acted, under what authority — ADR-0045 ⊕ 0042). Honest scope: the full UCAN signature / principal-alignment proof engine is the agent stack's (own.verifyChain / verify_delegation, ADR-0049). Witnessed tools/holo-mind-orchestrate-witness.mjs (8/8: work composes + re-derives, a tamper breaks the root, the task re-derives, due-logic is pure, delegation attenuates + scopes the roster + revokes the subtree); wired live (window.HoloMind.orchestrate / schedule / startScheduler / delegate / revoke); required + in gate.mjs LIVE."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-factory",
+        "dcterms:title": "Holo Factory (ADR-0097) — the software factory as ONE verb (Q.factory / window.HoloFactory.run) native to Q. A self-observing SDLC loop (signal → change → verify → seal → learn) that SPECIALIZES Holo Mind (ADR-0081), adding NO substrate (Law L4): the re-derivable core (os/usr/lib/holo/q/holo-factory.mjs) seals the signal as a holo:Intent (a red check is source 'environment'), retries change→verify up to a budget, and seals a holo:FactoryRun PROV-O activity linking the intent (prov:used) and every attempt's chained holo:ActionReceipt (prov:wasInformedBy) plus the trace (prov:wasDerivedFrom) — the whole DAG re-derives byte-for-byte (Law L5). MODEL-INDEPENDENT by construction (Factory 2.0's router): the change door routes per task — Dream diffusion INFILL (ADR-0083) for a both-sided surgical span, the AR coder for whole-source. The change is applied through the SAME governed liveEdit door (hosc:Edit) when a live surface is mounted, else sealed as a holo:Artifact κ (in-tab, serverless); VERIFY is the injected SDLC oracle (a witness/test) with in-tab floors parse (syntactic, never executes) + rederive (κ integrity). NEVER FAKES GREEN (Law L5): ok is true ONLY when a verifier passed; with none bound it returns the change as an honest unverified PROPOSAL, never a claimed fix (mirrors holo-q-diffusion's report-never-fabricate); a blocked conscience verdict seals nothing and produces no effect (fail-closed, no path skips the gate). SHELL-WIRED into the SHARED agent core: os/usr/lib/holo/holo-mind-ui.js constructs the factory with Holo Mind's OWN durable κ-store + trace-corpus head + window.HoloConscience gate + borrowed model sampler, and persists the advanced corpus head, so the factory and the ambient loop learn into ONE durable memory (Law L3) — exposed as window.HoloFactory + Q.factory. Witnessed 9/9 (tools/holo-factory-witness.mjs: loop converges + stops at green, the run + whole DAG re-derive, never-fakes-green with no verifier, fail-closed on a blocked gate, learns-from-failure into the append-only corpus, the parse oracle accepts valid + rejects broken code, no-fabrication with no brain still seals an honest run, a tampered run is refused, the seal is byte-identical to the canonical Node envelope). Pending: the os-closure.json κ-pin for the new served module (the re-lock cascade, the same step ADR-0052/0081 defer — until then the SW falls back to network for it, never 409s)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-factory-tend",
+        "dcterms:title": "Holo Factory AUTONOMOUS TENDER (ADR-0097) — the self-observing keystone that closes the loop: signal → verified fix, hands-off. The core insight (os/usr/lib/holo/q/holo-factory-tend.mjs) is that a CHECK is simultaneously the MONITOR and the ORACLE — a red check IS the signal, and re-running that same check on a candidate IS the verification — so auto-signal (#1) and witness-verification (#2) collapse into one object (the witness idiom). The tender runs every registered check; each RED one auto-drives a factory.run whose verifier is that very check; GREEN ones are left untouched (no run, no fabrication); a verified fix is SHIPPED durably through the check's own write(). The OS conformance gate's OWN output ingests as signals: gateChecks() reads the EARL report and turns every FAILED row into a check (proposal mode for a repo-level row that a serverless tab cannot write; bind a browser-runnable witness to close one). DRIVEN ONLY BY USER INTENT (the binding constraint): nothing fires until watch() seals a standing holo:Intent (source 'user'); that intent is the authority every autonomous tend links (prov:used); the conscience gates every change (inherited from the factory — no path skips it); the edge-clock ticker arms only on the user's call and the user stops it — no timer self-arms, no act happens, without the user's intent (Holo Mind's GoalStack + opt-in-scheduler discipline, ADR-0081). The FactoryTend pass seals a re-derivable PROV-O activity (Law L5); NEVER fakes green (a still-red check stays 'unverified', is never written). Witnessed 8/8 (tools/holo-factory-tend-witness.mjs: tend converges a red check to fixed, a green check is skipped with the proposer never called, a verified fix ships durably, a still-red check is never 'fixed' nor written, watch seals a user-source intent every tend links, registering a check + intervalMs 0 arms NO timer and fires nothing until the explicit call, the FactoryTend re-derives, and the EARL report's failed rows become signals while passed rows do not). Pending: the os-closure.json κ-pin for the new served module (the standing re-lock cascade, deferred across the Mind family — SW network-fallback, never 409s)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-factory-triage",
+        "dcterms:title": "Holo Factory SEMANTIC TRIAGE (ADR-0097) — the factory FINDS the target itself, so the user states intent and the factory locates what to fix or watch. A natural-language signal ('the add function is broken', 'keep my notepad working') is embedded by the OS's verified embedder (EmbeddingGemma-300m via HoloVoice.embed, ADR-0096) and matched BY MEANING against the live candidate surfaces — NOT by keyword — closing the gap where the human had to name the target or pass prefix·suffix. The core (os/usr/lib/holo/q/holo-factory-triage.mjs) is PURE given the injected embed() (the holo-mind injected-faculty idiom — witnessed in Node with a deterministic stub embedder, live in the browser with EmbeddingGemma); ranking is a deterministic cosine over the vectors (ties by id), so triage RE-DERIVES given the embedder. The tender's discover() locates the target(s) and REGISTERS a check for each (a candidate brings its own verify/read/write, else a parse-check over its source), so the autonomous loop tends what the user DESCRIBED with no manual registration. HONEST (Law L5): nothing above the similarity threshold ⇒ NO target — it reports it cannot locate, it does not guess (mirrors never-fakes-green). Wired into holo-mind-ui.js sharing the agent core: window.HoloFactory.locate/discover + Q.factory.locate/discover, and factoryWatch('…intent…', { candidates }) expands the intent into checks before tending. Witnessed 6/6 (tools/holo-factory-triage-witness.mjs: ranks by meaning with ZERO shared words while the unrelated candidate scores ~0; locate returns the best above threshold; nothing relevant ⇒ null + a reason; deterministic; discover registers the located check; and the discovered check, when red, drives a factory fix end to end). Pending: the os-closure.json κ-pin for the new served module (the standing re-lock cascade, deferred across the Mind family)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-factory-catalog",
+        "dcterms:title": "Holo Factory CANDIDATE CATALOG (ADR-0097) — the live enumeration of fixable targets, the last seam between 'locates' and FULLY HANDS-OFF on real holospaces: with the catalog wired, Q.factory.watch('keep my notepad working') finds the surface and closes the loop unattended, no candidates passed. The core (os/usr/lib/holo/q/holo-factory-catalog.mjs) COMPOSES injected providers (each { list() → candidates }) plus a self-register seam target(id, spec), de-duping by id (explicit targets first — the richest). A candidate is { id, text, read?, write?, lang? }: text is what triage embeds, read is the current source (the brain's context + the parse oracle), write persists a verified fix. Built-ins: liveEditProvider — EVERY live mounted holospace surface (HoloLiveEdit) as a candidate, WRITE through the GOVERNED agentEdit door (conscience default-deny, hosc:Edit receipt) and READ through kRouteResolver (κ → source over the /.holo/sha256/<hex> content-addressed route, Law L5 — the bytes ARE the κ); and listProvider for explicit objects. HONEST (no faked doors): no resolver ⇒ read omitted (the brain proposes from the signal alone, the parse oracle still verifies), no agentEdit ⇒ write omitted. WIRED into holo-mind-ui.js sharing the agent core: the tender builds the catalog from window.HoloLiveEdit + the κ-route; factoryLocate/Discover/Watch fall back to catalog.candidates() when none are passed (hands-off); an app self-registers via Q.factory.target(id, spec). Witnessed 7/7 (tools/holo-factory-catalog-witness.mjs: providers merge + de-dup explicit-first; target() self-registers with read/write; a surface writes through agentEdit + a refusal throws; read resolves κ→source; honest degrade when a door is absent; the κ-route resolver reads bytes + nulls a miss; and triage locates the right target FROM the catalog end to end). Pending: the os-closure.json κ-pin for the new served module (the standing re-lock cascade, deferred across the Mind family); richer providers (the holospace scene-node + app catalog) layer on the same seam."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-factory-grow",
+        "dcterms:title": "Holo Factory SELF-IMPROVEMENT (ADR-0097) — the factory improves over time by OBSERVING ITSELF, closing the last Factory 2.0 pillar ('a system that improves by observing itself'). The tender appends a Trace per run; growth (os/usr/lib/holo/q/holo-factory-grow.mjs, growFromFailures) reads the FAILURE traces and drives Holo Mind's Phase-2 optimizer (evolve, ADR-0081): propose an improved skill from the failures, seal it as a GOVERNED, re-derivable SkillRevision in force ONLY when every condition holds (tests pass · within the size ceiling · conscience accepts · operator-ratified · cooling-off elapsed — mirrors the constitution's governed succession, ADR-033 rule 4), the in-force fact RE-DERIVED from the sealed gate so a forged inForce over a failing gate is refused. NO new substrate — composes holo-mind-evolve verbatim; the factory supplies the trigger. HONEST (Law L5 + the ADR-0052 boundary): the optimizer's PROPOSAL is a stochastic LLM generation, NOT reproducible — L5 holds over the AUDIT TRAIL (which corpus, which optimizer, which gate verdicts), not the search; below a failure threshold growth does nothing (no churn on noise); with no model it makes no proposal; a failing gate seals a revision that is honestly NOT in force. Wired into holo-mind-ui.js sharing the agent core (window.HoloFactory.grow + Q.factory.grow), reading the durable corpus head + borrowing the registered model. Witnessed 6/6 (tools/holo-factory-grow-witness.mjs: grows on accumulated failures; honest below the threshold; a passing gate ⇒ in force, a failing gate ⇒ not in force; no model ⇒ no proposal; the revision + DAG re-derive; the revision links prov:wasDerivedFrom the corpus head — the audit trail of HOW it learned). The behavior-change projection (an in-force revision → the live propose strategy, holo-mind-evolve.projectSkill) is the documented consumption seam."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#q-fuse",
+        "dcterms:title": "Q.fuse (ADR-0098) — a serverless COMPOUND model (the OpenRouter Fusion / pi-fusion 'compound beats components' idea) as ONE more verb on the single door (ADR-0091): run a PANEL of small specialists on the SAME prompt IN PARALLEL → a JUDGE compares them (consensus · contradictions · unique insights · blind spots) → a SYNTHESIZER writes ONE new answer none produced. The lift is the synthesis step and it is MODEL-SIZE-AGNOSTIC — a diverse panel of tiny on-device minds, judged + synthesized, beats any one of them — so the honest framing is 'compound beats components on the WASM floor', NOT 'Fable-5 in a tab'. Adds NO new transport, gate, or store (Law L4): every stage rides the EXISTING κ-memo fabric (os/usr/lib/holo/q/holo-q-fabric.js, ADR-0084) — content-addressed compute over the durable OS κ-store — so an EXACT repeat fusion is O(1) (zero models run, Law L3) and a NEAR-repeat (swap one panel member) re-runs ONLY the changed leg + judge + synthesis (the unchanged legs are cache hits), where OpenRouter re-pays 5× every call and cannot reproduce a fusion. The whole deliberation seals ONE re-derivable holoq:FusionReceipt (os/usr/lib/holo/q/holo-q-fuse.js mintFusionReceipt): prov:used = every panel κ tagged by member + the judge κ, prov:generated = the synthesis κ — a single altered byte breaks the address and is refused (Law L5, receipt canonicalization reused from ADR-0090 holo-q-receipt.mjs). ANY generative provider is a panel member, INCLUDING a governed remote one (ADR-0090): a member flagged remote → the fusion seals tier 'hybrid' instead of 'local', a PER-CALL opt-in, never the default. Wired as Q.fuse / Q.configureFuse (holo-q.js); with no panel configured it returns an honest notice and never throws. Witnessed 27/27 (tools/holo-q-fuse-witness.mjs: parallel panel, distinct per-member κs, zero-model exact repeat, single-leg near-repeat, FusionReceipt re-derivation, a tampered receipt refused, the hybrid-tier flip). Pending: the os-closure.json κ-pin for the new served modules (the deferred re-lock cascade, the same step ADR-0052/0081/0097 defer — SW network-fallback, never 409s)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#q-fuse-panel",
+        "dcterms:title": "Q.fuse DEFAULT PANEL (ADR-0098 / ADR-0096) — turn the model registry's brains into the diverse panel + judge + synthesizer Q.fuse consumes, resolving the one honest tension in serverless fusion: real MODEL diversity (≥3 distinct loaded models) is multi-GB and device-gated, while the any-browser warm set is ONE brain. The assembly (os/usr/lib/holo/q/holo-q-fuse-panel.js defaultPanel) ships TWO modes, LABELLED, never faked: PERSONA mode (the any-browser DEFAULT) — one warm brain, N members differing by REASONING LENS (concise · first-principles · skeptic), diverse PATHS not weights (the self-consistency idea; synthesis still lifts above a single greedy pass), labelled diversity 'persona'; MODEL mode (the upgrade) — when the host supplies ≥2 distinct loaded samplers, each registry model (Coder-1.5B · SmolLM2-360M · a third family) becomes a member, labelled diversity 'model'. With nothing loaded it REFUSES (an empty panel + an honest reason), it does NOT invent a model (Law L5). A (messages,opts)→deltas sampler (the holo-q-codegen.js / holo-voice-llm.mjs shape) is ADAPTED into the fabric's {id, generate(input,opts)} provider with the persona baked into the PROVIDER, so the same question addresses a DISTINCT κ per member — which is what carries diversity through to the synthesis. configureDefaultFuse(Q, {sampler|samplers}) wires Q.fuse in one call; shell.html lights it up the moment a warm on-device brain loads. Witnessed 18/18 (tools/holo-q-fuse-panel-witness.mjs: persona-mode three diverse lenses + judge + synth; the adapter diverges members on the same input; the REAL fuse engine over the default panel yields distinct κs + a verifiable receipt; model-mode from ≥2 samplers; refuse-when-unloaded; configureDefaultFuse wires a door in one call and refuses when nothing is loaded). Pending: the os-closure.json κ-pin for the new served module (the deferred re-lock cascade); the registry discovery loop choosing the MODEL-mode panel."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-recall",
+        "dcterms:title": "Holo Recall (ADR-0099) — serverless κ-graph retrieval over the PRIVATE corpus as ONE more verb on the single door (ADR-0091): Q.recall. The open-web stack (ADR-0037–0046, Resolve→Federate→Answer→Graph, no-AI, deterministic) answers 'what does the open web know'; this answers 'what do I know' over the user's OWN objects (holospace sources · receipts · notes · the κ-store) and stays STRICTLY separate — a result's provenance always names which universe it came from, the two never silently merge. Adds NO new transport, gate, or store (Law L4): the embedder is the existing on-device one (os/usr/lib/holo/q/holo-q-embed.js, ADR-0096, content-addressed O(1) cache), rank fusion is the SAME Reciprocal Rank Fusion the open-web federate uses (ADR-0038, score = Σ 1/(k+rank)), the optional synthesis rides Q.fuse (ADR-0098), the gate's verdict seals into the receipt. The WRITE side (os/usr/lib/holo/q/holo-q-corpus.js) indexes a page ONCE — chunk → embed → BM25 postings → a typed κ-graph built by ZERO-LLM AUTO-LINK (regex entity scan + heuristic edge-typing: cites · derived_from · mentions · authored_by · part_of), every chunk/edge/entity content-addressed so the whole index re-derives (L5) and dedups by content (L3); zero-LLM is the RIGHT call, not a shortcut — a model-extracted graph would vary run-to-run (an L5 violation) and cost a call per write, whereas regex+heuristic is deterministic (same bytes → same edges) and free, so the graph grows on every write. The READ side (os/usr/lib/holo/q/holo-q-recall.js) is HYBRID(vector ⊕ BM25) → RRF → a 1-hop typed-graph EXPAND (a chunk co-citing a top hit's link target joins — the +P@5 lift from the SovereignAI/GBrain sweep, the load-bearing step the hybrid ranking alone misses) → an OPTIONAL synthesize step (a cited answer + an honest GAP analysis; with no synth bound it returns null, NEVER a faked answer, L5). The deterministic core (retrieve→fuse→expand) runs ZERO models and re-derives byte-for-byte; synthesize is opt-in and the only model call. The whole retrieval seals ONE re-derivable holoq:RecallReceipt (mintRecallReceipt): prov:used = the retrieved chunk κs (tagged with rank + which retriever) AND the edge κs the walk traversed, prov:generated = the answer κ (synthesize) or the result-set κ (retrieve) — a single altered byte (a chunk κ, an edge κ, the mode, the conscience verdict) breaks the address and is refused (L5, canonicalization reused from ADR-0090 holo-q-receipt.mjs). Wired as Q.recall / Q.configureRecall (holo-q.js); with no corpus configured it returns an honest notice and never throws, like Q.ask/Q.fuse; an unchanged re-index is a no-op κ and editing one page re-chunks only that page (the near-repeat property). HONEST: PGLite (GBrain's WASM-Postgres) is NOT adopted — the κ-store IS the store (L4), the retrieval MODEL is borrowed not the database; the +31 P@5 figure is GBrain's, the witness proves the MECHANISM (graph-expand pulls in a co-citing chunk the hybrid ranking ranked below k) not that exact number; the auto-link graph trades recall on ambiguous entities for determinism + zero cost, which the read-time synth step backstops. Witnessed 40/40 (tools/holo-q-recall-witness.mjs: deterministic chunking + zero-LLM auto-link extraction · index builds vector+BM25+graph all content-addressed · hybrid retrieval (BM25 exact-term + vector semantic) · RRF agreement-ranks · the graph EXPAND pulls in a co-citing chunk the hybrid missed and disabling expand drops it · the deterministic core ran ZERO generative models · repeat → identical result-set κ · the RecallReceipt re-derives + a tampered receipt refused · no-op re-index + single-page re-chunk on edit · synthesize binds a cited answer + gaps and is an honest null with none bound · the door Q.recall is governed/honest + describe lists the verb · entity κ is content-addressed/normalized). Two fold-ins recorded for later (not in this row): a SOMATIC conscience axis (hardware can-sustain pre-flight) at the next conscience touch, and lite-parse WASM ingestion as a Forge κ-transform once a corpus is worth feeding. Pending: the os-closure.json κ-pin for the new served modules (the deferred re-lock cascade, the same step ADR-0098/0097 defer — SW network-fallback, never 409s); shell configureRecall wiring onto the warm corpus; the Omni bar surfacing private results behind the open-web ones."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-import",
+        "dcterms:title": "Holo Import (ADR-0092/0093) — paste a GitHub URL → a running, content-addressed Holo app, 100% serverless. Import is a DETERMINISTIC ENCODER onto the existing publishSource/Q spine, classified by build-locus (static/SPA → DIRECT inlined into one self-contained app κ; client-bundle → FORGE, a real esbuild κ-transform — esbuild INJECTED, deterministic so the bundle re-derives, κ-parity with a studio-built app; SSR/backend/DB/CLI → out-of-scope-v1, the reason SURFACED, never a fake app). An imported app's κ EQUALS repo.publishSource for identical bytes (first-class); a re-import is O(1) (κ-memo, re-fetches nothing); a flipped byte → a different κ, refused (L5); the receipt walks to git+repo@commit forever; unserved external/dependency refs are named. The build tool is VENDORED + κ-pinned (esbuild-wasm, local-first + re-derived against the committed pin before use, no trusted CDN). The network is a GOVERNED INGEST BOUNDARY (Law L4): every outbound fetch (repo bytes, a CDN dep) passes the conscience BEFORE it happens — a red-line P5 PII URL / ungranted host is REFUSED and the network is never touched; an accepted fetch mints a re-derivable hosc:Ingest receipt; fail-closed. Witnessed tools/holo-import-witness.mjs (38/38: parse · classify the classes truthfully · byte-faithful inline · external refs surfaced · imported κ === publishSource κ · re-import re-derives · tamper refused · receipt pins git+commit · O(1) on the Q spine + re-fetches nothing · governed ingest: fail-closed, host-opt-in+receipt, accept, PII→P5 block w/ network untouched) + tools/holo-forge-bundle-witness.mjs (12/12, REAL esbuild) + tools/holo-forge-vendor-witness.mjs (6/6, the vendored toolchain re-derives, tamper refused); verified live in the booted shell."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-import-agent",
+        "dcterms:title": "Holo Import → agent-native (ADR-0093) — the moment a GitHub repo imports it is auto-WIRED into the MCP + /~<app>/api REST seams every holospace ALREADY exposes, so any AI agent or holo app can fetch · re-derive (L5) · run · share · discover it with ZERO author effort. Agent-native = DERIVING one manifest + one resolver that mount the app into seams that already work (holo-mcp + holo-api over one κ-store): BASELINE exposes the app source as a self-verifying RESOURCE + the universal verbs + a NANDA AgentFacts record; the DECLARED-surface tier projects a repo's OpenAPI/typed-exports interface into faithfully-schema'd MCP tools. EXPOSURE ≠ AUTHORIZATION throughout: a projected egress tool is discoverable but DEFAULT-DENY — callable only through the conscience-gated governed-egress boundary (a granted call fills path/query/body + seals a hosc:Egress receipt; ungranted → refused, network untouched). The SERVERLESS TRANSPORT BRIDGE makes an in-memory import reachable by an EXTERNAL HTTP agent through the Service Worker (the page writes its manifest + κ-objects into the holo-imports cache the SW reads) — /~<id>/mcp + /~<id>/api answer with no origin server. Witnessed tools/holo-import-agent-witness.mjs (53/53, against the REAL holo-mcp + holo-mcp-core + holo-api-core + holo-object cores: app-scoped MCP server · resources/read + REST GET /o/<κ> re-derive L5 · capability card self-verifies · ONE resolver serves MCP+REST · tamper→verify-false + REST 404 · AgentFacts self-verifies + lineage · DECLARED OpenAPI→faithful tools + egress execution callable-when-granted/refused-when-not + receipt · SW bridge entry-contract · baseline grants no capability · deterministic/O(1)); verified live in the booted shell (external HTTP agent reaches an import; a declared tool default-denies then executes a real governed egress after grant)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-hub",
+        "dcterms:title": "Holo Hub (ADR-0094) — a Shopify-class store for the κ-addressed universe, 100% serverless and in-tab. A PRODUCT IS a holo app addressed by its did:holo κ; the apps/index.jsonld catalog IS the product feed. Built by ADOPTING Medusa's commerce model as a byte-pinned spec (ADR-0029 'adopt the desktop, don't run it') — NOT running Medusa's Node+Postgres server. holo-hub.mjs maps each catalog app to a Medusa StoreProduct-shaped UOR κ-object (product = app by κ, bound to the pinned Store-API spec κ), persisted over the κ-store (the Postgres replacement); witnessed tools/holo-hub-witness.mjs (catalog → product set with κ identity, bijection/no-orphan, L5 round-trip, tamper refused, deterministic, 0-network). The store renders in a sealed in-tab holospace (apps/hub/index.html — editorial Today, category grids, product=κ cards with live in-tab κ re-derivation, one-tap Open renders the LIVE app via Scene, store-in-store nesting incl. true Hub-in-Hub) for both people and AI agents."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-hub-kernel",
+        "dcterms:title": "Holo Hub commerce kernel (ADR-0094) — Medusa's commerce MATH runs in-tab, VERBATIM, as a deterministic Forge κ-transform (not re-implemented). holo-hub-kernel.mjs compiles Medusa's vendored tax+totals math (totals/math.ts MathBN, big-number.ts, tax/index.ts + pure common helpers + pinned bignumber.js@9.1.2) through the in-tree esbuild κ-transform (κ(source)⊕esbuild⊕flags → κ(kernel)) into one self-contained ESM kernel; 0-network at runtime. Witnessed tools/holo-hub-kernel-witness.mjs (bundles self-contained · deterministic rebuild → identical κ, L5 · 7/7 source files re-hash to their pinned κ, verbatim · loads + runs: calculateTaxTotal 200@10%=20, multi-rate 400@(8.25+1.75)%=40, tax-inclusive/exclusive round-trips, BigNumber 0.1+0.2===0.3 · 0-network)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-hub-checkout",
+        "dcterms:title": "Holo Hub own + pay (ADR-0094) — owning a product mints a portable Title over its κ; buying settles ONLY against the seller's proven listing (L5) and moves real value ONLY through the human-approved Holo Wallet (Plasma gasless USD₮). Pure composition of Holo Own (ADR-0053) + the Holo Wallet rail (ADR-0068, holo-own-rail → holo-wallet-bridge) — no new payment path, no parallel ledger (Law L4). holo-hub-checkout.mjs; witnessed tools/holo-hub-checkout-witness.mjs (real WebCrypto principals + a real product κ; dual-axis sha256-shown/blake3-owned: free own + paid buy pays the seller, idempotent voucher κ, tamper refused, default-deny on wallet decline, no-rail refused, 0-network)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-hub-agent",
+        "dcterms:title": "Holo Hub agent door (ADR-0094) — the SAME store a person browses is drivable by an AI agent, composed onto the seams ADR-0093 already ships (holo-mcp over one κ-store), no new infra. Every product is a self-verifying MCP resource (uri = the product κ; resources/read re-derives, L5); the store verbs are Store-API-shaped MCP tools (listProducts·searchProducts·getProduct READ; ownProduct·buyProduct EGRESS). EXPOSURE ≠ AUTHORIZATION: an egress verb is discoverable + faithfully-schema'd but DEFAULT-DENY — buying moves value only through the conscience-gated wallet. holo-hub-agent.mjs; witnessed tools/holo-hub-agent-witness.mjs against the REAL holo-mcp registry/handle (tools/list has the store verbs + built-ins · resources/read re-derives a product, L5 · read-vs-egress markers · faithful schemas · binds the pinned Store-API κ · 0-network)."
       },
       "earl:result": {
         "@type": "earl:TestResult",

@@ -277,9 +277,138 @@ async function tick(now) {                              // fire due tasks; `now`
 function startScheduler({ intervalMs = 1000 } = {}) { if (_schedTimer || typeof setInterval === "undefined") return false; _schedTimer = setInterval(() => tick(Date.now()), intervalMs); return true; }
 function stopScheduler() { if (!_schedTimer) return false; clearInterval(_schedTimer); _schedTimer = null; return true; }
 
+// ── Holo Factory (ADR-0097): the software factory as ONE verb, sharing THIS durable agent core ──
+// signal → change → verify → seal → learn — a SPECIALIZATION of the ambient loop above, not new substrate.
+// The model door ROUTES per task (Dream diffusion infill ADR-0083 for a surgical both-sided span; the
+// borrowed sampler for whole-source) — Factory 2.0's router. The change is applied through the SAME governed
+// liveEdit door, gated by the SAME conscience, and its outcome appends to the SAME durable trace corpus, so
+// the factory and the ambient loop learn into one memory. Honest (Law L5): ok ONLY when the injected verifier
+// passed; with none bound it returns the change as an unverified proposal — never faking green.
+// the factory's faculties over the shared agent core: conscience gate · model-routing propose (diffusion
+// infill for a surgical span, the borrowed sampler for whole-source) · governed liveEdit apply. One builder
+// so the one-shot verb AND the autonomous tender share identical doors.
+async function _factoryDeps() {
+  const roster = await liveRoster();
+  const sampler = await discoverSampler(roster);
+  const Qd = (typeof window !== "undefined") ? window.HoloQDiffusion : null;     // diffusion infill door (ADR-0083)
+  const LE = (typeof window !== "undefined") ? window.HoloLiveEdit : null;       // the governed edit door
+  const codeBlock = (t) => { const m = String(t).match(/```[a-z]*\n([\s\S]*?)```/i); return m ? m[1].trim() : String(t || "").trim(); };
+  const propose = async ({ signal: sig, context, lastEvidence, lang }) => {
+    if (Qd && (sig.infill || (sig.prefix != null && sig.suffix != null))) {       // ROUTER: surgical span → diffusion infill (both-sided)
+      const r = await Qd.infill(sig.prefix || "", sig.suffix || "", { holes: sig.holes || 8, steps: sig.steps });
+      return { source: r.text, lang, targetId: sig.target || null };
+    }
+    if (typeof sampler !== "function") return null;                              // no brain in context → no fabrication (honest stop)
+    const ctx = context ? `\n\nContext:\n\`\`\`\n${typeof context === "string" ? context : JSON.stringify(context)}\n\`\`\`` : "";
+    const hint = (lastEvidence && lastEvidence.error) ? `\n\nThe previous attempt failed: ${lastEvidence.error}. Fix it.` : "";
+    const out = await sampler({ prompt: `You are the change step of a software factory. Signal: ${sig.utterance || ""}.${ctx}${hint}\n\nProduce the corrected ${lang || "code"} ONLY, in a single fenced code block. No prose.`, maxTokens: 700 });
+    const src = codeBlock(out);
+    return src ? { source: src, lang, targetId: sig.target || null } : null;
+  };
+  const apply = async ({ source, lang, targetId }) => {                           // governed liveEdit when a live surface is mounted; else the core seals an artifact κ
+    if (LE && targetId && typeof LE.has === "function" && LE.has(targetId) && typeof LE.agentEdit === "function") {
+      const r = await LE.agentEdit(targetId, source, { caller: "holo-factory" });
+      if (r && r.ok) return { effectKappa: r.kappa, applied: true, governed: true, receipt: r.receipt };
+    }
+    return undefined;                                                            // → core's default sealArtifact
+  };
+  return { gate: (d) => liveGate({ verb: d.verb, actor: d.actor }), propose, apply };
+}
+async function _makeFactory(opts = {}) {
+  const { createFactory } = await import("/_shared/q/holo-factory.mjs");
+  return createFactory({ store, corpusHead, budget: opts.budget, ...(await _factoryDeps()) });
+}
+async function factory(signal, opts = {}) {
+  await _ready;
+  const res = await (await _makeFactory(opts)).run(signal, opts);
+  if (res.traceHead && res.traceHead !== corpusHead) { corpusHead = res.traceHead; persistHead(); }   // factory learning → the durable corpus
+  return res;
+}
+
+// ── the AUTONOMOUS tender (ADR-0097 keystone): gate-red → auto-signal → witness-verified, hands-off, ──
+// DRIVEN ONLY BY USER INTENT. A check is monitor ⊕ oracle; each red check auto-drives a factory fix verified
+// by that same check. NOTHING fires until factoryWatch() seals the user's standing intent; the conscience
+// gates every change (inherited); the user stops it. The OS gate's own EARL report ingests as signals.
+let _tender = null, _triage = null, _catalog = null;
+// the embedder door (EmbeddingGemma via HoloVoice.embed) — batches arrays per-item for robustness.
+function _embedDoor() {
+  const E = (typeof window !== "undefined") ? window.HoloVoice : null;
+  if (!E || typeof E.embed !== "function") return null;
+  return async (t, o) => Array.isArray(t) ? await Promise.all(t.map((x) => E.embed(x, o))) : await E.embed(t, o);
+}
+async function _ensureTender() {
+  if (_tender) return _tender;
+  await _ready;
+  const mod = await import("/_shared/q/holo-factory-tend.mjs");
+  const embed = _embedDoor();
+  if (embed && !_triage) { try { _triage = (await import("/_shared/q/holo-factory-triage.mjs")).createTriage({ embed }); } catch (e) {} }
+  if (!_catalog) {                                            // the live candidate catalog — auto-supplies fixable targets
+    try {
+      const cm = await import("/_shared/q/holo-factory-catalog.mjs");
+      const LE = (typeof window !== "undefined") ? window.HoloLiveEdit : null;
+      const f = (typeof window !== "undefined" && window.fetch) ? window.fetch.bind(window) : null;
+      const provs = LE ? [cm.liveEditProvider(LE, { resolveSource: f ? cm.kRouteResolver(f) : null })] : [];   // every live holospace surface, read via the κ-route
+      _catalog = cm.createCatalog(provs);
+    } catch (e) { _catalog = null; }
+  }
+  _tender = mod.createTender({ factory: await _makeFactory(), store, triage: _triage });
+  _tender._mod = mod;
+  return _tender;
+}
+// candidates passed explicitly win; else fall back to the live catalog (so watch/locate are hands-off).
+async function _candidatesOr(passed) {
+  if (passed && passed.length) return passed;
+  if (_catalog) { try { return await _catalog.candidates(); } catch (e) {} }
+  return [];
+}
+// locate — SEMANTIC TRIAGE: which candidate target does the signal refer to, by meaning? (no human naming)
+async function factoryLocate(signal, candidates = null, opts = {}) {
+  await _ensureTender();
+  if (!_triage) return { target: null, reason: "no embedder (HoloVoice.embed) — load the embed model first" };
+  return _triage.locate(signal, await _candidatesOr(candidates), opts);
+}
+// discover — locate the target(s) from a natural-language signal AND register a check for each (closed loop)
+async function factoryDiscover(signal, candidates = null, opts = {}) {
+  const t = await _ensureTender();
+  if (!_triage) return { located: null, registered: [], reason: "no embedder (HoloVoice.embed)" };
+  return t.discover(signal, await _candidatesOr(candidates), opts);
+}
+// target — an app/holospace SELF-REGISTERS as a fixable target in the catalog (the clean opt-in seam).
+async function factoryTarget(id, spec = {}) { await _ensureTender(); return _catalog ? _catalog.target(id, spec) : null; }
+// grow — SELF-IMPROVEMENT: read the factory's accumulated FAILURE traces and run the governed optimizer
+// (Holo Mind Phase 2) to propose an improved skill. Borrows the registered model; in force only when the
+// caller supplies a passing gate (governed). Honest below the failure threshold / with no model.
+async function factoryGrow(opts = {}) {
+  await _ensureTender();
+  const mod = await import("/_shared/q/holo-factory-grow.mjs");
+  return mod.growFromFailures(store, corpusHead, { sampler: _sampler || null, gate: opts.gate || {}, minFailures: opts.minFailures, parentBytes: opts.parentBytes || "", parentKappa: opts.parentKappa || null, optimizerKappa: opts.optimizerKappa || null });
+}
+// register an IN-TAB check (the CLOSED loop): a target whose source must parse, or a custom { verify }.
+async function factoryRegister(name, spec = {}) {
+  const t = await _ensureTender();
+  if (typeof spec.verify === "function") t.register(name, { name, ...spec });
+  else t.register(name, t._mod.parseCheck(name, { read: spec.read, write: spec.write, lang: spec.lang || "js" }));
+  return name;
+}
+// ingest the live OS gate (the EARL report): every FAILED row becomes a signal (proposal mode for repo rows
+// unless a browser-runnable witness is bound to close it).
+async function _ingestGate(t) {
+  try { const rep = await (await fetch("/os/etc/earl-report.jsonld", { cache: "no-cache" })).json(); for (const c of t._mod.gateChecks(rep, {})) t.register(c.name, c); } catch (e) {}
+}
+async function factoryTend(opts = {}) { const t = await _ensureTender(); if (opts.gate !== false) await _ingestGate(t); const r = await t.tend(opts); if (corpusHead) persistHead(); return r; }
+// watch — the OPT-IN autonomous loop: seal the user's standing intent, then tick tend() on the edge clock.
+// If candidates are supplied, SEMANTIC TRIAGE expands the natural-language intent into checks first, so
+// watch("keep my notepad working", { candidates }) locates and tends the right targets — driven only by intent.
+async function factoryWatch(utterance, o = {}) {
+  const t = await _ensureTender();
+  if (_triage && o.discover !== false) { try { await t.discover(utterance, await _candidatesOr(o.candidates), o); } catch (e) {} }   // auto-locate from the live catalog — hands-off
+  if (o.gate !== false) await _ingestGate(t);
+  return t.watch(utterance, { ...o, onTend: o.onTend || (() => { if (corpusHead) persistHead(); }) });
+}
+
 if (typeof window !== "undefined") {
   window.HoloMind = Object.assign(window.HoloMind || {}, {
-    loop, roster: liveRoster, store, composeRoster, setSampler, hasSampler: () => !!_sampler,
+    loop, roster: liveRoster, store, composeRoster, setSampler, hasSampler: () => !!_sampler, factory, factoryTend, factoryWatch, factoryRegister, factoryLocate, factoryDiscover, factoryTarget, factoryGrow,
     evolve, failures, corpusHead: () => corpusHead, gc,                               // Phase 2 + GC: self-evolution + the (durable, bounded) trace corpus
     learned: () => [...learnedSkills.values()], ready: () => _ready,                  // Phase 2 writeback + durable hydration
     drives: () => ({ ...drives }), proposeGoals, runProposals, primeDirective: () => PRIME_DIRECTIVE,   // Phase 3: the soul —
@@ -287,6 +416,14 @@ if (typeof window !== "undefined") {
     orchestrate, schedule, unschedule, scheduledTasks: () => [...scheduled.values()], tick, startScheduler, stopScheduler,  // Phase 4: parallel sub-agents + scheduled tasks
     delegate, revoke, revocations: () => [...revoked],   // Phase 4: UCAN-scoped, revocable sub-agent authority (ADR-0042)
   });
+  // the software-factory door (ADR-0097): the one-verb fix + the autonomous, intent-driven tender
+  window.HoloFactory = { id: "holo-factory", run: factory, tend: factoryTend, watch: factoryWatch, register: factoryRegister, locate: factoryLocate, discover: factoryDiscover, target: factoryTarget, grow: factoryGrow, failures: () => failures(corpusHead) };
+  try {
+    if (window.Q && typeof window.Q === "object" && !window.Q.factory) {
+      const qf = (s, o) => factory(s, o); qf.tend = factoryTend; qf.watch = factoryWatch; qf.register = factoryRegister; qf.locate = factoryLocate; qf.discover = factoryDiscover; qf.target = factoryTarget; qf.grow = factoryGrow;
+      window.Q.factory = qf;                                    // Q.factory(signal) · .watch · .tend · .register · .locate · .discover · .target · .grow
+    }
+  } catch (e) {}
 }
 
-export { loop, liveRoster, setSampler, evolve, failures, proposeGoals, runProposals, gc, orchestrate, schedule, delegate, revoke };
+export { loop, liveRoster, setSampler, evolve, failures, proposeGoals, runProposals, gc, orchestrate, schedule, delegate, revoke, factory, factoryTend, factoryWatch, factoryRegister, factoryLocate, factoryDiscover, factoryTarget, factoryGrow };

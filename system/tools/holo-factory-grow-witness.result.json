@@ -1,0 +1,25 @@
+{
+  "spec": "Holo Factory SELF-IMPROVEMENT (ADR-0097) — the factory improves over time by OBSERVING ITSELF (the last Factory 2.0 pillar). The tender appends a Trace per run; growth reads the FAILURE traces and drives Holo Mind's Phase-2 optimizer (evolve, ADR-0081): propose an improved skill from the failures, seal it as a GOVERNED, re-derivable SkillRevision in force ONLY when every condition holds (tests pass · within size ceiling · conscience accepts · operator-ratified · cooling-off elapsed). No new substrate — composes holo-mind-evolve verbatim. HONEST (Law L5 + the ADR-0052 boundary): the proposal is a stochastic generation, NOT reproducible — L5 holds over the AUDIT TRAIL (which corpus, which gates), not the search; below a failure threshold it does nothing (no churn on noise); no model ⇒ no proposal; a failing gate ⇒ honestly NOT in force.",
+  "authority": "W3C PROV-O (prov:wasRevisionOf / wasDerivedFrom) · IETF RFC 8785 (JCS) · W3C Subresource Integrity · UOR-ADDR (κ = H(canonical form)) · the Holo Constitution governed succession + conscience gate + adaptive-immune-classifier pattern (ADR-033) · Holo Mind ADR-0081 Phase 2 (the trace corpus + governed self-evolution) · Holo Factory ADR-0097 · holospaces Laws L1/L2/L3/L4/L5",
+  "witnessed": true,
+  "covers": [
+    "holo-factory",
+    "self-improvement",
+    "learn-from-failure",
+    "governed-evolution",
+    "audit-trail",
+    "law-l5"
+  ],
+  "checks": {
+    "growsOnFailures": true,
+    "honestThreshold": true,
+    "governedInForce": true,
+    "noModelNoProposal": true,
+    "revisionReDerives": true,
+    "derivesFromCorpus": true
+  },
+  "notes": {
+    "core": "os/usr/lib/holo/q/holo-factory-grow.mjs",
+    "basis": "growFromFailures() composes holo-mind-evolve.evolve over the factory's failure traces; in-force is governed + re-derived"
+  }
+}

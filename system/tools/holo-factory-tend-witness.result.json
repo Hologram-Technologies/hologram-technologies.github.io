@@ -1,0 +1,30 @@
+{
+  "spec": "Holo Factory autonomous tender (ADR-0097) — the self-observing keystone: a CHECK is monitor AND oracle, so signal and verification collapse into one object; the tender runs every check, each RED one auto-drives a factory.run verified by that same check, and a verified fix is SHIPPED through the check's own write(). DRIVEN ONLY BY USER INTENT: nothing fires until watch() seals a standing holo:Intent (source 'user'); that intent is the authority every tend links (prov:used); the conscience gates every change (inherited from the factory); no timer arms and no act happens without the user's intent. The OS gate's own EARL report ingests as checks (failed rows = signals). Never fakes green; the FactoryTend receipt re-derives (Law L5).",
+  "authority": "W3C PROV-O · W3C DID Core · IETF RFC 8785 (JCS) · W3C Subresource Integrity · UOR-ADDR (κ = H(canonical form)) · W3C EARL 1.0 (the conformance report the gate emits) · the Holo Constitution conscience gate (ADR-033) · Holo Mind ADR-0081 (GoalStack intent + opt-in scheduler discipline) · Holo Factory ADR-0097 · holospaces Laws L1/L3/L4/L5",
+  "witnessed": true,
+  "covers": [
+    "holo-factory",
+    "factory-tender",
+    "self-observing",
+    "auto-signal",
+    "witness-verified",
+    "user-intent-only",
+    "never-fakes-green",
+    "law-l4",
+    "law-l5"
+  ],
+  "checks": {
+    "tendConverges": true,
+    "durableShip": true,
+    "greenSkipped": true,
+    "neverFakesInTend": true,
+    "drivenByIntent": true,
+    "tendReDerives": true,
+    "optInNoAutofire": true,
+    "gateSignals": true
+  },
+  "notes": {
+    "core": "os/usr/lib/holo/q/holo-factory-tend.mjs",
+    "basis": "drives holo-factory.mjs; check = monitor ⊕ oracle; gate EARL report = signal source"
+  }
+}
