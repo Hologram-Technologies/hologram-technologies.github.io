@@ -2377,16 +2377,29 @@
       }
       // each tab IS an isolated holospace; Build/Run/Share target its app node
       function activeHolospace() { const w = desktop.doc().world; return (focusedId && w.find((x) => x.id === focusedId)) || w.find((x) => x.kind === "app" && x.state === "max") || w.find((x) => x.kind === "app") || w[0] || null; }
+      const _appDefCache = {};   // per-app holospace.json, memoised → re-opens skip the network (instant)
+      async function appDef(app) {
+        if (_appDefCache[app.id]) return _appDefCache[app.id];
+        let def = {}; try { def = await fetch(app.landing.replace(/[^/]+$/, "holospace.json")).then((r) => r.json()); } catch {}
+        return (_appDefCache[app.id] = def);
+      }
       async function openHolospaceApp(appId, query, title) {
         const app = catalog.find((a) => a.id === appId); if (!app) { toast("not available offline"); return; }
         closeSpot();
-        let def = {}; try { def = await fetch(app.landing.replace(/[^/]+$/, "holospace.json")).then((r) => r.json()); } catch {}
-        const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(def));
+        const name = title || app.name;
+        // Open the tab IMMEDIATELY so the click feels instant; the app then streams into it once its
+        // capabilities resolve. Play (Holo Hub) and every other app open as their own holospace tab,
+        // the same way — low-latency and delightful, no dead time waiting on the manifest fetch.
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab(name);
+        const myTab = activeTab;
+        setActiveTabTitle(name); setActiveTabAddr("holo://" + app.id); recordNav();
+        const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(await appDef(app)));
+        if (activeTab !== myTab) { if (tabs[myTab]) selectTab(myTab); else return; }   // mount into the tab we opened
         const src = app.landing + (query ? "?" + query : "");
-        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab(title || app.name);
-        addNode({ kind: "app", appId: app.id, appDid: app.did, title: title || app.name, src, sandbox, allow, state: "max" });
-        setActiveTabTitle(title || app.name); setActiveTabAddr("holo://" + app.id); recordNav();
+        addNode({ kind: "app", appId: app.id, appDid: app.did, title: name, src, sandbox, allow, state: "max" });
       }
+      // pre-warm the Play target (Holo Hub) at idle so the very first Play mounts with no fetch wait
+      try { (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => { const h = catalog.find((a) => a.id === "org.hologram.HoloHub"); if (h) appDef(h); }); } catch {}
       async function shareNode(n) {
         let link = shareLinkFor(n);
         if (!link) { toast("Nothing to share yet — open a holospace (⌘K) first"); return; }
@@ -2769,10 +2782,34 @@
             }
           } catch (e) {}
           if (!devFrame || devFrame.dataset.mounted) return; devFrame.dataset.mounted = "1";
-          devFrame.src = "/_shared/devtools/holo-devtools.html#" + Date.now();
-          devFrame.addEventListener("load", function () {
-            try { if (window.HoloGov && devFrame.contentWindow) window.HoloGov.register(devFrame.contentWindow, { did: "did:holo:app:holo-devtools", id: "org.hologram.HoloDevTools", name: "Holo DevTools" }); } catch (e) {}
-          }, { once: true });
+          // mount the DevTools holospace. NATIVE host (Tauri/WebView2 = Chromium): get the REAL Chrome
+          // DevTools Protocol endpoint for THIS page and mount devtools-frontend over a real WebSocket →
+          // genuine F12 of the live tab (ADR-0095 native door). PURE WEB: the κ-CDP backend over the bus.
+          const mountWith = function (src, real) {
+            devFrame.src = src;
+            if (!real) devFrame.addEventListener("load", function () {   // κ path rides the governed bus; real-CDP needs no HoloGov routing
+              try { if (window.HoloGov && devFrame.contentWindow) window.HoloGov.register(devFrame.contentWindow, { did: "did:holo:app:holo-devtools", id: "org.hologram.HoloDevTools", name: "Holo DevTools" }); } catch (e) {}
+            }, { once: true });
+          };
+          const kappaSrc = function () { return "/_shared/devtools/holo-devtools.html#" + Date.now(); };
+          const T = window.__TAURI__, invoke = T && ((T.core && T.core.invoke) || T.invoke || (T.tauri && T.tauri.invoke));
+          if (invoke) {
+            Promise.resolve().then(function () { return invoke("holo_devtools_targets"); }).then(function (raw) {
+              let ws = null;
+              try {
+                const list = JSON.parse(raw), here = location.href.replace(/#.*$/, "");
+                const pick = list.find(function (t) { return t.type === "page" && t.url === here; })
+                  || list.find(function (t) { return t.type === "page" && t.url && here.indexOf(t.url) === 0; })
+                  || list.find(function (t) { return t.type === "page" && t.url && t.url.indexOf(location.origin) === 0; })
+                  || list.find(function (t) { return t.type === "page"; });
+                ws = pick && pick.webSocketDebuggerUrl;
+              } catch (e) {}
+              if (ws) mountWith("/_shared/devtools/holo-devtools.html?ws=" + ws.replace(/^wss?:\/\//, "") + "#" + Date.now(), true);
+              else mountWith(kappaSrc(), false);   // no real target found → honest κ fallback
+            }).catch(function () { mountWith(kappaSrc(), false); });
+          } else {
+            mountWith(kappaSrc(), false);   // pure web → κ-CDP backend
+          }
         }
         function view(v) {
           const code = v === "code", dev = v === "dev";
@@ -3643,6 +3680,7 @@
 
         const MARK = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="2.3" fill="#fff"/><path d="M16.5 16.5L20 20" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>';
         const orb = document.createElement("div"); orb.id = "holo-orb"; orb.title = "Ask Q  ·  ⌘I"; orb.innerHTML = MARK;
+        orb.style.display = "none";   // Q now lives in Holo Identity → Intelligence (and ⌘I); no separate desktop orb. Kept in the DOM so that route + the shortcut still open the panel.
         const panel = document.createElement("div"); panel.id = "holo-qpanel";
         panel.innerHTML =
           '<div class="qhead"><span class="qmark"></span><span class="qtitle">Q</span><span class="qctx" id="holo-qctx"></span><span class="qclose" id="holo-qx" title="Collapse">×</span></div>' +
