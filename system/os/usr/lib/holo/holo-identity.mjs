@@ -128,25 +128,39 @@ export async function forget(kappa) { return store.del(kappa); }
 
 // ── a session assertion: a content-addressed, signed claim "this operator opened this
 //    session" — the handoff token the greeter writes and the shell verifies (Law L5).
-export async function openSession(principal, { session, next, host, guest } = {}) {
+// A session carries subjectType (pc = human player · npc = agent) and, when the principal has a
+// post-quantum co-key, a HYBRID co-signature: the Ed25519 sig (bound to the operator κ) attests the
+// declared pqPub, and an ML-DSA co-signature proves possession — a break in EITHER family is not a break.
+export async function openSession(principal, { session, next, host, guest, subjectType } = {}) {
   const body = { "@type": "HoloSession", operator: principal.kappa, label: principal.label,
+    subjectType: subjectType || "pc",
     session: session || "primeos", next: next || "", host: host || "", issuedAt: new Date().toISOString(), nonce: hex(rand(8)),
+    ...(principal.pqPub ? { pqAlg: principal.pqAlg, pqPub: principal.pqPub } : {}),
     ...(guest ? { guest: true } : {}) };
   const c = canon(body);
   const id = await addressOf(te.encode(c));
-  return { id, ...body, alg: principal.alg, pub: principal.pub, sig: await principal.sign(c) };
+  const token = { id, ...body, alg: principal.alg, pub: principal.pub, sig: await principal.sign(c) };
+  if (principal.pqSign && principal.pqPub) token.pqSig = await principal.pqSign(c);   // hybrid co-signature (Ed25519 ‖ ML-DSA)
+  return token;
 }
 // Verify a session token end-to-end: re-derive its id, re-derive the operator κ from the
-// signing key, and check the signature (Law L5). Returns the verified body or null.
+// signing key, check the classical signature, and — if a post-quantum co-key is declared — the ML-DSA
+// co-signature too (Law L5, fail closed). Returns the verified body or null. Backward-compatible: a
+// classical-only token (no pqPub) verifies exactly as before.
 export async function verifySession(token) {
   try {
     if (!token || !token.id || !token.sig) return null;
-    const { id, alg, pub, sig, ...body } = token;
+    const { id, alg, pub, sig, pqSig, ...body } = token;
     const c = canon(body);
-    if (await addressOf(te.encode(c)) !== id) return null;            // id must commit to the body
+    if (await addressOf(te.encode(c)) !== id) return null;            // id must commit to the body (incl. pqPub)
     if (await addressOf(unb64(pub)) !== body.operator) return null;   // operator κ must be this pubkey's address
     const key = await SUB.importKey("raw", unb64(pub), keyParams(alg), false, ["verify"]);
-    return (await SUB.verify(sigParams(alg), key, unb64(sig), te.encode(c))) ? body : null;
+    if (!(await SUB.verify(sigParams(alg), key, unb64(sig), te.encode(c)))) return null;
+    if (body.pqPub) {                                                  // hybrid: the ML-DSA co-sig must ALSO verify
+      const { mldsaVerify } = await import("./holo-pqc.mjs");
+      if (!pqSig || !mldsaVerify(body.pqPub, c, pqSig)) return null;
+    }
+    return body;
   } catch { return null; }
 }
 

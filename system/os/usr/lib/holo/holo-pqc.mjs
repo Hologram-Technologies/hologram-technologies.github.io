@@ -47,6 +47,17 @@ export function hybridVerify(pub, msg, sig) {
   try { if (!sig || sig.scheme !== SCHEMES.sign) return false; const m = asBytes(msg);
     return ed25519.verify(unb64(sig.ed), m, pub.ed) && ml_dsa65.verify(unb64(sig.pq), m, pub.pq); } catch { return false; }
 }
+// DETERMINISTIC ML-DSA co-key from a BIP-39 seed — the post-quantum HALF of a sovereign identity, so the
+// existing Ed25519 κ stays canonical while every session/credential can be co-signed ML-DSA. Re-derivable
+// from the same seed (Law L5): domain-separated SHA-256 → ML-DSA-65 seeded keygen.
+export function mldsaFromSeed(seed) {
+  const s = sha256(cat(asBytes(seed), te.encode("holo-pqc/ml-dsa-65/v1")));   // 32-byte domain-separated seed
+  const k = ml_dsa65.keygen(s);
+  return { alg: "ml-dsa-65", sk: k.secretKey, pub: k.publicKey, pubB64: b64(k.publicKey) };
+}
+export const mldsaSign = (sk, msg) => b64(ml_dsa65.sign(asBytes(msg), sk));
+export const mldsaVerify = (pubB64, msg, sigB64) => { try { return ml_dsa65.verify(unb64(sigB64), asBytes(msg), unb64(pubB64)); } catch { return false; } };
+
 // SLH-DSA backup signer (hash-based) — for anchors that must survive a lattice break too.
 export function slhKeygen() { const k = slh_dsa_sha2_256f.keygen(); return { scheme: SCHEMES.signBackup, sk: k.secretKey, pub: k.publicKey }; }
 export function slhSign(sk, msg) { return b64(slh_dsa_sha2_256f.sign(asBytes(msg), sk)); }

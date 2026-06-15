@@ -16,6 +16,7 @@
 
 import { identity, createVault, openVault, vaultKappa, generateMnemonic, validateMnemonic, seedFromMnemonic, deriveAddress, CHAINS } from "./holo-wdk.js";
 import { addressOf } from "./holo-identity.mjs";
+import { mldsaFromSeed, mldsaSign } from "./holo-pqc.mjs";   // post-quantum co-key (ML-DSA-65), re-derived from the SAME seed
 
 const SUB = (globalThis.crypto && globalThis.crypto.subtle) || null;
 const te = new TextEncoder();
@@ -33,9 +34,12 @@ export async function principalFromSeed(seed, label = "operator") {
   const id = identity(seed);                                          // { did, publicKeyRaw, pkcs8 }
   const priv = await SUB.importKey("pkcs8", id.pkcs8, { name: "Ed25519" }, false, ["sign"]);
   const kappa = await addressOf(id.publicKeyRaw);                     // did:holo:sha256 — Law L1 canonical
+  const pq = mldsaFromSeed(seed);                                     // ML-DSA-65 co-key, re-derived from the SAME seed (Law L5)
   return {
     kappa, did: id.did, label, alg: "Ed25519", pub: b64(id.publicKeyRaw),
+    pqAlg: pq.alg, pqPub: pq.pubB64,                                  // post-quantum half of this sovereign identity
     async sign(bytesOrStr) { const u8 = typeof bytesOrStr === "string" ? te.encode(bytesOrStr) : bytesOrStr; return b64(await SUB.sign({ name: "Ed25519" }, priv, u8)); },
+    pqSign(bytesOrStr) { return mldsaSign(pq.sk, bytesOrStr); },      // ML-DSA co-signature (hybrid: classical ‖ PQC)
     address(chain, index = 0) { return deriveAddress(chain, seed, index); },
     addresses(index = 0) { const o = {}; for (const c of Object.keys(CHAINS)) o[c] = deriveAddress(c, seed, index); return o; },
   };
