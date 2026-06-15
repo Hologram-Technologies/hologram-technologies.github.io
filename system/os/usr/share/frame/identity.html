@@ -335,12 +335,14 @@
           const pc = await login.unlock(op.kappa, secret);            // → the signing principal (Ed25519 ‖ ML-DSA)
           const npc = mintNpc(name);
           const caps = [...selCaps];
-          await delegate(pc, npc, { capabilities: caps, notAfter: null });
+          const { credential } = await delegate(pc, npc, { capabilities: caps, notAfter: null, nowIso: new Date().toISOString() });
           const key = AGENTS_KEY(op.kappa);
           let list = []; try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
-          list.unshift({ name, kappa: npc.kappa, caps, at: new Date().toISOString() });
+          // persist the SIGNED grant — this is what the agent presents to the wallet (req.delegation) and
+          // what revoke refuses by κ. The agent's private keys are NOT stored here (they are the agent's).
+          list.unshift({ name, kappa: npc.kappa, caps, at: new Date().toISOString(), cred: credential });
           localStorage.setItem(key, JSON.stringify(list));
-          $("mintScrim").classList.remove("on"); renderAgents(op.kappa); toast("Agent created · " + name);
+          $("mintScrim").classList.remove("on"); renderAgents(op.kappa); toast("Agent “" + name + "” created · " + short(npc.kappa, 6));
         } catch (e) { $("mintErr").textContent = /cancel|wrong|denied/i.test(e.message) ? "Couldn't authorise — try again." : ("Failed: " + e.message); }
       };
 
