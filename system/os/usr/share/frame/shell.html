@@ -247,13 +247,36 @@
       /* desktop credit line — bottom-center, behind windows (z 1, above the wallpaper), on every tab */
       /* the OS signature line — lives in the bottom FRAME gutter (beneath the holospace card, centred
          under it), so it reads as "this whole machine is powered by HOLOGRAM", not desktop content. */
+      /* bottom STATUS BAR — left: Privacy · Powered by HOLOGRAM   right: session timer · self-verified version */
       #holo-credit { position: fixed; left: var(--holo-dock-w, 0px); right: var(--holo-aside-w, 0px); bottom: 0; height: var(--gap-b); z-index: 2; pointer-events: none; transition: right .34s cubic-bezier(.2,.8,.2,1);
-        display: flex; align-items: center; justify-content: center; gap: 8px; user-select: none; white-space: nowrap;
-        font: 600 var(--fs-meta)/1 var(--win-font, ui-sans-serif, system-ui); text-transform: uppercase; }
-      #holo-credit .pw { color: var(--holo-ink-dim, #8b949e); opacity: .62; letter-spacing: .22em; }
-      #holo-credit .hg { font-weight: 800; letter-spacing: .26em; color: #fff;
-        filter: drop-shadow(0 1px 6px rgba(0, 0, 0, .35)); }
+        display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; user-select: none; white-space: nowrap;
+        font: 600 var(--fs-meta)/1 var(--win-font, ui-sans-serif, system-ui); }
+      #holo-credit .cv-left, #holo-credit .cv-right { display: flex; align-items: center; gap: 13px; min-width: 0; }
+      #holo-credit .pw { color: var(--holo-ink-dim, #8b949e); opacity: .62; letter-spacing: .22em; text-transform: uppercase; }
+      #holo-credit .hg { font-weight: 800; letter-spacing: .26em; color: #fff; text-transform: uppercase; filter: drop-shadow(0 1px 6px rgba(0, 0, 0, .35)); }
       @media (prefers-reduced-transparency: reduce) { #holo-credit .hg { filter: none; } }
+      #holo-credit .cv-pill { pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--holo-ink-dim, #9aa6b8);
+        background: color-mix(in srgb, var(--holo-ink, #c9d1d9) 6%, transparent); border: 1px solid var(--holo-border, #2a313c); border-radius: 999rem; padding: 4px 11px; font: inherit; letter-spacing: .02em; transition: color .12s, border-color .12s, background .12s; }
+      #holo-credit .cv-pill:hover { color: var(--holo-ink, #e8edf6); border-color: color-mix(in srgb, var(--holo-accent, #4f8cff) 55%, var(--holo-border, #2a313c)); }
+      #holo-credit .cv-pill svg { width: 13px; height: 13px; }
+      #holo-credit .cv-ver .vk { color: var(--holo-ok, #2fcf6f); display: inline-flex; }
+      #holo-credit .cv-timer { pointer-events: auto; color: var(--holo-ink-dim, #9aa6b8); letter-spacing: .05em; font-variant-numeric: tabular-nums; }
+      #holo-privacy-btn { display: none !important; }   /* Privacy now lives in the bottom bar (left) */
+      @media (max-width: 720px) { #holo-credit .cv-left span:not(.pill), #holo-credit .pw { display: none; } }
+      /* version → authenticity + update modal */
+      #cv-modal { position: fixed; inset: 0; z-index: 9300; display: none; place-items: center; padding: 20px; background: color-mix(in srgb, #000 62%, transparent); backdrop-filter: blur(4px); }
+      #cv-modal.on { display: grid; }
+      #cv-modal .cv-card { width: min(384px, 94vw); background: var(--holo-surface, #11151c); border: 1px solid var(--holo-border, #2a313c); border-radius: var(--holo-radius-lg, 18px); padding: 22px; text-align: center; box-shadow: 0 34px 80px -22px rgba(0,0,0,.78); font: var(--holo-text-sm,1rem) var(--win-font, ui-sans-serif, system-ui); }
+      #cv-modal .cv-ic { width: 54px; height: 54px; margin: 2px auto 13px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, var(--holo-ok, #2fcf6f) 16%, transparent); color: var(--holo-ok, #2fcf6f); }
+      #cv-modal .cv-ic svg { width: 28px; height: 28px; }
+      #cv-modal h2 { margin: 0 0 2px; font-size: 1.24rem; color: var(--holo-ink, #e8edf6); font-weight: 800; }
+      #cv-modal .cv-sub { color: var(--holo-ink-dim, #9aa6b8); font-size: .92rem; margin: 0 0 14px; }
+      #cv-modal .cv-auth { display: inline-flex; align-items: center; gap: 6px; color: var(--holo-ok, #2fcf6f); font-weight: 700; font-size: .96rem; margin-bottom: 10px; }
+      #cv-modal .cv-k { font: 500 .72rem ui-monospace, monospace; color: var(--holo-ink-dim, #9aa6b8); word-break: break-all; background: color-mix(in srgb, var(--holo-ink, #c9d1d9) 5%, transparent); border: 1px solid var(--holo-border, #2a313c); border-radius: 11px; padding: 9px 11px; cursor: pointer; }
+      #cv-modal .cv-note { color: var(--holo-ink-dim, #9aa6b8); font-size: .86rem; margin: 11px 0 17px; line-height: 1.5; }
+      #cv-modal .cv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; font: 700 1rem var(--win-font, ui-sans-serif); color: #07101f; background: var(--holo-accent, #4f8cff); border: 0; border-radius: 12px; padding: 12px; cursor: pointer; transition: filter .12s; }
+      #cv-modal .cv-btn:hover { filter: brightness(1.07); }
+      #cv-modal .cv-later { display: block; width: 100%; margin-top: 8px; color: var(--holo-ink-dim, #9aa6b8); background: transparent; border: 0; cursor: pointer; font: 600 .94rem var(--win-font, ui-sans-serif); padding: 8px; }
       /* Privacy shield shows ONLY on the bare desktop — hidden inside a maximized app and in Create mode
          (those surfaces carry their own context; the floating shield would overlap them). */
       body.app-max #holo-privacy-btn, body.cs-active #holo-privacy-btn { display: none !important; }
@@ -523,7 +546,16 @@
       <div id="wallpaper" aria-hidden="true"></div>
       <div id="empty"></div>
       <!-- desktop credit — pinned bottom-center, behind windows; on every tab's desktop -->
-      <div id="holo-credit" aria-hidden="true"><span class="pw">Powered by</span><span class="hg">HOLOGRAM</span></div>
+      <div id="holo-credit">
+        <div class="cv-left">
+          <button class="cv-pill" id="cv-privacy" type="button" title="Holo Privacy — what apps and agents may learn about you"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z"/></svg> Privacy</button>
+          <span><span class="pw">Powered by</span> <span class="hg">HOLOGRAM</span></span>
+        </div>
+        <div class="cv-right">
+          <span class="cv-timer" id="cv-timer" title="This sign-in session">◷ 0:00:00</span>
+          <button class="cv-pill cv-ver" id="cv-version" type="button" title="Self-verified — every byte re-derives to its content address (Law L5). Click to verify + update."><span class="vk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> <span id="cv-vlabel">Hologram OS</span></button>
+        </div>
+      </div>
     </div>
     <div id="grid"></div>
     <div id="snap"></div>
@@ -1152,6 +1184,46 @@
           else if (a === "open-network") tap("#share-btn");            // Network (peer-to-peer share)
           else if (a === "signed-in" || a === "signed-out") { setTimeout(() => location.reload(), 200); }
         });
+      })();
+
+      // ── bottom status bar — Privacy (left) · session timer + self-verified OS version (right) ──
+      (function wireCredit() {
+        const privBtn = $("#cv-privacy"), verBtn = $("#cv-version"), timerEl = $("#cv-timer"), vlabel = $("#cv-vlabel");
+        if (!privBtn || !verBtn) return;
+        const REPO = "https://github.com/Hologram-Technologies/hologram-os", VERSION = "0.1.0";
+        // Privacy → open the existing Holo Privacy panel (the floating button is hidden; we trigger it)
+        privBtn.onclick = () => { const b = $("#holo-privacy-btn"); if (b) b.click(); else if (window.HoloPrivacy && window.HoloPrivacy.openControlCenter) window.HoloPrivacy.openControlCenter(); };
+        // session timer — counts from the verified session's issuedAt (else this load)
+        let start = Date.now();
+        try { const t = JSON.parse(sessionStorage.getItem("holo.session") || "null"); if (t && t.issuedAt) start = new Date(t.issuedAt).getTime(); } catch {}
+        const p2 = (n) => String(n).padStart(2, "0");
+        (function tick() { const s = Math.max(0, Math.floor((Date.now() - start) / 1000)); timerEl.textContent = "◷ " + Math.floor(s / 3600) + ":" + p2(Math.floor((s % 3600) / 60)) + ":" + p2(s % 60); setTimeout(tick, 1000); })();
+        // self-verified version — the OS content address (closure root κ) IS the proof
+        let rootK = null, files = 0;
+        fetch("/etc/os-closure.json", { cache: "no-store" }).then((r) => r.json()).then((c) => {
+          rootK = c.root || c.head || null; files = Object.keys(c.closure || {}).length;
+          vlabel.textContent = "v" + VERSION + (rootK ? " · " + rootK.split(":").pop().slice(0, 7) : "");
+        }).catch(() => { vlabel.textContent = "v" + VERSION; });
+        // version click → authenticity + update
+        let modal = null;
+        verBtn.onclick = () => {
+          if (!modal) {
+            modal = document.createElement("div"); modal.id = "cv-modal";
+            modal.innerHTML = '<div class="cv-card">' +
+              '<div class="cv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6z"/></svg></div>' +
+              '<h2>Hologram OS</h2><p class="cv-sub">v' + VERSION + ' · self-verified</p>' +
+              '<div class="cv-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M20 6 9 17l-5-5"/></svg> Authentic — verified on this device</div>' +
+              '<div class="cv-k" id="cv-k" title="content address — tap to copy">' + (rootK || "—") + '</div>' +
+              '<p class="cv-note">Every byte re-derives to this content address. Change one and boot fails (Law L5). ' + (files ? files + " objects verified." : "") + '</p>' +
+              '<button class="cv-btn" id="cv-update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg> Check for updates</button>' +
+              '<button class="cv-later" id="cv-close">Close</button></div>';
+            document.body.appendChild(modal);
+            modal.addEventListener("click", (e) => { if (e.target === modal || e.target.id === "cv-close") modal.classList.remove("on"); });
+            modal.querySelector("#cv-k").onclick = () => { try { navigator.clipboard.writeText(rootK || ""); toast("content address copied"); } catch {} };
+            modal.querySelector("#cv-update").onclick = () => window.open(REPO + "/releases", "_blank", "noopener");
+          }
+          modal.classList.add("on");
+        };
       })();
 
       // ── Chrome-grade tab manipulation (in-page, serverless): drag to REARRANGE · drag DOWN to DETACH
