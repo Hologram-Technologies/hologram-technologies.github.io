@@ -19,8 +19,8 @@
   if (W.HoloWidgets) return;
   try { if (W.top !== W.self) return; } catch (e) { return; }     // top shell only — survive app frames
 
-  var LS = "holo-widgets.v1";
-  var SEED_LS = "holo-widgets.seeded.v1";
+  var LS = "holo-widgets.v2";          // v2: reseed onto the golden-ratio layouts (tidy, balanced, non-overlapping)
+  var SEED_LS = "holo-widgets.seeded.v2";
   var TYPES = {};                                                 // type id → spec
   var PROVIDERS = {};                                            // provider name → factory()
   var live = [];                                                 // mounted instances {id,type,x,y,w,h,config,el,body,_subs}
@@ -44,8 +44,9 @@
     var gs = getComputedStyle(DOC.documentElement);
     var dW = parseFloat(gs.getPropertyValue("--holo-dock-w")) || 0;
     var dH = parseFloat(gs.getPropertyValue("--holo-dock-h")) || 0;
+    var aW = parseFloat(gs.getPropertyValue("--holo-aside-w")) || 0;   // a right-edge aside carrier (Wallet) squeezes the canvas — keep widgets clear of it too
     var top = parseFloat(gs.getPropertyValue("--holo-top-inset")) || 0;   // shells with top chrome (tab strip + toolbar) set this so widgets clear it
-    return { minX: EDGE + dW, minY: EDGE + top, maxX: innerWidth - EDGE, maxY: innerHeight - EDGE - dH };
+    return { minX: EDGE + dW, minY: EDGE + top, maxX: innerWidth - EDGE - aW, maxY: innerHeight - EDGE - dH };
   }
   function clampPos(w, x, y) {
     var b = deskBounds(), ww = w.el.offsetWidth, hh = w.el.offsetHeight;
@@ -102,8 +103,9 @@
     s.textContent = [
       ".hw-widget{position:fixed;z-index:62;width:var(--hw-w,260px);touch-action:none;user-select:none;cursor:grab;",
         "color:var(--holo-ink,#f4f6fa);-webkit-tap-highlight-color:transparent;",
-        "font:300 16px/1.35 ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;",
-        "text-shadow:0 1px 18px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.5);transition:filter .2s}",
+        // ONE typeface (the OS face) + the OS readability floor (--holo-font-min, 16px) — every widget inherits both
+        "font:var(--holo-weight-light,300) max(var(--holo-font-min,16px),16px)/1.4 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif);",
+        "text-shadow:0 1px 18px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.55);transition:filter .2s}",
       ".hw-widget[hidden]{display:none}",
       ".hw-widget.dragging{cursor:grabbing}",
       // glide — applied only while the canvas reflows (a side panel opening/closing), so every object
@@ -371,9 +373,43 @@
   //    panel — and GLIDES there, so the whole desktop reflows as one. Deltas sum, so it is exact and
   //    reversible across open ⇄ close, and the constant left-rail offset cancels (we shift by Δ, not abs). ──
   var lastVW = W.innerWidth, lastVH = W.innerHeight, glideT = null;
+  function scheduleUnglide() { clearTimeout(glideT); glideT = setTimeout(function () { live.forEach(function (w) { w.el && w.el.classList.remove("hw-gliding"); }); }, 360); }
+  // pin the Q orb to the bottom-right corner of the desktop (clear of the dock + screen edge), on every reflow.
+  function anchorOrb() {
+    for (var i = 0; i < live.length; i++) {
+      var w = live[i]; if (w.type !== "q" || w.hidden || !w.el) continue;
+      var b = deskBounds(), ww = w.el.offsetWidth || 120, hh = w.el.offsetHeight || 120, gap = 20;
+      w.x = Math.round(b.maxX - ww - gap); w.y = Math.round(b.maxY - hh - gap);
+      w.el.classList.add("hw-gliding"); w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
+    }
+  }
+  // re-derive the ACTIVE preset mode's golden layout for the CURRENT viewport, and snap each widget to it.
+  // This is what makes every mode self-correcting: seeded narrow then shown wide, or any resize, re-lays-out
+  // tidily instead of leaving widgets stranded off-centre. Matches scene items to live widgets by type/order.
+  function repositionToMode() {
+    if (!persistScope) return false;                                // only the home/persisting board carries modes
+    var name = currentModeName(), sc = name && SCENES[name];
+    if (!sc || !sc.layout) return false;
+    var items; try { items = sc.layout(W.innerWidth, W.innerHeight, deskBounds()) || []; } catch (e) { return false; }
+    if (!items.length) return false;
+    var pools = {};
+    live.forEach(function (w) { if (!w.hidden && w.el && w.type !== "q") (pools[w.type] = pools[w.type] || []).push(w); });
+    items.forEach(function (it) {
+      var pool = pools[it.type]; if (!pool || !pool.length) return;
+      var w = pool.shift();
+      if (it.w) { w.w = it.w; w.el.style.setProperty("--hw-w", it.w + "px"); }
+      w.x = it.x; w.y = it.y; var p = clampPos(w, w.x, w.y);
+      w.el.classList.add("hw-gliding"); w.el.style.left = p.x + "px"; w.el.style.top = p.y + "px";
+    });
+    return true;
+  }
+  // re-apply the layout a few times over the first ~1.2s so a board seeded/restored during the shell's boot
+  // (when the viewport is briefly narrower) settles to the FINAL size — the cause of off-centre home widgets.
+  function settleMode() { var n = 0; (function tick() { var did = repositionToMode(); if (did) { anchorOrb(); save(); } if (++n < 8) setTimeout(tick, 320); })(); }   // ~2.4s window — re-fits as the shell's boot layout settles to its final width
   function recenter() {
     var dx = (W.innerWidth - lastVW) / 2, dy = (W.innerHeight - lastVH) / 2;
     lastVW = W.innerWidth; lastVH = W.innerHeight;
+    if (repositionToMode()) { anchorOrb(); scheduleUnglide(); save(); return; }   // a preset mode → re-derive its golden layout for the new size
     if (!dx && !dy) return reflowAll();                              // no centre shift → just keep them in bounds
     live.forEach(function (w) {
       if (!w.el || w.hidden) return;
@@ -381,9 +417,7 @@
       var p = clampPos(w, w.x, w.y);                                 // clamp only the DISPLAY so it never hides under the panel
       w.el.classList.add("hw-gliding"); w.el.style.left = p.x + "px"; w.el.style.top = p.y + "px";
     });
-    clearTimeout(glideT); glideT = setTimeout(function () {         // drop the glide once settled; the shift is a
-      live.forEach(function (w) { w.el && w.el.classList.remove("hw-gliding"); });   // transient VIEW transform (driven
-    }, 360);                                                         // by panel state), so it is not persisted — drags are.
+    scheduleUnglide();                                              // drop the glide once settled (transient VIEW transform, not persisted)
   }
 
   // ── board swap — the shell hands a DIFFERENT widget set per holospace tab (per-holospace scope) ──
@@ -405,6 +439,7 @@
     live.length = 0;
     persistScope = opts.persist !== false;
     (records || []).forEach(mountRecord);
+    if (persistScope) settleMode();                              // home board (the shell's restore path) → re-fit to the CURRENT viewport so a board saved at a narrower boot size doesn't render off-centre
     return live.length;
   }
   // A "sticky" widget type (e.g. the Holo Q voice orb) is a SYSTEM affordance: it survives mode switches
@@ -432,7 +467,7 @@
   // A mode is just a scene flagged {mode:true}. Switching REPLACES the board, but each mode REMEMBERS its
   // own layout (per-mode localStorage), so flipping between them is non-destructive — your customised Work
   // board is still there when you come back from Play. Active only on a persisting board (the Home desktop).
-  var MODE_LS = "holo-widgets.mode.v1", MODES_LS = "holo-widgets.modeboards.v1", currentMode = null;
+  var MODE_LS = "holo-widgets.mode.v2", MODES_LS = "holo-widgets.modeboards.v2", currentMode = null;
   function modeBoardsLoad() { try { return JSON.parse(W.localStorage.getItem(MODES_LS) || "{}"); } catch (e) { return {}; } }
   function modeBoardsSave(m) { try { W.localStorage.setItem(MODES_LS, JSON.stringify(m)); } catch (e) {} }
   function currentModeName() { if (currentMode) return currentMode; try { return W.localStorage.getItem(MODE_LS) || null; } catch (e) { return null; } }
@@ -450,6 +485,7 @@
     else addScene(name, { quiet: true });                                       // first visit → seed the curated preset (on top of the kept sticky widgets)
     if (persistScope) { boards[name] = modeSnapshot(); modeBoardsSave(boards); save(); }
     toast((SCENES[name].name || name) + " mode");
+    settleMode();                                                                 // re-lay-out once the viewport settles (boot/transient sizes)
     return name;
   }
 
@@ -463,16 +499,18 @@
       if (mount(w)) { live.push(w); if (!w.hidden) { var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; } }
     });
     seedFirstRun(saved);
+    if (saved.length) settleMode();                               // a restored board → re-fit it to the CURRENT viewport (heals positions saved at a narrower boot size)
   }
-  // a gentle first-run flourish — drop a single Clock so the feature announces itself, once. The desk
-  // mounts asynchronously (after its deps load), so wait briefly for it before seeding; never on apps.
+  // first run (or after a layout-version reset): seed the curated, golden-ratio "Focused" scene so the Home
+  // opens tidy and balanced — clock, today's one goal, a focus timer and a quote — not an empty desktop. The
+  // desk mounts asynchronously (after its deps load), so wait briefly for it before seeding; never on apps.
   function seedFirstRun(saved) {
-    try { if (saved.length || W.localStorage.getItem(SEED_LS) || !spec("clock")) return; } catch (e) { return; }
+    try { if (saved.length || W.localStorage.getItem(SEED_LS) || !SCENES.focused) return; } catch (e) { return; }
     var tries = 0;
     (function attempt() {
-      if (++tries > 50) return;                                    // gave up — desk shell not present here
-      if (!DOC.getElementById("holo-desk")) { setTimeout(attempt, 120); return; }
-      try { W.localStorage.setItem(SEED_LS, "1"); add("clock", null, { x: Math.round(innerWidth / 2 - 150), y: Math.round(innerHeight * 0.26) }); } catch (e) {}
+      if (++tries > 60) return;                                    // gave up — no desktop surface present here
+      if (!DOC.getElementById("holo-desk") && !DOC.getElementById("world")) { setTimeout(attempt, 120); return; }   // wait for the desktop (holo-desk) OR the shell holospace card (#world)
+      try { W.localStorage.setItem(SEED_LS, "1"); setMode("focused"); } catch (e) {}
     })();
   }
 
@@ -519,8 +557,8 @@
     render: function (host) {
       var c = host.config;
       var wrap = DOC.createElement("div"); wrap.style.cssText = "text-align:center;line-height:1";
-      var time = DOC.createElement("div"); time.style.cssText = "font-weight:200;letter-spacing:-.01em;font-size:clamp(34px," + "calc(var(--hw-w,300px)*.30),200px);font-variant-numeric:tabular-nums";
-      var hi = DOC.createElement("div"); hi.style.cssText = "margin-top:.35em;font-weight:300;font-size:clamp(13px,calc(var(--hw-w,300px)*.072),34px);opacity:.96";
+      var time = DOC.createElement("div"); time.style.cssText = "font-weight:200;letter-spacing:-.01em;font-size:clamp(40px," + "calc(var(--hw-w,300px)*.30),200px);font-variant-numeric:tabular-nums";
+      var hi = DOC.createElement("div"); hi.style.cssText = "margin-top:.38em;font-weight:300;font-size:clamp(16px,calc(var(--hw-w,300px)*.078),36px);opacity:.96";
       wrap.appendChild(time); wrap.appendChild(hi); host.body.appendChild(wrap);
       host.subscribe("time", function (d) {
         var H = d.getHours(), m = String(d.getMinutes()).padStart(2, "0");
@@ -545,7 +583,7 @@
     render: function (host) {
       var c = host.config;
       var p = DOC.createElement("div");
-      p.style.cssText = "text-align:center;font-weight:300;font-size:clamp(15px,calc(var(--hw-w,360px)*.072),30px);color:" + (c.accent || "#fff");
+      p.style.cssText = "text-align:center;font-weight:300;font-size:clamp(17px,calc(var(--hw-w,360px)*.075),32px);color:" + (c.accent || "#fff");
       p.textContent = c.text || "";
       host.body.appendChild(p);
       if (c.rule) { var r = DOC.createElement("div"); r.style.cssText = "height:1px;margin:.9em auto 0;width:min(70%,420px);background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent)"; host.body.appendChild(r); }
@@ -558,8 +596,8 @@
   // host.state (the countdown never touches localStorage — only the chosen length persists).
   function fmtMMSS(s) { s = Math.max(0, Math.round(s)); var m = Math.floor(s / 60); return m + ":" + String(s % 60).padStart(2, "0"); }
   W.HoloWidgets.define("focus", {
-    name: "Focus", icon: "timer", blurb: "A tap-to-start focus countdown.", defaultW: 240, minW: 140, maxW: 460,
-    defaultConfig: { minutes: 25, accent: "#3b82f6" },
+    name: "Focus", icon: "timer", blurb: "A tap-to-start focus countdown.", defaultW: 240, minW: 160, maxW: 460,
+    defaultConfig: { minutes: 25 },   // no accent ⇒ inherits the ONE theme accent (--holo-accent)
     fields: [
       { key: "minutes", label: "Length (minutes)", type: "select", options: [{ value: "5", label: "5 min" }, { value: "10", label: "10 min" }, { value: "15", label: "15 min" }, { value: "25", label: "25 min" }, { value: "45", label: "45 min" }, { value: "60", label: "60 min" }] },
       { key: "accent", label: "Colour", type: "color" },
@@ -576,8 +614,8 @@
           '<circle class="prog" cx="50" cy="50" r="' + R + '" fill="none" stroke="var(--holo-accent,#3b82f6)" stroke-width="5" stroke-linecap="round" transform="rotate(-90 50 50)" stroke-dasharray="' + CIRC.toFixed(1) + '" stroke-dashoffset="0" style="transition:stroke-dashoffset .35s linear"></circle>' +
         '</svg>' +
         '<div class="lab" style="position:absolute;text-align:center;line-height:1.1">' +
-          '<div class="t" style="font-weight:250;font-variant-numeric:tabular-nums;font-size:clamp(20px,calc(var(--hw-w,240px)*.16),60px)"></div>' +
-          '<div class="s" style="margin-top:.3em;font-size:clamp(9px,calc(var(--hw-w,240px)*.05),17px);letter-spacing:.14em;text-transform:uppercase;opacity:.72"></div>' +
+          '<div class="t" style="font-weight:250;font-variant-numeric:tabular-nums;font-size:clamp(24px,calc(var(--hw-w,240px)*.17),64px)"></div>' +
+          '<div class="s" style="margin-top:.42em;font-size:clamp(13px,calc(var(--hw-w,240px)*.062),16px);letter-spacing:.1em;text-transform:uppercase;opacity:.8"></div>' +
         '</div>';
       host.body.appendChild(wrap);
       var prog = wrap.querySelector(".prog"), tEl = wrap.querySelector(".t"), sEl = wrap.querySelector(".s");
@@ -654,7 +692,7 @@
       var temp = DOC.createElement("div"); temp.style.cssText = "font-weight:250;font-variant-numeric:tabular-nums;font-size:clamp(28px,calc(var(--hw-w,260px)*.21),66px)";
       temp.textContent = c.place ? "·" : "";
       row.appendChild(ic); row.appendChild(temp);
-      var place = DOC.createElement("div"); place.style.cssText = "margin-top:.3em;font-size:clamp(12px,calc(var(--hw-w,260px)*.062),22px);opacity:.84";
+      var place = DOC.createElement("div"); place.style.cssText = "margin-top:.34em;font-size:clamp(14px,calc(var(--hw-w,260px)*.062),22px);opacity:.86";
       place.textContent = c.place || "Double-tap to set a city";
       wrap.appendChild(row); wrap.appendChild(place); host.body.appendChild(wrap);
       if (!c.place) { temp.textContent = ""; return; }
@@ -698,7 +736,7 @@
       var list = DOC.createElement("div"); list.className = "hw-interactive"; list.style.cssText = "display:flex;flex-direction:column";
       function rebuildList() { list.innerHTML = ""; c.items.forEach(function (it) { list.appendChild(row(it)); }); }
       function row(item) {
-        var r = DOC.createElement("div"); r.style.cssText = "display:flex;align-items:center;gap:.55em;padding:.2em 0;cursor:pointer;font-size:clamp(13px,calc(var(--hw-w,300px)*.05),19px)";
+        var r = DOC.createElement("div"); r.style.cssText = "display:flex;align-items:center;gap:.55em;padding:.24em 0;cursor:pointer;font-size:clamp(15px,calc(var(--hw-w,300px)*.052),19px)";
         var box = DOC.createElement("span"); box.style.cssText = "flex:0 0 auto;width:1.05em;height:1.05em;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;transition:.15s";
         var t = DOC.createElement("span"); t.textContent = item.t; t.style.cssText = "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
         var x = DOC.createElement("button"); x.textContent = "×"; x.title = "remove"; x.style.cssText = "flex:0 0 auto;background:none;border:0;color:inherit;opacity:0;cursor:pointer;font-size:1.15em;line-height:1;padding:0 2px";
@@ -715,7 +753,7 @@
       }
       rebuildList();
       var add = DOC.createElement("input"); add.className = "hw-interactive"; add.type = "text"; add.placeholder = "+ add a task";
-      add.style.cssText = "margin-top:.55em;width:100%;box-sizing:border-box;background:rgba(255,255,255,.08);border:0;border-radius:8px;padding:.45em .65em;color:inherit;font:inherit;font-size:clamp(12px,calc(var(--hw-w,300px)*.046),17px)";
+      add.style.cssText = "margin-top:.6em;width:100%;box-sizing:border-box;background:rgba(255,255,255,.08);border:0;border-radius:8px;padding:.5em .7em;color:inherit;font:inherit;font-size:clamp(14px,calc(var(--hw-w,300px)*.048),17px)";
       add.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
       add.addEventListener("keydown", function (e) { if (e.key === "Enter") { var v = (add.value || "").trim(); if (v) { var it = { t: v, done: false }; c.items.push(it); add.value = ""; persistTasks(); list.appendChild(row(it)); } } });
       wrap.appendChild(h); wrap.appendChild(list); wrap.appendChild(add); host.body.appendChild(wrap);
@@ -731,12 +769,12 @@
       var wrap = DOC.createElement("div"); wrap.style.cssText = "min-width:170px;font-variant-numeric:tabular-nums";
       var top = DOC.createElement("div"); top.style.cssText = "display:flex;align-items:baseline;gap:.4em";
       var fpsN = DOC.createElement("div"); fpsN.style.cssText = "font-weight:300;font-size:clamp(28px,calc(var(--hw-w,280px)*.16),52px)"; fpsN.textContent = "—";
-      var fpsL = DOC.createElement("div"); fpsL.style.cssText = "opacity:.6;font-size:clamp(10px,calc(var(--hw-w,280px)*.05),15px);letter-spacing:.1em;text-transform:uppercase"; fpsL.textContent = "fps";
+      var fpsL = DOC.createElement("div"); fpsL.style.cssText = "opacity:.65;font-size:clamp(13px,calc(var(--hw-w,280px)*.05),15px);letter-spacing:.1em;text-transform:uppercase"; fpsL.textContent = "fps";
       top.appendChild(fpsN); top.appendChild(fpsL);
       var NS = "http://www.w3.org/2000/svg";
       var spark = DOC.createElementNS(NS, "svg"); spark.setAttribute("viewBox", "0 0 100 26"); spark.setAttribute("preserveAspectRatio", "none"); spark.style.cssText = "width:100%;height:26px;display:block;margin:.25em 0 .55em";
       var poly = DOC.createElementNS(NS, "polyline"); poly.setAttribute("fill", "none"); poly.setAttribute("stroke", "var(--holo-accent,#3b82f6)"); poly.setAttribute("stroke-width", "1.6"); poly.setAttribute("stroke-linejoin", "round"); poly.setAttribute("stroke-linecap", "round"); spark.appendChild(poly);
-      function statRow(label) { var r = DOC.createElement("div"); r.style.cssText = "display:flex;justify-content:space-between;gap:.6em;font-size:clamp(11px,calc(var(--hw-w,280px)*.046),16px);padding:.12em 0"; var a = DOC.createElement("span"); a.style.opacity = ".7"; a.textContent = label; var b = DOC.createElement("span"); b.style.cssText = "font-weight:600;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"; r.appendChild(a); r.appendChild(b); return { row: r, val: b }; }
+      function statRow(label) { var r = DOC.createElement("div"); r.style.cssText = "display:flex;justify-content:space-between;gap:.6em;font-size:clamp(14px,calc(var(--hw-w,280px)*.048),16px);padding:.16em 0"; var a = DOC.createElement("span"); a.style.opacity = ".7"; a.textContent = label; var b = DOC.createElement("span"); b.style.cssText = "font-weight:600;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"; r.appendChild(a); r.appendChild(b); return { row: r, val: b }; }
       var heap = statRow("Memory"), cores = statRow("Cores"), gpu = statRow("GPU");
       wrap.appendChild(top); wrap.appendChild(spark); wrap.appendChild(heap.row); wrap.appendChild(cores.row); wrap.appendChild(gpu.row); host.body.appendChild(wrap);
       cores.val.textContent = (navigator.hardwareConcurrency || "?") + (navigator.deviceMemory ? " · " + navigator.deviceMemory + " GB" : "");
@@ -768,7 +806,7 @@
       title.textContent = base.toLocaleDateString(undefined, { month: "long", year: "numeric" });
       function navBtn(txt, d) { var b = DOC.createElement("button"); b.className = "hw-interactive"; b.textContent = txt; b.style.cssText = "background:rgba(255,255,255,.08);border:0;color:inherit;width:1.7em;height:1.7em;border-radius:7px;cursor:pointer;font:inherit;line-height:1"; b.addEventListener("pointerdown", function (e) { e.stopPropagation(); }); b.addEventListener("click", function () { st.offset += d; host.refresh(); }); return b; }
       hd.appendChild(navBtn("‹", -1)); hd.appendChild(title); hd.appendChild(navBtn("›", 1));
-      var grid = DOC.createElement("div"); grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:clamp(10px,calc(var(--hw-w,300px)*.04),15px)";
+      var grid = DOC.createElement("div"); grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:clamp(13px,calc(var(--hw-w,300px)*.044),15px)";
       ["S", "M", "T", "W", "T", "F", "S"].forEach(function (d) { var c = DOC.createElement("div"); c.textContent = d; c.style.cssText = "opacity:.5;font-weight:600;padding:.25em 0"; grid.appendChild(c); });
       var firstDow = base.getDay(), dim = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate(), isThisMonth = st.offset === 0;
       for (var i = 0; i < firstDow; i++) grid.appendChild(DOC.createElement("div"));
@@ -789,20 +827,20 @@
     fields: [{ key: "title", label: "Title", type: "text" }, { key: "raw", label: "Links — one 'Name | https://url' per line", type: "textarea" }],
     render: function (host) {
       var c = host.config, wrap = DOC.createElement("div"); wrap.style.cssText = "min-width:170px";
-      if (c.title) { var hh = DOC.createElement("div"); hh.textContent = c.title; hh.style.cssText = "font-weight:550;font-size:clamp(13px,calc(var(--hw-w,320px)*.05),20px);margin-bottom:.5em;opacity:.95"; wrap.appendChild(hh); }
+      if (c.title) { var hh = DOC.createElement("div"); hh.textContent = c.title; hh.style.cssText = "font-weight:550;font-size:clamp(15px,calc(var(--hw-w,320px)*.05),20px);margin-bottom:.55em;opacity:.96"; wrap.appendChild(hh); }
       var items = (c.raw || "").split("\n").map(function (l) {
         l = l.trim(); if (!l) return null; var i = l.indexOf("|"), name, url;
         if (i >= 0) { name = l.slice(0, i).trim(); url = l.slice(i + 1).trim(); } else { url = l; name = l.replace(/^https?:\/\//, "").split("/")[0]; }
         if (!/^https?:\/\//.test(url)) url = "https://" + url; return { name: name || url, url: url };
       }).filter(Boolean);
-      if (!items.length) { var hint = DOC.createElement("div"); hint.style.cssText = "opacity:.6;font-size:clamp(12px,calc(var(--hw-w,320px)*.045),16px)"; hint.textContent = "Double-tap to add links"; wrap.appendChild(hint); host.body.appendChild(wrap); return; }
+      if (!items.length) { var hint = DOC.createElement("div"); hint.style.cssText = "opacity:.65;font-size:clamp(14px,calc(var(--hw-w,320px)*.046),16px)"; hint.textContent = "Double-tap to add links"; wrap.appendChild(hint); host.body.appendChild(wrap); return; }
       var grid = DOC.createElement("div"); grid.className = "hw-interactive"; grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:.5em";
       items.forEach(function (it) {
         var a = DOC.createElement("button"); a.type = "button"; a.title = it.url; a.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:.35em;background:rgba(255,255,255,.05);border:1px solid var(--holo-border,#2a2f3a);border-radius:11px;padding:.6em .3em;cursor:pointer;color:inherit;font:inherit;transition:background .14s";
         var ico = DOC.createElement("img"); ico.alt = ""; var origin = ""; try { origin = new URL(it.url).origin; } catch (e) {}
         ico.src = origin ? origin + "/favicon.ico" : ""; ico.style.cssText = "width:22px;height:22px;border-radius:5px;object-fit:contain";
         ico.addEventListener("error", function () { var f = DOC.createElement("holo-icon"); f.setAttribute("set", "tabler"); f.setAttribute("name", "world"); f.style.cssText = "font-size:22px;width:1em;height:1em;opacity:.8"; if (ico.parentNode) ico.replaceWith(f); });
-        var nm = DOC.createElement("div"); nm.textContent = it.name; nm.style.cssText = "font-size:clamp(10px,calc(var(--hw-w,320px)*.034),13px);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+        var nm = DOC.createElement("div"); nm.textContent = it.name; nm.style.cssText = "font-size:clamp(12px,calc(var(--hw-w,320px)*.038),14px);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
         a.appendChild(ico); a.appendChild(nm);
         a.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
         a.addEventListener("mouseenter", function () { a.style.background = "color-mix(in srgb,var(--holo-accent,#3b82f6) 18%,transparent)"; });
@@ -845,10 +883,10 @@
       var c = host.config, own = (c.text || "").trim();
       var q = own ? { t: own, a: c.author || "" } : quoteOfDay();
       var wrap = DOC.createElement("div"); wrap.style.cssText = "text-align:center";
-      var p = DOC.createElement("div"); p.style.cssText = "font-style:italic;font-weight:300;font-size:clamp(14px,calc(var(--hw-w,440px)*.052),27px);line-height:1.4";
+      var p = DOC.createElement("div"); p.style.cssText = "font-style:italic;font-weight:300;font-size:clamp(17px,calc(var(--hw-w,440px)*.056),28px);line-height:1.45";
       p.textContent = "“" + (q.t || "") + "”";
       wrap.appendChild(p);
-      if (q.a) { var a = DOC.createElement("div"); a.style.cssText = "margin-top:.55em;font-size:clamp(10px,calc(var(--hw-w,440px)*.03),14px);letter-spacing:.14em;text-transform:uppercase;opacity:.68"; a.textContent = "— " + q.a; wrap.appendChild(a); }
+      if (q.a) { var a = DOC.createElement("div"); a.style.cssText = "margin-top:.7em;font-size:clamp(13px,calc(var(--hw-w,440px)*.034),15px);letter-spacing:.12em;text-transform:uppercase;opacity:.72"; a.textContent = "— " + q.a; wrap.appendChild(a); }
       host.body.appendChild(wrap);
       host.subscribe("time", function (d) { if (!own && d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) host.refresh(); });   // roll at midnight
     },
@@ -857,20 +895,27 @@
   // ── Desktop modes — four curated presets the whole board switches between, one right-click away. ─────
   // Each is a Momentum-style "enclosed experience" tuned to an intent; every piece stays an independent,
   // editable, movable κ-widget. Switching a mode REPLACES the board but each mode remembers its own layout.
-  function HX(b) { return Math.round((b.minX || 0) + 56); }      // left column x (clear of the dock)
-  function RX(W_, w) { return Math.round(W_ - 40 - w); }         // right-aligned x for a widget of width w
-  function CX(W_, w) { return Math.round((W_ - w) / 2); }        // centred x
+  // ── ONE golden-ratio margin system for every scene — a single, consistent, sufficient edge gap, and a
+  //    φ-stepped vertical rhythm, so every composition is evenly inset and proportioned (no ad-hoc offsets).
+  var PHI = 1.618;
+  function MARGIN(W_, H_) { return Math.round(clamp(Math.min(W_, H_) * (1 / (PHI * PHI * PHI)) * 0.62, 32, 80)); }   // ≈ a φ-scaled, clamped breathing margin
+  function HX(b, m) { return Math.round((b.minX || 0) + (m != null ? m : 44)); }   // left column x (clear of the dock), one margin in
+  function RX(W_, w, m) { return Math.round(W_ - (m != null ? m : 44) - w); }      // right-aligned x, same margin from the right
+  function CX(W_, w) { return Math.round((W_ - w) / 2); }                          // centred x
+  // golden vertical placement inside the usable height [top..bottom]: f∈[0,1] eased onto the φ rhythm
+  function GY(top, H_, m, f) { var a = top + m, b = H_ - m; return Math.round(a + (b - a) * f); }
 
   // Focused — distraction-free deep work: the time, today's one goal, a timer, a line to think on.
   W.HoloWidgets.defineScene("focused", {
     name: "Focused", icon: "target", mode: true,
     blurb: "Distraction-free: clock, your one goal, a focus timer and a quote.",
     layout: function (W_, H_, b) {
+      var m = MARGIN(W_, H_), top = (b.minY || 0);
       return [
-        { type: "clock", config: { greet: true }, w: 380, x: CX(W_, 380), y: Math.round(H_ * 0.20) },
-        { type: "note",  config: { text: "What is your main goal for today?", rule: true }, w: 440, x: CX(W_, 440), y: Math.round(H_ * 0.45) },
-        { type: "focus", config: { minutes: 25 }, w: 150, x: HX(b), y: Math.round(H_ * 0.13) },
-        { type: "quote", config: { text: "" }, w: 460, x: CX(W_, 460), y: Math.round(H_ * 0.80) },
+        { type: "clock", config: { greet: true }, w: 380, x: CX(W_, 380), y: GY(top, H_, m, 0.12) },
+        { type: "note",  config: { text: "What is your main goal for today?", rule: true }, w: 460, x: CX(W_, 460), y: GY(top, H_, m, 0.44) },
+        { type: "focus", config: { minutes: 25 }, w: 200, x: HX(b, m), y: Math.round(top + m) },
+        { type: "quote", config: { text: "" }, w: 480, x: CX(W_, 480), y: GY(top, H_, m, 0.84) },
       ];
     },
   });
@@ -880,13 +925,14 @@
     name: "Learn", icon: "school", mode: true,
     blurb: "Study mode: focus timer, study plan, resource links, calendar and a quote.",
     layout: function (W_, H_, b) {
+      var m = MARGIN(W_, H_), top = (b.minY || 0);
       return [
-        { type: "clock",    config: { greet: false }, w: 300, x: CX(W_, 300), y: Math.round(H_ * 0.10) },
-        { type: "focus",    config: { minutes: 25 }, w: 160, x: HX(b), y: Math.round(H_ * 0.10) },
-        { type: "calendar", config: {}, w: 300, x: HX(b), y: Math.round(H_ * 0.34) },
-        { type: "tasks",    config: { title: "Study plan" }, w: 300, x: RX(W_, 300), y: Math.round(H_ * 0.10) },
-        { type: "links",    config: { title: "Resources" }, w: 300, x: RX(W_, 300), y: Math.round(H_ * 0.46) },
-        { type: "quote",    config: { text: "" }, w: 460, x: CX(W_, 460), y: Math.round(H_ * 0.82) },
+        { type: "clock",    config: { greet: false }, w: 300, x: CX(W_, 300), y: GY(top, H_, m, 0.04) },
+        { type: "focus",    config: { minutes: 25 }, w: 200, x: HX(b, m), y: GY(top, H_, m, 0.04) },
+        { type: "calendar", config: {}, w: 300, x: HX(b, m), y: GY(top, H_, m, 0.36) },
+        { type: "tasks",    config: { title: "Study plan" }, w: 300, x: RX(W_, 300, m), y: GY(top, H_, m, 0.04) },
+        { type: "links",    config: { title: "Resources" }, w: 300, x: RX(W_, 300, m), y: GY(top, H_, m, 0.46) },
+        { type: "quote",    config: { text: "" }, w: 480, x: CX(W_, 480), y: GY(top, H_, m, 0.84) },
       ];
     },
   });
@@ -896,13 +942,14 @@
     name: "Work", icon: "briefcase", mode: true,
     blurb: "Productivity dashboard: clock, weather, calendar, to-do, tool links and system stats.",
     layout: function (W_, H_, b) {
+      var m = MARGIN(W_, H_), top = (b.minY || 0);
       return [
-        { type: "clock",    config: { greet: true }, w: 300, x: HX(b), y: Math.round(H_ * 0.10) },
-        { type: "weather",  config: { place: "" }, w: 200, x: RX(W_, 200), y: Math.round(H_ * 0.10) },
-        { type: "calendar", config: {}, w: 300, x: HX(b), y: Math.round(H_ * 0.36) },
-        { type: "tasks",    config: { title: "To-do" }, w: 300, x: RX(W_, 300), y: Math.round(H_ * 0.36) },
-        { type: "links",    config: { title: "Tools" }, w: 300, x: HX(b), y: Math.round(H_ * 0.68) },
-        { type: "system",   config: {}, w: 280, x: RX(W_, 280), y: Math.round(H_ * 0.68) },
+        { type: "clock",    config: { greet: true }, w: 300, x: HX(b, m), y: GY(top, H_, m, 0.04) },
+        { type: "weather",  config: { place: "" }, w: 200, x: RX(W_, 200, m), y: GY(top, H_, m, 0.04) },
+        { type: "calendar", config: {}, w: 300, x: HX(b, m), y: GY(top, H_, m, 0.4) },
+        { type: "tasks",    config: { title: "To-do" }, w: 300, x: RX(W_, 300, m), y: GY(top, H_, m, 0.4) },
+        { type: "links",    config: { title: "Tools" }, w: 300, x: HX(b, m), y: GY(top, H_, m, 0.78) },
+        { type: "system",   config: {}, w: 280, x: CX(W_, 280), y: GY(top, H_, m, 0.78) },   // bottom-CENTRE — leaves the bottom-right corner for the Q orb
       ];
     },
   });
@@ -912,12 +959,13 @@
     name: "Play", icon: "player-play", mode: true,
     blurb: "Wind down: clock, the music disc, now-playing, weather and a quote.",
     layout: function (W_, H_, b) {
+      var m = MARGIN(W_, H_), top = (b.minY || 0);
       return [
-        { type: "clock",       config: { greet: true }, w: 300, x: CX(W_, 300), y: Math.round(H_ * 0.12) },
-        { type: "weather",     config: { place: "" }, w: 200, x: RX(W_, 200), y: Math.round(H_ * 0.12) },
-        { type: "vinyl",       w: 240, x: HX(b), y: Math.round(H_ * 0.40) },
-        { type: "now-playing", w: 300, x: RX(W_, 300), y: Math.round(H_ * 0.40) },
-        { type: "quote",       config: { text: "" }, w: 460, x: CX(W_, 460), y: Math.round(H_ * 0.82) },
+        { type: "clock",       config: { greet: true }, w: 300, x: CX(W_, 300), y: GY(top, H_, m, 0.06) },
+        { type: "weather",     config: { place: "" }, w: 200, x: RX(W_, 200, m), y: GY(top, H_, m, 0.06) },
+        { type: "vinyl",       w: 240, x: HX(b, m), y: GY(top, H_, m, 0.42) },
+        { type: "now-playing", w: 300, x: RX(W_, 300, m), y: GY(top, H_, m, 0.42) },
+        { type: "quote",       config: { text: "" }, w: 480, x: CX(W_, 480), y: GY(top, H_, m, 0.84) },
       ];
     },
   });

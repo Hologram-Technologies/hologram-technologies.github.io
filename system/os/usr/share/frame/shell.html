@@ -51,13 +51,15 @@
          user's hardware ⊗ connection ⊗ preferences and publishes --holo-fx-* + <html data-holo-fidelity>
          so every surface scales its effects to the device. Loads early; CSS vars default to full (1). -->
     <script type="module" src="/_shared/holo-fidelity.mjs"></script>
+    <!-- O(1) tiered κ-memo (L1 memory → L2 Cache API → compute once) — window.HoloCompute. -->
+    <script type="module" src="/_shared/holo-compute.mjs"></script>
     <!-- measurement harness — ONLY with ?metrics=1, so it never touches the default experience. -->
     <script>try{if(new URLSearchParams(location.search).has("metrics"))import("/_shared/holo-metrics.mjs");}catch(e){}</script>
     <!-- Holo Dock (ADR-0059): the universal native-feel bottom dock — the one consistent bar across
          every shell. Self-contained (portable --hd-* tokens), so it needs nothing but holo-theme.css. -->
     <link rel="stylesheet" href="/_shared/holo-dock.css" data-holo-shared="holo-dock.css" />
     <style>
-      :root { color-scheme: dark; --accent: #1f6feb; --win-font: system-ui, sans-serif;
+      :root { color-scheme: dark; --accent: var(--holo-accent, #5b8cff); --win-font: var(--holo-font-sans, system-ui, sans-serif);   /* ONE accent + ONE typeface, adopted from holo-theme.css — chrome, widgets and apps share them */
         /* ── ONE golden type + spacing scale for the whole desktop (φ-stepped, legible floor) ──
            label = every interactive label (tabs · omnibox · menus · sidebar · icons), the dominant
            size; meta = secondary text (breadcrumbs · hints · status · κ · credit), never tiny;
@@ -78,10 +80,10 @@
       @media (prefers-reduced-motion: reduce) { body { animation: none; } }
       /* ── chrome proportions — Chrome-standard stack: TAB STRIP on top (the frame), the address bar
          (toolbar) directly under it, so each tab shows its own address. tab strip ≈ 40, toolbar ≈ 44. ── */
-      html { --toolbar-h: 42px; --tabrow-h: 52px; --chrome-h: 94px; --gap: clamp(8px, 0.9vmin, 12px); --gap-b: 34px; --card-r: 22px; --holo-top-inset: 96px; }   /* tabrow + toolbar = chrome-h; --gap-b: a taller BOTTOM gutter beneath the holospace card — home to the "Powered by HOLOGRAM" + Privacy frame line */
+      html { --toolbar-h: 42px; --tabrow-h: 52px; --chrome-h: 94px; --gap: clamp(8px, 0.9vmin, 12px); --gap-b: 34px; --card-r: 22px; --holo-top-inset: 96px; --holo-aside: min(420px, 92vw); --holo-aside-w: 0px; }   /* tabrow + toolbar = chrome-h; --gap-b: a taller BOTTOM gutter beneath the holospace card; --holo-aside-w: the right-edge inset an aside carrier (Wallet) squeezes the whole holospace by, mirroring --holo-dock-w on the left */
       /* the holospace's desktop — a self-contained, rounded RUNTIME CARD, inset from the shell frame on
          every side and lifted with a soft shadow, so each tab reads as its own isolated environment. */
-      #world { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: var(--gap); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); overflow: hidden; background-color: #0a0e16;
+      #world { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); overflow: hidden; background-color: #0a0e16; transition: right .34s cubic-bezier(.2,.8,.2,1);
         border-radius: 0 0 var(--card-r) var(--card-r);
         /* hyper-real depth: a layered key+ambient drop shadow lifts the card off the frame (it reads as a
            physical pane floating above the desktop), a hairline ring crisps its edge, and a faint inner
@@ -96,8 +98,32 @@
          too costly, so drop to a single light shadow: same floating read, far cheaper to paint. */
       :root[data-holo-fidelity="720p"] #world, :root[data-holo-fidelity="1080p"] #world {
         box-shadow: 0 12px 30px -14px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06); }
+      /* WALLPAPER LAYER — its own GPU layer BEHIND the windows so it can parallax with the pointer
+         (depth, like the scene sits under glass) WITHOUT transforming the app iframes. Oversized by
+         --wp-range so the parallax travel never reveals an edge. Blur-up: blurred while the κ image
+         decodes, then it sharpens in (a κ-streamed reveal). */
+      #wallpaper { --wp-range: 16px; position: absolute; inset: calc(-1 * var(--wp-range)); z-index: 0; pointer-events: none;
+        background-position: center; background-size: cover; background-repeat: no-repeat;
+        transform: translate3d(0,0,0); will-change: transform; transition: filter .55s var(--ease, ease), opacity .55s var(--ease, ease); }
+      #wallpaper.loading { filter: blur(26px); opacity: .9; }
+      /* Developer — a vector-sharp blueprint grid (two scales) over a near-black base with one soft glow.
+         Pure CSS gradients ⇒ crisp at any DPR / resolution, GPU-cheap, zero bytes. Identity sealed to κ. */
+      #wallpaper.wp-dev {
+        background-color: #0a0b0f;
+        background-image:
+          linear-gradient(90deg, rgba(255,255,255,.052) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,.052) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.024) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,.024) 1px, transparent 1px),
+          radial-gradient(110% 80% at 50% -8%, rgba(108,99,255,.16), transparent 56%),
+          radial-gradient(130% 130% at 50% 50%, transparent 58%, rgba(0,0,0,.5));
+        background-size: 160px 160px, 160px 160px, 32px 32px, 32px 32px, cover, cover;
+        background-position: center; background-repeat: repeat, repeat, repeat, repeat, no-repeat, no-repeat;
+      }
+      #wallpaper.wp-dev.loading { filter: none; opacity: 1; }   /* grid is already sharp — never blur it */
+      @media (prefers-reduced-motion: reduce) { #wallpaper { transition: opacity .3s ease; } }
       /* ── tab strip — Chrome-precise: tabs at the bottom edge, the active tab flush with the toolbar ── */
-      #tabstrip { position: fixed; top: 0; left: var(--holo-dock-w, 0px); right: 0; height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px;
+      #tabstrip { position: fixed; top: 0; left: var(--holo-dock-w, 0px); right: var(--holo-aside-w, 0px); height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px; transition: right .34s cubic-bezier(.2,.8,.2,1);
         padding: 0 var(--gap); background: #141417; overflow-x: auto; scrollbar-width: none; user-select: none; }   /* recessed strip BEHIND the tabs; tabs are inset by --gap horizontally to line up with the holospace card below. No vertical padding → align-self:center cluster gets EQUAL top/bottom space; tabs are flex-end so they're unaffected. */
       #tabstrip::-webkit-scrollbar { display: none; }
       #tabstrip .tab { flex: 0 1 120px; min-width: 52px; height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
@@ -130,7 +156,7 @@
       /* the toolbar is the TOP of the holospace card — bundled with the canvas below into one self-
          contained, κ-addressable holospace (remix · run · share), inset + rounded, isolated from the
          shell frame (dock + tab strip). It connects seamlessly to the canvas (#world) directly beneath. */
-      #navbar { position: fixed; top: var(--tabrow-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: var(--gap); height: var(--toolbar-h); z-index: 60; display: flex; align-items: center;
+      #navbar { position: fixed; top: var(--tabrow-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); height: var(--toolbar-h); z-index: 60; display: flex; align-items: center; transition: right .34s cubic-bezier(.2,.8,.2,1);
         gap: 2px; padding: 0 10px; background: #1F1F21; border-bottom: 1px solid var(--holo-border);
         box-shadow: 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.12); }   /* hairline ring + a lit top rim (the card's top edge catches light → physical); active tab merges into it (tab → toolbar → canvas = one holospace) */
       #navbar .nav { width: 34px; height: 34px; flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink);
@@ -196,7 +222,13 @@
         #holo-dock .holo-dock-tile:hover .holo-dock-icon, #holo-dock .holo-dock-item[data-running] .holo-dock-icon { opacity: 1; }
       }
       @keyframes winIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
-      holo-window { animation: winIn .16s cubic-bezier(.2,.7,.3,1); }
+      /* spring-eased window open — a touch of overshoot makes it feel physical (linear() spring on
+         modern engines; the cubic-bezier is the graceful fallback). Reduced-motion → instant. */
+      holo-window { animation: winIn .22s linear(0,.55 18%,.94 38%,1.04 56%,1.005 78%,1) ; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+      @supports (animation-timing-function: linear(0,1)) { holo-window { animation-timing-function: linear(0,.55 18%,.94 38%,1.04 56%,1.005 78%,1); } }
+      :root[data-holo-motion="reduced"] holo-window { animation-duration: .01s; }
+      /* on a wide-gamut (P3) display the accent renders richer than sRGB can; sRGB displays keep #1f6feb */
+      @supports (color: color(display-p3 1 1 1)) { :root[data-holo-p3] { --accent: color(display-p3 0.36 0.55 1); } }   /* wide-gamut form of the theme accent #5b8cff — same hue, richer on P3 displays */
       /* a tab-filling holospace fills the WHOLE canvas, so it appears with a clean instant fade (no
          scale/translate pop) — magical, low-latency, identical for every new tab. */
       @keyframes appIn { from { opacity: 0; } to { opacity: 1; } }
@@ -215,7 +247,7 @@
       /* desktop credit line — bottom-center, behind windows (z 1, above the wallpaper), on every tab */
       /* the OS signature line — lives in the bottom FRAME gutter (beneath the holospace card, centred
          under it), so it reads as "this whole machine is powered by HOLOGRAM", not desktop content. */
-      #holo-credit { position: fixed; left: var(--holo-dock-w, 0px); right: 0; bottom: 0; height: var(--gap-b); z-index: 2; pointer-events: none;
+      #holo-credit { position: fixed; left: var(--holo-dock-w, 0px); right: var(--holo-aside-w, 0px); bottom: 0; height: var(--gap-b); z-index: 2; pointer-events: none; transition: right .34s cubic-bezier(.2,.8,.2,1);
         display: flex; align-items: center; justify-content: center; gap: 8px; user-select: none; white-space: nowrap;
         font: 600 var(--fs-meta)/1 var(--win-font, ui-sans-serif, system-ui); text-transform: uppercase; }
       #holo-credit .pw { color: var(--holo-ink-dim, #8b949e); opacity: .62; letter-spacing: .22em; }
@@ -228,7 +260,7 @@
 
       /* snap preview — the translucent target shown while dragging to an edge */
       /* window zones — the background grid (FancyZones/KWin-style) */
-      #grid { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: var(--gap); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); z-index: 5; pointer-events: none; display: none; border-radius: 0 0 var(--card-r) var(--card-r); overflow: hidden; }
+      #grid { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); z-index: 5; pointer-events: none; display: none; border-radius: 0 0 var(--card-r) var(--card-r); overflow: hidden; transition: right .34s cubic-bezier(.2,.8,.2,1); }
       #grid .zone { position: absolute; left: 0; top: 0; border: 1.5px dashed rgba(255, 255, 255, .18); border-radius: var(--holo-radius, 12px); background: linear-gradient(rgba(255, 255, 255, .04), rgba(255, 255, 255, .012)); display: grid; place-content: center; }
       #grid .zone span { font: 700 30px var(--win-font); color: rgba(255, 255, 255, .08); }
       #snap { position: fixed; z-index: 30; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -403,6 +435,19 @@
       .wall-srch input:focus { border-color: var(--accent, #1f6feb); }
       .wall-srch .us { font: var(--fs-meta) ui-monospace, monospace; color: #6e7681; white-space: nowrap; }
       .wall-srch .us a { color: #58a6ff; text-decoration: none; }
+      /* category chips — quiet, pill-shaped, one tap browses Unsplash by theme */
+      .wall-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 13px; }
+      .wall-chip { border: 1px solid #21262d; background: #0d1117; color: #9fb3d0; border-radius: 999rem; padding: 6px 14px; font: var(--fs-meta) system-ui, sans-serif; cursor: pointer; transition: border-color .12s, color .12s, background .12s; }
+      .wall-chip:hover { border-color: var(--accent, #1f6feb); color: #eef3fb; background: color-mix(in srgb, var(--accent, #1f6feb) 12%, transparent); }
+      .wall-chip.on { border-color: var(--accent, #1f6feb); color: #fff; background: color-mix(in srgb, var(--accent, #1f6feb) 22%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #1f6feb) 40%, transparent); }
+      .wall-tile.ready { border-color: color-mix(in srgb, #3fb950 55%, #21262d); }
+      .wall-tile.ready .wall-k { color: #3fb950; }
+      .wall-tile.skel { pointer-events: none; }
+      .wall-tile.skel .wall-prev, .wall-tile.skel .wall-name, .wall-tile.skel .wall-k { background: linear-gradient(100deg, #0d1117 28%, #1b222c 50%, #0d1117 72%); background-size: 200% 100%; animation: wallShimmer 1.15s ease-in-out infinite; }
+      .wall-tile.skel .wall-name { display: block; height: .72em; width: 62%; border-radius: 4px; }
+      .wall-tile.skel .wall-k { display: block; height: .6em; width: 38%; border-radius: 4px; }
+      @keyframes wallShimmer { to { background-position: -200% 0; } }
+      @media (prefers-reduced-motion: reduce) { .wall-tile.skel .wall-prev, .wall-tile.skel .wall-name, .wall-tile.skel .wall-k { animation: none; } }
       .wall-note { font: var(--fs-meta)/1.5 system-ui, sans-serif; color: #8b949e; padding: 0 2px 10px; }
       .wall-note a { color: #58a6ff; } .wall-note b { color: #c9d1d9; }
       .wall-note input { width: min(20rem, 55%); margin-left: 6px; background: #010409; border: 1px solid #21262d; border-radius: 8px; padding: 6px 10px; color: #c9d1d9; font: inherit; }
@@ -436,6 +481,11 @@
           radial-gradient(40% 40% at 25% 80%, rgba(45,160,255,.3), transparent 70%),
           radial-gradient(1px 1px at 30% 40%, #fff, transparent), radial-gradient(1px 1px at 60% 60%, #fff, transparent),
           radial-gradient(1px 1px at 80% 30%, #cde, transparent), linear-gradient(#05060f, #01020a); position: relative; }
+      .wall-prev.dev { background-color: #0a0b0f; background-image:
+          linear-gradient(90deg, rgba(255,255,255,.085) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,.085) 1px, transparent 1px),
+          radial-gradient(120% 90% at 50% -12%, rgba(108,99,255,.22), transparent 62%);
+        background-size: 22px 22px, 22px 22px, cover; background-position: center; position: relative; }
       .wall-prev .wall-badge { position: absolute; left: 8px; bottom: 8px; font: 600 var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #cfe3ff; background: #0008; padding: 2px 7px; border-radius: 999rem; }
       .wall-prev.add { display: grid; place-content: center; background: #0b0f17; }
       .wall-prev.add span { font-size: 30px; color: #6e7681; }
@@ -470,6 +520,7 @@
       </div>
     </div>
     <div id="world">
+      <div id="wallpaper" aria-hidden="true"></div>
       <div id="empty"></div>
       <!-- desktop credit — pinned bottom-center, behind windows; on every tab's desktop -->
       <div id="holo-credit" aria-hidden="true"><span class="pw">Powered by</span><span class="hg">HOLOGRAM</span></div>
@@ -829,7 +880,10 @@
             if (n.kind === "app") { const f = document.createElement("iframe"); if (n.sandbox) f.setAttribute("sandbox", n.sandbox); if (n.allow) f.setAttribute("allow", n.allow); if (n.srcdoc) f.srcdoc = n.srcdoc; else f.src = n.src; el.appendChild(f);
               // Holo governance (holo-gov.js): bind this frame's VERIFIED identity so the host privacy
               // broker stamps disclosures AS this app (un-forgeable) and the shields reflect it. Every app.
-              const idn = govIdentity(n); f.addEventListener("load", () => { try { if (window.HoloGov && f.contentWindow) { window.HoloGov.register(f.contentWindow, idn); if (focusedId === n.id) window.HoloGov.focus(idn); } } catch (e) {} }); }
+              const idn = govIdentity(n); f.addEventListener("load", () => { try { if (window.HoloGov && f.contentWindow) { window.HoloGov.register(f.contentWindow, idn); if (focusedId === n.id) window.HoloGov.focus(idn); } } catch (e) {}
+                // Ambient Q (ADR-0091): inject the cross-frame client into every same-origin holo app on mount,
+                // so window.Q + the in-app summon work INSIDE the app — true omnipresence from ONE point, no per-app edit.
+                try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-q-app")) { const _s = _d.createElement("script"); _s.id = "holo-q-app"; _s.type = "module"; _s.src = "/_shared/q/holo-q-app.js"; (_d.head || _d.documentElement).appendChild(_s); } } catch (e) {} }); }
             else if (n.kind === "manim") el.appendChild(holoManimScene(n.scene)); // native Manim-flavored animation, in-shell
             else if (n.pure) el.appendChild(buildPure(n.pure));   // real OSS web component, in-shell — first-class
             else if (n.kappa) { const slot = document.createElement("div"); slot.className = "kappa-object"; el.appendChild(slot); HoloRender.render(slot, n.kappa, n.ctx || {}).catch((err) => { slot.textContent = "⚠ " + (err && err.message || err); }); }   // ANY UOR object, mounted in-shell from its κ via the ONE render path
@@ -1019,11 +1073,11 @@
         const b = $("#wallet-btn"); if (!b) return;
         let panel, frame, isOpen = false, busy = false;
         function build() {
-          panel = document.createElement("div"); panel.id = "wallet-panel";
-          panel.innerHTML = '<div class="wp-scrim"></div><aside class="wp-dock" role="dialog" aria-modal="true" aria-label="Holo Wallet"><iframe title="Holo Wallet"></iframe></aside>';
+          panel = document.createElement("aside"); panel.id = "wallet-panel";
+          panel.setAttribute("aria-label", "Holo Wallet");
+          panel.innerHTML = '<iframe title="Holo Wallet"></iframe>';
           document.body.appendChild(panel);
           frame = panel.querySelector("iframe");
-          panel.querySelector(".wp-scrim").onclick = () => toggle(false);
         }
         async function mount() {
           const app = catalog.find((a) => a.id === "org.hologram.HoloWallet");
@@ -1035,6 +1089,11 @@
           frame.src = app.landing + "?panel=1#" + Date.now();   // fresh load → locked → biometric every open
           return true;
         }
+        // the holospace squeezes via --holo-aside-w (CSS), which does NOT change innerWidth, so floating
+        // widgets won't re-anchor on their own — nudge them with a resize tick across the glide.
+        function reflowDuringGlide() {
+          let n = 0; const id = setInterval(() => { try { dispatchEvent(new Event("resize")); } catch (e) {} if (++n >= 8) clearInterval(id); }, 45);
+        }
         async function toggle(next) {
           if (!panel) build();
           next = next === undefined ? !isOpen : next;
@@ -1042,10 +1101,13 @@
             if (busy || isOpen) return; busy = true;
             const ok = await mount(); busy = false; if (!ok) return;
             void panel.offsetWidth;   // flush the closed transform so the slide-in transition fires (rAF is throttled when backgrounded)
-            panel.classList.add("on"); isOpen = true; b.classList.add("on"); b.setAttribute("aria-expanded", "true");
+            document.documentElement.style.setProperty("--holo-aside-w", (panel.offsetWidth || 420) + "px");   // concrete px → holo-widgets parseFloat()s it; containers squeeze
+            document.documentElement.classList.add("wallet-open"); isOpen = true; b.classList.add("on"); b.setAttribute("aria-expanded", "true");
+            reflowDuringGlide();
           } else {
-            if (!isOpen) return; panel.classList.remove("on"); isOpen = false; b.classList.remove("on"); b.setAttribute("aria-expanded", "false");
-            setTimeout(() => { if (!isOpen && frame) frame.src = "about:blank"; }, 340);   // unmount → wallet relocked
+            if (!isOpen) return; document.documentElement.classList.remove("wallet-open"); document.documentElement.style.removeProperty("--holo-aside-w"); isOpen = false; b.classList.remove("on"); b.setAttribute("aria-expanded", "false");
+            reflowDuringGlide();
+            setTimeout(() => { if (!isOpen && frame) frame.src = "about:blank"; }, 360);   // unmount → wallet relocked
           }
         }
         b.onclick = () => toggle();
@@ -1482,7 +1544,7 @@
       //   Right-click the desktop → Change wallpaper… reopens the same gallery, so previously-added
       //   wallpapers persist (the "previous gallery"). Bump SEED_V to refresh the bundled defaults
       //   without dropping the user's own additions.
-      const WALL_KEY = "holo:wallpapers", WALL_SEED = "/usr/share/wallpapers/uor-8k.jpg", WALL_DEPTH = "/usr/share/wallpapers/uor-depth.png", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 8;
+      const WALL_KEY = "holo:wallpapers", WALL_SEED = "/usr/share/wallpapers/uor-8k.jpg", WALL_DEPTH = "/usr/share/wallpapers/uor-depth.png", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 9;
       // curated default collection — bundled photos sealed to κ at first boot (via Unsplash, attributed)
       const CURATED = [
         { file: "earth-nasa.jpg",    name: "Crescent Earth", by: "NASA",             byLink: "https://unsplash.com/@nasa" },
@@ -1492,10 +1554,12 @@
         { file: "mountain-lake.jpg", name: "Mountain Lake",  by: "Luca Bravo",       byLink: "https://unsplash.com/@lucabravo" },
       ];
       const ORIGINAL_DESC = JSON.stringify({ "@type": "hosc:Wallpaper", style: "original", name: "Original" });
+      const DEV_DESC = JSON.stringify({ "@type": "hosc:Wallpaper", style: "developer", name: "Developer" });   // procedural grid; rendered CSS-side, identity = κ(this descriptor)
       const _wallURL = new Map();   // κ → objectURL (revoke-free for the session)
       const wallRead = () => { try { const s = JSON.parse(localStorage.getItem(WALL_KEY)); if (s && Array.isArray(s.items) && s.items.length) return s; } catch {} return null; };
       const wallWrite = (s) => { try { localStorage.setItem(WALL_KEY, JSON.stringify(s)); } catch {} };
       const liveOn = () => { try { return localStorage.getItem("holo:wall-live") === "1"; } catch { return false; } };   // gallery toggle: live depth + motion (default OFF — opt in)
+      const parallaxOn = () => { try { return localStorage.getItem("holo:wall-parallax") === "1"; } catch { return false; } };   // gallery toggle: pointer parallax of the wallpaper (default OFF — opt in)
       const putWall = (b) => holoStore.put(b instanceof Uint8Array ? b : new TextEncoder().encode(b));   // → "sha256:<hex>"
       // self-healing fetch: prefer the durable κ store; if its bytes are absent (fresh device, evicted
       // store, or a κ recorded without its bytes) re-fetch the bundled source and re-seal it (Law L5 —
@@ -1514,8 +1578,9 @@
         const items = [{ k: await putWall(ORIGINAL_DESC), name: "Original", kind: "gradient", seed: true }];
         try { const r = await fetch(WALL_SEED, { cache: "no-store" });
           if (r.ok) { const buf = new Uint8Array(await r.arrayBuffer()); items.push({ k: await putWall(buf), name: "UOR", kind: "image", mime: "image/jpeg", src: WALL_SEED, depthSrc: WALL_DEPTH, seed: true }); } } catch {}
-        // L1 procedural universe — the seed bytes' κ IS the universe address (same κ → byte-identical cosmos, L5)
-        try { items.push({ k: await putWall(new TextEncoder().encode("holo-cosmos:andromeda-001")), name: "Deep Space", kind: "space", seed: true }); } catch {}
+        // Developer — a procedural blueprint grid (rendered CSS-side, see #wallpaper.wp-dev). Identity is the
+        // κ of its descriptor: same κ → byte-identical background (Law L5). Sharp at any DPR, zero raster.
+        try { items.push({ k: await putWall(DEV_DESC), name: "Developer", kind: "grid", seed: true }); } catch {}
         // curated photo collection — each bundled image sealed by content, with photographer attribution
         for (const w of CURATED) {
           try { const r = await fetch(WALL_DIR + w.file, { cache: "no-store" });
@@ -1570,7 +1635,51 @@
         if (!ctrl) { wrap.remove(); return null; }   // no WebGL2 → caller falls back to the CSS desktop
         return { stop() { try { ctrl.stop(); } catch {} const w = document.getElementById("wallpaper-gl"); if (w) w.remove(); } };
       }
-      function applyStatic(item, url) { world.style.backgroundImage = url ? 'url("' + url + '")' : ""; world.style.backgroundSize = url ? "cover" : ""; world.style.backgroundPosition = url ? "center" : ""; world.style.backgroundRepeat = url ? "no-repeat" : ""; }
+      // a tiny (48px) downscaled dataURL — the blur-up placeholder. Generating it loads the full image
+      // once; HoloCompute.memo caches it by the wallpaper's κ (L1→L2), so a WARM load gets the
+      // placeholder INSTANTLY (no 8K decode) and paints in one frame. O(1) repeat across sessions.
+      function makeThumb(url) {
+        return new Promise((res) => {
+          const im = new Image();
+          im.onload = () => { try { const w = 48, h = Math.max(1, Math.round(48 * im.height / im.width)); const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(im, 0, 0, w, h); res(c.toDataURL("image/jpeg", 0.6)); } catch (e) { res(null); } };
+          im.onerror = () => res(null); im.src = url;
+        });
+      }
+      // paint the static wallpaper on its own #wallpaper layer (behind the windows, parallax-able), with
+      // a κ-streamed blur-up: an O(1) memoized placeholder paints instantly, then the full κ sharpens in.
+      async function applyStatic(item, url) {
+        const wp = $("#wallpaper");
+        if (!wp) { world.style.backgroundImage = url ? 'url("' + url + '")' : ""; world.style.backgroundSize = "cover"; world.style.backgroundPosition = "center"; return; }
+        if (!url) { wp.style.backgroundImage = ""; wp.classList.remove("loading"); return; }
+        wp.classList.add("loading");                                   // blurred until the full κ decodes
+        let painted = false;
+        try {   // O(1) placeholder → instant paint on a warm cache; never blocks the real wallpaper
+          if (item && item.k && window.HoloCompute) {
+            const thumb = await window.HoloCompute.memo([item.k, "thumb48-v1"], () => makeThumb(url));
+            if (thumb) { wp.style.backgroundImage = 'url("' + thumb + '")'; painted = true; }
+          }
+        } catch (e) {}
+        if (!painted) wp.style.backgroundImage = 'url("' + url + '")';   // no placeholder → show the full (blurred)
+        const img = new Image(); img.src = url;
+        const swap = () => { wp.style.backgroundImage = 'url("' + url + '")'; requestAnimationFrame(() => wp.classList.remove("loading")); };
+        if (img.decode) img.decode().then(swap, swap); else { img.onload = swap; img.onerror = swap; }
+      }
+      // pointer parallax — the wallpaper drifts opposite the cursor (depth under glass), eased + GPU-only,
+      // scaled by the fidelity parallax budget, and active ONLY at full motion (mobile/low/reduced = off).
+      (function wallpaperParallax() {
+        let tx = 0, ty = 0, px = 0, py = 0, raf = 0;
+        const step = () => { raf = 0; px += (tx - px) * 0.12; py += (ty - py) * 0.12;
+          const wp = document.getElementById("wallpaper"); if (wp) wp.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0)`;
+          if (Math.abs(tx - px) > 0.2 || Math.abs(ty - py) > 0.2) raf = requestAnimationFrame(step); };
+        addEventListener("pointermove", (e) => {
+          const f = (window.HoloFidelity && window.HoloFidelity.current()) || { motion: "full", effects: { parallax: 1 } };
+          const amt = (parallaxOn() && f.motion === "full" && f.effects) ? (f.effects.parallax || 0) : 0;   // opt-in toggle ⊗ device policy
+          if (amt <= 0) { tx = ty = 0; if (!raf) raf = requestAnimationFrame(step); return; }
+          const range = 16 * amt, cx = innerWidth / 2, cy = innerHeight / 2;
+          tx = -((e.clientX - cx) / cx) * range; ty = -((e.clientY - cy) / cy) * range;
+          if (!raf) raf = requestAnimationFrame(step);
+        }, { passive: true });
+      })();
       async function startLive(item) {
         stopLive();
         const bytes = await wallBytes(item); if (!bytes) return false;
@@ -1700,6 +1809,13 @@
         return true;
       }
       async function applyWall(item) {
+        const _wp = $("#wallpaper"); if (_wp) _wp.classList.remove("wp-dev");   // clear dev grid unless re-set below
+        if (item && item.kind === "grid") {
+          stopLive();
+          if (_wp) { _wp.classList.remove("loading"); _wp.style.backgroundImage = ""; _wp.style.transform = "translate3d(0,0,0)"; _wp.classList.add("wp-dev"); }
+          else { world.style.background = "#0a0b0f"; }
+          return;
+        }
         if (item && item.kind === "space") {
           stopLive();
           let ctrl = null; try { ctrl = await startSpace(item); } catch (e) { try { console.warn("cosmos → fallback:", e); } catch {} }
@@ -1731,18 +1847,30 @@
         live.innerHTML = '<span class="sw"></span><span>Live depth</span>';
         live.onclick = async () => { const on = !liveOn(); try { localStorage.setItem("holo:wall-live", on ? "1" : "0"); } catch {} live.classList.toggle("on", on); toast(on ? "Live depth & motion on" : "Static wallpaper"); await applyWall(s.items.find((i) => i.k === s.current) || s.items[0]); };
         head.appendChild(live);
+        const par = document.createElement("button"); par.type = "button"; par.className = "wall-live" + (parallaxOn() ? " on" : ""); par.title = "Parallax — the wallpaper drifts with your pointer for depth (off = still)";
+        par.innerHTML = '<span class="sw"></span><span>Parallax</span>';
+        par.onclick = () => { const on = !parallaxOn(); try { localStorage.setItem("holo:wall-parallax", on ? "1" : "0"); } catch {} par.classList.toggle("on", on); toast(on ? "Parallax on" : "Parallax off"); };
+        head.appendChild(par);
         const x = document.createElement("button"); x.className = "wall-x"; x.textContent = "✕"; head.appendChild(x);
         const grid = document.createElement("div"); grid.className = "wall-grid";
         // ── Unsplash discovery: search → import any photo, sealed to its own κ wallpaper ──
         const srch = document.createElement("div"); srch.className = "wall-srch";
-        const sIn = document.createElement("input"); sIn.type = "search"; sIn.placeholder = "Search Unsplash for wallpapers…"; sIn.spellcheck = false;
-        const sCredit = document.createElement("span"); sCredit.className = "us"; sCredit.innerHTML = 'via <a href="https://unsplash.com/?utm_source=Hologram_OS&utm_medium=referral" target="_blank" rel="noopener">Unsplash</a>';
+        const sIn = document.createElement("input"); sIn.type = "search"; sIn.placeholder = "Search wallpapers — nature, cities, space…"; sIn.spellcheck = false;
+        const sCredit = document.createElement("span"); sCredit.className = "us"; sCredit.textContent = "free · sealed to κ";
         srch.append(sIn, sCredit);
         const note = document.createElement("div"); note.className = "wall-note"; note.style.display = "none";
         const usLabel = document.createElement("div"); usLabel.className = "wall-secq"; usLabel.style.display = "none"; usLabel.textContent = "Unsplash results";
         const usGrid = document.createElement("div"); usGrid.className = "wall-grid"; usGrid.style.display = "none";
         const mineLabel = document.createElement("div"); mineLabel.className = "wall-secq"; mineLabel.style.display = "none"; mineLabel.textContent = "Your wallpapers";
-        sheet.append(head, srch, note, usLabel, usGrid, mineLabel, grid); scrim.appendChild(sheet); document.body.appendChild(scrim);
+        // category chips — one tap browses beautiful Unsplash wallpapers by theme (each import seals to its own κ)
+        const chips = document.createElement("div"); chips.className = "wall-chips";
+        const CAT_Q = { Nature: "nature landscape", Space: "galaxy nebula space", Animals: "wildlife animal", Cities: "city skyline", Patterns: "abstract pattern texture", Minimal: "minimal gradient" };
+        ["Nature", "Space", "Animals", "Cities", "Patterns", "Minimal"].forEach((cat) => {
+          const b = document.createElement("button"); b.type = "button"; b.className = "wall-chip"; b.textContent = cat;
+          b.onclick = () => { sIn.value = cat; runSearch(CAT_Q[cat] || cat, b); };
+          chips.appendChild(b);
+        });
+        sheet.append(head, srch, chips, note, usLabel, usGrid, mineLabel, grid); scrim.appendChild(sheet); document.body.appendChild(scrim);
         const done = () => { scrim.remove(); document.removeEventListener("keydown", esc, true); };
         const esc = (ev) => { if (ev.key === "Escape") { ev.preventDefault(); done(); } };
         document.addEventListener("keydown", esc, true);
@@ -1764,21 +1892,98 @@
           try { const r = await fetch("/web?url=" + encodeURIComponent(url)); if (r.ok) return new Uint8Array(await r.arrayBuffer()); } catch {}   // dev host proxy; absent on static deploys
           return null;
         }
-        let searchSeq = 0;
-        async function runSearch(q) {
-          const key = uKey(); if (!key) { askKey(); return; }
-          const seq = ++searchSeq; usLabel.style.display = ""; mineLabel.style.display = ""; usGrid.style.display = "";
-          usGrid.innerHTML = '<div class="wall-busy">Searching Unsplash…</div>';
+        let searchSeq = 0, activeChip = null;
+        const safe = (s) => (s || "").replace(/[<>&]/g, "");
+        function setChip(el) { if (activeChip) activeChip.classList.remove("on"); activeChip = el || null; if (el) el.classList.add("on"); }
+        function showSkeleton(n) { let h = ""; for (let i = 0; i < (n || 9); i++) h += '<div class="wall-tile skel"><div class="wall-prev"></div><div class="wall-meta"><span class="wall-name"></span><span class="wall-k"></span></div></div>'; usGrid.innerHTML = h; }
+        // keyless, themed source — Wikimedia Commons (open API, CORS) so categories ALWAYS load, no key wall.
+        // O(1) re-click: results keyed by the query's κ (L1 memory → L2 Cache API). Click Cities → Nature →
+        // Cities and the 2nd visit is instant + network-free — the κ-memo IS the cache (Law L5 identity).
+        async function commonsSearch(q, n) {
+          const fetchPage = async () => {
+            const url = "https://commons.wikimedia.org/w/api.php?origin=*&format=json&action=query&generator=search"
+              + "&gsrsearch=" + encodeURIComponent(q + " filetype:bitmap") + "&gsrnamespace=6&gsrlimit=" + (n || 30)
+              + "&prop=imageinfo&iiprop=url|extmetadata|size&iiurlwidth=560";
+            const r = await fetch(url); if (!r.ok) throw new Error("HTTP " + r.status);
+            const j = await r.json();
+            const pages = (j.query && j.query.pages) ? Object.values(j.query.pages) : [];
+            return pages.map((p) => {
+              const ii = p.imageinfo && p.imageinfo[0]; if (!ii || !ii.thumburl) return null;
+              if (ii.width && ii.height && ii.width < ii.height * 1.1) return null;           // landscape only
+              const md = ii.extmetadata || {};
+              const by = ((md.Artist && md.Artist.value) || "Wikimedia").replace(/<[^>]+>/g, "").trim().slice(0, 40) || "Wikimedia";
+              return { src: "commons", thumb: ii.thumburl, full: ii.url, name: (p.title || "").replace(/^File:/, "").replace(/\.[a-z0-9]+$/i, ""), by };
+            }).filter(Boolean);
+          };
+          try { if (window.HoloCompute) return await window.HoloCompute.memo(["wall-commons-v2", q, n || 30], fetchPage); } catch (e) {}
+          return fetchPage();
+        }
+        async function unsplashSearch(q, key) {
+          const url = "https://api.unsplash.com/search/photos?per_page=24&orientation=landscape&content_filter=high&query=" + encodeURIComponent(q) + "&client_id=" + encodeURIComponent(key);
+          const r = await fetch(url);
+          if (r.status === 401 || r.status === 403) return "BADKEY";
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const data = await r.json();
+          return (data.results || []).map((ph) => ({ src: "unsplash", raw: ph }));
+        }
+        async function runSearch(q, chipEl) {
+          const seq = ++searchSeq; setChip(chipEl);
+          usLabel.style.display = ""; mineLabel.style.display = ""; usGrid.style.display = "";
+          usLabel.textContent = "Results · " + q; showSkeleton();
+          const key = uKey();
           try {
-            const url = "https://api.unsplash.com/search/photos?per_page=24&orientation=landscape&content_filter=high&query=" + encodeURIComponent(q) + "&client_id=" + encodeURIComponent(key);
-            const r = await fetch(url);
-            if (r.status === 401 || r.status === 403) { usGrid.innerHTML = ""; usGrid.style.display = usLabel.style.display = "none"; askKey("That key was rejected. "); return; }
-            if (!r.ok) throw new Error("HTTP " + r.status);
-            const data = await r.json(); if (seq !== searchSeq) return;
-            const results = data.results || []; usGrid.innerHTML = "";
-            if (!results.length) { usGrid.innerHTML = '<div class="wall-busy">No photos for “' + q.replace(/[<>&]/g, "") + '”.</div>'; return; }
-            for (const ph of results) usGrid.appendChild(usTile(ph));
-          } catch (e) { if (seq === searchSeq) usGrid.innerHTML = '<div class="wall-busy">Search failed — check your connection or key.</div>'; }
+            let items;
+            if (key) {
+              items = await unsplashSearch(q, key);
+              if (items === "BADKEY") { askKey("That key was rejected — browsing free photos instead. "); items = null; }
+              else usLabel.textContent = "Unsplash · " + q;
+            }
+            if (!items) { items = await commonsSearch(q); usLabel.textContent = "Results · " + q; }
+            if (seq !== searchSeq) return;
+            if (!items.length) { usGrid.innerHTML = '<div class="wall-busy">No photos for “' + safe(q) + '”. Try another search.</div>'; return; }
+            usGrid.innerHTML = "";
+            for (const it of items) usGrid.appendChild(it.src === "unsplash" ? usTile(it.raw) : genTile(it));
+          } catch (e) { if (seq === searchSeq) usGrid.innerHTML = '<div class="wall-busy">Couldn’t load images — check your connection.</div>'; }
+        }
+        // hover-warm → seal the remote photo into the κ store BEFORE the click. The bytes become a
+        // κ-addressable object (content address, Law L5): the click then applies a LOCAL κ — no network —
+        // and the same bytes are deduped + shared OS-wide forever after. Gated off on slow / save-data nets.
+        const _wallPrefetch = new Map();   // url → Promise<κ>
+        async function sealFromUrl(url) { const bytes = await fetchBytes(url); if (!bytes) throw new Error("fetch failed"); return await putWall(bytes); }
+        function prefetchWall(url) {
+          if (!url) return null;
+          let f; try { f = window.HoloFidelity && window.HoloFidelity.current(); } catch (e) {}
+          if (f && f.prefetch === "off") return null;
+          if (_wallPrefetch.has(url)) return _wallPrefetch.get(url);
+          const p = sealFromUrl(url).catch(() => { _wallPrefetch.delete(url); return null; });
+          _wallPrefetch.set(url, p); return p;
+        }
+        function genTile(it) {
+          const tile = document.createElement("button"); tile.type = "button"; tile.className = "wall-tile";
+          const prev = document.createElement("div"); prev.className = "wall-prev"; prev.style.backgroundImage = 'url("' + it.thumb + '")';
+          const by = document.createElement("div"); by.className = "wall-by"; by.textContent = "📷 " + (it.by || "Wikimedia"); prev.appendChild(by);
+          const meta = document.createElement("div"); meta.className = "wall-meta";
+          const nm = document.createElement("span"); nm.className = "wall-name"; nm.textContent = (it.name || "Photo").slice(0, 28);
+          const kk = document.createElement("span"); kk.className = "wall-k"; kk.textContent = "import → seal to κ";
+          meta.append(nm, kk); tile.append(prev, meta);
+          let hoverT = 0;                                                // hover-intent (140ms): warm a deliberate hover, not a sweep
+          tile.addEventListener("pointerenter", () => { clearTimeout(hoverT); hoverT = setTimeout(() => { const p = prefetchWall(it.full); if (p) p.then((k) => { if (k && kk.textContent === "import → seal to κ") { kk.textContent = "κ ready ✓"; tile.classList.add("ready"); } }); }, 140); }, { passive: true });
+          tile.addEventListener("pointerleave", () => clearTimeout(hoverT), { passive: true });
+          tile.onclick = () => importGeneric(it, kk);
+          return tile;
+        }
+        async function importGeneric(it, kk) {
+          const prev0 = kk.textContent; kk.textContent = "importing…";
+          const wp = $("#wallpaper");
+          if (wp && it.thumb) { wp.classList.add("loading"); wp.style.backgroundImage = 'url("' + it.thumb + '")'; }   // κ-stream: instant low-res preview, full κ sharpens in
+          try {
+            let k = null; const pf = _wallPrefetch.get(it.full); if (pf) k = await pf;   // hover already sealed it → local, instant
+            if (!k) k = await sealFromUrl(it.full);
+            const name = (it.name || "Photo").slice(0, 28);
+            if (!s.items.some((i) => i.k === k)) { s.items.push({ k, name, kind: "image", mime: "image/jpeg", by: it.by || null }); wallWrite(s); }
+            await setWall(s.items.find((i) => i.k === k), s); draw();
+            toast("Imported · κ " + k.split(":").pop().slice(0, 10) + "…");
+          } catch (e) { if (wp) wp.classList.remove("loading"); kk.textContent = prev0; toast("Import failed — try another"); }
         }
         function usTile(ph) {
           const tile = document.createElement("button"); tile.type = "button"; tile.className = "wall-tile";
@@ -1817,9 +2022,10 @@
           grid.innerHTML = "";
           for (const item of s.items) {
             const tile = document.createElement("button"); tile.type = "button"; tile.className = "wall-tile" + (item.k === s.current ? " sel" : "");
-            const prev = document.createElement("div"); prev.className = "wall-prev" + (item.kind === "gradient" ? " orig" : item.kind === "space" ? " space" : "");
+            const prev = document.createElement("div"); prev.className = "wall-prev" + (item.kind === "gradient" ? " orig" : item.kind === "space" ? " space" : item.kind === "grid" ? " dev" : "");
             if (item.kind === "image") { const url = await wallObjURL(item); if (url) prev.style.backgroundImage = 'url("' + url + '")'; }
             else if (item.kind === "space") { prev.innerHTML = '<span class="wall-badge">✦ live · κ-seed</span>'; }
+            else if (item.kind === "grid") { prev.innerHTML = '<span class="wall-badge">⌗ developer · κ-seed</span>'; }
             const meta = document.createElement("div"); meta.className = "wall-meta";
             const nm = document.createElement("span"); nm.className = "wall-name"; nm.textContent = item.name;
             const kk = document.createElement("span"); kk.className = "wall-k"; kk.title = "content address (Law L5)"; kk.textContent = "holo://" + item.k.split(":").pop().slice(0, 12) + "…";
@@ -2565,6 +2771,122 @@
         };
         import("/_shared/q/holo-q-mux.js").then(function (mx) { const b = mx.bindSpecialist || (mx.default && mx.default.bindSpecialist); if (b) b("create", _createSpecialist); }).catch(function () {});
 
+        // ── HOLO IMPORT (ADR-0092): paste a GitHub URL → a running, content-addressed Holo app. Binds the
+        //    DETERMINISTIC "import" specialist onto the SAME mux/Q spine the build rides (so a repeat URL is
+        //    O(1)), with a REAL GitHub ingest (the boundary, hit once) + the repo's OWN seal hash (κ-parity:
+        //    the imported app addresses identically to a studio-built one). Faithful, never generative. ──
+        let _importApi = null, _lastImport = null, _lastFetchFiles = null;
+        async function ghFetchRepo(spec) {                    // the INGEST BOUNDARY (browser fetch → raw.github)
+          const owner = spec.owner, rp = spec.repo, api = "https://api.github.com/repos/" + owner + "/" + rp;
+          let branch = spec.ref;
+          if (!branch) { const r = await fetch(api); if (!r.ok) throw new Error("repo not found"); branch = (await r.json()).default_branch; }
+          const cr = await fetch(api + "/commits/" + encodeURIComponent(branch)); if (!cr.ok) throw new Error("ref not found");
+          const commit = (await cr.json()).sha;
+          const tr = await fetch(api + "/git/trees/" + commit + "?recursive=1"); const tree = ((await tr.json()).tree) || [];
+          const paths = tree.filter(function (t) { return t.type === "blob"; }).map(function (t) { return t.path; });
+          const files = new Map(); paths.forEach(function (p) { files.set(p, {}); });   // all paths visible to classify
+          const want = paths.filter(function (p) { return /(^|\/)package\.json$/.test(p) || /\.(html|css|js|mjs)$/i.test(p); }).slice(0, 60);
+          await Promise.all(want.map(async function (p) {
+            try { const raw = await fetch("https://raw.githubusercontent.com/" + owner + "/" + rp + "/" + commit + "/" + p); if (raw.ok) files.set(p, { text: await raw.text() }); } catch (e) {}
+          }));
+          _lastFetchFiles = { key: owner + "/" + rp, files: files };   // retained so the DECLARED surface (OpenAPI/exports) projects live
+          return { commit: commit, files: files };
+        }
+        // FORGE class (ADR-0093): a lazily-loaded esbuild-wasm bundler turns a client-bundle repo (Vite/React/
+        // webpack — esbuild-compatible) into ONE self-contained app. esbuild-wasm + bare deps load from a CDN
+        // at BUILD time (the ingest boundary); the result is 0-network at runtime (serverless). Best-effort:
+        // a repo that doesn't bundle cleanly degrades to the honest "not runnable" notice — never a fake app.
+        let _esbuild = null, _esbuildInit = null;
+        async function ensureEsbuild() {
+          if (_esbuild) return _esbuild;
+          if (!_esbuildInit) _esbuildInit = (async function () {
+            const eb = await import("https://esm.sh/esbuild-wasm@0.21.5/esm/browser.min.js");   // the BROWSER ESM (has initialize)
+            await eb.initialize({ wasmURL: "https://esm.sh/esbuild-wasm@0.21.5/esbuild.wasm" });
+            _esbuild = eb; return eb;
+          })();
+          return _esbuildInit;
+        }
+        const _resolveBare = async function (spec) { try { const r = await fetch("https://esm.sh/" + spec + "?bundle&target=es2020"); if (r.ok) return { contents: await r.text() }; } catch (e) {} return null; };
+        async function holoBundle(args) {
+          const eb = await ensureEsbuild();
+          const fb = await import("/_shared/holo-forge-bundle.mjs");
+          const repoMod = await import("/_shared/holo-blocks-repo.mjs");
+          return fb.makeBundler({ esbuild: eb, resolveBare: _resolveBare, hash: repoMod.sha256hex })(args);
+        }
+        import("/_shared/holo-import.mjs").then(async function (mod) {
+          const repoMod = await import("/_shared/holo-blocks-repo.mjs");
+          const mx = (await import("/_shared/q/holo-q-mux.js")).default;
+          mod.bindImporter(mx, { fetchRepo: ghFetchRepo, hash: repoMod.sha256hex, bundle: holoBundle, onResult: function (r) { _lastImport = r; } });
+          _importApi = mod;
+        }).catch(function () {});
+        function isRepoRef(v) { v = (v || "").trim(); return !!_importApi && !!_importApi.parseRepoRef(v) && (/github\.com/i.test(v) || /^[\w.-]+\/[\w.-]+$/.test(v)); }
+        // LIVE AUTO-REGISTRATION (ADR-0093): build the in-page, serverless agent fabric for imported apps
+        // ONCE (the node-free MCP engine + the isomorphic REST core, factories injected), expose it as
+        // window.HoloImports. register(li) wires an imported app into MCP + /~<id>/api with NO reload.
+        let _liveAgents = null, _liveAgentsLoading = null;
+        async function ensureLiveAgents() {
+          if (_liveAgents) return _liveAgents;
+          if (!_liveAgentsLoading) _liveAgentsLoading = (async function () {
+            const agent = await import("/_shared/holo-import-agent.mjs");
+            const core = await import("/_shared/mcp/holo-mcp-core.mjs");
+            const api = await import("/_shared/api/holo-api-core.mjs");
+            const repoMod = await import("/_shared/holo-blocks-repo.mjs");
+            _liveAgents = agent.createLiveRegistry({ makeServer: core.makeServer, makeApiServer: api.makeApiServer, hash: repoMod.sha256hex });
+            if (typeof window !== "undefined") window.HoloImports = _liveAgents;
+            return _liveAgents;
+          })();
+          return _liveAgentsLoading;
+        }
+        async function registerLiveAgent(li) {
+          try {
+            const key = li && li.repo ? (li.repo.owner + "/" + li.repo.repo) : null;   // project the DECLARED surface from the just-fetched files
+            const files = (_lastFetchFiles && _lastFetchFiles.key === key) ? _lastFetchFiles.files : null;
+            const surf = (await ensureLiveAgents()).register(li, files);
+            if (surf) await publishImportToSW(surf);   // ← make it reachable by an EXTERNAL agent over /~<id>/mcp + /~<id>/api (serverless, via the SW)
+            return surf;
+          } catch (e) { return null; }
+        }
+        // publish the imported app's manifest + self-verifying κ-objects into the SW imports cache, so the
+        // Service Worker answers /~<id>/mcp + /~<id>/api for it with NO origin server (ADR-0093 transport bridge).
+        async function publishImportToSW(surf) {
+          try {
+            if (typeof caches === "undefined" || typeof navigator === "undefined" || !navigator.serviceWorker) return false;
+            const reg = await navigator.serviceWorker.ready; if (!reg) return false;
+            const base = new URL(reg.scope).pathname;
+            const agent = await import("/_shared/holo-import-agent.mjs");
+            const c = await caches.open(agent.SW_IMPORTS_CACHE);
+            await Promise.all(agent.swCacheEntries(surf, { base }).map(function (e) {
+              return c.put(e.url, new Response(e.body, { headers: { "content-type": e.contentType, "access-control-allow-origin": "*" } }));
+            }));
+            return true;
+          } catch (e) { return false; }
+        }
+        async function holoImport(input, m) {
+          const ref = _importApi && _importApi.parseRepoRef(input); const label = ref ? (ref.owner + "/" + ref.repo) : input;
+          if (m) m.innerHTML = 'Importing <b style="font-style:normal">' + csEsc(label) + '</b> from GitHub…';
+          const Q = (typeof window !== "undefined") ? window.Q : null;
+          if (!Q || typeof Q.create !== "function") { if (m) m.innerHTML = 'Import needs the Q surface — not available here.'; return; }
+          _lastImport = null;
+          const _onPartial = function (partial) { if (partial && studio.applyLive) studio.applyLive(partial); };
+          try {
+            const res = await Q.create(input, { id: "import:" + label, task: "import", onPartial: _onPartial });
+            if (!res || !res.value) { if (m) m.innerHTML = 'Nothing came back for <b style="font-style:normal">' + csEsc(label) + '</b>.'; return; }
+            (studio.applyLive ? studio.applyLive(res.value) : render(res.value)); studio.curSrc = res.value; studio.iterations = (studio.iterations || 0) + 1;
+            const li = _lastImport;
+            if (li && li.runnable) {
+              const obj = repo.publishSource({ name: (ref && ref.repo) || "app", source: res.value }); studio.lastSavedK = obj.id; setUrl(obj.id);
+              const surf = await registerLiveAgent(li);   // ← LIVE: now answerable over MCP + /~<id>/api, no reload (ADR-0093)
+              const o1 = res.cached && res.cached !== false;
+              const tag = o1 ? (res.cached + " · O(1) κ-memo") : (li.classification.class + (li.selfContained ? "" : ' · <span style="color:#f59e0b">' + li.externalRefs.length + ' external ref' + (li.externalRefs.length === 1 ? '' : 's') + '</span>'));
+              const nTools = surf && surf.declared && surf.declared.tools ? surf.declared.tools.length : 0;
+              const agentTag = surf ? ' · <span style="color:#7c5cff" title="Live for agents over MCP + /~' + csEsc(surf.appId) + '/api' + (nTools ? ' · ' + nTools + ' declared ' + surf.declared.kind + ' tool' + (nTools === 1 ? '' : 's') : '') + '">⚡ agent-ready' + (nTools ? ' · ' + nTools + ' API tool' + (nTools === 1 ? '' : 's') : '') + '</span>' : '';
+              if (m) m.innerHTML = 'Imported <b style="font-style:normal">' + csEsc(label) + '</b> — <span class="k">' + urlEl.textContent + '</span> · <span style="color:#34d399">' + tag + '</span>' + agentTag + ' · ' + res.ms + 'ms ✦';
+            } else if (li) {
+              if (m) m.innerHTML = 'Imported <b style="font-style:normal">' + csEsc(label) + '</b>, but <span style="color:#f59e0b">not runnable serverless in v1</span> — ' + csEsc(li.classification.class) + '. ' + csEsc(String(li.reason || "").split("—")[0].trim());
+            } else if (m) m.innerHTML = 'Imported <b style="font-style:normal">' + csEsc(label) + '</b> ✦';
+          } catch (e) { if (m) m.innerHTML = 'Import error: ' + csEsc(String((e && e.message) || e)); }
+        }
+
         // holoBuild(prompt, m) — the ONE verb: route the build through window.HoloTrinity.create (ADR-0087).
         // It rides the κ-memo (a repeat prompt is O(1), no re-generation), streams partials into the live
         // preview, and auto-perceives both faces with a real rebuild thunk (so the self-improvement loop can
@@ -2601,6 +2923,11 @@
         function send() {
           const v = ask.value.trim(); if (!v) return; ask.value = ""; ask.style.height = "auto"; addMsg("user", csEsc(v));
           if (studio.editable && /<\/?[a-z!][\s\S]*>/i.test(v)) { studio.applyLive(v); view("pv"); setTimeout(function () { addMsg("assistant", 'Rendered your changes ✓ — <span class="k">' + urlEl.textContent + "</span>"); }, 60); }
+          else if (studio.editable && isRepoRef(v)) {   // a GitHub URL → IMPORT the repo as a Holo app (ADR-0092)
+            view("pv");
+            const m = addMsg("assistant", 'Importing <b style="font-style:normal">' + csEsc(v) + '</b>…');
+            holoImport(v, m).catch(function (e) { m.innerHTML = 'Import error: ' + csEsc(String((e && e.message) || e)); });
+          }
           else if (studio.editable && mode !== "Chat") {   // a natural-language prompt in Build mode → build/refine a holospace in real time
             view("pv");
             const m = addMsg("assistant", 'Building <b style="font-style:normal">' + csEsc(v) + '</b>…');
@@ -3077,6 +3404,10 @@
           #holo-qfoot{display:flex;gap:8px;padding:0 12px 11px}
           #holo-qfoot button{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#bcc6e6;border-radius:10px;padding:7px;font-size:12px;cursor:pointer}
           #holo-qfoot button:hover{background:rgba(255,255,255,.1);color:#fff}
+          .qchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+          .qchip{display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(124,92,255,.16);border:1px solid rgba(124,92,255,.34);color:#cdbcff;font-size:12px;cursor:pointer;transition:background .15s,color .15s}
+          .qchip:hover{background:rgba(124,92,255,.32);color:#fff}
+          .qcap{margin-top:10px}.qcap b{display:block;color:#eaf0ff;font-weight:600;font-size:12.5px}
           [data-holo-motion="reduced"] #holo-orb{animation:none}
           [data-holo-motion="reduced"] #holo-qpanel{transition:none}
         `; document.head.appendChild(css);
@@ -3118,35 +3449,115 @@
             (window.HoloBoost ? "" : "Enable a boost model for free-form answers; otherwise I keep to what I can verify.");
         }
 
+        // OMNIPOTENT execution — Q acts on the OS via the SAME primitives the omnibar/dock use.
+        async function qOpen(target) {
+          const tg = String(target || "").trim();
+          if (!tg) { addMsg("asst", "Open what? Name an app or paste a link."); return; }
+          const m = addMsg("asst", "Opening <b>" + esc(tg) + "</b>…");
+          try { const hits = (typeof matches === "function" ? (matches(tg, catalog) || []) : []); if (hits[0]) {
+            const appKey = "app:" + hits[0].id;
+            let ex = null; try { ex = desktop.doc().world.find(function (n) { return n.appId === hits[0].id; }); } catch (e) {}
+            if (ex) { try { setState(ex.id, "max"); } catch (e) {} focusedId = ex.id; try { window.__holoSurf && window.__holoSurf.track(appKey, ex.id, 3); } catch (e) {} m.innerHTML = "Focused <b>" + esc(hits[0].name) + "</b> ✦  ·  warm · O(1), no reload"; close(); return; }   // warm app surface (incl. re-opening a warm-closed app)
+            try { await openHolospaceApp(hits[0].id, "", hits[0].name); } catch (e) {}
+            try { const nn = desktop.doc().world.find(function (n) { return n.appId === hits[0].id; }); if (nn && window.__holoSurf) window.__holoSurf.track(appKey, nn.id, 3); } catch (e) {}
+            m.innerHTML = "Opened <b>" + esc(hits[0].name) + "</b> ✦"; close(); return; } } catch (e) {}
+          try { const r = (typeof classify === "function") ? classify(tg, catalog) : null; if (r && (r.kind === "web" || r.kind === "holo")) { openWeb(r); m.innerHTML = "Opening <b>" + esc(tg) + "</b> ↗"; close(); return; } } catch (e) {}
+          m.innerHTML = "I couldn't find <b>" + esc(tg) + "</b> to open — try an app name or a URL.";
+        }
+        function qWindowOp(op) {
+          let h = null; try { h = activeHolospace(); } catch (e) {}
+          if (!h) { addMsg("asst", "There's nothing focused to " + op + "."); return; }
+          const nm = String(h.title || h.name || "this").replace(/\s+·.*$/, "").replace(/^🌐\s*/, "").trim() || "this";
+          try {
+            if (op === "close") { const warmed = (window.__holoSurf && window.__holoSurf.close) ? window.__holoSurf.close(h.id) : false; addMsg("asst", "Closed <b>" + esc(nm) + "</b> ✦" + (warmed ? "  ·  kept warm (re-ask to reopen instantly)" : "")); if (!warmed) { try { removeNode(h.id); } catch (e) {} } close(); }
+            else if (op === "minimize") { hideNode(h.id); addMsg("asst", "Minimized <b>" + esc(nm) + "</b> ✦"); close(); }
+            else if (op === "maximize") { setState(h.id, "max"); addMsg("asst", "Maximized <b>" + esc(nm) + "</b> ✦"); close(); }
+          } catch (e) { addMsg("asst", "Couldn't " + op + " it: " + esc(String(e && e.message || e))); }
+        }
+        // whole-desktop arrangement — tile · cascade · focus mode (omnipotence over the layout)
+        function qArrange(mode) {
+          let wins = []; try { wins = desktop.doc().world.filter(function (n) { return n.kind === "app" && n.state !== "hidden"; }); } catch (e) {}
+          if (!wins.length) { addMsg("asst", "No open windows to arrange."); return; }
+          let R; try { R = worldRect(); } catch (e) { R = { W: innerWidth, H: innerHeight }; }
+          const W = R.W || innerWidth, H = R.H || innerHeight, gap = 12;
+          const nameOf = function (n) { return String(n.title || n.name || "this holospace").replace(/\s+·.*$/, "").replace(/^🌐\s*/, "").trim() || "this holospace"; };
+          if (mode === "focus") {
+            let h = null; try { h = activeHolospace(); } catch (e) {} h = h || wins[0];
+            wins.forEach(function (n) { try { n.id === h.id ? setState(n.id, "max") : hideNode(n.id); } catch (e) {} });
+            focusedId = h.id; addMsg("asst", "Focus mode — <b>" + esc(nameOf(h)) + "</b> front and centre, the rest tucked away ✦"); close(); return;
+          }
+          if (mode === "cascade") {
+            wins.forEach(function (n, i) { const o = 30 * i; try { patch(n.id, function (x) { x.state = "normal"; delete x.prev; x.x = 40 + o; x.y = 30 + o; x.w = Math.min(820, W - 100); x.h = Math.min(560, H - 100); }); } catch (e) {} });
+            if (wins[wins.length - 1]) focusedId = wins[wins.length - 1].id;
+            addMsg("asst", "Cascaded " + wins.length + " window" + (wins.length === 1 ? "" : "s") + " ✦"); close(); return;
+          }
+          const cols = Math.ceil(Math.sqrt(wins.length)), rows = Math.ceil(wins.length / cols);
+          const cw = Math.floor((W - gap * (cols + 1)) / cols), ch = Math.floor((H - gap * (rows + 1)) / rows);
+          wins.forEach(function (n, i) { const col = i % cols, row = Math.floor(i / cols); try { patch(n.id, function (x) { x.state = "normal"; delete x.prev; x.x = gap + col * (cw + gap); x.y = gap + row * (ch + gap); x.w = cw; x.h = ch; }); } catch (e) {} });
+          addMsg("asst", "Tiled " + wins.length + " window" + (wins.length === 1 ? "" : "s") + " into a " + cols + "×" + rows + " grid ✦"); close();
+        }
+        function chipRow(examples) { return '<div class="qchips">' + (examples || []).map(function (e) { return '<span class="qchip" data-ex="' + esc(e) + '">' + esc(e) + '</span>'; }).join("") + '</div>'; }
+        function wireChips(el) { if (!el) return; el.querySelectorAll(".qchip").forEach(function (ch) { ch.onclick = function () { const ex = ch.getAttribute("data-ex"); if (ex) { input.value = ex; fire(); } }; }); }
+        function qHelp() {
+          const caps = (window.Q && window.Q.capabilities) ? window.Q.capabilities() : [];
+          const rows = caps.map(function (c) { return '<div class="qcap"><b>' + esc(c.what) + '</b>' + chipRow(c.examples) + '</div>'; }).join("");
+          const m = addMsg("asst", "Here's what I can do — tap an example:" + rows);
+          wireChips(m);
+        }
         async function handle(text, suppliedCtx) {
           if (busy) return; busy = true;
           addMsg("user", esc(text));
           let c = setCtx();
           if (suppliedCtx && (suppliedCtx.source || suppliedCtx.name)) c = { name: suppliedCtx.name || c.name, source: suppliedCtx.source || c.source, kappa: suppliedCtx.kappa || c.kappa };
+          const it = (window.Q && window.Q.intent) ? window.Q.intent(text) : { kind: isQuestion(text) ? "ask" : "build" };
           try {
-            if (isQuestion(text)) {
+            if (it.kind === "open") { await qOpen(it.target); }
+            else if (it.kind === "close" || it.kind === "minimize" || it.kind === "maximize") { qWindowOp(it.kind); }
+            else if (it.kind === "arrange") { qArrange(it.target); }
+            else if (it.kind === "help") { qHelp(); }
+            else if (it.kind === "ask") {
               const m = addMsg("asst", "…");
               const os = osScope();
               const askCtx = { name: c.name, kappa: c.kappa, source: (os.summary ? "OS overview: " + os.summary + "\n\n" : "") + (c.source || "") };
               let ans = null; try { ans = await window.Q.ask(text, { context: askCtx }); } catch (e) {}
               m.innerHTML = (ans && String(ans).trim()) ? esc(String(ans).trim()) : esc(factualAnswer(c, os));
               thread.scrollTop = thread.scrollHeight;
+            } else if (window.__holoSurf && c.source == null) {
+              // WARM-κ: a fresh build registers as a surface; re-asking the SAME prompt reopens it O(1)
+              // (the SAME warm window, no rebuild). Closing it keeps it warm in place.
+              const m = addMsg("asst", "Building <b>" + esc(text) + "</b>…");
+              const nm = text.replace(/[^a-z0-9 ]/gi, " ").trim().split(/\s+/).slice(0, 4).join(" ") || "Holospace";
+              const buildKey = "build:" + text.toLowerCase().trim();
+              const r = await window.__holoSurf.open(buildKey, orbFloor(text), nm);
+              const nodeId = r.handle;
+              if (r.reused) { m.innerHTML = "Reopened <b>" + esc(nm) + "</b> — warm surface · O(1), no rebuild ✦"; close(); }
+              else {
+                window.Q.create(text, { context: c, onPartial: function (pp) { if (pp && nodeId != null) try { applyEdit(nodeId, pp); } catch (e) {} } }).then(function (res) { if (res && res.value && nodeId != null) try { applyEdit(nodeId, res.value); } catch (e) {} }).catch(function () {});
+                m.innerHTML = "Built <b>" + esc(nm) + "</b> — streaming onto your desktop ✦  ·  close &amp; re-ask to reopen warm"; close();
+              }
             } else {
               const m = addMsg("asst", "Building <b>" + esc(text) + "</b>…");
-              const res = await window.Q.create(text, { context: c });
+              const nm = text.replace(/[^a-z0-9 ]/gi, " ").trim().split(/\s+/).slice(0, 4).join(" ") || "Holospace";
+              // κ-STREAMED render: the instant template floor lands on the desktop on the FIRST κ-partial,
+              // then the model's result re-renders the SAME window when it arrives (no blank 18s wait).
+              let nodeId = null, firstHtml = null;
+              const paint = function (html, isFinal) {
+                if (!html) return;
+                if (nodeId == null) { firstHtml = html; try { nodeId = addNode({ kind: "app", srcdoc: wrapDoc(html), sandbox: "allow-scripts allow-same-origin", content: html, editKind: "paste", name: nm, title: nm, w: 760, h: 540 }); } catch (e) {} }
+                else if (isFinal && html !== firstHtml) { try { applyEdit(nodeId, html); } catch (e) {} }
+              };
+              const res = await window.Q.create(text, { context: c, onPartial: function (partial) { if (nodeId == null) paint(partial, false); } });
               if (res && res.value) {
-                const nm = text.replace(/[^a-z0-9 ]/gi, " ").trim().split(/\s+/).slice(0, 4).join(" ") || "Holospace";
-                let link = "";
-                try { const obj = repo.publishSource({ name: nm, source: res.value }); link = obj.id;
-                  addNode({ kind: "app", srcdoc: wrapDoc(res.value), sandbox: "allow-scripts allow-same-origin", content: res.value, editKind: "paste", name: nm, title: nm + "  ·  " + linkFor(obj.id), w: 760, h: 540 }); } catch (e) {}
-                m.innerHTML = (c.source ? "Reworked " : "Built ") + "<b>" + esc(nm) + "</b> — opened on your desktop ✦" + (link ? "  ·  holo://" + String(link).split(":").pop().slice(0, 8) + "…" : "") + (res.cached && res.cached !== false ? "  · O(1)" : "");
+                paint(res.value, true);
+                let link = ""; try { link = repo.publishSource({ name: nm, source: res.value }).id; } catch (e) {}
+                m.innerHTML = (c.source ? "Reworked " : "Built ") + "<b>" + esc(nm) + "</b> — streamed onto your desktop ✦" + (link ? "  ·  holo://" + String(link).split(":").pop().slice(0, 8) + "…" : "") + (res.cached && res.cached !== false ? "  · O(1)" : "");
               } else m.innerHTML = "I couldn't build that — try rephrasing.";
             }
           } catch (e) { addMsg("asst", "Something went wrong: " + esc(String(e && e.message || e))); }
           busy = false;
         }
 
-        function open() { setCtx(); if (!greeted) { greeted = true; const c = focusedContext(); const os = osScope(); addMsg("asst", "I'm Q — here, aware of your whole desktop (" + os.count + " holospace" + (os.count === 1 ? "" : "s") + " open) and focused on <b>" + esc(c.name) + "</b>. Ask about any of it, or tell me what to build."); }
+        function open() { setCtx(); if (!greeted) { greeted = true; const c = focusedContext(); const os = osScope(); const g = addMsg("asst", "I'm Q — here, aware of your whole desktop (" + os.count + " holospace" + (os.count === 1 ? "" : "s") + " open) and focused on <b>" + esc(c.name) + "</b>. Tell me what to build, ask about any of it, or:" + chipRow(["open files", "tile", "what's open?", "help"])); wireChips(g); }
           panel.classList.add("on"); orb.classList.add("hide"); setTimeout(() => { try { input.focus(); } catch (e) {} }, 120); }
         function close() { panel.classList.remove("on"); orb.classList.remove("hide"); }
         function toggle() { panel.classList.contains("on") ? close() : open(); }
@@ -3172,17 +3583,63 @@
         } };
         import("/_shared/q/holo-q-mux.js").then((mx) => { const b = mx.bindSpecialist || (mx.default && mx.default.bindSpecialist); if (b) b("ask", _askSpecialist); }).catch(() => {});
 
+        // bind a self-contained CREATE specialist at boot so the orb can BUILD without opening the studio
+        // first (the studio binds a richer one on open; this is the always-available floor + tier). ──
+        const orbFloor = function (pp) { const t = esc(String(pp || "Holospace")); return '<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><style>html,body{height:100%;margin:0}body{display:grid;place-items:center;background:radial-gradient(120% 120% at 30% 0%,#16203a,#0a0e17 60%,#05070c);color:#e8eef9;font:16px/1.6 ui-sans-serif,system-ui;text-align:center;padding:6vw}.tag{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#5b8cff;font-weight:700}h1{font-size:clamp(30px,6vw,60px);line-height:1.05;margin:12px 0 10px;font-weight:800}p{color:#9fb0c8;max-width:560px;margin:0 auto}' + '</style><body><div><div class=tag>Holospace · on-device</div><h1>' + t + '</h1><p>' + t + '</p></div>'; };
+        let _orbCg = null, _orbCgTried = false, _orbDead = false;
+        async function ensureOrbCg() { if (_orbCg || _orbCgTried) return _orbCg; _orbCgTried = true; try { const mod = await import("/_shared/q/holo-q-codegen.js"); let device = null; try { device = await mod.bindVoiceModel({}); } catch (e) {} const boost = (typeof window.HoloBoost === "function") ? function (mm, oo) { return window.HoloBoost(mm, oo); } : null; _orbCg = mod.createCodegen({ device: device, boost: boost }); } catch (e) { _orbCg = null; } return _orbCg; }
+        const _orbCreateSpec = { id: "holo-create", generate: async function* (prompt, opts) {
+          opts = opts || {}; const editing = !!opts.editing, current = opts.current || null;
+          yield { replace: editing && current ? current : orbFloor(prompt) };          // instant, sealed floor
+          const wantBoost = !!(typeof window.HoloBoost === "function");
+          if (_orbDead && !wantBoost) return;
+          const cg = await ensureOrbCg();
+          if (!cg || (!cg.has("device") && !wantBoost)) return;                          // no model → floor stands
+          try { const TIMEOUT = wantBoost ? 60000 : 18000;
+            const r = await Promise.race([ cg.generate({ prompt: prompt, current: editing ? current : null, boost: wantBoost }), new Promise(function (res) { setTimeout(function () { res({ __slow: true }); }, TIMEOUT); }) ]);
+            if (r && r.__slow) { _orbDead = true; return; }
+            if (r && r.source) yield { replace: r.source };
+          } catch (e) {}
+        } };
+        import("/_shared/q/holo-q-mux.js").then((mx) => { try { const b = mx.bindSpecialist || (mx.default && mx.default.bindSpecialist); const rt = mx.routeTask || (mx.default && mx.default.routeTask); if (b && !(rt && rt("create") && rt("create").generate)) b("create", _orbCreateSpec); } catch (e) {} }).catch(() => {});
+
         function run(text, ctx) { open(); const t = String(text || "").trim(); if (t) handle(t, ctx); }
         window.__holoQOrb = { toggle: toggle, open: open, close: close, run: run };
         // host authority: apps (sandboxed iframes) reach this ONE Q over the governed holo-gov channel
         // (ADR-0091 cross-frame). q.create rides Q.agent (fail-closed + receipted); the app holds nothing.
         (function installServe() { if (typeof window === "undefined") return; if (!window.Q) { setTimeout(installServe, 200); return; }
+          // bind the OS action executors so Q.act (the orb, an app, or an agent) can OPEN/CLOSE/etc. — governed for non-human callers.
+          try { window.Q.configureActions({ open: qOpen, close: () => qWindowOp("close"), minimize: () => qWindowOp("minimize"), maximize: () => qWindowOp("maximize"), arrange: qArrange }); } catch (e) {}
           import("/_shared/q/holo-q-app.js").then((m) => { try { window.HoloQServe = m.createQServe({ Q: window.Q, summon: (t, c) => { t ? run(t, c) : open(); } }); } catch (e) {} }).catch(() => {}); })();
       })();
       // ── Ambient Q alternate invokes: the omnibar (⌘/Ctrl+Enter sends your line to Q) and VOICE (an
       //    unhandled spoken turn routes to Q). The orb stays the ONE surface; these just open it. ──
       try { const _oa = document.getElementById("omni-addr"); if (_oa) _oa.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); const v = e.target.value.trim(); if (v && window.__holoQOrb) { window.__holoQOrb.run(v); e.target.value = ""; } } }, true); } catch (e) {}
       try { addEventListener("holo-voice", (e) => { const d = e && e.detail; if (d && d.text && d.acted === false && window.__holoQOrb) window.__holoQOrb.run(d.text); }); } catch (e) {}
+      // ── surface-cache DOM wiring (ADR-0091): keep desktop surfaces WARM IN-PLACE (hidden, NEVER
+      //    reparented → no reload), so re-opening is O(1) and live state survives. LRU-bounded. The
+      //    witnessed warm-κ policy (holo-q-surface.js) driving the REAL compositor primitives. Additive —
+      //    nothing else changes unless a caller routes opens/closes through window.__holoSurf. ──
+      (function installHoloSurf() {
+        const keyToId = new Map(), idToKey = new Map(), warm = new Set();
+        import("/_shared/q/holo-q-surface.js").then(function (m) {
+          const mem = (typeof navigator !== "undefined" && navigator.deviceMemory) || 4;   // GB (≈4 if unknown)
+          const hotMax = m.recommendHotMax(mem);
+          const cache = m.createSurfaceCache({ hotMax: hotMax, maxWeight: hotMax * 3, onEvict: function (key) { const id = keyToId.get(key); if (id != null) { try { removeNode(id); } catch (e) {} idToKey.delete(id); } keyToId.delete(key); warm.delete(key); } });
+          // open(key, html, name) — mounts a srcdoc surface; a warm/live key is reused O(1) (SAME window, no remount/reload).
+          async function open(key, html, name) {
+            if (keyToId.has(key)) { const id = keyToId.get(key), wasWarm = warm.has(key);
+              if (wasWarm) { warm.delete(key); await cache.acquire(key, async function () { return { handle: id }; }); try { setState(id, "normal"); } catch (e) {} }
+              focusedId = id; return { handle: id, reused: true, wasWarm: wasWarm }; }
+            const r = await cache.acquire(key, async function () { let id = null; try { id = addNode({ kind: "app", srcdoc: wrapDoc(html), sandbox: "allow-scripts allow-same-origin", content: html, editKind: "paste", name: name || "Surface", title: name || "Surface", w: 620, h: 420 }); } catch (e) {} if (id != null) { keyToId.set(key, id); idToKey.set(id, key); } return { handle: id }; }, { weight: 1 });
+            return { handle: r.handle, reused: false, wasWarm: false };
+          }
+          // close(id|key) — WARM-keep (hide in place, don't destroy); LRU-evict (removeNode) beyond hotMax.
+          function track(key, id, weight) { if (id == null) return false; if (warm.has(key)) warm.delete(key); keyToId.set(key, id); idToKey.set(id, key); try { cache.acquire(key, async function () { return { handle: id }; }, { weight: weight || 1 }); } catch (e) {} return true; }
+          function close(idOrKey) { const key = idToKey.has(idOrKey) ? idToKey.get(idOrKey) : (keyToId.has(idOrKey) ? idOrKey : null); if (key == null) return false; const id = keyToId.get(key); try { hideNode(id); } catch (e) {} warm.add(key); cache.release(key); return true; }
+          window.__holoSurf = { open: open, track: track, close: close, has: function (k) { return keyToId.has(k); }, isWarm: function (k) { return warm.has(k); }, idOf: function (k) { return keyToId.get(k); }, stats: function () { return cache.stats(); }, hotMax: hotMax, mem: mem };
+        }).catch(function () {});
+      })();
       function importSource(src) {
         const s = (src != null ? src : srcTa.value); if (!s.trim()) return null;
         const obj = repo.publishSource({ name: "pasted", source: s }); closeLib();
@@ -3458,18 +3915,17 @@
       #fullscreen-btn svg { width: 18px; height: 18px; }
       #wallet-btn svg { width: 18px; height: 18px; }
       #wallet-btn.on { background: color-mix(in srgb, var(--holo-ink) 12%, transparent); color: var(--holo-ink); }
-      /* Wallet holospace — a right-docked, isolated panel that slides in from the edge (a browser-grade
-         extension wallet). Scrim dims the world; the dock is its own gated sandbox. */
-      #wallet-panel { position: fixed; inset: 0; z-index: 9000; pointer-events: none; }
-      #wallet-panel .wp-scrim { position: absolute; inset: 0; background: color-mix(in srgb, #000 36%, transparent); opacity: 0; transition: opacity .3s ease; }
-      #wallet-panel .wp-dock { position: absolute; top: 0; right: 0; height: 100%; width: min(420px, 94vw);
+      /* Wallet — an ASIDE CARRIER (like a browser side panel / Copilot): it does NOT overlay or dim the
+         world; it SQUEEZES the whole holospace left by --holo-aside-w (mirrors --holo-dock-w on the right
+         edge) and docks itself in the freed space. Content stays live the whole time — crisp, immersive. */
+      #wallet-panel { position: fixed; top: 0; right: 0; bottom: 0; width: var(--holo-aside, min(420px, 92vw)); z-index: 9000;
         background: var(--holo-bg, #0b0d12); border-left: 1px solid var(--holo-border);
-        box-shadow: -26px 0 70px -22px rgba(0,0,0,.7); transform: translateX(100%);
-        transition: transform .34s cubic-bezier(.2,.8,.2,1); will-change: transform; overflow: hidden; }
-      #wallet-panel .wp-dock iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--holo-bg, #0b0d12); }
-      #wallet-panel.on { pointer-events: auto; }
-      #wallet-panel.on .wp-scrim { opacity: 1; }
-      #wallet-panel.on .wp-dock { transform: translateX(0); }
+        box-shadow: -26px 0 70px -22px rgba(0,0,0,.55); transform: translateX(100%);
+        transition: transform .34s cubic-bezier(.2,.8,.2,1); will-change: transform; overflow: hidden; pointer-events: none; }
+      #wallet-panel iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--holo-bg, #0b0d12); }
+      html.wallet-open #wallet-panel { transform: translateX(0); pointer-events: auto; }
+      /* --holo-aside-w is set from JS as a concrete px (the panel's measured width) so holo-widgets,
+         which parseFloat()s it off <html>, clears the aside too — a min()/var token wouldn't parse. */
       #empty .nt { display: flex; flex-direction: column; align-items: center; gap: 13px; }
       #empty .nt .mark svg { width: 60px; height: 60px; }
       #empty .nt h1 { margin: 0; font-weight: 600; font-size: clamp(20px, 3vw, 27px); color: var(--holo-ink); }
