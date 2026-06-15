@@ -1,0 +1,33 @@
+holo-pqc.bundle.mjs — PROVENANCE (Law L5: verify by re-derivation)
+==================================================================
+
+WHAT
+  One self-contained ESM bundle of audited post-quantum + classical primitives, no CDN, no server.
+  Re-exported NIST FIPS algorithms:
+    • ML-KEM-1024   (FIPS 203) — key establishment / encapsulation (~AES-256)
+    • ML-DSA-65/87  (FIPS 204) — lattice signatures
+    • SLH-DSA-SHA2-256f (FIPS 205) — hash-based backup signatures (different math)
+    • x25519        — classical ECDH half of the hybrid KEM
+
+SOURCE (pinned, MIT, audited — paulmillr/@noble, same lineage as wdk-crypto)
+    @noble/post-quantum  0.6.1
+    @noble/curves        2.2.0   (x25519 only)
+
+REBUILD (reproducible, isolated under .build/)
+    node system/os/usr/lib/holo/holo-pqc/build.mjs
+  Installs the pinned deps in .build/, bundles with esbuild (esm, es2022, minified), writes
+  holo-pqc.bundle.mjs, and prints its sha256. Nothing leaks into the OS.
+
+INTEGRITY
+    sha256(holo-pqc.bundle.mjs) = a31cf9c0c1af007504e2741bd5c7bd3f275edd819f7587beea64cff1cc23ada3
+  (re-derive with: certutil -hashfile holo-pqc.bundle.mjs sha256, or shasum -a 256)
+  If your rebuild differs, update this line and holo-pqc-witness must still pass.
+
+WITNESS
+    node system/tools/holo-pqc-witness.mjs    → WITNESSED ✓ (15 checks: hybrid sign/verify + tamper
+    rejection, SLH-DSA backup, hybrid KEM agreement, AES-256-GCM AEAD, self-verifying identity κ)
+
+NOTE
+  No custom cryptography is written here or in holo-pqc.mjs — only audited primitives, composed with
+  standard SHA-256 KDF combiners. Hybrid (classical ‖ PQC) so a break in either family is not a break
+  of the system.
