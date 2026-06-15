@@ -126,7 +126,7 @@
       #tabstrip { position: fixed; top: 0; left: var(--holo-dock-w, 0px); right: var(--holo-aside-w, 0px); height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px; transition: right .34s cubic-bezier(.2,.8,.2,1);
         padding: 0 var(--gap); background: #141417; overflow-x: auto; scrollbar-width: none; user-select: none; }   /* recessed strip BEHIND the tabs; tabs are inset by --gap horizontally to line up with the holospace card below. No vertical padding → align-self:center cluster gets EQUAL top/bottom space; tabs are flex-end so they're unaffected. */
       #tabstrip::-webkit-scrollbar { display: none; }
-      #tabstrip .tab { flex: 0 1 120px; min-width: 52px; height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
+      #tabstrip .tab { flex: 0 1 150px; min-width: 60px; height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
         -webkit-appearance: none; appearance: none; border: 0;   /* drop the harsh native <button> outline */
         border-radius: 10px 10px 0 0; background: transparent; color: var(--holo-ink-dim);
         cursor: default; font: var(--holo-text-sm, 1rem) var(--win-font); white-space: nowrap; position: relative; transition: background .12s ease, color .12s ease, box-shadow .12s ease; }
