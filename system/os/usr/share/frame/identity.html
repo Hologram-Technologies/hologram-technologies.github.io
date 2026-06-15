@@ -58,6 +58,36 @@
       .note { color: var(--dim); font-size: .8rem; margin-top: var(--s-s); }
       .hidden { display: none !important; }
 
+      /* ── the SOVEREIGN platinum card — golden-ratio (φ=1.618), brushed metal, hyper-real ── */
+      .card-wrap { perspective: 1200px; margin: var(--s-2xs) 0 var(--s-m); }
+      .card { position: relative; width: 100%; aspect-ratio: 1.618; border-radius: 16px; transform-style: preserve-3d;
+        transition: transform .25s cubic-bezier(.2,.8,.2,1); will-change: transform; isolation: isolate; overflow: hidden;
+        background:
+          repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,.11) 1px 2px, transparent 2px 4px),
+          linear-gradient(125deg, #23262c 0%, #6b727c 20%, #aeb6c1 37%, #777e89 50%, #d3d9e1 64%, #5b626c 82%, #2c3036 100%);
+        box-shadow: 0 34px 64px -22px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.45), inset 0 -2px 7px rgba(0,0,0,.55);
+        -webkit-box-reflect: below 1px linear-gradient(transparent, transparent 58%, rgba(255,255,255,.10)); }
+      .card::before { content:""; position:absolute; inset:-40%; pointer-events:none; mix-blend-mode:screen;
+        background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.55) 48%, transparent 58%); transform: translateX(-30%);
+        animation: cardSheen 7s ease-in-out infinite; }
+      @keyframes cardSheen { 0%,100%{transform:translateX(-45%)} 50%{transform:translateX(45%)} }
+      .card .edge { position:absolute; inset:0; border-radius:16px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 0 24px rgba(0,0,0,.25); pointer-events:none; }
+      .card .content { position:absolute; inset:0; padding: 7.4%; display:flex; flex-direction:column; z-index:1; }
+      .card .brand { display:flex; align-items:center; gap:.45rem; color:#0e1217; font-weight:800; letter-spacing:.05em; font-size:1.02rem; text-shadow:0 1px 0 rgba(255,255,255,.4); }
+      .card .brand .mk { font-size:1.1rem; }
+      .card .sov { margin-top:.18rem; font:700 .6rem ui-sans-serif; letter-spacing:.26em; text-transform:uppercase; color:#202632; opacity:.82; }
+      .card .name { margin-top:auto; font-weight:800; letter-spacing:.015em; text-transform:uppercase; color:#0b0f14; font-size:clamp(1rem, 5vw, 1.45rem);
+        text-shadow: 0 1px 0 rgba(255,255,255,.5), 0 -1px 1px rgba(0,0,0,.45); max-width:62%; line-height:1.05; }   /* engraved */
+      .card .meta { margin-top:.5rem; display:flex; flex-direction:column; gap:.12rem; font:700 .58rem ui-sans-serif; letter-spacing:.13em; text-transform:uppercase; color:#161b22; opacity:.8; }
+      .card .meta b { font-weight:800; }
+      .card .qr { position:absolute; right:7.4%; bottom:7.4%; width:24.7%; aspect-ratio:1; background:#fff; border-radius:7px; padding:5px; z-index:1;
+        box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 0 0 1px rgba(0,0,0,.06); }
+      .card .qr svg { width:100%; height:100%; display:block; }
+      .share { display:flex; justify-content:center; margin-bottom:var(--s-m); }
+      .share .btn { width:auto; }
+      @keyframes cardReveal { 0%{opacity:0; transform:translateY(14px) scale(.96) rotateX(8deg)} 100%{opacity:1; transform:none} }
+      .card-wrap.reveal .card { animation: cardReveal .9s cubic-bezier(.2,.85,.25,1) both; }
+
       /* mint sheet */
       .scrim { position: fixed; inset: 0; background: color-mix(in srgb, #000 55%, transparent); display: none; place-items: end center; z-index: 40; }
       .scrim.on { display: grid; }
@@ -65,9 +95,13 @@
         border-radius: var(--holo-radius-lg, 18px) var(--holo-radius-lg, 18px) 0 0; padding: var(--s-m) var(--s-s) var(--s-l); }
       .sheet h2 { margin: 0 0 .3rem; font-size: 1.15rem; } label { display: block; font-size: .8rem; color: var(--dim); margin: var(--s-s) 0 .3rem; }
       input { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .6rem .7rem; }
-      .caplist { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
-      .cap { font: 600 .8rem ui-sans-serif; color: var(--dim); background: var(--surface); border: 1px solid var(--line); border-radius: var(--pill); padding: .3rem .7rem; cursor: pointer; }
-      .cap.on { color: #06210f; background: var(--good); border-color: var(--good); }
+      .caplist { display: flex; flex-direction: column; gap: .4rem; margin-top: .4rem; }
+      .cap { display: block; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .55rem .7rem; cursor: pointer; color: var(--ink); transition: border-color .12s, background .12s; }
+      .cap b { display: block; font: 600 .92rem ui-sans-serif; } .cap span { display: block; color: var(--dim); font-size: .78rem; }
+      .cap:hover { border-color: var(--acc); } .cap.on { border-color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+      .cap.on b { color: var(--good); }
+      .revoke { flex: 0 0 auto; width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--dim); cursor: pointer; font-size: .8rem; transition: .12s; }
+      .revoke:hover { border-color: var(--holo-danger, #ff6b6b); color: var(--holo-danger, #ff6b6b); }
       .err { color: var(--holo-danger, #ff6b6b); font-size: .82rem; min-height: 1.1em; margin-top: .4rem; }
       .toast { position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--line);
         border-radius: var(--pill); padding: .5rem .9rem; font-size: .85rem; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
@@ -87,6 +121,19 @@
 
       <!-- SIGNED IN -->
       <section id="me" class="hidden">
+        <div class="card-wrap" id="cardWrap">
+          <div class="card" id="card">
+            <div class="content">
+              <span class="brand"><span class="mk">◈</span> Hologram</span>
+              <span class="sov">Sovereign Identity</span>
+              <span class="name" id="cardName">—</span>
+              <span class="meta"><span>Member since <b id="cardDate">—</b></span><span class="mono" id="cardK">—</span></span>
+            </div>
+            <span class="qr" id="cardQr" title="your identity address (holo://)"></span>
+            <span class="edge"></span>
+          </div>
+        </div>
+        <div class="share"><button class="btn ghost" id="shareCard"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 11.3h-6.7l-5.2-6.9-6 6.9H1.6l7.7-8.8L1 2.5h6.8l4.7 6.3 5.7-6.3Zm-1.2 17.6h1.8L7.1 4.3H5.2L17 20.1Z"/></svg> Share my identity</button></div>
         <div class="who"><span class="av" id="av">·</span><div><h1 id="label">—</h1><div class="role" id="role">Player</div></div></div>
         <p class="lede">One sovereign key. Your wallet and your agents are facets of it — nothing acts beyond what you grant.</p>
         <div class="kbadges">
@@ -133,7 +180,15 @@
       const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 1800); };
       const copy = (s) => navigator.clipboard?.writeText(s).then(() => toast("copied"));
       const AGENTS_KEY = (kappa) => "holo.agents:" + kappa;
-      const ALL_CAPS = ["read", "wallet:read", "q.agent", "schedule"];
+      const REVOKED_KEY = (kappa) => "holo.revoked:" + kappa;
+      // capabilities as plain-language presets — what the agent can do, in words anyone understands
+      const CAP_PRESETS = [
+        { id: "read", label: "See activity", desc: "Read what's happening — never moves anything." },
+        { id: "wallet:read", label: "View balances", desc: "See your holdings. Cannot spend." },
+        { id: "q.agent", label: "Create & build", desc: "Make holospaces and answers for you." },
+        { id: "schedule", label: "Schedule tasks", desc: "Run things on a timer you set." },
+      ];
+      const capLabel = (id) => (CAP_PRESETS.find((c) => c.id === id) || { label: id }).label;
 
       let op = null, identity = null;
 
@@ -154,15 +209,52 @@
         $("role").textContent = npc ? "Agent" : "Player";
         $("pqBadge").classList.toggle("hidden", !pq);
         $("kid").textContent = short(kappa, 8); $("kid").onclick = () => copy(kappa);
+        // the sovereign platinum card — your name, the day you became sovereign, and your κ as a QR
+        $("cardName").textContent = label;
+        const joined = (op && op.createdAt) || (identity && identity.issuedAt) || new Date().toISOString();
+        try { $("cardDate").textContent = new Date(joined).toLocaleDateString(undefined, { month: "short", year: "numeric" }); } catch { $("cardDate").textContent = "—"; }
+        $("cardK").textContent = short(kappa, 5);
+        renderCardQr(kappa); wireCard();
         renderAgents(kappa);
         show("me");
+        let just = false; try { just = sessionStorage.getItem("holo.justminted") === "1"; sessionStorage.removeItem("holo.justminted"); } catch {}
+        if (just) { $("cardWrap").classList.add("reveal"); toast("Welcome, sovereign ◈"); }
+      }
+      async function renderCardQr(kappa) {
+        try { const qr = await import("/_shared/holo-qr.js");
+          $("cardQr").innerHTML = qr.toSVG("holo://" + String(kappa).split(":").pop(), { margin: 1, dark: "#0b0d12", light: "#ffffff", scale: 6, rounded: 1 }); }
+        catch { $("cardQr").style.display = "none"; }
+      }
+      let cardWired = false;
+      function wireCard() {
+        if (cardWired) return; cardWired = true;
+        const wrap = $("cardWrap"), card = $("card");
+        wrap.addEventListener("mousemove", (e) => { const r = card.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5; card.style.transform = "rotateY(" + (x * 13) + "deg) rotateX(" + (-y * 13) + "deg)"; });
+        wrap.addEventListener("mouseleave", () => { card.style.transform = ""; });
+        $("shareCard").onclick = () => {
+          const text = "Just minted my sovereign Holo Identity ◈ — one post-quantum key for every app, chain and agent. Self-verifying. Serverless. Mine alone.";
+          window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(text), "_blank", "noopener");
+        };
       }
 
       function renderAgents(kappa) {
         let list = []; try { list = JSON.parse(localStorage.getItem(AGENTS_KEY(kappa)) || "[]"); } catch {}
         const el = $("agentList");
         if (!list.length) { el.innerHTML = `<div class="empty">No agents yet. Create one to let it act for you — safely.</div>`; return; }
-        el.innerHTML = list.map((a) => `<div class="agent"><span class="d">${(a.name || "A")[0].toUpperCase()}</span><div class="m"><b>${a.name || "Agent"}</b><span class="mono">${short(a.kappa, 6)}</span></div><span class="caps">${(a.caps || []).join(" · ")}</span></div>`).join("");
+        el.innerHTML = list.map((a, i) => `<div class="agent"><span class="d">${(a.name || "A")[0].toUpperCase()}</span><div class="m"><b>${a.name || "Agent"}</b><span class="mono" data-copy="${a.kappa}" title="its own identity address — tap to copy">${short(a.kappa, 7)}</span></div><span class="caps">${(a.caps || []).map(capLabel).join(" · ")}</span><button class="revoke" data-i="${i}" title="Revoke">✕</button></div>`).join("");
+        for (const k of el.querySelectorAll("[data-copy]")) k.onclick = () => copy(k.dataset.copy);
+        for (const b of el.querySelectorAll(".revoke")) b.onclick = () => revokeAgent(kappa, +b.dataset.i);
+      }
+      // revoke: drop the grant + record its κ on a revocation list the gate can refuse (κ-level, re-derivable)
+      function revokeAgent(owner, i) {
+        let list = []; try { list = JSON.parse(localStorage.getItem(AGENTS_KEY(owner)) || "[]"); } catch {}
+        const a = list[i]; if (!a) return;
+        if (!confirm("Revoke " + (a.name || "this agent") + "? It can no longer act for you.")) return;
+        list.splice(i, 1); localStorage.setItem(AGENTS_KEY(owner), JSON.stringify(list));
+        let rv = []; try { rv = JSON.parse(localStorage.getItem(REVOKED_KEY(owner)) || "[]"); } catch {}
+        if (!rv.includes(a.kappa)) rv.push(a.kappa);
+        localStorage.setItem(REVOKED_KEY(owner), JSON.stringify(rv));
+        renderAgents(owner); toast("Agent revoked");
       }
 
       // wallet is a facet — ask the shell to open it
@@ -179,6 +271,7 @@
           const { openSession } = await import("/_shared/holo-identity.mjs");
           sessionStorage.setItem("holo.session", JSON.stringify(await openSession(principal, { session: "primeos" })));
           op = await login.currentOperator().catch(() => null);
+          try { sessionStorage.setItem("holo.justminted", "1"); } catch {}   // → the card reveals on first render
           try { window.parent.postMessage({ type: "holo-identity", action: "signed-in" }, location.origin); } catch {}
           await boot();
         } catch (e) { $("guestErr").textContent = /no-bio|WebAuthn|support/i.test(e.message) ? "Biometrics unavailable on this device." : (/cancel/i.test(e.message) ? "Cancelled — tap to try again." : ("Couldn't set up: " + e.message)); }
@@ -194,7 +287,7 @@
       let selCaps = new Set(["read"]);
       function openMint() {
         selCaps = new Set(["read"]); $("agentName").value = ""; $("mintErr").textContent = "";
-        $("caps").innerHTML = ALL_CAPS.map((c) => `<button class="cap ${selCaps.has(c) ? "on" : ""}" data-c="${c}">${c}</button>`).join("");
+        $("caps").innerHTML = CAP_PRESETS.map((c) => `<button class="cap ${selCaps.has(c.id) ? "on" : ""}" data-c="${c.id}"><b>${c.label}</b><span>${c.desc}</span></button>`).join("");
         for (const b of $("caps").querySelectorAll(".cap")) b.onclick = () => { const c = b.dataset.c; selCaps.has(c) ? selCaps.delete(c) : selCaps.add(c); b.classList.toggle("on"); };
         $("mintScrim").classList.add("on");
       }
