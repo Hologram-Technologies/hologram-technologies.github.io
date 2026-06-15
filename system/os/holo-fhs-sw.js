@@ -30,7 +30,7 @@ const COI = {
   "Cross-Origin-Embedder-Policy": "credentialless",
   "Cross-Origin-Resource-Policy": "cross-origin",
 };
-const KCACHE = "holo-kappa-v1";   // content-addressed response cache: key = κ-route URL, so identical bytes are stored ONCE and shared across every app (dedup), and a re-open is network-free. Only VERIFIED bytes are ever cached.
+const KCACHE = "holo-kappa-v2";   // content-addressed response cache: key = κ-route URL, so identical bytes are stored ONCE and shared across every app (dedup), and a re-open is network-free. Only VERIFIED bytes are ever cached. (bumped v1→v2 to force a SW re-activate so the fresh closure — new wallet κ — is served.)
 const kKey = (axis, hex) => `${BASE}.holo/${axis}/${hex}`;
 
 // ── SELF-HEAL (ADR-0067): turn the dead-end refusal into RECOVERY. A content address is a perfect
