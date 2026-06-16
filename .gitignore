@@ -24,3 +24,10 @@ system/os/usr/lib/holo/devtools/vendor/
 # by tools/vendor-interactjs.mjs (run once after clone). Served same-origin, SW-content-verified.
 system/os/usr/lib/holo/interactjs/
 .holo-tor/
+
+# Neural super-resolution scratch (depth/resrgan ONNX experiments) — research scratch, not part of
+# the shell. Purged from history; never commit. Large model blobs belong in the holo-models repo.
+system/_nsr/
+
+# yt-dlp binary — a fetched tool, not source. Vendor it locally; never commit the binary.
+system/tools/bin/yt-dlp.exe
