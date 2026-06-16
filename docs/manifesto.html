@@ -9,7 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="../os/usr/share/icons/hologram-dark.svg" />
 <!-- apply the saved appearance before first paint, exactly as the gateway does, so there is no flash and
      this object seams straight out of the homepage rather than reading as a separate website page. -->
-<script>var d=document.documentElement;d.setAttribute("data-theme","dark");d.setAttribute("data-immersive","full");</script>
+<script>var d=document.documentElement;d.setAttribute("data-theme","dark");d.setAttribute("data-immersive","full");try{if(window.top!==window.self)d.classList.add("embedded");}catch(e){d.classList.add("embedded");}</script>
 <style>
   /* ════════════════════════════════════════════════════════════════════════════════════════════
      THE MANIFESTO HOLOSPACE. A single self-contained, self-verifying object: its bytes ARE its
@@ -212,6 +212,21 @@
     font-size:calc(var(--read) * .82); color:var(--muted); line-height:1.6; text-align:center; }
   .doc .verify-note a{ color:var(--fg-soft); border-bottom:1px solid var(--line-strong); }
   .doc .verify-note a:hover{ color:var(--fg); border-color:var(--fg); }
+
+  /* ── EMBEDDED — when the manifesto is opened INSIDE another window (the gateway's doc frame, which
+     already supplies a titlebar + Esc-to-close), drop our OWN holospace shell (bezel · deskbar · the
+     nested window chrome) so the reading surface FILLS that window and scrolls, instead of nesting a
+     second window inside the first. The standalone page (opened directly / shared) is unchanged. The
+     bottom "verify it" note still carries the self-verification; the live κ chip rides the standalone
+     chrome. ──────────────────────────────────────────────────────────────────────────────────────── */
+  html.embedded body::before{ display:none; }
+  html.embedded .bg, html.embedded .deskbar, html.embedded .win-bar{ display:none; }
+  html.embedded .desk{ inset:0; padding:0; }
+  html.embedded .win{ max-width:none; margin:0; border:0; border-radius:0; box-shadow:none;
+    -webkit-backdrop-filter:none; backdrop-filter:none; background:var(--bg); opacity:1; transform:none; }
+  /* a wider reading measure so a wide window is actually used, while staying readable */
+  html.embedded .doc{ max-width:78ch; }
+  html.embedded .win-body{ padding-top:clamp(26px,5vmin,60px); }
 
   @media (prefers-reduced-motion: reduce){
     *{ animation:none !important; }

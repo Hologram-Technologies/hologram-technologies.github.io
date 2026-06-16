@@ -191,10 +191,14 @@ export function mountNotifications(bellEl, { getOperator = () => null, onDeepLin
     const rec = normalize(opts);
     showToast(rec, opts);
     if (opts.transient) return rec;          // pure status — shown, never filed (keeps history meaningful)
+    // Stable-id senders (e.g. the backup nudge that re-fires every session) update their ONE message in
+    // place — never a growing pile — and carry the prior read state, so a message stops nagging once seen.
+    const ix = items.findIndex((x) => x.id === rec.id);
+    if (ix >= 0) { rec.read = items[ix].read; items.splice(ix, 1); }
     items.unshift(rec); if (items.length > CAP) items.length = CAP;
     save();
     if (aside.isOpen()) render(); else renderFilters();
-    refreshBadge(true);
+    refreshBadge(!rec.read);                  // swing/pulse only on a genuine unread arrival
     return rec;
   }
   const toast = (m, opts = {}) => notify({ title: m, transient: true, ...opts });

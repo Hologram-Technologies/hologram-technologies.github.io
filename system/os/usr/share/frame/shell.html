@@ -3,6 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- MOBILE = the clean home, never the desktop. Phones/touch land on home-screen.html (clock · apps ·
+         Q) — all desktop complexity (tabs · omnibar · dock) is abstracted away. Synchronous + first, so
+         we hand off before any shell work begins. Escape hatch: ?desktop=1 forces the full desktop; the
+         session query carries across. location.replace → no shell entry in history (Back won't loop). -->
+    <script>
+      (function () {
+        try {
+          var coarse = (window.matchMedia && matchMedia("(pointer: coarse)").matches) || innerWidth <= 600;
+          if (coarse && !/[?&]desktop=1\b/.test(location.search)) location.replace("home-screen.html" + location.search);
+        } catch (e) {}
+      })();
+    </script>
     <!-- Appearance, before first paint: pin the canonical palette · presentation · immersive backdrop
          onto <html> so the desktop opens in the chosen theme with no flash. Synchronous + classic on
          purpose (must run before holo-theme.css computes its tokens). Twin of holo-theme.js's apply(). -->
@@ -4307,6 +4319,7 @@
               if (typeof link === "string") { omniGo(link); return; }
               if (link.kind === "address" && link.value) omniGo(link.value);
               else if (link.kind === "run" && link.value) { try { km.run(link.value); } catch (e) {} }
+              else if (link.kind === "backup" && link.value) { try { window.HoloBackup && window.HoloBackup.reveal(link.value); } catch (e) {} }
               else if (link.kind === "q") { try { (window.__holoQOrb && window.__holoQOrb.open) ? window.__holoQOrb.open() : (window.Q && window.Q.summon && window.Q.summon()); } catch (e) {} }
             } catch (e) {}
           },
@@ -5316,17 +5329,31 @@
       #fullscreen-btn:active { transform: scale(.92); }
       #fullscreen-btn svg { width: 18px; height: 18px; }
       /* notifications bell — sits to the LEFT of fullscreen, wearing the SAME calm icon-button (light,
-         ink-dim, thin glyph). A small accent DOT marks unread — no heavy count chip. The #tabstrip prefix
-         out-specifies the notify module's own #notif-btn rules so the chrome wins. */
+         ink-dim, thin glyph). Light and lively: NO heavy ring around it — instead the bell gives a single
+         gentle swing when a message lands, and a soft count pill pops in to say how many are waiting. The
+         #tabstrip prefix out-specifies the notify module's own #notif-btn rules so the chrome wins. */
       #tabstrip #notif-btn { flex: 0 0 auto; width: 30px; height: 30px; margin-left: 6px; align-self: center; position: relative;
         display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--holo-ink-dim);
         cursor: pointer; transition: background .12s ease, color .12s ease, transform .12s ease; }
       #tabstrip #notif-btn:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
       #tabstrip #notif-btn:active { transform: scale(.92); }
       #tabstrip #notif-btn.has-unread { color: var(--holo-ink); }
-      #tabstrip #notif-btn svg { width: 18px; height: 18px; }
-      #tabstrip #notif-btn .hn-badge { position: absolute; top: 4px; right: 4px; min-width: 0; width: 8px; height: 8px; padding: 0;
-        border-radius: 50%; font-size: 0; line-height: 0; background: var(--holo-accent); box-shadow: 0 0 0 2px var(--holo-bg); }
+      #tabstrip #notif-btn svg { width: 18px; height: 18px; transform-origin: 50% 4px; }
+      /* a single playful swing of the bell on arrival — replaces the old hard accent ring entirely */
+      #tabstrip #notif-btn.ring::after { content: none; }
+      #tabstrip #notif-btn.ring svg { animation: notif-swing .9s cubic-bezier(.36,.07,.19,.97); }
+      @keyframes notif-swing { 0%,100% { transform: rotate(0); } 14% { transform: rotate(12deg); }
+        30% { transform: rotate(-10deg); } 46% { transform: rotate(7deg); } 62% { transform: rotate(-4deg); } 78% { transform: rotate(2deg); } }
+      /* count pill — soft rounded accent that shows the number, with a tiny springy pop when it appears */
+      #tabstrip #notif-btn .hn-badge { position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 4px;
+        display: grid; place-items: center; border-radius: 999px; font: 700 11px/1 var(--holo-font-sans, system-ui); color: #fff;
+        background: linear-gradient(135deg, var(--holo-accent, #5b8cff), color-mix(in srgb, var(--holo-accent, #5b8cff) 55%, #c77bff));
+        box-shadow: 0 0 0 2px var(--holo-bg), 0 2px 7px color-mix(in srgb, var(--holo-accent, #5b8cff) 55%, transparent);
+        animation: notif-pop .34s cubic-bezier(.2,1.5,.4,1); }
+      @keyframes notif-pop { from { transform: scale(0); opacity: 0; } 60% { transform: scale(1.22); } to { transform: scale(1); opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) {
+        #tabstrip #notif-btn.ring svg { animation: none; }
+        #tabstrip #notif-btn .hn-badge { animation: none; } }
       /* sovereign-vault identity — the signed-in avatar is a sharp SHIELD emblem (not a flat disc): a tinted
          vault plate with a crisp rim, a top sheen and the operator's initial — reading as secure and OWNED. */
       #identity-btn .ib-av.is-vault { width: 23px; height: 25px; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }

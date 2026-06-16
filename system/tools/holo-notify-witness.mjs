@@ -73,8 +73,9 @@ const checks = {
   "the shell routes toast() through the unified surface":
     /if \(window\.HoloNotify\) \{ window\.HoloNotify\.toast\(m\)/.test(shell),
   "the shell mounts the Notification Center": /mountNotifications\(document\.getElementById\("notif-btn"\)/.test(shell),
-  "the backup nudge is migrated to a persistent, actionable Backup notification":
-    /window\.HoloNotify\.notify\(/.test(backup) && /sender:\s*"Backup"/.test(backup) && /"Back up now"/.test(backup),
+  "the backup nudge is a quiet, persistent, deep-linked Backup notification (files silently into the inbox, opens the reveal flow)":
+    /window\.HoloNotify\.notify\(/.test(backup) && /sender:\s*"Backup"/.test(backup) && /silent:\s*true/.test(backup) &&
+    /kind:\s*"backup"/.test(backup) && /link\.kind === "backup"/.test(shell) && /HoloBackup\.reveal/.test(shell),
   "the hardcoded-hex backup banner is gone":
     !/id: "holo-backup-nudge", style: "position:fixed/.test(backup),
 };

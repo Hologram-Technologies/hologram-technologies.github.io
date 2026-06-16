@@ -23,20 +23,20 @@ export async function maybeNudge(kappa) {
   } catch { return false; }
 }
 
-// The nudge is now a first-class notification (Holo Notify): a sticky, actionable "Backup" alert that
-// ALSO files into the persistent Center, instead of a one-off hardcoded-hex banner. Tokens + φ + the OS's
-// own chrome come for free from the primitive. "Later" defers for the session; "Back up now" reveals.
+// The nudge is a quiet first-class notification (Holo Notify): it files ONE unread "Backup" message
+// into the persistent Center and lets the bell carry the count — it never pops a toast, so a first-time
+// operator lands on an unobstructed desktop. A stable id means re-firing each session updates that one
+// message instead of piling up, and the read state is preserved (it stops nagging once seen). Opening
+// the message deep-links straight into the reveal flow ("Back up now"); ignoring it is "Later".
 function banner(op) {
   const fire = () => {
     if (!(typeof window !== "undefined" && window.HoloNotify)) return false;
     window.HoloNotify.notify({
-      sender: "Backup", severity: "warn", sticky: true, icon: "🔑",
+      id: "holo-backup-nudge", silent: true,
+      sender: "Backup", severity: "warn", icon: "🔑",
       title: "Secure your account",
-      body: "Back up your recovery phrase so you never lose access — even if you lose this device.",
-      actions: [
-        { label: "Later", run: () => { try { sessionStorage.setItem(DEFER_KEY, op.kappa); } catch {} } },
-        { label: "Back up now", primary: true, run: () => { reveal(op.kappa).catch((e) => console.warn("[backup]", e && e.message)); } },
-      ],
+      body: "Back up your recovery phrase so you never lose access — even if you lose this device. Open this to reveal your 12 words.",
+      deepLink: { kind: "backup", value: op.kappa },
     });
     return true;
   };

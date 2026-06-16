@@ -40,7 +40,9 @@ const TARGETS = [
   { rel: "login.html", file: join(OS, "usr/share/frame/login.html") },
 ];
 
-const b64sha256 = (text) => "sha256-" + createHash("sha256").update(text, "utf8").digest("base64");
+// A CSP hash-source MUST be single-quoted (`'sha256-…'`); unquoted it is an invalid source expression
+// the browser silently ignores — which would drop script-src to just 'self' and block every inline block.
+const b64sha256 = (text) => "'sha256-" + createHash("sha256").update(text, "utf8").digest("base64") + "'";
 
 // Inline <script>…</script> with NO src attribute → executed (or governed) inline; hash its exact body.
 // We hash EVERY inline block regardless of type (json-ld, importmap, module, classic): hashing an extra

@@ -74,8 +74,8 @@ const rerootMap = (obj) => { const o = {}; for (const [k, v] of Object.entries(o
 // subpathBoot() — the inline runtime shim, as a classic <script> that runs before any module. It wraps
 // fetch/XHR/Worker and watches the DOM, re-rooting only origin-absolute OS-flat paths (FLAT_SRC) onto BASE;
 // everything else (relative, BASE-rooted, cross-origin) passes untouched. Self-contained, no deps.
-function subpathBoot() {
-  return "<script>(function(){try{"
+function subpathBootBody() {
+  return "(function(){try{"
     + "var B=" + JSON.stringify(BASE) + ";if(B===\"/\")return;self.__HOLO_BASE__=B;"
     + "var F=new RegExp(" + JSON.stringify(FLAT_SRC) + ");"
     + "function rr(u){try{var x=new URL(u,document.baseURI);if(x.origin===location.origin&&F.test(x.pathname)){x.pathname=B+x.pathname.slice(1);return x.href;}}catch(e){}return u;}"
@@ -85,7 +85,15 @@ function subpathBoot() {
     + "function fx(el){if(el&&el.getAttribute)[\"src\",\"href\"].forEach(function(a){var v=el.getAttribute(a);if(v&&F.test(v))el.setAttribute(a,B+v.slice(1));});}"
     + "function sc(n){if(n.nodeType===1){fx(n);if(n.querySelectorAll)[].forEach.call(n.querySelectorAll(\"[src],[href]\"),fx);}}"
     + "try{new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var a=ms[i].addedNodes;for(var j=0;j<a.length;j++)sc(a[j]);}}).observe(document.documentElement||document,{childList:true,subtree:true});}catch(e){}"
-    + "}catch(e){}})();</script>";
+    + "}catch(e){}})();";
+}
+function subpathBoot() { return "<script>" + subpathBootBody() + "</script>"; }
+// The fresh import map injected into a page that has NONE of its own. Factored out so loadClosure can hash
+// the EXACT bytes it injects and allow them in the CSP (the SW's own injection must not violate its CSP).
+function freshImportmapBody() {
+  const prefixImports = {}; for (const p of SUBPATH_PREFIXES) prefixImports["/" + p + "/"] = BASE + p + "/";
+  for (const n of TOPLEVEL_MODULES) prefixImports["/" + n] = BASE + n;
+  return JSON.stringify({ imports: prefixImports });
 }
 function subpathHtml(text) {
   if (BASE === "/") return text;                                  // root/user site: flat refs already resolve
@@ -103,7 +111,7 @@ function subpathHtml(text) {
     return `<script type="importmap">${JSON.stringify(merged)}</script>`;
   });
   // Inject the runtime shim FIRST (classic, before any module), then a fresh import map if the page had none.
-  const inject = subpathBoot() + (mapped ? "" : `<script type="importmap">${JSON.stringify({ imports: prefixImports })}</script>`);
+  const inject = subpathBoot() + (mapped ? "" : `<script type="importmap">${freshImportmapBody()}</script>`);
   out = /<head[^>]*>/i.test(out) ? out.replace(/<head[^>]*>/i, (m) => m + inject) : inject + out;
   out = out.replace(/(\s(?:src|href))="\/(?!\/)/g, (_m, attr) => attr + '="' + BASE);   // origin-absolute src/href attrs → BASE-rooted (skips // protocol-relative)
   return out;
@@ -181,6 +189,16 @@ async function loadClosure() {
   // so it composes with content addressing: a per-response nonce would change the bytes and break L5.
   try { for (const [k, v] of Object.entries(await (await fetch(BASE + "etc/boot-csp.json", { cache: "no-store" })).json())) { if (k.endsWith(".html") && typeof v === "string") CSPRO.set(k, v); } }
   catch { /* no CSP manifest → boot pages serve without the Report-Only header (unchanged behaviour) */ }
+  // On a SUBPATH deploy (BASE !== "/") finalize() injects inline scripts the build-time hashes can't know
+  // (the subpath shim + a fresh import map, both BASE-dependent). Hash exactly those and extend each
+  // policy's script-src so the SW's own injection never trips its own CSP. No-op at a root deploy.
+  if (BASE !== "/" && CSPRO.size) {
+    try {
+      const sha = async (s) => "'sha256-" + btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))))) + "'";
+      const inj = (await sha(subpathBootBody())) + " " + (await sha(freshImportmapBody()));
+      for (const [k, v] of CSPRO) CSPRO.set(k, v.replace(/(script-src [^;]*)/, "$1 " + inj));
+    } catch { /* augmentation best-effort; Report-Only never blocks regardless */ }
+  }
 }
 // Lazily fold an app's OWN lock closure into the pins, so app bytes are VERIFIED too (not just OS bytes) —
 // the app's holospace.lock.json keys are already serve-rel paths (apps/<id>/* and the _shared/* runtime).

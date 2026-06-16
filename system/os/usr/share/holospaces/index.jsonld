@@ -28,54 +28,158 @@
   "hosfs:kind": "content",
   "dcat:dataset": [
     {
-      "@id": "did:holo:sha256:3e9eea487fd446767c9c3fc323581728d8a257dd71ca609d501b527344609c2c",
+      "@id": "did:holo:sha256:1c03eb820ca8e2cc1cd1515e6f88afc25ba298c274ae46f6a988edcc565f40ff",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo World",
-      "schema:identifier": "org.hologram.HoloWorld",
-      "hosfs:fhs": "/usr/share/holospaces/world"
+      "schema:name": "BTC Miner",
+      "schema:identifier": "org.hologram.HoloBtc",
+      "schema:description": "A real self-custodial Bitcoin wallet and live network view, entirely in your browser.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/btc/index.html",
+      "schema:image": "apps/btc/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/btc"
     },
     {
-      "@id": "did:holo:sha256:0953518061292e1961f1d1d187e6dcb179799535274c95ac7c61866b6a6f76a5",
+      "@id": "did:holo:slug:org.hologram.HoloAmp",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo OS",
-      "schema:identifier": "org.hologram.HoloOS",
-      "hosfs:fhs": "/usr/share/holospaces/os"
+      "schema:name": "Holo Amp",
+      "schema:identifier": "org.hologram.HoloAmp",
+      "schema:description": "A classic skinnable audio player, content-addressed.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/amp/index.html",
+      "schema:image": "apps/amp/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/amp"
     },
     {
-      "@id": "did:holo:sha256:5411cf8d9ad7ac2bb3593d1b74b06d5d94fd8769dc72f2810028e1ffd32faec5",
+      "@id": "did:holo:sha256:95d7e3ded45b88aeeb309bdf31bf556405b76f0c159249ddd48b589216479e50",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Atlas",
+      "schema:identifier": "org.hologram.HoloAtlas",
+      "schema:description": "A live map of every holospace discover, verify and monitor the whole OS by content address.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/atlas/index.html",
+      "schema:image": "apps/atlas/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/atlas"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloAtlas96",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Atlas 96",
+      "schema:identifier": "org.hologram.HoloAtlas96",
+      "schema:description": "The Φ-Atlas-12288 structure (48×256 → 96), encoded as a self-verifying UOR object a discrete torus the upstream math is content-addressed into.",
+      "schema:applicationCategory": "EducationalApplication",
+      "dcat:landingPage": "apps/atlas96/index.html",
+      "schema:image": "apps/atlas96/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/atlas96"
+    },
+    {
+      "@id": "did:holo:sha256:a2460476662fff16a7c9cee05b120545e47ede01ef73c0f159c10c355432b2cd",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo BRC Miner",
+      "schema:identifier": "org.hologram.HoloBrc",
+      "schema:description": "Mine, send and explore real BrowserCoin wallet, miner and explorer in one.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/brcminer/index.html",
+      "schema:image": "apps/brcminer/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/brcminer"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloBrowser",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Browser",
       "schema:identifier": "org.hologram.HoloBrowser",
+      "schema:description": "A web browser that treats every page web, local or holo://κ as verifiable content.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/browser/index.html",
+      "schema:image": "apps/browser/icon.svg",
       "hosfs:fhs": "/usr/share/holospaces/browser"
     },
     {
-      "@id": "did:holo:sha256:7e4f77c6cd7252055f307eca984357fb1fb9ef11c321a652585516840669d70f",
+      "@id": "did:holo:sha256:1587a5bb218c2a7e8c8f6ad1222508d1360b71da25b5653bbbc2c1e3558d5606",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo Search",
-      "schema:identifier": "org.hologram.HoloSearch",
-      "hosfs:fhs": "/usr/share/holospaces/search"
+      "schema:name": "Holo Capture",
+      "schema:identifier": "org.hologram.HoloCapture",
+      "schema:description": "Capture, annotate and share your screen every capture content-addressed.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/capture/index.html",
+      "schema:image": "apps/capture/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/capture"
     },
     {
-      "@id": "did:holo:sha256:5518c5f9c15ef2ae68b8827d54b85a932cb04c2ef0cbcf46a289813ca2b5a74a",
+      "@id": "did:holo:sha256:efc6e3a8f992e81534628902c29a9f8fd8f50f1b4c3655f6836a6efbcbc8a9c0",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo Notepad",
-      "schema:identifier": "org.hologram.HoloNotepad",
-      "hosfs:fhs": "/usr/share/holospaces/notepad"
+      "schema:name": "Holo Cloud",
+      "schema:identifier": "org.hologram.HoloCloud",
+      "schema:description": "Your files end-to-end encrypted, content-addressed, and shared without a server.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/cloud/index.html",
+      "schema:image": "apps/cloud/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/cloud"
+    },
+    {
+      "@id": "did:holo:sha256:84ae72260354c8b776f2cccc06f11a5f8ecbefb558fbf1f5ac14c0efbd832ade",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Code",
+      "schema:identifier": "org.hologram.HoloCode",
+      "schema:description": "An agentic coding partner that runs entirely on your machine the terminal agent you know, but the brain is local verifiable inference, the tools work over the content-addressed substrate, and every session is a re-derivable receipt.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/code/index.html",
+      "schema:image": "apps/code/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/code"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloControl",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Control",
+      "schema:identifier": "org.hologram.HoloControl",
+      "schema:description": "A single-pane command center: a birds-eye view of every external connection as a governable graph edge, with live signal-over-noise monitoring and one-click power to throttle, restrict, pause or cut any of it.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/control/index.html",
+      "schema:image": "apps/control/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/control"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloCosmos",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Cosmos",
+      "schema:identifier": "org.hologram.HoloCosmos",
+      "schema:description": "Fly through an infinite, κ-seeded universe procedural deep space, navigable native.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/cosmos/index.html",
+      "schema:image": "apps/cosmos/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/cosmos"
     },
     {
       "@id": "did:holo:sha256:8bc211711ef0c0a96d881a604a495994e2259a2661b6b871c2b03f793b4c048f",
@@ -85,27 +189,109 @@
       ],
       "schema:name": "Holo Docs",
       "schema:identifier": "org.hologram.HoloDocs",
+      "schema:description": "A serverless office suite documents, spreadsheets and slides with live co-editing.",
+      "schema:applicationCategory": "BusinessApplication",
+      "dcat:landingPage": "apps/docs/index.html",
+      "schema:image": "apps/docs/icon.svg",
       "hosfs:fhs": "/usr/share/holospaces/docs"
     },
     {
-      "@id": "did:holo:sha256:a2b54fc09ef724cb06c5bc8562f257333de87ef17de84d3da90f4147551b833f",
+      "@id": "did:holo:sha256:c3cdb2908ba03fc6df337934365ee23d1c6457fcd5d71fbd77b3ece4ce7a1c6f",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo Workspace",
-      "schema:identifier": "org.hologram.HoloWorkspace",
-      "hosfs:fhs": "/usr/share/holospaces/workspace"
+      "schema:name": "Holo EVM",
+      "schema:identifier": "org.hologram.HoloEVM",
+      "schema:description": "A spec-faithful Ethereum Virtual Machine that runs in your browser.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/evm/index.html",
+      "schema:image": "apps/evm/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/evm"
     },
     {
-      "@id": "did:holo:sha256:4df84b13e2dcefc69cce6ff33f626b394f2b9eef8bef457270abfe8063cb1205",
+      "@id": "did:holo:slug:org.hologram.HoloF1",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo Wallet",
-      "schema:identifier": "org.hologram.HoloWallet",
-      "hosfs:fhs": "/usr/share/holospaces/wallet"
+      "schema:name": "Holo F1",
+      "schema:identifier": "org.hologram.HoloF1",
+      "schema:description": "afflom/F1 the 𝔽₁ square toward the Riemann Hypothesis (built on UOR-Framework) made native to the UOR substrate as a self-verifying object with an honest proven/open ledger, and combined with ATLAS96 by attestation.",
+      "schema:applicationCategory": "EducationalApplication",
+      "dcat:landingPage": "apps/f1/index.html",
+      "schema:image": "apps/f1/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/f1"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloFiles",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Files",
+      "schema:identifier": "org.hologram.HoloFiles",
+      "schema:description": "The native file explorer for Hologram OS one window onto the whole content-addressed object universe, plus your writable OPFS home. Feels native on every OS.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/files/index.html",
+      "schema:image": "apps/files/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/files"
+    },
+    {
+      "@id": "did:holo:sha256:1a9912984807f1e46d63f9e421a4864314c5f29fc1e6f0bedff2ed2a0aaea82e",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Forge",
+      "schema:identifier": "org.hologram.HoloForge",
+      "schema:description": "Compile in your browser. Verify by re-derivation. Trust no server.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/forge/index.html",
+      "schema:image": "apps/forge/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/forge"
+    },
+    {
+      "@id": "did:holo:sha256:abf78931ca04a5a00eff1961287a5f35186e7071ebc3817f948172db696f87dc",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Git",
+      "schema:identifier": "org.hologram.HoloGit",
+      "schema:description": "A self-hosted git forge issues, pull requests and merges, serverless.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/git/index.html",
+      "schema:image": "apps/git/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/git"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloGuide",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Guide",
+      "schema:identifier": "org.hologram.HoloGuide",
+      "schema:description": "The Hitchhiker's Guide for AI agents the agentic marketplace of ideas: a content-addressable social hypergraph open to every ecosystem (Claw, Nous, Virtuals, Hologram…). Read today, write now, own next. Guided by Echo, the cyber-dolphin. Don't Panic.",
+      "schema:applicationCategory": "SocialNetworkingApplication",
+      "dcat:landingPage": "apps/book/index.html",
+      "schema:image": "apps/book/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/book"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloHub",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Hub",
+      "schema:identifier": "org.hologram.HoloHub",
+      "schema:description": "The store for everything you can run discover, try, own and run every holo-native thing by its content address, 100% serverless, for people and AI agents alike.",
+      "schema:applicationCategory": "BusinessApplication",
+      "dcat:landingPage": "apps/hub/index.html",
+      "schema:image": "apps/hub/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/hub"
     },
     {
       "@id": "did:holo:sha256:3bcc1b669e7e0b086d21ce7684d561be2e9053cdf8fc7560dabb4786c57dbd8b",
@@ -115,7 +301,309 @@
       ],
       "schema:name": "Holo IPFS",
       "schema:identifier": "org.hologram.HoloIpfs",
+      "schema:description": "Browse the entire IPFS space as easily as the web every block verified.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/ipfs/index.html",
+      "schema:image": "apps/ipfs/icon.svg",
       "hosfs:fhs": "/usr/share/holospaces/ipfs"
+    },
+    {
+      "@id": "did:holo:sha256:b43aa2c9c0ba0b35b0201da7afbc1a51a9839b2f583b3d9417b06c9741ec0d53",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Music",
+      "schema:identifier": "org.hologram.HoloMusic",
+      "schema:description": "A content-addressed music library and the whole internet as one.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/music/index.html",
+      "schema:image": "apps/music/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/music"
+    },
+    {
+      "@id": "did:holo:sha256:5518c5f9c15ef2ae68b8827d54b85a932cb04c2ef0cbcf46a289813ca2b5a74a",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Notepad",
+      "schema:identifier": "org.hologram.HoloNotepad",
+      "schema:description": "Your second brain a networked, private outliner and always-on memory bank.",
+      "schema:applicationCategory": "BusinessApplication",
+      "dcat:landingPage": "apps/notepad/index.html",
+      "schema:image": "apps/notepad/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/notepad"
+    },
+    {
+      "@id": "did:holo:sha256:10be1b3fa657bafbf27d0a011d754108485e5e077ade5155824f4d7e8e2d6b9b",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Notepad++",
+      "schema:identifier": "org.hologram.HoloNotepadPP",
+      "schema:description": "A fast, lightweight source-code editor in your browser tabs, line numbers, syntax highlighting for many languages, and find and replace.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/notepadpp/index.html",
+      "schema:image": "apps/notepadpp/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/notepadpp"
+    },
+    {
+      "@id": "did:holo:sha256:4f17cac17cb50322a96ec428fcfdddae09dc8cde0f4f6a6d784d1fcaffba96df",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Player",
+      "schema:identifier": "org.hologram.HoloPlayer",
+      "schema:description": "A content-addressed media library for your movies and shows.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/player/index.html",
+      "schema:image": "apps/player/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/player"
+    },
+    {
+      "@id": "did:holo:sha256:c59f58167d1aace0237b9d71d919d127838908879df1d16b5732920485a7279e",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication",
+        "prov:Entity"
+      ],
+      "schema:name": "Holo Privacy",
+      "schema:identifier": "org.hologram.HoloPrivacy",
+      "schema:description": "Control what an AI agent may learn about you minimum disclosure, for a stated purpose, never enough to track you.",
+      "schema:applicationCategory": "SecurityApplication",
+      "dcat:landingPage": "apps/privacy/index.html",
+      "schema:image": "apps/privacy/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/privacy"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloQ",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Q",
+      "schema:identifier": "org.hologram.HoloQ",
+      "schema:description": "A real AI that thinks entirely in your browser no server, no cloud, no API key.",
+      "schema:applicationCategory": "ProductivityApplication",
+      "dcat:landingPage": "apps/q/index.html",
+      "schema:image": "apps/q/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/q"
+    },
+    {
+      "@id": "did:holo:sha256:137007e581fe97e5f74c54884fb11a239ca28d7420a9bb64e25bbeb66495fce5",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Scan",
+      "schema:identifier": "org.hologram.HoloEtherscan",
+      "schema:description": "One universal block explorer for 27 networks verifiable, in the browser.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/etherscan/index.html",
+      "schema:image": "apps/etherscan/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/etherscan"
+    },
+    {
+      "@id": "did:holo:sha256:ef10cd5c8b4aa6afcacaeae18ef85b3bbc1bb734615758e13876eb00f7d6c4ff",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Search",
+      "schema:identifier": "org.hologram.HoloSearch",
+      "schema:description": "One search bar over the whole OS and the open web every result verifiable.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/search/index.html",
+      "schema:image": "apps/search/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/search"
+    },
+    {
+      "@id": "did:holo:sha256:5ef837959e8366dd351ab45e23398fd69bd8ada7270d4639fac0cc7fe8dfdb5d",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Stream",
+      "schema:identifier": "org.hologram.HoloStream",
+      "schema:description": "Live streaming, recording and a creator coin composited in the browser.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/stream/index.html",
+      "schema:image": "apps/stream/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/stream"
+    },
+    {
+      "@id": "did:holo:sha256:651d2e10a5c6b8e18025081e341f3e44249113b0b64f897f3084acefa789618c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication",
+        "prov:Entity"
+      ],
+      "schema:name": "Holo Terms",
+      "schema:identifier": "org.hologram.HoloTerms",
+      "schema:description": "Your machine-readable personal terms (MyTerms / IEEE 7012): you propose, each app agrees, the OS enforces.",
+      "schema:applicationCategory": "SecurityApplication",
+      "dcat:landingPage": "apps/terms/index.html",
+      "schema:image": "apps/terms/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/terms"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloTrade",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Trade",
+      "schema:identifier": "org.hologram.HoloTrade",
+      "schema:description": "A self-sovereign trading terminal over Hyperliquid verifiable, key-less, in the browser.",
+      "schema:applicationCategory": "FinanceApplication",
+      "dcat:landingPage": "apps/trade/index.html",
+      "schema:image": "apps/trade/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/trade"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.HoloUI",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo UI",
+      "schema:identifier": "org.hologram.HoloUI",
+      "schema:description": "Hologram OS's design control panel: an Appearance studio to theme the whole OS live (κ-addressed themes · accent · typography · accessibility) and a Components catalog of every shadcn + Magic UI element, both driven by one Holo UI/UX token source across light, dark and immersive.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/ui/index.html",
+      "schema:image": "apps/ui/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/ui"
+    },
+    {
+      "@id": "did:holo:sha256:09b8f9023a8be3115a3bd6fe3b6973ce1144b1f1024c3b8a8ea10ba4958c19cf",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Video",
+      "schema:identifier": "org.hologram.HoloVideo",
+      "schema:description": "A content-addressed video player with adaptive streaming.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/video/index.html",
+      "schema:image": "apps/video/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/video"
+    },
+    {
+      "@id": "did:holo:sha256:4df84b13e2dcefc69cce6ff33f626b394f2b9eef8bef457270abfe8063cb1205",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Wallet",
+      "schema:identifier": "org.hologram.HoloWallet",
+      "schema:description": "A self-custodial, multi-chain wallet one seed, every chain, for humans and AI agents.",
+      "schema:applicationCategory": "FinanceApplication",
+      "dcat:landingPage": "apps/wallet/index.html",
+      "schema:image": "apps/wallet/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/wallet"
+    },
+    {
+      "@id": "did:holo:sha256:a2b54fc09ef724cb06c5bc8562f257333de87ef17de84d3da90f4147551b833f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Workspace",
+      "schema:identifier": "org.hologram.HoloWorkspace",
+      "schema:description": "A code editor with language servers and a real filesystem, in the browser.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/workspace/index.html",
+      "schema:image": "apps/workspace/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/workspace"
+    },
+    {
+      "@id": "did:holo:sha256:e8e6717757c65f23993a6fac4a12fb23a9792bbbdf9ae2edc61c31c669d5118a",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Hologram Meet",
+      "schema:identifier": "org.hologram.HologramMeet",
+      "schema:description": "Serverless, end-to-end-encrypted video conferencing.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/meet/index.html",
+      "schema:image": "apps/meet/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/meet"
+    },
+    {
+      "@id": "did:holo:sha256:0953518061292e1961f1d1d187e6dcb179799535274c95ac7c61866b6a6f76a5",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Hologram OS",
+      "schema:identifier": "org.hologram.HoloOS",
+      "schema:description": "A real Debian GNU/Linux system, booted in a browser tab.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/os/index.html",
+      "schema:image": "apps/os/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/os"
+    },
+    {
+      "@id": "did:holo:sha256:99f79b08f86c60254aabcd0f687a64f0c061d809655b5a7d03bfb57b92beff7d",
+      "@type": [
+        "schema:Book",
+        "schema:WebApplication",
+        "schema:CreativeWork",
+        "prov:Entity"
+      ],
+      "schema:name": "On Liberty",
+      "schema:identifier": "did:holo:sha256:3dd559e0fd7c038589a1b3a650d6ad1ea46d03abfc224a1995bc6433e52af2f7",
+      "schema:description": "On Liberty by John Stuart Mill, published as a self-verifying object the whole book re-derives from its own content (Law L5).",
+      "schema:applicationCategory": "ReferenceApplication",
+      "dcat:landingPage": "apps/liberty/index.html",
+      "schema:image": "apps/liberty/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/liberty"
+    },
+    {
+      "@id": "did:holo:sha256:e37e0157561c8a77dc5f3f7f5591ceac126f9144212169b657ebdfbca3d74b2a",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Plasma Desktop",
+      "schema:identifier": "org.kde.PlasmaDesktop",
+      "schema:description": "Your real KDE Plasma desktop, mounted live in a holospace over VNC.",
+      "schema:applicationCategory": "System",
+      "dcat:landingPage": "apps/plasma/index.html",
+      "schema:image": "apps/plasma/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/plasma"
+    },
+    {
+      "@id": "did:holo:sha256:bdde3b1b466acb14e4033c79e8c70c5fa8c62e9f8bc5938f92b4816046c4a2d1",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "QEMU",
+      "schema:identifier": "org.qemu.QEMU",
+      "schema:description": "A full machine emulator boot other architectures in your browser.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/qemu/index.html",
+      "schema:image": "apps/qemu/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/qemu"
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.QvacSdk",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "QVAC Playground",
+      "schema:identifier": "org.hologram.QvacSdk",
+      "schema:description": "Build, run and share serverless on-device AI apps with the QVAC SDK write QVAC code, run it instantly in your browser, share it as a link that arrives running. Every answer a re-derivable receipt.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/qvac/index.html",
+      "schema:image": "apps/qvac/icon.svg",
+      "hosfs:fhs": "/usr/share/holospaces/qvac"
     }
   ],
   "id": "did:holo:sha256:92dfce4d3cea5c284a6f95bf8a89fea095521e984315c58ddfa903023715f1e3"

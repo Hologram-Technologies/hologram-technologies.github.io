@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Pre-paint: pin the canonical palette/immersive onto <html> so the home wears the operator's chosen
+     theme with no flash — one continuous appearance from login → home → app. -->
+<script src="./_shared/holo-appearance-boot.js"></script>
+<!-- map the orb's one bare dependency to the vendored same-origin copy, so Q's living orb (createOrb)
+     loads exactly as it does on the desktop. Must precede any module load. -->
+<script type="importmap">{ "imports": { "simplex-noise": "/_shared/voice/lib/simplex-noise.js" } }</script>
+<title>Hologram</title>
+<!--
+  HOLOGRAM HOME — the clean, abstracted home the operator lands on after sign-in.
+  One quiet surface: a clock ring whose arc is the share of the day that has passed, an appearance
+  toggle (Dark · Light · Immersive), a corner hamburger that opens the app drawer, and a focus timer
+  that asks how long you mean to spend before any app opens. Mobile-first, ≥16px, golden-ratio rhythm.
+  Self-contained: works served directly; rides window.HoloTheme + /apps/index.jsonld when present.
+-->
+<style>
+  /* ── GOLDEN-RATIO RHYTHM (shared with login/splash) ─────────────────────────────────────────────
+     One fluid unit --u (never below 16px — the readability floor) and powers of φ govern every size,
+     gap and control, so the whole home is one self-similar composition at any screen size. */
+  :root {
+    color-scheme: dark;
+    --phi: 1.618;
+    --ease: cubic-bezier(.4, 0, .2, 1);
+    --u: clamp(16px, 1.9vmin, 20px);
+    /* golden ladder — every gap, control and type size is var(--u) × a power of φ, nothing arbitrary */
+    --g0: calc(var(--u) * .618);   /* φ⁻¹ */
+    --g1: calc(var(--u) * 1.618);  /* φ   */
+    --g2: calc(var(--u) * 2.618);  /* φ²  */
+    --g3: calc(var(--u) * 4.236);  /* φ³  */
+    --g4: calc(var(--u) * 6.854);  /* φ⁴  */
+    /* type scale (same ladder): meta = base · greeting = φ · time = φ²+1 */
+    --t-meta: var(--u);
+    --t-greet: calc(var(--u) * 1.618);
+    --t-time: calc(var(--u) * 3.618);
+    /* one control size, golden + ≥48px touch floor — the hamburger, the orb and the toggle all share it */
+    --fab: max(48px, calc(var(--u) * 2.618));
+    --r: var(--g0);                /* corner radius rides the ladder too */
+    --accent: #7defc9; --accent-2: #34d3a6;
+    /* the OS brand SPECTRUM — the same 8 stops as the desktop omnibar outline & the Q orb wireframe */
+    --spectrum: #ff3b6b, #ff9e2c, #ffe24a, #46e08a, #2bd4ff, #5b8cff, #c77bff, #ff3b6b;
+    --ink: #f4f7fc; --ink-dim: rgba(231,237,250,.74); --ink-faint: rgba(231,237,250,.5);
+    --bg: #09090b;
+    --card: rgba(22,26,38,.92);
+    --line: rgba(255,255,255,.12);
+    --ctl: rgba(255,255,255,.08); --ctl-hi: rgba(255,255,255,.16);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased;
+    font-family: var(--holo-font-sans, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif);
+    color: var(--ink); background: var(--bg); }
+
+  /* ── BACKDROP ──────────────────────────────────────────────────────────────────────────────────
+     Dark/Light = a calm, glow-free wall. Immersive = a beautiful photo behind a legibility scrim. */
+  .wall { position: fixed; inset: 0; z-index: 0; background: var(--bg);
+    transition: background .5s var(--ease); }
+  .photo { position: fixed; inset: 0; z-index: 0; opacity: 0; transition: opacity .6s var(--ease);
+    background-size: cover; background-position: center; }
+  .scrim { position: fixed; inset: 0; z-index: 0; opacity: 0; transition: opacity .6s var(--ease);
+    background: linear-gradient(180deg, rgba(4,6,12,.32) 0%, rgba(4,6,12,.12) 38%, rgba(4,6,12,.55) 100%); }
+  :root[data-holo-immersive="on"] .photo,
+  :root[data-holo-immersive="on"] .scrim { opacity: 1; }
+  :root[data-holo-palette="light"] { --ink: #14171d; --ink-dim: rgba(20,23,29,.7); --ink-faint: rgba(20,23,29,.46);
+    --bg: #eceae4; --card: rgba(252,251,248,.96); --line: rgba(0,0,0,.1);
+    --ctl: rgba(0,0,0,.05); --ctl-hi: rgba(0,0,0,.1); --accent: #18a37b; --accent-2: #0f7a5a; }
+  :root[data-holo-palette="light"] .wall { background: radial-gradient(120% 120% at 20% 0%, #e6ecf5 0%, #ece9e3 60%, #f5f3ed 100%); }
+
+  /* ── BOOT-IN — the home rises out of the same surface the login frost cleared to ─────────────── */
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .clock { animation: rise .7s var(--ease) .05s both; }
+  .corner { animation: fade .8s var(--ease) .28s both; }
+  @media (prefers-reduced-motion: reduce) { .clock, .corner { animation: none; } }
+
+  /* ── CLOCK — sits high on the surface; the only adornment is a thin arc = the share of today elapsed.
+     Nothing else competes: time, then a short date. Crisp white on black (the reference). ─────────── */
+  main { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; gap: var(--g2); padding: calc(17vh + env(safe-area-inset-top)) var(--g2) 0; }
+  .clock { position: relative; width: min(70vw, 50vh, 290px); aspect-ratio: 1; display: grid; place-items: center; }
+  .clock svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+  .ring-prog  { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear; }
+  .face { display: flex; flex-direction: column; align-items: center; gap: var(--g0); text-align: center; }
+  .time { font-size: var(--t-time); font-weight: 400; line-height: 1; letter-spacing: -.005em;
+    font-variant-numeric: tabular-nums; }
+  .date { font-size: var(--t-meta); color: var(--ink); font-weight: 400; letter-spacing: .005em; }
+  /* time-of-day greeting with the operator's name — the one warm line, under the circle */
+  .greeting { font-size: var(--t-greet); font-weight: 300; letter-spacing: .005em; text-align: center; }
+  .greeting b { font-weight: 500; }
+  /* legibility shadows only when a photo sits behind (immersive); dark/light stay perfectly crisp */
+  :root[data-holo-immersive="on"] .time, :root[data-holo-immersive="on"] .date,
+  :root[data-holo-immersive="on"] .greeting { text-shadow: 0 2px 18px rgba(0,0,0,.55); }
+
+  /* ── CORNER FURNITURE ──────────────────────────────────────────────────────────────────────────
+     hamburger (bottom-left), appearance toggle (top-right). Round, crisp, 48dp touch targets. */
+  .corner { position: fixed; z-index: 3; }
+  .fab { width: var(--fab); height: var(--fab);
+    border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center; color: var(--ink);
+    background: var(--ctl); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    transition: background .15s, transform .12s; }
+  .fab:hover { background: var(--ctl-hi); } .fab:active { transform: scale(.94); }
+  .fab svg { width: calc(var(--fab) * .47); height: calc(var(--fab) * .47); }   /* glyph is a φ-fraction of the control */
+  #menu  { left: max(var(--g1), env(safe-area-inset-left)); bottom: max(var(--g1), env(safe-area-inset-bottom)); }
+  /* the appearance toggle is a QUIET icon, not a chip: no fill, no blur — just a thin line glyph in the
+     same stroke language as the hamburger, at a subtle .5 until touched. Sharp on every surface. */
+  #appear { top: max(var(--g1), env(safe-area-inset-top)); right: max(var(--g1), env(safe-area-inset-right));
+    background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
+    animation: none; opacity: .5; transition: opacity .18s; }   /* quiet resting state, reliably subtle */
+  #appear svg { width: calc(var(--fab) * .44); height: calc(var(--fab) * .44); }
+  #appear:hover, #appear:focus-visible { opacity: 1; background: transparent; }
+  :root[data-holo-immersive="on"] #appear { filter: drop-shadow(0 1px 6px rgba(0,0,0,.55)); }   /* legible over a photo */
+
+  /* ── Q ORB (bottom-right) — the SAME living form as the desktop: a φ-native icosahedron wireframe
+     painted with the OS brand spectrum (createOrb, voice/holo-voice-orb.mjs). Same size as the
+     hamburger (var(--fab)). The conic-spectrum disc is the no-WebGL fallback — same shape & colours. */
+  #qorb { position: fixed; z-index: 4; width: var(--fab); height: var(--fab); border: 0; padding: 0;
+    background: transparent; cursor: pointer; border-radius: 50%; transition: transform .12s;
+    right: max(var(--g1), env(safe-area-inset-right)); bottom: max(var(--g1), env(safe-area-inset-bottom)); }
+  #qorb:active { transform: scale(.93); }
+  .q-canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; display: block; }
+  .q-fallback { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(from 0deg, var(--spectrum));
+    -webkit-mask: radial-gradient(circle, transparent 30%, #000 33%, #000 62%, transparent 66%);
+    mask: radial-gradient(circle, transparent 30%, #000 33%, #000 62%, transparent 66%);
+    box-shadow: 0 4px 22px rgba(91,140,255,.4); animation: q-spin 7s linear infinite; will-change: transform; }
+  #qorb.live .q-fallback { opacity: .22; }   /* real wireframe is up → the disc dims to a soft glow */
+  @keyframes q-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .q-fallback { animation: none; } }
+
+  /* Q ask panel */
+  .q-head { display: flex; align-items: center; gap: var(--u); margin-bottom: var(--g1); }
+  .q-mini { position: relative; width: 38px; height: 38px; flex: 0 0 auto; }
+  .q-ask { display: flex; gap: calc(var(--u) * .5); }
+  .q-ask input { flex: 1 1 auto; min-height: 52px; border: 1px solid var(--line); background: var(--ctl); color: var(--ink);
+    border-radius: var(--r); padding: 0 var(--u); font: inherit; font-size: var(--u); outline: none; }
+  .q-ask input:focus { border-color: var(--accent); }
+  .q-ask button { min-width: 52px; min-height: 52px; border: 0; border-radius: var(--r); cursor: pointer; color: #06140f;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; }
+  .q-ask button svg { width: 22px; height: 22px; }
+  .q-chips { display: flex; flex-wrap: wrap; gap: calc(var(--u) * .4); margin-top: var(--u); }
+  .q-chips button { border: 1px solid var(--line); background: transparent; color: var(--ink-dim); font: inherit;
+    font-size: calc(var(--u) * .86); border-radius: 99px; padding: calc(var(--u) * .45) var(--u); cursor: pointer; min-height: 40px; }
+  .q-chips button:hover { background: var(--ctl); color: var(--ink); }
+  .q-reply { margin-top: var(--g1); font-size: calc(var(--u) * .96); color: var(--ink-dim); line-height: 1.6; min-height: 1.6em; }
+
+  /* ── SHEETS (drawer · settings · timer) — one frosted card primitive that rises from the bottom ── */
+  .scrimsheet { position: fixed; inset: 0; z-index: 10; background: rgba(4,6,12,.5);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; pointer-events: none;
+    transition: opacity .25s var(--ease); }
+  .scrimsheet.on { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 50%; bottom: 0; z-index: 11; width: min(560px, 100vw);
+    transform: translate(-50%, 100%); transition: transform .34s var(--ease);
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); border-bottom: 0;
+    border-radius: var(--g1) var(--g1) 0 0; -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
+    box-shadow: 0 -24px 70px rgba(0,0,0,.5); padding: var(--g1) var(--g1) calc(var(--g1) + env(safe-area-inset-bottom));
+    max-height: 88vh; display: flex; flex-direction: column; }
+  .sheet.on { transform: translate(-50%, 0); }
+  .grab { width: 42px; height: 4px; border-radius: 99px; background: var(--ink-faint); opacity: .5;
+    margin: 0 auto var(--g1); flex: 0 0 auto; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--u); flex: 0 0 auto; }
+  .sheet-head h2 { margin: 0; font-size: calc(var(--u) * 1.15); font-weight: 600; }
+  .x { width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--ctl); color: inherit;
+    font-size: 1.4rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+  .x:hover { background: var(--ctl-hi); }
+  .sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* app drawer — an enclosed list, one crisp line per holo app */
+  .applist { list-style: none; margin: 0; padding: 0; }
+  .applist li { margin: 0; }
+  .app { display: flex; align-items: center; gap: var(--g1); width: 100%; border: 0; background: transparent;
+    color: inherit; font: inherit; cursor: pointer; padding: calc(var(--u) * .7) calc(var(--u) * .5);
+    border-radius: var(--r); text-align: left; min-height: 56px; transition: background .12s; }
+  .app:hover, .app:focus-visible { background: var(--ctl); outline: none; }
+  .app:active { background: var(--ctl-hi); }
+  .app .ic { width: calc(var(--u) * 2.2); height: calc(var(--u) * 2.2); border-radius: calc(var(--u) * .6);
+    flex: 0 0 auto; display: grid; place-items: center; font-weight: 600; font-size: calc(var(--u) * .95);
+    color: #06140f; background: linear-gradient(140deg, var(--accent), var(--accent-2)); overflow: hidden; }
+  .app .ic img { width: 100%; height: 100%; object-fit: cover; }
+  .app .nm { font-size: calc(var(--u) * 1.02); font-weight: 500; }
+  .app .go { margin-left: auto; color: var(--ink-faint); opacity: 0; transition: opacity .12s; }
+  .app:hover .go { opacity: 1; }
+  .drawer-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--u);
+    margin-top: var(--u); padding-top: var(--u); border-top: 1px solid var(--line); flex: 0 0 auto; }
+  .ghost { display: inline-flex; align-items: center; gap: calc(var(--u) * .5); border: 0; background: transparent;
+    color: var(--ink-dim); font: inherit; font-size: calc(var(--u) * .9); cursor: pointer; padding: calc(var(--u) * .5);
+    border-radius: var(--r); min-height: 44px; }
+  .ghost:hover { color: var(--ink); background: var(--ctl); }
+  .ghost svg { width: calc(var(--u) * 1.15); height: calc(var(--u) * 1.15); }
+
+  /* settings — grouped categories matching the OS appearance/focus axes */
+  .grp { padding: var(--u) 0; border-bottom: 1px solid var(--line); }
+  .grp:last-child { border-bottom: 0; }
+  .grp > label { display: block; font-size: calc(var(--u) * .82); color: var(--ink-dim); margin-bottom: calc(var(--u) * .6);
+    text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .seg { display: flex; gap: calc(var(--u) * .4); flex-wrap: wrap; }
+  .seg button { flex: 1 1 auto; min-height: 48px; border: 1px solid var(--line); background: transparent; color: inherit;
+    border-radius: var(--r); cursor: pointer; font: inherit; font-size: calc(var(--u) * .92); display: inline-flex;
+    align-items: center; justify-content: center; gap: calc(var(--u) * .4); transition: background .12s, border-color .12s; }
+  .seg button:hover { background: var(--ctl); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #06140f; border-color: transparent; font-weight: 600; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: var(--u); min-height: 48px; }
+  .row .lab { font-size: calc(var(--u) * .96); }
+  .row .hint { font-size: calc(var(--u) * .8); color: var(--ink-faint); margin-top: 2px; }
+  /* a clean toggle switch */
+  .sw { position: relative; width: 52px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 99px; cursor: pointer;
+    background: var(--ctl-hi); transition: background .18s; }
+  .sw[aria-checked="true"] { background: var(--accent); }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; transition: transform .18s var(--ease); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  .sw[aria-checked="true"]::after { transform: translateX(22px); }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 36px; }
+  .walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: calc(var(--u) * .5); }
+  .walls button { aspect-ratio: 1; border-radius: var(--r); border: 2px solid transparent; cursor: pointer; padding: 0;
+    background-size: cover; background-position: center; }
+  .walls button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .about { font-size: calc(var(--u) * .86); color: var(--ink-dim); line-height: 1.6; }
+
+  /* ── FOCUS TIMER — the gentle question before any app opens ──────────────────────────────────── */
+  .timer { text-align: center; }
+  .timer .orb { width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); border-radius: 50%; margin: 0 auto var(--u);
+    display: grid; place-items: center; overflow: hidden;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: #06140f; font-weight: 700; font-size: calc(var(--u) * 1.3); }
+  .timer .orb img { width: 100%; height: 100%; object-fit: cover; }
+  .timer .ask { font-size: calc(var(--u) * 1.15); font-weight: 500; line-height: 1.35; margin: 0 auto var(--g1); max-width: 22ch; }
+  .mins { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * .6); }
+  .mins button { min-height: 60px; border: 1px solid var(--line); background: var(--ctl); color: inherit; border-radius: var(--r);
+    cursor: pointer; font: inherit; font-size: calc(var(--u) * 1.15); font-weight: 600; transition: background .12s, transform .1s; }
+  .mins button:hover { background: var(--ctl-hi); } .mins button:active { transform: scale(.97); }
+  .mins button.none { grid-column: 1 / -1; font-weight: 500; font-size: var(--u); color: var(--ink-dim); background: transparent; }
+  .more { display: none; }
+  .more.on { display: grid; }
+  .expand { display: block; margin: var(--u) auto 0; border: 0; background: transparent; color: var(--ink-faint); cursor: pointer;
+    width: 44px; height: 36px; }
+  .expand svg { width: 24px; height: 24px; transition: transform .2s; }
+  .expand.on svg { transform: rotate(180deg); }
+
+  /* ── APP OVERLAY — the opened holospace fills the screen; the timer runs over it ──────────────── */
+  #appview { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: none; flex-direction: column; }
+  #appview.on { display: flex; }
+  .appbar { display: flex; align-items: center; gap: var(--u); padding: max(var(--u), env(safe-area-inset-top)) var(--u) var(--u);
+    flex: 0 0 auto; }
+  .appbar .back { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--ctl); color: var(--ink);
+    cursor: pointer; display: grid; place-items: center; } .appbar .back:hover { background: var(--ctl-hi); }
+  .appbar .title { font-size: var(--u); font-weight: 600; }
+  .appbar .left { font-size: calc(var(--u) * .82); color: var(--ink-dim); margin-left: auto; font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; gap: calc(var(--u) * .4); }
+  .appbar .left.warn { color: #ffcf8f; }
+  .appbar .left svg { width: calc(var(--u) * 1.05); height: calc(var(--u) * 1.05); }
+  #appframe { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }
+  .nudge { position: fixed; left: 50%; bottom: calc(var(--g2) + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    z-index: 22; max-width: 90vw; opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: var(--g1);
+    padding: var(--u) var(--g1); box-shadow: 0 16px 50px rgba(0,0,0,.5); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+    display: flex; align-items: center; gap: var(--u); font-size: calc(var(--u) * .95); }
+  .nudge.on { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .nudge button { border: 0; background: var(--accent); color: #06140f; font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: var(--r); padding: calc(var(--u) * .5) var(--u); min-height: 40px; }
+  .nudge .secondary { background: var(--ctl); color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wall"></div>
+<div class="photo" id="photo"></div>
+<div class="scrim"></div>
+
+<main>
+  <div class="clock">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="ring-prog" id="arc-prog" cx="50" cy="50" r="46"/>
+    </svg>
+    <div class="face">
+      <div class="time" id="time"></div>
+      <div class="date" id="date"></div>
+    </div>
+  </div>
+  <p class="greeting" id="greeting"></p>
+</main>
+
+<!-- corner furniture -->
+<button class="fab corner" id="menu" aria-label="Open apps" title="Apps">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</button>
+<button class="fab corner" id="appear" aria-label="Appearance — Dark, Light or Immersive" title="Appearance"></button>
+
+<!-- Q — the living assistant: the desktop's icosahedron-wireframe orb in the brand spectrum -->
+<button class="corner" id="qorb" aria-label="Ask Q" title="Q"><span class="q-fallback"></span><canvas class="q-canvas" id="qcanvas"></canvas></button>
+
+<!-- sheets -->
+<div class="scrimsheet" id="scrim"></div>
+
+<aside class="sheet" id="drawer" role="dialog" aria-modal="true" aria-label="Apps">
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>Apps</h2><button class="x" data-close aria-label="Close">×</button></div>
+  <div class="sheet-body"><ul class="applist" id="applist"></ul></div>
+  <div class="drawer-foot">
+    <button class="ghost" id="open-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4 15a1.6 1.6 0 0 0-1.5-1H2a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4 8.6a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1h.1a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg> Settings</button>
+    <span class="hint" id="appcount" style="font-size:calc(var(--u)*.78);color:var(--ink-faint)"></span>
+  </div>
+</aside>
+
+<aside class="sheet" id="settings" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>Settings</h2><button class="x" data-close aria-label="Close">×</button></div>
+  <div class="sheet-body">
+    <div class="grp">
+      <label>Appearance</label>
+      <div class="seg" id="set-mode">
+        <button data-mode="dark">🌙 Dark</button>
+        <button data-mode="light">☀️ Light</button>
+        <button data-mode="immersive">🏞️ Immersive</button>
+      </div>
+    </div>
+    <div class="grp" id="grp-wall" hidden>
+      <label>Immersive wallpaper</label>
+      <div class="walls" id="walls"></div>
+    </div>
+    <div class="grp">
+      <label>Focus</label>
+      <div class="row">
+        <div><div class="lab">Ask before opening an app</div><div class="hint">A gentle check on how long you mean to stay.</div></div>
+        <button class="sw" id="sw-focus" role="switch" aria-checked="true" aria-label="Ask before opening an app"></button>
+      </div>
+      <div class="row" style="margin-top:calc(var(--u)*.6)">
+        <div class="lab">Default time</div>
+        <span class="hint" id="def-mins" style="font-size:var(--u);color:var(--ink)"></span>
+      </div>
+      <div class="seg" id="set-default" style="margin-top:calc(var(--u)*.4)">
+        <button data-min="5">5</button><button data-min="10">10</button>
+        <button data-min="15">15</button><button data-min="30">30</button>
+      </div>
+    </div>
+    <div class="grp">
+      <label>Text size</label>
+      <input type="range" id="set-text" min="0.85" max="1.4" step="0.05" />
+      <div class="hint" style="font-size:var(--u);color:var(--ink-dim)">The quick brown fox jumps over the lazy dog.</div>
+    </div>
+    <div class="grp">
+      <label>About</label>
+      <div class="about">Hologram OS — one quiet, self-verifying home. Apps are content-addressed holospaces; nothing here phones home.</div>
+    </div>
+  </div>
+</aside>
+
+<aside class="sheet" id="timer" role="dialog" aria-modal="true" aria-label="Focus timer">
+  <div class="grab"></div>
+  <div class="timer">
+    <div class="orb" id="timer-orb"></div>
+    <p class="ask" id="timer-ask">How much time do you want to spend now?</p>
+    <div class="mins" id="mins-quick">
+      <button data-min="1">1 min</button><button data-min="5">5 min</button>
+      <button data-min="10">10 min</button><button data-min="15">15 min</button>
+    </div>
+    <div class="mins more" id="mins-more">
+      <button data-min="30">30 min</button><button data-min="60">60 min</button>
+      <button data-min="0" class="none">No limit — just open it</button>
+    </div>
+    <button class="expand" id="timer-expand" aria-label="More options">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+</aside>
+
+<aside class="sheet" id="qsheet" role="dialog" aria-modal="true" aria-label="Q">
+  <div class="grab"></div>
+  <div class="q-head">
+    <span class="q-mini"><span class="q-fallback"></span></span>
+    <div><h2 style="margin:0;font-size:calc(var(--u)*1.15)">Q</h2><div class="hint" style="font-size:calc(var(--u)*.82);color:var(--ink-faint)">Your on-device assistant</div></div>
+    <button class="x" data-close aria-label="Close" style="margin-left:auto">×</button>
+  </div>
+  <div class="q-ask">
+    <input id="q-input" type="text" placeholder="Ask anything…" autocomplete="off" />
+    <button id="q-send" aria-label="Ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="q-chips" id="q-chips"></div>
+  <div class="q-reply" id="q-reply"></div>
+</aside>
+
+<!-- opened app fills the screen; the focus timer runs in its bar -->
+<section id="appview" aria-label="App">
+  <div class="appbar">
+    <button class="back" id="app-back" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="app-title"></span>
+    <span class="left" id="app-left"></span>
+  </div>
+  <iframe id="appframe" title="App" referrerpolicy="no-referrer"></iframe>
+</section>
+
+<div class="nudge" id="nudge">
+  <span id="nudge-msg"></span>
+  <button class="secondary" id="nudge-stay">Stay</button>
+  <button id="nudge-done">Done</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+
+  // ── Appearance (Dark · Light · Immersive) ───────────────────────────────────────────────────
+  // Mirrors login's standalone logic and the canonical holo.theme.v1 the boot bootstrap reads, so
+  // the choice carries across the whole OS. When the theme engine is present we also drive it live.
+  var TKEY = "holo.theme.v1", ORDER = ["dark", "light", "immersive"];
+  // sharp, single-stroke line icons — the same vocabulary as the hamburger (no emoji, no colour)
+  var ICONS = {
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.4A8 8 0 1 1 9.6 4 6.3 6.3 0 0 0 20 14.4z"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.4v2.3M12 19.3v2.3M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>',
+    immersive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.6"/><circle cx="8.6" cy="10" r="1.5"/><path d="M3.5 16.5 8 12l3 3 4-4 5.5 5.5"/></svg>'
+  };
+  var WALLPAPERS = [
+    { id: "mountain-lake", url: "/usr/share/wallpapers/mountain-lake.jpg" },
+    { id: "aurora",        url: "/usr/share/wallpapers/aurora.jpg" },
+    { id: "galaxy",        url: "/usr/share/wallpapers/galaxy.jpg" },
+    { id: "earth-nasa",    url: "/usr/share/wallpapers/earth-nasa.jpg" },
+    { id: "lioness",       url: "/usr/share/wallpapers/lioness.jpg" },
+    { id: "uor-native",    url: "/usr/share/wallpapers/uor-native.jpg" }
+  ];
+  var DEFAULT_WALL = WALLPAPERS[0].url;   // a beautiful photo, pre-populated for immersive mode
+
+  // Default appearance is Dark (the clean reference look) until the operator chooses otherwise.
+  function readTheme() { try { var s = JSON.parse(localStorage.getItem(TKEY) || "null"); return (s && typeof s === "object") ? s : { palette: "dark", immersive: false }; } catch (e) { return { palette: "dark", immersive: false }; } }
+  function writeTheme(s) { try { localStorage.setItem(TKEY, JSON.stringify(s)); } catch (e) {} }
+  function curMode(s) { return s.immersive ? "immersive" : (s.palette === "light" ? "light" : "dark"); }
+
+  function wallUrl(w) {
+    if (!w) return DEFAULT_WALL;
+    var m = String(w).match(/^(sha256|blake3|sha512):([0-9a-f]+)$/i);
+    return m ? "/.holo/" + m[1].toLowerCase() + "/" + m[2] : String(w);
+  }
+
+  function applyMode(mode) {
+    var s = readTheme();
+    if (mode === "light") { s.palette = "light"; s.immersive = false; }
+    else if (mode === "dark") { s.palette = "dark"; s.immersive = false; }
+    else { s.immersive = true; if (!s.palette || s.palette === "auto") s.palette = "dark"; }
+    if (s.immersive && !s.wallpaper) s.wallpaper = DEFAULT_WALL;   // prepopulate immersive with a photo
+    writeTheme(s);
+    paintTheme(s);
+    // Drive the live OS engine too, if it is on this surface.
+    try { if (window.HoloTheme) { window.HoloTheme.setMode(mode); if (s.wallpaper && mode === "immersive") window.HoloTheme.setWallpaper(s.wallpaper); } } catch (e) {}
+    reflectToggle(mode);
+  }
+  function paintTheme(s) {
+    var pal = (s.palette && s.palette !== "auto") ? s.palette : "dark";   // default Dark
+    root.setAttribute("data-holo-palette", pal); root.style.setProperty("color-scheme", pal);
+    root.setAttribute("data-holo-immersive", s.immersive ? "on" : "off");
+    var url = wallUrl(s.wallpaper);
+    if (s.immersive && url) $("photo").style.backgroundImage = 'url("' + url + '")';
+  }
+  function reflectToggle(mode) {
+    var b = $("appear"); if (b) { b.innerHTML = ICONS[mode] || ICONS.dark; b.title = "Appearance — " + mode.charAt(0).toUpperCase() + mode.slice(1); }
+    syncSettings();
+  }
+  paintTheme(readTheme());
+  reflectToggle(curMode(readTheme()));
+  $("appear").addEventListener("click", function () {
+    var now = curMode(readTheme());
+    applyMode(ORDER[(ORDER.indexOf(now) + 1) % ORDER.length]);
+  });
+
+  // ── Clock — time + the day-progress arc ───────────────────────────────────────────────────────
+  var prog = $("arc-prog"), R = 46, C = 2 * Math.PI * R;
+  prog.style.strokeDasharray = C;
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+
+  // the operator's name for the greeting — from the signed session token (holo-identity openSession),
+  // resolved post-login; empty for guests / standalone. The async roster fills it in if the token lacks it.
+  var NAME = "";
+  (function resolveName() {
+    try { var t = JSON.parse(sessionStorage.getItem("holo.session") || "null"); if (t && t.label) NAME = t.label; } catch (e) {}
+    if (!NAME) try {
+      var op = new URLSearchParams(location.search).get("operator");
+      if (op) import("/_shared/holo-identity.mjs").then(function (m) { return m.roster && m.roster(); }).then(function (rs) {
+        var u = (rs || []).filter(function (r) { return r.kappa === op; })[0]; if (u && u.label) { NAME = u.label; renderGreeting(); }
+      }).catch(function () {});
+    } catch (e) {}
+  })();
+  function renderGreeting() {
+    var h = new Date().getHours();
+    var g = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    var clean = (NAME && NAME.toLowerCase() !== "guest") ? NAME : "";
+    $("greeting").innerHTML = g + (clean ? ", <b>" + esc(clean) + "</b>" : "");
+  }
+  function tick() {
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    $("time").textContent = h12 + ":" + pad(m);                                 // clean H:MM, no meridiem clutter
+    $("date").textContent = now.toLocaleDateString(undefined, { month: "short" }) + " " + now.getDate();   // "Jun 16" (month then day)
+    var start = new Date(now); start.setHours(0, 0, 0, 0);
+    prog.style.strokeDashoffset = C * (1 - (now - start) / 86400000);           // arc = share of today elapsed
+    renderGreeting();
+  }
+  tick(); setInterval(tick, 1000 * 15);
+
+  // ── Q orb — the desktop's living form, reused verbatim: load the vendored THREE r134 global, then the
+  //    κ-addressed orb module (icosahedron wireframe, brand spectrum). Degrades to the CSS spectrum disc. ─
+  (function bootOrb() {
+    var canvas = $("qcanvas"); if (!canvas) return;
+    function loadThree() {
+      return new Promise(function (res) {
+        if (window.THREE) return res(true);
+        var s = document.createElement("script"); s.src = "/_shared/voice/lib/three.min.js";
+        s.onload = function () { res(!!window.THREE); }; s.onerror = function () { res(false); };
+        (document.head || document.documentElement).appendChild(s);
+      });
+    }
+    loadThree().then(function (ok) {
+      if (!ok) return;                                                          // no THREE → keep the spectrum-disc fallback
+      import("/_shared/voice/holo-voice-orb.mjs").then(function (m) {
+        try {
+          if (m.orbSupported && !m.orbSupported()) return;                      // no WebGL → fallback stays
+          var orb = m.createOrb(canvas, { detail: 4, spin: 0.8, level: function () { return 0; } });
+          orb.start(); $("qorb").classList.add("live");
+          window.addEventListener("resize", function () { try { orb.resize(); } catch (e) {} });
+        } catch (e) {}
+      }).catch(function () {});
+    });
+  })();
+
+  // ── Sheets ────────────────────────────────────────────────────────────────────────────────────
+  var scrim = $("scrim");
+  function openSheet(el) { closeSheets(); scrim.classList.add("on"); el.classList.add("on"); }
+  function closeSheets() { scrim.classList.remove("on"); ["drawer", "settings", "timer", "qsheet"].forEach(function (id) { $(id).classList.remove("on"); }); }
+  scrim.addEventListener("click", closeSheets);
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeSheets); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheets(); });
+  $("menu").addEventListener("click", function () { openSheet($("drawer")); });
+  $("open-settings").addEventListener("click", function () { openSheet($("settings")); });
+
+  // ── Q — the living assistant. The orb opens a clean ask panel; a query is handed to the on-device
+  //    brain when it is present (window.HoloVoice / window.Q, or the shell parent), never faked. ───
+  (function () {
+    var CHIPS = ["What can I do here?", "Open my notes", "Summarize my day", "Start a 25-min focus"];
+    var chips = $("q-chips");
+    CHIPS.forEach(function (t) { var b = document.createElement("button"); b.type = "button"; b.textContent = t;
+      b.addEventListener("click", function () { $("q-input").value = t; ask(t); }); chips.appendChild(b); });
+    $("qorb").addEventListener("click", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); });
+    $("q-send").addEventListener("click", function () { ask($("q-input").value); });
+    $("q-input").addEventListener("keydown", function (e) { if (e.key === "Enter") ask(this.value); });
+    function ask(text) {
+      text = (text || "").trim(); if (!text) { $("q-input").focus(); return; }
+      var reply = $("q-reply"); reply.textContent = "Thinking…";
+      var brain = (window.HoloVoice && window.HoloVoice.ask) || (window.Q && (window.Q.ask || window.Q));
+      try {
+        if (typeof brain === "function") {
+          Promise.resolve(brain.call(window.HoloVoice || window.Q || window, text))
+            .then(function (r) { reply.textContent = (r && (r.text || r.answer)) || (typeof r === "string" ? r : "Done."); })
+            .catch(function () { reply.textContent = "Q couldn't answer that just now."; });
+        } else if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "holo-q-ask", text: text }, "*");
+          reply.textContent = "Sent to Q.";
+        } else {
+          reply.textContent = "Q comes online with the OS — your question is ready to send the moment it wakes.";
+        }
+      } catch (e) { reply.textContent = "Q is waking up — try again in a moment."; }
+    }
+  })();
+
+  // ── App catalog — the live OS directory (first 12), with a curated fallback ─────────────────────
+  var CURATED = [
+    { id: "browser", name: "Browser",  landing: "/apps/browser/index.html" },
+    { id: "search",  name: "Search",   landing: "/apps/search/index.html" },
+    { id: "docs",    name: "Docs",     landing: "/apps/docs/index.html" },
+    { id: "notepad", name: "Notes",    landing: "/apps/notepad/index.html" },
+    { id: "music",   name: "Music",    landing: "/apps/music/index.html" },
+    { id: "video",   name: "Video",    landing: "/apps/video/index.html" },
+    { id: "wallet",  name: "Wallet",   landing: "/apps/wallet/index.html" },
+    { id: "meet",    name: "Meet",     landing: "/apps/meet/index.html" },
+    { id: "git",     name: "Git",      landing: "/apps/git/index.html" },
+    { id: "ipfs",    name: "IPFS",     landing: "/apps/ipfs/index.html" },
+    { id: "capture", name: "Capture",  landing: "/apps/capture/index.html" },
+    { id: "player",  name: "Player",   landing: "/apps/player/index.html" }
+  ];
+  // Prefer these ids (in order) when the live catalog is richer than 12.
+  var PREFER = ["browser", "search", "docs", "notepad", "music", "video", "wallet", "meet", "git", "ipfs", "capture", "player"];
+  var apps = CURATED;
+
+  function pick12(list) {
+    if (!list || !list.length) return CURATED;
+    var byId = {}; list.forEach(function (a) { byId[a.id] = a; });
+    var out = [];
+    PREFER.forEach(function (id) { if (byId[id]) { out.push(byId[id]); byId[id] = null; } });
+    list.forEach(function (a) { if (out.length < 12 && byId[a.id]) { out.push(a); byId[a.id] = null; } });
+    return out.slice(0, 12);
+  }
+  function iconFor(a) { return a.landing ? a.landing.replace(/[^/]+$/, "icon.svg") : ""; }
+  function initials(n) { return (String(n || "?").trim()[0] || "?").toUpperCase(); }
+
+  function renderApps() {
+    var ul = $("applist"); ul.innerHTML = "";
+    apps.forEach(function (a) {
+      var li = document.createElement("li");
+      var b = document.createElement("button"); b.className = "app"; b.type = "button";
+      b.innerHTML = '<span class="ic"><img alt="" src="' + iconFor(a) + '" onerror="this.remove()"/>' + initials(a.name) + '</span>' +
+        '<span class="nm">' + (a.name || a.id) + '</span>' +
+        '<span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>';
+      b.addEventListener("click", function () { promptOpen(a); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+    $("appcount").textContent = apps.length + " apps";
+  }
+  renderApps();
+  fetch("/apps/index.jsonld", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (idx) {
+    if (!idx) return;
+    var list = (idx["dcat:dataset"] || []).map(function (a) {
+      return { id: a["schema:identifier"], name: a["schema:name"], landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") };
+    }).filter(function (a) { return a.id && a.landing; });
+    if (list.length) { apps = pick12(list); renderApps(); }
+  }).catch(function () {});
+
+  // ── Settings ────────────────────────────────────────────────────────────────────────────────
+  var FKEY = "holo.focus.v1";
+  function readFocus() { try { return Object.assign({ ask: true, mins: 10 }, JSON.parse(localStorage.getItem(FKEY) || "{}")); } catch (e) { return { ask: true, mins: 10 }; } }
+  function writeFocus(f) { try { localStorage.setItem(FKEY, JSON.stringify(f)); } catch (e) {} }
+
+  function syncSettings() {
+    var s = readTheme(), mode = curMode(s), f = readFocus();
+    document.querySelectorAll("#set-mode button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === mode)); });
+    $("grp-wall").hidden = mode !== "immersive";
+    $("sw-focus").setAttribute("aria-checked", String(!!f.ask));
+    $("def-mins").textContent = f.mins ? f.mins + " min" : "No limit";
+    document.querySelectorAll("#set-default button").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.min === f.mins)); });
+    var ts = $("set-text"); if (ts && !ts._init) { ts.value = String(s.fontScale || 1); ts._init = 1; }
+  }
+  document.querySelectorAll("#set-mode button").forEach(function (b) { b.addEventListener("click", function () { applyMode(b.dataset.mode); }); });
+  document.querySelectorAll("#set-default button").forEach(function (b) { b.addEventListener("click", function () { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); syncSettings(); }); });
+  $("sw-focus").addEventListener("click", function () { var f = readFocus(); f.ask = !f.ask; writeFocus(f); syncSettings(); });
+  $("set-text").addEventListener("input", function () {
+    var s = readTheme(); s.fontScale = parseFloat(this.value); writeTheme(s);
+    try { if (window.HoloTheme) window.HoloTheme.setFontScale(s.fontScale); } catch (e) {}
+  });
+  // wallpaper picker
+  (function () {
+    var host = $("walls");
+    WALLPAPERS.forEach(function (w) {
+      var b = document.createElement("button"); b.type = "button"; b.title = w.id;
+      b.style.backgroundImage = 'url("' + w.url + '")';
+      b.addEventListener("click", function () {
+        var s = readTheme(); s.wallpaper = w.url; s.immersive = true; writeTheme(s); paintTheme(s);
+        try { if (window.HoloTheme) { window.HoloTheme.setWallpaper(w.url); window.HoloTheme.setImmersive(true); } } catch (e) {}
+        document.querySelectorAll("#walls button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      });
+      host.appendChild(b);
+    });
+  })();
+
+  // ── Focus timer → open the app ────────────────────────────────────────────────────────────────
+  var pendingApp = null, countdownTimer = null;
+  function promptOpen(a) {
+    var f = readFocus();
+    if (!f.ask) { openApp(a, f.mins || 0); return; }
+    pendingApp = a;
+    $("timer-ask").textContent = "How much time do you want to spend on " + (a.name || "this") + " now?";
+    var orb = $("timer-orb"); orb.innerHTML = '<img alt="" src="' + iconFor(a) + '" onerror="this.remove()"/>' + initials(a.name);
+    $("mins-more").classList.remove("on"); $("timer-expand").classList.remove("on");
+    openSheet($("timer"));
+  }
+  $("timer-expand").addEventListener("click", function () { $("mins-more").classList.toggle("on"); this.classList.toggle("on"); });
+  document.querySelectorAll("#mins-quick button, #mins-more button").forEach(function (b) {
+    b.addEventListener("click", function () { if (pendingApp) { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); openApp(pendingApp, +b.dataset.min); } });
+  });
+
+  function openApp(a, mins) {
+    closeSheets();
+    var v = $("appview");
+    $("app-title").textContent = a.name || a.id;
+    $("appframe").src = a.landing;
+    v.classList.add("on");
+    if (countdownTimer) clearInterval(countdownTimer);
+    var left = $("app-left");
+    if (!mins) { left.className = "left"; left.innerHTML = ""; return; }
+    var end = Date.now() + mins * 60000;
+    var clockSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    function paint() {
+      var ms = end - Date.now();
+      if (ms <= 0) { clearInterval(countdownTimer); left.className = "left warn"; left.innerHTML = clockSvg + "time's up"; showNudge(a); return; }
+      var s = Math.ceil(ms / 1000), mm = Math.floor(s / 60), ss = s % 60;
+      left.className = "left" + (ms < 60000 ? " warn" : ""); left.innerHTML = clockSvg + mm + ":" + pad(ss) + " left";
+    }
+    paint(); countdownTimer = setInterval(paint, 1000);
+  }
+  function showNudge(a) {
+    var n = $("nudge");
+    $("nudge-msg").textContent = "Your time on " + (a.name || "this app") + " is up.";
+    n.classList.add("on");
+    try { if (navigator.vibrate) navigator.vibrate([40, 60, 40]); } catch (e) {}
+  }
+  $("nudge-stay").addEventListener("click", function () { $("nudge").classList.remove("on"); });
+  $("nudge-done").addEventListener("click", function () { $("nudge").classList.remove("on"); backHome(); });
+  function backHome() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    $("appview").classList.remove("on"); $("appframe").src = "about:blank";
+    $("nudge").classList.remove("on");
+  }
+  $("app-back").addEventListener("click", backHome);
+
+  syncSettings();
+})();
+</script>
+</body>
+</html>

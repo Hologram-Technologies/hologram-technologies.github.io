@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Holo Hub">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a7bff"/><stop offset="1" stop-color="#c07bff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="15" fill="#0c0c14"/>
+  <rect x="4.75" y="4.75" width="54.5" height="54.5" rx="14.25" fill="none" stroke="url(#g)" stroke-opacity=".5" stroke-width="1.5"/>
+  <!-- a hub: one centre, content-addressed nodes around it -->
+  <g fill="url(#g)">
+    <circle cx="32" cy="32" r="6.5"/>
+    <circle cx="32" cy="14" r="3.6"/><circle cx="48" cy="23" r="3.6"/><circle cx="48" cy="41" r="3.6"/>
+    <circle cx="32" cy="50" r="3.6"/><circle cx="16" cy="41" r="3.6"/><circle cx="16" cy="23" r="3.6"/>
+  </g>
+  <g stroke="url(#g)" stroke-width="2" stroke-opacity=".55">
+    <path d="M32 32 32 14M32 32 48 23M32 32 48 41M32 32 32 50M32 32 16 41M32 32 16 23"/>
+  </g>
+</svg>
