@@ -999,7 +999,7 @@
                 try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-q-app")) { const _s = _d.createElement("script"); _s.id = "holo-q-app"; _s.type = "module"; _s.setAttribute("data-holo-ephemeral", ""); _s.src = "/_shared/q/holo-q-app.js"; (_d.head || _d.documentElement).appendChild(_s); } } catch (e) {}
                 // Holo Playground: inject the in-frame agent so EVERY element in this app is right-click-editable; its edits
                 // serialise (ephemeral-stripped) and post UP to createPlaygroundHost → the ONE primitive HoloLiveEdit.edit. No second sealer.
-                try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-playground-app")) { const _p = _d.createElement("script"); _p.id = "holo-playground-app"; _p.type = "module"; _p.setAttribute("data-holo-ephemeral", ""); _p.dataset.surface = n.id; if (pgActive.has(n.id)) _p.dataset.pgActive = "1"; _p.src = "/_shared/holo-playground-app.js"; (_d.head || _d.documentElement).appendChild(_p); } } catch (e) {} }); }
+                try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-playground-app")) { const _p = _d.createElement("script"); _p.id = "holo-playground-app"; _p.type = "module"; _p.setAttribute("data-holo-ephemeral", ""); _p.dataset.surface = n.id; if (pgActive()) _p.dataset.pgActive = "1"; _p.src = "/_shared/holo-playground-app.js"; (_d.head || _d.documentElement).appendChild(_p); } } catch (e) {} }); }
             else if (n.kind === "manim") el.appendChild(holoManimScene(n.scene)); // native Manim-flavored animation, in-shell
             else if (n.pure) el.appendChild(buildPure(n.pure));   // real OSS web component, in-shell — first-class
             else if (n.kappa) { const slot = document.createElement("div"); slot.className = "kappa-object"; el.appendChild(slot); HoloRender.render(slot, n.kappa, n.ctx || {}).catch((err) => { slot.textContent = "⚠ " + (err && err.message || err); }); }   // ANY UOR object, mounted in-shell from its κ via the ONE render path
@@ -2297,7 +2297,7 @@
             showCtx(e.clientX, e.clientY, items); return;
           }
           showCtx(e.clientX, e.clientY, [
-            { label: pgActive.has(id) ? "Exit Playground" : "Edit objects (Playground)", ic: "✦", act: () => setPlayground(id, !pgActive.has(id)) },   // opt-in: right-click → edit any element inside this app live
+            { label: pgMode ? "Exit Playground" : "Edit objects (Playground)", ic: "✦", act: () => setPlaygroundMode(!pgMode) },   // GLOBAL edit mode: right-click → edit any element in any app live
             { label: "Edit source", ic: "✎", act: () => openEdit(id) },
             { label: n.state === "max" ? "Restore" : "Maximize", ic: "▢", act: () => toggleMax(id) },   // Move: drag the title bar; Maximize/Restore arranges
             { label: "Pop out to tab", ic: "⬒", act: () => popToTab(id) },   // window → its own holospace tab
@@ -2367,6 +2367,9 @@
         out.push({ sep: true });
         out.push({ label: L("Open Holospace…", "Open holospace"), ic: "⌕", sc: fmtKey(P.shortcuts.spotlight, os), act: openSpot });
         out.push({ label: L("Component Library", "Component library"), ic: "⊞", act: openLib });
+        // Playground — ONE global edit mode: turn EVERY holospace + app into a live editor where every visual
+        // component is a κ-addressed object you can right-click and edit as code. Off by default; persists.
+        out.push({ label: L("Playground", "Playground"), ic: "✦", mark: pgMode, act: () => setPlaygroundMode(!pgMode) });
         // ── Personalize (native menus close with appearance) ──
         out.push({ sep: true });
         out.push({ label: L("Change Wallpaper…", "Change wallpaper…"), ic: "🖼", act: openWallpapers });
@@ -3975,15 +3978,35 @@
         onLineage: (edge) => { try { window.HoloProv && window.HoloProv.derive && window.HoloProv.derive(edge); } catch (e) {} },
         replyTo: (id, msg) => { const el = mounted.get(id); const f = el && el.querySelector("iframe"); try { f && f.contentWindow && f.contentWindow.postMessage(msg, "*"); } catch (e) {} },
       });
-      window.addEventListener("message", (ev) => { try { _pgHost.handle(ev); } catch (e) {} });
-      // Playground is OPT-IN per surface (default OFF — no hover glow / right-click hijack until you ask for it).
-      // The window context menu toggles it; we post the mode to the live frame and remember it so a reload re-arms it.
-      const pgActive = new Set();
-      function setPlayground(id, on) {
-        const el = mounted.get(id); const f = el && el.querySelector("iframe"); if (!f) return;
-        if (on) pgActive.add(id); else pgActive.delete(id);
-        try { f.contentWindow && f.contentWindow.postMessage({ t: "holo-live-edit", op: "playground-mode", surfaceId: id, on: !!on }, "*"); } catch (e) {}
+      window.addEventListener("message", (ev) => {
+        try {
+          const m = ev && ev.data;
+          // an in-frame "Exit Playground" (menu · Esc · badge) asks the shell to turn the GLOBAL mode off for all apps
+          if (m && m.t === "holo-live-edit" && m.op === "playground-request") {
+            const el = mounted.get(m.surfaceId); const f = el && el.querySelector("iframe");
+            if (f && ev.source === f.contentWindow) setPlaygroundMode(!!m.on);
+            return;
+          }
+          _pgHost.handle(ev);
+        } catch (e) {}
+      });
+      // Playground is OPT-IN and OFF BY DEFAULT, but it is a GLOBAL mode (one toggle in the desktop menu): when
+      // ON it turns EVERY holospace and EVERY holospace app into a live editor — every element a κ-addressed
+      // object you can right-click and edit as code. We persist the flag so it spans holospace switches and
+      // reloads, broadcast it to every mounted app frame, and the per-app injector arms NEW mounts from it.
+      let pgMode = false; try { pgMode = localStorage.getItem("holo.playground") === "1"; } catch (e) {}
+      const pgActive = () => pgMode;            // the injector reads this to arm a freshly-mounted frame
+      function broadcastPlayground(on) {
+        for (const [id, el] of mounted) { const f = el.querySelector && el.querySelector("iframe"); try { f && f.contentWindow && f.contentWindow.postMessage({ t: "holo-live-edit", op: "playground-mode", surfaceId: id, on: !!on }, "*"); } catch (e) {} }
       }
+      function setPlaygroundMode(on) {
+        pgMode = !!on;
+        try { localStorage.setItem("holo.playground", pgMode ? "1" : "0"); } catch (e) {}
+        try { document.documentElement.toggleAttribute("data-holo-playground", pgMode); } catch (e) {}   // shell chrome can reflect edit mode
+        broadcastPlayground(pgMode);
+        try { toast(pgMode ? "✦ Playground on — right-click any object in any app to edit it as code" : "Playground off"); } catch (e) {}
+      }
+      try { if (pgMode) document.documentElement.toggleAttribute("data-holo-playground", true); } catch (e) {}   // restore persisted edit mode on boot (new mounts arm via the injector)
       function srcKappa() { const s = srcTa.value; if (!s.trim()) { srcK.textContent = ""; return null; } const obj = repo.publishSource({ name: "pasted", source: s }); srcK.textContent = "holo://" + obj.id.split(":").pop().slice(0, 16) + "…"; return obj; }
       // ════ Ambient Q — the omnipresent ORB (bottom-left) that expands into a light, NON-BLOCKING
       //      copilot holospace. Same one door (window.Q), context-bound to what you're looking at; it

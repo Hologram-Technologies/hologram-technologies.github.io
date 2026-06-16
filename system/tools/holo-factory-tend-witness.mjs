@@ -102,6 +102,21 @@ const box = (init) => { let s = init, writes = 0; return { read: () => s, write:
   checks.gateSignals = built.length === 1 && built[0].name === "gate:alpha";
 }
 
+// ── 9. headThreads — tend() threads + PUBLISHES the advancing shared corpus head across red checks, so a
+//      watch session's failures accumulate on ONE chain and failures(head) sees them (the seam opt-in
+//      auto-grow depends on: hands-off self-improvement during watch() can only fire if it can SEE failures) ──
+{
+  const a = box(BAD), b = box(BAD);
+  const factory = createFactory({ propose: async () => ({ source: BAD, lang: "js" }), gate: ACCEPT });   // unfixable → failure traces
+  let head = null; const pubs = [];
+  const tender = createTender({ factory, getHead: () => head, setHead: (h) => { head = h; pubs.push(h); } });
+  tender.register("a", parseCheck("a", { read: a.read, write: a.write }));
+  tender.register("b", parseCheck("b", { read: b.read, write: b.write }));
+  const r = await tender.tend({ budget: 1 });
+  const seen = failures(tender.store, r.corpusHead).length;
+  checks.headThreads = typeof r.corpusHead === "string" && head === r.corpusHead && pubs.length >= 1 && seen >= 2;
+}
+
 const witnessed = Object.values(checks).every(Boolean);
 const out = {
   spec: "Holo Factory autonomous tender (ADR-0097) — the self-observing keystone: a CHECK is monitor AND oracle, so signal "
@@ -114,9 +129,9 @@ const out = {
     + "W3C EARL 1.0 (the conformance report the gate emits) · the Holo Constitution conscience gate (ADR-033) · Holo Mind ADR-0081 "
     + "(GoalStack intent + opt-in scheduler discipline) · Holo Factory ADR-0097 · holospaces Laws L1/L3/L4/L5",
   witnessed,
-  covers: ["holo-factory", "factory-tender", "self-observing", "auto-signal", "witness-verified", "user-intent-only", "never-fakes-green", "law-l4", "law-l5"],
+  covers: ["holo-factory", "factory-tender", "self-observing", "auto-signal", "witness-verified", "user-intent-only", "shared-corpus-head", "self-improvement-seam", "never-fakes-green", "law-l4", "law-l5"],
   checks,
-  notes: { core: "os/usr/lib/holo/q/holo-factory-tend.mjs", basis: "drives holo-factory.mjs; check = monitor ⊕ oracle; gate EARL report = signal source" },
+  notes: { core: "os/usr/lib/holo/q/holo-factory-tend.mjs", basis: "drives holo-factory.mjs; check = monitor ⊕ oracle; gate EARL report = signal source. tend() threads + publishes the shared corpus head (getHead/setHead) so a watch session's failures accumulate on ONE chain — the seam opt-in, gated auto-grow (holo-mind-ui.factoryWatch{grow}) consumes to self-improve hands-off." },
 };
 writeFileSync(join(here, "holo-factory-tend-witness.result.json"), JSON.stringify(out, null, 2));
 console.log(`holo-factory-tend-witness: ${witnessed ? "PASS" : "FAIL"}`);

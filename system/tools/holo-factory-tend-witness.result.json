@@ -9,6 +9,8 @@
     "auto-signal",
     "witness-verified",
     "user-intent-only",
+    "shared-corpus-head",
+    "self-improvement-seam",
     "never-fakes-green",
     "law-l4",
     "law-l5"
@@ -21,10 +23,11 @@
     "drivenByIntent": true,
     "tendReDerives": true,
     "optInNoAutofire": true,
-    "gateSignals": true
+    "gateSignals": true,
+    "headThreads": true
   },
   "notes": {
     "core": "os/usr/lib/holo/q/holo-factory-tend.mjs",
-    "basis": "drives holo-factory.mjs; check = monitor ⊕ oracle; gate EARL report = signal source"
+    "basis": "drives holo-factory.mjs; check = monitor ⊕ oracle; gate EARL report = signal source. tend() threads + publishes the shared corpus head (getHead/setHead) so a watch session's failures accumulate on ONE chain — the seam opt-in, gated auto-grow (holo-mind-ui.factoryWatch{grow}) consumes to self-improve hands-off."
   }
 }

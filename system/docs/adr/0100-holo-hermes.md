@@ -16,6 +16,17 @@ Status: **DRAFT — DESIGN ONLY**, EXCEPT the "biggest unlock" (the GEPA-style e
 > `lineageChains`, `failingGateNoAdvance`). New door surface: `Q.factory.grow` (now loop-closing) + `Q.factory.skill`.
 > This is an ADR-0097/0081 enhancement motivated by the Hermes research — the broader Hermes RUNTIME below
 > stays DESIGN ONLY.
+>
+> **Hands-off self-improvement (landed same day).** The autonomous tender now self-improves during a
+> `watch()`: `Q.factory.watch(intent, { grow: true | { minFailures?, gate? } })` (and `Q.factory.tend({ grow })`)
+> run the optimizer after a pass once ≥`minFailures` NEW failures accrue. Prerequisite fix: `tend()` now
+> threads + publishes the SHARED corpus head (`getHead`/`setHead`), so a watch session's failures accumulate
+> on ONE chain and `failures()` can see them (previously the tender's factory froze its head — failures were
+> invisible siblings). GOVERNANCE PRESERVED (ADR-0033 rule 4): auto-grow is OPT-IN (default off) and the
+> succession gate still rules — with the default empty gate a revision seals (κ + audit trail) but is NOT in
+> force (a proposal awaiting ratification), so fully hands-off evolution cannot silently change behaviour;
+> pass a passing gate to allow live projection that session. No churn (fires only on NEW failures).
+> Witnessed by `holo-factory-tend-witness.mjs` (9/9, +1: `headThreads`).
 Relates: [[holo-q-mux-specialists]] (ADR-0091, one door `window.Q`) · [[holo-q-fuse-adr]] (ADR-0098, panel→judge→synthesize) · [[holo-recall-adr]] (ADR-0099, κ-graph retrieval over the PRIVATE corpus) · [[holo-mind-adr]] (ADR-0081, self-evolving fabric) · [[holo-factory-adr]] (ADR-0097, signal→change→verify→seal→learn + watch/tend) · [[holo-q-remote-model]] (ADR-0090, governed remote-LLM seam) · [[holo-import-adr]] (ADR-0092/0093, GitHub→Holo app + agent-native wiring + governed egress) · [[holo-q-model-registry]] (ADR-0096, the on-device brain) · ADR-0051 (Holo Forge κ-transform) · ADR-0033/0083 (conscience) · ADR-0082 (PROV-O receipts)
 
 ## Context

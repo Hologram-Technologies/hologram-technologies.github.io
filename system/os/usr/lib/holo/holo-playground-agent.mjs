@@ -72,6 +72,9 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     try { postUp(msg); } catch (e) {}
     return msg;
   }
+  // a user exit from inside a frame asks the shell to turn the GLOBAL mode off (it broadcasts back to all frames).
+  function requestExit() { try { postUp({ t: "holo-live-edit", op: "playground-request", surfaceId, on: false }); } catch (e) {} }
+  function userExit() { setActive(false); requestExit(); }
 
   // ── browser-only direct-manipulation surface (menu · inline edit · glow · toast). No-op without a window. ──
   // OFF BY DEFAULT (`active=false`): the agent is injected into every app but stays DORMANT — it does NOT glow
@@ -180,7 +183,7 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     item("🅺&nbsp; View κ", () => { closeMenu(); toast("κ updates on every edit — try Edit"); });
     item("⌫&nbsp; Delete", actDelete);
     sep();
-    item("✕&nbsp; Exit Playground", () => { closeMenu(); setActive(false); });
+    item("✕&nbsp; Exit Playground", () => { closeMenu(); userExit(); });
     doc.body.appendChild(menuEl);
     const w = menuEl.offsetWidth || 200, h = menuEl.offsetHeight || 240;
     menuEl.style.left = Math.min(x, (win ? win.innerWidth : 1e4) - w - 8) + "px";
@@ -195,7 +198,7 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     if (target) openMenu(e.clientX, e.clientY);
   }
   function onDblClick(e) { if (!active || inUI(e.target)) return; target = e.target && e.target.nodeType === 1 ? e.target : null; if (target) actText(); }
-  function onKeyDown(e) { if (e.key === "Escape") { if (menuEl || editorEl) { closeMenu(); closeEditor(); } else if (active) setActive(false); } }
+  function onKeyDown(e) { if (e.key === "Escape") { if (menuEl || editorEl) { closeMenu(); closeEditor(); } else if (active) userExit(); } }
   function onOver(e) { if (!active) return; const t = e.target; if (inUI(t) || t === hot || !t || t.nodeType !== 1) return; if (hot) hot.classList.remove(HOT); hot = t; try { t.classList.add(HOT); } catch (x) {} }
   function onOut(e) { if (e.target === hot && hot) { hot.classList.remove(HOT); hot = null; } }
   function onPointerDown(e) { if (menuEl && !inUI(e.target)) closeMenu(); }
@@ -214,7 +217,7 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     if (!doc.body || typeof doc.createElement !== "function" || badgeEl) return;
     badgeEl = doc.createElement("div"); badgeEl.className = "holo-pg-badge"; badgeEl.setAttribute(EPHEMERAL, "");
     badgeEl.textContent = "✦ Playground · right-click to edit · Esc to exit";
-    badgeEl.title = "Exit Playground"; badgeEl.onclick = () => setActive(false);
+    badgeEl.title = "Exit Playground"; badgeEl.onclick = () => userExit();
     doc.body.appendChild(badgeEl);
   }
   function hideBadge() { if (badgeEl) { badgeEl.remove(); badgeEl = null; } }

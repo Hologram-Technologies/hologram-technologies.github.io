@@ -2613,6 +2613,7 @@
     embed: embedText, warmEmbed: ensureEmbed,   // semantic embeddings (EmbeddingGemma) → Q's semantic memory; lazy-loads + binds the QVAC embed seam
     see: seeImage, warmVision: ensureVision,     // sight (SmolVLM-256M) → describe/answer about an image; lazy-loads on first call
     quick: quickText, warmQuick: ensureQuick,    // fast 360M base for cheap text (titles·compaction·judgments) — keeps the 1.8GB brain free
+    warmStarter: warmStarter, upgradeBrain: upgradeBrain, brainTier: brainTier,   // progressive cold-start: warm the starter (tier 1), trigger the silent full-brain upgrade (tier 2), read the bound tier (0/1/2)
     wakeMatch: function (s) { var n = norm(s); return { norm: n, match: wakeMatches(n), lone: !WAKE.re.test(n) && WAKE.loneRe.test(n) }; },   // test the matcher against any text
     lastWake: function () { return WAKE.last || null; },                  // the last accepted wake as a κ-addressed holo:WakeEvent receipt
     wakeReceipt: mintWakeReceipt,         // mint a wake-receipt by hand (testing / replay): → { kappa, ... }
