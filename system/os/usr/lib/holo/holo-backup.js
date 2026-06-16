@@ -36,7 +36,7 @@ function banner(op) {
       sender: "Backup", severity: "warn", icon: "🔑",
       title: "Secure your account",
       body: "Back up your recovery phrase so you never lose access — even if you lose this device. Open this to reveal your 12 words.",
-      deepLink: { kind: "backup", value: op.kappa },
+      deepLink: { kind: "backup", value: op.kappa }, actionLabel: "Back up now",
     });
     return true;
   };

@@ -65,8 +65,13 @@ for (const id of readdirSync(join(APPS, "apps"))) {
 // image come straight from the live entry, sorted by name for a stable, golden rhythm in the Play rail.
 const PICK = ["@id", "@type", "schema:name", "schema:identifier", "schema:description", "schema:applicationCategory", "dcat:landingPage", "schema:image"];
 const slugOf = (a) => String(a["dcat:landingPage"] || "").replace(/^apps\//, "").split("/")[0];
-const cat = JSON.parse(readFileSync(join(APPS, "apps/index.jsonld"), "utf8"));
-cat["dcat:dataset"] = (cat["dcat:dataset"] || [])
+const live = JSON.parse(readFileSync(join(APPS, "apps/index.jsonld"), "utf8"));
+// Keep the image's OWN catalog wrapper (the hosfs:Directory descriptor for /usr/share/holospaces) when it
+// exists, swapping only the dataset — so the served bytes describe the directory they live in, and re-runs
+// are byte-stable. Fall back to the live wrapper on a cold image that has no vendored catalog yet.
+const dstCat = join(OS, "usr/share/holospaces/index.jsonld");
+const cat = existsSync(dstCat) ? JSON.parse(readFileSync(dstCat, "utf8")) : live;
+cat["dcat:dataset"] = (live["dcat:dataset"] || [])
   .filter((a) => vendored.has(slugOf(a)))
   .sort((a, b) => String(a["schema:name"]).localeCompare(String(b["schema:name"])))
   .map((a) => { const o = {}; for (const k of PICK) if (a[k] != null) o[k] = a[k]; o["hosfs:fhs"] = "/usr/share/holospaces/" + slugOf(a); return o; });
