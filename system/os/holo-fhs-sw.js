@@ -186,7 +186,74 @@ self.addEventListener("activate", (e) => e.waitUntil((async () => {
 })()));
 
 const withHeaders = (body, resp, extra = {}) => { const h = new Headers(resp.headers); for (const [k, v] of Object.entries({ ...COI, ...extra })) h.set(k, v); return new Response(body, { status: resp.status, statusText: resp.statusText, headers: h }); };
-const refuse = (rel, want, got, axis = "sha256") => new Response(`holo-fhs-sw: κ MISMATCH — refused (Law L5)\n  name: ${rel}\n  want: ${axis}:${want}\n  got:  ${axis}:${got}\nThe origin is untrusted; tampered bytes do not boot.`, { status: 409, headers: { ...COI, "content-type": "text/plain" } });
+// A κ mismatch is a SAFETY STOP, not a crash. Render it as a calm, plain-language page in the same
+// dark, framed look as the rest of the OS (charset utf-8, so the copy never garbles), and let the red
+// light · Esc · "Go back" return the visitor to the page they came from.
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/><title>This couldn’t be verified — Hologram OS</title>
+<style>
+  :root{ --fg:#eaf0fb; --soft:#c6d2e6; --muted:#8b97ad; --line:#1b2433; --panel:#0c111b; --accent:#7defc9; }
+  *{ box-sizing:border-box; } html,body{ height:100%; margin:0; }
+  body{ background:radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 58%, #05070c 100%) fixed; color:var(--fg);
+    font:400 17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
+    display:grid; place-items:center; padding:24px; -webkit-font-smoothing:antialiased; }
+  .card{ width:100%; max-width:580px; border:1px solid #2a3547; border-radius:16px; overflow:hidden;
+    background:rgba(12,17,27,.72); -webkit-backdrop-filter:blur(22px); backdrop-filter:blur(22px);
+    box-shadow:0 40px 110px -34px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05); }
+  .bar{ display:flex; align-items:center; gap:.85em; height:44px; padding:0 16px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(27,27,31,.92), rgba(27,27,31,.6)); }
+  .lights{ display:flex; gap:8px; } .lights i{ width:13px; height:13px; border-radius:50%; display:block; }
+  .lights i.c{ background:#ff5f57; cursor:pointer; } .lights i.m{ background:#febc2e; } .lights i.x{ background:#28c840; }
+  .lights i.c:hover{ filter:brightness(1.15); }
+  .btitle{ color:var(--soft); font-weight:600; font-size:14px; letter-spacing:.01em; }
+  .body{ padding:30px clamp(22px,5vw,40px) 32px; }
+  .ico{ width:46px; height:46px; border-radius:12px; display:grid; place-items:center; margin:0 0 18px;
+    color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); }
+  h1{ margin:0 0 .5em; font-size:clamp(23px,4vw,28px); font-weight:700; letter-spacing:-.01em; line-height:1.2; color:#fff; }
+  p{ margin:0 0 1em; color:var(--soft); } p.quiet{ color:var(--muted); font-size:15px; }
+  .acts{ display:flex; flex-wrap:wrap; gap:12px; margin:22px 0 4px; }
+  .btn{ -webkit-appearance:none; appearance:none; cursor:pointer; border:0; border-radius:999px; font:600 16px/1 inherit;
+    padding:14px 26px; transition:filter .14s, transform .1s; }
+  .btn:active{ transform:translateY(1px); }
+  .btn-p{ background:#fff; color:#0a0c12; } .btn-p:hover{ filter:brightness(.94); }
+  .btn-g{ background:transparent; color:var(--soft); border:1px solid #2a3547; } .btn-g:hover{ color:#fff; border-color:#3a4760; }
+  details{ margin-top:26px; border-top:1px solid var(--line); padding-top:16px; }
+  summary{ cursor:pointer; color:var(--muted); font-size:14px; list-style:none; }
+  summary::-webkit-details-marker{ display:none; }
+  summary:hover{ color:var(--soft); }
+  .tech{ margin-top:12px; font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--muted); word-break:break-all; }
+  .tech b{ color:var(--soft); font-weight:600; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none!important; } }
+</style></head>
+<body>
+  <main class="card" role="dialog" aria-labelledby="h">
+    <div class="bar"><span class="lights" aria-hidden="true"><i class="c" id="dot" title="Go back"></i><i class="m"></i><i class="x"></i></span><span class="btitle">Hologram OS</span></div>
+    <div class="body">
+      <div class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z"/><path d="M9.5 12.5l1.8 1.8 3.4-3.6"/></svg></div>
+      <h1 id="h">This didn’t match, so nothing opened</h1>
+      <p>Hologram checks that every part is exactly the real, untampered version before it runs. This part didn’t match what was expected, so it stopped right here, on purpose, to keep you safe.</p>
+      <p>Nothing was loaded and nothing is wrong with your device. This usually means the page was changed, or only part of it arrived.</p>
+      <div class="acts">
+        <button class="btn btn-p" id="back" type="button">Go back</button>
+        <button class="btn btn-g" id="reload" type="button">Try again</button>
+      </div>
+      <p class="quiet">If it keeps happening, open Hologram from its official link.</p>
+      <details>
+        <summary>Technical details</summary>
+        <div class="tech"><b>What was checked:</b> ${esc(rel)}<br/><b>Expected fingerprint:</b> ${axis}:${esc(want)}<br/><b>Found instead:</b> ${axis}:${esc(got)}<br/>Refused by the content check that proves each part is genuine.</div>
+      </details>
+    </div>
+  </main>
+<script>
+  function goBack(){ if (history.length > 1) history.back(); else location.href = "../"; }
+  document.getElementById("back").addEventListener("click", goBack);
+  document.getElementById("dot").addEventListener("click", goBack);
+  document.getElementById("reload").addEventListener("click", function(){ location.reload(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") goBack(); });
+</script>
+</body></html>`;
+const refuse = (rel, want, got, axis = "sha256") => new Response(refuseHtml(rel, want, got, axis), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
 
 // ── SERVERLESS MCP — the SW answers the Model Context Protocol with NO origin server (Law L1/L4).
 // Discovery (GET .well-known/mcp.json + /~<app>/.well-known/mcp.json) and JSON-RPC (POST /mcp +
