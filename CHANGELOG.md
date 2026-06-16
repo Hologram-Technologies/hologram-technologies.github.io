@@ -11,6 +11,9 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- ADR-0111 Stage 0 — root the boot sequence in the substrate (security floor)
+- Crisp, immersive landing background
+- Build the documentation site — Diátaxis IA, generated reference, CI
 - Redesign app launcher as a watch-page browse rail
 - Unify notifications into one persistent Center; fix desktop wallpaper
 - Show a clear, human page when a part fails the content check
@@ -20,6 +23,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Ship the static manifesto/download pages verbatim so embed mode reaches production
 - Show framed pages as one clean window, not window-in-window
 - Open doc windows at the same size as the app launcher
 - Re-pin the OS closure so shell.html and the worker verify, unblocking boot
