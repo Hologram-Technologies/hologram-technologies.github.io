@@ -43,6 +43,11 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html README.md AGENTS.md CONSTITUTION.md _site/
+          # The built docs site (Astro output: pages + _astro assets + pagefind search). The gateway's
+          # Docs / Manifesto nav and the Free Download door (docs/download.html) all live under here, so
+          # it must be published or those links 404. NOTE: the docs assets are absolute (/docs/_astro/…),
+          # so they resolve only at a ROOT site — under a /<repo>/ project path the docs render unstyled.
+          cp -r docs _site/docs
           cp system/llms.txt _site/
           cp -r system/os _site/os
           cp -r system/os/.well-known _site/.well-known
