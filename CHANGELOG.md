@@ -31,6 +31,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Make Astro base deployment-relative so project-page docs aren't unstyled
 - Raise the horizon so the dark sky is narrower and the blue taller
 - Remove the strange white halo at the top of the landing
 - Ship the static manifesto/download pages verbatim so embed mode reaches production
