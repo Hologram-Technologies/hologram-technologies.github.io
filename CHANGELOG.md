@@ -23,6 +23,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Remove the strange white halo at the top of the landing
 - Ship the static manifesto/download pages verbatim so embed mode reaches production
 - Show framed pages as one clean window, not window-in-window
 - Open doc windows at the same size as the app launcher
