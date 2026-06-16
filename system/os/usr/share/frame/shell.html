@@ -133,15 +133,17 @@
       }
       #wallpaper.wp-dev.loading { filter: none; opacity: 1; }   /* grid is already sharp — never blur it */
       @media (prefers-reduced-motion: reduce) { #wallpaper { transition: opacity .3s ease; } }
-      /* APPEARANCE AXIS (mobile themes: Dark · Light · Immersive). The immersive backdrop wears the
-         engine's chosen κ wallpaper (--holo-wallpaper); unset ⇒ `none` ⇒ transparent, so the gallery
-         layer beneath still shows. Dark / Light hide every photo layer so the desktop is the clean
-         solid var(--holo-bg) — the launcher-clean look. Only the appearance axis gates this. */
+      /* APPEARANCE AXIS (mobile themes: Dark · Light · Immersive). Immersive is an OVERLAY: when on, the
+         engine's chosen κ wallpaper (--holo-wallpaper) covers the gallery layer; unset ⇒ `none` ⇒
+         transparent, so the gallery wallpaper beneath shows through. When off, the desktop wears its own
+         content-addressed gallery wallpaper (#wallpaper) — the canonical, right-click-changeable choice.
+         A clean solid look is itself a gallery choice (Original / Developer), so the axis no longer
+         force-hides #wallpaper; doing so left the default (immersive off) boot with no wallpaper at all
+         and made "Change wallpaper…" a no-op. */
       #immersive-wall { position: absolute; inset: 0; z-index: 0; pointer-events: none;
         background-position: center; background-size: cover; background-repeat: no-repeat;
         opacity: 0; transition: opacity .55s var(--ease, ease); }
       :root[data-holo-immersive="on"] #immersive-wall { background-image: var(--holo-wallpaper, none); opacity: 1; }
-      :root[data-holo-immersive="off"] #wallpaper { opacity: 0; }
       @media (prefers-reduced-motion: reduce) { #immersive-wall { transition: opacity .3s ease; } }
       /* ── tab strip — Chrome-precise: tabs at the bottom edge, the active tab flush with the toolbar ── */
       #tabstrip { position: fixed; top: 0; left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px)); right: var(--holo-aside-w, 0px); height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
@@ -655,6 +657,7 @@
         <button id="verb-run" type="button" title="Play explore the Holo Hub, the store for every holospace">▶ <span class="vl">Play</span></button>
         <button id="share-btn" type="button" title="Share a link anyone can open instantly, no sign-in">❤️ <span class="vl">Share</span></button>
       </div>
+      <button class="nav" id="notif-btn" type="button" title="Notifications" aria-label="Notifications" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
     </div>
     <div id="world">
       <div id="wallpaper" aria-hidden="true"></div>
@@ -745,6 +748,7 @@
       import { resolveBootResume } from "/_shared/holo-workspace-sync-ui.mjs";   // Holo Workspace Sync (ADR-0105): boot-resume a #wks link / ?wks token (the sealer is dynamic-imported on use)
       import { createAside, registerAsideCloser, closeAllAsides } from "/_shared/holo-aside.mjs";   // Holo Aside (ADR-0109): the ONE right side-carriage primitive shared by Create · Play · Share (dock · slide · drag-resize · toggle · single-open)
       import { mountShare } from "/_shared/holo-share-ui.mjs";   // Holo Share (ADR-0109): the ❤️ Share verb, rendered in the shared carriage — one link · file · sovereign cloud
+      import { mountNotifications } from "/_shared/holo-notify.mjs";   // Holo Notify: the ONE notification surface — quiet toast → persistent Center carriage; home for Q's notes (window.HoloNotify)
       import { mountPlay } from "/_shared/holo-play-ui.mjs";   // Holo Play (ADR-0109): the ▶ Play verb — an immersive browse rail (categories + titles) in the shared carriage, launching holospaces live
       import { searchDirectory } from "/_shared/holo-dweb.js";       // the federated directory: knowledge · ENS · dapps · apps — one content-addressed object graph
       import { profileFor } from "/_shared/holo-platform.js";
@@ -4293,6 +4297,22 @@
       sug.el.id = "omni-sug"; sug.el.className = "omni-sug"; sug.el.setAttribute("role", "listbox"); document.body.appendChild(sug.el);
       try { mountEgressConnect(document.getElementById("omni")); } catch (e) { console.warn("egress-connect:", e); }   // "Connect the web" icon beside the omnibar
       try { mountShare(document.getElementById("share-btn"), { getHolospace: captureHolospace, getWorkspace: captureWorkspace, onImport: onImportShared, requireEverythingAuth: everythingAuthGate }); } catch (e) { console.warn("holo-share:", e); }   // ❤️ Share → the LEFT side-carriage (ADR-0109): one link (file · sovereign cloud), "this holospace" OR "everything" (biometric-gated for signed-in), serverless
+      // Holo Notify → the bell opens the persistent Notification Center (the shared right carriage). Every
+      // toast files itself here; per-operator history. A deep-link routes through the omnibox / Q orb.
+      try {
+        mountNotifications(document.getElementById("notif-btn"), {
+          getOperator: () => { try { const t = JSON.parse(sessionStorage.getItem("holo.session") || "null"); return (t && t.operator && !t.guest) ? t.operator : null; } catch (e) { return null; } },
+          onDeepLink: (link) => {
+            try {
+              if (!link) return;
+              if (typeof link === "string") { omniGo(link); return; }
+              if (link.kind === "address" && link.value) omniGo(link.value);
+              else if (link.kind === "run" && link.value) { try { km.run(link.value); } catch (e) {} }
+              else if (link.kind === "q") { try { (window.__holoQOrb && window.__holoQOrb.open) ? window.__holoQOrb.open() : (window.Q && window.Q.summon && window.Q.summon()); } catch (e) {} }
+            } catch (e) {}
+          },
+        });
+      } catch (e) { console.warn("holo-notify:", e); }
       const SUG_SUB = { kappa: "content address · verified", ipfs: "IPFS · verified", eth: "ENS name → content", web: "open web · mint κ", local: "holospace" };
       const DIR_SUB = { ens: "ENS name → content", dnslink: "on IPFS · DNSLink", ipfs: "IPFS · verified", ipns: "IPNS · verified", web: "open web", demo: "demo · verified" };
       const DIR_IC = { ens: "◈", dnslink: "🌐", ipfs: "⬡", ipns: "⬡", web: "🌐", demo: "✦" };
@@ -4973,6 +4993,10 @@
         (function installServe() { if (typeof window === "undefined") return; if (!window.Q) { setTimeout(installServe, 200); return; }
           // bind the OS action executors so Q.act (the orb, an app, or an agent) can OPEN/CLOSE/etc. — governed for non-human callers.
           try { window.Q.configureActions({ open: qOpen, close: () => qWindowOp("close"), minimize: () => qWindowOp("minimize"), maximize: () => qWindowOp("maximize"), arrange: qArrange }); } catch (e) {}
+          // Q ↔ Notify seam: Q posts a note into the Center (read like Messages). This only DELIVERS a note
+          // it is handed — it never generates text, so a cold/un-warmed brain can post honest notes and
+          // nothing is fabricated (Law L5). window.Q.note(text|{title,body,deepLink,severity}).
+          try { if (!window.Q.note) window.Q.note = (text, o = {}) => { try { return window.HoloNotify ? window.HoloNotify.q(typeof text === "string" ? { title: text, ...o } : { ...text, ...o }) : null; } catch (e) { return null; } }; } catch (e) {}
           import("/_shared/q/holo-q-app.js").then((m) => { try { window.HoloQServe = m.createQServe({ Q: window.Q, summon: (t, c) => { t ? run(t, c) : open(); } }); } catch (e) {} }).catch(() => {}); })();
       })();
       // ── Ambient Q alternate invokes: the omnibar (⌘/Ctrl+Enter sends your line to Q) and VOICE (an
@@ -5123,7 +5147,10 @@
       // ── mouse automation (holo-auto) — a visible cursor drives the OS; macros are content-addressed ─
       const auto = createAutomation({ run: (id) => km.run(id) });
       let lastMacro = null, lastMacroDid = "";
-      function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 3800); }
+      // toast → the transient FACE of the unified notification surface (Holo Notify). A bare toast is pure
+      // status (shown, not filed, so history stays meaningful); richer events call window.HoloNotify.notify
+      // directly. Falls back to the legacy #toast element if Notify hasn't mounted yet.
+      function toast(m) { try { if (window.HoloNotify) { window.HoloNotify.toast(m); return; } } catch (e) {} const t = $("#toast"); if (!t) return; t.textContent = m; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 3800); }
       function toggleRecord() {
         if (auto.isRecording()) { lastMacro = auto.stop() || []; lastMacroDid = repo.publishSource({ name: "macro", source: auto.canonical(lastMacro) }).id; toast("● recorded " + lastMacro.length + " steps → " + lastMacroDid.replace("did:holo:sha256:", "holo://").slice(0, 24) + "… · share to replay anywhere"); }
         else { auto.record(); toast("● recording click around the desktop, then run Record again to stop"); }
@@ -5492,6 +5519,23 @@
         // deferrable "Secure your account" nudge — surfaces the 12-word recovery phrase for a real
         // operator that hasn't backed up yet (guests skipped). Lazy + non-blocking.
         if (!guest && body.operator) { import("/_shared/holo-backup.js").then((m) => m.maybeNudge(body.operator)).catch(() => {}); }
+
+        // Holo Notify — bind this operator's notification history (each operator sees only their own), then
+        // seed ONE genuine welcome from Q the first time an operator arrives. The welcome is honest static
+        // copy delivered through the note seam, never model-generated, so nothing is fabricated.
+        try {
+          if (window.HoloNotify) {
+            window.HoloNotify.rebindOperator();
+            const op = (!guest && body.operator) ? body.operator : null;
+            if (op) {
+              const wkey = "holo.notify.welcomed." + op.split(":").pop().slice(0, 16);
+              if (!localStorage.getItem(wkey)) {
+                window.HoloNotify.q({ title: "I'm Q — I'll leave notes here.", body: "When I notice something, finish a task, or have a heads-up for you, it lands in this Center. Open it any time from the bell.", deepLink: { kind: "q" } });
+                try { localStorage.setItem(wkey, "1"); } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {}
 
         // No auto-fullscreen (it jumps). The greeter hands off with a glass-unfog and the shell fades in
         // over the same aurora wallpaper (#holo-shell-in below), so the desktop arrives smoothly. Retire

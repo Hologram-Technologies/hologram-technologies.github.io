@@ -23,16 +23,24 @@ export async function maybeNudge(kappa) {
   } catch { return false; }
 }
 
+// The nudge is now a first-class notification (Holo Notify): a sticky, actionable "Backup" alert that
+// ALSO files into the persistent Center, instead of a one-off hardcoded-hex banner. Tokens + φ + the OS's
+// own chrome come for free from the primitive. "Later" defers for the session; "Back up now" reveals.
 function banner(op) {
-  document.getElementById("holo-backup-nudge")?.remove();
-  const b = el("div", { id: "holo-backup-nudge", style: "position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99990;display:flex;align-items:center;gap:14px;max-width:560px;width:calc(100% - 32px);box-sizing:border-box;background:#0d0a24;border:1px solid #2a2550;border-radius:14px;padding:14px 16px;color:#e7e9ff;font-family:system-ui,'Segoe UI',sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.45);" },
-    el("div", { style: "font-size:22px;" }, "🔑"),
-    el("div", { style: "flex:1;min-width:0;" },
-      el("div", { style: "font-weight:700;font-size:var(--holo-text-sm,1rem);" }, "Secure your account"),
-      el("div", { style: "opacity:.7;font-size:var(--holo-text-sm,1rem);line-height:1.4;" }, "Back up your recovery phrase so you never lose access — even if you lose this device.")),
-    el("button", { style: btn("ghost"), onclick: () => { try { sessionStorage.setItem(DEFER_KEY, op.kappa); } catch {} b.remove(); } }, "Later"),
-    el("button", { style: btn("primary"), onclick: () => { b.remove(); reveal(op.kappa).catch((e) => console.warn("[backup]", e && e.message)); } }, "Back up now"));
-  document.body.appendChild(b);
+  const fire = () => {
+    if (!(typeof window !== "undefined" && window.HoloNotify)) return false;
+    window.HoloNotify.notify({
+      sender: "Backup", severity: "warn", sticky: true, icon: "🔑",
+      title: "Secure your account",
+      body: "Back up your recovery phrase so you never lose access — even if you lose this device.",
+      actions: [
+        { label: "Later", run: () => { try { sessionStorage.setItem(DEFER_KEY, op.kappa); } catch {} } },
+        { label: "Back up now", primary: true, run: () => { reveal(op.kappa).catch((e) => console.warn("[backup]", e && e.message)); } },
+      ],
+    });
+    return true;
+  };
+  if (!fire()) setTimeout(fire, 400);   // Notify mounts at boot; retry once if this fires first
 }
 
 // reveal(kappa) — re-authenticate (biometric / passphrase), then surface the 12 words; confirm → saved.

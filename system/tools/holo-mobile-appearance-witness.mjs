@@ -98,8 +98,8 @@ const checks = {
   "shell has the immersive backdrop layer (#immersive-wall)": /id="immersive-wall"/.test(shell),
   "Immersive paints the engine's chosen wallpaper (--holo-wallpaper)":
     /\[data-holo-immersive="on"\]\s*#immersive-wall[^}]*var\(--holo-wallpaper/.test(shell),
-  "Dark/Light hide the photo layers for a clean solid desktop":
-    /\[data-holo-immersive="off"\]\s*#wallpaper\s*\{[^}]*opacity:\s*0/.test(shell),
+  "Immersive is an OVERLAY — the desktop keeps its content-addressed gallery wallpaper (no forced hide)":
+    /id="immersive-wall"/.test(shell) && !/\[data-holo-immersive="off"\]\s*#wallpaper\s*\{[^}]*opacity:\s*0/.test(shell),
   "curated Immersive set is κ-sealed and re-derives (L5)": curated.count >= 5 && curated.verified === curated.count,
   "curated Immersive set is attributed (Unsplash license)": curated.attributed,
   // 6 · the pickers (consistent boot end to end)

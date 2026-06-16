@@ -2,9 +2,9 @@
   "witnessed": false,
   "passed": 2,
   "failed": 3,
-  "files": 28458,
+  "files": 28466,
   "objects": 13399,
-  "sampled": 12692,
+  "sampled": 12691,
   "covers": [
     "every object is dual-axis — did:holo:sha256 ⊕ di",
     "the index is deterministic (sorted keys, no time"
@@ -13,12 +13,12 @@
     {
       "name": "every first-party file in both folders is a first-class addressed object (full coverage)",
       "ok": false,
-      "detail": "13344/28458 files indexed · 15114 live-churn: montage_01.png, MANIFESTO.md, MIGRATION.md"
+      "detail": "13343/28466 files indexed · 15123 live-churn: commitlint.yml, CHANGELOG.md, LICENSE"
     },
     {
       "name": "no orphan objects — every index entry exists on disk",
       "ok": false,
-      "detail": "55 orphan(s): os2/.claude/scheduled_tasks.lock, os2/system/_nsr/depth.onnx, os2/system/_nsr/depth.py"
+      "detail": "56 orphan(s): os2/.claude/scheduled_tasks.lock, os2/.jupyterlite.doit.db, os2/system/_nsr/depth.onnx"
     },
     {
       "name": "every object is dual-axis — did:holo:sha256 ⊕ did:holo:blake3 (substrate σ-axis)",
@@ -28,7 +28,7 @@
     {
       "name": "a bounded sample RE-DERIVES to both κ — content addresses, not arbitrary (Law L5)",
       "ok": false,
-      "detail": "12258/12692 re-derive · 434 live-churn: launch.json, settings.local.json, pages.yml"
+      "detail": "12252/12691 re-derive · 439 live-churn: launch.json, settings.local.json, pages.yml"
     },
     {
       "name": "the index is deterministic (sorted keys, no timestamps) → re-derives byte-for-byte",

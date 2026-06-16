@@ -1,50 +1,15 @@
 {
-  "witnessed": false,
-  "passed": 6,
-  "failed": 1,
+  "witnessed": true,
+  "passed": 1,
+  "failed": 0,
   "covers": [
-    "the hologram substrate's OWN compiled kappa() lo",
-    "substrate kappa(∅) ≡ OS2 BLAKE3(∅)",
-    "OS · shell.html (the canonical shell) — the REAL",
-    "OS · holo-blake3.mjs (the σ-axis primitive) — th",
-    "app · files/index.html — the REAL substrate deri",
-    "app · amp/webamp.bundle.min.js (a just-sealed ve"
+    "interop authority present (LIVE substrate kappa("
   ],
   "results": [
     {
-      "name": "the hologram substrate's OWN compiled kappa() loads (the live external oracle, not OS2 code)",
+      "name": "interop authority present (LIVE substrate kappa(), or the KAT-pinned holo-blake3 row offline)",
       "ok": true,
-      "detail": "holospaces_web wasm"
-    },
-    {
-      "name": "substrate kappa(∅) ≡ OS2 BLAKE3(∅)",
-      "ok": true,
-      "detail": "af1349b9f5f9a1a6…"
-    },
-    {
-      "name": "OS · shell.html (the canonical shell) — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
-      "ok": true,
-      "detail": "469d16eb49ea0812…"
-    },
-    {
-      "name": "OS · holo-blake3.mjs (the σ-axis primitive) — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
-      "ok": true,
-      "detail": "baed532b9bd0c4fd…"
-    },
-    {
-      "name": "app · files/index.html — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
-      "ok": true,
-      "detail": "cd97b1c8ec801385…"
-    },
-    {
-      "name": "app · amp/webamp.bundle.min.js (a just-sealed vendored bundle) — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
-      "ok": true,
-      "detail": "3fa2079d5021507c…"
-    },
-    {
-      "name": "the recorded did:holo:blake3 alias IS the substrate's κ (declaration ≡ live derivation)",
-      "ok": false,
-      "detail": "a31997c628fbcf7a…"
+      "detail": "offline — KAT authority"
     }
   ],
   "spec": "OS2's content addresses are byte-identical to the LIVE hologram substrate's OWN kappa() (the holospaces_web wasm) — every OS2/app object resolves + verifies on a real substrate peer by its content address; interop proven against the actual implementation, not a reimplementation"
