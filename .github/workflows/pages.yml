@@ -97,6 +97,10 @@ jobs:
           # it must be published or those links 404. NOTE: the docs assets are absolute (/docs/_astro/…),
           # so they resolve only at a ROOT site — under a /<repo>/ project path the docs render unstyled.
           cp -r docs _site/docs
+          # Force our two STATIC window-pages over the build output, so their doc-window embed mode is
+          # guaranteed to ship verbatim regardless of how the docs build treats public/*.html.
+          cp system/docs/site/public/manifesto.html _site/docs/manifesto.html
+          cp system/docs/site/public/download.html _site/docs/download.html
           # The live changelog: the styled reader page, its Keep a Changelog source, and the Atom feed.
           cp CHANGELOG.md changelog.html feed.xml _site/
           cp system/llms.txt _site/
