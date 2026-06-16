@@ -1,87 +1,109 @@
-<svg viewBox="0 0 1040 540" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HOLOGRAM OS">
-<defs>
-  <linearGradient id="holo" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#d6fff1"/><stop offset="22%" stop-color="#7defc9"/>
-    <stop offset="58%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/>
-  </linearGradient>
-  <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#7defc9"/><stop offset="50%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/>
-  </linearGradient>
-  <radialGradient id="sky" cx="50%" cy="14%" r="95%">
-    <stop offset="0%" stop-color="#10131c"/><stop offset="48%" stop-color="#080a10"/><stop offset="100%" stop-color="#030305"/>
-  </radialGradient>
-  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-  <linearGradient id="scan" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.05"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-  </linearGradient>
-  <style>
-    .bw{ font-family:ui-monospace,"DejaVu Sans Mono",SFMono-Regular,Menlo,Consolas,monospace;
-         font-size:30px; letter-spacing:1px; fill:url(#wave); opacity:0;
-         animation:flip 2.4s steps(1) infinite; }
-    @keyframes flip{ 0%{opacity:1} 4.16%{opacity:1} 4.17%{opacity:0} 100%{opacity:0} }
-    .aur{ animation:breathe 6s ease-in-out infinite; transform-origin:center; }
-    @keyframes breathe{ 0%,100%{opacity:.42} 50%{opacity:.62} }
-    .mark{ animation:lift 5s ease-in-out infinite; transform-origin:center; }
-    @keyframes lift{ 0%,100%{opacity:.94} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce){
-      .bw{ animation:none } .bw:first-of-type{ opacity:1 }
-      .aur,.mark{ animation:none }
-    }
-  </style>
-</defs>
+<svg viewBox="0 0 1080 667" width="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HOLOGRAM OS — own your data, compute and intelligence">
+<title>Hologram OS</title>
+<desc>The Hologram OS mark and wordmark on black, with a braille code scramble that rotates the words DATA, COMPUTE and INTELLIGENCE after the static line OWN YOUR.</desc>
+<style>
+  .wm{ font-family:'Helvetica Neue',Helvetica,Arial,system-ui,'Segoe UI',sans-serif; font-weight:300; font-size:132px; letter-spacing:.05em; fill:#fff; }
+  .tg{ font-family:'Helvetica Neue',Helvetica,Arial,system-ui,'Segoe UI',sans-serif; font-weight:300; font-size:50px; letter-spacing:.16em; fill:#fff; }
+  .tg .sep{ fill:#6b6b6b; }
+  .rw{ font-family:'Helvetica Neue',Helvetica,Arial,system-ui,'Segoe UI',sans-serif; font-weight:300; font-size:50px; letter-spacing:.14em; fill:#fff; opacity:0;
+       animation:rot 12s linear infinite; }
+  .rw.br{ font-family:'DejaVu Sans Mono','Segoe UI Symbol','Apple Symbols',ui-monospace,'Cascadia Mono',monospace; letter-spacing:.10em; }
+  @keyframes rot{ 0%{opacity:1} 1.240%{opacity:1} 1.250%{opacity:0} 100%{opacity:0} }
+  @media (prefers-reduced-motion: reduce){ .rw{ animation:none } .rw:first-of-type{ opacity:1 } }
+</style>
 
-<rect width="1040" height="540" rx="22" fill="url(#sky)"/>
+<rect width="1080" height="667" fill="#000"/>
 
-<g class="aur" filter="url(#glow)">
-  <ellipse cx="180" cy="120" rx="260" ry="150" fill="#7defc9" opacity="0.10"/>
-  <ellipse cx="880" cy="400" rx="300" ry="160" fill="#c77bff" opacity="0.10"/>
-  <ellipse cx="520" cy="250" rx="340" ry="150" fill="#5b8cff" opacity="0.10"/>
+<!-- the real Hologram dot-mark, scaled on the golden grid -->
+<g transform="translate(540,203) scale(0.8077)" fill="#fff"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g>
+
+<!-- wordmark -->
+<text class="wm" x="540" y="463" text-anchor="middle">HOLOGRAM OS</text>
+
+<!-- static label, fixed at the golden divider -->
+<text class="tg" x="540" y="549" text-anchor="end">OWN YOUR&#8201;<tspan class="sep">|</tspan></text>
+
+<!-- the rotating braille-scramble word (flipbook) -->
+<g text-anchor="start">
+    <text class="rw" style="animation-delay:0.000s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-0.150s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-0.300s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-0.450s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-0.600s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-0.750s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-0.900s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.050s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.200s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.350s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.500s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.650s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.800s" x="558" y="549">DATA</text>
+    <text class="rw" style="animation-delay:-1.950s" x="558" y="549">DATA</text>
+    <text class="rw br" style="animation-delay:-2.100s" x="558" y="549">⠊⢭⣲⣒⡦⣆⣔</text>
+    <text class="rw br" style="animation-delay:-2.250s" x="558" y="549">⢨⠟⡾⠿⠌⡹⠤</text>
+    <text class="rw br" style="animation-delay:-2.400s" x="558" y="549">⣳⢆⠬⡇⡁⠴⠻</text>
+    <text class="rw br" style="animation-delay:-2.550s" x="558" y="549">⡠⢦⠢⣀⢿⣯⡳</text>
+    <text class="rw br" style="animation-delay:-2.700s" x="558" y="549">⡥⣶⠧⡉⢵⣴⢪</text>
+    <text class="rw br" style="animation-delay:-2.850s" x="558" y="549">C⠼⡜⠚⡫⢕⡙</text>
+    <text class="rw br" style="animation-delay:-3.000s" x="558" y="549">CO⠸⡧⢎⢝⡤</text>
+    <text class="rw br" style="animation-delay:-3.150s" x="558" y="549">COM⠿⢹⢶⡚</text>
+    <text class="rw br" style="animation-delay:-3.300s" x="558" y="549">COMP⡝⡤⠟</text>
+    <text class="rw br" style="animation-delay:-3.450s" x="558" y="549">COMPU⢷⣁</text>
+    <text class="rw br" style="animation-delay:-3.600s" x="558" y="549">COMPUT⠚</text>
+    <text class="rw" style="animation-delay:-3.750s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-3.900s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.050s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.200s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.350s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.500s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.650s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.800s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-4.950s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-5.100s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-5.250s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-5.400s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-5.550s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-5.700s" x="558" y="549">COMPUTE</text>
+    <text class="rw" style="animation-delay:-5.850s" x="558" y="549">COMPUTE</text>
+    <text class="rw br" style="animation-delay:-6.000s" x="558" y="549">⡽⣭⡡⡗⠮⡣⠭⡳⣶⡣⣂⠎</text>
+    <text class="rw br" style="animation-delay:-6.150s" x="558" y="549">⠧⡆⠗⣨⣃⢹⣹⣲⢋⢏⠃⣽</text>
+    <text class="rw br" style="animation-delay:-6.300s" x="558" y="549">⡉⢺⠫⡕⠬⢁⡅⠲⢎⢶⣬⡨</text>
+    <text class="rw br" style="animation-delay:-6.450s" x="558" y="549">⢎⡥⢮⢳⣽⣀⡆⢢⣋⠘⣑⣻</text>
+    <text class="rw br" style="animation-delay:-6.600s" x="558" y="549">⡍⢂⠁⣫⡸⡀⠬⣱⢌⡰⢨⠠</text>
+    <text class="rw br" style="animation-delay:-6.750s" x="558" y="549">I⡊⡍⡐⠄⣢⠷⣊⠛⢸⡱⣴</text>
+    <text class="rw br" style="animation-delay:-6.900s" x="558" y="549">IN⢑⠢⢒⣡⠗⢗⢱⢀⣞⠷</text>
+    <text class="rw br" style="animation-delay:-7.050s" x="558" y="549">INT⢐⠩⢳⠝⢌⢌⠘⢷⢡</text>
+    <text class="rw br" style="animation-delay:-7.200s" x="558" y="549">INTE⢙⢑⠼⠞⠗⡩⡛⠿</text>
+    <text class="rw br" style="animation-delay:-7.350s" x="558" y="549">INTEL⡔⣢⢐⣐⣕⢢⢳</text>
+    <text class="rw br" style="animation-delay:-7.500s" x="558" y="549">INTELL⡎⡳⢘⣄⣨⣟</text>
+    <text class="rw br" style="animation-delay:-7.650s" x="558" y="549">INTELLI⠮⣡⡽⢋⣭</text>
+    <text class="rw br" style="animation-delay:-7.800s" x="558" y="549">INTELLIG⣩⡍⡵⣴</text>
+    <text class="rw br" style="animation-delay:-7.950s" x="558" y="549">INTELLIGE⣟⡍⡠</text>
+    <text class="rw br" style="animation-delay:-8.100s" x="558" y="549">INTELLIGEN⠎⡸</text>
+    <text class="rw br" style="animation-delay:-8.250s" x="558" y="549">INTELLIGENC⣚</text>
+    <text class="rw" style="animation-delay:-8.400s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-8.550s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-8.700s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-8.850s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.000s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.150s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.300s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.450s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.600s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.750s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-9.900s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-10.050s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-10.200s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-10.350s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw" style="animation-delay:-10.500s" x="558" y="549">INTELLIGENCE</text>
+    <text class="rw br" style="animation-delay:-10.650s" x="558" y="549">⣨⡧⣵⢓</text>
+    <text class="rw br" style="animation-delay:-10.800s" x="558" y="549">⡠⢄⠍⣷</text>
+    <text class="rw br" style="animation-delay:-10.950s" x="558" y="549">⢵⠬⠼⡔</text>
+    <text class="rw br" style="animation-delay:-11.100s" x="558" y="549">⢚⠚⣜⣮</text>
+    <text class="rw br" style="animation-delay:-11.250s" x="558" y="549">⣑⠳⣬⢃</text>
+    <text class="rw br" style="animation-delay:-11.400s" x="558" y="549">D⡅⠦⡏</text>
+    <text class="rw br" style="animation-delay:-11.550s" x="558" y="549">DA⡴⣼</text>
+    <text class="rw br" style="animation-delay:-11.700s" x="558" y="549">DAT⡫</text>
+    <text class="rw" style="animation-delay:-11.850s" x="558" y="549">DATA</text>
 </g>
-
-<!-- the wordmark -->
-<g class="mark" fill="url(#holo)" filter="url(#glow)">
-  <rect x="97" y="70" width="15" height="15" rx="2.5"/><rect x="169" y="70" width="15" height="15" rx="2.5"/><rect x="97" y="88" width="15" height="15" rx="2.5"/><rect x="169" y="88" width="15" height="15" rx="2.5"/><rect x="97" y="106" width="15" height="15" rx="2.5"/><rect x="169" y="106" width="15" height="15" rx="2.5"/><rect x="97" y="124" width="15" height="15" rx="2.5"/><rect x="115" y="124" width="15" height="15" rx="2.5"/><rect x="133" y="124" width="15" height="15" rx="2.5"/><rect x="151" y="124" width="15" height="15" rx="2.5"/><rect x="169" y="124" width="15" height="15" rx="2.5"/><rect x="97" y="142" width="15" height="15" rx="2.5"/><rect x="169" y="142" width="15" height="15" rx="2.5"/><rect x="97" y="160" width="15" height="15" rx="2.5"/><rect x="169" y="160" width="15" height="15" rx="2.5"/><rect x="97" y="178" width="15" height="15" rx="2.5"/><rect x="169" y="178" width="15" height="15" rx="2.5"/><rect x="223" y="70" width="15" height="15" rx="2.5"/><rect x="241" y="70" width="15" height="15" rx="2.5"/><rect x="259" y="70" width="15" height="15" rx="2.5"/><rect x="205" y="88" width="15" height="15" rx="2.5"/><rect x="277" y="88" width="15" height="15" rx="2.5"/><rect x="205" y="106" width="15" height="15" rx="2.5"/><rect x="277" y="106" width="15" height="15" rx="2.5"/><rect x="205" y="124" width="15" height="15" rx="2.5"/><rect x="277" y="124" width="15" height="15" rx="2.5"/><rect x="205" y="142" width="15" height="15" rx="2.5"/><rect x="277" y="142" width="15" height="15" rx="2.5"/><rect x="205" y="160" width="15" height="15" rx="2.5"/><rect x="277" y="160" width="15" height="15" rx="2.5"/><rect x="223" y="178" width="15" height="15" rx="2.5"/><rect x="241" y="178" width="15" height="15" rx="2.5"/><rect x="259" y="178" width="15" height="15" rx="2.5"/><rect x="313" y="70" width="15" height="15" rx="2.5"/><rect x="313" y="88" width="15" height="15" rx="2.5"/><rect x="313" y="106" width="15" height="15" rx="2.5"/><rect x="313" y="124" width="15" height="15" rx="2.5"/><rect x="313" y="142" width="15" height="15" rx="2.5"/><rect x="313" y="160" width="15" height="15" rx="2.5"/><rect x="313" y="178" width="15" height="15" rx="2.5"/><rect x="331" y="178" width="15" height="15" rx="2.5"/><rect x="349" y="178" width="15" height="15" rx="2.5"/><rect x="367" y="178" width="15" height="15" rx="2.5"/><rect x="385" y="178" width="15" height="15" rx="2.5"/><rect x="439" y="70" width="15" height="15" rx="2.5"/><rect x="457" y="70" width="15" height="15" rx="2.5"/><rect x="475" y="70" width="15" height="15" rx="2.5"/><rect x="421" y="88" width="15" height="15" rx="2.5"/><rect x="493" y="88" width="15" height="15" rx="2.5"/><rect x="421" y="106" width="15" height="15" rx="2.5"/><rect x="493" y="106" width="15" height="15" rx="2.5"/><rect x="421" y="124" width="15" height="15" rx="2.5"/><rect x="493" y="124" width="15" height="15" rx="2.5"/><rect x="421" y="142" width="15" height="15" rx="2.5"/><rect x="493" y="142" width="15" height="15" rx="2.5"/><rect x="421" y="160" width="15" height="15" rx="2.5"/><rect x="493" y="160" width="15" height="15" rx="2.5"/><rect x="439" y="178" width="15" height="15" rx="2.5"/><rect x="457" y="178" width="15" height="15" rx="2.5"/><rect x="475" y="178" width="15" height="15" rx="2.5"/><rect x="547" y="70" width="15" height="15" rx="2.5"/><rect x="565" y="70" width="15" height="15" rx="2.5"/><rect x="583" y="70" width="15" height="15" rx="2.5"/><rect x="529" y="88" width="15" height="15" rx="2.5"/><rect x="601" y="88" width="15" height="15" rx="2.5"/><rect x="529" y="106" width="15" height="15" rx="2.5"/><rect x="529" y="124" width="15" height="15" rx="2.5"/><rect x="565" y="124" width="15" height="15" rx="2.5"/><rect x="583" y="124" width="15" height="15" rx="2.5"/><rect x="601" y="124" width="15" height="15" rx="2.5"/><rect x="529" y="142" width="15" height="15" rx="2.5"/><rect x="601" y="142" width="15" height="15" rx="2.5"/><rect x="529" y="160" width="15" height="15" rx="2.5"/><rect x="601" y="160" width="15" height="15" rx="2.5"/><rect x="547" y="178" width="15" height="15" rx="2.5"/><rect x="565" y="178" width="15" height="15" rx="2.5"/><rect x="583" y="178" width="15" height="15" rx="2.5"/><rect x="601" y="178" width="15" height="15" rx="2.5"/><rect x="637" y="70" width="15" height="15" rx="2.5"/><rect x="655" y="70" width="15" height="15" rx="2.5"/><rect x="673" y="70" width="15" height="15" rx="2.5"/><rect x="691" y="70" width="15" height="15" rx="2.5"/><rect x="637" y="88" width="15" height="15" rx="2.5"/><rect x="709" y="88" width="15" height="15" rx="2.5"/><rect x="637" y="106" width="15" height="15" rx="2.5"/><rect x="709" y="106" width="15" height="15" rx="2.5"/><rect x="637" y="124" width="15" height="15" rx="2.5"/><rect x="655" y="124" width="15" height="15" rx="2.5"/><rect x="673" y="124" width="15" height="15" rx="2.5"/><rect x="691" y="124" width="15" height="15" rx="2.5"/><rect x="637" y="142" width="15" height="15" rx="2.5"/><rect x="673" y="142" width="15" height="15" rx="2.5"/><rect x="637" y="160" width="15" height="15" rx="2.5"/><rect x="691" y="160" width="15" height="15" rx="2.5"/><rect x="637" y="178" width="15" height="15" rx="2.5"/><rect x="709" y="178" width="15" height="15" rx="2.5"/><rect x="763" y="70" width="15" height="15" rx="2.5"/><rect x="781" y="70" width="15" height="15" rx="2.5"/><rect x="799" y="70" width="15" height="15" rx="2.5"/><rect x="745" y="88" width="15" height="15" rx="2.5"/><rect x="817" y="88" width="15" height="15" rx="2.5"/><rect x="745" y="106" width="15" height="15" rx="2.5"/><rect x="817" y="106" width="15" height="15" rx="2.5"/><rect x="745" y="124" width="15" height="15" rx="2.5"/><rect x="763" y="124" width="15" height="15" rx="2.5"/><rect x="781" y="124" width="15" height="15" rx="2.5"/><rect x="799" y="124" width="15" height="15" rx="2.5"/><rect x="817" y="124" width="15" height="15" rx="2.5"/><rect x="745" y="142" width="15" height="15" rx="2.5"/><rect x="817" y="142" width="15" height="15" rx="2.5"/><rect x="745" y="160" width="15" height="15" rx="2.5"/><rect x="817" y="160" width="15" height="15" rx="2.5"/><rect x="745" y="178" width="15" height="15" rx="2.5"/><rect x="817" y="178" width="15" height="15" rx="2.5"/><rect x="853" y="70" width="15" height="15" rx="2.5"/><rect x="925" y="70" width="15" height="15" rx="2.5"/><rect x="853" y="88" width="15" height="15" rx="2.5"/><rect x="871" y="88" width="15" height="15" rx="2.5"/><rect x="907" y="88" width="15" height="15" rx="2.5"/><rect x="925" y="88" width="15" height="15" rx="2.5"/><rect x="853" y="106" width="15" height="15" rx="2.5"/><rect x="889" y="106" width="15" height="15" rx="2.5"/><rect x="925" y="106" width="15" height="15" rx="2.5"/><rect x="853" y="124" width="15" height="15" rx="2.5"/><rect x="889" y="124" width="15" height="15" rx="2.5"/><rect x="925" y="124" width="15" height="15" rx="2.5"/><rect x="853" y="142" width="15" height="15" rx="2.5"/><rect x="925" y="142" width="15" height="15" rx="2.5"/><rect x="853" y="160" width="15" height="15" rx="2.5"/><rect x="925" y="160" width="15" height="15" rx="2.5"/><rect x="853" y="178" width="15" height="15" rx="2.5"/><rect x="925" y="178" width="15" height="15" rx="2.5"/>
-  <rect x="439" y="236" width="15" height="15" rx="2.5"/><rect x="457" y="236" width="15" height="15" rx="2.5"/><rect x="475" y="236" width="15" height="15" rx="2.5"/><rect x="421" y="254" width="15" height="15" rx="2.5"/><rect x="493" y="254" width="15" height="15" rx="2.5"/><rect x="421" y="272" width="15" height="15" rx="2.5"/><rect x="493" y="272" width="15" height="15" rx="2.5"/><rect x="421" y="290" width="15" height="15" rx="2.5"/><rect x="493" y="290" width="15" height="15" rx="2.5"/><rect x="421" y="308" width="15" height="15" rx="2.5"/><rect x="493" y="308" width="15" height="15" rx="2.5"/><rect x="421" y="326" width="15" height="15" rx="2.5"/><rect x="493" y="326" width="15" height="15" rx="2.5"/><rect x="439" y="344" width="15" height="15" rx="2.5"/><rect x="457" y="344" width="15" height="15" rx="2.5"/><rect x="475" y="344" width="15" height="15" rx="2.5"/><rect x="547" y="236" width="15" height="15" rx="2.5"/><rect x="565" y="236" width="15" height="15" rx="2.5"/><rect x="583" y="236" width="15" height="15" rx="2.5"/><rect x="601" y="236" width="15" height="15" rx="2.5"/><rect x="529" y="254" width="15" height="15" rx="2.5"/><rect x="529" y="272" width="15" height="15" rx="2.5"/><rect x="547" y="290" width="15" height="15" rx="2.5"/><rect x="565" y="290" width="15" height="15" rx="2.5"/><rect x="583" y="290" width="15" height="15" rx="2.5"/><rect x="601" y="308" width="15" height="15" rx="2.5"/><rect x="601" y="326" width="15" height="15" rx="2.5"/><rect x="529" y="344" width="15" height="15" rx="2.5"/><rect x="547" y="344" width="15" height="15" rx="2.5"/><rect x="565" y="344" width="15" height="15" rx="2.5"/><rect x="583" y="344" width="15" height="15" rx="2.5"/>
-</g>
-
-<!-- the animated Braille compute wave -->
-<g filter="url(#glow)">
-  <text class="bw" style="animation-delay:0.000s" x="520" y="416" text-anchor="middle">⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣿⣿⣶⣶⣶⣤⣤⣤⣶⣶⣶⣶⣶⣶⣤⣀⣀⣀⣀⣤⣤⣶</text>
-  <text class="bw" style="animation-delay:-0.100s" x="520" y="416" text-anchor="middle">⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣶⣶</text>
-  <text class="bw" style="animation-delay:-0.200s" x="520" y="416" text-anchor="middle">⣶⣶⣿⣿⣿⣿⣶⣤⣤⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣿⣶⣤⣤⣤⣤⣤⣤⣶⣶⣶⣤⣤⣤⣀⣀⣤⣶⣶</text>
-  <text class="bw" style="animation-delay:-0.300s" x="520" y="416" text-anchor="middle">⣤⣶⣶⣿⣿⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣶</text>
-  <text class="bw" style="animation-delay:-0.400s" x="520" y="416" text-anchor="middle">⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶</text>
-  <text class="bw" style="animation-delay:-0.500s" x="520" y="416" text-anchor="middle">⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣿⣶⣶⣶⣤⣤⣤⣶</text>
-  <text class="bw" style="animation-delay:-0.600s" x="520" y="416" text-anchor="middle">⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣤⣤⣶⣿⣿⣿⣿⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤</text>
-  <text class="bw" style="animation-delay:-0.700s" x="520" y="416" text-anchor="middle">⣀⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣿⣿⣿⣿⣶⣤⣤⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣤⣶⣿⣿⣿⣿⣶⣤⣤⣤⣤</text>
-  <text class="bw" style="animation-delay:-0.800s" x="520" y="416" text-anchor="middle">⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣿⣿⣿⣿⣶⣤⣤⣀⣀</text>
-  <text class="bw" style="animation-delay:-0.900s" x="520" y="416" text-anchor="middle">⣀⣀⣀⣤⣤⣶⣶⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣶⣶⣤⣤⣀⣀</text>
-  <text class="bw" style="animation-delay:-1.000s" x="520" y="416" text-anchor="middle">⣤⣀⣀⣤⣤⣶⣿⣿⣿⣿⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀</text>
-  <text class="bw" style="animation-delay:-1.100s" x="520" y="416" text-anchor="middle">⣤⣤⣤⣤⣤⣶⣿⣿⣿⣿⣶⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣤⣤⣶⣿⣿⣿⣿⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀</text>
-  <text class="bw" style="animation-delay:-1.200s" x="520" y="416" text-anchor="middle">⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣿⣿⣿⣿⣶⣶⣤⣤⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤</text>
-  <text class="bw" style="animation-delay:-1.300s" x="520" y="416" text-anchor="middle">⣶⣶⣤⣤⣤⣶⣶⣶⣿⣿⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤</text>
-  <text class="bw" style="animation-delay:-1.400s" x="520" y="416" text-anchor="middle">⣶⣶⣶⣤⣤⣤⣶⣶⣶⣶⣶⣤⣤⣀⣀⣀⣀⣤⣶⣶⣿⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣶⣶⣤⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤</text>
-  <text class="bw" style="animation-delay:-1.500s" x="520" y="416" text-anchor="middle">⣿⣶⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣀⣀⣤⣶⣶⣿⣿⣶⣶</text>
-  <text class="bw" style="animation-delay:-1.600s" x="520" y="416" text-anchor="middle">⣿⣶⣶⣤⣤⣀⣤⣤⣤⣶⣶⣶⣤⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶⣿⣿⣿⣶</text>
-  <text class="bw" style="animation-delay:-1.700s" x="520" y="416" text-anchor="middle">⣿⣶⣶⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶</text>
-  <text class="bw" style="animation-delay:-1.800s" x="520" y="416" text-anchor="middle">⣶⣶⣶⣤⣀⣀⣀⣀⣤⣶⣶⣶⣶⣶⣶⣤⣤⣤⣶⣶⣶⣿⣿⣶⣶⣤⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶</text>
-  <text class="bw" style="animation-delay:-1.900s" x="520" y="416" text-anchor="middle">⣶⣶⣶⣤⣀⣀⣀⣀⣤⣶⣶⣿⣿⣶⣶⣶⣤⣤⣤⣶⣶⣶⣶⣶⣶⣤⣀⣀⣀⣀⣤⣶⣶⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣶</text>
-  <text class="bw" style="animation-delay:-2.000s" x="520" y="416" text-anchor="middle">⣶⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣤⣶⣶⣶⣶⣤⣤⣀⣀⣀⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣶</text>
-  <text class="bw" style="animation-delay:-2.100s" x="520" y="416" text-anchor="middle">⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣤⣤⣶⣶⣶⣤⣤⣤⣀⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣤⣤⣤⣶⣶⣶</text>
-  <text class="bw" style="animation-delay:-2.200s" x="520" y="416" text-anchor="middle">⣤⣶⣶⣶⣶⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶⣶⣶⣤⣤⣤⣤⣤⣶⣶⣿⣿⣿⣶⣶⣤⣤⣀⣀⣤⣤⣶⣶</text>
-  <text class="bw" style="animation-delay:-2.300s" x="520" y="416" text-anchor="middle">⣤⣶⣶⣿⣶⣶⣤⣤⣤⣤⣶⣶⣶⣿⣶⣶⣤⣀⣀⣀⣀⣤⣤⣶⣶⣶⣶⣶⣤⣤⣤⣶⣶⣶⣿⣿⣶⣶⣤⣀⣀⣀⣀⣤⣶⣶</text>
-  </g>
-
-<rect x="60" y="440" width="920" height="2" fill="url(#holo)" opacity="0.30"/>
-
-<rect width="1040" height="540" rx="22" fill="url(#scan)"/>
-
-<text x="520" y="496" text-anchor="middle"
-  font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="20" letter-spacing="6" fill="#9fb4d8">
-  YOUR PERSONAL INTERNET SUPERCOMPUTER</text>
-<text x="520" y="522" text-anchor="middle"
-  font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14" letter-spacing="9" fill="#6f86ad">
-  FAST &#183; FREE &#183; PRIVATE &#183; SELF&#8202;VERIFYING</text>
 </svg>
