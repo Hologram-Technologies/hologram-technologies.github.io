@@ -1,0 +1,26 @@
+.skin-chrome{font-family:'SF Pro Text','Helvetica Neue',system-ui,sans-serif;font-size:12px;color:#1d1d1f}
+.skin-chrome .bs{background:rgba(248,249,251,.82);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);border-bottom:1px solid #d6d8dc}
+.skin-chrome .bs-menubar{display:flex;align-items:center;gap:2px;padding:5px 10px}
+.skin-chrome .bs-menu{font:inherit;font-weight:500;background:transparent;border:0;padding:3px 10px;border-radius:6px;cursor:default}
+.skin-chrome .bs-menu:hover{background:#0a84ff;color:#fff}
+.skin-chrome .bs-throb{margin-left:auto;width:26px;height:26px;display:grid;place-items:center}
+.skin-chrome .bs-throb svg{width:22px;height:22px}
+.skin-chrome .bs-throb .bss{transform-origin:50% 50%}
+.skin-chrome .bs-throb.spinning .bss{animation:bs-spin 1s steps(12) infinite}
+@keyframes bs-spin{to{transform:rotate(360deg)}}
+.skin-chrome .bs-toolbar{display:flex;align-items:center;gap:7px;padding:5px 11px}
+.skin-chrome .bs-btn{display:grid;place-items:center;width:30px;height:26px;background:transparent;border:0;border-radius:7px;cursor:default}
+.skin-chrome .bs-btn:hover{background:#00000010}
+.skin-chrome .bs-btn[disabled]{opacity:.3}
+.skin-chrome .bs-btn .ico svg{width:17px;height:17px}
+.skin-chrome .bs-fields{display:flex;align-items:center;padding:0 11px 9px}
+.skin-chrome .bs-field{display:flex;align-items:center;gap:8px;flex:1}
+.skin-chrome .bs-flabel{display:none}
+.skin-chrome .bs-input{flex:1;text-align:center;font:12px 'SF Pro Text',sans-serif;background:#ffffffcc;border:1px solid #d0d2d6;border-radius:9px;padding:5px 14px;outline:0}
+.skin-chrome .bs-input:focus{border-color:#0a84ff;box-shadow:0 0 0 3px #0a84ff33}
+.skin-chrome .bs-go{font:inherit;color:#fff;padding:5px 14px;border:0;border-radius:9px;background:#0a84ff}
+.skin-chrome .bs-status{display:flex;align-items:center;gap:8px;padding:4px 11px;background:rgba(244,245,247,.8);backdrop-filter:blur(10px);border-top:1px solid #d6d8dc}
+.skin-chrome .bs-status-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skin-chrome .bs-security[data-state="secure"]::before{content:"\1F512"}
+.skin-chrome .bs-meter{width:130px;height:6px;border-radius:3px;overflow:hidden;background:#e0e2e6}
+.skin-chrome .bs-meter-fill{display:block;height:100%;width:0;background:#0a84ff}

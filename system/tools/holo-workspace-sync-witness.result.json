@@ -1,0 +1,57 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "a bundle of one holospace contains NONE of another holospace's data — no window id, app bytes, appState, board widget, or address (isolation; selective sharing anchored to one instance)",
+    "the bundle carries no operator / device / timestamp / global settings and is not the whole-session shape — it leaks nothing about who or which machine made it",
+    "an authored app's own bytes (srcdoc/content) AND its saved appState survive the round trip byte-for-byte, so it runs fully in the imported holospace; a built-in app travels linked by its κ",
+    "analyzeHolospace honestly counts self-contained vs built-in (linked κ) vs web surfaces",
+    "the same holospace seals to the same root CID (content address, no nonce) — dedup",
+    "seal → restore re-derives byte-for-byte (Law L5) across all three destinations: Local-device CAR, Sovereign-cloud token recognition, and Share-as-a-link URL fragment",
+    "a tampered block is refused → null; an empty source returns a transport-honest null",
+    "two distinct holospaces seal to distinct CIDs and never cross; no network egress on any path (Law L4)"
+  ],
+  "checks": {
+    "isolation-no-other-holospace-data": true,
+    "isolation-only-this-world": true,
+    "isolation-only-this-board": true,
+    "shareable-no-operator": true,
+    "shareable-no-device": true,
+    "shareable-no-timestamp": true,
+    "shareable-not-session": true,
+    "analysis-counts": true,
+    "seal-returns-cid": true,
+    "dedup-same-holospace-same-cid": true,
+    "receipt-shape": true,
+    "local-car-round-trip": true,
+    "authored-app-bytes-travel": true,
+    "app-state-travels": true,
+    "built-in-app-linked": true,
+    "token-recognized": true,
+    "link-not-a-token": true,
+    "link-payload-url-safe": true,
+    "link-decode-from-url": true,
+    "link-round-trip": true,
+    "link-decode-garbage-null": true,
+    "L5-tamper-refused": true,
+    "transport-honest-null": true,
+    "distinct-holospaces-distinct-cid": true,
+    "b-restores-b-only": true,
+    "no-network-egress": true
+  },
+  "failed": [],
+  "authority": "W3C PROV-O · W3C EARL 1.0 · IETF RFC 8785 (JCS) · FIPS 180-4 (SHA-256) · IPLD CIDv1 / UnixFS / CAR · UOR-ADDR · Laws L1/L4/L5",
+  "sample": {
+    "rootCidA": "bafybeicb5w7ifomrza5pcskedgj2n46as5vx57qipzhihbkwphmaxihiba",
+    "rootCidB": "bafybeiew3fmiglcbx7hojteusivzg3glbm3r6a3z5glt7gdslqomk2nenu",
+    "analysisA": {
+      "surfaces": 3,
+      "selfContained": 1,
+      "linkedApp": 1,
+      "web": 1,
+      "widgets": 1,
+      "withState": 1
+    },
+    "carBytes": 1053
+  }
+}

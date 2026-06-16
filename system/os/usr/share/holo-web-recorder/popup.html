@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  :root{--bg:#05070d;--panel:#0c111b;--line:#1d2840;--ink:#e8eef9;--dim:#7d8aa6;--good:#34d399;--vio:#a78bfa;--warn:#fbbf24;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  *{box-sizing:border-box} body{width:320px;margin:0;background:radial-gradient(420px 240px at 50% -10%,#0b1426,var(--bg) 70%);color:var(--ink);font:13px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding:14px}
+  h1{font-size:14px;font-weight:660;margin:0 0 2px;letter-spacing:-.01em} .sub{color:var(--dim);font-size:11px;margin:0 0 12px}
+  .url{font:10.5px var(--mono);color:#8ea6cf;word-break:break-all;background:#0a1120;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:0 0 10px;min-height:28px}
+  button{width:100%;border:0;border-radius:10px;padding:10px;font:600 13px system-ui;cursor:pointer;transition:.12s}
+  #toggle{background:var(--vio);color:#0a0f1a} #toggle.on{background:#1c2233;color:var(--good);border:1px solid #1f4f3f}
+  .note{display:flex;gap:7px;align-items:flex-start;font-size:11px;color:var(--dim);margin:10px 0 0;line-height:1.4} .note b{color:var(--ink);font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0 0}
+  .cell{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 9px} .cell .k{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.04em} .cell .v{font:600 16px var(--mono);margin-top:2px} .v small{font-size:11px;color:var(--dim);font-weight:400}
+  .o1{grid-column:1/3;display:flex;align-items:center;gap:10px;background:#0a1322;border-color:#3b2f63} .o1 .big{font:700 17px var(--mono);color:var(--vio)} .o1 .lbl{color:var(--dim);font-size:11px;flex:1}
+  .good{color:var(--good)} .vio{color:var(--vio)} .warn{color:var(--warn)}
+  .foot{color:#4a5573;font-size:10px;margin-top:11px;line-height:1.5}
+</style></head>
+<body>
+  <h1>Hologram Web Recorder</h1>
+  <p class="sub">κ-anchor your <b style="color:var(--ink)">real</b> browsing · Spike B</p>
+  <div class="url" id="url">— not attached —</div>
+  <button id="toggle">Attach to this tab</button>
+  <div class="note"><span class="vio">◆</span><span>Pages run at their <b>real origin</b> in your real session — cookies, login, passkeys, WebSockets all native. The extension only <b>observes + mints + caches</b>.</span></div>
+
+  <div class="grid" id="stats" style="display:none">
+    <div class="cell o1"><span class="big" id="speedup">—</span><span class="lbl">O(1) re-access<br>cold <span id="cold">0</span>ms → warm <span id="warm">0</span>ms</span></div>
+    <div class="cell"><div class="k">κ-objects</div><div class="v vio" id="kobjects">0</div></div>
+    <div class="cell"><div class="k">cache hits</div><div class="v good" id="hits">0 <small>O(1)</small></div></div>
+    <div class="cell"><div class="k">minted</div><div class="v" id="minted">0</div></div>
+    <div class="cell"><div class="k">deduped</div><div class="v warn" id="dedup">0</div></div>
+    <div class="cell"><div class="k">served from κ</div><div class="v good" id="bcache">0<small>KB</small></div></div>
+    <div class="cell"><div class="k">from network</div><div class="v" id="bnet">0<small>KB</small></div></div>
+  </div>
+  <div class="foot">A "<i>… is debugging this browser</i>" banner appears while attached — that's the real CDP. Reload the page to watch re-fetches serve from the κ-store at memory speed.</div>
+  <script src="popup.js"></script>
+</body></html>

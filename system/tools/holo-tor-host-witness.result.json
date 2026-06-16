@@ -1,0 +1,23 @@
+{
+  "spec": "Holo's host provisions managed Tor for zero-install onion browsing (the Brave model) WITHOUT ever running an unverified binary: the Tor executable is re-derived against its pinned κ before launch (Law L5), an already-running Tor is reused, a tampered/unpinned/unspawnable case refuses honestly, and the receipt states a real circuit with anonymityGrade best-effort — never overstating anonymity",
+  "authority": "NIST FIPS-180-4 SHA-256 · holospaces Laws L1/L5 · the Tor bootstrap protocol",
+  "witnessed": true,
+  "covers": [
+    "reuse-running-tor",
+    "refuse-unpinned",
+    "refuse-tampered-L5",
+    "launch-verified",
+    "bootstrap-gate",
+    "static-no-spawn-honest",
+    "honest-anonymity-grade"
+  ],
+  "checks": {
+    "reuseRunningTor": true,
+    "refuseNoPin": true,
+    "refuseTampered": true,
+    "launchVerified": true,
+    "bootstrapGate": true,
+    "staticNoSpawn": true,
+    "honestGrade": true
+  }
+}

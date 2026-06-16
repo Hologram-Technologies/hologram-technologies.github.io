@@ -1,0 +1,148 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "win98",
+  "holo:title": "Windows 98",
+  "holo:fidelitySource": "Windows 98 desktop + classic chrome (re-authored as web chrome)",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:61827a9a76f4034daf35c33a2001d83cf9ee832fe99d8b543189a7e76125e57e",
+    "css": "did:holo:sha256:0b84567fbe7511ac0def1e318de065e79f39715c5cee9e9e709fcd3edf3dab9d"
+  },
+  "holo:shellCss": "did:holo:sha256:7cd3dc675d3bbe80ce93e913445e2717a1e844188c6fd2b73e5280841776c4b6",
+  "holo:glyphs": {
+    "back": "did:holo:sha256:ad5095d67f9b0534dac69994fe252a3270f98dc43842b4834353603c6de44c51",
+    "forward": "did:holo:sha256:cb4386dd6d80a37cb3f0718bc0a6b67ed65110c7999d6f95f44ce68e4452c975",
+    "home": "did:holo:sha256:3790af240018ee94415c9a646a07e648ca2261cbd25282232a7371117a8033e5",
+    "reload": "did:holo:sha256:c33d81b8c441d304dec67910609a73a4edc280d229220b027fbd7bba5db5b9c0",
+    "open": "did:holo:sha256:a0c46788851c5e1e28fad476580848a4d983e4d328b930cd9c82c669c920e1a4",
+    "stop": "did:holo:sha256:dca20a37b95e2d86a4b1983ff27a26275faee4acd5a4360cb66c0b82dbea9c21",
+    "newwin": "did:holo:sha256:32e75aec697e6d3c5ae9e0baa6329b4baa04c55e95bb89e0998ef42aca126a64"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:f3143064d13f8bfd44d23e2585579a2988b61c0d298e9256361c22c8624a2b2d"
+  },
+  "holo:palette": {
+    "chrome": "#c0c0c0",
+    "bevelLight": "#ffffff",
+    "bevelDark": "#808080",
+    "linkUnvisited": "#0000ee",
+    "linkVisited": "#551a8b",
+    "text": "#000000",
+    "statusBg": "#c0c0c0"
+  },
+  "holo:font": {
+    "ui": "'MS Sans Serif', Tahoma, 'Segoe UI', sans-serif",
+    "doc": "'Times New Roman', Times, serif"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "File",
+        "items": [
+          {
+            "label": "New",
+            "action": "tab.new"
+          },
+          {
+            "label": "Open…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Close",
+            "action": "tab.close"
+          },
+          {
+            "label": "Print…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Edit",
+        "items": [
+          {
+            "label": "Cut",
+            "action": "noop"
+          },
+          {
+            "label": "Copy",
+            "action": "noop"
+          },
+          {
+            "label": "Paste",
+            "action": "noop"
+          },
+          {
+            "label": "Find (on this page)…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "View",
+        "items": [
+          {
+            "label": "Refresh",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Stop",
+            "action": "nav.stop"
+          },
+          {
+            "label": "Source",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Go",
+        "items": [
+          {
+            "label": "Back",
+            "action": "nav.back"
+          },
+          {
+            "label": "Forward",
+            "action": "nav.forward"
+          },
+          {
+            "label": "Home Page",
+            "action": "nav.home"
+          }
+        ]
+      },
+      {
+        "label": "Favorites",
+        "items": [
+          {
+            "label": "Add to Favorites…",
+            "action": "noop"
+          },
+          {
+            "label": "Organize Favorites…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Help",
+        "items": [
+          {
+            "label": "About Windows 98",
+            "action": "about"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:a41ba5eb2ef818f2518de7529e9407d16178896a20aa8237d66c29ac82e10915"
+}

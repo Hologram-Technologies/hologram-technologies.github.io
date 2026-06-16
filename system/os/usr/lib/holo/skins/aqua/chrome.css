@@ -1,0 +1,26 @@
+.skin-chrome{font-family:'Lucida Grande','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#0a0a0a}
+.skin-chrome .aq{background:linear-gradient(#fdfefe,#dfe7f1);background-image:repeating-linear-gradient(#ffffff,#ffffff 1px,#eef3fb 1px,#eef3fb 4px)}
+.skin-chrome .aq-menubar{display:flex;align-items:center;gap:2px;padding:3px 8px;background:linear-gradient(#ffffff,#e6edf6);border-bottom:1px solid #c2cfdf}
+.skin-chrome .aq-menu{font:inherit;background:transparent;border:0;padding:2px 10px;border-radius:5px;cursor:default}
+.skin-chrome .aq-menu:hover{background:linear-gradient(#4f9bf0,#1f6fe0);color:#fff}
+.skin-chrome .aq-throb{margin-left:auto;width:28px;height:28px;display:grid;place-items:center}
+.skin-chrome .aq-throb svg{width:24px;height:24px}
+.skin-chrome .aq-throb .ball{transform-origin:50% 50%}
+.skin-chrome .aq-throb.spinning .ball{animation:aq-spin 1s linear infinite}
+@keyframes aq-spin{to{transform:rotate(360deg)}}
+.skin-chrome .aq-toolbar{display:flex;align-items:center;gap:6px;padding:6px 9px}
+.skin-chrome .aq-btn{display:grid;place-items:center;width:32px;height:26px;border:1px solid #9bb0c8;border-radius:13px;background:linear-gradient(#ffffff,#dbe5f1);cursor:default}
+.skin-chrome .aq-btn:hover{background:linear-gradient(#eef5ff,#cfe0f5)}
+.skin-chrome .aq-btn:active{background:linear-gradient(#4f9bf0,#1f6fe0)}
+.skin-chrome .aq-btn[disabled]{opacity:.4}
+.skin-chrome .aq-btn .ico svg{width:16px;height:16px}
+.skin-chrome .aq-fields{display:flex;align-items:center;padding:2px 9px 8px}
+.skin-chrome .aq-field{display:flex;align-items:center;gap:7px;flex:1}
+.skin-chrome .aq-flabel{color:#566}
+.skin-chrome .aq-input{flex:1;font:12px 'Lucida Grande',sans-serif;background:#fff;border:1px solid #9bb0c8;border-radius:11px;padding:3px 11px;outline:0;box-shadow:inset 0 1px 2px #0001}
+.skin-chrome .aq-go{font:inherit;color:#fff;padding:3px 15px;border:1px solid #1f6fe0;border-radius:13px;background:linear-gradient(#5fa8f5,#1f6fe0)}
+.skin-chrome .aq-status{display:flex;align-items:center;gap:8px;padding:3px 9px;background:linear-gradient(#f2f6fb,#dfe7f1);border-top:1px solid #c2cfdf}
+.skin-chrome .aq-status-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skin-chrome .aq-security[data-state="secure"]::before{content:"\1F512"}
+.skin-chrome .aq-meter{width:130px;height:11px;border:1px solid #9bb0c8;border-radius:6px;overflow:hidden;background:#fff}
+.skin-chrome .aq-meter-fill{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,#1f6fe0 0 8px,#5fa8f5 8px 16px)}

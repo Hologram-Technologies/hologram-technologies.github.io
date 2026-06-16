@@ -23,14 +23,27 @@
 // Module service worker → it imports the SAME engine the page + witness + MCP tools use.
 
 import { kappaOf, verifyKappa } from "./_shared/holo-browser.js";
+import { createBlake3 } from "./_shared/holo-blake3.mjs";   // incremental hasher → mint the κ AS bytes stream (no tail pass)
 import { mimeByExt } from "./_shared/holo-ipfs.js";
 import { ruleMatches } from "./_shared/holo-crx.js";
 import { contentScriptTags } from "./_shared/holo-ext.js";
 
-const KSTORE = "holo-browser-kappa-v1";              // Cache API: minted/owned blocks, keyed by κ
+// The UNIFIED κ-substrate. Web bytes mint into the SAME content-addressed store the OS uses
+// (holo-kappa-v2, keyed <base>.holo/blake3/<κ>) — NOT a siloed browser cache. So a web font / JS-lib that
+// is byte-identical to one an app ships becomes ONE κ: minted once, then served network-free to every site
+// AND app (cross-OS, cross-site dedup). Two tiers make re-access O(1): L1 an in-memory hot map (no async),
+// L2 the durable Cache API shared with holo-fhs-sw.js. This IS the L1/L2 O(1) compute path, on the web seam.
+const KSTORE = "holo-kappa-v2";                      // the OS κ-store namespace (shared, not siloed)
 const VIEW = new URL(self.registration.scope).pathname.replace(/\/?$/, "/");   // <base>webview/
 const APP_BASE = VIEW.replace(/webview\/$/, "");     // <base>
 const WEB_PROXY = APP_BASE + "web?url=";             // holo-serve's dumb-pipe live-web proxy
+// the user-selected Tor transport (b64url JSON {kind,endpoint}), posted by the shell. A .onion host cannot
+// be fetched directly — the proxy routes it through this transport; empty → the proxy answers an honest 501.
+let ONION_TP = "";
+function proxyUrl(realUrl) {
+  let onion = ""; try { if (ONION_TP && /\.onion$/i.test(new URL(realUrl).hostname)) onion = "&onion=" + encodeURIComponent(ONION_TP); } catch {}
+  return WEB_PROXY + encodeURIComponent(realUrl) + onion;
+}
 
 // ── installed κ-addressed extensions, projected onto the seam (the page posts seamBundle() on any
 // install/enable/disable). browser-sw.js IS Chromium's URLLoaderFactory over the κ-store, so MV3's
@@ -52,13 +65,23 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 // ── base64url for the web token (isomorphic; no Buffer in a SW) ──────────────────────
 const enc = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const dec = (s) => { const t = s.replace(/-/g, "+").replace(/_/g, "/"); return decodeURIComponent(escape(atob(t.padEnd(Math.ceil(t.length / 4) * 4, "=")))); };
+// join a list of Uint8Array chunks into one (for minting the original bytes after streaming).
+const cat = (arr) => { let n = 0; for (const a of arr) n += a.byteLength; const o = new Uint8Array(n); let k = 0; for (const a of arr) { o.set(a, k); k += a.byteLength; } return o; };
 
-// ── κ-store over the Cache API (shared with the page; both are same-origin) ──────────
+// ── κ-store over the unified substrate (L1 hot map → L2 Cache API; shared with the OS + every app) ──
+const kKey = (kappa) => APP_BASE + ".holo/blake3/" + kappa;   // SAME key scheme as holo-fhs-sw.js → one store
+const L1 = new Map();                                          // L1: hot κ → bytes (this session) — O(1), no await
+const URLK = new Map();                                        // immutable-subresource memo: realUrl → κ (skip re-fetch)
 async function kPut(kappa, bytes, meta = {}) {
-  const cache = await caches.open(KSTORE);
-  await cache.put("/__k/" + kappa, new Response(bytes, { headers: { "content-type": meta.contentType || "application/octet-stream", "x-holo-source": meta.source || "" } }));
+  L1.set(kappa, bytes);                                        // L1 first → re-access is instant
+  const cache = await caches.open(KSTORE);                     // L2: durable, shared (cross-OS dedup)
+  await cache.put(kKey(kappa), new Response(bytes, { headers: { "content-type": meta.contentType || "application/octet-stream", "x-holo-source": meta.source || "", "x-holo-cid": kappa, "x-holo-verified": "L5" } }));
 }
-async function kGet(kappa) { const cache = await caches.open(KSTORE); const r = await cache.match("/__k/" + kappa); return r ? new Uint8Array(await r.arrayBuffer()) : null; }
+async function kGet(kappa) {
+  const hot = L1.get(kappa); if (hot) return hot;              // L1 hit — O(1)
+  const cache = await caches.open(KSTORE); const r = await cache.match(kKey(kappa));
+  if (!r) return null; const bytes = new Uint8Array(await r.arrayBuffer()); L1.set(kappa, bytes); return bytes;   // promote L2 → L1
+}
 
 // tell the page what committed (κ, mint/verify state) so the omnibox HUD reflects the load.
 async function broadcast(msg) { for (const c of await self.clients.matchAll({ includeUncontrolled: true })) c.postMessage(msg); }
@@ -72,21 +95,46 @@ async function broadcast(msg) { for (const c of await self.clients.matchAll({ in
 //    real cross-origin URL would escape (ERR_NAME_NOT_RESOLVED); routing clicks back through
 //    the scope keeps every page content-addressed. (JS-driven navigation is a known caveat.)
 // We do NOT neutralize scripts — the iframe is sandboxed by the page; this is a browser.
+// autoSealScript() — the COMMONS leg, live. After the page loads, seal it into a self-contained IPFS κ-DAG
+// snapshot (holo-page-sealer.sealCurrentPage) and publish the blocks to the LOCAL κ-store, so re-serving from
+// /ipfs/<rootCid>/ is zero-egress. Local-only by default (nothing leaves the device); broadcasts the addr so
+// the shell can show "sealed to your commons" + offer to share it publicly. Ephemeral → never re-derived.
+function autoSealScript() {
+  const src = APP_BASE + "sbin/holo-page-sealer.mjs";
+  return "<script data-holo-ephemeral>(function(){var go=async function(){try{"
+    + "var m=await import(" + JSON.stringify(src) + ");var r=await m.sealCurrentPage({});"
+    + "if(r){try{var ttl=(document.title||'').slice(0,200);var bt=((document.body&&document.body.innerText)||'').replace(/\\s+/g,' ').trim().slice(0,6000);parent.postMessage({type:'holo-sealed',addr:r.addr,source:r.source,assets:(r.assets||[]).length,title:ttl,text:bt},'*');}catch(e){}}"
+    + "}catch(e){}};if(document.readyState==='complete'){setTimeout(go,1500);}else{addEventListener('load',function(){setTimeout(go,1500);},{once:true});}})();</script>";
+}
 function rewriteHtml(text, realUrl, kappa) {
-  const SELF = self.location.origin;
-  const wrap = (href) => { try { const abs = new URL(href, realUrl).href; return /^https?:/i.test(abs) ? SELF + VIEW + "w/" + enc(abs) : href; } catch { return href; } };
-  // <a ... href="X"> → in-scope wrapper (skip in-page anchors + non-navigational schemes)
-  text = text.replace(/(<a\b[^>]*?\shref\s*=\s*)(["'])(.*?)\2/gi, (m, pre, q, href) => (/^(#|javascript:|mailto:|tel:|data:|blob:)/i.test(href.trim()) ? m : pre + q + wrap(href) + q));
-  text = text.replace(/(<form\b[^>]*?\saction\s*=\s*)(["'])(.*?)\2/gi, (m, pre, q, act) => pre + q + wrap(act) + q);
+  // FAITHFUL: we do NOT rewrite the page's <a>/<form> (that mutates the original code). The DOM stays
+  // byte-identical to the origin; navigation is captured at the EVENT layer by navInterceptor() below —
+  // more robust than the regex AND than relying on the SW to intercept cross-origin navigations (it does
+  // not, reliably). κ is minted over the ORIGINAL bytes (x-holo-cid = source), so the injection rides only
+  // the rendered VIEW (identical discipline to serveKappa's content-script transform).
   const inj = injectContentScripts(realUrl);          // matching MV3 content scripts (DNR's sibling)
   const stamp = `<base href="${realUrl.replace(/"/g, "&quot;")}">`
     + `<meta name="holo-source" content="${realUrl.replace(/"/g, "&quot;")}">`
     + `<meta name="holo-kappa" content="${kappa}">`
+    + navInterceptor()                                 // event-layer nav capture (clicks + GET submits → in-scope)
+    + autoSealScript()                                 // commons leg: seal this page → local κ-snapshot (zero-egress re-serve)
     + inj.head;                                        // document_start scripts + content-script css
   if (inj.tail) text = /<\/body>/i.test(text) ? text.replace(/<\/body>/i, inj.tail + "</body>") : text + inj.tail;
   if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, (h) => h + stamp);
   if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, (h) => h + "<head>" + stamp + "</head>");
   return stamp + text;
+}
+// navInterceptor() — keep navigation in the content-addressed renderer WITHOUT touching the page's DOM.
+// <base> makes relative hrefs resolve to realUrl; this captures link clicks + GET form submits at the event
+// layer and routes them to /webview/w/<enc>. Ephemeral (data-holo-ephemeral) → never enters re-derivation.
+function navInterceptor() {
+  return "<script data-holo-ephemeral>(function(){try{"
+    + "var S=" + JSON.stringify(self.location.origin) + ",V=" + JSON.stringify(VIEW) + ";"
+    + "var E=function(s){return btoa(unescape(encodeURIComponent(s))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');};"
+    + "var W=function(u){try{var a=new URL(u,document.baseURI);return /^https?:/.test(a.protocol)?S+V+'w/'+E(a.href):null;}catch(e){return null;}};"
+    + "addEventListener('click',function(e){if(e.defaultPrevented||e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a)return;if(a.target&&a.target!=='_self')return;var h=a.getAttribute('href');if(!h||/^(#|javascript:|mailto:|tel:|data:|blob:)/i.test(h.trim()))return;var t=W(h);if(t){e.preventDefault();location.assign(t);}},true);"
+    + "addEventListener('submit',function(e){var f=e.target;if(!f||(f.method&&f.method.toLowerCase()!=='get'))return;try{var u=new URL(f.getAttribute('action')||location.href,document.baseURI);new FormData(f).forEach(function(v,k){u.searchParams.append(k,v);});var t=W(u.href);if(t){e.preventDefault();location.assign(t);}}catch(_){}},true);"
+    + "}catch(e){}})();</script>";
 }
 
 // ── content_scripts — inline the enabled scripts that match this page (run_at honoured) ──────────
@@ -145,31 +193,71 @@ async function serveWeb(realUrl) {
   if (act.type === "block") { await broadcast({ type: "ext-blocked", url: realUrl, extId: act.extId, ruleId: act.ruleId, resourceType: "main_frame" }); return blockedPage(realUrl, act); }
   if (act.type === "redirect" && act.redirect && act.redirect.url) return Response.redirect(new URL(VIEW + "w/" + enc(act.redirect.url), self.location.origin).href, 302);
   let r;
-  try { r = await fetch(WEB_PROXY + encodeURIComponent(realUrl), { redirect: "follow" }); }
+  try { r = await fetch(proxyUrl(realUrl), { redirect: "follow" }); }
   catch (e) { return refused("proxy fetch failed: " + (e.message || e)); }
   if (!r.ok) return new Response("Holo Browser: upstream " + r.status + " for " + realUrl, { status: r.status === 0 ? 502 : r.status, headers: { "content-type": "text/plain" } });
-  let bytes = new Uint8Array(await r.arrayBuffer());
-  const kappa = kappaOf(bytes);                                  // the mint IS the re-derivation
   const ctype = (r.headers.get("content-type") || mimeByExt(realUrl) || "text/html; charset=utf-8");
-  await kPut(kappa, bytes, { contentType: ctype, source: realUrl });
-  if (!verifyKappa(kappa, bytes)) return refused("mint re-derivation failed for " + realUrl);
-  let body = bytes;
-  if (/text\/html/i.test(ctype)) body = new TextEncoder().encode(rewriteHtml(new TextDecoder().decode(bytes), realUrl, kappa));
-  await broadcast({ type: "committed", view: VIEW + "w/" + enc(realUrl), kappa, minted: true, verified: true, scheme: new URL(realUrl).protocol.replace(":", ""), contentType: ctype, source: realUrl });
-  return new Response(body, { status: 200, headers: KHDR(kappa, ctype) });
+  const scheme = new URL(realUrl).protocol.replace(":", "");
+  const commit = (kappa) => broadcast({ type: "committed", view: VIEW + "w/" + enc(realUrl), kappa, minted: true, verified: true, scheme, contentType: ctype, source: realUrl });
+
+  // NON-HTML doc (a direct image/pdf/… URL) or no readable stream → stream raw (or buffer), mint at the tail.
+  if (!/text\/html/i.test(ctype) || !r.body) {
+    if (!r.body) { const bytes = new Uint8Array(await r.arrayBuffer()); const kappa = kappaOf(bytes); await kPut(kappa, bytes, { contentType: ctype, source: realUrl }); await commit(kappa); return new Response(bytes, { status: 200, headers: KHDR(kappa, ctype) }); }
+    const raw = []; const h = createBlake3();
+    const ts = new TransformStream({ transform(c, ctrl) { raw.push(c); h.update(c); ctrl.enqueue(c); }, async flush() { const b = cat(raw); const kappa = h.hex(); await kPut(kappa, b, { contentType: ctype, source: realUrl }); await commit(kappa); } });
+    return new Response(r.body.pipeThrough(ts), { status: 200, headers: { "content-type": ctype, ...COEPH, "cache-control": "no-store", "x-holo-verified": "L5-stream" } });
+  }
+
+  // HTML: STREAM with head-injection. Buffer only until the <head>/<html> insertion point is found (the
+  // first chunk, normally), splice <base>+interceptor there, emit it, then stream the rest straight through.
+  // FAITHFUL: κ is minted over the ORIGINAL bytes (raw, pre-injection) at the tail — the injection rides only
+  // the rendered view. First paint starts on the first chunk instead of after the whole download.
+  const inj = injectContentScripts(realUrl);
+  const headInject = `<base href="${realUrl.replace(/"/g, "&quot;")}"><meta name="holo-source" content="${realUrl.replace(/"/g, "&quot;")}">` + navInterceptor() + inj.head;
+  const splice = (text) => {
+    let m = /<head[^>]*>/i.exec(text); if (m) return text.slice(0, m.index + m[0].length) + headInject + text.slice(m.index + m[0].length);
+    m = /<html[^>]*>/i.exec(text); if (m) return text.slice(0, m.index + m[0].length) + "<head>" + headInject + "</head>" + text.slice(m.index + m[0].length);
+    return headInject + text;
+  };
+  const td = new TextDecoder("utf-8"), te = new TextEncoder();
+  const raw = []; const h = createBlake3(); let phase = "buffer", pre = [], preLen = 0;
+  const ts = new TransformStream({
+    transform(chunk, ctrl) {
+      raw.push(chunk); h.update(chunk);                 // mint over the ORIGINAL bytes, incrementally
+      if (phase === "stream") { ctrl.enqueue(chunk); return; }
+      pre.push(chunk); preLen += chunk.byteLength;
+      const text = td.decode(cat(pre));
+      if (/<head[^>]*>/i.test(text) || /<html[^>]*>/i.test(text) || preLen >= 65536) { ctrl.enqueue(te.encode(splice(text))); phase = "stream"; pre = null; }
+    },
+    async flush(ctrl) {
+      if (phase === "buffer") ctrl.enqueue(te.encode(splice(td.decode(cat(pre)))));   // short doc, head never matched
+      if (inj.tail) ctrl.enqueue(te.encode(inj.tail));
+      const b = cat(raw); const kappa = h.hex(); await kPut(kappa, b, { contentType: ctype, source: realUrl }); await commit(kappa);
+    }
+  });
+  return new Response(r.body.pipeThrough(ts), { status: 200, headers: { "content-type": ctype, ...COEPH, "cache-control": "no-store", "x-holo-verified": "L5-stream" } });
 }
 
 // ── proxy a subresource of a live page: mint κ + re-derive, serve same-origin ─────────
 async function serveSub(realUrl) {
+  // O(1) re-access: a subresource we've already minted (CDN assets are immutable) → serve straight from the
+  // unified κ-store, no network. URL→κ memo + L1/L2. This is where popular libraries/fonts go free.
+  const seen = URLK.get(realUrl);
+  if (seen) { const cached = await kGet(seen.kappa); if (cached) return new Response(cached, { status: 200, headers: KHDR(seen.kappa, seen.ct, { "x-holo-cache": "L1" }) }); }
   let r;
-  try { r = await fetch(WEB_PROXY + encodeURIComponent(realUrl), { redirect: "follow" }); }
+  try { r = await fetch(proxyUrl(realUrl), { redirect: "follow" }); }
   catch (e) { return refused("subresource proxy failed: " + (e.message || e)); }
   if (!r.ok) return new Response("", { status: r.status, headers: { "content-type": "text/plain" } });
-  const bytes = new Uint8Array(await r.arrayBuffer());
-  const kappa = kappaOf(bytes);
-  await kPut(kappa, bytes, { source: realUrl });
   const ct = r.headers.get("content-type") || mimeByExt(realUrl) || "application/octet-stream";
-  return new Response(bytes, { status: 200, headers: KHDR(kappa, ct) });
+  // STREAM the subresource to the renderer as bytes arrive — first paint no longer waits on the full
+  // download — while accumulating to mint κ at the tail (first-sighting IS the mint, L5; next visit is O(1)).
+  if (!r.body) { const bytes = new Uint8Array(await r.arrayBuffer()); const kappa = kappaOf(bytes); await kPut(kappa, bytes, { source: realUrl, contentType: ct }); URLK.set(realUrl, { kappa, ct }); return new Response(bytes, { status: 200, headers: KHDR(kappa, ct) }); }
+  const chunks = []; const h = createBlake3();
+  const ts = new TransformStream({
+    transform(chunk, ctrl) { chunks.push(chunk); h.update(chunk); ctrl.enqueue(chunk); },   // hash AS it streams
+    async flush() { const bytes = cat(chunks); const kappa = h.hex(); await kPut(kappa, bytes, { source: realUrl, contentType: ct }); URLK.set(realUrl, { kappa, ct }); }
+  });
+  return new Response(r.body.pipeThrough(ts), { status: 200, headers: { "content-type": ct, ...COEPH, "cache-control": "no-store", "x-holo-verified": "L5-stream" } });
 }
 
 self.addEventListener("fetch", (event) => {
@@ -209,5 +297,7 @@ self.addEventListener("message", (e) => {
   if (m.type === "kput" && m.kappa && m.bytes) { kPut(m.kappa, m.bytes, m.meta || {}).then(() => { if (e.ports && e.ports[0]) e.ports[0].postMessage({ ok: true }); }); }
   // the page projects its enabled κ-verified extensions onto the seam (compiled DNR + content scripts).
   if (m.type === "setext") { EXT = { dnr: Array.isArray(m.dnr) ? m.dnr : [], contentScripts: Array.isArray(m.contentScripts) ? m.contentScripts : [] }; if (e.ports && e.ports[0]) e.ports[0].postMessage({ ok: true, dnr: EXT.dnr.length, contentScripts: EXT.contentScripts.length }); }
+  // the page sets the user-selected Tor transport (b64url JSON {kind,endpoint}); "" disables onion routing.
+  if (m.type === "setonion") { ONION_TP = typeof m.transport === "string" ? m.transport : ""; if (e.ports && e.ports[0]) e.ports[0].postMessage({ ok: true, onion: !!ONION_TP }); }
   if (m.type === "ping" && e.ports && e.ports[0]) e.ports[0].postMessage({ ok: true, view: VIEW });
 });

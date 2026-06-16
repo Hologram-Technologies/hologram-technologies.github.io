@@ -1,15 +1,14 @@
 {
-  "witnessed": true,
-  "passed": 7,
-  "failed": 0,
+  "witnessed": false,
+  "passed": 6,
+  "failed": 1,
   "covers": [
     "the hologram substrate's OWN compiled kappa() lo",
     "substrate kappa(∅) ≡ OS2 BLAKE3(∅)",
     "OS · shell.html (the canonical shell) — the REAL",
     "OS · holo-blake3.mjs (the σ-axis primitive) — th",
     "app · files/index.html — the REAL substrate deri",
-    "app · amp/webamp.bundle.min.js (a just-sealed ve",
-    "the recorded did:holo:blake3 alias IS the substr"
+    "app · amp/webamp.bundle.min.js (a just-sealed ve"
   ],
   "results": [
     {
@@ -25,12 +24,12 @@
     {
       "name": "OS · shell.html (the canonical shell) — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
       "ok": true,
-      "detail": "5d0885c44ad9de6f…"
+      "detail": "469d16eb49ea0812…"
     },
     {
       "name": "OS · holo-blake3.mjs (the σ-axis primitive) — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
       "ok": true,
-      "detail": "718fb7e1a530cd8d…"
+      "detail": "baed532b9bd0c4fd…"
     },
     {
       "name": "app · files/index.html — the REAL substrate derives the κ OS2 minted (resolvable on a peer)",
@@ -44,8 +43,8 @@
     },
     {
       "name": "the recorded did:holo:blake3 alias IS the substrate's κ (declaration ≡ live derivation)",
-      "ok": true,
-      "detail": "5d0885c44ad9de6f…"
+      "ok": false,
+      "detail": "a31997c628fbcf7a…"
     }
   ],
   "spec": "OS2's content addresses are byte-identical to the LIVE hologram substrate's OWN kappa() (the holospaces_web wasm) — every OS2/app object resolves + verifies on a real substrate peer by its content address; interop proven against the actual implementation, not a reimplementation"

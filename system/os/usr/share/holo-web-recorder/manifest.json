@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Hologram Web Recorder",
+  "version": "0.1.0",
+  "description": "κ-anchor your real browsing — every resource re-derived to a BLAKE3 κ, cached O(1), at the page's REAL origin (your real session: cookies, auth, passkeys, WebSockets all native). The zero-native-binary companion to Hologram OS — Spike B.",
+  "permissions": ["debugger", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "Hologram Web Recorder" }
+}

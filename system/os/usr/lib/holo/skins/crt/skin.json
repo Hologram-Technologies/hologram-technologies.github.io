@@ -1,0 +1,127 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "crt",
+  "holo:title": "CRT Terminal (Amber)",
+  "holo:fidelitySource": "Amber phosphor CRT terminal (VT-era) — re-authored homage",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:2ac61bc8552990191328f0858afe2c16d2c680a858683d0c17036ab606344675",
+    "css": "did:holo:sha256:52d9bc19d7cd4fd99da0bb12c7382cd00750942906eb6cfeae109cb1a9c88915"
+  },
+  "holo:shellCss": "did:holo:sha256:cc4ac505794be8559d86b41537811ae0600140c41b4076804ded63b7459d77cb",
+  "holo:glyphs": {
+    "back": "did:holo:sha256:a9023a16dd6ca1b4e9ad0013c8e56572055b86671455832e6b8fa17260de111f",
+    "forward": "did:holo:sha256:7d3489f52ac3bf375be43a1e1c8e288385b3dcc8553aa76e6892c09507f20fd9",
+    "home": "did:holo:sha256:c8a30c19c58acd424e2640937c0554954489111066a38ba754fafdd1c261f0ea",
+    "reload": "did:holo:sha256:084802d74de38399171592906ae75fa02a912f3fb2e0df4d8d79ecbe30ac2140",
+    "open": "did:holo:sha256:a835d841062831188b152b32c6b660669fa74dc14adbb189425ae4d5d49dfaa5",
+    "stop": "did:holo:sha256:86d990a5a15e503ea1b9ed4d41139eb8053bf703728369e7e51c5165ddfc9785",
+    "newwin": "did:holo:sha256:4ad9532d99b294f627a312b3504527513060130a8f7138bfd480f83d3d52a53c"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:b0aab08c576d1da3a78302147baa095940279f28dfc0c2e25c4a685420e0b565"
+  },
+  "holo:palette": {
+    "chrome": "#0a0700",
+    "bevelLight": "#ffb000",
+    "bevelDark": "#3a2600",
+    "linkUnvisited": "#ffcf6a",
+    "linkVisited": "#cc8a00",
+    "text": "#ffb000",
+    "statusBg": "#0a0700"
+  },
+  "holo:font": {
+    "ui": "'Consolas','DejaVu Sans Mono',monospace",
+    "doc": "'Consolas',monospace"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "SYS",
+        "items": [
+          {
+            "label": "NEW SESSION",
+            "action": "tab.new"
+          },
+          {
+            "label": "OPEN…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "LOGOUT",
+            "action": "tab.close"
+          }
+        ]
+      },
+      {
+        "label": "EDIT",
+        "items": [
+          {
+            "label": "COPY",
+            "action": "noop"
+          },
+          {
+            "label": "PASTE",
+            "action": "noop"
+          },
+          {
+            "label": "FIND",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "VIEW",
+        "items": [
+          {
+            "label": "REFRESH",
+            "action": "nav.reload"
+          },
+          {
+            "label": "HALT",
+            "action": "nav.stop"
+          }
+        ]
+      },
+      {
+        "label": "NET",
+        "items": [
+          {
+            "label": "BACK",
+            "action": "nav.back"
+          },
+          {
+            "label": "FORWARD",
+            "action": "nav.forward"
+          },
+          {
+            "label": "HOME",
+            "action": "nav.home"
+          }
+        ]
+      },
+      {
+        "label": "MAN",
+        "items": [
+          {
+            "label": "ABOUT",
+            "action": "about"
+          },
+          {
+            "label": "HELP PAGES",
+            "action": "noop"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:24a7e1c2b34d7bf985f3f1322723fb89cb9c6a8ebadba60e0db8585d1c22f3e8"
+}

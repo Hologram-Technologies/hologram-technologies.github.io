@@ -1,0 +1,193 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "opera",
+  "holo:title": "Opera",
+  "holo:fidelitySource": "Opera 6 classic / pre-Presto (re-authored as web chrome)",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:c07df6754c2a1d337409603ba5ab75459c2d7d4bf1ddb54f9d01febdcc563ee8",
+    "css": "did:holo:sha256:87a9850e59b2ad18a49def79d5f05b0371e1a2b93b11baf637802cf1534176a7"
+  },
+  "holo:glyphs": {
+    "back": "did:holo:sha256:daa4af3bc7145d433d918e803f028031ce761d8341706766301177437f002fda",
+    "forward": "did:holo:sha256:7d761015dbd855b7dc43ec21a072cc3048add717c814c7ef03a0c1efeacfff45",
+    "home": "did:holo:sha256:16e4cee5eb5e6ce8f45dc9e21e2636ca2a57cead698ae410928e0e86fc4c9779",
+    "reload": "did:holo:sha256:9983274b40ec36372787223f35122e11f877af9931ad84d674b72be1d6db5084",
+    "open": "did:holo:sha256:43e04b4560f6920e8a57b31b87371bfd74f33ea8b3f85771ae78d21cb9e553a4",
+    "stop": "did:holo:sha256:87830c60ccad7f427518e9a25efd31e969ac23401e7303d19c1208df064f6f87",
+    "newwin": "did:holo:sha256:1dd9cab6a17c408aeda9fa10c9f24f36eb8fa393d6765ef3ed0420e0120742dd"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:453efe7e095e3c4da4f7df8f0563ce4829702c860e513dec210eab490241d7b9"
+  },
+  "holo:palette": {
+    "chrome": "#ece9d8",
+    "bevelLight": "#ffffff",
+    "bevelDark": "#9a9a86",
+    "linkUnvisited": "#0000ee",
+    "linkVisited": "#551a8b",
+    "text": "#000000",
+    "statusBg": "#ece9d8"
+  },
+  "holo:font": {
+    "ui": "'Segoe UI', Tahoma, Arial, sans-serif",
+    "doc": "'Times New Roman', Times, serif"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "File",
+        "items": [
+          {
+            "label": "New Window",
+            "action": "tab.new"
+          },
+          {
+            "label": "Open…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Save As…",
+            "action": "noop"
+          },
+          {
+            "label": "Print…",
+            "action": "noop"
+          },
+          {
+            "label": "Close",
+            "action": "tab.close"
+          }
+        ]
+      },
+      {
+        "label": "Edit",
+        "items": [
+          {
+            "label": "Cut",
+            "action": "noop"
+          },
+          {
+            "label": "Copy",
+            "action": "noop"
+          },
+          {
+            "label": "Paste",
+            "action": "noop"
+          },
+          {
+            "label": "Find…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "View",
+        "items": [
+          {
+            "label": "Reload",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Stop",
+            "action": "nav.stop"
+          },
+          {
+            "label": "Zoom",
+            "action": "noop"
+          },
+          {
+            "label": "Full Screen",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Navigation",
+        "items": [
+          {
+            "label": "Back",
+            "action": "nav.back"
+          },
+          {
+            "label": "Forward",
+            "action": "nav.forward"
+          },
+          {
+            "label": "Home",
+            "action": "nav.home"
+          },
+          {
+            "label": "Fast Forward",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Bookmarks",
+        "items": [
+          {
+            "label": "Add Bookmark…",
+            "action": "noop"
+          },
+          {
+            "label": "Manage Bookmarks…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Mail",
+        "items": [
+          {
+            "label": "New Message",
+            "action": "noop"
+          },
+          {
+            "label": "Check Mail",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Window",
+        "items": [
+          {
+            "label": "Cascade",
+            "action": "noop"
+          },
+          {
+            "label": "Tile",
+            "action": "noop"
+          },
+          {
+            "label": "Panels",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Help",
+        "items": [
+          {
+            "label": "About Opera",
+            "action": "about"
+          },
+          {
+            "label": "Help Contents",
+            "action": "noop"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:0f7143c00bca1b6011bfb61ea3fe330412c4e95d60ce83acd07d006528274a34"
+}

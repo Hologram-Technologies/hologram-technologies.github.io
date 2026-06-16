@@ -1,0 +1,27 @@
+.skin-chrome{--xp-cream:#ece9d8;--xp-d:#aca899;font-family:Tahoma,'Segoe UI',sans-serif;font-size:11px;color:#000}
+.skin-chrome .xp{background:var(--xp-cream)}
+.skin-chrome .xp-menubar{display:flex;align-items:center;gap:1px;padding:2px 6px;background:linear-gradient(#fff,#ece9d8)}
+.skin-chrome .xp-menu{font:inherit;background:transparent;border:0;padding:3px 9px;border-radius:3px;cursor:default}
+.skin-chrome .xp-menu:hover{background:#2f6fdb;color:#fff}
+.skin-chrome .xp-throb{margin-left:auto;width:30px;height:30px;display:grid;place-items:center}
+.skin-chrome .xp-throb svg{width:26px;height:26px}
+.skin-chrome .xp-throb .xpdots{transform-origin:50% 50%}
+.skin-chrome .xp-throb.spinning .xpdots{animation:xp-spin .8s steps(8) infinite}
+@keyframes xp-spin{to{transform:rotate(360deg)}}
+.skin-chrome .xp-toolbar{display:flex;align-items:center;gap:3px;padding:5px 7px;background:linear-gradient(#fbfbf8,#ece9d8)}
+.skin-chrome .xp-btn{display:flex;align-items:center;gap:5px;padding:4px 9px;background:transparent;border:1px solid transparent;border-radius:4px;cursor:default}
+.skin-chrome .xp-btn:hover{border-color:#2f6fdb;background:#eaf2ff}
+.skin-chrome .xp-btn[disabled]{opacity:.4}
+.skin-chrome .xp-btn .ico svg{width:18px;height:18px}
+.skin-chrome .xp-sep{width:1px;align-self:stretch;margin:3px 3px;background:var(--xp-d)}
+.skin-chrome .xp-fields{display:flex;align-items:center;padding:3px 8px 7px;background:#ece9d8}
+.skin-chrome .xp-field{display:flex;align-items:center;gap:6px;flex:1}
+.skin-chrome .xp-flabel{color:#444}
+.skin-chrome .xp-input{flex:1;font:11px Tahoma,sans-serif;background:#fff;border:1px solid #7f9db9;padding:3px 7px;outline:0}
+.skin-chrome .xp-go{font:inherit;font-weight:700;color:#1d6f1d;padding:3px 14px;border:1px solid #4a8a4a;border-radius:4px;background:linear-gradient(#dff0d8,#bfe0b0)}
+.skin-chrome .xp-status{display:flex;align-items:center;gap:8px;padding:2px 8px;background:#ece9d8;border-top:1px solid #fff}
+.skin-chrome .xp-status-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:inset 1px 1px 0 var(--xp-d);padding:1px 7px}
+.skin-chrome .xp-zone{padding:1px 9px;box-shadow:inset 1px 1px 0 var(--xp-d)}
+.skin-chrome .xp-security[data-state="secure"]::before{content:"\1F512"}
+.skin-chrome .xp-meter{width:120px;height:12px;background:#fff;box-shadow:inset 1px 1px 0 var(--xp-d)}
+.skin-chrome .xp-meter-fill{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,#3aaf3a 0 7px,#7fd07f 7px 14px)}

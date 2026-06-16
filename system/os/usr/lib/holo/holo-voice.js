@@ -934,6 +934,44 @@
   }
   function brainTier() { return _boundTier; }
 
+  // ── L0 SEED κ-MEMO (cold-start) — a tiny, SHIPPED table of pre-sealed canonical answers for the handful of
+  //    things a brand-new user predictably asks first (hello · who are you · what can you do · is this private
+  //    · what is this). Checked BEFORE any model, so the very first turn returns in O(1) with ZERO model and
+  //    ZERO network — Q feels alive the instant you ask, while the brain is still warming. These are Q's REAL
+  //    canonical answers (Law L5: pre-sealed content, not fabrication), each carrying a content κ for
+  //    provenance. Novel phrasings simply miss and fall through to the live model — honest by design. ──
+  var SEED_ENTRIES = [
+    { keys: ["hi","hello","hey","yo","hiya","hey q","hi q","hello q","good morning","good afternoon","good evening","sup"],
+      a: "Hello — I'm Q. I'm yours, and I learn as you do. Ask me anything, or tell me what to do." },
+    { keys: ["who are you","what are you","what is q","who is q","whats q","tell me about yourself","what r u"],
+      a: "I'm Q — the mind of this OS, running entirely on your device. Nothing you say to me leaves it unless you ask. I can answer you, and I can act across the whole OS." },
+    { keys: ["what can you do","what can you help with","what do you do","help","capabilities","what can i ask you","what can i ask","how can you help","what are you capable of"],
+      a: "Two things: I answer you, and I act for you. Try “open files”, “change the theme”, or “take me to settings” — or just ask a question. I can see and act across your whole OS." },
+    { keys: ["is this private","is it private","are you private","is my data safe","does anything leave my device","do you send my data","where does my data go","is my data private","do you store my data","do you collect my data"],
+      a: "Private by default. I run on your device — your words, files, and actions stay here. Nothing leaves unless you explicitly choose to send it." },
+    { keys: ["what is hologram","what is hologram os","what is this","what is this os","whats this","what is holo","what is this place"],
+      a: "This is Hologram — a sovereign OS that runs entirely on your device. Everything here is yours: your files, apps, and data, addressed by content and verifiable. I'm Q, your guide through it." },
+    { keys: ["how do i start","getting started","what should i do","where do i begin","how do i get started","what now","where do i start","how does this work"],
+      a: "Start anywhere — open Files to see what's yours, or just tell me what you want to make and I'll build it with you. Nothing here is permanent until you say so." },
+    { keys: ["thanks","thank you","thx","ty","cheers","thank you q","much appreciated"],
+      a: "Anytime." },
+  ];
+  var _seedMap = null;
+  function seedMap() { if (!_seedMap) { _seedMap = new Map(); SEED_ENTRIES.forEach(function (e) { e.keys.forEach(function (k) { _seedMap.set(k, e.a); }); }); } return _seedMap; }
+  function seedNorm(s) { return String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim(); }
+  var SEED_FILLER = /^((?:hey|hi|hello|ok|okay|yo|please|q|so|um|uh)\s+)+/;
+  // content κ for a sealed answer (FNV-1a) — provenance marker that this is a fixed, addressable answer.
+  function seedKappa(s) { var h = 2166136261 >>> 0; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return "seed:" + ("0000000" + h.toString(16)).slice(-8); }
+  // O(1) lookup: exact normalized match, then with leading filler/greeting and a trailing "q" address stripped.
+  function seedLookup(text) {
+    var m = seedMap(), n = seedNorm(text);
+    if (!n) return null;
+    if (m.has(n)) return m.get(n);
+    var stripped = n.replace(SEED_FILLER, "").replace(/\s+q$/, "").trim();
+    if (stripped && stripped !== n && m.has(stripped)) return m.get(stripped);
+    return null;
+  }
+
   // ── the FAST BASE model (SmolLM2-360M q8, ADR-0096) — Q's cheap-task helper for routing · titling ·
   // compression · approval · curation, so those don't wake the 1.8GB coder brain. A separate, lazy ~376MB
   // instance on the same transformers.js (Llama-arch → runs on the proven 3.0.2); WASM any-browser + WebGPU.
@@ -1248,6 +1286,17 @@
     _history[0] = { role: "system", content: sysPrompt() + "\n\n" + qContext(qScope) };   // persona + a fresh read of the live κ-OS (focused app · open spaces · what's openable · theme), scoped by qScope
     _history.push({ role: "user", content: text });
     _convoSink.user(text); _convoSink.qStart();                       // render in the Q panel transcript (no-op when closed)
+    // L0 SEED κ-MEMO — predictable first prompts answered in O(1): ZERO model, ZERO network. The very first
+    // turn lands instantly while the brain is still warming; a miss falls through to the live model below.
+    var seeded = seedLookup(text);
+    if (seeded) {
+      _convoSink.qDelta(seeded); _convoSink.qDone(seeded, []);
+      _history.push({ role: "assistant", content: seeded });
+      hud("done", seeded);
+      if (CFG.confirm && !_silentTurn) { try { speakNatural(seeded, { voice: CFG.voice }); } catch (e) {} }
+      try { W.dispatchEvent(new CustomEvent("holo-voice", { detail: { text: text, reply: seeded, acted: [], converse: true, seed: true, kappa: seedKappa(seeded) } })); } catch (e) {}
+      return { reply: seeded, acted: [], seed: true };
+    }
     if (_history.length > 12) _history = [_history[0]].concat(_history.slice(-10));   // bound context
     var brain = await resolveBrain();                                 // tiered: serve with the warm starter NOW, upgrade the full brain in the background
     var Q = await ensureQVAC(), reply = "", acted = [], spoken = false;
@@ -1317,6 +1366,9 @@
   // route an utterance to an action or the agent, then confirm — shared by push-to-talk and the wake word.
   async function handleText(text) {
     hud("thinking", "“" + text + "”");
+    // L0 SEED κ-MEMO first — a predictable cold-start prompt ("hello", "what can you do", "is this private")
+    // is answered in O(1) by converseAgent's seed before the router can divert it (e.g. into search).
+    if (seedLookup(text)) { STATE.lastAction = "converse"; await converseAgent(text); return; }
     var res = route(text);   // explicit wake / push-to-talk → act now (route's exec thunk already ran)
     if (res && res.appCmd) { STATE.lastAction = "app:" + res.appCmd; _convoSink.user(text); _convoSink.qSay(res.say || "On it."); if (CFG.confirm && res.say && !_silentTurn) speak(res.say); W.dispatchEvent(new CustomEvent("holo-voice", { detail: { text: text, result: res } })); return; }
     if (res && res.converse) { mindObserve(res.text || text); STATE.lastAction = "converse"; await converseAgent(res.text || text); return; }   // converseAgent renders the user line itself
@@ -2614,6 +2666,7 @@
     see: seeImage, warmVision: ensureVision,     // sight (SmolVLM-256M) → describe/answer about an image; lazy-loads on first call
     quick: quickText, warmQuick: ensureQuick,    // fast 360M base for cheap text (titles·compaction·judgments) — keeps the 1.8GB brain free
     warmStarter: warmStarter, upgradeBrain: upgradeBrain, brainTier: brainTier,   // progressive cold-start: warm the starter (tier 1), trigger the silent full-brain upgrade (tier 2), read the bound tier (0/1/2)
+    seed: seedLookup, seedKappa: seedKappa,   // L0 seed κ-memo: O(1) pre-sealed answer for a predictable first prompt (null = miss → live model), + its content κ
     wakeMatch: function (s) { var n = norm(s); return { norm: n, match: wakeMatches(n), lone: !WAKE.re.test(n) && WAKE.loneRe.test(n) }; },   // test the matcher against any text
     lastWake: function () { return WAKE.last || null; },                  // the last accepted wake as a κ-addressed holo:WakeEvent receipt
     wakeReceipt: mintWakeReceipt,         // mint a wake-receipt by hand (testing / replay): → { kappa, ... }

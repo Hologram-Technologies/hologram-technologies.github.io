@@ -1,12 +1,7 @@
 {
   "spec": "A single top-level gateway (index.html) is discoverable + operable by humans and agents: it carries a JSON-LD substrate manifest, self-addresses by content, and boots the OS (κ SW + rEFInd→Plymouth→SDDM→PrimeOS) on a dumb static host — 100% serverless",
-  "witnessed": true,
-  "covers": [
-    "single-gateway",
-    "agent-manifest",
-    "human-boot",
-    "self-address"
-  ],
+  "witnessed": false,
+  "covers": [],
   "results": [
     {
       "name": "the gateway carries an agent manifest (JSON-LD: SoftwareApplication · Boot action · endpoints)",
@@ -25,13 +20,13 @@
     },
     {
       "name": "opening the gateway renders the boot window (mark · title · enter · live self-κ · agent links)",
-      "ok": true,
-      "detail": "title=\"Hologram OS\" κ=true"
+      "ok": false,
+      "detail": "title=\"Your Personal Supercomputer\" κ=true"
     },
     {
       "name": "the gateway boots → the Plymouth splash (κ SW controls, F2 → Boot Menu prompt, isolated)",
-      "ok": true,
-      "detail": "url=/os/splash.html controlled=true splash=true prompt=true isolated=true"
+      "ok": false,
+      "detail": "url=/ controlled=false splash=false prompt=false isolated=false"
     }
   ]
 }

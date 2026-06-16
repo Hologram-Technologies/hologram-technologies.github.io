@@ -321,6 +321,8 @@
   var DEFAULTS = {
     palette: "auto",            // auto = follow prefers-color-scheme (Media Queries L5)
     presentation: "standard",
+    immersive: false,           // Immersive backdrop ON — a κ-sealed wallpaper behind translucent surfaces
+    wallpaper: "",              // the immersive backdrop: a κ (sha256:/blake3:) or a URL; "" = none
     fontScale: 1,
     fontMin: 16,                // readability FLOOR in px (0 = off). The whole rem ramp clamps up to it.
     fontFamily: "",             // "" = OS default (--holo-font-sans from holo-theme.css)
@@ -354,6 +356,14 @@
     root.setAttribute("data-holo-presentation", state.presentation || "standard");
     if (pushAesthetic) root.style.setProperty("color-scheme", pinned ? state.palette : "light dark", prio);
     else root.style.removeProperty("color-scheme");
+
+    // Immersive backdrop — an orthogonal axis to the light/dark palette: a κ-sealed wallpaper
+    // published behind translucent surfaces (data-holo-immersive="on" + --holo-wallpaper). The
+    // pre-paint bootstrap (holo-appearance-boot.js) sets the SAME attribute/var from the SAME
+    // state, so the async engine and the first frame never disagree.
+    root.setAttribute("data-holo-immersive", state.immersive ? "on" : "off");
+    if (state.wallpaper) setVar("--holo-wallpaper", 'url("' + wallUrl(state.wallpaper) + '")', prio);
+    else root.style.removeProperty("--holo-wallpaper");
 
     // Shoelace (Web Awesome) activates dark tokens via a class — follow the resolved palette.
     if (pushAesthetic) {
@@ -620,6 +630,9 @@
 
       p.appendChild(seg("Appearance", [["Auto", "auto"], ["Light", "light"], ["Dark", "dark"]], state.palette, function (v) { setPalette(v); }));
       p.appendChild(seg("Mode", [["Standard", "standard"], ["Immersive", "immersive"]], state.presentation, function (v) { setPresentation(v); }));
+      // Immersive backdrop — the κ-sealed wallpaper layer (the curated picker lands in the shell
+      // Settings · Appearance section; this is the engine-level on/off the boot bootstrap reads).
+      p.appendChild(seg("Immersive backdrop", [["Off", "off"], ["On", "on"]], state.immersive ? "on" : "off", function (v) { setImmersive(v === "on"); }));
 
       // Text size
       var gT = el("div", { class: "grp" });
@@ -797,10 +810,28 @@
     return n;
   }
   function toHex(c) { return /^#[0-9a-f]{6}$/i.test(c || "") ? c : ""; }
+  // Resolve an immersive wallpaper reference to a URL: a κ (sha256:/blake3:/sha512:<hex>)
+  // becomes the serverless κ-store path /.holo/<algo>/<hex> (re-derived on fetch, Law L5);
+  // anything else (a path, data: URL) is used verbatim.
+  function wallUrl(w) {
+    if (!w) return "";
+    var m = String(w).match(/^(sha256|blake3|sha512):([0-9a-f]+)$/i);
+    return m ? "/.holo/" + m[1].toLowerCase() + "/" + m[2] : String(w);
+  }
 
   // ── Public API ───────────────────────────────────────────────────────────────
   function setPalette(v) { set({ palette: v }); }
   function setPresentation(v) { set({ presentation: v }); }
+  function setImmersive(on) { set({ immersive: !!on }); }
+  function setWallpaper(k) { set({ wallpaper: k || "" }); }
+  // The one user-facing appearance choice (Settings · login picker): Dark · Light · Immersive.
+  // Dark/Light pin the palette and drop the backdrop; Immersive turns the backdrop on and keeps
+  // the current palette (a light OR dark immersive backdrop both read well behind the scrim).
+  function setMode(m) {
+    if (m === "light") set({ palette: "light", immersive: false });
+    else if (m === "dark") set({ palette: "dark", immersive: false });
+    else if (m === "immersive") set({ immersive: true });
+  }
   function setFontScale(n) { set({ fontScale: clamp(n, 0.7, 2) }); }
   function setFontMin(n) { set({ fontMin: clamp(n, 0, 28) }); }     // readability floor in px (0 = off)
   function setFontFamily(f) { set({ fontFamily: f || "" }); }
@@ -811,6 +842,7 @@
   window.HoloTheme = {
     get: function () { return Object.assign({}, state); },
     set: set, setPalette: setPalette, setPresentation: setPresentation,
+    setImmersive: setImmersive, setWallpaper: setWallpaper, setMode: setMode,
     setFontScale: setFontScale, setFontMin: setFontMin, setFontFamily: setFontFamily, setDensity: setDensity,
     setAccent: setAccent, reset: resetAll, openSettings: openSettings, closeSettings: closeSettings,
     // Portable themes (DTCG): import a token file/object, export the current theme, clear back to OS default.

@@ -1,0 +1,26 @@
+{
+  "@context": {
+    "holo": "https://hologram.os/ns#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "schema": "https://schema.org/",
+    "BrowserSkin": "holo:BrowserSkin",
+    "SkinActivation": "holo:SkinActivation",
+    "VendoredSkin": "holo:VendoredSkin",
+    "skinId": "holo:skinId",
+    "title": { "@id": "schema:name" },
+    "fidelitySource": "holo:fidelitySource",
+    "appliesTo": "holo:appliesTo",
+    "chrome": "holo:chrome",
+    "glyphs": "holo:glyphs",
+    "throbber": "holo:throbber",
+    "palette": "holo:palette",
+    "font": "holo:font",
+    "behavior": "holo:behavior"
+  },
+  "holo:vocab": {
+    "@type": "holo:Vocabulary",
+    "holo:comment": "holo:BrowserSkin — a κ-addressed, hot-swappable chrome dress for the Holo Browser, distinct from the OS-wide holo:Theme palette engine. A skin re-skins ONLY browser tabs (appliesTo MUST equal 'browser'); the engine refuses any other target so a skin can never repaint OS chrome. Every chrome asset (html/css/glyphs/throbber) is referenced by content address (did:holo:sha256) so the whole skin is re-derivable (Law L5). Behavior is expressed as a CLOSED vocabulary of action strings — no executable code in the manifest — so a new skin is a pure data drop with zero engine change.",
+    "holo:actions": ["nav.back", "nav.forward", "nav.home", "nav.reload", "nav.stop", "omni.focus", "tab.new", "tab.close", "about", "noop"],
+    "holo:stateSources": ["loading", "nav.current.url", "nav.canGoBack", "nav.canGoForward", "securityState"]
+  }
+}

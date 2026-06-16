@@ -18,6 +18,11 @@
 // functions, so the exact logic runs in the shell AND in the Node witness over a tiny deterministic DOM —
 // no jsdom, no browser. The browser-only surface (menu, inline editor, glow) is gated on `win`/`doc`.
 
+import { createPlaySession, createCanvasDock, createSelectionUI, rectsIntersect } from "./holo-playground-canvas.mjs";   // Playground 3.0 canvas + selection/handles
+import { createForceEngine, FORCES } from "./holo-playground-forces.mjs";              // Stage 2: whole-screen forces (tornado · earthquake)
+import { createShatter } from "./holo-playground-shatter.mjs";                          // Stage 2 (Track D): text-shatter without reflow
+import { createGameHost, GAMES } from "./holo-playground-games.mjs";                    // Stage 3: mini-games on the screen's own objects
+
 const EPHEMERAL = "data-holo-ephemeral";   // marks the agent's own nodes (+ ambient injected runtime) — stripped before sealing
 const HOT = "holo-pg-hot";                 // the transient "editable" glow class — never persisted into the κ
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
@@ -30,7 +35,7 @@ function isEphemeral(el) {
   try { return el && el.nodeType === 1 && typeof el.getAttribute === "function" && el.getAttribute(EPHEMERAL) !== null; }
   catch (e) { return false; }
 }
-function cleanClass(v) { return String(v || "").split(/\s+/).filter(Boolean).filter((c) => c !== HOT).join(" "); }
+function cleanClass(v) { return String(v || "").split(/\s+/).filter(Boolean).filter((c) => !c.startsWith("holo-pg-")).join(" "); }   // strip EVERY transient playground class (glow · multi-select · game markers) — none ever seals (L5)
 
 // serialise ONE live node → HTML, dropping every ephemeral sub-tree and the transient glow class. Pure: works
 // on a real DOM node AND on the witness's deterministic mock (both expose nodeType/childNodes/attributes).
@@ -71,6 +76,64 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
   win = win || doc.defaultView || null;
   let curRoot = null, curSurfaceId = surfaceId;        // the surface resolved for the CURRENT interaction (host mode)
 
+  // ── Playground 3.0 canvas: the ephemeral direct-manipulation model + its dock. Play (drag · hide · delete)
+  //    mutates REAL serializable bytes but NEVER seals — the κ doesn't churn while you play. Freeze reseals the
+  //    arrangement through the ONE path; Reset restores the pre-play bytes. The session is PURE (runs in the
+  //    Node witness with win=null); the dock is a browser-only [data-holo-ephemeral] HUD (no-op without a doc). ──
+  const session = createPlaySession({ onChange: () => renderDock() });
+  let dock = null, drag = null, forceEngine = null, shatter = null, gameHost = null, selUI = null, marquee = null;
+  const selection = new Set();                                   // Stage 3: marquee multi-select set
+  const forcesEnabled = typeof resolveSurface !== "function";   // forces/games act on a whole-document app surface, NOT shell chrome
+  function renderDock() { try { if (dock) dock.render(); } catch (e) {} }
+  function gameRunning() { return !!(gameHost && gameHost.isRunning()); }
+
+  // the objects a force acts on: the surface's top-level elements (not chrome / ephemeral / script / style).
+  function getObjects() {
+    try {
+      const rootEl = doc.body; if (!rootEl || !rootEl.children) return [];
+      return [...rootEl.children].filter((c) => c && c.nodeType === 1
+        && (!c.getAttribute || c.getAttribute(EPHEMERAL) === null)
+        && !/^(script|style|link|meta|template)$/i.test(c.localName || c.nodeName || "")
+        && !(c.className && String(c.className).startsWith("holo-pg-")));
+    } catch (e) { return []; }
+  }
+  function ensureForces() {
+    if (forceEngine || !forcesEnabled || !win || !doc || typeof doc.createElement !== "function") return;
+    shatter = createShatter({ doc, win });
+    forceEngine = createForceEngine({ doc, win, session, getObjects, shatter, onEnd: () => renderDock() });
+  }
+  function ensureGames() {
+    if (gameHost || !forcesEnabled || !win || !doc || typeof doc.createElement !== "function") return;
+    gameHost = createGameHost({ doc, win, getObjects });   // games run in their OWN private session — they never seal
+  }
+  function ensureSel() {
+    if (selUI || !win || !doc || typeof doc.createElement !== "function") return;
+    selUI = createSelectionUI({ doc, win, session });      // scale/rotate handles drive the SAME session (Freezable)
+  }
+  // marquee select / single-select bookkeeping (Stage 3). A single selection shows scale/rotate handles; a multi
+  // selection outlines each member (the holo-pg-msel class is L5-stripped by cleanClass, so it never seals).
+  function unpaintSel() { for (const el of selection) { try { el.classList.remove("holo-pg-msel"); } catch (e) {} } }
+  function clearSelection() { unpaintSel(); selection.clear(); if (selUI) selUI.hide(); }
+  function setSelection(els) {
+    unpaintSel(); selection.clear(); for (const e of els) selection.add(e);
+    ensureSel();
+    if (selection.size === 1) { if (selUI) selUI.show([...selection][0]); }
+    else { if (selUI) selUI.hide(); for (const el of selection) { try { el.classList.add("holo-pg-msel"); } catch (e) {} } }
+  }
+  function ensureDock() {
+    if (dock || !win || !doc || typeof doc.createElement !== "function") return;
+    dock = createCanvasDock({ doc, win, session,
+      onFreeze: () => { if (forceEngine) forceEngine.stop(); commitEdit(); },     // settle a running force, then bake through the ONE path
+      onReset: () => { if (forceEngine) forceEngine.stop(); clearSelection(); session.reset(); },    // settle, then discard
+      isArmed: () => active,
+      forces: forcesEnabled ? FORCES.map((f) => ({ id: f.id, label: f.label, icon: f.icon })) : [],
+      onForce: (id) => { ensureForces(); if (forceEngine) forceEngine.start(id); },
+      games: forcesEnabled ? GAMES.map((g) => ({ id: g.id, label: g.label, icon: g.icon })) : [],
+      onGame: (id) => { ensureGames(); clearSelection(); if (gameHost) gameHost.start(id); },
+    });
+  }
+  function afterCommit() { try { session.freeze(); } catch (e) {} renderDock(); }   // a commit reseals the live bytes ⇒ they ARE the new baseline
+
   // serialise a node MINUS all agent UI/decoration — the exact bytes the shell will seal (L5). A whole document
   // gets a doctype; a sub-tree (in-shell surface root) is serialised as its own element.
   function serialize(node) {
@@ -86,10 +149,13 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
         const r = commit(id, serialize(curRoot)) || {};
         const k = r.kappa ? String(r.kappa).split(":").pop() : "";
         if (r.changed && k) toast("✦ sealed · κ " + k.slice(0, 8) + "…");
+        afterCommit();           // the arrangement is now baked into the κ — drop the play backups (Reset can't undo a commit)
         return r;
       } catch (e) { return {}; }
     }
-    return requestReseal();
+    const m = requestReseal();   // in-frame: the shell reseals the bytes we just serialised; freeze optimistically
+    afterCommit();
+    return m;
   }
 
   // the ONLY outbound effect: hand the clean source UP. The shell calls createLiveEditor.edit — the ONE path.
@@ -139,11 +205,13 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
       .holo-pg-badge{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:2147483602;padding:7px 14px;border-radius:999px;
         background:color-mix(in srgb,var(--holo-accent,#5b8cff) 22%,var(--holo-surface,#14161b));border:1px solid var(--holo-accent,#5b8cff);
         color:var(--holo-ink,#eef2f6);box-shadow:0 10px 30px rgba(0,0,0,.4);font:0.8rem system-ui,sans-serif;cursor:pointer;user-select:none;opacity:.96}
-      .holo-pg-badge:hover{opacity:1}`;
+      .holo-pg-badge:hover{opacity:1}
+      .holo-pg-marquee{position:fixed;z-index:2147483597;border:1.5px solid var(--holo-accent,#5b8cff);background:color-mix(in srgb,var(--holo-accent,#5b8cff) 12%,transparent);pointer-events:none;border-radius:2px}
+      .holo-pg-msel{outline:1.5px solid var(--holo-accent,#5b8cff)!important;outline-offset:2px!important;border-radius:3px}`;
     (doc.head || doc.documentElement).appendChild(st);
   }
 
-  const inUI = (el) => { try { return !!(el && el.closest && el.closest(".holo-pg-menu,.holo-pg-editor,.holo-pg-toast")); } catch (e) { return false; } };
+  const inUI = (el) => { try { return !!(el && el.closest && el.closest(".holo-pg-menu,.holo-pg-editor,.holo-pg-toast,.holo-pg-dock,.holo-pg-sel,.holo-pg-hud")); } catch (e) { return false; } };
 
   function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
   function closeEditor() { if (editorEl) { editorEl.remove(); editorEl = null; } }
@@ -167,7 +235,11 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     } catch (e) {}
   }
   function actDuplicate() { closeMenu(); try { const c = target.cloneNode(true); target.parentNode.insertBefore(c, target.nextSibling); commitEdit(); } catch (e) {} }
-  function actDelete() { closeMenu(); try { target.remove(); commitEdit(); } catch (e) {} }
+  // direct-manipulation verbs are PLAY: ephemeral, tracked by the session, resolved by Freeze (bake) or Reset (restore).
+  function actHide() { closeMenu(); try { if (target) session.hide(target); } catch (e) {} }
+  function actDelete() { closeMenu(); try { if (target) session.del(target); } catch (e) {} }   // undoable until Freeze (was: immediate)
+  function actFreeze() { closeMenu(); commitEdit(); }
+  function actReset() { closeMenu(); try { session.reset(); } catch (e) {} }
 
   function openSourceEditor(el) {
     if (!el || !win) return;
@@ -205,9 +277,11 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     item("✎&nbsp; Edit source", actEdit);
     item("✏️&nbsp; Edit text", actText, "dbl-click");
     item("⎘&nbsp; Duplicate", actDuplicate);
+    item("◻&nbsp; Hide", actHide);
     sep();
-    item("🅺&nbsp; View κ", () => { closeMenu(); toast("κ updates on every edit — try Edit"); });
-    item("⌫&nbsp; Delete", actDelete);
+    item("🅺&nbsp; View κ", () => { closeMenu(); toast("κ updates on Freeze — play freely, then Freeze to keep"); });
+    item("⌫&nbsp; Delete", actDelete, "drag to move");
+    if (!session.isEmpty()) { sep(); item("✦&nbsp; Freeze layout", actFreeze, String(session.count())); item("↺&nbsp; Reset", actReset); }
     sep();
     item("✕&nbsp; Exit Playground", () => { closeMenu(); userExit(); });
     doc.body.appendChild(menuEl);
@@ -223,18 +297,78 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     curSurfaceId = s.surfaceId; curRoot = s.root || null; return true;
   }
   function onContextMenu(e) {
-    if (!active) return;                    // DORMANT: let the app's / browser's native right-click work
+    if (!active || gameRunning()) return;   // DORMANT (or a game owns input): let the native right-click work
     if (inUI(e.target)) return;            // let the agent's own UI use the native menu
     if (!resolveFor(e.target)) return;     // host mode: chrome / non-surface → native right-click
     e.preventDefault(); e.stopPropagation();
     target = e.target && e.target.nodeType === 1 ? e.target : (e.target && e.target.parentElement);
     if (target) openMenu(e.clientX, e.clientY);
   }
-  function onDblClick(e) { if (!active || inUI(e.target)) return; if (!resolveFor(e.target)) return; target = e.target && e.target.nodeType === 1 ? e.target : null; if (target) actText(); }
-  function onKeyDown(e) { if (e.key === "Escape") { if (menuEl || editorEl) { closeMenu(); closeEditor(); } else if (active) userExit(); } }
-  function onOver(e) { if (!active) return; const t = e.target; if (inUI(t) || t === hot || !t || t.nodeType !== 1) return; if (typeof resolveSurface === "function" && !resolveSurface(t)) return; if (hot) hot.classList.remove(HOT); hot = t; try { t.classList.add(HOT); } catch (x) {} }
+  function onDblClick(e) { if (!active || gameRunning() || inUI(e.target)) return; if (!resolveFor(e.target)) return; target = e.target && e.target.nodeType === 1 ? e.target : null; if (target) actText(); }
+  function onKeyDown(e) {
+    if (e.key !== "Escape") return;
+    if (gameRunning()) { gameHost.stop(); return; }          // Esc backs out one layer at a time: game → menu → selection → exit
+    if (menuEl || editorEl) { closeMenu(); closeEditor(); return; }
+    if (selection.size) { clearSelection(); return; }
+    if (active) userExit();
+  }
+  function onOver(e) { if (!active || (drag && drag.moved)) return; const t = e.target; if (inUI(t) || t === hot || !t || t.nodeType !== 1) return; if (typeof resolveSurface === "function" && !resolveSurface(t)) return; if (hot) hot.classList.remove(HOT); hot = t; try { t.classList.add(HOT); } catch (x) {} }
   function onOut(e) { if (e.target === hot && hot) { hot.classList.remove(HOT); hot = null; } }
-  function onPointerDown(e) { if (menuEl && !inUI(e.target)) closeMenu(); }
+
+  // ── direct manipulation (Stage 1 + 3): a primary-button drag MOVES an element (or the whole multi-selection);
+  //    a drag on the BACKGROUND draws a marquee that multi-selects; a plain click selects ONE element (→ scale /
+  //    rotate handles). All ephemeral — the dock's Freeze bakes the arrangement, Reset restores it. ─────────────
+  function isBackground(t) { return t === doc.body || t === doc.documentElement; }
+  function dragStart(e) {
+    if (!active || e.button !== 0 || inUI(e.target) || gameRunning()) return;   // a running game owns taps
+    if (!resolveFor(e.target)) return;                       // chrome / non-editable surface → no drag
+    if (isBackground(e.target)) { marquee = { sx: e.clientX, sy: e.clientY, box: null, moved: false, rect: null }; return; }
+    const el = e.target && e.target.nodeType === 1 ? e.target : (e.target && e.target.parentElement);
+    if (!el) return;
+    if (selection.size > 1 && selection.has(el)) {           // grabbing inside a multi-selection → move the whole group
+      drag = { group: [...selection].map((g) => ({ el: g, x0: session.transformOf(g).x, y0: session.transformOf(g).y })), sx: e.clientX, sy: e.clientY, moved: false };
+    } else {
+      const base = session.transformOf(el);
+      drag = { el, sx: e.clientX, sy: e.clientY, x0: base.x, y0: base.y, moved: false };
+    }
+  }
+  function dragMove(e) {
+    if (marquee) return updateMarquee(e);
+    if (!drag) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.moved) { if (Math.hypot(dx, dy) < 4) return; drag.moved = true; closeMenu(); if (hot) { try { hot.classList.remove(HOT); } catch (x) {} hot = null; } if (selUI && !drag.group) selUI.hide(); }
+    if (drag.group) { for (const g of drag.group) session.setTransform(g.el, { x: g.x0 + dx, y: g.y0 + dy }); }
+    else session.setTransform(drag.el, { x: drag.x0 + dx, y: drag.y0 + dy });
+    try { e.preventDefault(); } catch (x) {}
+  }
+  function dragEnd(e) {
+    if (marquee) { finishMarquee(); marquee = null; try { e.preventDefault(); } catch (x) {} return; }
+    if (!drag) return;
+    const moved = drag.moved, single = drag.el;
+    drag = null;
+    if (moved) { try { e.preventDefault(); e.stopPropagation(); } catch (x) {} if (selUI && selection.size === 1) selUI.refresh(); }
+    else if (single) setSelection([single]);                 // a plain click selects one element → scale/rotate handles
+  }
+
+  // ── marquee: a background drag rubber-bands a selection rectangle, then selects every object it touches. ──
+  function updateMarquee(e) {
+    if (!marquee.moved && Math.hypot(e.clientX - marquee.sx, e.clientY - marquee.sy) < 4) return;
+    marquee.moved = true;
+    const x = Math.min(marquee.sx, e.clientX), y = Math.min(marquee.sy, e.clientY), w = Math.abs(e.clientX - marquee.sx), h = Math.abs(e.clientY - marquee.sy);
+    if (!marquee.box) { marquee.box = doc.createElement("div"); marquee.box.className = "holo-pg-marquee"; marquee.box.setAttribute(EPHEMERAL, ""); doc.body.appendChild(marquee.box); }
+    marquee.box.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+    marquee.rect = { left: x, top: y, right: x + w, bottom: y + h };
+    try { e.preventDefault(); } catch (x) {}
+  }
+  function finishMarquee() {
+    if (marquee.box) { try { marquee.box.remove(); } catch (e) {} }
+    if (marquee.moved && marquee.rect) {
+      const hits = getObjects().filter((el) => { try { return rectsIntersect(marquee.rect, el.getBoundingClientRect()); } catch (x) { return false; } });
+      if (hits.length) setSelection(hits); else clearSelection();
+    } else clearSelection();                                  // a background click clears the selection
+  }
+
+  function onPointerDown(e) { if (menuEl && !inUI(e.target)) closeMenu(); dragStart(e); }
   function onDown(e) {   // host → frame messages: toggle Playground mode, or the resulting κ after a reseal
     const m = e && e.data;
     if (!m || m.t !== "holo-live-edit") return;
@@ -258,8 +392,13 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
     on = !!on;
     if (on === active) return active;
     active = on;
-    if (!on) { closeMenu(); closeEditor(); if (hot) { try { hot.classList.remove(HOT); } catch (e) {} hot = null; } hideBadge(); }
-    else showBadge();
+    if (!on) {
+      closeMenu(); closeEditor(); if (hot) { try { hot.classList.remove(HOT); } catch (e) {} hot = null; }
+      drag = null; marquee = null; if (gameHost) { try { gameHost.stop(); } catch (e) {} } if (forceEngine) { try { forceEngine.stop(); } catch (e) {} }
+      clearSelection();
+      try { session.reset(); } catch (e) {}                // exiting without Freeze discards the arrangement (play is ephemeral)
+      renderDock(); hideBadge();
+    } else { ensureDock(); ensureForces(); ensureGames(); renderDock(); showBadge(); }   // the armed dock shows Forces + Games
     return active;
   }
   function isActive() { return active; }
@@ -267,33 +406,40 @@ export function createPlaygroundAgent({ doc, win = null, surfaceId = "", postUp 
   function mount() {
     if (!win || !doc || !doc.addEventListener) return false;
     if (doc.getElementById && doc.getElementById("holo-pg-style")) return true;
-    injectStyle();
+    injectStyle(); ensureDock(); ensureForces();
     doc.addEventListener("contextmenu", onContextMenu, true);
     doc.addEventListener("dblclick", onDblClick, true);
     doc.addEventListener("keydown", onKeyDown, true);
     doc.addEventListener("pointerover", onOver, true);
     doc.addEventListener("pointerout", onOut, true);
     doc.addEventListener("pointerdown", onPointerDown, true);
+    doc.addEventListener("pointermove", dragMove, true);
+    doc.addEventListener("pointerup", dragEnd, true);
     win.addEventListener("message", onDown);
     return true;
   }
   function unmount() {
     if (!doc || !doc.removeEventListener) return;
     closeMenu(); closeEditor();
+    drag = null; marquee = null; if (gameHost) { try { gameHost.stop(); } catch (e) {} } if (forceEngine) { try { forceEngine.stop(); } catch (e) {} }
+    clearSelection(); try { session.reset(); } catch (e) {} if (dock) { try { dock.remove(); } catch (e) {} dock = null; }
     doc.removeEventListener("contextmenu", onContextMenu, true);
     doc.removeEventListener("dblclick", onDblClick, true);
     doc.removeEventListener("keydown", onKeyDown, true);
     doc.removeEventListener("pointerover", onOver, true);
     doc.removeEventListener("pointerout", onOut, true);
     doc.removeEventListener("pointerdown", onPointerDown, true);
+    doc.removeEventListener("pointermove", dragMove, true);
+    doc.removeEventListener("pointerup", dragEnd, true);
     if (win) win.removeEventListener("message", onDown);
     const s = doc.getElementById && doc.getElementById("holo-pg-style"); if (s) s.remove();
   }
 
-  return { mount, unmount, serialize, requestReseal, onContextMenu, setActive, isActive, describe: () => ({
-    is: "the in-frame Holo Playground agent — makes every element in a holo app right-click-editable",
+  return { mount, unmount, serialize, requestReseal, onContextMenu, setActive, isActive, commitEdit, playSession: session, forces: FORCES, describe: () => ({
+    is: "the in-frame Holo Playground agent — makes every element in a holo app right-click-editable AND directly manipulable (drag · hide · delete)",
     default: "OFF — dormant until opted in per surface (the shell window menu toggles it); no hover glow / right-click hijack while off",
     onePath: "the agent NEVER seals; it serialises (ephemeral-stripped, L5) and hands the bytes UP — the shell calls createLiveEditor.edit",
+    play: "direct manipulation is EPHEMERAL — move/hide/delete mutate real bytes but don't seal; Freeze reseals through the ONE path, Reset restores (the L5 play rule)",
   }) };
 }
 

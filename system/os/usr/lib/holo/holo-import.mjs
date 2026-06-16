@@ -38,6 +38,8 @@ export const jcs = (v) => Array.isArray(v) ? "[" + v.map(jcs).join(",") + "]"
   : (v && typeof v === "object") ? "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}"
   : JSON.stringify(v);
 
+import { ensureMobileHead } from "./holo-mobile-defaults.mjs";   // every imported app is mobile + PWA-ready at birth
+
 // appEnvelope(name, source) → the exact object publishSource seals (minus its `id`). Sealing it with the
 // injected `hash` over jcs() yields the SAME did:holo the studio would. derivedFrom (lineage) is metadata
 // — it does not change the content address (Law L5 content-convergence, ADR-0088), matching publishSource.
@@ -187,6 +189,9 @@ export function encodeStatic({ name = "app", entry = "index.html", files, hash, 
     if (isRelative(u) && !/\.(css|js|mjs)(\?|#|$)/i.test(u) && lookup(resolveRel(base, u))) assetRefs.push(u);
   }
 
+  // Mobile + PWA at birth: ensure the imported app carries viewport-fit, the mobile layer, the container
+  // surface marker, and PWA-standalone metas — only adds what the repo lacked (idempotent → κ stays deterministic).
+  html = ensureMobileHead(html);
   return { name, html, inlined, externalRefs, missing, assetRefs, assetKappas,
     selfContained: externalRefs.length === 0 && missing.length === 0 };
 }

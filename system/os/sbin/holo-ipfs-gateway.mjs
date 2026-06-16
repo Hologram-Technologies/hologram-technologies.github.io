@@ -70,10 +70,28 @@ export function makeGetBlock(fetchImpl, { gateways = IPFS_GATEWAYS, discover = t
   };
   return async (cidStr) => {
     if (!f) return null;
+    const cached = await blockCacheGet(cidStr); if (cached) return cached;   // L1/L2 — O(1), no network
     let b = await pull(gateways, cidStr);
     if (!b && discover) { try { const extra = await discoverGateways(cidStr, { fetchImpl: f }); if (extra.length) b = await pull(extra, cidStr); } catch {} }
+    if (b) await blockCachePut(cidStr, b);                                   // verified block → unified κ-store
     return b;
   };
+}
+// Block cache — every CID-verified block is content-addressed (immutable), so cache it: L1 an in-memory hot
+// map (O(1), no async), L2 the durable Cache API shared with the OS (holo-kappa-v2). Re-access of any block —
+// a re-visited page, a shared chunk, a streamed file walked twice — is then network-free. The IPFS twin of
+// the browser seam's L1/L2. No-op caching in Node (no `caches`); the L1 map still gives intra-run O(1).
+const BLOCK_L1 = new Map();
+async function blockCacheGet(cidStr) {
+  const hot = BLOCK_L1.get(cidStr); if (hot) return hot;
+  if (typeof caches === "undefined") return null;
+  try { const c = await caches.open("holo-kappa-v2"); const r = await c.match("/.holo/ipfs/" + cidStr); if (r) { const b = new Uint8Array(await r.arrayBuffer()); BLOCK_L1.set(cidStr, b); return b; } } catch {}
+  return null;
+}
+async function blockCachePut(cidStr, bytes) {
+  BLOCK_L1.set(cidStr, bytes);
+  if (typeof caches === "undefined") return;
+  try { const c = await caches.open("holo-kappa-v2"); await c.put("/.holo/ipfs/" + cidStr, new Response(bytes, { headers: { "x-holo-cid": cidStr, "x-holo-verified": "L5" } })); } catch {}
 }
 
 // childCid(dirCid, name, getBlock) → the cid of a named link in a UnixFS/dag-pb directory, or null.
@@ -86,6 +104,49 @@ async function childCid(dirCid, name, getBlock) {
   const node = decodeDagPb(block);
   for (const l of node.links) if ((l.name || "") === name) return cidToString(l.cid);
   return null;
+}
+
+// peekNode(cidStr, getBlock) → { kind:"directory"|"file"|"raw"|"missing", node?, block?, raw? } — decide a
+// node's kind from its OWN block only (cheap; does NOT walk a file's whole DAG, unlike assembleUnixFs).
+async function peekNode(cidStr, getBlock) {
+  const { parseCID, cidToString, decodeDagPb, decodeUnixFs, UNIXFS, CODEC } = holoIpfs;
+  const cid = parseCID(cidStr);
+  const block = await getBlock(cidToString(cid));
+  if (!block) return { kind: "missing" };
+  if (cid.codec === CODEC.RAW) return { kind: "file", raw: true, block };
+  if (cid.codec !== CODEC.DAG_PB) return { kind: "raw", block };
+  const node = decodeDagPb(block);
+  const u = node.data ? decodeUnixFs(node.data) : null;
+  if (u && u.type === UNIXFS.Directory) return { kind: "directory", node, block };
+  return { kind: "file", node, block };
+}
+
+// streamUnixFsFile(rootCid, getBlock) → ReadableStream of a file's bytes — walk the DAG IN ORDER and enqueue
+// each leaf as it is fetched + re-derived to its CID (Law L5, in getBlock). A big file (video / large image /
+// server-rendered page) starts rendering on its FIRST leaf instead of after the whole tree assembles. This is
+// the κ-addressable object, STREAMED. Bounded by the DAG; blocks are O(1) on re-walk (block cache above).
+export function streamUnixFsFile(rootCid, getBlock) {
+  const { parseCID, cidToString, decodeDagPb, decodeUnixFs, CODEC } = holoIpfs;
+  return new ReadableStream({
+    async start(ctrl) {
+      try {
+        const walk = async (cidStr) => {
+          const cid = parseCID(cidStr);
+          const block = await getBlock(cidToString(cid));
+          if (!block) throw new Error("missing block " + String(cidStr).slice(0, 16) + "…");
+          if (cid.codec === CODEC.RAW) { ctrl.enqueue(block); return; }
+          if (cid.codec !== CODEC.DAG_PB) { ctrl.enqueue(block); return; }
+          const node = decodeDagPb(block);
+          const u = node.data ? decodeUnixFs(node.data) : null;
+          if (!node.links.length) { ctrl.enqueue((u && u.data) || new Uint8Array(0)); return; }
+          if (u && u.data && u.data.length) ctrl.enqueue(u.data);   // inline head (rare)
+          for (const l of node.links) await walk(cidToString(l.cid));
+        };
+        await walk(rootCid);
+        ctrl.close();
+      } catch (e) { ctrl.error(e); }
+    },
+  });
 }
 
 // resolveIpfsPath(root, path, getBlock) → a renderable result:
@@ -104,17 +165,24 @@ export async function resolveIpfsPath(root, path, getBlock) {
     if (next == null) return { kind: "error", reason: "no such path segment: " + seg, status: 404 };
     cur = next;
   }
-  let asm; try { asm = await assembleUnixFs(cur, getBlock); } catch (e) { return { kind: "error", reason: (e && e.message) || String(e), status: 502 }; }
-  if (!asm || asm.type === "error") return { kind: "error", reason: (asm && asm.reason) || "assembly failed", status: 502 };
-  if (asm.type === "directory") {
-    const idx = asm.entries.find((e) => e.name === "index.html") || asm.entries.find((e) => e.name === "index.htm");
-    if (idx) {
-      try { const f = await assembleUnixFs(idx.cid, getBlock); if (f.type === "file") return { kind: "file", cidStr: idx.cid, bytes: f.bytes, contentType: "text/html", name: idx.name, servedIndex: true }; } catch {}
-    }
-    return { kind: "directory", cidStr: cur, entries: asm.entries };
+  // PEEK the target node from its own block (cheap — does not assemble a whole file), then either list a
+  // directory or hand back a STREAM factory for a file. The file's bytes are never buffered here.
+  let peek; try { peek = await peekNode(cur, getBlock); } catch (e) { return { kind: "error", reason: (e && e.message) || String(e), status: 502 }; }
+  if (peek.kind === "missing") return { kind: "error", reason: "missing block for " + cur, status: 502 };
+  if (peek.kind === "directory") {
+    const entries = peek.node.links.map((l) => ({ name: l.name, cid: cidToString(l.cid), size: l.tsize }));
+    const idx = entries.find((e) => e.name === "index.html") || entries.find((e) => e.name === "index.htm");
+    if (idx) return { kind: "file", cidStr: idx.cid, contentType: "text/html", name: idx.name, servedIndex: true, stream: () => streamUnixFsFile(idx.cid, getBlock) };
+    return { kind: "directory", cidStr: cur, entries };
   }
+  // file / raw → STREAM. Content type from the name, else sniff the raw leaf / the file's first leaf.
   const name = segs.length ? segs[segs.length - 1] : "";
-  return { kind: "file", cidStr: cur, bytes: asm.bytes, contentType: sniff(asm.bytes, name), name };
+  let ct = mimeOf(name);
+  if (!ct && peek.raw) ct = sniff(peek.block, name);
+  if (!ct && peek.node && peek.node.links && peek.node.links.length) { try { const first = await getBlock(cidToString(peek.node.links[0].cid)); if (first) ct = sniff(first, name); } catch {} }
+  if (!ct && peek.node && !(peek.node.links || []).length && peek.node.data) { try { const u = holoIpfs.decodeUnixFs(peek.node.data); if (u && u.data) ct = sniff(u.data, name); } catch {} }
+  if (!ct) ct = "application/octet-stream";
+  return { kind: "file", cidStr: cur, contentType: ct, name, stream: () => streamUnixFsFile(cur, getBlock) };
 }
 
 // ── the navigation reporter — a tiny script injected into served HTML (a COPY of already-verified bytes,
@@ -123,7 +191,7 @@ export async function resolveIpfsPath(root, path, getBlock) {
 //    page's own bytes are unchanged on the wire/in the κ — this rides only on the rendered copy. ──
 export function navReporter() {
   return "<script>(function(){try{"
-    + "var rep=function(){try{parent.postMessage({type:'holo-ipfs:nav',url:location.href,title:document.title},'*')}catch(e){}};"
+    + "var rep=function(){try{var bt=((document.body&&document.body.innerText)||'').replace(/\\s+/g,' ').trim().slice(0,6000);parent.postMessage({type:'holo-ipfs:nav',url:location.href,title:document.title,text:bt},'*')}catch(e){}};"
     + "rep();addEventListener('load',rep);addEventListener('hashchange',rep);addEventListener('popstate',rep);"
     + "addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(a)setTimeout(rep,40);},true);"
     + "}catch(e){}})();</script>";

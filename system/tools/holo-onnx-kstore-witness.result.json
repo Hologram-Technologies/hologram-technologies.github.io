@@ -1,0 +1,40 @@
+{
+  "spec": "ADR-0101 Stage 0 (Seam A), browser half: the OS2 .holo κ-store implements the SAME KappaStore contract as ari's kstore.rs (put/get/has by κ, L5 re-derivation on read), with κ-parity across substrates (blake3:<hex> === hologram_archive::address_bytes); the wasm Uint8Array seam pulls archive bytes by κ.",
+  "authority": "ari crates/hologram-ai/src/kstore.rs (6/6 unit witness) · holo-blake3-witness (blake3 σ-axis === the substrate kappa()) · verify by re-derivation (Law L5) · the OS2 κ-store (holo-store.makeStore, ADR-0026)",
+  "witnessed": true,
+  "covers": [
+    "holo-onnx-forge",
+    "kappa-store",
+    "seam-a",
+    "kappa-parity",
+    "law-l1",
+    "law-l2",
+    "law-l3",
+    "law-l5",
+    "adr-0026"
+  ],
+  "parityRealRan": false,
+  "checks": {
+    "put→get round-trip is byte-identical": true,
+    "put's κ === the content's re-derived κ (L5)": true,
+    "κ is the substrate σ-axis label blake3:<64hex>": true,
+    "identical bytes → identical κ": true,
+    "identical bytes occupy ONE stored object (L3 dedup)": true,
+    "distinct bytes → distinct κ": true,
+    "absent κ resolves to null": true,
+    "tampered object refused on read (L5)": true,
+    "loadHoloByKappa returns a Uint8Array for the wasm seam": true,
+    "loadHoloByKappa throws on an absent κ (twin of HoloRunner::get)": true,
+    "ingestUrl fetches once and stores by κ (L4 boundary)": true,
+    "ingested archive round-trips by κ": true,
+    "serveArchiveHex(hex) returns the archive (SW /.holo/blake3/<hex> seam)": true,
+    "serveArchiveHex returns null for an unknown hex": true,
+    "κ-parity: archiveLabel('abc') === the canonical substrate κ": true,
+    "store range resolver pages an exact interior range": true,
+    "ranged reassembly equals the whole archive (lossless paging)": true,
+    "HTTP range resolver gets a 206 sub-range by κ": true,
+    "range falls back correctly when the server ignores Range (200→slice)": true
+  },
+  "passed": 19,
+  "failed": 0
+}

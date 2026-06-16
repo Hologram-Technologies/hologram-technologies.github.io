@@ -1,0 +1,38 @@
+<!-- NCSA Mosaic chrome — re-authored as web chrome (fidelity reference: github.com/alandipert/ncsa-mosaic,
+     the X11/Motif client). Motif menubar + toolbar + the two labelled entry fields + the spinning NCSA
+     globe + a status bar with a transfer meter. Bound by the engine to the live WebContents state via the
+     data-* hooks (no inline script — behavior is the manifest's closed action vocabulary). -->
+<div class="skin-region-top"><div class="mos">
+  <!-- menu bar: File · Options · Navigate · Annotate · Help (Motif order) -->
+  <div class="mos-menubar" role="menubar">
+    <button class="mos-menu" data-menu="File">File</button>
+    <button class="mos-menu" data-menu="Options">Options</button>
+    <button class="mos-menu" data-menu="Navigate">Navigate</button>
+    <button class="mos-menu" data-menu="Annotate">Annotate</button>
+    <button class="mos-menu mos-help" data-menu="Help">Help</button>
+    <span class="mos-globe" data-throbber title="NCSA Mosaic"><!-- globe injected --></span>
+  </div>
+  <!-- toolbar: beveled pixmap buttons -->
+  <div class="mos-toolbar">
+    <button class="mos-btn" data-action="nav.back"    title="Back"><span data-glyph="back"></span></button>
+    <button class="mos-btn" data-action="nav.forward" title="Forward"><span data-glyph="forward"></span></button>
+    <button class="mos-btn" data-action="nav.home"    title="Home Document"><span data-glyph="home"></span></button>
+    <button class="mos-btn" data-action="nav.reload"  title="Reload Current"><span data-glyph="reload"></span></button>
+    <span class="mos-sep"></span>
+    <button class="mos-btn" data-action="omni.focus"  title="Open URL…"><span data-glyph="open"></span></button>
+    <button class="mos-btn" data-action="nav.stop"    title="Stop"><span data-glyph="stop"></span></button>
+    <span class="mos-sep"></span>
+    <button class="mos-btn" data-action="tab.new"     title="New Window"><span data-glyph="newwin"></span></button>
+  </div>
+  <!-- the two labelled Motif entry fields -->
+  <div class="mos-fields">
+    <label class="mos-field"><span class="mos-label">Document&nbsp;Title:</span><input class="mos-input" data-title readonly></label>
+    <label class="mos-field"><span class="mos-label">Document&nbsp;URL:</span><input class="mos-input" data-url data-action="omni.focus" readonly></label>
+  </div>
+</div></div>
+<!-- status bar (bottom region): transfer text + a Motif progress meter -->
+<div class="skin-region-bottom"><div class="mos-status">
+  <span class="mos-status-text" data-status></span>
+  <span class="mos-meter"><span class="mos-meter-fill"></span></span>
+  <span class="mos-security" data-security data-state="neutral"></span>
+</div></div>

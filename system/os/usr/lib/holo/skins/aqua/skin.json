@@ -1,0 +1,161 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "aqua",
+  "holo:title": "Mac OS X Aqua",
+  "holo:fidelitySource": "Mac OS X 10.x “Aqua” (pinstripe + gel) — re-authored as web chrome",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:5a8f81b1c9726166643090438481fd218f1f83ba2c6531528aaedd5ce99885f1",
+    "css": "did:holo:sha256:67d0a4431b9667bd36db819d6cb15b7f6b37b97f13242bb3c5a46a0b29ab4d33"
+  },
+  "holo:shellCss": "did:holo:sha256:2a34cfd8e997d14285d78b6d519a0085b553446f44fdb1d21da366001b77abb0",
+  "holo:glyphs": {
+    "back": "did:holo:sha256:7f9ea37c4365d7e4a605c64e4b61556cfb94cdbbb9c6f9a5872cc20665ff2039",
+    "forward": "did:holo:sha256:65b054b2541bde0fb9696b96094f4b1b9081ca8aacbde7559378e9b5efaf3206",
+    "home": "did:holo:sha256:e3e76774023a02a6963ce1f2aa2deaa0baae2788202aa1a769a0d52a36fe3963",
+    "reload": "did:holo:sha256:f5bb08d4f1e600958adf97d9e0af5c33fddc81ba36d4d9a6ace5d83254fc7b45",
+    "open": "did:holo:sha256:c43f4aca5ac1fc3837a940f53acb1c6f5f532279773439378610e19f385fd578",
+    "stop": "did:holo:sha256:54aa2248c4a06b1fd4d81c9d90b3b7496f8f59915052d2d586f8e7bb2d14c804",
+    "newwin": "did:holo:sha256:801a9d203fc65fad59f5664865393e2b99092126c9647e81d1bc61ef191eb1cf"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:f7bcaa6f575da8fc53644f5ef19330b519d2aec03405fb7920a7fccd563cdccd"
+  },
+  "holo:palette": {
+    "chrome": "#e8eef6",
+    "bevelLight": "#ffffff",
+    "bevelDark": "#9bb0c8",
+    "linkUnvisited": "#0000ee",
+    "linkVisited": "#551a8b",
+    "text": "#0a0a0a",
+    "statusBg": "#e8eef6"
+  },
+  "holo:font": {
+    "ui": "'Lucida Grande','Helvetica Neue',Helvetica,Arial,sans-serif",
+    "doc": "Georgia,'Times New Roman',serif"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "File",
+        "items": [
+          {
+            "label": "New Window",
+            "action": "tab.new"
+          },
+          {
+            "label": "Open Location…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Close",
+            "action": "tab.close"
+          },
+          {
+            "label": "Print…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Edit",
+        "items": [
+          {
+            "label": "Cut",
+            "action": "noop"
+          },
+          {
+            "label": "Copy",
+            "action": "noop"
+          },
+          {
+            "label": "Paste",
+            "action": "noop"
+          },
+          {
+            "label": "Find…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "View",
+        "items": [
+          {
+            "label": "Reload Page",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Stop",
+            "action": "nav.stop"
+          },
+          {
+            "label": "Make Text Bigger",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "History",
+        "items": [
+          {
+            "label": "Back",
+            "action": "nav.back"
+          },
+          {
+            "label": "Forward",
+            "action": "nav.forward"
+          },
+          {
+            "label": "Home",
+            "action": "nav.home"
+          }
+        ]
+      },
+      {
+        "label": "Bookmarks",
+        "items": [
+          {
+            "label": "Add Bookmark…",
+            "action": "noop"
+          },
+          {
+            "label": "Show All Bookmarks",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Window",
+        "items": [
+          {
+            "label": "Minimize",
+            "action": "noop"
+          },
+          {
+            "label": "Bring All to Front",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Help",
+        "items": [
+          {
+            "label": "About Safari",
+            "action": "about"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:ba6bcf797150400274ab7012bf89a726fea08589cd36e860fb7f28e2ab177df9"
+}

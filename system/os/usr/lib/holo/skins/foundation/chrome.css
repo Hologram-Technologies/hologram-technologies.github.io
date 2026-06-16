@@ -1,0 +1,28 @@
+.skin-chrome{font-family:'Spectral','EB Garamond',Georgia,serif;font-size:12px;color:#e8d9a8;letter-spacing:.4px}
+.skin-chrome .fn{background:#0b0f17;background-image:linear-gradient(rgba(212,175,55,.05),transparent);border-bottom:1px solid #d4af37;box-shadow:inset 0 0 30px rgba(212,175,55,.08)}
+.skin-chrome .fn-menubar{display:flex;align-items:center;gap:8px;padding:5px 10px}
+.skin-chrome .fn-menu{font:inherit;letter-spacing:1.5px;font-size:11px;background:transparent;border:0;color:#d4af37;padding:2px 6px;cursor:default}
+.skin-chrome .fn-menu:hover{color:#ffe9a8;text-shadow:0 0 8px rgba(212,175,55,.6)}
+.skin-chrome .fn-throb{margin-left:auto;width:30px;height:30px;display:grid;place-items:center}
+.skin-chrome .fn-throb svg{width:27px;height:27px;filter:drop-shadow(0 0 4px rgba(212,175,55,.6))}
+.skin-chrome .fn-throb .prad{transform-origin:50% 50%}
+.skin-chrome .fn-throb.spinning .prad{animation:fn-spin 2.4s linear infinite}
+@keyframes fn-spin{to{transform:rotate(360deg)}}
+.skin-chrome .fn-toolbar{display:flex;align-items:center;gap:7px;padding:5px 10px}
+.skin-chrome .fn-btn{display:grid;place-items:center;width:30px;height:26px;background:#10151f;border:1px solid #2a3344;border-radius:3px;cursor:default}
+.skin-chrome .fn-btn:hover{border-color:#d4af37;box-shadow:0 0 10px rgba(212,175,55,.4)}
+.skin-chrome .fn-btn[disabled]{opacity:.3}
+.skin-chrome .fn-btn .ico svg{width:15px;height:15px}
+.skin-chrome .fn-sep{width:1px;align-self:stretch;margin:4px 4px;background:#2a3344}
+.skin-chrome .fn-fields{display:flex;align-items:center;padding:1px 10px 6px}
+.skin-chrome .fn-field{display:flex;align-items:center;gap:8px;flex:1}
+.skin-chrome .fn-flabel{color:#d4af37;letter-spacing:2px;font-size:11px}
+.skin-chrome .fn-input{flex:1;font:13px 'Spectral',Georgia,serif;letter-spacing:.5px;color:#e8d9a8;background:#10151f;border:1px solid #2a3344;border-radius:3px;padding:3px 12px;outline:0}
+.skin-chrome .fn-input:focus{border-color:#d4af37;box-shadow:0 0 0 2px rgba(212,175,55,.25)}
+.skin-chrome .fn-go{font:inherit;letter-spacing:1px;color:#0b0f17;font-weight:700;padding:3px 14px;border:0;border-radius:3px;background:#d4af37}
+.skin-chrome .fn-status{display:flex;align-items:center;gap:9px;padding:3px 10px;background:#0b0f17;border-top:1px solid #2a3344}
+.skin-chrome .fn-status-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8d9a8}
+.skin-chrome .fn-sub{color:#d4af37;letter-spacing:2px;font-size:11px}
+.skin-chrome .fn-security[data-state="secure"]::before{content:"\1F512";color:#d4af37}
+.skin-chrome .fn-meter{width:130px;height:9px;background:#10151f;border:1px solid #2a3344;border-radius:4px;overflow:hidden}
+.skin-chrome .fn-meter-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#b89020,#ffe9a8)}

@@ -1,0 +1,123 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "holographic",
+  "holo:title": "Holographic",
+  "holo:fidelitySource": "Hologram OS native aesthetic — translucent prismatic glass",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:81abeb7d4e43cf47ebffa031923b0d72b06af54ed93359d08c0419618bd52761",
+    "css": "did:holo:sha256:52e43b659e5f954dc9e5ea91b647c52e0cebd48fc21f1d7435313cddb7aeb56c"
+  },
+  "holo:shellCss": "did:holo:sha256:7c5f75a734edacfb2191edaa7aa60eb12e2c0048e4acb4a3cfbb673411453f89",
+  "holo:glyphs": {
+    "back": "did:holo:sha256:2b8fae8a64d84ed0e1366a7afc90d7a888b5ca1f1f5b70c8cfdc1316b6d3a82e",
+    "forward": "did:holo:sha256:4e1b9bf1d9022f1d8d52d529d556e255aec192e162f8111f426757b1c09240c8",
+    "home": "did:holo:sha256:5a24b26a5c9240fe64859e9717d4e6afab8292604a329a63f6bf1e053e88c8e5",
+    "reload": "did:holo:sha256:c2fc3b86c6eb158258ec0a35bcc56dfd7d21e0a89f710297c0b13f62d68ec794",
+    "open": "did:holo:sha256:94872777002148cc02583a365094f24e2c73f66b5f473cee3d2b712ee572a838",
+    "stop": "did:holo:sha256:5feac123b8429f467f9b509c055466026fb7bc489030a6e6672f4ab7c0535e7a",
+    "newwin": "did:holo:sha256:8f377785e5e0e622d4d2ad6d963d8fbbb7e84fceddf2dfa7972b1822d9b33c4c"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:0a67b4e84d7da6c1d1d59bdb09ddce21c520bf28ae1c9e10cd88f6d05c0f3ef9"
+  },
+  "holo:palette": {
+    "chrome": "#0c1019",
+    "bevelLight": "#6cf",
+    "bevelDark": "#234",
+    "linkUnvisited": "#9bd0ff",
+    "linkVisited": "#cc99ff",
+    "text": "#eaf6ff",
+    "statusBg": "#0c1019"
+  },
+  "holo:font": {
+    "ui": "'Inter','Segoe UI',system-ui,sans-serif",
+    "doc": "'Inter',system-ui,sans-serif"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "HOLO",
+        "items": [
+          {
+            "label": "New Surface",
+            "action": "tab.new"
+          },
+          {
+            "label": "Resolve…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Close",
+            "action": "tab.close"
+          }
+        ]
+      },
+      {
+        "label": "RESOLVE",
+        "items": [
+          {
+            "label": "Reload",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Stop",
+            "action": "nav.stop"
+          },
+          {
+            "label": "Re-derive (L5)",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "SPACE",
+        "items": [
+          {
+            "label": "Back",
+            "action": "nav.back"
+          },
+          {
+            "label": "Forward",
+            "action": "nav.forward"
+          },
+          {
+            "label": "Home",
+            "action": "nav.home"
+          }
+        ]
+      },
+      {
+        "label": "κ-STORE",
+        "items": [
+          {
+            "label": "Pin Object",
+            "action": "noop"
+          },
+          {
+            "label": "Verify by κ",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "HELP",
+        "items": [
+          {
+            "label": "About Hologram",
+            "action": "about"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:f288200eec48421708cb67c1a6c0f40212b05b006e919e03f70a7b11ea61faa3"
+}

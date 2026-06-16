@@ -9,6 +9,7 @@
 //   node tools/holo-serve-fhs.mjs [port=8300]
 
 import http from "node:http";
+import net from "node:net";                                  // raw socket for the Tor SOCKS5 onion transport
 import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname } from "node:path";
@@ -19,9 +20,13 @@ import { fhsMap } from "../os/lib/holo-fhs-map.mjs";     // the ONE flat→FHS m
 import { identiconSvg } from "../os/usr/lib/holo/holo-identicon.mjs";   // content-derived OG-card visual
 import { buildAppRegistry, descriptor, handle as mcpHandle } from "../os/usr/lib/holo/mcp/holo-mcp.mjs";   // per-app MCP surface (dependency-free core)
 import { handleApi, collectNdjson, collectSse } from "../os/usr/lib/holo/api/holo-api-core.mjs";   // per-app unified REST API (κ-stream ingress/egress)
+import { onionFetch, normalizeTransport, resolveActiveTransport } from "../os/sbin/holo-omni-onion-transport.mjs";   // the two honest Tor transports (gateway · SOCKS5) + local-Tor autodetect
+import { ensureTor } from "../os/sbin/holo-tor-host.mjs";   // MANAGED Tor: reuse a running Tor, else κ-verify + launch one (Brave model, no user install)
+import { blake3hex as torBlake3 } from "../os/usr/lib/holo/holo-blake3.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const OS2 = join(here, "../os");
+export const REPO = join(here, "../..");                              // repo root — holds the gateway index.html + repo-root vendored assets (system/vendor/…) that prod serves statically
 export const APPS = "C:/Users/pavel/Desktop/Hologram Apps";          // the separate apps repo
 export const ORIG = "C:/Users/pavel/Desktop/hologram-os/os";
 
@@ -191,6 +196,11 @@ function readRel(rel, stats) {
   // so a retired app is truly gone (404), not silently served from the old monolith. The legacy
   // gap-fallback survives only for OS-spine files OS2 hasn't vendored yet.
   if (!isApp) { const o = join(ORIG, rel); if (existsSync(o) && statSync(o).isFile()) { stats.orig.add(rel); return { buf: readFileSync(o), rel }; } }
+  // repo-root static assets that live OUTSIDE the os/ FHS space (e.g. system/vendor/vanta/* — the gateway's
+  // vendored WebGL cloud sky). On GitHub Pages the whole repo is served statically so these resolve directly;
+  // this dev server roots assets under os/, so without this fallback they 404. Confined to the FHS prefixes the
+  // gateway actually references, never a path escape (no "..").
+  if (!isApp && /^system\/vendor\//.test(rel) && !rel.includes("..")) { const r = join(REPO, rel); if (existsSync(r) && statSync(r).isFile()) { stats.os2++; return { buf: readFileSync(r), rel }; } }
   return null;
 }
 
@@ -216,8 +226,60 @@ function serveByKappa(hex, route, res, stats) {
 // no CORS / X-Frame-Options block); it then mints those bytes into a κ and re-derives them (Law L5)
 // before rendering. DEV-ONLY (not part of the shipped serverless OS); mirrors Holo Browser's
 // documented optional companion proxy ("absent on static GitHub Pages").
-async function webProxy(target, res) {
+// onionProxy(target, res, override) — a .onion target cannot be fetched directly (no DNS / IP; only Tor
+// knows the rendezvous). Route it through the configured Tor transport: a per-request override (the shell's
+// user selection, b64url JSON {kind,endpoint}) wins, else HOLO_ONION_* env. No transport → honest 501 (never
+// a fake render). The transport ACTUALLY used is pinned in x-holo-onion-transport so the page's receipt is
+// auditable; x-holo-direct-tor:false is always set — this host does not carry native Tor circuits.
+// managedTor() — memoized: reuse a running Tor, else κ-verify + launch one (Brave model, zero user install).
+// Refuses to run an unpinned/unverified binary (Law L5). No-op-fast when nothing is pinned → onionProxy then
+// answers the honest 501. The host can spawn a process; a pure static deploy cannot (handled by ensureTor).
+let _managedTor = null;
+function managedTor() {
+  if (_managedTor) return _managedTor;
+  const cacheDir = join(OS2, "../.holo-tor");
+  // consume the pin written by `node tools/holo-tor-fetch.mjs` (κ of the verified Tor binary + its path).
+  let pin = null; try { const pf = join(cacheDir, "tor-pin.json"); if (existsSync(pf)) pin = JSON.parse(readFileSync(pf, "utf8")); } catch {}
+  _managedTor = ensureTor(pin ? { binPath: pin.bin } : {}, {
+    net, spawn, fetchImpl: fetch, env: process.env, platform: process.platform, arch: process.arch,
+    ...(pin && pin.kappa ? { kappa: pin.kappa } : {}),
+    readFile: async (p) => new Uint8Array(readFileSync(p)), exists: (p) => existsSync(p), cacheDir,
+    sha256hex: async (u8) => createHash("sha256").update(u8).digest("hex"), blake3hex: async (u8) => torBlake3(u8),
+    onStatus: (s) => console.log("[holo-tor]", JSON.stringify(s)),
+  }).catch((e) => ({ ok: false, reason: (e && e.message) || String(e) }));
+  return _managedTor;
+}
+
+async function onionProxy(target, res, override) {
+  // priority: explicit per-request override → HOLO_ONION_* env → AUTO-DETECTED local Tor (9050/9150) →
+  // MANAGED Tor (we provision a κ-verified one). This is what makes onion paste-and-go with NO user install.
+  let overrideCfg = null;
+  if (override) { try { overrideCfg = JSON.parse(Buffer.from(override.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")); } catch {} }
+  let mt = null;
+  if (!normalizeTransport(overrideCfg)) { try { mt = await managedTor(); } catch {} }   // ensure a Tor exists (idempotent) before we resolve the transport
+  const transport = normalizeTransport(overrideCfg) || await resolveActiveTransport({ override: overrideCfg, net });
+  // honest trust state for the receipt/headers: a real Tor circuit (managed/user) vs a gateway; anonymity is
+  // best-effort (host proxy → Tor), NEVER Tor-Browser-grade — x-holo-direct-tor stays false (the TAB isn't Tor).
+  const onionTrust = transport && transport.kind === "gateway" ? "gateway" : (mt && mt.ok && mt.source) ? mt.source : "user-tor";
+  const anonGrade = transport && transport.kind === "gateway" ? "none" : (mt && mt.anonymityGrade) || "best-effort";
+  const H = { ...COI, "access-control-allow-origin": "*", "cache-control": "no-store", "x-holo-direct-tor": "false", "x-holo-onion-trust": onionTrust, "x-holo-anonymity-grade": anonGrade };
+  if (!transport) {
+    res.writeHead(501, { ...H, "content-type": "text/html; charset=utf-8" });
+    return res.end(`<!doctype html><meta charset=utf-8><body style="margin:0;background:#05070d;color:#e8eef9;font:15px system-ui;min-height:100vh;display:grid;place-items:center;text-align:center;padding:30px"><div style="max-width:560px"><div style="font-size:34px">🧅</div><div style="font-weight:650;margin:12px 0 6px">Can't reach Tor</div><div style="color:#7d8aa6;font:12.5px ui-monospace,monospace;word-break:break-all">${String(target).replace(/[<>&]/g, "")}</div><div style="color:#cbd3e6;margin-top:14px;font-size:13px;line-height:1.6">Onion services live only on the Tor network. To browse them, run <b>Tor</b> locally — the omnibar then reaches any <code>.onion</code> automatically (no per-site setup):<br><span style="color:#a78bfa">• Tor Browser → it listens on 127.0.0.1:9150</span><br><span style="color:#a78bfa">• <code>tor</code> daemon / Arti → 127.0.0.1:9050</span><br><span style="color:#7d8aa6">Public onion HTTP gateways are mostly defunct; set one in the omnibar only if you have a working endpoint.</span></div></div></body>`);
+  }
+  try {
+    const out = await onionFetch(target, transport, { fetchImpl: fetch, net });
+    if (!out) { res.writeHead(502, { ...H, "content-type": "text/plain" }); return res.end("onion transport returned nothing"); }
+    res.writeHead(out.status >= 200 && out.status < 500 ? out.status : 502,
+      { ...H, "content-type": out.contentType || "text/html; charset=utf-8", "x-holo-onion-transport": transport.kind + ":" + transport.endpoint });
+    res.end(Buffer.from(out.bytes));
+  } catch (e) { res.writeHead(502, { ...H, "content-type": "text/plain" }); res.end("onion transport failed: " + ((e && e.message) || e)); }
+}
+
+async function webProxy(target, res, onionOverride) {
   if (!target) { res.writeHead(400, COI); return res.end("missing url"); }
+  // a .onion host never resolves on the open internet — hand it to the Tor transport, not a direct fetch.
+  try { if (/\.onion$/i.test(new URL(/^https?:\/\//i.test(target) ? target : "http://" + target).hostname)) return onionProxy(/^https?:\/\//i.test(target) ? target : "http://" + target, res, onionOverride); } catch {}
   // Un-HTML-encode entities that leak in from rewritten hrefs (a result link like
   // …/l/?uddg=…&amp;rut=… → real "&"). URLs never legitimately contain a literal "&amp;".
   target = String(target).replace(/&amp;/gi, "&").replace(/&#0?38;/g, "&");
@@ -436,7 +498,7 @@ export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: ne
     const mRoom = route.match(/^\/room\/([\w-]{4,64})$/);            // dev Watch-Together room relay (SSE + POST)
     if (mRoom) { roomRoute(req, res, mRoom[1]); return; }
     if (route === "/mcp") { mcpProxy(req, res); return; }           // dev MCP forwarder — realizes the roster's declared /mcp endpoint (→ the substrate MCP server on :8787)
-    if ((route === "/web" || route.endsWith("/web")) && /[?&]url=/.test(req.url || "")) { webProxy(new URLSearchParams((req.url || "").split("?")[1] || "").get("url"), res); return; }
+    if ((route === "/web" || route.endsWith("/web")) && /[?&]url=/.test(req.url || "")) { const qs = new URLSearchParams((req.url || "").split("?")[1] || ""); webProxy(qs.get("url"), res, qs.get("onion")); return; }
     const mPair = route.match(/^\/\.pair\/([A-Za-z0-9\-_]{8,64})$/);   // Holo Pair content-blind rendezvous
     if (mPair) { pairMailbox(req, res, mPair[1]); return; }
     const mAppApi = route.match(/^\/~([a-z0-9._-]{1,40})\/api(?:\/(.*))?$/i);            // per-app unified REST API (κ-stream ingress/egress)
@@ -506,7 +568,10 @@ export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: ne
     // browser reuses them (and ORT's compiled-wasm cache) across reloads instead of recompiling every
     // time. That cold recompile is what makes first use feel laggy. Re-vendoring? hard-reload to bust it.
     const heavy = /\.(wasm|onnx|bin)$/.test(rel) || rel.includes("voice/vendor/");
-    res.writeHead(200, { ...COI, "content-type": TYPES[ext] || "application/octet-stream", "cache-control": heavy ? "public, max-age=86400" : "no-store" });
+    // Holo Browser's loading-seam SWs claim a DEEPER scope than their script path (browser-sw → /webview/,
+    // ipfs-sw → /ipfsview/). Allow it: the script must answer with Service-Worker-Allowed for that scope.
+    const swAllow = /(?:^|\/)(browser-sw|ipfs-sw)\.js$/.test(rel) ? { "Service-Worker-Allowed": "/" } : {};
+    res.writeHead(200, { ...COI, ...swAllow, "content-type": TYPES[ext] || "application/octet-stream", "cache-control": heavy ? "public, max-age=86400" : "no-store" });
     res.end(got.buf);
   };
 }
@@ -514,7 +579,10 @@ export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: ne
 export function startServer(port = 0) {
   const stats = { os2: 0, apps: 0, orig: new Set(), miss: new Set() };
   const srv = http.createServer(makeHandler(stats));
-  return new Promise((resolve) => srv.listen(port, "127.0.0.1", () => resolve({ port: srv.address().port, stats, close: () => srv.close(), server: srv })));
+  // Bind loopback by default (safe: the /web · /mcp · /sc proxy routes stay off the network). Set
+  // HOLO_HOST=0.0.0.0 to expose on the LAN for on-device preview (e.g. a phone on the same Wi-Fi).
+  const host = process.env.HOLO_HOST || "127.0.0.1";
+  return new Promise((resolve) => srv.listen(port, host, () => resolve({ port: srv.address().port, host, stats, close: () => srv.close(), server: srv })));
 }
 
 if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/")}` || process.argv[1].endsWith("holo-serve-fhs.mjs")) {

@@ -1,0 +1,123 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "lcars",
+  "holo:title": "LCARS",
+  "holo:fidelitySource": "Star Trek LCARS design language (re-authored; no copyrighted assets)",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:a9d1b3e633eb82a0e21dd4b5c6edf538d39d456ba69453c3c16d058fb8fc08a6",
+    "css": "did:holo:sha256:a549a3e0cb0521d216f518072fb3b193537f23972c75ae2748764228156a8b0f"
+  },
+  "holo:shellCss": "did:holo:sha256:6853c0a55d78f5e4a6bd462eb5802612911dc7014b66aece75957feb4d651e81",
+  "holo:glyphs": {
+    "back": "did:holo:sha256:ebbb240b3eb1390a8eed14ebaa80861f0db4376fa1c6d1ffea9be26eecb993c4",
+    "forward": "did:holo:sha256:38a7bc601147994c5fc2e7c1825d35ee0905a0a8ff990cfa25689ab16e4055a3",
+    "home": "did:holo:sha256:7e3ba69d35633a7a72bb96d6e4bb9c70182bb4ca0235424df80eb0b44d89b180",
+    "reload": "did:holo:sha256:85eb6e9282037e54a73ad6dcfb37068476f2ad4bdabeb5afc1093d53274a46ff",
+    "open": "did:holo:sha256:a70e1b72799fb2f70602c909689d9210dd78e9b9e6c58f804d25d5f86ef887cb",
+    "stop": "did:holo:sha256:cc86d87aaf624775b42cb1c3807a09e894c4c0bd6bd532b0d51da3be45a3cf65",
+    "newwin": "did:holo:sha256:c7ea8e38b9f9d437e7b4517db35e863e53ee05d2b1e92263f68b22b66e50ea3a"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:ee9beef578f8806962d2d95fd8bee46856766e2c68d470181f88375f8d18a388"
+  },
+  "holo:palette": {
+    "chrome": "#000000",
+    "bevelLight": "#000000",
+    "bevelDark": "#000000",
+    "linkUnvisited": "#9bb0ff",
+    "linkVisited": "#cc99cc",
+    "text": "#ffffff",
+    "statusBg": "#000000"
+  },
+  "holo:font": {
+    "ui": "Antonio, 'Oswald', 'Arial Narrow', sans-serif",
+    "doc": "Antonio, 'Arial Narrow', sans-serif"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "LCARS",
+        "items": [
+          {
+            "label": "NEW PANEL",
+            "action": "tab.new"
+          },
+          {
+            "label": "ACCESS…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "CLOSE",
+            "action": "tab.close"
+          }
+        ]
+      },
+      {
+        "label": "COMM",
+        "items": [
+          {
+            "label": "HAIL",
+            "action": "noop"
+          },
+          {
+            "label": "CHANNELS",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "NAV",
+        "items": [
+          {
+            "label": "BACK",
+            "action": "nav.back"
+          },
+          {
+            "label": "FORWARD",
+            "action": "nav.forward"
+          },
+          {
+            "label": "HOME",
+            "action": "nav.home"
+          },
+          {
+            "label": "RELOAD",
+            "action": "nav.reload"
+          }
+        ]
+      },
+      {
+        "label": "LIB",
+        "items": [
+          {
+            "label": "COMPUTER",
+            "action": "noop"
+          },
+          {
+            "label": "RECORDS",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "HELP",
+        "items": [
+          {
+            "label": "ABOUT",
+            "action": "about"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:16287334353475a7ab461ac21d5dcab3c557207f073db4a453c1982f297838a3"
+}

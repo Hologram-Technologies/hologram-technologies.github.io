@@ -1,0 +1,218 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "netscape",
+  "holo:title": "Netscape Navigator",
+  "holo:fidelitySource": "Netscape Navigator 3 / Communicator (re-authored as web chrome)",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:bbbb9df7748ed8b84668d36edf43834cdfe0be65abedd5054f594cb92ed19c13",
+    "css": "did:holo:sha256:052f01328dbf4ec82638b1077ceda8c8b30eb2171af44aa8d6bf7dd8bb0bdbbb"
+  },
+  "holo:glyphs": {
+    "back": "did:holo:sha256:ad5095d67f9b0534dac69994fe252a3270f98dc43842b4834353603c6de44c51",
+    "forward": "did:holo:sha256:cb4386dd6d80a37cb3f0718bc0a6b67ed65110c7999d6f95f44ce68e4452c975",
+    "home": "did:holo:sha256:3790af240018ee94415c9a646a07e648ca2261cbd25282232a7371117a8033e5",
+    "reload": "did:holo:sha256:c33d81b8c441d304dec67910609a73a4edc280d229220b027fbd7bba5db5b9c0",
+    "open": "did:holo:sha256:a0c46788851c5e1e28fad476580848a4d983e4d328b930cd9c82c669c920e1a4",
+    "stop": "did:holo:sha256:10e98b8e2b888ba6ccc7d5334dd646275d74ef5de74819c3d47564d529fc5176",
+    "newwin": "did:holo:sha256:32e75aec697e6d3c5ae9e0baa6329b4baa04c55e95bb89e0998ef42aca126a64"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:f3c8e54e27d5a61fd9ac4598ed1d4da631de154847640b54ec69df985af5c58e"
+  },
+  "holo:palette": {
+    "chrome": "#c0c0c0",
+    "bevelLight": "#ffffff",
+    "bevelDark": "#808080",
+    "linkUnvisited": "#0000ee",
+    "linkVisited": "#551a8b",
+    "text": "#000000",
+    "statusBg": "#c0c0c0"
+  },
+  "holo:font": {
+    "ui": "Helvetica, 'Nimbus Sans', Arial, sans-serif",
+    "doc": "'Times New Roman', Times, serif"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "File",
+        "items": [
+          {
+            "label": "New Web Browser",
+            "action": "tab.new"
+          },
+          {
+            "label": "Open Location…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Open File…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Reload",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Print…",
+            "action": "noop"
+          },
+          {
+            "label": "Close",
+            "action": "tab.close"
+          },
+          {
+            "label": "Exit",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Edit",
+        "items": [
+          {
+            "label": "Cut",
+            "action": "noop"
+          },
+          {
+            "label": "Copy",
+            "action": "noop"
+          },
+          {
+            "label": "Paste",
+            "action": "noop"
+          },
+          {
+            "label": "Find in Object…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "View",
+        "items": [
+          {
+            "label": "Reload",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Load Images",
+            "action": "noop"
+          },
+          {
+            "label": "Document Source",
+            "action": "noop"
+          },
+          {
+            "label": "Document Info",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Go",
+        "items": [
+          {
+            "label": "Back",
+            "action": "nav.back"
+          },
+          {
+            "label": "Forward",
+            "action": "nav.forward"
+          },
+          {
+            "label": "Home",
+            "action": "nav.home"
+          }
+        ]
+      },
+      {
+        "label": "Bookmarks",
+        "items": [
+          {
+            "label": "Add Bookmark",
+            "action": "noop"
+          },
+          {
+            "label": "Go to Bookmarks…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Options",
+        "items": [
+          {
+            "label": "General Preferences…",
+            "action": "noop"
+          },
+          {
+            "label": "Auto Load Images",
+            "action": "noop"
+          },
+          {
+            "label": "Show Toolbar",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Directory",
+        "items": [
+          {
+            "label": "Netscape's Home",
+            "action": "nav.home"
+          },
+          {
+            "label": "What's New?",
+            "action": "noop"
+          },
+          {
+            "label": "What's Cool?",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Window",
+        "items": [
+          {
+            "label": "Netscape Mail",
+            "action": "noop"
+          },
+          {
+            "label": "Address Book",
+            "action": "noop"
+          },
+          {
+            "label": "History…",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "Help",
+        "items": [
+          {
+            "label": "About Netscape",
+            "action": "about"
+          },
+          {
+            "label": "Release Notes",
+            "action": "noop"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:c926d26ca3a6d3ef25e05d1bea33aa26de2c08f9a615b4495c50012a46406cf0"
+}

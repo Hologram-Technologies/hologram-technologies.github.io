@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Holo Media</title>
+<style>
+  :root { color-scheme: dark; --bg:#07090e; --panel:#0d1018; --line:#1a2030; --ink:#eaeef7; --dim:#8b93a7; --accent:#5b8cff; --ok:#34d399; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { display: flex; flex-direction: column; height: 100%; }
+  .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(120% 120% at 50% 0%, #11151f 0%, #07090e 70%); position: relative; }
+  video { width: 100%; height: 100%; max-height: 100%; background: #000; }
+  audio { width: min(680px, 86vw); }
+  .audio-art { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 32px; }
+  .audio-art .disc { width: 132px; height: 132px; border-radius: 50%; background: conic-gradient(from 0deg, #1b2233, #2b3550, #1b2233); box-shadow: 0 10px 40px #0008, inset 0 0 0 10px #0a0d14, inset 0 0 0 11px #2a3146; }
+  .meta { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--panel); border-top: 1px solid var(--line); }
+  .meta .t { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta .s { color: var(--dim); font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .badge.ok { color: var(--ok); background: #0c2a20; border: 1px solid #18432f; }
+  .badge.net { color: var(--accent); background: #101b34; border: 1px solid #1e335c; }
+  .err { max-width: 520px; text-align: center; color: var(--dim); padding: 28px; }
+  .err b { color: var(--ink); display: block; font-size: 17px; margin-bottom: 8px; }
+  .err a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .err a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage"></div>
+  <div class="meta">
+    <span class="t" id="title">Media</span>
+    <span class="s" id="src"></span>
+    <span class="badge" id="badge"></span>
+  </div>
+</div>
+<script>
+  (function () {
+    const p = new URLSearchParams(location.search);
+    const src = p.get("src") || "";
+    const title = p.get("title") || (src.split(/[?#]/)[0].split("/").pop()) || "Media";
+    const mime = p.get("mime") || "";
+    const kappa = p.get("kappa") || "";
+    const media = (p.get("media") || (mime.startsWith("audio") ? "audio" : "video"));
+    const verified = /^did:holo:|^\/\.holo\/|^ipfs:|^\/ipfs\//.test(src) || !!kappa;
+
+    document.getElementById("title").textContent = title;
+    document.getElementById("src").textContent = kappa || src;
+    const badge = document.getElementById("badge");
+    badge.className = "badge " + (verified ? "ok" : "net");
+    badge.textContent = verified ? "✓ content-addressed · seekable" : "● streamed";
+
+    const stage = document.getElementById("stage");
+    if (!src) { stage.innerHTML = '<div class="err"><b>No source</b>Nothing to play.</div>'; return; }
+
+    const el = document.createElement(media === "audio" ? "audio" : "video");
+    el.controls = true; el.autoplay = true; el.preload = "metadata"; el.playsInline = true;
+    el.setAttribute("crossorigin", "anonymous");
+    // a source element lets the browser honour the mime hint; the element issues HTTP Range requests itself,
+    // which the κ-store answers with 206 Partial Content → native seeking, no MediaSource plumbing required.
+    const s = document.createElement("source"); s.src = src; if (mime) s.type = mime; el.appendChild(s);
+
+    if (media === "audio") {
+      const art = document.createElement("div"); art.className = "audio-art";
+      const disc = document.createElement("div"); disc.className = "disc";
+      art.appendChild(disc); art.appendChild(el); stage.appendChild(art);
+    } else { stage.appendChild(el); }
+
+    el.addEventListener("error", function () {
+      stage.innerHTML = '<div class="err"><b>Couldn’t play this media</b>The source didn’t load or the format isn’t supported in-tab. <a id="open">Open the address in a tab</a> instead.</div>';
+      const a = document.getElementById("open"); if (a) a.addEventListener("click", function () { try { parent.postMessage({ type: "holo-omni:go", value: src }, "*"); } catch (e) {} });
+    });
+  })();
+</script>
+</body>
+</html>

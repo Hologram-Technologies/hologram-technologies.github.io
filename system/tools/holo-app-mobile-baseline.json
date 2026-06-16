@@ -1,0 +1,17 @@
+{
+  "note": "Ratchet baseline for MOBILE conformance across apps. 'ceilings' is the max statically-detectable, runtime-unfixable mobile violations (100vh-not-dvh · no/!device-width viewport · zoom-disabled) allowed per app's authored index.html; the witness FAILS on any increase. The rest of the mobile standard (48dp · 16px · safe-area · no-overflow · container queries) is delivered automatically by the injected holo-mobile.css. Burn these down and re-seal with --update-baseline. New apps default to a ceiling of 0.",
+  "total": 16,
+  "ceilings": {
+    "browser": 2,
+    "code": 1,
+    "hub": 2,
+    "jypyter": 1,
+    "meet": 1,
+    "player": 2,
+    "privacy": 2,
+    "qvac": 1,
+    "terms": 2,
+    "ui": 1,
+    "workspace": 1
+  }
+}

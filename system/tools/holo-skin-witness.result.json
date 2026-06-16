@@ -1,0 +1,36 @@
+{
+  "spec": "The Holo Browser chrome is a hot-swappable, κ-addressed skin (holo:BrowserSkin). Every chrome asset (html/css/glyphs/the spinning NCSA globe) is referenced by content address and re-hashed on load — a flipped byte is refused (Law L5); the manifest re-derives to its own @id; a skin can ONLY target browser tabs (appliesTo='browser', so it can never repaint OS chrome); behavior is a CLOSED action vocabulary (no code in a manifest, so a new skin is a zero-engine-change data drop); and a swap is state-preserving (the chrome view derivation never mutates tab state). First skin: NCSA Mosaic, re-authored faithfully as web chrome.",
+  "authority": "NCSA Mosaic X11/Motif client (github.com/alandipert/ncsa-mosaic) · W3C Web Components (shadow DOM) · W3C DID Core + multiformats · W3C PROV-O · holospaces Laws L1/L5",
+  "witnessed": true,
+  "covers": [
+    "manifest-re-derives",
+    "chrome-assets-verified",
+    "pin-enforced-l5",
+    "applies-to-browser-only",
+    "behavior-vocab-closed",
+    "swap-preserves-state",
+    "re-derivation-parity",
+    "activation-receipt-l5",
+    "open-model-zero-engine-change",
+    "shipped-skins-15-browsers-winxp-win98-aqua-bigsur-win11-lcars-holographic-hhgttg-crt-lotr-foundation",
+    "shell-css-capability-pinned"
+  ],
+  "caveats": [
+    "globe + toolbar glyphs are re-authored web SVG, not byte-derived from upstream Motif pixmaps",
+    "Annotate / Window-History / Options menu items map to action 'noop' (no backend in Stage 1)"
+  ],
+  "checks": {
+    "engineSelfTest": true,
+    "manifestReDerives": true,
+    "chromeAssetsResolve": true,
+    "pinsEnforced": true,
+    "appliesToBrowserOnly": true,
+    "behaviorVocabClosed": true,
+    "swapPreservesState": true,
+    "reDerivationParity": true,
+    "activationReceipt": true,
+    "openModelZeroEngine": true,
+    "shippedSkinsResolve": true,
+    "shellCssCapability": true
+  }
+}

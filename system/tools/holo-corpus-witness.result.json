@@ -2,7 +2,7 @@
   "witnessed": false,
   "passed": 2,
   "failed": 3,
-  "files": 28207,
+  "files": 28486,
   "objects": 13399,
   "sampled": 12733,
   "covers": [
@@ -13,7 +13,7 @@
     {
       "name": "every first-party file in both folders is a first-class addressed object (full coverage)",
       "ok": false,
-      "detail": "13389/28207 files indexed · 14818 live-churn: montage_01.png, MANIFESTO.md, manifesto.html"
+      "detail": "13389/28486 files indexed · 15097 live-churn: montage_01.png, MANIFESTO.md, download.html"
     },
     {
       "name": "no orphan objects — every index entry exists on disk",
@@ -28,7 +28,7 @@
     {
       "name": "a bounded sample RE-DERIVES to both κ — content addresses, not arbitrary (Law L5)",
       "ok": false,
-      "detail": "12314/12733 re-derive · 419 live-churn: launch.json, settings.local.json, pages.yml"
+      "detail": "12308/12733 re-derive · 425 live-churn: launch.json, settings.local.json, pages.yml"
     },
     {
       "name": "the index is deterministic (sorted keys, no timestamps) → re-derives byte-for-byte",

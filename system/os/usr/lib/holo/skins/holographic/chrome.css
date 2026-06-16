@@ -1,0 +1,27 @@
+.skin-chrome{font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:12px;color:#eaf6ff;letter-spacing:.3px}
+.skin-chrome .hl{background:rgba(12,16,26,.55);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid rgba(120,200,255,.28);box-shadow:inset 0 0 24px rgba(90,180,255,.12)}
+.skin-chrome .hl-menubar{display:flex;align-items:center;gap:4px;padding:5px 9px}
+.skin-chrome .hl-menu{font:inherit;letter-spacing:1px;background:transparent;border:0;padding:3px 11px;border-radius:8px;color:#cfeaff;text-shadow:0 0 6px rgba(90,200,255,.45);cursor:default}
+.skin-chrome .hl-menu:hover{background:linear-gradient(90deg,rgba(120,90,255,.35),rgba(80,200,255,.3));color:#fff}
+.skin-chrome .hl-throb{margin-left:auto;width:30px;height:30px;display:grid;place-items:center}
+.skin-chrome .hl-throb svg{width:26px;height:26px;filter:drop-shadow(0 0 5px #6cf)}
+.skin-chrome .hl-throb .hring{transform-origin:50% 50%}
+.skin-chrome .hl-throb.spinning .hring{animation:hl-spin .9s linear infinite}
+@keyframes hl-spin{to{transform:rotate(360deg)}}
+.skin-chrome .hl-toolbar{display:flex;align-items:center;gap:6px;padding:5px 9px}
+.skin-chrome .hl-btn{display:grid;place-items:center;width:30px;height:27px;border:1px solid rgba(120,200,255,.35);border-radius:9px;background:rgba(120,180,255,.1);cursor:default}
+.skin-chrome .hl-btn:hover{background:rgba(120,180,255,.25);box-shadow:0 0 12px rgba(120,200,255,.4)}
+.skin-chrome .hl-btn[disabled]{opacity:.3}
+.skin-chrome .hl-btn .ico svg{width:15px;height:15px;filter:drop-shadow(0 0 3px rgba(120,220,255,.7))}
+.skin-chrome .hl-sep{width:1px;align-self:stretch;margin:4px 4px;background:rgba(120,200,255,.3)}
+.skin-chrome .hl-fields{display:flex;align-items:center;padding:1px 9px 6px}
+.skin-chrome .hl-field{display:flex;align-items:center;gap:8px;flex:1}
+.skin-chrome .hl-flabel{color:#7fd0ff;letter-spacing:1px;text-shadow:0 0 6px rgba(90,200,255,.5)}
+.skin-chrome .hl-input{flex:1;font:12px 'Inter',sans-serif;letter-spacing:1px;color:#eaf6ff;background:rgba(8,12,20,.55);border:1px solid rgba(120,200,255,.45);border-radius:13px;padding:3px 13px;outline:0;text-shadow:0 0 5px rgba(120,220,255,.4);box-shadow:0 0 14px rgba(90,180,255,.2) inset}
+.skin-chrome .hl-go{font:inherit;color:#06121f;font-weight:700;padding:3px 15px;border:0;border-radius:13px;background:linear-gradient(90deg,#7fe6ff,#9b8cff);box-shadow:0 0 14px rgba(120,200,255,.5)}
+.skin-chrome .hl-status{display:flex;align-items:center;gap:9px;padding:3px 9px;background:rgba(12,16,26,.5);backdrop-filter:blur(10px);border-top:1px solid rgba(120,200,255,.25)}
+.skin-chrome .hl-status-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 6px rgba(120,200,255,.4)}
+.skin-chrome .hl-sub{color:#7fffc0;letter-spacing:1px;text-shadow:0 0 6px rgba(120,255,180,.5)}
+.skin-chrome .hl-security[data-state="secure"]::before{content:"\1F512"}
+.skin-chrome .hl-meter{width:130px;height:10px;border:1px solid rgba(120,200,255,.35);border-radius:6px;overflow:hidden;background:rgba(8,12,20,.6)}
+.skin-chrome .hl-meter-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#7a5cff,#4fd0ff,#ff6ad5);box-shadow:0 0 10px rgba(120,200,255,.6)}

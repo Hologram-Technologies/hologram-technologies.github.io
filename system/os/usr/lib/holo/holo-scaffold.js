@@ -130,13 +130,22 @@ export function scaffold(opts = {}) {
     <\/script>`;
 
   const indexHtml = `<!doctype html>
-<html lang="en">
+<html lang="en" data-holo-surface>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>${name}</title>
     <meta name="description" content="${summary.replace(/"/g, "&quot;")}" />
     <link rel="icon" href="icon.svg" />
+    <!-- PWA: installable, standalone, home-screen-launchable on any phone. Pairs with holo-mobile.css's
+         viewport-fit=cover + env() safe-areas so the installed app honors the notch / home-indicator. -->
+    <meta name="theme-color" content="${accent || "#0d0d0f"}" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="${name.replace(/"/g, "&quot;")}" />
     <link rel="stylesheet" href="../../_shared/holo-theme.css" />
     <link rel="stylesheet" href="../../_shared/holo-mobile.css" />
     <link rel="stylesheet" href="../../_shared/holo-phi.css" />
@@ -166,7 +175,7 @@ export function scaffold(opts = {}) {
       .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--holo-ink-dim); flex: 0 0 auto; }
       .dot.ok { background: var(--holo-ok, #3fb950); } .dot.bad { background: var(--holo-danger, #f85149); }
       .actions { display: flex; flex-wrap: wrap; gap: .55rem; }
-      button { font: inherit; font-weight: 600; min-height: 44px; padding: 0 1rem; cursor: pointer; color: var(--holo-ink);
+      button { font: inherit; font-weight: 600; min-height: 48px; padding: 0 1rem; cursor: pointer; color: var(--holo-ink);
         background: var(--holo-surface-2); border: 1px solid var(--holo-border); border-radius: 12px;
         display: inline-flex; align-items: center; gap: .45rem; }
       button:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--holo-border)); }
@@ -296,8 +305,18 @@ _Who is it for, and what does it give them? Lead with why, then how, then what (
 - **Deliver & Iterate:** shared as \`holo://κ\`; evolve continuously without breaking the gate.
 `;
 
+  // PWA web app manifest — makes the holospace installable + home-screen-launchable on any phone
+  // (display:standalone). Distinct from holospace.json (the κ-substrate descriptor): this is the W3C
+  // Web App Manifest the browser reads to install. Icons reference the generated vector mark.
+  const pwaManifest = {
+    name, short_name: name.length > 12 ? name.slice(0, 12) : name, description: summary,
+    start_url: ".", scope: ".", display: "standalone", orientation: "any",
+    background_color: "#0d0d0f", theme_color: accent || "#0d0d0f",
+    icons: [{ src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }],
+  };
+
   return { id, identifier, name, summary, category, accent, minimal, manifest,
-    files: { "holospace.json": JSON.stringify(manifest, null, 2) + "\n", "index.html": indexHtml, "icon.svg": iconSvg, "DECISION.md": decisionMd } };
+    files: { "holospace.json": JSON.stringify(manifest, null, 2) + "\n", "index.html": indexHtml, "icon.svg": iconSvg, "manifest.webmanifest": JSON.stringify(pwaManifest, null, 2) + "\n", "DECISION.md": decisionMd } };
 }
 
 export default scaffold;

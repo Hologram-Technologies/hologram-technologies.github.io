@@ -16,6 +16,7 @@
 // resolveBare a bare import is a HONEST build error (named, never a fake bundle), surfaced like any gap.
 
 import { forgeReceipt, jcs } from "./holo-forge/holo-forge.mjs";   // reuse the re-derivable build-receipt shape
+import { ensureMobileHead } from "./holo-mobile-defaults.mjs";     // every bundled app is mobile + PWA-ready at birth
 
 const EXT_LOADER = { js: "js", mjs: "js", cjs: "js", jsx: "jsx", ts: "ts", tsx: "tsx", json: "json", css: "css", svg: "text", txt: "text" };
 const TRY_EXT = ["", ".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".json", ".css", "/index.tsx", "/index.ts", "/index.jsx", "/index.js"];
@@ -109,9 +110,9 @@ export function encodeBundle({ html, js, css, mount = "root" }) {
     if (style && /<\/head>/i.test(out)) out = out.replace(/<\/head>/i, style + "\n</head>");
     else if (style) out = style + out;
     out = out.replace(/<\/body>/i, script + "\n</body>");
-    return out;
+    return ensureMobileHead(out);   // mobile + PWA at birth (idempotent — only adds what's missing)
   }
-  return '<!doctype html><html><head><meta charset="utf-8">' + style + '</head><body><div id="' + mount + '"></div>' + script + "</body></html>";
+  return ensureMobileHead('<!doctype html><html lang="en"><head><meta charset="utf-8">' + style + '</head><body><div id="' + mount + '"></div>' + script + "</body></html>");
 }
 
 // makeBundler({ esbuild, resolveBare, hash }) → a `bundle({ files, name })` ready to INJECT into

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo Egress Probe — holospaces-web bridge</title>
+<!--
+  egress-probe.html — proves the OS2 ↔ holospaces-web bridge contract LIVE, in the page context (chrome.runtime
+  is a window API, NOT available in a Service Worker — so egress is page-initiated). It speaks the VERIFIED
+  routerFetch protocol to the holospaces egress extension (named port "holospaces-content", {type:"fetch",…} →
+  head/chunk/end), STREAMS the chunks, and mints each with the OS2 incremental BLAKE3 (createBlake3) → a κ-label
+  `blake3:<hex>`. A re-fetch is served O(1) from the local κ-cache. This de-risks W1+W2 before threading egress
+  through browser-sw.js via the SW↔page MessageChannel.
+
+  REQUIRES (one-time): the holospaces egress extension installed, AND this page's origin added to the extension's
+  manifest `externally_connectable.matches` (it ships locked to hologram-technologies.github.io). Then serve this
+  file over http(s) and open it. To confirm the κ-label match, compare a printed κ here with `Console.kappa(bytes)`
+  on the same bytes in the substrate.
+-->
+<style>
+  :root{--bg:#05070d;--panel:#0c111b;--line:#1d2840;--ink:#e8eef9;--dim:#7d8aa6;--good:#34d399;--bad:#f87171;--vio:#a78bfa;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  *{box-sizing:border-box} body{margin:0;background:radial-gradient(900px 500px at 50% -10%,#0b1426,var(--bg) 60%);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;padding:34px 22px}
+  .wrap{max-width:760px;margin:0 auto} h1{font-size:19px;font-weight:660;margin:0 0 3px} .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .pill{display:inline-flex;gap:7px;align-items:center;font:11.5px var(--mono);padding:4px 11px;border-radius:999px;border:1px solid var(--line);margin:0 0 16px}
+  .pill.on{color:var(--good);border-color:#1f4f3f;background:#0c1c16} .pill.off{color:var(--bad);border-color:#5a2230;background:#1c0f12}
+  .bar{display:flex;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 14px}
+  .bar:focus-within{border-color:var(--vio)} #url{flex:1;border:0;background:transparent;color:var(--ink);outline:none;font:13px var(--mono)}
+  button{border:0;border-radius:9px;padding:9px 16px;background:var(--vio);color:#0a0f1a;font-weight:650;cursor:pointer} button:disabled{opacity:.5;cursor:default}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0} .chip{font:11.5px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:4px 11px;cursor:pointer} .chip:hover{color:var(--ink);border-color:var(--vio)}
+  .card{margin:18px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:none} .card.show{display:block}
+  .row{display:grid;grid-template-columns:120px 1fr;gap:14px;padding:10px 18px;border-bottom:1px solid #131a28} .row:last-child{border:0}
+  .k{color:var(--dim);font-size:12.5px} .v{font:12.5px var(--mono);color:var(--ink);word-break:break-all} .v .cid{color:var(--vio)} .v .ok{color:var(--good)}
+  .o1{display:flex;gap:12px;align-items:center;padding:12px 18px;background:#0a1322;border-bottom:1px solid var(--line)} .o1 .big{font:700 18px var(--mono);color:var(--vio)} .o1 .lbl{color:var(--dim);font-size:12px}
+  .log{font:11px var(--mono);color:#8ea6cf;background:#080d16;border-top:1px solid var(--line);padding:10px 18px;max-height:160px;overflow:auto;white-space:pre-wrap}
+  .err{color:var(--bad)} .note{color:#4a5573;font-size:11.5px;margin-top:16px;line-height:1.6}
+</style></head>
+<body><div class="wrap">
+  <h1>Holo Egress Probe</h1>
+  <p class="sub">OS2 ↔ holospaces-web bridge · verified <code>routerFetch</code> streaming + incremental BLAKE3 κ-mint, in the page context.</p>
+  <div class="pill" id="beacon">checking for the egress extension…</div>
+
+  <div class="bar" style="margin:0 0 10px"><span style="color:var(--dim);font:11px var(--mono)">ext&nbsp;id</span><input id="extid" spellcheck="false" autocomplete="off" placeholder="extension id from chrome://extensions (Developer mode → the id under the extension)" style="font-size:12px"></div>
+  <div class="bar"><span style="color:var(--dim)">⌕</span><input id="url" spellcheck="false" autocomplete="off" placeholder="https://example.com/  (any origin — fetched CORS-free by the extension)" value="https://example.com/"><button id="go">Fetch + mint →</button></div>
+  <div class="chips">
+    <span class="chip" data-u="https://example.com/">example.com</span>
+    <span class="chip" data-u="https://code.jquery.com/jquery-3.7.1.min.js">jquery (87KB)</span>
+    <span class="chip" data-u="https://raw.githubusercontent.com/Hologram-Technologies/holospaces/main/README.md">holospaces README</span>
+  </div>
+
+  <div class="card" id="card">
+    <div class="o1"><span class="big" id="speed">—</span><span class="lbl">O(1) re-access<br><span id="cold">—</span> cold → <span id="warm">—</span> warm</span></div>
+    <div class="row"><div class="k">κ-label</div><div class="v"><span class="cid" id="kappa">—</span></div></div>
+    <div class="row"><div class="k">bytes · type</div><div class="v" id="meta">—</div></div>
+    <div class="row"><div class="k">via</div><div class="v" id="via">—</div></div>
+    <div class="log" id="log"></div>
+  </div>
+  <p class="note">If the pill says "not detected": install the holospaces egress extension and add this page's origin to its <code>externally_connectable.matches</code>. The extension fetches any origin via its <code>host_permissions</code> (CORS-free) — no Direct-Sockets flag needed for http(s).</p>
+</div>
+
+<script type="module">
+import { createBlake3 } from "./holo-blake3.js";
+import { egressFetch } from "./holo-egress-client.mjs";
+const $ = (id) => document.getElementById(id);
+const L1 = new Map();        // κ → bytes (O(1) re-access)
+const URLK = new Map();      // url → { kappa, ct, status }
+const log = (m, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = m; $("log").appendChild(d); $("log").scrollTop = 1e9; };
+const kappaBlake3 = (u) => { const h = createBlake3(); h.update(u); return "blake3:" + h.hex(); };
+
+// Detection = capability test (matches holospaces' connector.js). chrome.runtime is only injected into a
+// page whose origin is in the extension's externally_connectable — so its presence already means reachable.
+// The extension id is entered by the user (Chrome assigns it at load; copy it from chrome://extensions).
+const haveChrome = typeof chrome !== "undefined" && !!(chrome.runtime && chrome.runtime.connect);
+const curExtId = () => $("extid").value.trim();
+try { $("extid").value = localStorage.getItem("holo-egress-extid") || (document.documentElement.getAttribute("data-holospaces-egress") || ""); } catch {}
+function refreshPill() {
+  const id = curExtId();
+  if (!haveChrome) { $("beacon").className = "pill off"; $("beacon").textContent = "● chrome.runtime not exposed here — add this origin to the extension's externally_connectable.matches"; }
+  else if (!id) { $("beacon").className = "pill off"; $("beacon").textContent = "● chrome.runtime ready ✓ — paste the extension id above"; }
+  else { $("beacon").className = "pill on"; $("beacon").textContent = "● ready · ext " + id.slice(0, 14) + "… · click a chip to fetch"; }
+}
+$("extid").addEventListener("input", () => { try { localStorage.setItem("holo-egress-extid", curExtId()); } catch {} refreshPill(); });
+refreshPill();
+
+async function run(url) {
+  $("go").disabled = true; $("card").classList.add("show"); $("log").innerHTML = "";
+  try {
+    // WARM: already minted this URL → serve from the local κ-store, O(1), zero egress
+    const seen = URLK.get(url);
+    if (seen) {
+      const t0 = performance.now(); const bytes = L1.get(seen.kappa); const ms = +(performance.now() - t0).toFixed(2);
+      log(`warm: served ${bytes.length}B from L1 (κ ${seen.kappa.slice(0, 18)}…) in ${ms}ms — 0 egress`);
+      $("warm").textContent = ms + "ms"; render(seen.kappa, bytes.length, seen.ct, "L1 κ-store · O(1)"); updateSpeed();
+      $("go").disabled = false; return;
+    }
+    // COLD: stream from the extension egress ONCE, minting + buffering incrementally (no double fetch)
+    if (!haveChrome) throw new Error("chrome.runtime not available — add this origin to the extension's externally_connectable.matches");
+    const id = curExtId(); if (!id) throw new Error("paste the extension id above (chrome://extensions)");
+    log(`cold: egress fetch ${url}`);
+    const t0 = performance.now();
+    const res = await egressFetch(url, { extId: id });
+    log(`head: ${res.status} · ${res.contentType}`);
+    const reader = res.body.getReader(); const h = createBlake3(); const parts = []; let total = 0;
+    for (;;) { const { done, value } = await reader.read(); if (done) break; h.update(value); parts.push(value); total += value.length; }
+    const buf = new Uint8Array(total); { let o = 0; for (const p of parts) { buf.set(p, o); o += p.length; } }
+    const kappa = "blake3:" + h.hex(); const ms = +(performance.now() - t0).toFixed(1);
+    L1.set(kappa, buf); URLK.set(url, { kappa, ct: res.contentType, status: res.status });
+    log(`minted κ ${kappa.slice(0, 26)}… · ${total}B · ${ms}ms`);
+    $("cold").textContent = ms + "ms"; render(kappa, total, res.contentType, "extension egress (CORS-free) · streamed once + minted"); updateSpeed();
+  } catch (e) { log("✕ " + (e.message || e), "err"); }
+  $("go").disabled = false;
+}
+function render(kappa, n, ct, via) { $("kappa").textContent = kappa; $("meta").textContent = `${n.toLocaleString()} B · ${ct || "?"}`; $("via").innerHTML = '<span class="ok">✓</span> ' + via; }
+function updateSpeed() { const c = parseFloat($("cold").textContent), w = parseFloat($("warm").textContent); $("speed").textContent = (c && w) ? Math.round(c / w) + "×" : "—"; }
+
+$("go").addEventListener("click", () => run($("url").value.trim()));
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") run($("url").value.trim()); });
+$("chips").addEventListener("click", (e) => { const c = e.target.closest("[data-u]"); if (c) { $("url").value = c.dataset.u; run(c.dataset.u); } });
+</script>
+</body></html>

@@ -1,0 +1,705 @@
+From d4f8f2f3e4ddab0c72d1374ffb4e90f62a62a7c0 Mon Sep 17 00:00:00 2001
+From: Hologram OS2 <ilya@uor.foundation>
+Date: Tue, 16 Jun 2026 09:27:44 +0100
+Subject: [PATCH] feat(archive,exec): WeightIndex section + range-resolver lazy
+ weight loading (ADR-0101 Stage 2)
+
+Stream a .holo model as kappa-addressable, demand-paged weight blocks instead of
+decoding the whole Weights section into a second in-RAM WeightStore.
+
+- format: new optional SectionKind::WeightIndex (additive, backward-compatible).
+- writer: emit the Weights payload (unchanged) AND a WeightIndex in one pass, so
+  each index entry locates a body within the Weights payload.
+- weight_index: WeightIndex decode + LazyWeightStore over a RangeResolver
+  (SliceResolver for a resident archive; a custom resolver for a kappa-store/file
+  fetch = true demand-paging). Every fetched body is re-derived against its
+  fingerprint before return (Law L5).
+- loader: LoadedPlan::section_ref to anchor index offsets to absolute positions.
+- exec/session: prefer the lazy path (sizing from the index, one body resident at
+  a time, L5-verified); fall back to the eager WeightStore for index-less archives.
+
+Eliminates the all-bodies HashMap at load (a full second copy of the weight set);
+sizing no longer reads weight bytes. Backward-compatible: index-less .holo still load.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+---
+ crates/hologram-archive/src/format.rs         |   7 +
+ crates/hologram-archive/src/lib.rs            |   2 +
+ crates/hologram-archive/src/loader.rs         |   8 +
+ crates/hologram-archive/src/weight_index.rs   | 285 ++++++++++++++++++
+ crates/hologram-archive/src/writer.rs         |  43 ++-
+ crates/hologram-exec/src/session.rs           |  77 +++--
+ .../tests/weight_index_streaming.rs           | 128 ++++++++
+ 7 files changed, 520 insertions(+), 30 deletions(-)
+ create mode 100644 crates/hologram-archive/src/weight_index.rs
+ create mode 100644 crates/hologram-exec/tests/weight_index_streaming.rs
+
+diff --git a/crates/hologram-archive/src/format.rs b/crates/hologram-archive/src/format.rs
+index da80140..748125b 100644
+--- a/crates/hologram-archive/src/format.rs
++++ b/crates/hologram-archive/src/format.rs
+@@ -37,6 +37,13 @@ pub enum SectionKind {
+     /// is the format's escape hatch so arbitrary use-cases need not extend this
+     /// closed enum.
+     Extension = 14,
++    /// Random-access index over the `Weights` section (ADR-0101, Stage 2): a table
++    /// of `(WeightFingerprint, offset, len)` locating each weight **body** within
++    /// the `Weights` payload. Lets a loader fetch ONE weight by its κ from a byte
++    /// range — without decoding the whole `Weights` section into RAM (see
++    /// [`crate::weight_index`]). Optional and additive: an archive without it still
++    /// loads (the runtime falls back to the eager `WeightStore`).
++    WeightIndex = 15,
+ }
+ 
+ #[derive(Debug, Clone, Copy)]
+diff --git a/crates/hologram-archive/src/lib.rs b/crates/hologram-archive/src/lib.rs
+index 26a09fc..68be371 100644
+--- a/crates/hologram-archive/src/lib.rs
++++ b/crates/hologram-archive/src/lib.rs
+@@ -24,6 +24,7 @@ pub mod loader;
+ pub mod schedule_codec;
+ pub mod warm_codec;
+ pub mod weight;
++pub mod weight_index;
+ pub mod writer;
+ 
+ pub use address::{
+@@ -35,4 +36,5 @@ pub use format::{HoloHeader, SectionKind, FORMAT_VERSION, MAGIC};
+ pub use loader::{HoloLoader, LoadedPlan};
+ pub use warm_codec::{derive_cone_lattice, WarmEntry};
+ pub use weight::{WeightFingerprint, WeightStore};
++pub use weight_index::{LazyWeightStore, RangeResolver, SliceResolver, WeightIndex, WeightSpan};
+ pub use writer::{decode_exec_plan, decode_ports, decode_weights, HoloWriter, PortDescriptor};
+diff --git a/crates/hologram-archive/src/loader.rs b/crates/hologram-archive/src/loader.rs
+index bfda7e8..58cddcb 100644
+--- a/crates/hologram-archive/src/loader.rs
++++ b/crates/hologram-archive/src/loader.rs
+@@ -29,6 +29,13 @@ impl<'a> LoadedPlan<'a> {
+         &self.sections
+     }
+ 
++    /// The first section of `kind`, if present — its `(offset, length)` locate the
++    /// payload within the archive. Used to anchor [`crate::weight_index`] offsets
++    /// (which are relative to the `Weights` payload) to absolute archive positions.
++    pub fn section_ref(&self, kind: SectionKind) -> Option<SectionRef> {
++        self.sections.iter().copied().find(|s| s.kind == kind)
++    }
++
+     /// Every `Extension` section, parsed to `(key, bytes)` in archive order
+     /// (zero-copy: `bytes` borrows the archive). Open producer metadata
+     /// (tokenizer, generation config, …); the runtime carries it opaquely.
+@@ -184,6 +191,7 @@ impl<'a> HoloLoader<'a> {
+                 12 => SectionKind::ExecPlan,
+                 13 => SectionKind::WarmStart,
+                 14 => SectionKind::Extension,
++                15 => SectionKind::WeightIndex,
+                 _ => return Err(ArchiveError::Io("unknown section kind")),
+             };
+             cursor += 8; // kind + pad(7)
+diff --git a/crates/hologram-archive/src/weight_index.rs b/crates/hologram-archive/src/weight_index.rs
+new file mode 100644
+index 0000000..46a3350
+--- /dev/null
++++ b/crates/hologram-archive/src/weight_index.rs
+@@ -0,0 +1,285 @@
++//! Random-access weight resolution (ADR-0101, Stage 2).
++//!
++//! The `Weights` section is a flat concatenation of `{fingerprint, len, body}` —
++//! to reach weight *N* the eager [`crate::weight::WeightStore`] decodes **every**
++//! body into a `HashMap`, a full second copy of all weights in RAM. The
++//! [`WeightIndex`] section instead records each body's `(offset, len)` within the
++//! `Weights` payload, so a [`LazyWeightStore`] can fetch ONE body by its κ from a
++//! byte-range [`RangeResolver`] — holding only the index resident, never the bodies.
++//!
++//! Every fetched body is **re-derived against its fingerprint before it is returned
++//! (Law L5)**: a range that does not hash back to the κ it was asked for is refused.
++//!
++//! The resolver is the seam to streaming: [`SliceResolver`] reads from a resident
++//! archive buffer (the win there is eliminating the all-bodies `HashMap`); a custom
++//! resolver can fetch ranges from a κ-store / file so the archive itself need not be
++//! resident (true demand-paging).
++
++use alloc::vec::Vec;
++use hashbrown::HashMap;
++
++use crate::error::ArchiveError;
++use crate::weight::WeightFingerprint;
++
++/// The `(offset, len)` of a weight body within the `Weights` section payload.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub struct WeightSpan {
++    /// Byte offset of the body, relative to the start of the `Weights` payload.
++    pub offset: u64,
++    /// Body length in bytes.
++    pub len: u64,
++}
++
++/// A decoded `WeightIndex`: each weight fingerprint → its span in the `Weights` payload.
++#[derive(Debug, Clone, Default)]
++pub struct WeightIndex {
++    spans: HashMap<WeightFingerprint, WeightSpan>,
++}
++
++impl WeightIndex {
++    /// Decode a `WeightIndex` section payload: `count(u32)` then `count` entries of
++    /// `fingerprint([u8;32]) offset(u64) len(u64)`, little-endian.
++    pub fn decode(bytes: &[u8]) -> Result<Self, ArchiveError> {
++        if bytes.len() < 4 {
++            return Err(ArchiveError::Truncated {
++                needed: 4,
++                actual: bytes.len(),
++            });
++        }
++        let count = u32::from_le_bytes(bytes[..4].try_into().unwrap()) as usize;
++        let mut spans = HashMap::with_capacity(count);
++        let mut cur = 4usize;
++        for _ in 0..count {
++            let end = cur + 32 + 8 + 8;
++            if end > bytes.len() {
++                return Err(ArchiveError::Truncated {
++                    needed: end,
++                    actual: bytes.len(),
++                });
++            }
++            let mut fp = [0u8; 32];
++            fp.copy_from_slice(&bytes[cur..cur + 32]);
++            cur += 32;
++            let offset = u64::from_le_bytes(bytes[cur..cur + 8].try_into().unwrap());
++            cur += 8;
++            let len = u64::from_le_bytes(bytes[cur..cur + 8].try_into().unwrap());
++            cur += 8;
++            spans.insert(WeightFingerprint(fp), WeightSpan { offset, len });
++        }
++        Ok(Self { spans })
++    }
++
++    /// The span of a weight body by fingerprint, if indexed.
++    pub fn get(&self, fp: &WeightFingerprint) -> Option<WeightSpan> {
++        self.spans.get(fp).copied()
++    }
++
++    /// Number of indexed weights.
++    pub fn len(&self) -> usize {
++        self.spans.len()
++    }
++
++    /// Whether the index holds no weights.
++    pub fn is_empty(&self) -> bool {
++        self.spans.is_empty()
++    }
++}
++
++/// Resolves a byte range from wherever the archive lives: a resident slice
++/// ([`SliceResolver`]), or — the streaming case — a κ-store / file fetch.
++pub trait RangeResolver {
++    /// Return the `len` bytes at absolute archive `offset`.
++    fn fetch(&self, offset: u64, len: u64) -> Result<Vec<u8>, ArchiveError>;
++}
++
++/// A [`RangeResolver`] over a resident archive buffer — slices the range, building
++/// no second copy of the weight set.
++pub struct SliceResolver<'a> {
++    bytes: &'a [u8],
++}
++
++impl<'a> SliceResolver<'a> {
++    pub fn new(bytes: &'a [u8]) -> Self {
++        Self { bytes }
++    }
++}
++
++impl RangeResolver for SliceResolver<'_> {
++    fn fetch(&self, offset: u64, len: u64) -> Result<Vec<u8>, ArchiveError> {
++        let start = offset as usize;
++        let end = start.saturating_add(len as usize);
++        self.bytes
++            .get(start..end)
++            .map(<[u8]>::to_vec)
++            .ok_or(ArchiveError::Truncated {
++                needed: end,
++                actual: self.bytes.len(),
++            })
++    }
++}
++
++/// Resolves weight bodies by fingerprint on demand from a [`RangeResolver`], using a
++/// [`WeightIndex`] to locate each body — without ever holding all bodies resident.
++/// Each body is re-derived against its fingerprint before it is returned (Law L5).
++pub struct LazyWeightStore<R: RangeResolver> {
++    index: WeightIndex,
++    /// Absolute offset of the `Weights` payload in the archive (the anchor that
++    /// turns an index-relative span into an absolute range).
++    weights_offset: u64,
++    resolver: R,
++}
++
++impl<R: RangeResolver> LazyWeightStore<R> {
++    /// Build a lazy store from a decoded index, the archive's `Weights` payload
++    /// offset (from `LoadedPlan::section_ref(Weights).offset`), and a resolver.
++    pub fn new(index: WeightIndex, weights_offset: u64, resolver: R) -> Self {
++        Self {
++            index,
++            weights_offset,
++            resolver,
++        }
++    }
++
++    /// Number of indexed weights.
++    pub fn len(&self) -> usize {
++        self.index.len()
++    }
++
++    /// Whether the store indexes no weights.
++    pub fn is_empty(&self) -> bool {
++        self.index.is_empty()
++    }
++
++    /// The body length for a fingerprint, from the index alone — no body is read.
++    /// This is what lets load-time sizing avoid touching weight bytes.
++    pub fn body_len(&self, fp: &WeightFingerprint) -> Option<u64> {
++        self.index.get(fp).map(|s| s.len)
++    }
++
++    /// Resolve and return a weight body by fingerprint, re-derived against `fp`
++    /// (Law L5). `Ok(None)` if the fingerprint is not indexed; an error if the
++    /// range can't be fetched or the bytes do not hash back to `fp`.
++    pub fn body(&self, fp: &WeightFingerprint) -> Result<Option<Vec<u8>>, ArchiveError> {
++        let Some(span) = self.index.get(fp) else {
++            return Ok(None);
++        };
++        let bytes = self
++            .resolver
++            .fetch(self.weights_offset + span.offset, span.len)?;
++        // Law L5: a byte that does not re-derive to the κ it was fetched for is refused.
++        if WeightFingerprint::of(&bytes) != *fp {
++            return Err(ArchiveError::ChecksumMismatch);
++        }
++        Ok(Some(bytes))
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::weight::WeightStore;
++    use crate::writer::HoloWriter;
++
++    /// Build a real archive with a few weights and return (archive bytes, fingerprints).
++    fn archive_with_weights(bodies: &[&[u8]]) -> (Vec<u8>, Vec<WeightFingerprint>) {
++        let mut store = WeightStore::new();
++        let fps: Vec<WeightFingerprint> = bodies.iter().map(|b| store.insert(b.to_vec())).collect();
++        let mut w = HoloWriter::new();
++        w.set_weights(store);
++        (w.finish().expect("finish archive"), fps)
++    }
++
++    fn lazy_over<'a>(archive: &'a [u8]) -> LazyWeightStore<SliceResolver<'a>> {
++        let plan = crate::loader::HoloLoader::from_bytes(archive)
++            .expect("load")
++            .into_plan()
++            .expect("plan");
++        let idx = WeightIndex::decode(
++            plan.section(crate::format::SectionKind::WeightIndex)
++                .expect("weight index present"),
++        )
++        .expect("decode index");
++        let off = plan
++            .section_ref(crate::format::SectionKind::Weights)
++            .expect("weights section")
++            .offset;
++        LazyWeightStore::new(idx, off, SliceResolver::new(archive))
++    }
++
++    #[test]
++    fn lazy_resolves_each_weight_by_kappa_matching_eager() {
++        let bodies: [&[u8]; 3] = [b"the first weight", &[0x7u8; 4096], b"third"];
++        let (archive, fps) = archive_with_weights(&bodies);
++
++        // Eager decode for the reference bytes.
++        let plan = crate::loader::HoloLoader::from_bytes(&archive)
++            .unwrap()
++            .into_plan()
++            .unwrap();
++        let eager = crate::writer::decode_weights(
++            plan.section(crate::format::SectionKind::Weights).unwrap(),
++        )
++        .unwrap();
++
++        let lazy = lazy_over(&archive);
++        assert_eq!(lazy.len(), bodies.len());
++        for (fp, body) in fps.iter().zip(bodies.iter()) {
++            // length from the index alone (no body read)
++            assert_eq!(lazy.body_len(fp), Some(body.len() as u64));
++            // body resolved on demand, re-derived (L5), equals the eager body
++            let got = lazy.body(fp).unwrap().expect("body present");
++            assert_eq!(&got[..], *body);
++            assert_eq!(&got[..], eager.get(*fp).unwrap());
++        }
++    }
++
++    #[test]
++    fn lazy_refuses_a_tampered_range_l5() {
++        let bodies: [&[u8]; 1] = [b"trusted weight body"];
++        let (mut archive, fps) = archive_with_weights(&bodies);
++
++        // Corrupt the weight body in place: find the Weights payload and flip a byte
++        // inside the body (after the count + fp + len header of entry 0).
++        let plan = crate::loader::HoloLoader::from_bytes(&archive)
++            .unwrap()
++            .into_plan()
++            .unwrap();
++        let woff = plan
++            .section_ref(crate::format::SectionKind::Weights)
++            .unwrap()
++            .offset as usize;
++        drop(plan);
++        let body0 = woff + 4 + 32 + 8; // count(4) + fp(32) + len(8)
++        archive[body0] ^= 0xFF;
++
++        // Re-derivation must refuse it (the footer also breaks, so build the lazy
++        // store with the unchecked loader to isolate the weight-level L5 check).
++        let plan = crate::loader::HoloLoader::from_bytes_unchecked(&archive)
++            .unwrap()
++            .into_plan()
++            .unwrap();
++        let idx = WeightIndex::decode(
++            plan.section(crate::format::SectionKind::WeightIndex)
++                .unwrap(),
++        )
++        .unwrap();
++        let off = plan
++            .section_ref(crate::format::SectionKind::Weights)
++            .unwrap()
++            .offset;
++        let lazy = LazyWeightStore::new(idx, off, SliceResolver::new(&archive));
++        assert!(
++            matches!(lazy.body(&fps[0]), Err(ArchiveError::ChecksumMismatch)),
++            "a tampered weight range must be refused (L5)"
++        );
++    }
++
++    #[test]
++    fn unindexed_fingerprint_is_none() {
++        let (archive, _) = archive_with_weights(&[b"only weight"]);
++        let lazy = lazy_over(&archive);
++        let phantom = WeightFingerprint::of(b"never stored");
++        assert!(lazy.body(&phantom).unwrap().is_none());
++        assert_eq!(lazy.body_len(&phantom), None);
++    }
++}
+diff --git a/crates/hologram-archive/src/writer.rs b/crates/hologram-archive/src/writer.rs
+index 0b2e341..73dacb1 100644
+--- a/crates/hologram-archive/src/writer.rs
++++ b/crates/hologram-archive/src/writer.rs
+@@ -108,7 +108,15 @@ impl HoloWriter {
+         if let Some(sched) = &self.schedule {
+             payloads.push((SectionKind::Schedule, encode_schedule(sched)));
+         }
+-        payloads.push((SectionKind::Weights, encode_weights(&self.weights)));
++        // Weights + a random-access index over them (ADR-0101, Stage 2), built in
++        // ONE pass so the index offsets exactly match the body layout. Additive: a
++        // reader that ignores `WeightIndex` still decodes `Weights` as before.
++        let (weights_payload, weight_index_payload) = encode_weights_and_index(&self.weights);
++        let has_weights = !self.weights.is_empty();
++        payloads.push((SectionKind::Weights, weights_payload));
++        if has_weights {
++            payloads.push((SectionKind::WeightIndex, weight_index_payload));
++        }
+         if let Some(reg) = &self.shape_registry {
+             payloads.push((SectionKind::ShapeRegistry, encode_shape_registry(reg)));
+         }
+@@ -345,20 +353,33 @@ fn encode_schedule(sched: &Schedule) -> Vec<u8> {
+     out
+ }
+ 
+-fn encode_weights(weights: &WeightStore) -> Vec<u8> {
+-    let mut out = Vec::new();
+-    out.extend_from_slice(&(weights.len() as u32).to_le_bytes());
++/// Encode the `Weights` payload AND its random-access `WeightIndex` (ADR-0101,
++/// Stage 2) in ONE pass, so each index entry's `offset` exactly locates that
++/// weight's body within the `Weights` payload. The `Weights` payload format is
++/// `count`, then `{fp, len, body}` per weight (unchanged — [`decode_weights`]
++/// reads it); the index is `count`, then `{fp, body_offset_in_weights_payload,
++/// len}`, decoded by [`crate::weight_index::WeightIndex::decode`].
++fn encode_weights_and_index(weights: &WeightStore) -> (Vec<u8>, Vec<u8>) {
++    let mut wout = Vec::new();
++    let mut iout = Vec::new();
++    wout.extend_from_slice(&(weights.len() as u32).to_le_bytes());
++    iout.extend_from_slice(&(weights.len() as u32).to_le_bytes());
+     for (fp, bytes) in weights.entries() {
+-        out.extend_from_slice(&fp.0);
+-        out.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+-        out.extend_from_slice(bytes);
++        // The body begins right after this entry's fingerprint (32) + len (8) fields.
++        let body_offset = (wout.len() + 32 + 8) as u64;
++        wout.extend_from_slice(&fp.0);
++        wout.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
++        wout.extend_from_slice(bytes);
++        iout.extend_from_slice(&fp.0);
++        iout.extend_from_slice(&body_offset.to_le_bytes());
++        iout.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+     }
+-    out
++    (wout, iout)
+ }
+ 
+-/// Decode the `Weights` section back into a `WeightStore`. Mirrors
+-/// `encode_weights`. Used by the runtime to resolve content-addressed
+-/// constant references at session load (spec X.3).
++/// Decode the `Weights` section back into a `WeightStore`. Mirrors the `Weights`
++/// payload encoding in [`encode_weights_and_index`]. Used by the runtime to resolve
++/// content-addressed constant references at session load (spec X.3).
+ pub fn decode_weights(bytes: &[u8]) -> Result<crate::weight::WeightStore, ArchiveError> {
+     use crate::weight::{WeightFingerprint, WeightStore};
+     if bytes.len() < 4 {
+diff --git a/crates/hologram-exec/src/session.rs b/crates/hologram-exec/src/session.rs
+index 783ad19..9edf714 100644
+--- a/crates/hologram-exec/src/session.rs
++++ b/crates/hologram-exec/src/session.rs
+@@ -10,7 +10,8 @@ use crate::error::ExecError;
+ use hologram_archive::{
+     address_bytes, constant_codec, decode_exec_plan, decode_ports, decode_weights, decoder,
+     derive_label, derive_label_witnessed, format::SectionKind, warm_codec, ContentLabel,
+-    HoloLoader, PortDescriptor, WarmEntry, WeightFingerprint,
++    HoloLoader, LazyWeightStore, PortDescriptor, SliceResolver, WarmEntry, WeightFingerprint,
++    WeightIndex,
+ };
+ use hologram_backend::{
+     buffers, Backend, DequantActivationCall, KernelCall, MatMulActivationCall,
+@@ -260,14 +261,35 @@ impl<B: SessionBackend> InferenceSession<B> {
+             .map_err(ExecError::Archive)?
+             .unwrap_or_default();
+ 
+-        // Decode the WeightStore so constant references can resolve.
+-        // Missing section is fine — only inline-only graphs hit that path.
+-        let weight_store = plan
+-            .section(SectionKind::Weights)
++        // Resolve weight bodies for constant references. Prefer the lazy path
++        // (ADR-0101, Stage 2): a `WeightIndex` lets each body be fetched by its κ
++        // from the resident archive on demand — re-derived against its fingerprint
++        // (Law L5) — instead of decoding the whole `Weights` section into a second
++        // in-RAM copy of every weight. Archives that carry no index fall back to the
++        // eager `WeightStore` (older `.holo`, inline-only graphs).
++        let weight_index = plan
++            .section(SectionKind::WeightIndex)
+             .ok()
+-            .map(decode_weights)
++            .map(WeightIndex::decode)
+             .transpose()
+             .map_err(ExecError::Archive)?;
++        let weights_offset = plan.section_ref(SectionKind::Weights).map(|s| s.offset);
++        let lazy_weights = match (weight_index, weights_offset) {
++            (Some(index), Some(off)) if !index.is_empty() => {
++                Some(LazyWeightStore::new(index, off, SliceResolver::new(bytes)))
++            }
++            _ => None,
++        };
++        // Eager decode only when there is no usable index — never both.
++        let weight_store = if lazy_weights.is_none() {
++            plan.section(SectionKind::Weights)
++                .ok()
++                .map(decode_weights)
++                .transpose()
++                .map_err(ExecError::Archive)?
++        } else {
++            None
++        };
+ 
+         // Provision workspace with **per-slot** byte sizes (spec VIII.3).
+         //
+@@ -319,14 +341,18 @@ impl<B: SessionBackend> InferenceSession<B> {
+             }
+         }
+         for e in constant_entries.iter() {
+-            // Inline bodies report their length directly; references
+-            // resolve through the WeightStore for sizing.
++            // Inline bodies report their length directly; references resolve their
++            // length from the WeightIndex (no body read) or the eager WeightStore.
+             let n: u64 = if e.by_reference {
+-                weight_store
+-                    .as_ref()
+-                    .and_then(|s| s.get(WeightFingerprint(e.fingerprint)))
+-                    .map(|b| b.len() as u64)
+-                    .unwrap_or(0)
++                let fp = WeightFingerprint(e.fingerprint);
++                match lazy_weights.as_ref() {
++                    Some(l) => l.body_len(&fp).unwrap_or(0),
++                    None => weight_store
++                        .as_ref()
++                        .and_then(|s| s.get(fp))
++                        .map(|b| b.len() as u64)
++                        .unwrap_or(0),
++                }
+             } else {
+                 e.bytes.len() as u64
+             };
+@@ -368,13 +394,26 @@ impl<B: SessionBackend> InferenceSession<B> {
+         let mut slot_label_init: Vec<Option<ContentLabel>> = vec![None; slot_count];
+         let mut const_bindings: Vec<(u32, ContentLabel)> = Vec::new();
+         for entry in &constant_entries {
+-            let body: &[u8] = if entry.by_reference {
+-                weight_store
+-                    .as_ref()
+-                    .and_then(|s| s.get(WeightFingerprint(entry.fingerprint)))
+-                    .unwrap_or(&[])
++            // Resolve the constant body: inline bytes, a lazily range-fetched weight
++            // (re-derived against its κ — Law L5), or (no index) an eager weight. The
++            // lazy path holds at most ONE weight body resident here at a time.
++            let fetched: Option<Vec<u8>> = if entry.by_reference {
++                match lazy_weights.as_ref() {
++                    Some(l) => l
++                        .body(&WeightFingerprint(entry.fingerprint))
++                        .map_err(ExecError::Archive)?,
++                    None => weight_store
++                        .as_ref()
++                        .and_then(|s| s.get(WeightFingerprint(entry.fingerprint)))
++                        .map(<[u8]>::to_vec),
++                }
+             } else {
+-                &entry.bytes
++                None
++            };
++            let body: &[u8] = match fetched.as_deref() {
++                Some(b) => b,
++                None if entry.by_reference => &[],
++                None => &entry.bytes,
+             };
+             let label = address_bytes(body);
+             pool.pin_bytes(label, body);
+diff --git a/crates/hologram-exec/tests/weight_index_streaming.rs b/crates/hologram-exec/tests/weight_index_streaming.rs
+new file mode 100644
+index 0000000..09eb1d6
+--- /dev/null
++++ b/crates/hologram-exec/tests/weight_index_streaming.rs
+@@ -0,0 +1,128 @@
++//! ADR-0101 Stage 2: a compiled archive carries a random-access `WeightIndex` over
++//! its `Weights` section, and the runtime resolves each weight body by its κ on
++//! demand (re-derived, Law L5) — instead of decoding every body into a second
++//! in-RAM `WeightStore`. This proves, on REAL compiler output, that (1) the writer
++//! emits the index, (2) the index offsets correctly locate each body, and (3) the
++//! executor loads + executes correctly via the lazy path.
++
++use hologram_archive::{
++    decode_weights, format::SectionKind, HoloLoader, LazyWeightStore, SliceResolver,
++    WeightFingerprint, WeightIndex,
++};
++use hologram_backend::CpuBackend;
++use hologram_compiler::{compile, BackendKind};
++use hologram_exec::{BufferArena, InferenceSession, InputBuffer};
++use hologram_graph::constant::ConstantEntry;
++use hologram_graph::node::Node;
++use hologram_graph::registry::{DTypeId, ShapeDescriptor};
++use hologram_graph::{Graph, GraphOp, InputSource, OpKind};
++use prism::vocabulary::WittLevel;
++use smallvec::SmallVec;
++
++const DTYPE_F32: u8 = 8;
++
++fn f32_to_le(values: &[f32]) -> Vec<u8> {
++    values.iter().flat_map(|v| v.to_le_bytes()).collect()
++}
++fn le_to_f32(bytes: &[u8]) -> Vec<f32> {
++    bytes
++        .chunks_exact(4)
++        .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
++        .collect()
++}
++
++/// Compile `out = input + C` where `C` is an 8 KiB constant (above the 4 KiB inline
++/// threshold, so it becomes a content-addressed weight in the `Weights` section).
++fn compile_add_const() -> (Vec<u8>, Vec<f32>) {
++    let mut graph = Graph::new();
++    let shape = graph
++        .shape_registry_mut()
++        .intern(ShapeDescriptor::rank1(2048));
++    let cvals: Vec<f32> = (0..2048).map(|i| (i as f32) * 0.25 - 100.0).collect();
++    let cid = graph.constants_mut().insert(ConstantEntry {
++        bytes: f32_to_le(&cvals),
++        dtype: DTypeId(DTYPE_F32),
++        shape,
++    });
++    let x = graph.add_node(Node {
++        op: GraphOp::Input,
++        inputs: SmallVec::new(),
++        output_dtype: DTypeId(DTYPE_F32),
++        output_shape: shape,
++    });
++    graph.add_input(x);
++    let add = graph.add_node(Node {
++        op: GraphOp::Op(OpKind::Add),
++        inputs: SmallVec::from_iter([InputSource::Node(x), InputSource::Constant(cid)]),
++        output_dtype: DTypeId(DTYPE_F32),
++        output_shape: shape,
++    });
++    let out = graph.add_node(Node {
++        op: GraphOp::Output,
++        inputs: SmallVec::from_iter([InputSource::Node(add)]),
++        output_dtype: DTypeId(DTYPE_F32),
++        output_shape: shape,
++    });
++    graph.add_output(out);
++    let compiled = compile(graph, BackendKind::Cpu, WittLevel::W32).unwrap();
++    (compiled.archive, cvals)
++}
++
++#[test]
++fn compiled_archive_carries_a_weight_index() {
++    let (archive, _) = compile_add_const();
++    let plan = HoloLoader::from_bytes(&archive)
++        .unwrap()
++        .into_plan()
++        .unwrap();
++    assert!(
++        plan.section(SectionKind::WeightIndex).is_ok(),
++        "the patched writer must emit a WeightIndex over the Weights section"
++    );
++}
++
++#[test]
++fn lazy_store_resolves_every_compiled_weight_matching_eager() {
++    let (archive, _) = compile_add_const();
++    let plan = HoloLoader::from_bytes(&archive)
++        .unwrap()
++        .into_plan()
++        .unwrap();
++
++    let eager = decode_weights(plan.section(SectionKind::Weights).unwrap()).unwrap();
++    let index = WeightIndex::decode(plan.section(SectionKind::WeightIndex).unwrap()).unwrap();
++    let weights_off = plan.section_ref(SectionKind::Weights).unwrap().offset;
++    let lazy = LazyWeightStore::new(index, weights_off, SliceResolver::new(&archive));
++
++    // Every weight the eager store holds must resolve identically through the lazy
++    // path — same κ, same bytes, re-derived (L5). This validates the index offsets
++    // on real compiler output.
++    let mut checked = 0;
++    for (fp, body) in eager.entries() {
++        assert_eq!(lazy.body_len(fp), Some(body.len() as u64));
++        let got = lazy.body(fp).unwrap().expect("indexed");
++        assert_eq!(&got, body, "lazy body must match eager body");
++        checked += 1;
++    }
++    assert!(
++        checked >= 1,
++        "the 8 KiB constant should be a content-addressed weight"
++    );
++    // An unknown fingerprint resolves to nothing.
++    assert!(lazy
++        .body(&WeightFingerprint::of(b"not a weight in this model"))
++        .unwrap()
++        .is_none());
++}
++
++#[test]
++fn session_loads_and_executes_via_the_lazy_path() {
++    let (archive, cvals) = compile_add_const();
++    let backend: CpuBackend<BufferArena> = CpuBackend::new();
++    let mut session = InferenceSession::load(&archive, backend).unwrap();
++    // input = zeros → output == the constant weight, proving the lazy-resolved
++    // weight bytes reached the pool correctly.
++    let zeros = f32_to_le(&vec![0.0_f32; 2048]);
++    let outputs = session.execute(&[InputBuffer { bytes: &zeros }]).unwrap();
++    assert_eq!(le_to_f32(&outputs[0].bytes), cvals);
++}
+-- 
+2.54.0.windows.1
+

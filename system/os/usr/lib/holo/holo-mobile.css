@@ -89,3 +89,39 @@
 
 /* Long unbroken strings (hashes, κ ids, URLs) wrap instead of widening the page. */
 .holo-break { overflow-wrap: anywhere; word-break: break-word; }
+
+/* ════════════════════════════════════════════════════════════════════════════════
+ * CONTAINER-QUERY WINDOW-SIZE CLASSES — Material Design 3 adaptive layout.
+ *
+ * A Holo app renders INSIDE a window/iframe, not at the device viewport — so its
+ * responsiveness must key on the app's OWN width, not the screen. We establish the app
+ * surface as a named container (`holoapp`) and expose MD3 window-size classes
+ * (Compact <600 · Medium 600–839 · Expanded ≥840) as @container queries + a --holo-size
+ * token. The SAME app is therefore Compact whether maximized on a phone OR floated in a
+ * small desktop window — one rule, every context, no per-app viewport breakpoints. The
+ * host marks the surface with [data-holo-surface] (the shell run-injection · the scaffold
+ * template · holo-embed · the Service Worker for standalone-served apps); OS chrome never
+ * sets it, so this whole block is inert there.
+ *
+ * PWA: combined with viewport-fit=cover + the env() safe-areas above, this is exactly
+ * what an installed display:standalone PWA needs — the layer makes an app correct in a
+ * browser tab AND installed to the home screen, with no app-specific work.
+ * ──────────────────────────────────────────────────────────────────────────────── */
+:where(html[data-holo-surface]) { container: holoapp / inline-size; --holo-size: expanded; }
+/* body INHERITS the default expanded; the @container rules set --holo-size DIRECTLY on body — a declared
+ * value beats an inherited one even at :where() specificity 0, so the narrower class wins when the
+ * container matches, without out-specifying the app. Read the class as var(--holo-size). */
+@container holoapp (max-width: 839.98px) { :where(body) { --holo-size: medium; } }
+@container holoapp (max-width: 599.98px) { :where(body) { --holo-size: compact; } }
+
+/* Opt-in adaptive utilities — declarative Compact behavior keyed to the CONTAINER, so an
+ * app reflows correctly in a small window or on a phone without authoring breakpoints. */
+.holo-cq-cols { display: grid; gap: var(--holo-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }   /* multi-col → single col when narrow */
+@container holoapp (max-width: 599.98px) {
+  .holo-cq-row { flex-direction: column; align-items: stretch; }   /* a horizontal row stacks when Compact */
+  .holo-hide-compact { display: none !important; }                 /* drop secondary chrome on a phone-class surface */
+}
+@container holoapp (min-width: 600px) {
+  .holo-show-compact { display: none !important; }                 /* Compact-only affordances hide when roomy */
+}

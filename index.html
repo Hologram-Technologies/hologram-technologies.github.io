@@ -124,8 +124,24 @@
        ("space"). Both track the viewport so the framing is identical on a phone and a 4K panel. */
     --ease:cubic-bezier(.4,0,.2,1);                            /* the one shared boot easing (gateway · splash · login · shell) */
     --frame: clamp(7px, 0.95vmin, 14px);                       /* the space margin around the screen */
-    --frame-r: clamp(16px, 1.9vmin, 28px);                     /* inner-screen corner radius */
+    --frame-rad: clamp(16px, 1.9vmin, 28px);                   /* inner-screen corner radius */
     --bezel:#050507;                                           /* the "space" the screen floats in */
+    /* ── SAFE AREA (notch · Dynamic Island · home indicator) ──────────────────────────────────
+       The bezel margin grows to clear the device safe area, per-edge. env() resolves to 0 on every
+       non-notched display and on desktop, so --frame-{t,r,b,l} === --frame there → the composition is
+       byte-for-byte identical to before; on a notched phone the floating screen tucks inside the safe
+       inset. (CSS Env Values · viewport-fit=cover, already set in <head>.) */
+    --sa-t: env(safe-area-inset-top, 0px);
+    --sa-r: env(safe-area-inset-right, 0px);
+    --sa-b: env(safe-area-inset-bottom, 0px);
+    --sa-l: env(safe-area-inset-left, 0px);
+    --frame-t: max(var(--frame), var(--sa-t));
+    --frame-r: max(var(--frame), var(--sa-r));
+    --frame-b: max(var(--frame), var(--sa-b));
+    --frame-l: max(var(--frame), var(--sa-l));
+    /* MD3 minimum touch target (Accessibility → Touch target) — every primary control clears 48dp on
+       a coarse pointer; this is the conformance floor the mobile media block below enforces. */
+    --tap: 48px;
     color-scheme:dark;
   }
   /* light theme — flipped by the sun/moon switch (persisted); a LibreChat-style inverse palette */
@@ -151,7 +167,7 @@
   html{ background:var(--bezel); }                              /* the space behind the screen (also paints any overscroll) */
   /* the inner SCREEN surface: the page's own background (--bg), inset by the bezel and rounded. It sits
      under everything (z-index:-1); the immersive field, bar, hero and signature all live on top of it. */
-  body::before{ content:""; position:fixed; inset:var(--frame); border-radius:var(--frame-r);
+  body::before{ content:""; position:fixed; inset:var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l); border-radius:var(--frame-rad);
     background:var(--bg); z-index:-1; transition:background-color .2s ease; }
   body{ background:var(--bezel); color:var(--fg);
     font:400 var(--u)/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
@@ -169,7 +185,7 @@
      is part of the page's own bytes and therefore 100% encoded in the content-addressed object the
      gateway re-derives (did:holo:sha256 of itself). Vector → razor-sharp at any density. Three
      intensities (Minimal · Ambient · Immersive) are toggled via :root[data-immersive]. */
-  .bg{ position:fixed; inset:var(--frame); z-index:0; overflow:hidden; border-radius:var(--frame-r);
+  .bg{ position:fixed; inset:var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l); z-index:0; overflow:hidden; border-radius:var(--frame-rad);
     pointer-events:none; opacity:1; transition:opacity .45s ease; }
   .bg>div{ position:absolute; }
   .bg-neb{ inset:-12%;
@@ -224,7 +240,7 @@
   body.vanta-on .bg-neb, body.vanta-on .bg-aurora, body.vanta-on .bg-stars{ display:none; }
 
   /* ── TOP BAR ─────────────────────────────────────────────────────────────────────────────── */
-  .bar{ position:fixed; inset:var(--frame) var(--frame) auto var(--frame); z-index:5;
+  .bar{ position:fixed; inset:var(--frame-t) var(--frame-r) auto var(--frame-l); z-index:5;
     height:calc(var(--u) * 3.85);                              /* ≈ control-height · φ */
     display:flex; align-items:center; gap:var(--u);
     padding:0 var(--u-phi2); }
@@ -297,7 +313,7 @@
      ~middle of the screen on every height: a short laptop and a tall 4K panel place it identically.
      (A bottom-weighted flex-end inset looked right on a laptop but stranded the cluster low on a tall
      monitor — the "hero shifted down" bug.) A tiny downward bias keeps the open sky above the pill. */
-  .hero{ position:fixed; inset:var(--frame); z-index:2;
+  .hero{ position:fixed; inset:var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l); z-index:2;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:calc(var(--u) * 2.3);
     padding:var(--u-phi3) 5vw calc(var(--u) * 2); }   /* centred; slight bottom-lighter padding leaves sky above the pill */
@@ -383,7 +399,7 @@
 
   /* the self-address signature: this gateway IS a content-addressed object; it re-derives its own
      κ and shows it — a quiet proof you are already inside the substrate, not on a normal website. */
-  .sig{ position:fixed; left:var(--frame); right:var(--frame); bottom:calc(var(--frame) + var(--u) * .9); z-index:4; text-align:center;
+  .sig{ position:fixed; left:var(--frame-l); right:var(--frame-r); bottom:calc(var(--frame-b) + var(--u) * .9); z-index:4; text-align:center;
     padding:0 6vw; pointer-events:none; line-height:1.55; }
   .sig #kappa{ font-size:calc(var(--u) * 1.18); font-weight:600; letter-spacing:.01em; color:var(--fg); opacity:1; }
   .sig .dot{ display:inline-block; width:.55em; height:.55em; border-radius:50%; background:var(--fg);
@@ -470,10 +486,14 @@
     .bar{ padding:0 var(--u); gap:calc(var(--u) * .6); }
     .brand-name{ display:none; }
     .ghlink{ display:none; }
+    /* let the search+toggle group own the row and the search shrink: drop the flex spacer so .right
+       takes the remaining width, and let search flex inside it (the 48dp toggle no longer overflows). */
+    .grow{ display:none; }
+    .right{ flex:1; min-width:0; }
     /* keep search reachable on phones: a compact pill in the bar, results as a full-width sheet */
     .search{ width:auto; flex:1 1 auto; min-width:0; }
     .search .kbd{ display:none; }
-    .results{ position:fixed; left:calc(var(--frame) + 3vw); right:calc(var(--frame) + 3vw); width:auto; top:calc(var(--frame) + var(--u) * 3.85 + .4em); }
+    .results{ position:fixed; left:var(--frame-l); right:var(--frame-r); width:auto; top:calc(var(--frame-t) + var(--u) * 3.85 + .4em); }
     .hero{ justify-content:center; padding-bottom:var(--u-phi); }
     .cta{ width:100%; }
     .btn{ flex:1; justify-content:center; }
@@ -492,11 +512,42 @@
   }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 
+  /* ── TOUCH CONFORMANCE (coarse pointer) ───────────────────────────────────────────────────────
+     MD3 Accessibility → Touch target: every interactive control clears 48×48dp. WCAG 2.2 §2.5.8
+     (Target Size, Minimum) is the AA floor; MD3's 48dp is stricter, so we meet both. The block keys on
+     `pointer:coarse`, so a mouse desktop is untouched — the existing desktop experience is preserved
+     exactly. iOS Safari zooms when a focused input's font-size < 16px, so inputs are pinned to 16px to
+     prevent the zoom-and-pan jump on focus. We trigger on EITHER the MD3 Compact window-size class
+     (≤600dp — Foundations → Layout → Window size classes) OR a coarse pointer, so a phone, a tablet in
+     a narrow split, and a desktop window dragged below 600px all get the touch floor; a full-width
+     mouse desktop (>600px, fine pointer) is never matched. */
+  @media (max-width: 600px), (pointer: coarse){
+    /* inputs ≥16px → no focus-zoom on iOS */
+    .search input, #lq{ font-size:max(16px, var(--u)); }
+    /* the appearance toggle: each mode button reaches 48dp */
+    .toggle button{ width:var(--tap); height:var(--tap); }
+    .toggle button svg{ width:calc(var(--u) * 1.18); height:calc(var(--u) * 1.18); }
+    /* search pill + hero pill + CTAs + github reach the 48dp tap floor */
+    .search{ min-height:var(--tap); }
+    .pill-star{ min-height:var(--tap); }
+    .btn{ min-height:var(--tap); }
+    .ghlink{ width:var(--tap); height:var(--tap); }
+    /* launcher: list rows, find field, controls all reach 48dp */
+    .lx-item{ min-height:var(--tap); }
+    .lx-find{ min-height:var(--tap); }
+    .lx-esc{ min-height:var(--tap); padding:0 .4em; }
+    .lx-ext{ width:var(--tap); height:var(--tap); }
+    .lx-btn{ min-height:var(--tap); }
+    .lx-kappa{ min-height:var(--tap); }
+    .lx-bar .lights i.c{ position:relative; }                       /* the back ⌫ light — enlarge its hit area without resizing the dot */
+    .lx-bar .lights i.c::after{ content:""; position:absolute; inset:-14px; border-radius:50%; }
+  }
+
   /* ════════════════════════════════════════════════════════════════════════════════════════════
      THE LAUNCHER — a full-screen, Spotlight-grade search over the native app catalogue, with a LIVE
      preview of the highlighted app running in its OWN self-verifying sealed holospace. Inherits the
      gateway tokens + the bezel framing; frames the preview as a real computer window. ═════════════ */
-  .lx{ position:fixed; inset:var(--frame); z-index:40; border-radius:var(--frame-r); overflow:hidden;
+  .lx{ position:fixed; inset:var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l); z-index:40; border-radius:var(--frame-rad); overflow:hidden;
     display:flex; flex-direction:column; color:var(--fg);
     background:color-mix(in srgb, var(--bg) 60%, transparent);
     -webkit-backdrop-filter:blur(28px) saturate(1.2); backdrop-filter:blur(28px) saturate(1.2);
@@ -1093,21 +1144,12 @@
   addEventListener("keydown", (e) => { if (e.key === "Enter" && !(e.target.closest && e.target.closest(".search"))) { e.preventDefault(); boot(); } });
   try { $("enter").focus({ preventScroll: true }); } catch {}
 
-  // ── Free Download — the native Hologram (Tauri) host, offered for the visitor's own OS ───────────
-  // We sniff the platform once, swap in the matching glyph, and point the button at the install path
-  // for that OS. Desktop → the content-addressed one-link installer (bootstrap re-derives the κ and
-  // refuses a tampered byte, Law L5); mobile → the store / latest release. All routes are easy to
-  // re-pin to a direct artifact later — they default to the release page so the button always works.
+  // ── Free Download — opens the native-app holospace (download.html), a computer window on the OS
+  // desktop that says, plainly, that Local Hologram OS is coming soon to every major platform, and
+  // that it already runs today in any browser. We still sniff the platform once and swap in the
+  // matching glyph, so the button reads as "for you"; the window then flags the visitor's own device.
   (function () {
     const dl = $("download"); const icHost = $("os-ic"); if (!dl || !icHost) return;
-    const RELEASES = "https://github.com/humuhumu33/apps-holo/releases/latest";
-    // single-line shell installers (the canonical "verify-install IS the install"); copied to clipboard
-    // so the user can paste-run, while the button also opens the release page with the OS's installer.
-    const ONE_LINER = {
-      win:   'irm https://github.com/humuhumu33/apps-holo/releases/latest/download/bootstrap.ps1 | iex',
-      mac:   'curl -fsSL https://github.com/humuhumu33/apps-holo/releases/latest/download/bootstrap.sh | sh',
-      linux: 'curl -fsSL https://github.com/humuhumu33/apps-holo/releases/latest/download/bootstrap.sh | sh',
-    };
     // crisp, recognisable monochrome OS glyphs (inherit the button's ink via currentColor)
     const ICON = {
       win:   '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4.6 10.6 3.6V11H3V4.6Zm0 14.8 7.6 1V13H3v6.4ZM11.6 3.4 21 2v9.6h-9.4V3.4Zm0 17.2L21 22v-9.4h-9.4v8Z"/></svg>',
@@ -1129,15 +1171,10 @@
     }
     const os = detectOS();
     icHost.innerHTML = ICON[os] || ICON.win;
-    dl.href = RELEASES;                                  // every OS's installer is one click away here
-    dl.setAttribute("aria-label", "Free Download — install the native Hologram app for " + (LABEL[os] || "your device"));
-    dl.title = "Free Download · Hologram for " + (LABEL[os] || "your device");
-    dl.addEventListener("click", (e) => {
-      e.preventDefault();
-      const cmd = ONE_LINER[os];                         // desktop: stage the content-addressed installer
-      if (cmd) { try { navigator.clipboard && navigator.clipboard.writeText(cmd); } catch {} }
-      try { window.open(RELEASES, "_blank", "noopener"); } catch { location.href = RELEASES; }
-    });
+    dl.href = "download.html";                            // the native-app holospace window (coming-soon door)
+    dl.removeAttribute("target"); dl.removeAttribute("rel");
+    dl.setAttribute("aria-label", "Free Download — Hologram OS for " + (LABEL[os] || "your device") + ", native apps coming soon");
+    dl.title = "Free Download · Hologram OS for " + (LABEL[os] || "your device");
   })();
 
   // ── App search — index every native holospace, launch it in its own holospace tab ────────────

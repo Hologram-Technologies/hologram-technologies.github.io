@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Appearance, before first paint: pin the canonical palette · presentation · immersive backdrop
+         onto <html> so the desktop opens in the chosen theme with no flash. Synchronous + classic on
+         purpose (must run before holo-theme.css computes its tokens). Twin of holo-theme.js's apply(). -->
+    <script src="/_shared/holo-appearance-boot.js"></script>
     <!-- Holo Voice → Kokoro TTS: map kokoro-js's bare deps to the vendored same-origin copies so Q's
          voice is 100% serverless. Must precede any module script. -->
     <script type="importmap">
@@ -47,12 +51,19 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/usr/share/icons/og-card.png" />
     <link rel="stylesheet" href="/_shared/holo-theme.css" data-holo-shared="holo-theme.css" />
+    <!-- PERF: warm the default wallpaper at parse time (parallel with everything), high priority, so it is
+         already in the HTTP cache by the time initWall() seals + paints it — seedItems' force-cache fetch
+         then reads the cached bytes instead of a cold download. -->
+    <link rel="preload" as="image" fetchpriority="high" href="/usr/share/wallpapers/uor-8k.jpg" />
     <!-- Adaptive-fidelity policy (exploration: hyper-real, device-adaptive holospaces): reads the
          user's hardware ⊗ connection ⊗ preferences and publishes --holo-fx-* + <html data-holo-fidelity>
          so every surface scales its effects to the device. Loads early; CSS vars default to full (1). -->
     <script type="module" src="/_shared/holo-fidelity.mjs"></script>
     <!-- O(1) tiered κ-memo (L1 memory → L2 Cache API → compute once) — window.HoloCompute. -->
     <script type="module" src="/_shared/holo-compute.mjs"></script>
+    <!-- Holo Sheet — the ONE OS modal primitive (window.HoloSheet): the launcher-clean centred card
+         every choice / confirm / alert routes through. Pure <dialog> + --holo-* tokens, no deps. -->
+    <script src="/_shared/holo-sheet.js"></script>
     <!-- measurement harness — ONLY with ?metrics=1, so it never touches the default experience. -->
     <script>try{if(new URLSearchParams(location.search).has("metrics"))import("/_shared/holo-metrics.mjs");}catch(e){}</script>
     <!-- Holo Dock (ADR-0059): the universal native-feel bottom dock — the one consistent bar across
@@ -80,10 +91,10 @@
       @media (prefers-reduced-motion: reduce) { body { animation: none; } }
       /* ── chrome proportions — Chrome-standard stack: TAB STRIP on top (the frame), the address bar
          (toolbar) directly under it, so each tab shows its own address. tab strip ≈ 40, toolbar ≈ 44. ── */
-      html { --toolbar-h: 42px; --tabrow-h: 52px; --chrome-h: 94px; --gap: clamp(8px, 0.9vmin, 12px); --gap-b: 34px; --card-r: 22px; --holo-top-inset: 96px; --holo-aside: min(420px, 92vw); --holo-aside-w: 0px; }   /* tabrow + toolbar = chrome-h; --gap-b: a taller BOTTOM gutter beneath the holospace card; --holo-aside-w: the right-edge inset an aside carrier (Wallet) squeezes the whole holospace by, mirroring --holo-dock-w on the left */
+      html { --toolbar-h: 42px; --tabrow-h: 52px; --chrome-h: 94px; --gap: clamp(8px, 0.9vmin, 12px); --gap-b: 34px; --card-r: 22px; --holo-top-inset: 96px; --holo-aside: min(420px, 92vw); --holo-aside-w: 0px; --holo-aside-l: 0px; }   /* tabrow + toolbar = chrome-h; --gap-b: a taller BOTTOM gutter; --holo-aside-w: the RIGHT-edge inset an aside (Wallet) squeezes by; --holo-aside-l: the LEFT-edge inset the Share carriage squeezes by, mirroring it */
       /* the holospace's desktop — a self-contained, rounded RUNTIME CARD, inset from the shell frame on
          every side and lifted with a soft shadow, so each tab reads as its own isolated environment. */
-      #world { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); overflow: hidden; background-color: #0a0e16; transition: right .34s cubic-bezier(.2,.8,.2,1);
+      #world { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); overflow: hidden; background-color: #0a0e16; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
         border-radius: 0 0 var(--card-r) var(--card-r);
         /* hyper-real depth: a layered key+ambient drop shadow lifts the card off the frame (it reads as a
            physical pane floating above the desktop), a hairline ring crisps its edge, and a faint inner
@@ -122,8 +133,18 @@
       }
       #wallpaper.wp-dev.loading { filter: none; opacity: 1; }   /* grid is already sharp — never blur it */
       @media (prefers-reduced-motion: reduce) { #wallpaper { transition: opacity .3s ease; } }
+      /* APPEARANCE AXIS (mobile themes: Dark · Light · Immersive). The immersive backdrop wears the
+         engine's chosen κ wallpaper (--holo-wallpaper); unset ⇒ `none` ⇒ transparent, so the gallery
+         layer beneath still shows. Dark / Light hide every photo layer so the desktop is the clean
+         solid var(--holo-bg) — the launcher-clean look. Only the appearance axis gates this. */
+      #immersive-wall { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-position: center; background-size: cover; background-repeat: no-repeat;
+        opacity: 0; transition: opacity .55s var(--ease, ease); }
+      :root[data-holo-immersive="on"] #immersive-wall { background-image: var(--holo-wallpaper, none); opacity: 1; }
+      :root[data-holo-immersive="off"] #wallpaper { opacity: 0; }
+      @media (prefers-reduced-motion: reduce) { #immersive-wall { transition: opacity .3s ease; } }
       /* ── tab strip — Chrome-precise: tabs at the bottom edge, the active tab flush with the toolbar ── */
-      #tabstrip { position: fixed; top: 0; left: var(--holo-dock-w, 0px); right: var(--holo-aside-w, 0px); height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px; transition: right .34s cubic-bezier(.2,.8,.2,1);
+      #tabstrip { position: fixed; top: 0; left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px)); right: var(--holo-aside-w, 0px); height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
         padding: 0 var(--gap); background: #141417; overflow-x: auto; scrollbar-width: none; user-select: none; }   /* recessed strip BEHIND the tabs; tabs are inset by --gap horizontally to line up with the holospace card below. No vertical padding → align-self:center cluster gets EQUAL top/bottom space; tabs are flex-end so they're unaffected. */
       #tabstrip::-webkit-scrollbar { display: none; }
       #tabstrip .tab { flex: 0 1 150px; min-width: 60px; height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
@@ -156,7 +177,7 @@
       /* the toolbar is the TOP of the holospace card — bundled with the canvas below into one self-
          contained, κ-addressable holospace (remix · run · share), inset + rounded, isolated from the
          shell frame (dock + tab strip). It connects seamlessly to the canvas (#world) directly beneath. */
-      #navbar { position: fixed; top: var(--tabrow-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); height: var(--toolbar-h); z-index: 60; display: flex; align-items: center; transition: right .34s cubic-bezier(.2,.8,.2,1);
+      #navbar { position: fixed; top: var(--tabrow-h); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); height: var(--toolbar-h); z-index: 60; display: flex; align-items: center; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
         gap: 2px; padding: 0 10px; background: #1F1F21; border-bottom: 1px solid var(--holo-border);
         box-shadow: 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.12); }   /* hairline ring + a lit top rim (the card's top edge catches light → physical); active tab merges into it (tab → toolbar → canvas = one holospace) */
       #navbar .nav { width: 34px; height: 34px; flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink);
@@ -255,7 +276,7 @@
       /* bottom STATUS BAR — left: Privacy · Powered by HOLOGRAM   right: session timer · self-verified version */
       /* bottom is driven off --holo-dock-h so the bar always sits ABOVE a bottom dock — in full screen the
          Holo Dock reorients to the bottom edge (holo-dock.js → "bottom") and would otherwise cover this bar. */
-      #holo-credit { position: fixed; left: var(--holo-dock-w, 0px); right: var(--holo-aside-w, 0px); bottom: var(--holo-dock-h, 0px); height: var(--gap-b); z-index: 2; pointer-events: none;
+      #holo-credit { position: fixed; left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px)); right: var(--holo-aside-w, 0px); bottom: var(--holo-dock-h, 0px); height: var(--gap-b); z-index: 2; pointer-events: none; transition: left .34s cubic-bezier(.2,.8,.2,1);
         transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1), bottom .34s cubic-bezier(.2,.8,.2,1), background .22s, border-color .22s;
         display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; user-select: none; white-space: nowrap;
         font: 600 var(--fs-meta)/1 var(--win-font, ui-sans-serif, system-ui); }
@@ -301,7 +322,7 @@
 
       /* snap preview — the translucent target shown while dragging to an edge */
       /* window zones — the background grid (FancyZones/KWin-style) */
-      #grid { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); z-index: 5; pointer-events: none; display: none; border-radius: 0 0 var(--card-r) var(--card-r); overflow: hidden; transition: right .34s cubic-bezier(.2,.8,.2,1); }
+      #grid { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); z-index: 5; pointer-events: none; display: none; border-radius: 0 0 var(--card-r) var(--card-r); overflow: hidden; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1); }
       #grid .zone { position: absolute; left: 0; top: 0; border: 1.5px dashed rgba(255, 255, 255, .18); border-radius: var(--holo-radius, 12px); background: linear-gradient(rgba(255, 255, 255, .04), rgba(255, 255, 255, .012)); display: grid; place-content: center; }
       #grid .zone span { font: 700 30px var(--win-font); color: rgba(255, 255, 255, .08); }
       #snap { position: fixed; z-index: 30; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -578,6 +599,36 @@
       .wall-meta { padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; }
       .wall-name { font: 600 var(--holo-text-sm, 1rem) var(--win-font); color: #e6edf3; }
       .wall-k { font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #3fb950; }
+
+      /* ════════════════════════════════════════════════════════════════════════════════════════
+         MOBILE — MD3 Compact window-size class (≤600dp). The shell is desktop-first; on a phone it
+         becomes a Compact single-surface layout. It meets the SAME standard the vendored holo-mobile.css
+         enforces (Material 3 · Accessibility → Touch target, 48dp; WCAG 2.2 §2.5.8 Target Size) WITHOUT
+         linking that global sheet — the shell's dense desktop window chrome (12–18px controls) must stay
+         pixel-exact on desktop, so the touch floor is width-scoped here and the >600px mouse experience is
+         untouched. The notch / home-indicator are cleared with CSS env() safe-areas, baked into the chrome
+         height vars so the canvas (#world is top:var(--chrome-h), bottom:var(--gap-b)) follows automatically.
+         Windows auto-maximize on this class (boot script) — no free-drag on a 360px screen — and long-press
+         opens the context menu, since touch has no right-click. ─────────────────────────────────────────── */
+      @media (max-width: 600px) {
+        /* taller touch chrome + notch clearance folded into the row-height vars → the canvas reflows for free */
+        html { --tabrow-h: calc(56px + env(safe-area-inset-top, 0px)); --toolbar-h: 52px;
+               --chrome-h: calc(108px + env(safe-area-inset-top, 0px));
+               --gap-b: calc(34px + env(safe-area-inset-bottom, 0px)); }
+        #tabstrip { padding-top: env(safe-area-inset-top, 0px); }              /* notch clearance; tabs sit flex-end below it */
+        #tabstrip .tab { height: 48px; flex: 0 1 168px; }                     /* MD3 48dp tab */
+        #tabstrip .tab .t-x { width: 32px; height: 32px; opacity: .7; }       /* close always visible + large (no hover on touch) */
+        #newtab { width: 44px; height: 44px; font-size: 22px; }
+        #navbar .nav { width: 44px; height: 44px; }
+        #navbar .nav svg { width: 20px; height: 20px; }
+        #omni { height: 44px; }                              /* omnibox grow + verb-hide live in the late navbar block (≤600px) so they win the cascade */
+        #omni .go { width: 40px; height: 40px; }
+        #omni .go svg { width: 18px; height: 18px; }
+        /* bottom furniture clears the home indicator (the env() in --gap-b already lifts #world) */
+        #holo-credit { bottom: calc(var(--holo-dock-h, 0px) + env(safe-area-inset-bottom, 0px)); }
+        #taskbar   { bottom: calc(44px + var(--holo-dock-h, 0px) + env(safe-area-inset-bottom, 0px)); max-width: 72vw; }
+        #hiddentray{ bottom: calc(82px + var(--holo-dock-h, 0px) + env(safe-area-inset-bottom, 0px)); max-width: 72vw; }
+      }
     </style>
     <!-- Holo governance (core, host-enforced for EVERY app): Holo Terms (MyTerms / IEEE 7012) is the
          capability GATE — the World shell is the default door (holospace.html redirects here), so
@@ -607,6 +658,10 @@
     </div>
     <div id="world">
       <div id="wallpaper" aria-hidden="true"></div>
+      <!-- Immersive backdrop (ADR mobile-appearance): in Immersive mode this paints the chosen
+           κ-sealed wallpaper (--holo-wallpaper, set by the engine) over the gallery layer; when no
+           immersive image is chosen it is transparent and the gallery wallpaper shows through. -->
+      <div id="immersive-wall" aria-hidden="true"></div>
       <div id="empty"></div>
       <!-- desktop credit — pinned bottom-center, behind windows; on every tab's desktop -->
       <div id="holo-credit">
@@ -674,12 +729,23 @@
       import { defineBlock, defineBlockFromSource } from "/_shared/holo-blocks.js";
       import { HoloRepo } from "/_shared/holo-blocks-repo.mjs";
       import { createLiveEditor } from "/_shared/holo-live-edit.mjs";   // liveEdit: the ONE primitive chat·DevTools·agents edit through
+      import * as HoloSkin from "/_shared/holo-skin.js";   // Holo Browser SKINS (holo:BrowserSkin): hot-swappable vintage chrome (NCSA Mosaic …), κ-addressed, state-preserving, browser-tabs only
       import { createPlaygroundHost, createPlaygroundAgent } from "/_shared/holo-playground-agent.mjs";   // Holo Playground: in-app (iframe) AND in-shell element edits route to that ONE primitive
       import { capabilitiesToSandbox, linkFor } from "/holo-launch.mjs";
       import { classify, matches } from "/holo-omni.mjs";
       import { resolveAny, parseRef } from "/sbin/holo-omni.mjs";   // the discovery-backed κ-resolver (trustless gateways + Delegated Routing V1)
       import { parseWeb3Ref, resolveWeb3 } from "/sbin/holo-omni-web3.mjs";   // the web3 leg: ENS · accounts · tokens · tx · CAIP → one sealed κ-card (governed read, hosc:Egress receipt)
+      import { record as omniRemember, search as omniRecent } from "/sbin/holo-omni-index.mjs";   // the omnibar's MEMORY: it remembers + ranks everything you've opened (private, instant, holo-rank-aware)
+      import { askPrivate as omniAsk, indexObject as omniIndexObject } from "/sbin/holo-omni-q.mjs";   // the omnibar's PRIVATE INTELLIGENCE: Q.recall (model-free BM25 ⊕ κ-graph) over your resolved corpus — ask a question, get YOUR stuff, on-device
+      import { classifyMedia, resolveMediaSource, mediaMime } from "/sbin/holo-media.mjs";   // the omnibar's MEDIA lane: a media address → κ-anchored streaming player (native Range/206 seeking; honest platform fallback)
       import { web3CardDoc } from "/sbin/holo-omni-web3-card.mjs";            // render that κ-card as a verified inline tab
+      import { parseOnionRef, validateOnion, resolveOnion } from "/sbin/holo-omni-onion.mjs";   // the onion leg (ADR-0104): Tor v3 .onion → validated κ-card; browses via a configured transport (gateway · SOCKS5)
+      import { searchOnionWeb } from "/sbin/holo-onion-discover.mjs";   // discover: free-text → onion results via a clearnet onion index (Ahmia), each opens through the validated onion path
+      import { mountEgressConnect } from "/usr/share/holo-web-recorder/holo-egress-connect.mjs";   // "Connect the web" icon by the omnibar: live egress status + simplest install path
+      import { resolveBootResume } from "/_shared/holo-workspace-sync-ui.mjs";   // Holo Workspace Sync (ADR-0105): boot-resume a #wks link / ?wks token (the sealer is dynamic-imported on use)
+      import { createAside, registerAsideCloser, closeAllAsides } from "/_shared/holo-aside.mjs";   // Holo Aside (ADR-0109): the ONE right side-carriage primitive shared by Create · Play · Share (dock · slide · drag-resize · toggle · single-open)
+      import { mountShare } from "/_shared/holo-share-ui.mjs";   // Holo Share (ADR-0109): the ❤️ Share verb, rendered in the shared carriage — one link · file · sovereign cloud
+      import { mountPlay } from "/_shared/holo-play-ui.mjs";   // Holo Play (ADR-0109): the ▶ Play verb — an immersive browse rail (categories + titles) in the shared carriage, launching holospaces live
       import { searchDirectory } from "/_shared/holo-dweb.js";       // the federated directory: knowledge · ENS · dapps · apps — one content-addressed object graph
       import { profileFor } from "/_shared/holo-platform.js";
       import { createKeymap, renderKeyboard } from "/_shared/holo-keys.js";
@@ -698,6 +764,7 @@
       import "/_shared/devtools/holo-devtools-ui.js";         // Holo DevTools (ADR-0095): installs window.HoloDevToolsServe — the κ-CDP backend holo-gov.js routes the DevTools frame's CDP to (serverless, fail-closed)
       import { createRemoteBroker as holoQCreateRemoteBroker, serveRpc as holoQServeRpc } from "/_shared/q/holo-q-remote.mjs";   // Holo Q Remote (ADR-0090): the ONE governed remote-model host broker
       import { roster as identRoster, unlock as identUnlock } from "/_shared/holo-identity.mjs";
+      import * as HoloSession from "/_shared/holo-session.mjs";   // Holo Session (ADR-0104): per-operator, device-local experience continuity
       import HoloRender from "/_shared/holo-render.js";          // the ONE canonical κ→render path (lean, no compiler)
       import { resolveByKappa } from "/holo-resolver.mjs";       // the substrate's single resolve authority (Law L5)
 
@@ -1005,6 +1072,13 @@
                 // so window.Q + the in-app summon work INSIDE the app — true omnipresence from ONE point, no per-app edit.
                 // (marked data-holo-ephemeral so the Playground agent's serialise strips this injected runtime — the sealed κ stays pristine, Law L5.)
                 try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-q-app")) { const _s = _d.createElement("script"); _s.id = "holo-q-app"; _s.type = "module"; _s.setAttribute("data-holo-ephemeral", ""); _s.src = "/_shared/q/holo-q-app.js"; (_d.head || _d.documentElement).appendChild(_s); } } catch (e) {}
+                // Mobile conformance (ADR-0057 · MD3/WCAG): mark this surface as the container-query host
+                // (data-holo-surface → the `holoapp` container, so the app reflows to its WINDOW width, not the
+                // device viewport — Compact whether maximized on a phone OR floated small on desktop) and ensure
+                // the mobile layer is present even for an app that never linked it. Ephemeral: never sealed (Law L5).
+                try { const _d = f.contentDocument; if (_d) { const _h = _d.documentElement;
+                  if (_h && !_h.hasAttribute("data-holo-surface")) _h.setAttribute("data-holo-surface", "");
+                  if (!_d.querySelector('link[href*="holo-mobile.css"]') && !_d.getElementById("holo-mobile-inject")) { const _m = _d.createElement("link"); _m.id = "holo-mobile-inject"; _m.rel = "stylesheet"; _m.href = "/_shared/holo-mobile.css"; _m.setAttribute("data-holo-ephemeral", ""); (_d.head || _h).appendChild(_m); } } } catch (e) {}
                 // Holo Playground: inject the in-frame agent so EVERY element in this app is right-click-editable; its edits
                 // serialise (ephemeral-stripped) and post UP to createPlaygroundHost → the ONE primitive HoloLiveEdit.edit. No second sealer.
                 try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-playground-app")) { const _p = _d.createElement("script"); _p.id = "holo-playground-app"; _p.type = "module"; _p.setAttribute("data-holo-ephemeral", ""); _p.dataset.surface = n.id; if (pgActive()) _p.dataset.pgActive = "1"; _p.src = "/_shared/holo-playground-app.js"; (_d.head || _d.documentElement).appendChild(_p); } } catch (e) {} }); }
@@ -1025,12 +1099,19 @@
           el.toggleAttribute("locked", !!n.locked);
           el.toggleAttribute("frameless", !!n.frameless);       // bare object on the desktop (chrome on hover)
           el.toggleAttribute("browser", !!n.browser);           // web/IPFS/κ content → a solid browser-page viewport (never transparent)
-          el.dataset.state = n.state || "normal";
+          try { skinSync(el, n); } catch (e) {}                  // mount/keep the active vintage skin chrome (browser tabs only); no-op when "modern"
+          // MD3 Compact (≤600dp): present every framed window as one full surface — no free-drag/resize on a
+          // 360px screen. Desktop icons (frameless / folder icons) and min/hidden windows are untouched, and the
+          // node's saved geometry is preserved (only the live presentation maxes; it restores on a wider screen).
+          const _compact = !!(window.matchMedia && window.matchMedia("(max-width: 600px)").matches);
+          const _maxable = _compact && !n.frameless && n.kind !== "folder" && n.state !== "min" && n.state !== "hidden";
+          const _eff = _maxable ? "max" : (n.state || "normal");
+          el.dataset.state = _eff;
           el.dataset.kind = n.kind || "";                        // so a tab-filling app (max) drops its inner chrome (the tab is its frame)
           holoTag(el, n);                                        // content-address the object → remixable (Inspect · Edit · Share)
           if (n.state === "min") { el.style.display = "none"; tb.push(n); }
           else if (n.state === "hidden") { el.style.display = "none"; }   // hidden → off-canvas but kept (restore via Show hidden)
-          else { el.style.display = ""; applyGeom(el, n); }
+          else { el.style.display = ""; applyGeom(el, _eff === (n.state || "normal") ? n : Object.assign({}, n, { state: _eff })); }
         }
         $("#taskbar").innerHTML = tb.map((n) => `<div class="chip" data-id="${n.id}"><span class="d"></span>${(n.title || "Window").slice(0, 28)}</div>`).join("");
         [...$("#taskbar").querySelectorAll(".chip")].forEach((c) => c.onclick = () => setState(c.dataset.id, "normal"));
@@ -1085,9 +1166,70 @@
         try { h.setBoard(board, { persist: false }); } catch (e) {}
       });
       withHW((h) => {
-        if (h.onChange) h.onChange((snap) => { const t = tabs[activeTab]; if (t) { t.widgets = snap; persistSpace(t, snap); } });   // mirror live + persist by holospace key
+        if (h.onChange) h.onChange((snap) => { const t = tabs[activeTab]; if (t) { t.widgets = snap; persistSpace(t, snap); } try { scheduleSave(); } catch (e) {} });   // mirror live + persist by holospace key + autosave the session
         if (h.snapshot) tabs[0].widgets = h.snapshot();
       });
+      // ── Share Holospace (ADR-0105): capture THIS ONE holospace (isolated) + open a shared one as a NEW
+      //    tab. captureHolospace reads ONLY the active tab's world (every window carries its own bytes via
+      //    srcdoc/content + its saved appState) and ONLY this holospace's board slice (loadSpace) — never
+      //    another holospace's data, never operator/device/global settings. The sealer (holo-workspace-
+      //    sync.mjs) turns it into a content-addressed bundle; applyHolospace re-opens it here, apps live.
+      function captureHolospace() {
+        const t = tabs[activeTab];
+        if (t) { try { t.snap = snapshotWorld(); } catch (e) {} }
+        let board = null; try { board = loadSpace(t) || (t && t.widgets) || null; } catch (e) {}
+        return { title: t ? cleanName(t.title) : "Holospace", addr: (t && t.addr) || "", snap: t ? t.snap : { world: [] }, board: Array.isArray(board) ? board : [] };
+      }
+      // captureWorkspace() — the WHOLE experience (every holospace + order + active + open surfaces + each
+      // adopting app's state + the settings allowlist) as one PLAINTEXT holo:SessionManifest, for the portable
+      // backup (ADR-0105 sealWorkspace). Distinct from captureHolospace (one tab): this is "carry my entire OS".
+      async function captureWorkspace() {
+        try { await collectAppState(); } catch (e) {}                 // fold each adopting app's state into its node first
+        try { if (tabs[activeTab]) tabs[activeTab].snap = snapshotWorld(); } catch (e) {}
+        return HoloSession.currentExperienceManifest({ tabs, activeTab });
+      }
+      // everythingAuthGate() — "Everything" exports the WHOLE OS (every holospace + settings), so a SIGNED-IN
+      // operator must re-prove presence to this device's biometric (Windows Hello · Touch/Face ID · fingerprint)
+      // before it proceeds. A GUEST has no operator/biometric and no cross-holospace secret to protect → no
+      // gate (their data is already device-local). Fail-closed: signed-in + no biometric available → refuse.
+      async function everythingAuthGate() {
+        let op = null; try { op = HoloSession.signedInOperator(); } catch (e) {}
+        if (!op) return true;                                         // guest → no gate
+        let wa = null; try { wa = await import("/_shared/holo-webauthn.mjs"); } catch (e) { try { toast("Biometric module unavailable"); } catch (_) {} return false; }
+        try {
+          if (!(await wa.teeAvailable())) { try { toast("Biometric required for Everything — " + (await wa.teeReason())); } catch (_) {} return false; }
+          await wa.teeAssert({});                                     // platform biometric (userVerification:required); throws on cancel/fail
+          return true;
+        } catch (e) { try { toast(wa.teeError(e)); } catch (_) {} return false; }
+      }
+      // onImportShared(m) — route an opened bundle by its type: a whole-experience SessionManifest RESUMES the
+      // full session (replaces the current one — that's "resume my exact workspace"); a HolospaceShare opens as
+      // a new isolated tab. Both already re-derive every block (L5) in the sealer.
+      function onImportShared(m) {
+        try {
+          if (m && Array.isArray(m["@type"]) && m["@type"].includes("holo:SessionManifest")) {
+            applyBody(m).then((ok) => { if (ok) { try { renderTabs(); reflectOmni(); } catch (e) {} flushSession(); } });
+            return true;
+          }
+        } catch (e) {}
+        return applyHolospace(m);
+      }
+      function applyHolospace(m) {
+        try {
+          const hs = m && m["holo:holospace"]; if (!hs) return false;
+          exitStudio(true);
+          if (tabs[activeTab]) tabs[activeTab].snap = snapshotWorld();
+          const snap = (hs.snap && typeof hs.snap === "object") ? hs.snap : { world: [], layout: null, focusedId: null };
+          const t = { id: "t" + tabs.length + Math.random().toString(36).slice(2, 5), title: hs.title || "Shared holospace", addr: hs.addr || "", snap };
+          try { for (const n of (snap.world || [])) { if (n && n.appState != null && n.id) _appPending.set(n.id, n.appState); } } catch (e) {}   // imported apps' saved state → re-applied by the handshake
+          const board = Array.isArray(hs.board) ? hs.board : []; t.widgets = board;
+          try { if (t.addr) { const all = loadSpaces(); if (!Array.isArray(all[t.addr])) { all[t.addr] = board; localStorage.setItem(HW_SPACES, JSON.stringify(all)); } } } catch (e) {}   // no clobber: keep a local board for the same addr if present
+          tabs.push(t); activeTab = tabs.length - 1;
+          restoreWorld(snap); applyWidgets(activeTab); renderTabs(); reflectOmni(); updateNav(); scheduleSave();
+          try { toast("Holospace opened in a new tab"); } catch (e) {}
+          return true;
+        } catch (e) { console.warn("applyHolospace:", e); return false; }
+      }
       // Create mode is a transient overlay on #world (NOT a tab). Any tab change / navigation dissolves
       // it first, so a new or switched tab never lands you in the creator. (apply=true saves edits.)
       function exitStudio(apply) {
@@ -1118,6 +1260,158 @@
         exitStudio(true); const t = tabs[activeTab]; if (!t) return;
         if (t.hist && t.hist.length) { t.hi = 0; restoreWorld(t.hist[0]); } else restoreWorld(null);
         renderTabs(); reflectOmni(); updateNav();
+      }
+      // ── Holo Browser SKINS (holo:BrowserSkin) — hot-swappable vintage chrome (NCSA Mosaic, …) mounted
+      // INSIDE each browser <holo-window> shadow root and bound to THIS tab's live nav state. Default
+      // "modern" = today's chrome (no skin). A skin can ONLY dress a browser tab — never OS chrome (the
+      // engine refuses appliesTo≠browser). A swap never touches the iframe (only sibling chrome rows), so
+      // history / URL / scroll / back-forward survive with no reload (state-preserving, Stage 0 witnessed).
+      let activeSkin = (() => { try { return localStorage.getItem("holo.skin") || "modern"; } catch { return "modern"; } })();
+      const _skinCache = Object.create(null);
+      function ensureSkin(id) {
+        if (!id || id === "modern") return Promise.resolve(null);
+        if (_skinCache[id]) return _skinCache[id];
+        const base = "/_shared/skins/" + id + "/";
+        const read = async (rel) => new Uint8Array(await (await fetch(base + rel, { cache: "force-cache" })).arrayBuffer());
+        return (_skinCache[id] = HoloSkin.resolveSkin(id, { read }).catch((e) => { console.warn("holo-skin:", id, e); _skinCache[id] = null; return null; }));
+      }
+      // a WebContents-shaped view of the active tab (what the skin throbber / status / nav buttons read).
+      function skinState() {
+        const t = tabs[activeTab] || {}, len = (t.hist && t.hist.length) || 0, hi = t.hi || 0;
+        return { loading: !!t.loading, securityState: t.security || "neutral",
+          nav: { current: { url: t.addr || "" }, canGoBack: !!(len && hi > 0), canGoForward: !!(len && hi < len - 1) } };
+      }
+      const skinBind = {
+        "nav.back": () => goNav(-1), "nav.forward": () => goNav(1), "nav.home": () => goHome(),
+        "nav.reload": () => reloadBrowser(), "nav.stop": () => setTabLoading(false),
+        "omni.focus": () => { const i = $("#omni input") || $("#omni"); if (i && i.focus) { i.focus(); i.select && i.select(); } },
+        "tab.new": () => newTab(), "tab.close": () => { try { closeTab(activeTab); } catch {} },
+        "about": () => toast("NCSA Mosaic — re-authored as a κ-addressed Holo Browser skin"), "noop": () => {},
+      };
+      function skinTick() { const st = skinState(); for (const [, el] of mounted) { const h = el.__skinHost; if (h && h.__skinBinder) try { h.__skinBinder.update(st); } catch {} } }
+      function setTabLoading(on) { const t = tabs[activeTab]; if (t) t.loading = !!on; skinTick(); }
+      function reloadBrowser() { setTabLoading(true); for (const [, el] of mounted) { if (el.hasAttribute("browser")) { const f = el.querySelector("iframe"); if (f) try { f.src = f.src; } catch {} } } }
+      // applyShellSkin(resolved) — EVERY holospace tab IS a Holo Browser (like Chrome, one site per tab), so a
+      // skin re-dresses the browser's WHOLE chrome — the tab strip, toolbar + omnibox, the LEFT dock/rail, and
+      // the BOTTOM status bar — into the era's palette + font (derived from the manifest, no new asset). Ink is
+      // CONTRAST-CORRECT off the chrome luminance (black on light skins, white on dark), so text never washes
+      // out. A short colour morph makes the switch feel like a time machine. Reversible — modern removes it all.
+      function applyShellSkin(resolved) {
+        let st = document.getElementById("holo-skin-shell");
+        if (!resolved) { if (st) st.remove(); document.documentElement.removeAttribute("data-skin"); return; }
+        if (!st) { st = document.createElement("style"); st.id = "holo-skin-shell"; document.head.appendChild(st); }
+        const p = resolved.palette || {}, f = resolved.font || {};
+        const chrome = p.chrome || "#c0c0c0", bl = p.bevelLight || "#fff", bd = p.bevelDark || "#808080", ui = f.ui || "sans-serif";
+        // contrast: pick ink from the chrome's perceived luminance (handles future dark skins too).
+        const hx = String(chrome).replace("#", ""); const R = parseInt(hx.slice(0, 2), 16) || 192, G = parseInt(hx.slice(2, 4), 16) || 192, B = parseInt(hx.slice(4, 6), 16) || 192;
+        const light = (0.299 * R + 0.587 * G + 0.114 * B) > 150;
+        const ink = light ? "#101010" : "#f4f4f4", dim = light ? "#3a3a3a" : "#c8c8c8", hover = light ? "#00000016" : "#ffffff22", iconFilter = light ? "brightness(0)" : "brightness(0) invert(1)";
+        const I = " !important";
+        st.textContent = [
+          "#tabstrip,#navbar,#holo-dock,#holo-dock .holo-dock-inner,#holo-credit{transition:background-color .3s ease,color .3s ease,box-shadow .3s ease}",
+          "#tabstrip{background:" + chrome + I + ";font-family:" + ui + I + "}",
+          "#tabstrip .tab,#tabstrip button,#newtab{color:" + ink + I + ";font-family:" + ui + I + "}",
+          "#tabstrip .tab:not(.active){background:" + chrome + I + "}",
+          "#tabstrip .tab.active{background:" + bl + I + ";color:" + ink + I + ";box-shadow:inset 1px 1px 0 #fff,inset -1px -1px 0 " + bd + I + "}",
+          "#tabstrip .tab.active::before,#tabstrip .tab.active::after{background:" + bl + I + "}",
+          "#navbar{background:" + chrome + I + ";border-bottom:2px solid " + bd + I + ";box-shadow:inset 0 1px 0 " + bl + I + ";font-family:" + ui + I + "}",
+          "#navbar .nav,#navbar button,#verb-build,#verb-run,#share-btn,#navbar .vl{color:" + ink + I + "}",
+          "#navbar .nav:hover:not(:disabled),#navbar button:hover{background:" + hover + I + "}",
+          "#omni{background:#fff" + I + ";border:1px solid " + bd + I + ";border-radius:3px" + I + ";box-shadow:inset 1px 1px 0 " + bd + I + "}",
+          "#omni input{color:#101010" + I + ";font-family:" + ui + I + "}",
+          "#omni input::placeholder{color:#666" + I + "}",
+          "#holo-dock{--hd-opaque-bg:" + chrome + I + ";--hd-blur-bg:" + chrome + I + ";--hd-acrylic-bg:" + chrome + I + ";--hd-clear-bg:" + chrome + I + ";--hd-blur-fx:none" + I + ";--hd-ink:" + ink + I + ";--hd-ink-dim:" + dim + I + ";--hd-border:" + bd + I + ";--hd-hover:" + hover + I + ";border-right:2px solid " + bd + I + ";box-shadow:inset -1px 0 0 " + bl + I + "}",
+          "#holo-dock .holo-dock-inner{background:" + chrome + I + "}",
+          "#holo-dock .holo-dock-icon,#holo-dock .holo-dock-mini{filter:" + iconFilter + I + ";opacity:.92" + I + "}",
+          "#holo-credit{background:" + chrome + I + ";border-top:2px solid " + bd + I + ";box-shadow:inset 0 1px 0 " + bl + I + ";font-family:" + ui + I + "}",
+          "#holo-credit,#holo-credit *{color:" + ink + I + "}",
+          "#holo-credit .cv-pill{border-color:" + bd + I + "}",
+          // the skin's OWN shell stylesheet (κ-pinned) layers last → full control: gradients, glass, curves, textures
+          resolved.shellCss || "",
+        ].join("");
+        document.documentElement.setAttribute("data-skin", resolved.id);
+      }
+      // skinSync(el,n) — idempotent per window: mount / unmount the active skin's chrome to match state.
+      async function skinSync(el, n) {
+        const want = (n && n.browser && activeSkin && activeSkin !== "modern") ? activeSkin : null;
+        if (el.__skinId === want) { if (want) skinTick(); return; }
+        const frame = el.shadowRoot && el.shadowRoot.querySelector(".frame"); if (!frame) return;
+        el.__skinId = want;
+        if (!want) { HoloSkin.unmountChrome(frame); el.__skinHost = null; el.removeAttribute("skin"); return; }
+        const resolved = await ensureSkin(want); if (!resolved) { el.__skinId = null; return; }
+        if (el.__skinId !== want) return;   // active skin changed while awaiting
+        el.setAttribute("skin", want);
+        el.__skinHost = HoloSkin.mountChrome(frame, resolved, { bind: skinBind, getState: skinState });
+      }
+      // setActiveSkin(id) — the switch: re-skin every live browser window (state-preserving), persist,
+      // seal a holo:SkinActivation receipt (pins the manifest-κ, re-derivable Law L5).
+      async function setActiveSkin(id) {
+        id = id || "modern"; activeSkin = id; try { localStorage.setItem("holo.skin", id); } catch {}
+        const resolved = await ensureSkin(id);
+        applyShellSkin(resolved);   // the WHOLE browser chrome (tab strip + omnibar) goes vintage on every tab
+        for (const [, el] of mounted) {
+          const frame = el.shadowRoot && el.shadowRoot.querySelector(".frame"); if (!frame) continue;
+          if (!el.hasAttribute("browser") || !resolved) { HoloSkin.unmountChrome(frame); el.__skinHost = null; el.__skinId = resolved ? null : "modern"; el.removeAttribute("skin"); continue; }
+          el.__skinId = id; el.setAttribute("skin", id);
+          el.__skinHost = await HoloSkin.swap(frame, resolved, { bind: skinBind, getState: skinState });
+        }
+        skinTick();
+        if (resolved) { try { await HoloSkin.activationReceipt(id, resolved.manifestKappa); } catch {} }
+        toast(id === "modern" ? "Holo Browser · modern chrome" : "Holo Browser · " + (resolved ? resolved.manifest["holo:title"] : id) + " skin");
+      }
+      // SW load-END edge → stop the throbber + reflect the seam's verify verdict on the matching tab (L5).
+      try {
+        navigator.serviceWorker.addEventListener("message", (e) => {
+          const m = e && e.data; if (!m || m.type !== "committed") return;
+          const t = tabs[activeTab]; if (t) { t.loading = false;
+            t.security = m.refused ? "dangerous" : (m.verified ? ((m.scheme === "https" || m.scheme === "holo" || m.scheme === "ipfs") ? "secure" : "neutral") : (m.scheme === "http" ? "warning" : "neutral")); }
+          skinTick();
+        });
+      } catch {}
+      ensureSkin(activeSkin).then(applyShellSkin);   // warm-preload + dress the browser chrome on boot (no FOUC)
+      // openSkinPicker() — the one affordance to change skins, with a live sealed preview of each.
+      function openSkinPicker() {
+        if (!document.getElementById("skinpick-css")) { const st = document.createElement("style"); st.id = "skinpick-css"; st.textContent =
+          ".skinpick-back{position:fixed;inset:0;z-index:1000;background:rgba(2,4,8,.62);backdrop-filter:blur(7px);display:grid;place-items:center;padding:3vh 2vw}" +
+          // the panel is golden-ratio landscape (φ:1) and fills the screen — a wide gallery, not a tall modal
+          // a true golden rectangle (φ:1) that always fits: width = smallest of 1680px / 96vw / (94vh·φ); height derives from aspect-ratio
+          ".skinpick{position:relative;width:min(1680px,96vw,calc(94vh*1.618));aspect-ratio:1.618;max-height:94vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#10151f,#0a0e16);border:1px solid var(--holo-border,#2a313c);border-radius:20px;box-shadow:0 50px 140px #000d,0 0 0 1px #ffffff0a;color:var(--holo-ink,#e6edf6);font:14px var(--win-font);overflow:hidden}" +
+          ".skinpick-head{flex:0 0 auto;display:flex;align-items:baseline;gap:14px;padding:22px 30px 16px;border-bottom:1px solid #ffffff0d}" +
+          ".skinpick-head h3{margin:0;font-size:22px;font-weight:650;letter-spacing:.2px}.skinpick-sub{color:var(--holo-ink-dim,#8b949e);font-size:13px}" +
+          // a fluid grid that fills the width — more columns on wider screens; each card is golden-ratio (φ:1)
+          ".skinpick-grid{flex:1;min-height:0;overflow:auto;padding:24px 30px 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:26px;align-content:start}" +
+          ".skinpick-card{display:flex;flex-direction:column;gap:11px;padding:0;background:transparent;border:0;cursor:pointer;color:inherit;font:inherit;text-align:left}" +
+          ".skinpick-prev{aspect-ratio:1.618;border-radius:13px;overflow:hidden;background:#fff;display:flex;flex-direction:column;box-shadow:0 8px 26px #0008,0 0 0 1px #ffffff12;transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s}" +
+          ".skinpick-card:hover .skinpick-prev{transform:translateY(-5px) scale(1.012);box-shadow:0 20px 46px #000b,0 0 0 1px var(--accent,#1f6feb)}" +
+          ".skinpick-card.sel .skinpick-prev{box-shadow:0 12px 30px #000a,0 0 0 2.5px var(--accent,#1f6feb)}" +
+          ".skinpick-name{display:flex;align-items:center;gap:7px;font-weight:600;font-size:14.5px;padding:0 3px;color:var(--holo-ink,#e6edf6)}" +
+          ".skinpick-name .chk{margin-left:auto;color:#fff;background:var(--accent,#1f6feb);width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:12px;flex:0 0 auto}" +
+          ".skinpick-modern{flex:0 0 auto;display:flex;align-items:center;gap:8px;height:40px;padding:0 13px;background:#1F1F21;color:#c9d1d9;font:12.5px var(--win-font)}.skinpick-modern .pill{margin-left:auto;background:#0c111b;border:1px solid #30363d;border-radius:8px;padding:3px 12px;opacity:.85}" +
+          ".skinpick-x{position:absolute;top:18px;right:22px;width:34px;height:34px;border:0;border-radius:10px;background:#ffffff10;color:inherit;font-size:16px;cursor:pointer;transition:background .15s}.skinpick-x:hover{background:#ffffff22}" +
+          "@media (max-width:720px){.skinpick{aspect-ratio:auto;height:92vh}.skinpick-grid{grid-template-columns:1fr}}";
+          document.head.appendChild(st); }
+        const SKINS = [{ id: "modern", title: "Modern (Holo)" }, { id: "mosaic", title: "NCSA Mosaic" }, { id: "netscape", title: "Netscape Navigator" }, { id: "ie", title: "Internet Explorer" }, { id: "opera", title: "Opera" }, { id: "winxp", title: "Windows XP" }, { id: "win98", title: "Windows 98" }, { id: "win11", title: "Windows 11" }, { id: "aqua", title: "Mac OS X Aqua" }, { id: "bigsur", title: "macOS Big Sur" }, { id: "crt", title: "CRT Terminal (Amber)" }, { id: "lcars", title: "LCARS (Star Trek)" }, { id: "holographic", title: "Holographic" }, { id: "lotr", title: "Lord of the Rings" }, { id: "foundation", title: "Foundation" }, { id: "hhgttg", title: "Hitchhiker's Guide" }];
+        // a faux page so every preview reads like a real tab in that skin — the chrome wraps a live little site.
+        const fauxPage = (pal) => { const lu = (pal && pal.linkUnvisited) || "#0000ee", lv = (pal && pal.linkVisited) || "#551a8b"; const d = document.createElement("div");
+          d.style.cssText = "flex:1;min-height:0;background:#fff;overflow:hidden;padding:13px 16px;font:13px Georgia,'Times New Roman',serif;color:#222;line-height:1.5";
+          d.innerHTML = "<div style=\"font:700 17px Georgia,serif;margin-bottom:5px;color:#111\">The Hologram Web</div><div style=\"color:#555;margin-bottom:9px\">Every page is content-addressed and re-derived before it paints.</div><a href=\"#\" style=\"color:" + lu + ";text-decoration:underline\">An unvisited link</a> &nbsp;·&nbsp; <a href=\"#\" style=\"color:" + lv + ";text-decoration:underline\">a visited one</a>"; return d; };
+        const back = document.createElement("div"); back.className = "skinpick-back";
+        back.innerHTML = '<div class="skinpick"><div class="skinpick-head"><h3>Browser Skin</h3><span class="skinpick-sub">A κ-addressed dress for the whole browser — every tab, every era. Switches live, no reload.</span></div><div class="skinpick-grid"></div><button class="skinpick-x" title="Close">✕</button></div>';
+        const grid = back.querySelector(".skinpick-grid");
+        for (const s of SKINS) {
+          const card = document.createElement("button"); card.type = "button"; card.className = "skinpick-card" + (s.id === activeSkin ? " sel" : "");
+          card.innerHTML = '<div class="skinpick-prev" data-prev></div><div class="skinpick-name">' + s.title + (s.id === activeSkin ? '<span class="chk">✓</span>' : "") + "</div>";
+          card.onclick = async () => { document.body.removeChild(back); await setActiveSkin(s.id); };
+          grid.appendChild(card);
+          const prev = card.querySelector("[data-prev]");
+          if (s.id === "modern") { prev.innerHTML = '<div class="skinpick-modern">⌂ &nbsp; <span style="opacity:.6">◀ ▶ ↻</span> <span class="pill">holo://…</span></div>'; prev.appendChild(fauxPage(null)); }
+          else ensureSkin(s.id).then((r) => { if (!r) { prev.textContent = "(unavailable)"; return; }
+            const f = document.createElement("div"); f.className = "frame"; f.style.cssText = "display:flex;flex-direction:column;height:100%"; f.appendChild(fauxPage(r.palette)); prev.appendChild(f);
+            HoloSkin.mountChrome(f, r, { bind: {}, getState: () => ({ loading: true, securityState: "secure", nav: { current: { url: "https://www.hologram.os/" }, canGoBack: true, canGoForward: false } }) }); });
+        }
+        back.querySelector(".skinpick-x").onclick = () => document.body.removeChild(back);
+        back.addEventListener("click", (e) => { if (e.target === back) document.body.removeChild(back); });
+        document.body.appendChild(back);
       }
       function renderTabs() {
         const strip = $("#tabstrip"), nt = $("#newtab");
@@ -1177,20 +1471,108 @@
       function inTabSearch(q) { const t = tabs[activeTab]; return !!(t && t.appSearch && !isAddrLike(q)); }
       function forwardSearch(q) { const f = activeAppFrame(); if (f && f.contentWindow) { try { f.contentWindow.postMessage({ type: "holo:search", q: q }, "*"); } catch {} } }
       addEventListener("message", (e) => { const d = e.data; if (!d || d.type !== "holo:search:ready") return; const f = activeAppFrame(); if (f && e.source === f.contentWindow) { const t = tabs[activeTab]; if (t) { t.appSearch = true; t.searchLabel = d.app || cleanName(t.title); updateScope(); } } });
-      function selectTab(i) { if (i === activeTab || !tabs[i]) return; exitStudio(true); tabs[activeTab].snap = snapshotWorld(); activeTab = i; restoreWorld(tabs[i].snap); applyWidgets(i); renderTabs(); reflectOmni(); updateNav(); }
-      function newTab(title) { exitStudio(true); tabs[activeTab].snap = snapshotWorld(); tabs.push({ id: "t" + tabs.length + Math.random().toString(36).slice(2, 5), title: title || "New Tab", addr: "", snap: null }); activeTab = tabs.length - 1; restoreWorld(null); applyWidgets(activeTab); renderTabs(); reflectOmni(); updateNav(); return activeTab; }
+      function selectTab(i) { if (i === activeTab || !tabs[i]) return; exitStudio(true); tabs[activeTab].snap = snapshotWorld(); activeTab = i; restoreWorld(tabs[i].snap); applyWidgets(i); renderTabs(); reflectOmni(); updateNav(); scheduleSave(); }
+      function newTab(title) { exitStudio(true); tabs[activeTab].snap = snapshotWorld(); tabs.push({ id: "t" + tabs.length + Math.random().toString(36).slice(2, 5), title: title || "New Tab", addr: "", snap: null }); activeTab = tabs.length - 1; restoreWorld(null); applyWidgets(activeTab); renderTabs(); reflectOmni(); updateNav(); scheduleSave(); return activeTab; }
       function closeTab(i) {
         if (!tabs[i] || tabs[i].home || tabs.length <= 1) return;   // the Home tab is permanent
         const wasActive = i === activeTab; tabs.splice(i, 1);
         if (activeTab > i || activeTab >= tabs.length) activeTab = Math.max(0, activeTab - 1);
         if (wasActive) { restoreWorld(tabs[activeTab].snap); applyWidgets(activeTab); }
-        renderTabs(); reflectOmni(); updateNav();
+        renderTabs(); reflectOmni(); updateNav(); scheduleSave();
       }
-      const setActiveTabTitle = (t) => { if (tabs[activeTab]) { tabs[activeTab].title = String(t || "").split("  ·  ")[0].slice(0, 40); renderTabs(); } };
-      const setActiveTabAddr = (a) => { const t = tabs[activeTab]; if (t) { const changed = t.addr !== (a || ""); t.addr = a || ""; if (changed && !t.home) applyWidgets(activeTab); } renderTabs(); reflectOmni(); };   // re-render so the favicon reflects the new scheme; on a NEW holospace identity, restore that holospace's saved widget board
+      const setActiveTabTitle = (t) => { if (tabs[activeTab]) { tabs[activeTab].title = String(t || "").split("  ·  ")[0].slice(0, 40); renderTabs(); scheduleSave(); } };
+      const setActiveTabAddr = (a) => { const t = tabs[activeTab]; if (t) { const changed = t.addr !== (a || ""); t.addr = a || ""; if (changed && !t.home) applyWidgets(activeTab); } renderTabs(); reflectOmni(); scheduleSave(); };   // re-render so the favicon reflects the new scheme; on a NEW holospace identity, restore that holospace's saved widget board
       // ── Chrome-like new tab: "+" opens a fresh, self-contained holospace desktop tab (its own world)
       //    and drops you on the address bar — exactly the browser new-tab gesture. ──
       $("#newtab").onclick = () => { newTab(); recordNav(); $("#omni-addr").focus(); };   // "+" → fresh empty desktop holotab (its empty desktop IS this tab's origin)
+
+      // ════ Holo Session (ADR-0106): seamless continuity for EVERY user, SOVEREIGN at rest ════
+      //   ONE mechanism, REALMS (holo-session.mjs): a GUEST's work autosaves to a device-key realm and
+      //   restores at boot with ZERO action; the instant they SIGN IN it is CLAIMED (re-keyed) under their
+      //   vault key — Max sovereign: encrypted so no other operator on this profile can read it. A
+      //   returning operator's world materializes right after they unlock. applyExperience writes the
+      //   saved settings back BEFORE the subsystems read them (initWall / playground / deferred
+      //   holo-widgets+voice all read localStorage AFTER this point), so everything rehydrates in ONE
+      //   reflow. App-internal state rides an OPT-IN handshake (holo-session-client). Nothing leaves the device.
+      let _ssReady = false, _ssSaveT = 0;
+      const _appPending = new Map();   // surfaceId → state to hand a participating app when it announces readiness
+      const _appCollect = new Map();   // surfaceId → resolver, while collecting app state on flush
+      function appFrames() { const out = []; try { for (const [id, el] of mounted) { const f = el.querySelector && el.querySelector("iframe"); if (f && f.contentWindow) out.push([id, f]); } } catch (e) {} return out; }
+      // collect each open app's opt-in state into its world node (best-effort, timed — a non-participating app simply never replies)
+      function collectAppState(timeout) {
+        const frames = appFrames(); if (!frames.length) return Promise.resolve();
+        return new Promise((resolve) => {
+          let pending = frames.length; const fin = () => { if (--pending <= 0) { clearTimeout(to); resolve(); } };
+          const to = setTimeout(() => { for (const [id] of frames) _appCollect.delete(id); resolve(); }, timeout || 160);
+          for (const [id, f] of frames) {
+            _appCollect.set(id, (state) => { try { patch(id, (n) => { if (state == null) delete n.appState; else n.appState = state; }); } catch (e) {} fin(); });
+            try { f.contentWindow.postMessage({ t: "holo-session:save", surfaceId: id }, "*"); } catch (e) { fin(); }
+          }
+        });
+      }
+      addEventListener("message", (e) => {
+        const m = e && e.data; if (!m || typeof m !== "object") return;
+        if (m.t === "holo-session:state") { const r = _appCollect.get(m.surfaceId); if (r) { _appCollect.delete(m.surfaceId); r(m.state); } }
+        else if (m.t === "holo-session:ready") {   // a participating app mounted → hand it any queued restore
+          try { for (const [id, f] of appFrames()) { if (f.contentWindow === e.source && _appPending.has(id)) { f.contentWindow.postMessage({ t: "holo-session:restore", surfaceId: id, state: _appPending.get(id) }, "*"); _appPending.delete(id); } } } catch (x) {}
+        }
+      });
+      async function flushSession() {
+        if (!_ssReady) return;
+        try { await collectAppState(); } catch (e) {}                 // fold each participating app's state into its world node
+        try { if (tabs[activeTab]) tabs[activeTab].snap = snapshotWorld(); } catch (e) {}
+        try { await HoloSession.saveSnapshot({ tabs, activeTab }); } catch (e) {}
+      }
+      function scheduleSave() { if (!_ssReady || (typeof document !== "undefined" && document.visibilityState === "hidden")) return; clearTimeout(_ssSaveT); _ssSaveT = setTimeout(flushSession, 800); }   // debounced; a hidden tab defers to its pagehide flush (cross-tab guard)
+      // applyBody(manifest) — settings → localStorage, rebuild tabs, queue per-app state, repaint. ONE reflow.
+      async function applyBody(_body) {
+        if (!_body) return false;
+        const _exp = await HoloSession.applyExperience(_body);
+        if (!Array.isArray(_exp.tabs) || !_exp.tabs.length) return false;
+        tabs.length = 0; for (const t of _exp.tabs) tabs.push(t);
+        activeTab = Math.max(0, Math.min(_exp.activeTab | 0, tabs.length - 1));
+        _appPending.clear();
+        for (const t of tabs) { for (const n of ((t.snap && t.snap.world) || [])) { if (n && n.appState != null && n.id) _appPending.set(n.id, n.appState); } }
+        restoreWorld(tabs[activeTab].snap);
+        if (!tabs[activeTab].home) applyWidgets(activeTab);           // home board auto-loads from restored localStorage; a holospace board rides HW_SPACES
+        return true;
+      }
+      try {   // BOOT: a CAR-resume (ADR-0105, explicit + device-agnostic) first, else THIS device's active realm
+        let _link = null;                                            // (a guest → the device-key realm, so a guest lands where they left off with NO action)
+        try { _link = await resolveBootResume(); } catch (e) {}       // a shared holospace (#wks) or cloud token (?wks) opened as a URL
+        let _body = null;
+        try { _body = HoloSession.takeResume(); } catch (e) {}        // a staged resume (legacy reload path)
+        if (!_body) _body = await HoloSession.restoreSnapshot();      // THIS device's own active realm — restore it first
+        await applyBody(_body);
+        if (_link) {                                                  // then open what the link carried, as a NEW isolated tab
+          if (Array.isArray(_link["@type"]) && _link["@type"].includes("holo:HolospaceShare")) applyHolospace(_link);
+          else await applyBody(_link);
+        }
+      } catch (e) { console.warn("holo-session: restore skipped —", e && e.message); }
+      _ssReady = true;                                                // EVERY user persists now (guest → device realm · unlocked operator → vault realm)
+      try {   // catch-all: capture EVERY axis when the tab is hidden / closing — so SIGN-OUT (→ greeter) PRESERVES the snapshot
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushSession(); });
+        window.addEventListener("pagehide", flushSession);
+      } catch (e) {}
+      // onSignIn(operator, secret) — the greeter calls this the instant a secret is in hand. Derive the vault
+      // key, then: a RETURNING operator's saved world is restored; a NEW operator (no prior realm) KEEPS the
+      // guest work they just built (claim). Either way ONE reflow — the live desktop never blinks to empty.
+      async function onSignIn(operator, secret) {
+        try {
+          if (!operator || !secret || !(await HoloSession.unlockOperatorKey({ operator, secret }))) return;
+          let body = await HoloSession.restoreOperator();             // returning operator → their sovereign world
+          if (!body) { const c = await HoloSession.claimGuestRealm(); body = c && c.body; }   // first sign-in → claim guest work
+          if (body) { await applyBody(body); try { renderTabs(); reflectOmni(); } catch (e) {} }
+          flushSession();
+        } catch (e) { console.warn("holo-session onSignIn:", e && e.message); }
+      }
+      window.HoloSession = Object.assign(window.HoloSession || {}, {
+        save: flushSession,
+        onSignIn,
+        operatorLocked: () => { try { return HoloSession.operatorLocked(); } catch (e) { return false; } },
+        reset: async () => { try { await HoloSession.resetDevice(); toast("This device's saved experience was reset · reload to start fresh"); } catch (e) {} },
+      });
+
       renderTabs(); recordNav();   // seed the Home tab's origin (its current desktop)
       // The empty canvas (Home or a fresh tab) is intentionally clean — just the wallpaper. The
       // "New holospace" hero (mark + heading + subtitle + Create/Apps/Search) was removed; those
@@ -1815,28 +2197,43 @@
         const bytes = await wallBytes(item); if (!bytes) return null;
         const url = URL.createObjectURL(new Blob([bytes], { type: item.mime || "image/png" })); _wallURL.set(item.k, url); return url;
       }
-      async function seedItems() {
+      // PERF (first-load): boot seeds ONLY the essentials it paints (the default UOR image + the two
+      // procedural backgrounds), so the wallpaper appears without waiting on the curated photo set. The 5
+      // curated photos are sealed lazily by ensureCurated() the first time the gallery is opened — they are
+      // never on the boot path. force-cache lets the UOR seed reuse the <link rel=preload> fetched at parse.
+      async function seedItems({ curated = true } = {}) {
         const items = [{ k: await putWall(ORIGINAL_DESC), name: "Original", kind: "gradient", seed: true }];
-        try { const r = await fetch(WALL_SEED, { cache: "no-store" });
+        try { const r = await fetch(WALL_SEED, { cache: "force-cache" });
           if (r.ok) { const buf = new Uint8Array(await r.arrayBuffer()); items.push({ k: await putWall(buf), name: "UOR", kind: "image", mime: "image/jpeg", src: WALL_SEED, depthSrc: WALL_DEPTH, seed: true }); } } catch {}
         // Developer — a procedural blueprint grid (rendered CSS-side, see #wallpaper.wp-dev). Identity is the
         // κ of its descriptor: same κ → byte-identical background (Law L5). Sharp at any DPR, zero raster.
         try { items.push({ k: await putWall(DEV_DESC), name: "Developer", kind: "grid", seed: true }); } catch {}
-        // curated photo collection — each bundled image sealed by content, with photographer attribution
-        for (const w of CURATED) {
-          try { const r = await fetch(WALL_DIR + w.file, { cache: "no-store" });
-            if (r.ok) { const buf = new Uint8Array(await r.arrayBuffer()); items.push({ k: await putWall(buf), name: w.name, kind: "image", mime: "image/jpeg", src: WALL_DIR + w.file, depthSrc: WALL_DIR + w.file.replace(/\.jpg$/, "-depth.png"), by: w.by, byLink: w.byLink, seed: true }); } } catch {}
-        }
+        if (curated) for (const w of CURATED) await sealCurated(items, w);
         return items;
       }
+      // seal ONE curated photo into `items` if not already present (each bundled image content-addressed).
+      async function sealCurated(items, w) {
+        if (items.some((i) => i.seed && i.name === w.name)) return false;
+        try { const r = await fetch(WALL_DIR + w.file, { cache: "force-cache" });
+          if (r.ok) { const buf = new Uint8Array(await r.arrayBuffer()); items.push({ k: await putWall(buf), name: w.name, kind: "image", mime: "image/jpeg", src: WALL_DIR + w.file, depthSrc: WALL_DIR + w.file.replace(/\.jpg$/, "-depth.png"), by: w.by, byLink: w.byLink, seed: true }); return true; } } catch {}
+        return false;
+      }
+      // ensureCurated(s) — fold the curated set into the persisted state on demand (gallery open). Off the
+      // boot path entirely; after the first open they live in the κ store + state like any other wallpaper.
+      async function ensureCurated(s) {
+        let added = false;
+        for (const w of CURATED) { if (await sealCurated(s.items, w)) added = true; }
+        if (added) { try { wallWrite(s); } catch (e) {} }
+        return s;
+      }
       const defaultWallK = (items) => (items.find((i) => i.seed && i.name === "UOR") || items[1] || items[0]).k;   // UOR (the blue-Earth κ) is the canonical home wallpaper
-      async function seedWall() { const items = await seedItems(); const s = { seedV: SEED_V, current: defaultWallK(items), items }; wallWrite(s); return s; }
+      async function seedWall() { const items = await seedItems({ curated: false }); const s = { seedV: SEED_V, current: defaultWallK(items), items }; wallWrite(s); return s; }   // PERF: essentials only on the boot path; curated seal on first gallery open
       async function ensureWall() {
         const cur = wallRead(); if (!cur) return await seedWall();
         if (cur.seedV === SEED_V) return cur;
         // bundled defaults changed → refresh them. Versioned states preserve the user's own additions +
         // selection; a legacy (pre-versioning) state has no reliable seed marks, so it cleanly reseeds.
-        const fresh = await seedItems();
+        const fresh = await seedItems({ curated: false });   // PERF: reseed essentials only; curated re-seal on gallery open
         const seen = new Set(fresh.map((i) => i.k));   // dedup: a now-bundled photo the user imported earlier collapses to the seed
         const userItems = cur.seedV ? (cur.items || []).filter((i) => !i.seed && !seen.has(i.k)) : [];
         const items = [...fresh, ...userItems];
@@ -1879,7 +2276,19 @@
       // a tiny (48px) downscaled dataURL — the blur-up placeholder. Generating it loads the full image
       // once; HoloCompute.memo caches it by the wallpaper's κ (L1→L2), so a WARM load gets the
       // placeholder INSTANTLY (no 8K decode) and paints in one frame. O(1) repeat across sessions.
-      function makeThumb(url) {
+      async function makeThumb(url) {
+        // PERF: decode + downscale OFF the main thread via createImageBitmap(resizeWidth) — a full 8K master
+        // never touches the UI thread, so building the blur-up placeholder can't jank the boot. The url is a
+        // local objURL, so the fetch is instant. Falls back to the classic Image+canvas path if unsupported.
+        try {
+          if (typeof createImageBitmap === "function") {
+            const blob = await (await fetch(url)).blob();
+            const bmp = await createImageBitmap(blob, { resizeWidth: 48, resizeQuality: "low" });
+            const c = document.createElement("canvas"); c.width = bmp.width; c.height = Math.max(1, bmp.height);
+            c.getContext("2d").drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
+            return c.toDataURL("image/jpeg", 0.6);
+          }
+        } catch (e) {}
         return new Promise((res) => {
           const im = new Image();
           im.onload = () => { try { const w = 48, h = Math.max(1, Math.round(48 * im.height / im.width)); const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(im, 0, 0, w, h); res(c.toDataURL("image/jpeg", 0.6)); } catch (e) { res(null); } };
@@ -2079,18 +2488,18 @@
       }
       async function openWallpapers() {
         hideCtx();
-        const s = await ensureWall();
+        const s = await ensureCurated(await ensureWall());   // seal the curated set on demand (off the boot path)
         const scrim = document.createElement("div"); scrim.className = "scrim open";
         const sheet = document.createElement("div"); sheet.className = "sheet wall-sheet";
         const head = document.createElement("div"); head.className = "wall-head";
         head.innerHTML = '<span class="wall-title">Wallpaper</span><span class="wall-sub">every wallpaper is a content-addressed object · did:holo (Law L5)</span>';
         const live = document.createElement("button"); live.type = "button"; live.className = "wall-live" + (liveOn() ? " on" : ""); live.title = "Live depth & motion — animated 2.5-D parallax (off = crisp static image)";
         live.innerHTML = '<span class="sw"></span><span>Live depth</span>';
-        live.onclick = async () => { const on = !liveOn(); try { localStorage.setItem("holo:wall-live", on ? "1" : "0"); } catch {} live.classList.toggle("on", on); toast(on ? "Live depth & motion on" : "Static wallpaper"); await applyWall(s.items.find((i) => i.k === s.current) || s.items[0]); };
+        live.onclick = async () => { const on = !liveOn(); try { localStorage.setItem("holo:wall-live", on ? "1" : "0"); } catch {} live.classList.toggle("on", on); toast(on ? "Live depth & motion on" : "Static wallpaper"); try { scheduleSave(); } catch (e) {} await applyWall(s.items.find((i) => i.k === s.current) || s.items[0]); };
         head.appendChild(live);
         const par = document.createElement("button"); par.type = "button"; par.className = "wall-live" + (parallaxOn() ? " on" : ""); par.title = "Parallax — the wallpaper drifts with your pointer for depth (off = still)";
         par.innerHTML = '<span class="sw"></span><span>Parallax</span>';
-        par.onclick = () => { const on = !parallaxOn(); try { localStorage.setItem("holo:wall-parallax", on ? "1" : "0"); } catch {} par.classList.toggle("on", on); toast(on ? "Parallax on" : "Parallax off"); };
+        par.onclick = () => { const on = !parallaxOn(); try { localStorage.setItem("holo:wall-parallax", on ? "1" : "0"); } catch {} par.classList.toggle("on", on); toast(on ? "Parallax on" : "Parallax off"); try { scheduleSave(); } catch (e) {} };
         head.appendChild(par);
         const x = document.createElement("button"); x.className = "wall-x"; x.textContent = "✕"; head.appendChild(x);
         const grid = document.createElement("div"); grid.className = "wall-grid";
@@ -2343,6 +2752,42 @@
         if (os === "mac") return sc.replace(/ctrl|control|cmd|command|meta|super/ig, "⌘").replace(/[\s+]+/g, "");
         return sc.replace(/\s+/g, "+").replace(/\+\+/g, "+");
       }
+      // Appearance — the ONE mobile-theme picker (Dark · Light · Immersive), surfaced through the
+      // HoloSheet launcher-clean modal. Immersive opens the curated κ-sealed wallpaper set (attributed
+      // Unsplash). Pure reuse of the engine (HoloTheme.setMode / setWallpaper); the choice persists in
+      // holo.theme.v1 and pre-paints on the next boot (holo-appearance-boot.js), so it stays consistent.
+      let _curatedWalls = null;
+      async function curatedWalls() {
+        if (_curatedWalls) return _curatedWalls;
+        try {
+          const j = await (await fetch("/usr/share/wallpapers/curated.receipt.jsonld")).json();
+          _curatedWalls = (j["prov:hadMember"] || []).map((m) => ({
+            label: m["holo:name"], sub: "by " + (m["dcterms:creator"] || "Unsplash"),
+            thumb: "/usr/share/wallpapers/" + m["holo:file"], value: "/usr/share/wallpapers/" + m["holo:file"],
+          }));
+        } catch (e) { _curatedWalls = []; }
+        return _curatedWalls;
+      }
+      async function chooseWallpaper() {
+        const walls = await curatedWalls();
+        if (!walls.length) { toast("Curated wallpapers unavailable"); return; }
+        const pick = await window.HoloSheet.open({ title: "Immersive wallpaper", options: walls });
+        if (pick) { try { window.HoloTheme.setMode("immersive"); window.HoloTheme.setWallpaper(pick); } catch (e) {} }
+      }
+      async function openAppearance() {
+        if (!window.HoloSheet || !window.HoloTheme) { toast("Appearance unavailable"); return; }
+        const s = window.HoloTheme.get();
+        const cur = s.immersive ? "immersive" : (s.palette === "light" ? "light" : "dark");
+        const here = (v) => (cur === v ? "Current" : "");
+        const mode = await window.HoloSheet.open({ title: "Appearance", options: [
+          { label: "Dark", sub: here("dark"), value: "dark" },
+          { label: "Light", sub: here("light"), value: "light" },
+          { label: "Immersive", sub: here("immersive"), value: "immersive" },
+        ] });
+        if (!mode) return;
+        if (mode === "immersive") { try { window.HoloTheme.setMode("immersive"); } catch (e) {} await chooseWallpaper(); }
+        else { try { window.HoloTheme.setMode(mode); } catch (e) {} }
+      }
       // The desktop modes (Welcome · Focused · Learn · Work · Play · Clarity) as a radio group, in the
       // runtime's registration order. `mark` is the selection marker, so it renders natively on every OS
       // (● radio on Windows/Linux, ✓ check on macOS).
@@ -2381,8 +2826,12 @@
         out.push({ label: L("Playground", "Playground"), ic: "✦", mark: pgMode, act: () => setPlaygroundMode(!pgMode) });
         // ── Personalize (native menus close with appearance) ──
         out.push({ sep: true });
+        out.push({ label: L("Appearance…", "Appearance…"), ic: "◐", act: openAppearance });
         out.push({ label: L("Change Wallpaper…", "Change wallpaper…"), ic: "🖼", act: openWallpapers });
+        out.push({ label: L("Browser Skin…", "Browser skin…"), ic: "🖥", act: openSkinPicker });
         if (hiddenCount()) out.push({ label: L(`Show Hidden (${hiddenCount()})`, `Show hidden (${hiddenCount()})`), ic: "◌", act: showHidden });
+        // the quiet escape hatch (signed-in only): forget THIS device's saved experience and start fresh on reload
+        try { out.push({ label: L("Reset Saved Experience…", "Reset saved experience…"), ic: "↺", act: async () => { try { const msg = "Forget this device's saved layout & settings for the current session? It starts fresh on reload. (Other operators + other devices are unaffected.)"; const ok = window.HoloSheet ? await window.HoloSheet.confirm(msg, { title: L("Reset saved experience?", "Reset saved experience?"), ok: L("Reset", "Reset"), cancel: L("Keep", "Keep"), danger: true }) : confirm(msg); if (ok) window.HoloSession.reset(); } catch (e) {} } }); } catch (e) {}
         return out;
       }
       // Right-click the always-visible chrome (toolbar background + empty tab-strip) → the holospace menu.
@@ -2545,6 +2994,7 @@
         if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab(app.name);   // the app gets its OWN tab; Home + a busy canvas stay put
         addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name + "  ·  " + linkFor(app.did), src: app.landing, sandbox, allow, state: "max" });
         setActiveTabTitle(app.name); setActiveTabAddr("holo://" + app.id); recordNav();   // a content-addressed κ address for this holospace · a history entry for back/home
+        try { omniRemember({ addr: "holo://" + app.id, input: app.name, kind: "app", title: app.name, kappa: app.did }); } catch (e) {}   // the bar remembers this holospace
       }
       // openWeb(route) — open ANY web / content address as a holospace window: the content-addressed
       // web (CID · ipfs · ipns · ENS · DNSLink · http) resolves + re-derives in Holo IPFS (Law L5); a
@@ -2628,7 +3078,8 @@
         $("#share-qr").innerHTML = qr; $("#share-link").textContent = link; $("#share-card").dataset.link = link;
         $("#share-scrim").classList.add("show");
       }
-      $("#share-btn").onclick = () => shareNode(activeHolospace());   // Share → social preview of THIS holospace
+      // Share → the LEFT side-carriage (Holo Share, ADR-0109), mounted below; the button opens/closes it.
+      // (The old centered #share-scrim modal + shareNode remain defined but unbound — no second Share surface.)
       $("#share-copy").onclick = () => copyShareLink($("#share-card").dataset.link || "");
       $("#share-open").onclick = () => { const l = $("#share-card").dataset.link; if (l) window.open(l, "_blank", "noopener"); };
       $("#share-scrim").onclick = (e) => { if (e.target === $("#share-scrim")) $("#share-scrim").classList.remove("show"); };
@@ -2832,7 +3283,8 @@
         const k0 = r.editable ? repo.publishSource({ name: node.name || "app", source: r.src }).id : (node.appDid || node.kappa || "");
         const kShort = "holo://" + String(k0).split(":").pop().slice(0, 12) + (k0 ? "…" : "");
         const addr = r.mirror.url || kShort;
-        const ov = document.createElement("div"); ov.id = "create-studio";
+        closeAllAsides();   // one carriage at a time — opening Create closes Play / Share (ADR-0109)
+        const ov = document.createElement("div"); ov.id = "create-studio"; ov.className = "holo-aside";   // the SHARED carriage frame (dock · slide · grip), same as Play / Share
         ov.innerHTML =
           '<div class="cs-chat">' +
             '<div class="cs-chead"><div class="cs-logo"></div><div class="cs-brand"><b>' + csEsc(name) + ' <span style="color:#7c7c84">⌄</span></b>' +
@@ -2865,14 +3317,27 @@
               '<iframe class="cs-devpane" id="cs-dev" title="Holo DevTools" allow="clipboard-write"></iframe>' +   // DEV mode: the κ-CDP-backed Chrome DevTools (ADR-0095), lazily mounted
             '</div>' +
           '</div>';
+        // the SHARED carriage drag-handle (same as Play / Share): drag the left edge to resize (live +
+        // persisted), or click it to close. The dock/slide come from the .holo-aside class.
+        ov.insertAdjacentHTML("afterbegin", '<div class="ha-grip" title="Drag to resize · click to close" aria-label="Resize or close"></div>');
+        const CW = "holo.aside.w.create"; try { const _n = parseInt(localStorage.getItem(CW), 10); if (_n) ov.style.width = Math.max(380, Math.min(1000, _n)) + "px"; } catch (e) {}
         document.body.appendChild(ov);   // a BODY-LEVEL right dock (like Wallet) — the desktop persists beside it
         document.body.classList.add("cs-active");   // Create mode → hide the desktop Privacy shield
-        // squeeze the desktop so the live holospace PERSISTS to the dock's left (the Holo Wallet gesture);
-        // nudge a few resize ticks so floating widgets re-anchor to the new centre across the glide.
-        void ov.offsetWidth;   // flush the opacity:0/translateX start state so the slide-in transition fires
+        void ov.offsetWidth;   // flush the translateX/visibility start state so the slide-in transition fires
         document.documentElement.style.setProperty("--holo-aside-w", (ov.offsetWidth || 460) + "px");
-        ov.classList.add("on");   // REVEAL the dock DIRECTLY (not via rAF — rAF is throttled when the tab is backgrounded; the obsolete mirror-FLIP lift no longer reveals it)
+        ov.classList.add("on");   // REVEAL directly (rAF is throttled when the tab is backgrounded)
         (function reflow() { let n = 0; const t = setInterval(function () { try { dispatchEvent(new Event("resize")); } catch (e) {} if (++n >= 8) clearInterval(t); }, 45); })();
+        (function wireGrip() {
+          const grip = ov.querySelector(".ha-grip"); if (!grip) return;
+          grip.addEventListener("pointerdown", function (e) {
+            e.preventDefault(); try { grip.setPointerCapture(e.pointerId); } catch (x) {}
+            const sx = e.clientX, sw = ov.offsetWidth; let moved = false; ov.style.transition = "none"; ov.style.userSelect = "none";
+            const mv = function (ev) { if (Math.abs(ev.clientX - sx) > 3) moved = true; const w = Math.max(380, Math.min(1000, sw + (sx - ev.clientX))); ov.style.width = w + "px"; try { document.documentElement.style.setProperty("--holo-aside-w", ov.offsetWidth + "px"); dispatchEvent(new Event("resize")); } catch (x) {} };
+            const up = function () { ov.style.transition = ""; ov.style.userSelect = ""; document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); if (!moved) { closeCreate(true); return; } try { localStorage.setItem(CW, String(ov.offsetWidth)); } catch (x) {} };
+            document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);
+          });
+          grip.addEventListener("dblclick", function () { ov.style.width = ""; try { document.documentElement.style.setProperty("--holo-aside-w", ov.offsetWidth + "px"); dispatchEvent(new Event("resize")); localStorage.removeItem(CW); } catch (x) {} });
+        })();
         const $$ = (id) => ov.querySelector("#" + id);
         const fa = $$("cs-fa"), fb = $$("cs-fb"), stage = $$("cs-stage"), dot = $$("cs-dot"), urlEl = $$("cs-url");
         const ta = $$("cs-ta"), hl = $$("cs-hl"), gutter = $$("cs-gutter"), thread = $$("cs-thread"), ask = $$("cs-ask");
@@ -3491,8 +3956,13 @@
         setTimeout(function () { try { s.ov.remove(); } catch (e) {} }, 520);
         if (apply && s.editable && s.lastSavedK) toast("✦ saved · holo://" + String(s.lastSavedK).split(":").pop().slice(0, 12) + "…");
       }
-      $("#verb-build").onclick = openCreate;
-      $("#verb-run").onclick = () => openHolospaceApp("org.hologram.HoloHub", "", "✦ Holo Hub");   // Play → the Holo Hub: the store/experience for every holospace (ADR-0094)
+      $("#verb-build").onclick = function () { if (studio) closeCreate(true); else openCreate(); };   // the verb toggles the carriage (consistent with Play / Share)
+      try { registerAsideCloser(function () { if (studio) closeCreate(true); }); } catch (e) {}   // Play/Share opening closes Create (one carriage at a time)
+      // Play → an immersive BROWSE RAIL in the SHARED right side-carriage (ADR-0109): category chips + a
+      // golden-ratio list of holospaces (thumbnail · title · concise description). Picking one launches it
+      // LIVE in the main holospace to the left, while the rail stays open to browse on. Same carriage as
+      // Create · Share; the rail reads the served app catalogue itself.
+      try { mountPlay(document.getElementById("verb-run"), { launch: (it) => { try { openHolospaceApp(it.id, "", it.name); } catch (e) {} } }); } catch (e) { console.warn("holo-play:", e); }
       // ── omnibox: one box runs a holospace OR opens the web (κ-verified), each into its own tab ──
       // A content address (κ · did:holo · ipfs:// · CID) resolves THROUGH the discovery path
       // (sbin/holo-omni + Delegated Routing V1): the bar locates the bytes ANYWHERE, re-derives every
@@ -3573,7 +4043,114 @@
         if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("⬡ " + label);
         addNode({ kind: "app", title: "⬡  " + label, src, sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-modals", allow: "", state: "max", browser: true, webAddr: addr });
         setActiveTabTitle("⬡ " + label); setActiveTabAddr(addr); recordNav();
+        try { omniRemember({ addr, input: t.cid, kind: "cid", title: label }); } catch (e) {}   // the bar remembers this IPFS object
         toast("⬡ browsing IPFS · every block re-derived to its CID (Law L5)");
+        return true;
+      }
+      // ── Holo Browser (browser-sw.js) — the live-web loading seam: "Chromium's URLLoaderFactory over the
+      // κ-store". /webview/w/<b64url> → fetch through the /web proxy → mint κ (blake3) → re-derive (L5) →
+      // inject <base>, rewrite links in-scope, proxy + mint every subresource → serve same-origin. We register
+      // it LAZILY at scope /webview/ (a deeper scope than its script path, allowed by Service-Worker-Allowed),
+      // alongside the OS worker at "/". A live page renders in a real Chromium iframe with working navigation.
+      let _holoBrowserReg = null, _holoBrowserSwReg = null;
+      function ensureHoloBrowser() {
+        if (_holoBrowserReg) return _holoBrowserReg;
+        _holoBrowserReg = (async () => { try { _holoBrowserSwReg = await navigator.serviceWorker.register("/browser-sw.js", { type: "module", scope: "/webview/" }); await navigator.serviceWorker.ready; postOnionTransport(); return true; } catch (e) { console.warn("Holo Browser seam:", e); return false; } })();
+        return _holoBrowserReg;
+      }
+      const b64url = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      // ── Tor transport config (ADR-0104) — the user's pick of HOW onion bytes leave the tab. Stored locally,
+      // default NONE; a .onion never fetches directly. We push the choice to browser-sw (which appends it to
+      // the /web proxy URL for .onion hosts) AND it reaches holo-serve's onion proxy as a per-request override.
+      function getOnionTransport() { try { const t = JSON.parse(localStorage.getItem("holo.onion.transport") || "null"); return (t && t.kind && t.endpoint) ? t : null; } catch { return null; } }
+      function setOnionTransport(t) { try { if (t && t.kind && t.endpoint) localStorage.setItem("holo.onion.transport", JSON.stringify({ kind: t.kind, endpoint: t.endpoint })); else localStorage.removeItem("holo.onion.transport"); } catch {} postOnionTransport(); }
+      function onionTpB64() { const t = getOnionTransport(); return t ? b64url(JSON.stringify(t)) : ""; }
+      function postOnionTransport() { try { const w = _holoBrowserSwReg && (_holoBrowserSwReg.active || _holoBrowserSwReg.installing || _holoBrowserSwReg.waiting); if (w) w.postMessage({ type: "setonion", transport: onionTpB64() }); } catch {} }
+      // pickOnionTransport() → resolve a transport, prompting once if none is set. Presets keep it one tap:
+      // a public onion HTTP gateway (zero setup, weakest privacy) or a local Tor SOCKS5 proxy (real Tor).
+      function pickOnionTransport() {
+        const have = getOnionTransport(); if (have) return have;
+        const pick = prompt("Browse Tor .onion — choose a transport:\n\n  1  Onion HTTP gateway (zero setup; the gateway sees your request + IP — weakest privacy)\n  2  Local Tor SOCKS5 proxy (real Tor anonymity; needs Tor/Arti running)\n\nEnter 1 or 2:", "1");
+        if (pick === "1") { const ep = prompt("Onion gateway domain (suffix style, e.g. onion.ws) or a {host}/{path} template:", "onion.ws"); if (!ep) return null; setOnionTransport({ kind: "gateway", endpoint: ep.trim() }); return getOnionTransport(); }
+        if (pick === "2") { const ep = prompt("Tor SOCKS5 proxy address (host:port):", "127.0.0.1:9050"); if (!ep) return null; setOnionTransport({ kind: "socks5", endpoint: ep.trim() }); return getOnionTransport(); }
+        return null;
+      }
+      // openOnionSite(input) → true if it handled a .onion. Validates the v3 address cryptographically (Law
+      // L5 — corrupt/fabricated/v2 are refused, not browsed), then opens it in the Holo Browser seam —
+      // PASTE-AND-GO, as seamless as a URL or IPFS CID. NO mandatory prompt: the proxy auto-detects a local
+      // Tor (9050/9150) and routes there; an explicit transport (gateway / custom SOCKS) overrides if set. If
+      // nothing is reachable, the SERVED page itself explains how to start Tor (honest, never a fake render).
+      async function openOnionSite(input) {
+        if (!parseOnionRef(input)) return false;
+        if (typeof closeSpot === "function") closeSpot();
+        const p = parseOnionRef(input);
+        const v = validateOnion(p.addr);
+        if (!v.ok) { toast(`✗ not a valid onion · ${v.reason}`); return true; }
+        const tp = getOnionTransport();                       // explicit user pick, if any (else proxy auto-Tor)
+        await ensureHoloBrowser(); postOnionTransport();
+        const real = "http://" + p.host + p.path;
+        const src = "/webview/w/" + b64url(real);
+        const label = p.host.replace(/\.onion$/, "…onion");
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("🧅 " + label);
+        addNode({ kind: "app", title: "🧅  " + label, src, sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-modals", allow: "", state: "max", browser: true, webAddr: "onion://" + p.host + p.path });
+        setActiveTabTitle("🧅 " + label); setActiveTabAddr("onion://" + p.host + p.path); recordNav();
+        toast(`🧅 Tor onion · via ${tp ? tp.kind : "local Tor"} · minted to κ + re-derived (Law L5) · not direct Tor`);
+        return true;
+      }
+      // openOnionSearch(query) → discover the onion web. Queries a clearnet onion index (Ahmia) THROUGH the
+      // /web proxy (no CORS, κ-minted), lists v3 .onion results; clicking one re-enters the omnibar → opens it
+      // via the validated onion path (every byte re-derived, L5). Onion services aren't in DNS, so this is the
+      // "find, then browse" half — same spirit as Holo Find, scoped to Tor.
+      async function openOnionSearch(query) {
+        const q = String(query || "").trim(); if (!q) return false;
+        if (typeof closeSpot === "function") closeSpot();
+        toast("🧅 searching the onion web…");
+        const proxied = (u) => "/web?url=" + encodeURIComponent(u);
+        let out; try { out = await searchOnionWeb(q, { fetchImpl: (u, o) => fetch(proxied(u), o) }); } catch (e) { out = { ok: false, reason: (e && e.message) || String(e), results: [] }; }
+        const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+        const rows = (out.results || []).map((r) => `<a class="row" href="#" data-url="${esc(r.url)}"><div class="t">${esc(r.title)}</div><div class="u">${esc(r.host)}</div>${r.snippet ? `<div class="s">${esc(r.snippet)}</div>` : ""}</a>`).join("");
+        const body = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>onion · ${esc(q)}</title>
+<style>:root{--bg:#05070d;--ink:#e8eef9;--dim:#7d8aa6;--accent:#a78bfa;--line:#1d2840;--mono:ui-monospace,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:radial-gradient(1000px 540px at 50% -10%,#160d22,var(--bg) 60%);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;min-height:100vh;padding:30px 20px 70px}.wrap{max-width:780px;margin:0 auto}.hd{display:flex;align-items:center;gap:11px;margin-bottom:4px}.glyph{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#2a2150;color:#cbb8ff;font-size:16px}h1{font-size:16px;margin:0;font-weight:650}.sub{color:var(--dim);font:11.5px var(--mono);margin:2px 0 20px}.row{display:block;padding:13px 15px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;text-decoration:none;color:var(--ink);background:#0c111b;transition:.1s}.row:hover{background:#0e1726;border-color:#2a3a5c}.t{font-weight:600;color:#cbb8ff}.u{color:var(--dim);font:11px var(--mono);word-break:break-all;margin:3px 0}.s{color:#9fb0cc;font-size:13px;margin-top:4px}.empty{color:var(--dim);text-align:center;padding:40px}</style></head>
+<body><div class="wrap"><div class="hd"><div class="glyph">🧅</div><h1>Onion web · ${esc(q)}</h1></div><div class="sub">${out.ok ? (out.results.length + " results · via " + esc(out.via) + " · open any to browse through Tor, re-derived (L5)") : "couldn't reach the index · " + esc(out.reason || "")}</div>${rows || '<div class="empty">no onion services found</div>'}</div>
+<script>document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[data-url]");if(a){e.preventDefault();parent.postMessage({type:"holo-omni:go",value:a.getAttribute("data-url")},"*");}});<\/script></body></html>`;
+        const url = pushBlob(URL.createObjectURL(new Blob([body], { type: "text/html" })));
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("🧅 " + q);
+        addNode({ kind: "app", title: "🧅  " + q, src: url, sandbox: "allow-scripts", allow: "", state: "max", webAddr: "onion-search:" + q });
+        setActiveTabTitle("🧅 " + q); setActiveTabAddr("onion:" + q);
+        toast(out.ok ? `🧅 ${out.results.length} onion result(s)` : `couldn't reach the onion index`);
+        return true;
+      }
+      // openHoloBrowser(input) → open a live http(s) URL in the Holo Browser seam (a /webview/w/ tab).
+      // URL→snapshot map (localStorage) — auto-seal records it; a re-visit serves the sealed snapshot from your
+      // LOCAL commons (zero egress) instead of re-fetching the origin. Transparent: the address bar keeps the
+      // original URL; only the bytes change (content-addressed, re-derived).
+      const snapGet = (u) => { try { return (JSON.parse(localStorage.getItem("holo:snap") || "{}"))[u] || null; } catch { return null; } };
+      const snapSet = (u, cid) => { try { const m = JSON.parse(localStorage.getItem("holo:snap") || "{}"); m[u] = cid; localStorage.setItem("holo:snap", JSON.stringify(m)); } catch {} };
+      // openCommonsSnapshot(url, cid) — serve url's sealed snapshot from /ipfs/<cid>/ (the gateway resolves it
+      // from the local κ-store, NO origin); the address bar still shows `url`. The invisible zero-egress re-visit.
+      function openCommonsSnapshot(url, cid) {
+        if (typeof closeSpot === "function") closeSpot();
+        const src = "/ipfs/" + cid + "/";
+        const label = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("↺ " + label);
+        addNode({ kind: "app", title: "↺  " + label, src, sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-modals", allow: "", state: "max", browser: true, webAddr: url, commonsCid: cid });
+        setActiveTabTitle("↺ " + label); setActiveTabAddr(url); recordNav();
+        toast("↺ served from your commons · 0 egress · hit reload for live");
+        return true;
+      }
+      async function openHoloBrowser(input, { live = false } = {}) {
+        const url = /^https?:\/\//i.test(input) ? input : "https://" + String(input).replace(/^\/+/, "");
+        const snap = !live && snapGet(url); if (snap) return openCommonsSnapshot(url, snap);   // re-visit → your commons, zero egress (live:true forces a fresh fetch + re-seal)
+        if (typeof closeSpot === "function") closeSpot();
+        await ensureHoloBrowser();
+        const src = "/webview/w/" + b64url(url);
+        const label = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("🌐 " + label);
+        addNode({ kind: "app", title: "🌐  " + label, src, sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-modals", allow: "", state: "max", browser: true, webAddr: url });
+        setActiveTabTitle("🌐 " + label); setActiveTabAddr(url); recordNav();
+        try { omniRemember({ addr: url, input: url, kind: "web", title: label }); } catch (e) {}   // the bar remembers this page
+        setTabLoading(true);   // load-START edge → the skin throbber spins (the SW "committed" message stops it)
+        toast("🌐 Holo Browser · live web minted to κ + re-derived (Law L5)");
         return true;
       }
       // openFind(query) — free text → Holo Find: a corroborated, self-verifying answer over the open web's
@@ -3585,6 +4162,62 @@
         if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("⌕ " + query);
         addNode({ kind: "app", title: "⌕  " + query, src, sandbox: "allow-scripts allow-same-origin allow-forms allow-popups", allow: "", state: "max", browser: true, webAddr: "find:" + query });
         setActiveTabTitle("⌕ " + query); setActiveTabAddr(query);
+      }
+      // recallDoc(q, results) — a self-contained panel listing YOUR private matches for a question. Each row
+      // throws the object's address back into the one omnibar (holo-omni:go) so it re-opens through the same
+      // verified path your own typing does — the recall surface is itself just another door into the commons.
+      function recallDoc(q, results) {
+        const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+        const ICON = { web: "🌐", cid: "⬡", web3: "◈", app: "◆", kappa: "◆" };
+        const rows = results.map((r) => `<a class="row" href="#" data-go="${esc(r.input || r.addr)}"><span class="ic">${ICON[r.kind] || "↻"}</span><span class="bd"><b>${esc(r.title || r.addr)}</b><span class="snip">${esc((r.text || "").slice(0, 180))}</span><span class="meta">${esc(r.kind || "object")} · via ${esc(r.via || "bm25")}</span></span></a>`).join("");
+        return `<!doctype html><meta charset=utf8><style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;background:#0b0d12;color:#e8eaf0}.hd{padding:24px 28px 10px}.hd h1{font-size:17px;margin:0 0 3px;font-weight:600}.hd p{margin:0;color:#8a90a2;font-size:13px}.list{padding:8px 16px 28px;max-width:880px}.row{display:flex;gap:14px;align-items:flex-start;padding:13px 14px;border-radius:12px;text-decoration:none;color:inherit}.row:hover{background:#161a24}.ic{font-size:20px;width:24px;text-align:center}.bd{display:flex;flex-direction:column;gap:2px;min-width:0}.bd b{font-weight:600}.snip{color:#aeb4c6;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:780px}.meta{color:#6b7180;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}.empty{padding:22px 28px;color:#8a90a2}</style><div class=hd><h1>Your context · &ldquo;${esc(q)}&rdquo;</h1><p>Recalled on-device from everything you've opened — model-free, zero network (Q.recall).</p></div><div class=list>${rows || '<div class=empty>Nothing in your context matches yet.</div>'}</div><script>document.querySelectorAll("[data-go]").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();parent.postMessage({type:"holo-omni:go",value:a.getAttribute("data-go")},"*");});});<\/script>`;
+      }
+      // openPrivateRecall(q) — the studio's brain in the ONE door: Q.recall over YOUR private corpus, opened as
+      // its own surface. Empty? Fall through to Holo Find over the open web — ask your own stuff first, then the
+      // world. Both are content-addressed surfaces; the only difference is whose universe you're searching.
+      async function openPrivateRecall(q) {
+        toast("✦ recalling your context…");
+        let r; try { r = await omniAsk(q, { k: 8 }); } catch { r = { results: [] }; }
+        if (!r.results || !r.results.length) { openFind(q); return; }
+        const doc = recallDoc(q, r.results);
+        const url = pushBlob(URL.createObjectURL(new Blob([doc], { type: "text/html" })));
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("✦ " + q);
+        addNode({ kind: "app", title: "✦  " + q, src: url, sandbox: "allow-scripts", allow: "", state: "max", webAddr: "recall:" + q });
+        setActiveTabTitle("✦ " + q); setActiveTabAddr(q);
+        toast(`✓ ${r.results.length} from your context${r.ms != null ? " · " + r.ms + " ms" : ""}${r.receipt ? " · sealed" : ""}`);
+      }
+      // openMedia(input, opts) — the MEDIA lane: open a κ-anchored streaming player on a media address. Direct
+      // media (a κ-route / IPFS path / plain media URL) plays NOW, seekable via the κ-store's Range/206 support.
+      // A platform URL (YouTube/Vimeo/…) has no in-tab extractor yet, so we DON'T fake a stream — we open the
+      // real page faithfully in the Holo Browser (honest, Law L5). The yt-dlp seam lives in resolveMediaSource.
+      async function openMedia(input, opts = {}) {
+        let r; try { r = await resolveMediaSource(input, opts); } catch { r = null; }
+        if (!r || !r.playable) {
+          if (r && r.fallback === "browser") { toast(`▶ ${r.platform || "media"} · no in-tab extractor yet — opening the page`); return openHoloBrowser(input); }
+          toast("couldn't play this media · " + shortAddr(input)); return false;
+        }
+        const title = r.title || (String(input).split(/[?#]/)[0].split("/").pop()) || "media";
+        const qs = "?src=" + encodeURIComponent(r.src) + (r.mime ? "&mime=" + encodeURIComponent(r.mime) : "") + (r.media ? "&media=" + r.media : "") + "&title=" + encodeURIComponent(title) + (opts.kappa ? "&kappa=" + encodeURIComponent(opts.kappa) : "");
+        if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("▶ " + title);
+        addNode({ kind: "app", title: "▶  " + title, src: "/usr/share/frame/media-player.html" + qs, sandbox: "allow-scripts allow-same-origin", allow: "autoplay; fullscreen", state: "max", webAddr: input });
+        setActiveTabTitle("▶ " + title); setActiveTabAddr(input);
+        try { omniRemember({ addr: input, input, kind: (r.media === "audio" ? "audio" : "video"), title, kappa: opts.kappa || null }); } catch (e) {}
+        try { omniIndexObject({ addr: input, input, kind: (r.media === "audio" ? "audio" : "video"), title, text: title + " " + (r.mime || "") + " media" }); } catch (e) {}
+        toast(`▶ ${title}${r.verified ? " · ✓ content-addressed · seekable" : " · streamed"}`);
+        return true;
+      }
+      // bestLocalFile(q) — a CONFIDENT local-file match from the substrate index: the typed string equals an
+      // object's filename or path (case-insensitive). Used by omniGo so Enter on a filename OPENS the verified
+      // local file rather than falling through to a web search. Ambiguous/partial text is left to suggestions.
+      function bestLocalFile(q) {
+        if (!SUBSTRATE) return null;
+        const s = String(q || "").trim().toLowerCase(); if (s.length < 3 || /\s/.test(s)) return null;
+        let exact = null, tail = null;
+        for (const o of SUBSTRATE) {
+          if (o.nl === s || o.pl === s) { exact = o; break; }
+          if (!tail && (o.pl.endsWith("/" + s) || o.nl === s.split("/").pop())) tail = o;
+        }
+        return exact || tail || null;
       }
       // web3Label(out) — a short tab label for a resolved web3 card.
       function web3Label(out) {
@@ -3609,6 +4242,8 @@
         if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("◈ " + label);
         addNode({ kind: "app", title: "◈  " + label, src: url, sandbox: "allow-scripts", allow: "", state: "max", webAddr: input });
         setActiveTabTitle("◈ " + label); setActiveTabAddr(input);
+        try { omniRemember({ addr: input, input, kind: "web3", title: label, kappa: out.kappa }); } catch (e) {}   // the bar remembers this web3 object (κ-sealed)
+        try { omniIndexObject({ addr: input, input, kind: "web3", title: label, text: JSON.stringify(out.card || {}) }); } catch (e) {}   // index the card's CONTENT → Q.recall finds it by meaning, not just title
         toast(`✓ ${out.subkind} · sealed κ${out.receipt ? " · receipt " + shortAddr(out.receipt.id) : ""} · ${out.ms} ms`);
         return true;
       }
@@ -3620,7 +4255,16 @@
         if (d.type === "holo-omni:go" && typeof d.value === "string") omniGo(d.value);
         else if (d.type === "holo-omni:find" && typeof d.value === "string") openFind(d.value);
         else if (d.type === "holo-ipfs:nav" && typeof d.url === "string") {   // an IPFS page navigated → track the journey in the omnibox
-          try { const u = new URL(d.url, location.href); const mm = u.pathname.match(/\/ipfs\/(.+)$/); if (mm) setActiveTabAddr("ipfs://" + decodeURIComponent(mm[1]).replace(/\/$/, "")); } catch {}
+          try { const u = new URL(d.url, location.href); const mm = u.pathname.match(/\/ipfs\/(.+)$/); if (mm) {
+            const ipfsAddr = "ipfs://" + decodeURIComponent(mm[1]).replace(/\/$/, ""); setActiveTabAddr(ipfsAddr);
+            try { if (d.text || d.title) omniIndexObject({ addr: ipfsAddr, input: ipfsAddr, kind: "cid", title: d.title || ipfsAddr, text: d.text || "" }); } catch (e) {}   // index each browsed IPFS page by its BODY → recall-able by what it says, re-opens through the path gateway
+          } } catch {}
+        }
+        else if (d.type === "holo-sealed" && typeof d.addr === "string") {   // commons leg: a browsed page sealed into a κ-snapshot, zero-egress re-serve
+          try { const n = (tabs[activeTab] && tabs[activeTab]); if (n) n.sealedAddr = d.addr; } catch {}
+          try { if (d.source) snapSet(d.source, d.addr.replace(/^ipfs:\/\//, "").replace(/\/$/, "")); } catch {}   // remember url→snapshot → next visit is zero-egress
+          try { if (d.source && (d.text || d.title)) omniIndexObject({ addr: d.source, input: d.source, kind: "web", title: d.title || d.source, text: d.text || "" }); } catch (e) {}   // index the page's BODY TEXT → Q.recall can find this browsed page by what it actually says
+          toast("✓ sealed to your commons · " + (d.assets || 0) + " assets · re-opens with zero egress");
         }
       });
       async function omniGo(input) {
@@ -3629,11 +4273,16 @@
         if (pr && pr.kind === "kappa" && pr.axis && pr.axis !== "sha256") { toast(`${pr.axis} objects resolve on the substrate · mesh, not the open web not reachable here`); return; }   // e.g. did:holo:blake3 → a clean message, not a confusing search/app attempt
         if (pr && pr.kind === "kappa") { if (await openContentAddress(v)) return; }   // sha256 κ → verified inline (handles its own clean "couldn't locate" message)
         if (pr && pr.kind === "cid") { if (openIpfsSite(v)) return; }   // IPFS CID → native verified browsing through the /ipfs path gateway (relative links + assets resolve back through it)
+        if (parseOnionRef(v)) { if (await openOnionSite(v)) return; }   // Tor v3 .onion → validated κ-card, browsed via the chosen transport (gateway · SOCKS5), every byte re-derived (L5), never direct Tor
+        { const om = v.match(/^onion[:\s]+(.+)$/i); if (om) { if (await openOnionSearch(om[1])) return; } }   // "onion <terms>" → discover the onion web (Ahmia index), each result opens through the validated onion path
         if (await openWeb3(v)) return;   // web3: ENS · 0x account/token/tx · Solana · CAIP → one sealed κ-card
+        if (classifyMedia(v).kind === "file") return void openMedia(v);   // a direct media address (.mp4/.mp3/… URL · κ-route · IPFS path) → κ-anchored streaming player, seekable, BEFORE the web→browser guess
         const r = classify(v, catalog);
-        if (r.kind === "web" || r.kind === "holo") { if (await openContentAddress(v)) return; return openWeb(r); }   // content address → inline verified render; else the web/app path
+        if (r.kind === "web") return openHoloBrowser(r.address || r.url || v);   // live web → Holo Browser: κ-minted, re-derived (L5), navigable, renders in a real Chromium iframe
+        if (r.kind === "holo") { if (await openContentAddress(v)) return; return openWeb(r); }   // holo://κ content address → inline verified render
         const a = matches(v, catalog)[0];                                // else prefer a holospace app match
         if (a) return launch(a);
+        const lf = bestLocalFile(v); if (lf) return void openObjectByKappa(lf);   // a typed local filename/path (exact substrate match) → OPEN the verified local file, not a web search
         openFind(v);                                                     // free text → Holo Find: a corroborated, self-verifying answer over the open web (no AI)
       }
       // ── omnibox suggestions — Chrome-style. As you type, ONE ranked list fuses every corpus:
@@ -3642,6 +4291,8 @@
       //    top), and EVERY row opens through the same verified path (openContentAddress / launch / Find).
       const sug = { el: document.createElement("div"), items: [], sel: 0, open: false };
       sug.el.id = "omni-sug"; sug.el.className = "omni-sug"; sug.el.setAttribute("role", "listbox"); document.body.appendChild(sug.el);
+      try { mountEgressConnect(document.getElementById("omni")); } catch (e) { console.warn("egress-connect:", e); }   // "Connect the web" icon beside the omnibar
+      try { mountShare(document.getElementById("share-btn"), { getHolospace: captureHolospace, getWorkspace: captureWorkspace, onImport: onImportShared, requireEverythingAuth: everythingAuthGate }); } catch (e) { console.warn("holo-share:", e); }   // ❤️ Share → the LEFT side-carriage (ADR-0109): one link (file · sovereign cloud), "this holospace" OR "everything" (biometric-gated for signed-in), serverless
       const SUG_SUB = { kappa: "content address · verified", ipfs: "IPFS · verified", eth: "ENS name → content", web: "open web · mint κ", local: "holospace" };
       const DIR_SUB = { ens: "ENS name → content", dnslink: "on IPFS · DNSLink", ipfs: "IPFS · verified", ipns: "IPNS · verified", web: "open web", demo: "demo · verified" };
       const DIR_IC = { ens: "◈", dnslink: "🌐", ipfs: "⬡", ipns: "⬡", web: "🌐", demo: "✦" };
@@ -3698,6 +4349,9 @@
         return `${css}${head}<div class="bd">${inner}</div>`;
       }
       async function openObjectByKappa(o) {
+        if (mediaMime(o.name)) {   // a local media file → stream it through the κ-anchored player (re-derived on the wire, seekable via Range/206), not the static object viewer
+          return void openMedia("/.holo/sha256/" + o.hex + (o.ext || ""), { title: o.name, mime: mediaMime(o.name), kappa: "did:holo:sha256:" + o.hex });
+        }
         toast("⌕ resolving " + o.name + " by content address…");
         try {
           const r = await fetch("/.holo/sha256/" + o.hex + (o.ext || ""), { cache: "no-store" });
@@ -3713,10 +4367,17 @@
           if ((tabs[activeTab] && tabs[activeTab].home) || desktop.doc().world.length > 0) newTab("◆ " + o.name);
           addNode({ kind: "app", title: "◆  " + o.name, src: url, sandbox: "", allow: "", state: "max", webAddr: "did:holo:sha256:" + o.hex });
           setActiveTabTitle("◆ " + o.name); setActiveTabAddr("did:holo:sha256:" + o.hex.slice(0, 16) + "…");
+          try { omniRemember({ addr: "did:holo:sha256:" + o.hex, input: o.path || o.name, kind: "file", title: o.name, kappa: "did:holo:sha256:" + o.hex }); } catch (e) {}   // the bar remembers this local file (κ-keyed)
+          try { const isText = /^(text\/|application\/json)/.test(type); omniIndexObject({ addr: "did:holo:sha256:" + o.hex, input: o.path || o.name, kind: "file", title: o.name, text: (o.path || "") + (isText ? "\n\n" + new TextDecoder().decode(bytes.subarray(0, 6000)) : "") }); } catch (e) {}   // index it → Q.recall finds your local files by name + (for text) body
           toast(`✓ verified · ${o.name} · ${bytes.length.toLocaleString()} B · did:holo:sha256`);
         } catch { toast("failed to resolve " + o.name); }
       }
       loadSubstrate();   // warm the index so the first keystroke already searches your universe
+      // holo-rank — personal PageRank authority over κ (trust eigenvector × relation-weight × decay). Loaded once
+      // (same source as find.html); the omnibar's memory uses it so canonical/high-authority objects rank above
+      // dupes in your "recent" rows. On-device, private; absent file → graceful {} (no boost).
+      let HOLO_RANK = {};
+      fetch("/etc/holo-rank.json").then((r) => r.json()).then((j) => { HOLO_RANK = j.ranks || {}; }).catch(() => {});
       function buildSuggestions(q) {
         q = (q || "").trim(); if (!q) return [];
         const items = [], seen = new Set();
@@ -3734,6 +4395,13 @@
           const ic = { kappa: "◆", ipfs: "⬡", eth: "◈", web: "🌐" }[k] || "○";
           add({ icon: ic, title: "Open  " + q, sub: SUG_SUB[k] || "open", run: () => omniGo(q) });
         }
+        const cm = classifyMedia(q);                                      // a media address → a dedicated play affordance
+        if (cm.isMedia) add({ icon: cm.media === "audio" ? "♪" : "▶",
+          title: (cm.kind === "platform" ? "Open  " : "Play  ") + q,
+          sub: cm.kind === "platform" ? cm.platform + " · opens the page faithfully (no in-tab extractor yet)" : cm.label + " · κ-anchored player · seekable",
+          run: () => cm.kind === "file" ? openMedia(q) : omniGo(q) }, "media:" + q);
+        for (const r of omniRecent(q, { limit: 4, rank: HOLO_RANK }))     // YOUR memory — things you've opened, ranked by match × recency × frequency × holo-rank authority (private, instant)
+          add({ icon: ({ web: "🌐", cid: "⬡", web3: "◈", app: "◆", kappa: "◆" })[r.kind] || "↻", title: r.title, sub: "recent · " + (r.kind || "visited"), run: () => omniGo(r.input || r.addr) }, "rec:" + r.addr);
         for (const a of matches(q, catalog).slice(0, 5))                  // installed holospaces (this device's app catalog)
           add({ iconUrl: (a.landing || "").replace(/[^/]+$/, "icon.svg"), title: a.name, sub: "holospace", run: () => launch(a) }, "app:" + a.id);
         for (const o of searchSubstrate(q, 4))                            // YOUR universe — every content-addressed object, opened by κ (re-derived)
@@ -3743,8 +4411,11 @@
           add({ icon: isApp ? "◆" : (DIR_IC[e.kind] || "🌐"), title: e.name, sub: isApp ? "holospace" : (DIR_SUB[e.kind] || e.kind),
             run: () => { const app = catalog.find((a) => a.id === e.id); if (app) return launch(app); omniGo(e.target || e.name); } }, e.id ? "app:" + e.id : e.kind + ":" + e.target);
         }
-        const core = items.slice(0, 7);                                  // leave room for the answer row
-        if (!isAddr) core.push({ icon: "⌕", title: "Search  “" + q + "”", sub: "Holo Find · corroborated answer", run: () => openFind(q) });
+        const core = items.slice(0, 6);                                  // leave room for the two answer rows
+        if (!isAddr) {
+          core.push({ icon: "✦", title: "Ask your context  “" + q + "”", sub: "Q.recall · YOUR stuff, on-device, model-free", run: () => openPrivateRecall(q) });   // private corpus first
+          core.push({ icon: "⌕", title: "Search  “" + q + "”", sub: "Holo Find · corroborated answer", run: () => openFind(q) });   // then the open web
+        }
         return core.slice(0, 8);
       }
       function paintSel() { [...sug.el.children].forEach((r, i) => r.classList.toggle("sel", i === sug.sel)); }
@@ -3779,7 +4450,13 @@
       // ── per-holotab navigation: Back · Forward · Reload · Home (the tab's original view) ──
       $("#nav-back").onclick = () => goNav(-1);
       $("#nav-fwd").onclick = () => goNav(1);
-      $("#nav-reload").onclick = () => { const el = (focusedId && mounted.get(focusedId)) || world.querySelector("holo-window"); const f = el && el.querySelector("iframe"); if (f) { try { f.src = f.src; } catch {} } else { render(desktop.doc()); } toast("↻ reloaded"); };
+      $("#nav-reload").onclick = () => {
+        // on a commons SNAPSHOT, reload means "get fresh": bypass the snapshot, fetch live, and re-seal (which
+        // updates url→snapshot) — so the frozen-cache tradeoff is safe, the gesture is the familiar reload.
+        const node = (typeof findNode === "function") ? findNode(focusedId) : null;
+        if (node && node.commonsCid && node.webAddr) { toast("↻ fetching live + re-sealing…"); openHoloBrowser(node.webAddr, { live: true }); return; }
+        const el = (focusedId && mounted.get(focusedId)) || world.querySelector("holo-window"); const f = el && el.querySelector("iframe"); if (f) { try { f.src = f.src; } catch {} } else { render(desktop.doc()); } toast("↻ reloaded");
+      };
       $("#nav-home").onclick = goHome;   // ⌂ → this holotab's original view (app · page · desktop), not a new tab
       updateNav();
       // ── Holo Files — the native explorer, a CORE part of the shell. The dock button + a host-native
@@ -3999,11 +4676,14 @@
           _pgHost.handle(ev);
         } catch (e) {}
       });
-      // Playground is OPT-IN and OFF BY DEFAULT, but it is a GLOBAL mode (one toggle in the desktop menu): when
-      // ON it turns EVERY holospace and EVERY holospace app into a live editor — every element a κ-addressed
-      // object you can right-click and edit as code. We persist the flag so it spans holospace switches and
-      // reloads, broadcast it to every mounted app frame, and the per-app injector arms NEW mounts from it.
-      let pgMode = false; try { pgMode = localStorage.getItem("holo.playground") === "1"; } catch (e) {}
+      // Playground is OPT-IN and OFF BY DEFAULT, and it ALWAYS boots OFF: an editing/play mode (right-click edit,
+      // drag, forces, games) must never auto-resume and ambush you at startup. So Playground does NOT survive a
+      // boot — it is armed only by the desktop-menu toggle within a session, broadcast to every mounted app frame
+      // and to new mounts via the injector. We clear any persisted/restored on-state (the session faithfully
+      // round-trips the localStorage flag, but the shell declines to re-arm the mode on boot) so it can't linger.
+      let pgMode = false;
+      try { localStorage.setItem("holo.playground", "0"); } catch (e) {}                       // reset the flag the session restored
+      try { document.documentElement.removeAttribute("data-holo-playground"); } catch (e) {}   // never boot with the edit-mode chrome on
       const pgActive = () => pgMode;            // the injector reads this to arm a freshly-mounted frame
       function broadcastPlayground(on) {
         for (const [id, el] of mounted) { const f = el.querySelector && el.querySelector("iframe"); try { f && f.contentWindow && f.contentWindow.postMessage({ t: "holo-live-edit", op: "playground-mode", surfaceId: id, on: !!on }, "*"); } catch (e) {} }
@@ -4015,6 +4695,7 @@
         broadcastPlayground(pgMode);                                   // app frames (iframes)
         try { _pgShell.setActive(pgMode); } catch (e) {}              // IN-SHELL surfaces (pure components, manim, κ-objects, native blocks)
         try { toast(pgMode ? "✦ Playground on — right-click any object in any app to edit it as code" : "Playground off"); } catch (e) {}
+        try { scheduleSave(); } catch (e) {}                          // persist the armed flag into the session snapshot
       }
       // ── IN-SHELL Playground: non-iframe surfaces render directly in the shell document, so a host-mode agent
       //    (same module, same UI/serialiser) makes their elements right-click-editable too — every visual component
@@ -4041,8 +4722,7 @@
       }
       const _pgShell = createPlaygroundAgent({ doc: document, win: window, badge: false, resolveSurface: pgResolveSurface, commit: pgCommitInShell,
         postUp: (msg) => { try { if (msg && msg.op === "playground-request") setPlaygroundMode(false); } catch (e) {} } });   // Esc / element-menu exit → turn the GLOBAL mode off
-      try { _pgShell.mount(); if (pgMode) _pgShell.setActive(true); } catch (e) {}
-      try { if (pgMode) document.documentElement.toggleAttribute("data-holo-playground", true); } catch (e) {}   // restore persisted edit mode on boot (new mounts arm via the injector)
+      try { _pgShell.mount(); if (pgMode) _pgShell.setActive(true); } catch (e) {}   // pgMode is false on boot — Playground starts dormant; the desktop toggle arms it
       function srcKappa() { const s = srcTa.value; if (!s.trim()) { srcK.textContent = ""; return null; } const obj = repo.publishSource({ name: "pasted", source: s }); srcK.textContent = "holo://" + obj.id.split(":").pop().slice(0, 16) + "…"; return obj; }
       // ════ Ambient Q — the omnipresent ORB (bottom-left) that expands into a light, NON-BLOCKING
       //      copilot holospace. Same one door (window.Q), context-bound to what you're looking at; it
@@ -4060,7 +4740,7 @@
           @keyframes holoOrbPulse{0%,100%{box-shadow:0 8px 30px -6px rgba(91,140,255,.55),0 0 0 1px rgba(255,255,255,.08) inset}
             50%{box-shadow:0 8px 38px -4px rgba(124,92,255,.85),0 0 0 1px rgba(255,255,255,.12) inset}}
           #holo-orb.hide{transform:scale(.2);opacity:0;pointer-events:none}
-          #holo-qpanel{position:fixed;left:18px;bottom:18px;width:min(380px,calc(100vw - 36px));height:min(540px,calc(100vh - 120px));z-index:9001;
+          #holo-qpanel{position:fixed;left:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 36px));height:min(540px,calc(100dvh - 120px));z-index:9001;
             display:flex;flex-direction:column;border-radius:18px;overflow:hidden;transform-origin:bottom left;
             background:linear-gradient(180deg,rgba(20,22,34,.86),rgba(12,14,22,.93));backdrop-filter:blur(22px) saturate(1.3);
             border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 70px -20px rgba(0,0,0,.7),0 0 0 1px rgba(124,92,255,.18);
@@ -4650,6 +5330,10 @@
       /* responsive: as the toolbar tightens, the verbs collapse to glyphs so the omnibox keeps its proportion */
       @media (max-width: 920px) { #verbs .vl { display: none; } #verbs button { padding: 6px 9px; } #omni { flex-basis: clamp(180px, 46vw, 720px); } }
       @media (max-width: 620px) { #navbar .nav#nav-fwd, #navbar .nav#nav-home { display: none; } }
+      /* MD3 Compact (≤600dp): the Create·Play·Share verbs leave the cramped phone toolbar (they live on in
+         the dock + omnibox) so the omnibox — the phone's primary control — grows to fill the row. Authored
+         here, beside the other navbar responsive rules, so it wins the cascade. */
+      @media (max-width: 600px) { #verbs { display: none; } #omni { flex: 1 1 0; min-width: 0; } }
       #signin-scrim { position: fixed; inset: 0; z-index: 240; display: none; place-items: center; padding: 20px;
         background: rgba(4,6,16,.66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
       #signin-scrim.show { display: grid; animation: winIn .16s cubic-bezier(.2,.7,.3,1); }
@@ -4836,14 +5520,17 @@
           err.textContent = ""; btn.disabled = true;
           try {
             const bio = await teeAvailable();
-            let np;
-            if (bio) { btn.textContent = "Confirm with " + teeName() + "…"; const { credentialId, secret } = await teeEnroll({ name }); np = await enroll({ label: name, passphrase: secret, cred: credentialId }); }
-            else { const pass = $("signin-pass").value || ""; if (pass.length < 4) { err.textContent = "Choose a passphrase (4+ characters)"; btn.disabled = false; return; } np = await enroll({ label: name, passphrase: pass }); }
+            let np, signSecret = "";
+            if (bio) { btn.textContent = "Confirm with " + teeName() + "…"; const { credentialId, secret } = await teeEnroll({ name }); signSecret = secret; np = await enroll({ label: name, passphrase: secret, cred: credentialId }); }
+            else { const pass = $("signin-pass").value || ""; if (pass.length < 4) { err.textContent = "Choose a passphrase (4+ characters)"; btn.disabled = false; return; } signSecret = pass; np = await enroll({ label: name, passphrase: pass }); }
             const host = await measure().catch(() => null);
             const ntok = await openSession(np, { session: "primeos", host: host ? host.hostKappa : "" });
             try { sessionStorage.setItem("holo.session", JSON.stringify(ntok)); } catch {}
             body = await verifySession(ntok); guest = false; window.__holoGuest = null;
             stamp(); close();
+            // Holo Session (ADR-0106): the secret is in hand exactly here — derive the vault key + CLAIM the
+            // guest work this session built into the new operator (re-keyed, sovereign-encrypted). Nothing lost.
+            try { if (window.HoloSession && window.HoloSession.onSignIn) await window.HoloSession.onSignIn(body.operator, signSecret); } catch (_) {}
             try { window.__world && window.__world.toast && window.__world.toast("Signed in your work is saved on this device ✓"); } catch {}
           } catch (e) { err.textContent = teeError(e); btn.disabled = false; btn.textContent = (await teeAvailable()) ? "Continue with " + teeName() : "Save my identity"; }
         }
@@ -4856,6 +5543,41 @@
         scrim.addEventListener("click", (e) => { if (e.target === scrim) close(); });
         addEventListener("keydown", (e) => { if (e.key === "Escape" && scrim.classList.contains("show")) close(); });
       })().catch((e) => console.warn("[holo-ident]", e && e.message));
+    </script>
+
+    <!-- ── TOUCH: long-press → context menu ──────────────────────────────────────────────────────
+         A coarse pointer has no right-click, so the shell's whole context-menu vocabulary (new tab /
+         pin / close on the tab strip · maximize/restore/close on a window · add-widget/wallpaper on the
+         desktop) would be unreachable on a phone. A stationary ~500ms press synthesizes a `contextmenu`
+         MouseEvent at the touch point, so every EXISTING contextmenu listener (#tabstrip, #world, window
+         host) fires unchanged — touch parity with no new menu code. Self-contained; no effect with a
+         mouse. (MD3 / WCAG 2.2 touch operability.) -->
+    <script>
+      (function () {
+        var timer = null, sx = 0, sy = 0, tgt = null, fired = false;
+        var HOLD = 500, MOVE = 10;   // ms hold · px slop before it's treated as a scroll, not a press
+        function clear() { if (timer) { clearTimeout(timer); timer = null; } tgt = null; }
+        document.addEventListener("touchstart", function (e) {
+          fired = false;
+          if (e.touches.length !== 1) { clear(); return; }
+          var t = e.touches[0]; sx = t.clientX; sy = t.clientY; tgt = e.target;
+          timer = setTimeout(function () {
+            fired = true; timer = null;
+            var el = tgt || document.elementFromPoint(sx, sy) || document.body;
+            el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, view: window, clientX: sx, clientY: sy, button: 2 }));
+            if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }   // a faint confirm tick
+          }, HOLD);
+        }, { passive: true, capture: true });
+        document.addEventListener("touchmove", function (e) {
+          if (!timer) return; var t = e.touches[0];
+          if (Math.abs(t.clientX - sx) > MOVE || Math.abs(t.clientY - sy) > MOVE) clear();
+        }, { passive: true, capture: true });
+        document.addEventListener("touchend", function (e) {
+          if (fired) e.preventDefault();   // swallow the closing tap so a long-press doesn't also click through
+          clear();
+        }, { passive: false, capture: true });
+        document.addEventListener("touchcancel", clear, { capture: true });
+      })();
     </script>
   </body>
 </html>

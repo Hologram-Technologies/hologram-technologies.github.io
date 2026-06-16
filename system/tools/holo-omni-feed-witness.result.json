@@ -1,0 +1,124 @@
+{
+  "witnessed": true,
+  "passed": 19,
+  "failed": 0,
+  "covers": [
+    "omni-index dedups re-opens by addr + bumps frequency",
+    "omni-index discovers by attribute (title, not addres",
+    "omni-index applies holo-rank authority (ranked κ sco",
+    "Q.recall finds a private object by its BODY content ",
+    "Q.recall is model-free + sealed (carries a receipt, ",
+    "composePersonalScene returns a private, SCENE-shaped",
+    "the feed spans multiple media types (video + audio p",
+    "every leaf carries a 'why' provenance line",
+    "holo-rank lifts the authoritative κ to the hero (equ",
+    "intent steers the feed (a body/title match leads on ",
+    "diversity spreads origins into the hero (not one-sou",
+    "rotate cycles the mid-tier (idle exploration) with t",
+    "thin history → HONEST demo fallback (never invents a",
+    "classifyMedia: direct media URL → file · platform ho",
+    "resolveMediaSource: a κ-route media file is playable",
+    "yt-dlp seam default-OFF → honest browser fallback (s",
+    "seam-ON → SAME κ-player lights up, sealed hosc:Egres",
+    "governance veto → honest null → browser fallback (ne",
+    "extractor failure → honest null → browser fallback ("
+  ],
+  "results": [
+    {
+      "name": "omni-index dedups re-opens by addr + bumps frequency",
+      "ok": true,
+      "detail": "n=2"
+    },
+    {
+      "name": "omni-index discovers by attribute (title, not address)",
+      "ok": true,
+      "detail": "Aurora cam"
+    },
+    {
+      "name": "omni-index applies holo-rank authority (ranked κ scores higher)",
+      "ok": true,
+      "detail": "24.5 vs 9.8"
+    },
+    {
+      "name": "Q.recall finds a private object by its BODY content (not its title)",
+      "ok": true,
+      "detail": "https://news/x"
+    },
+    {
+      "name": "Q.recall is model-free + sealed (carries a receipt, zero network)",
+      "ok": true,
+      "detail": "receipt present"
+    },
+    {
+      "name": "composePersonalScene returns a private, SCENE-shaped feed (hero/thumbs/stories)",
+      "ok": true,
+      "detail": "count=6"
+    },
+    {
+      "name": "the feed spans multiple media types (video + audio play in place)",
+      "ok": true,
+      "detail": "video+audio"
+    },
+    {
+      "name": "every leaf carries a 'why' provenance line",
+      "ok": true,
+      "detail": "from your history · opened 5×"
+    },
+    {
+      "name": "holo-rank lifts the authoritative κ to the hero (equal recency)",
+      "ok": true,
+      "detail": "ranked"
+    },
+    {
+      "name": "intent steers the feed (a body/title match leads on intent)",
+      "ok": true,
+      "detail": "a track"
+    },
+    {
+      "name": "diversity spreads origins into the hero (not one-source clustering)",
+      "ok": true,
+      "detail": "web,video,audio"
+    },
+    {
+      "name": "rotate cycles the mid-tier (idle exploration) with the top-2 anchors stable",
+      "ok": true,
+      "detail": "rotation changes order, anchors fixed"
+    },
+    {
+      "name": "thin history → HONEST demo fallback (never invents a personal feed)",
+      "ok": true,
+      "detail": "_personal=false"
+    },
+    {
+      "name": "classifyMedia: direct media URL → file · platform host → platform · bare name → none",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "resolveMediaSource: a κ-route media file is playable + verified (Range/206 seekable)",
+      "ok": true,
+      "detail": "video/mp4"
+    },
+    {
+      "name": "yt-dlp seam default-OFF → honest browser fallback (sovereign, no baked gatekeeper)",
+      "ok": true,
+      "detail": "fallback=browser"
+    },
+    {
+      "name": "seam-ON → SAME κ-player lights up, sealed hosc:Egress receipt (directExtract:false)",
+      "ok": true,
+      "detail": "via=cobalt-egress"
+    },
+    {
+      "name": "governance veto → honest null → browser fallback (never fabricates a stream)",
+      "ok": true,
+      "detail": "vetoed"
+    },
+    {
+      "name": "extractor failure → honest null → browser fallback (Law L5: no fake green)",
+      "ok": true,
+      "detail": "failed-safe"
+    }
+  ],
+  "spec": "The omnisearch→live-feed fusion: the omnibar conducts a private-context-first, holo-rank-ordered, origin-diversified feed of self-verifying κ-objects spanning every media type; Q.recall retrieves by content model-free; the yt-dlp seam is a governed, opt-in, receipt-sealed egress tier that never fabricates a stream"
+}

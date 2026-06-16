@@ -14,6 +14,7 @@
 
 import { fhsMap } from "./lib/holo-fhs-map.mjs";
 import { blake3hex } from "./usr/lib/holo/holo-blake3.mjs";   // pure-JS BLAKE3 ≡ the substrate's kappo() (crypto.subtle has no BLAKE3)
+import { makeArchiveStore } from "./usr/lib/holo/holo-onnx-kstore.mjs";   // ADR-0101 Seam A: serve a content-addressed .holo model by its blake3 κ from the κ-store (IndexedDB), re-derived (L5)
 import { makeServer as makeMcpServer, descriptor as mcpDescriptor, buildAppRegistry as buildMcpAppRegistry } from "./usr/lib/holo/mcp/holo-mcp-core.mjs";   // the node-free MCP engine → the SW IS a serverless MCP endpoint
 import { handleApi as handleHoloApi, collectNdjson as apiNdjson, collectSse as apiSse } from "./usr/lib/holo/api/holo-api-core.mjs";   // the node-free REST engine → the SW IS a serverless κ-stream API
 import { resolveByKappa } from "./sbin/holo-resolver.mjs";    // the κ-verified multi-source resolver (Law L5) — accept the FIRST copy that re-derives
@@ -149,6 +150,8 @@ async function heal(rel, hex, axis, resp) {
 
 let BYHEX = null;     // sha256 hex → os-relative path (the OS serving κ-route)
 let BYBLAKE = null;   // blake3 hex → os-relative path (the unified-substrate σ-axis route)
+let ARCHIVES = null;  // lazy .holo κ-store (ADR-0101): content-addressed models in IndexedDB, not the OS closure
+const archiveStore = () => (ARCHIVES ||= makeArchiveStore());   // shares db/store names with the page's ingest
 let BYPATH = null;    // os-relative path → sha256 hex (the verification pins)
 const APPLOCK = new Set();   // app-ids whose lock closure has been folded into the pins (lazy, L5 for app bytes)
 function foldClosure(closure) {
@@ -266,16 +269,27 @@ async function ipfsRespond(req, rel, url) {
     return new Response(null, { status: 308, headers: { ...COI, location: url.pathname + "/" + (url.search || "") } });
   }
   if (out.kind === "error") return new Response(ipfsErrorHtml(p, out), { status: out.status || 502, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
-  let body, ct;
-  if (out.kind === "directory") { body = new TextEncoder().encode(injectNavReporter(directoryListingHtml(p.root, p.path, out.entries))); ct = "text/html; charset=utf-8"; }
-  else {
-    ct = out.contentType || "application/octet-stream";
-    body = /^text\/html/i.test(ct) ? new TextEncoder().encode(injectNavReporter(new TextDecoder().decode(out.bytes))) : out.bytes;
-    if (/^(text\/|application\/(json|xml|javascript))/i.test(ct) && !/charset/i.test(ct)) ct += "; charset=utf-8";
+  const immut = "public, max-age=31536000, immutable";
+  // DIRECTORY → a small native listing (buffer + cache).
+  if (out.kind === "directory") {
+    const body = new TextEncoder().encode(injectNavReporter(directoryListingHtml(p.root, p.path, out.entries)));
+    const resp = new Response(body, { status: 200, headers: { ...COI, "content-type": "text/html; charset=utf-8", "x-holo-ipfs": "directory", "x-holo-cid": out.cidStr || p.root, "cache-control": immut } });
+    try { await cache.put(req.url, resp.clone()); } catch {}
+    return resp;
   }
-  const resp = new Response(body, { status: 200, headers: { ...COI, "content-type": ct, "x-holo-ipfs": out.kind, "x-holo-cid": out.cidStr || p.root, "cache-control": "public, max-age=31536000, immutable" } });
-  try { await cache.put(req.url, resp.clone()); } catch {}
-  return resp;
+  // FILE. HTML buffers (the nav-reporter must inject at <head>; HTML docs are small) → cache. Everything else
+  // STREAMS block-by-block (large media/binaries render on the first leaf); blocks are O(1)-cached by CID, so
+  // we skip the full-response URL cache for streams.
+  let ct = out.contentType || "application/octet-stream";
+  if (/^(text\/|application\/(json|xml|javascript))/i.test(ct) && !/charset/i.test(ct)) ct += "; charset=utf-8";
+  if (/^text\/html/i.test(ct)) {
+    const bytes = new Uint8Array(await new Response(out.stream()).arrayBuffer());
+    const body = new TextEncoder().encode(injectNavReporter(new TextDecoder().decode(bytes)));
+    const resp = new Response(body, { status: 200, headers: { ...COI, "content-type": ct, "x-holo-ipfs": "file", "x-holo-cid": out.cidStr || p.root, "cache-control": immut } });
+    try { await cache.put(req.url, resp.clone()); } catch {}
+    return resp;
+  }
+  return new Response(out.stream(), { status: 200, headers: { ...COI, "content-type": ct, "x-holo-ipfs": "file-stream", "x-holo-cid": out.cidStr || p.root, "cache-control": immut } });
 }
 
 self.addEventListener("fetch", (event) => {
@@ -306,8 +320,40 @@ self.addEventListener("fetch", (event) => {
     } else if (mb) {
       axis = "blake3"; expect = mb[1].toLowerCase();
       const named = BYBLAKE.get(expect);
-      if (!named) return new Response("blake3 κ not in substrate index", { status: 404, headers: COI });
-      rel = named;
+      if (named) {
+        rel = named;
+      } else {
+        // Not a closure name → it may be a content-addressed .holo MODEL in the κ-store
+        // (ADR-0101, Seam A). Serve it by its blake3 κ from IndexedDB, re-derived (L5); a
+        // tampered object is refused, not served. This is the wasm `fetch('/.holo/blake3/<κ>')`
+        // delivery seam — any ingested model is reachable by κ with no origin (Law L1/L3).
+        let bytes;
+        try { bytes = await archiveStore().get("blake3:" + expect); }   // re-derives the WHOLE object (L5) before any slice
+        catch { return refuse(rel, expect, "(κ-store re-derivation failed)", axis); }
+        if (!bytes) return new Response("blake3 κ not in substrate index or κ-store", { status: 404, headers: COI });
+        const total = bytes.length;
+        const h = new Headers(COI);
+        h.set("content-type", "application/octet-stream");
+        h.set("x-holo-cache", "kstore"); h.set("x-holo-source", "archive");
+        h.set("accept-ranges", "bytes");                                 // Stage 3 (ADR-0101): the κ-store is range-streamable
+        // HTTP Range → 206 partial content, so a wasm RangeResolver pages weight bodies
+        // by κ WITHOUT the whole archive ever resident in the page (true demand-paging).
+        const rng = (req.headers.get("range") || "").match(/^bytes=(\d+)-(\d*)$/);
+        if (rng) {
+          const start = +rng[1];
+          const end = rng[2] === "" ? total - 1 : Math.min(+rng[2], total - 1);
+          if (start > end || start >= total) {
+            const hr = new Headers(h); hr.set("content-range", `bytes */${total}`);
+            return new Response("range not satisfiable", { status: 416, headers: hr });
+          }
+          const part = bytes.subarray(start, end + 1).slice(0);
+          h.set("content-range", `bytes ${start}-${end}/${total}`);
+          h.set("content-length", String(part.length));
+          return new Response(part, { status: 206, headers: h });        // range responses are not cached whole
+        }
+        try { (await caches.open(KCACHE)).put(kKey(axis, expect), new Response(bytes.slice(0), { headers: h })); } catch {}
+        return new Response(bytes.slice(0), { headers: h });
+      }
     } else {
       await ensureAppLock(rel);                               // app bytes are verified too (lazy lock fold) — not just OS bytes
       expect = BYPATH.get(rel) || null;                       // the pinned (sha256) κ for this path, if any

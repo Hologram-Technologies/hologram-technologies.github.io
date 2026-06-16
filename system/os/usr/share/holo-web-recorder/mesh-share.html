@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo Mesh Share — peer-to-peer, no server</title>
+<!--
+  mesh-share.html — the MANUAL/SHARE rung, live. Open it in TWO browsers (or two profiles):
+    HOST tab  : seals a page, shows a share link + accepts the friend's reply.
+    JOIN tab  : open the share link → it shows a reply to send back → on connect, fetches the page FROM the host
+                over a real WebRTC data channel (κ-blocks, re-derived L5) and renders it. No server, no store.
+  Serve over the OS origin (the /sbin imports resolve there). The WebRTC handshake is the only live-only bit —
+  the data plane + protocol + wire are Node-proven.
+-->
+<style>
+  :root{--bg:#05070d;--panel:#0c111b;--line:#1d2840;--ink:#e8eef9;--dim:#7d8aa6;--good:#34d399;--bad:#f87171;--vio:#a78bfa;--mono:ui-monospace,Menlo,Consolas,monospace}
+  *{box-sizing:border-box} body{margin:0;background:radial-gradient(900px 480px at 50% -10%,#0b1426,var(--bg) 60%);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;padding:34px 22px}
+  .wrap{max-width:640px;margin:0 auto} h1{font-size:19px;margin:0 0 3px} .sub{color:var(--dim);margin:0 0 18px;font-size:13px} .sub b{color:var(--ink)}
+  .step{margin:14px 0 6px;color:#cbd6ea} .step b{color:var(--vio)}
+  textarea{width:100%;min-height:54px;background:#0a1120;border:1px solid var(--line);border-radius:10px;color:#8ea6cf;font:11px var(--mono);padding:9px;resize:vertical;word-break:break-all}
+  button{margin-top:7px;border:0;border-radius:9px;padding:8px 15px;background:var(--vio);color:#0a0f1a;font-weight:650;cursor:pointer} button:hover{filter:brightness(1.06)}
+  .pill{display:inline-flex;gap:7px;align-items:center;margin:14px 0 0;font:12px var(--mono);padding:5px 12px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+  .pill.on{color:var(--good);border-color:#1f4f3f;background:#0c1c16} .pill.bad{color:var(--bad);border-color:#5a2230;background:#1c0f12}
+  .role{display:inline-block;font:11px var(--mono);color:var(--vio);border:1px solid #3b2f63;border-radius:7px;padding:3px 9px;margin:0 0 14px}
+</style></head>
+<body><div class="wrap">
+  <h1>Holo Mesh Share</h1>
+  <p class="sub">Share a sealed page — your friend fetches it <b>from you</b>, peer-to-peer. <b>No server, no store, no gatekeeper.</b></p>
+  <div id="role" class="role">…</div>
+  <div id="host" style="display:none"></div>
+  <div id="join" style="display:none"></div>
+</div>
+
+<script type="module">
+import { sealSnapshot } from "/sbin/holo-web-snapshot.mjs";
+import { host, join, tokenFromLink } from "/sbin/holo-mesh-share.mjs";
+const $ = (id) => document.getElementById(id);
+const setStatus = (which, msg, cls) => { const el = $(which + "-status"); if (el) { el.textContent = msg; el.className = "pill " + (cls || ""); } };
+const readBytes = async (r) => { if (!r) return new Uint8Array(); if (r.bytes) return r.bytes; if (r.stream) { const rd = r.stream().getReader(); const ps = []; for (;;) { const { done, value } = await rd.read(); if (done) break; ps.push(value); } let n = 0; for (const p of ps) n += p.length; const o = new Uint8Array(n); let k = 0; for (const p of ps) { o.set(p, k); k += p.length; } return o; } return new Uint8Array(); };
+
+const token = tokenFromLink(location.href);
+if (token) startJoin(token); else startHost();
+
+async function startHost() {
+  $("role").textContent = "HOST · you share a page"; $("host").style.display = "block";
+  const page = `<!doctype html><html><head><meta charset=utf-8><style>body{font:18px/1.6 system-ui;background:#0b1020;color:#e8eef9;display:grid;place-items:center;height:100vh;margin:0}.c{text-align:center;max-width:30rem;padding:1.5rem}h1{color:#a78bfa}</style></head><body><div class=c><h1>✦ Hello from the mesh</h1><p>This page was sealed on your friend’s device and fetched <b>peer-to-peer</b> — no server in the middle, every byte re-derived to its hash.</p></div></body></html>`;
+  const snap = await sealSnapshot({ resources: [{ name: "index.html", bytes: page }] });
+  const h = await host(snap, { base: location.origin + location.pathname, onConnected: () => setStatus("host", "● friend connected · serving the page P2P", "on") });
+  $("host").innerHTML = `
+    <div class="step"><b>1.</b> Send this link to your friend (any chat):</div>
+    <textarea id="link" readonly>${h.link}</textarea><button id="copy">Copy link</button>
+    <div class="step"><b>2.</b> Paste their reply code here, then Connect:</div>
+    <textarea id="ans" placeholder="paste your friend’s reply code"></textarea><button id="connect">Connect</button>
+    <div class="pill" id="host-status">○ waiting for your friend…</div>`;
+  $("copy").onclick = () => { navigator.clipboard.writeText(h.link); $("copy").textContent = "Copied ✓"; };
+  $("connect").onclick = async () => { try { await h.accept($("ans").value.trim()); setStatus("host", "● connecting…", ""); } catch (e) { setStatus("host", "✕ " + e.message, "bad"); } };
+}
+
+async function startJoin(tok) {
+  $("role").textContent = "JOIN · you fetch the page from your friend"; $("join").style.display = "block";
+  $("join").innerHTML = `<div class="pill" id="join-status">○ answering your friend…</div>`;
+  let j;
+  try { j = await join(tok, { onConnected: () => render(j) }); }
+  catch (e) { setStatus("join", "✕ couldn’t read the share link: " + e.message, "bad"); return; }
+  $("join").innerHTML = `
+    <div class="step">Send this reply code back to your friend:</div>
+    <textarea id="ans" readonly>${j.answerToken}</textarea><button id="copy">Copy reply</button>
+    <div class="pill" id="join-status">○ waiting to connect…</div>
+    <iframe id="view" style="display:none"></iframe>`;
+  $("copy").onclick = () => { navigator.clipboard.writeText(j.answerToken); $("copy").textContent = "Copied ✓"; };
+}
+
+async function render(j) {
+  setStatus("join", "● connected · fetching the page P2P…", "on");
+  try {
+    const bytes = await readBytes(await j.fetch(""));
+    setStatus("join", "✓ fetched from your friend, peer-to-peer · " + bytes.length + " bytes · 0 servers", "on");
+    const f = $("view"); f.style.cssText = "display:block;height:340px;width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:12px";
+    f.srcdoc = new TextDecoder().decode(bytes);
+  } catch (e) { setStatus("join", "✕ fetch failed: " + e.message, "bad"); }
+}
+</script>
+</body></html>

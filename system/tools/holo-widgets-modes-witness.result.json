@@ -1,71 +1,78 @@
 {
   "@type": "earl:TestResult",
-  "witnessed": false,
-  "subject": "Holo Widgets desktop modes (Focused · Learn · Work · Play) — golden-ratio layouts wired to real widgets + app launch tiles, non-destructive, first-boot Focused",
+  "witnessed": true,
+  "subject": "Holo Widgets desktop modes — the three intent modes (Learn · Work · Play) share ONE balanced grammar: a φ-scaled hero at the centre + one widget per corner (the sticky Q orb completes the fourth), real widgets, no per-mode duplication, non-destructive, first-boot Welcome",
   "covers": [
-    "the φ width ladder re-derives golden (hero:secondary:header = φ:φ) and the golden cuts 0.382/0.618 are complementary with ratio φ",
-    "every tile in all four modes is a REAL holo-native widget/app (no mockups, no dead tiles)",
-    "Focused is a bare desktop — zero widgets, nothing competing (the sticky Q orb lives outside the mode board and remains)",
-    "Learn is a φ:1 two-column study space (reading surface + resources) with Q as a copilot launch tile, distinct from Work",
-    "Work wires real app launch tiles (Files · Code · Wallet by org.hologram id) and keeps the bottom-right clear for the Q orb",
-    "Play makes the vinyl disc the hero on the focal point with roomier (φ-stepped) margins",
-    "the launch widget opens real apps via window.HoloShell (openApp) + summons Q; its label holds the 16px readability floor (ADR-0057)",
-    "the mode switch stays non-destructive (each mode saves its own board; the sticky orb survives) and first boot lands in Focused"
+    "the φ width ladder re-derives golden (hero:secondary:header = φ:φ) and the centre hero is exactly one golden step (×φ) larger than each corner widget",
+    "the shared GRID5 grammar holds a φ-scaled hero at the centre and one widget in each corner (tl·tr·bl filled by the mode, br by the sticky Q orb)",
+    "every tile in all three intent modes is a REAL holo-native widget (no mockups, no dead tiles); Focused/Clarity stay bare",
+    "each intent mode is exactly 4 tiles (centre + 3 corners) with no duplicated feature within the mode, and a distinct centre hero reflecting its purpose (Learn→note · Work→to-do · Play→disc)",
+    "Q is the sticky orb in the bottom-right corner — never a redundant app:'q' launch tile duplicating it in a mode board",
+    "the launch widget still opens real apps via window.HoloShell (openApp) + summons Q; its label holds the 16px readability floor (ADR-0057)",
+    "the mode switch stays non-destructive (each mode saves its own board; the sticky orb survives) and first boot lands in Welcome"
   ],
   "ladder": {
     "hero": 400,
     "sec": 247,
     "head": 153
   },
+  "heroes": {
+    "learn": "note",
+    "work": "tasks",
+    "play": "vinyl"
+  },
   "modes": {
+    "welcome": [
+      "dayring",
+      "greeting"
+    ],
     "focused": [],
     "learn": [
-      "clock",
       "note",
-      "focus",
+      "clock",
       "links",
-      "launch"
+      "focus"
     ],
     "work": [
-      "clock",
-      "system",
-      "weather",
       "tasks",
+      "clock",
       "calendar",
-      "launch",
-      "launch",
-      "launch"
+      "weather"
     ],
     "play": [
-      "clock",
-      "weather",
       "vinyl",
-      "now-playing",
-      "quote"
+      "clock",
+      "quote",
+      "now-playing"
     ]
   },
   "checks": {
     "phi-width-ladder-is-golden": true,
-    "golden-cuts-complementary": true,
-    "all-four-modes-defined": true,
+    "grid5-grammar-defined": true,
+    "centre-is-phi-larger-than-corners": true,
+    "all-modes-defined": true,
     "every-tile-is-a-real-widget": true,
     "focused-is-bare": true,
-    "learn-golden-two-column": true,
-    "learn-has-Q-copilot": true,
-    "work-golden": true,
-    "work-launches-real-apps": true,
-    "work-leaves-orb-corner-free": true,
-    "play-golden": true,
-    "play-vinyl-is-hero": true,
+    "learn-uses-centre-corners-grammar": true,
+    "learn-has-exactly-4-tiles": true,
+    "learn-has-no-duplicate-tiles": true,
+    "work-uses-centre-corners-grammar": true,
+    "work-has-exactly-4-tiles": true,
+    "work-has-no-duplicate-tiles": true,
+    "play-uses-centre-corners-grammar": true,
+    "play-has-exactly-4-tiles": true,
+    "play-has-no-duplicate-tiles": true,
+    "learn-hero-is-note": true,
+    "work-hero-is-tasks": true,
+    "play-hero-is-vinyl": true,
+    "no-Q-launcher-duplication": true,
     "launch-widget-defined": true,
     "launch-opens-real-apps": true,
     "launch-label-respects-readability-floor": true,
     "shell-exposes-openApp": true,
     "switch-is-non-destructive": true,
-    "first-boot-is-focused": false
+    "first-boot-is-welcome": true
   },
-  "failed": [
-    "first-boot-is-focused"
-  ],
+  "failed": [],
   "authority": "φ = golden ratio (1.618) · holospaces Law L1/L2/L3/L5 · ADR-0057 (16px readability floor) · ADR-0088/0089 (scene manifest / per-holospace boards)"
 }

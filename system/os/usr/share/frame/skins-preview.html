@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holo Browser — Vintage Skins</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #2b2f36; color: #e6e6e6; font: 14px -apple-system, "Segoe UI", system-ui, sans-serif; }
+  header { padding: 18px 20px 8px; }
+  header h1 { margin: 0 0 4px; font-size: 18px; }
+  header p { margin: 0; color: #aab; font-size: 12.5px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 20px; position: sticky; top: 0; background: #2b2f36; z-index: 5; border-bottom: 1px solid #00000040; }
+  .bar button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid #4a4f57; background: #3a3f47; color: #e6e6e6; cursor: pointer; }
+  .bar button.sel { background: #1f6feb; border-color: #1f6feb; }
+  .bar .spacer { flex: 1; }
+  .stage { padding: 18px 20px 40px; }
+  .kappa { font: 11px ui-monospace, monospace; color: #8fae8f; padding: 4px 20px 0; }
+  /* the <holo-window> .frame the engine mounts into — a real browser-tab viewport */
+  .frame { display: flex; flex-direction: column; height: 460px; max-width: 980px; border-radius: 10px; overflow: hidden; box-shadow: 0 12px 40px #0009; background: #fff; }
+  .page { flex: 1; min-height: 0; background: #fff; color: #111; overflow: auto; padding: 26px 32px; font: 15px "Times New Roman", Times, serif; }
+  .page h2 { font-size: 22px; margin: 0 0 8px; }
+  .page a { color: #0000ee; }
+  .page a.v { color: #551a8b; }
+  .note { color: #678; font-size: 12px; padding: 0 20px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Holo Browser — Vintage Skins</h1>
+    <p>Every skin is a κ-addressed object fetched + re-derived (Law L5), mounted as chrome around one live page. Switching never reloads the page — the iframe/viewport is preserved.</p>
+  </header>
+  <div class="bar" id="bar">
+    <span style="color:#aab;font-size:12px">Skin:</span>
+    <span class="spacer"></span>
+    <button id="loadtoggle" title="Simulate a page load to see the throbber + status">◐ Toggle loading</button>
+  </div>
+  <div class="kappa" id="kappa">resolving…</div>
+  <div class="stage">
+    <div class="frame" id="frame">
+      <div class="page" id="page">
+        <h2>The Hologram Web</h2>
+        <p>This is a stand-in web page. The chrome above and the status bar below are the active vintage skin —
+        re-authored faithfully as web chrome, served from the κ-store, and re-derived before it paints.</p>
+        <p>Try switching skins: the page text, scroll, and (in the real browser) history all stay put.
+        Visited links render <a class="v" href="#">purple</a>, unvisited <a href="#">blue</a>, just like 1996.</p>
+      </div>
+    </div>
+    <p class="note" id="status">—</p>
+  </div>
+
+<script type="module">
+  import * as HoloSkin from "/_shared/holo-skin.js";
+
+  const SKINS = [
+    { id: "mosaic",   title: "NCSA Mosaic" },
+    { id: "netscape", title: "Netscape Navigator" },
+    { id: "ie",       title: "Internet Explorer" },
+    { id: "opera",    title: "Opera" },
+    { id: "winxp",    title: "Windows XP" },
+    { id: "win98",    title: "Windows 98" },
+    { id: "aqua",     title: "Mac OS X Aqua" },
+    { id: "lcars",    title: "LCARS (Star Trek)" },
+    { id: "win11",    title: "Windows 11" },
+    { id: "bigsur",   title: "macOS Big Sur" },
+    { id: "crt",      title: "CRT Terminal (Amber)" },
+    { id: "holographic", title: "Holographic" },
+    { id: "lotr",     title: "Lord of the Rings" },
+    { id: "foundation", title: "Foundation" },
+    { id: "hhgttg",   title: "Hitchhiker's Guide" },
+  ];
+  const cache = Object.create(null);
+  function ensure(id) {
+    if (cache[id]) return cache[id];
+    const base = "/_shared/skins/" + id + "/";
+    const read = async (rel) => new Uint8Array(await (await fetch(base + rel)).arrayBuffer());
+    return (cache[id] = HoloSkin.resolveSkin(id, { read }));
+  }
+
+  const frame = document.getElementById("frame");
+  const bar = document.getElementById("bar");
+  const kappaEl = document.getElementById("kappa");
+  const statusEl = document.getElementById("status");
+  let loading = false;
+  let active = SKINS[0].id;
+
+  // a WebContents-shaped state the engine binds the throbber / status / nav buttons to.
+  const state = () => ({ loading, securityState: "secure", nav: { current: { url: "https://www.hologram.os/" }, canGoBack: true, canGoForward: false } });
+
+  const bind = {
+    "nav.back": () => flash("◀ Back"), "nav.forward": () => flash("▶ Forward"),
+    "nav.home": () => flash("⌂ Home"), "nav.reload": () => { loading = true; repaint(); setTimeout(() => { loading = false; repaint(); }, 1400); },
+    "nav.stop": () => { loading = false; repaint(); }, "omni.focus": () => flash("Address bar focused"),
+    "tab.new": () => flash("New window"), "tab.close": () => flash("Close"), "about": () => flash("About this browser"), "noop": () => {},
+  };
+  let host = null;
+  function repaint() { if (host && host.__skinBinder) host.__skinBinder.update(state()); }
+  function flash(m) { statusEl.textContent = m; }
+
+  async function pick(id) {
+    active = id;
+    [...bar.querySelectorAll("button[data-id]")].forEach((b) => b.classList.toggle("sel", b.dataset.id === id));
+    const r = await ensure(id);
+    kappaEl.textContent = r.manifest["holo:title"] + "  ·  " + r.manifestKappa;
+    host = await HoloSkin.swap(frame, r, { bind, getState: state });   // state-preserving switch
+    repaint();
+    flash("Switched to " + r.manifest["holo:title"] + " — page preserved, no reload");
+  }
+
+  // build the skin buttons (before the spacer)
+  const spacer = bar.querySelector(".spacer");
+  for (const s of SKINS) {
+    const b = document.createElement("button"); b.textContent = s.title; b.dataset.id = s.id;
+    b.onclick = () => pick(s.id);
+    bar.insertBefore(b, spacer);
+  }
+  document.getElementById("loadtoggle").onclick = () => { loading = !loading; repaint(); flash(loading ? "Loading… (throbber spinning)" : "Done"); };
+
+  pick(active);
+</script>
+</body>
+</html>

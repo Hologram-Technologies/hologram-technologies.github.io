@@ -87,6 +87,12 @@
   .bg-scrim{ inset:0; background:radial-gradient(120% 90% at 50% 30%, transparent 38%, rgba(0,0,0,.66) 100%); }
   :root[data-theme="light"] .bg-stars{ opacity:0; }
   :root[data-theme="light"] .bg-scrim{ background:radial-gradient(120% 90% at 50% 30%, transparent 42%, rgba(255,255,255,.6) 100%); }
+  /* the clouds layer — the SAME genuine Vanta CLOUDS2 sky as the homepage (vendored), so the manifesto
+     opens over the real homepage background. Opaque when it runs; if WebGL is unavailable it stays
+     transparent and the CSS nebula/stars below show through as a graceful fallback. */
+  .bg-gl{ position:absolute; inset:0; width:100%; height:100%; display:block; opacity:0; transition:opacity .7s ease; }
+  :root[data-immersive="full"] .bg-gl{ opacity:1; }
+  body.vanta-on .bg-neb, body.vanta-on .bg-aurora, body.vanta-on .bg-stars{ display:none; }
 
   /* ── a slim OS bar: the same brand lockup as the gateway, so this clearly IS the OS, with a window
      open on its desktop. Returns home on click. ─────────────────────────────────────────────────── */
@@ -105,22 +111,23 @@
 
   /* ── THE DESKTOP: the window sits centred on the holo-field. Clicking the empty desk closes it,
      the way dismissing an app returns you to the desktop. ─────────────────────────────────────── */
-  .desk{ position:fixed; inset:var(--frame); z-index:2; display:grid; place-items:center;
-    padding:calc(var(--u) * 4.6) clamp(10px, 3vw, 34px) calc(var(--u) * 1.4); }
+  .desk{ position:fixed; inset:var(--frame); z-index:2; display:flex;
+    padding:calc(var(--u) * 4.4) clamp(10px, 1.6vw, 22px) clamp(10px, 1.6vw, 22px); }
 
-  /* ── THE COMPUTER WINDOW ─────────────────────────────────────────────────────────────────────── */
-  .win{ position:relative; width:min(112ch, 92vw); max-width:920px; height:100%; max-height:100%;
+  /* ── THE COMPUTER WINDOW — landscape, filling the desk, the same footprint as the app search and
+     download windows; a frosted-glass sheet over the live homepage cloudscape. ─────────────────── */
+  .win{ position:relative; flex:1; width:100%; height:100%; max-width:1380px; margin:0 auto;
     display:flex; flex-direction:column; border-radius:calc(var(--u) * 1.1);
-    background:color-mix(in srgb, var(--bg) 78%, transparent);
+    background:color-mix(in srgb, var(--bg) 60%, transparent);
     border:1px solid var(--line-strong);
     box-shadow:0 40px 120px -30px rgba(0,0,0,.8), 0 8px 30px -12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
-    -webkit-backdrop-filter:blur(22px) saturate(1.25); backdrop-filter:blur(22px) saturate(1.25);
-    overflow:hidden; transform-origin:50% 38%;
-    opacity:0; transform:translateY(12px) scale(.965); filter:blur(8px); }
-  body.lit .win{ opacity:1; transform:none; filter:none;
-    transition:opacity .7s var(--ease) .06s, transform .7s cubic-bezier(.2,.85,.2,1) .06s, filter .7s var(--ease) .06s; }
-  body.closing .win{ opacity:0; transform:translateY(6px) scale(.975); filter:blur(6px);
-    transition:opacity .2s ease, transform .22s var(--ease), filter .22s ease; }
+    -webkit-backdrop-filter:blur(28px) saturate(1.2); backdrop-filter:blur(28px) saturate(1.2);
+    overflow:hidden; transform-origin:50% 42%;
+    opacity:0; transform:scale(1.014); }
+  body.lit .win{ opacity:1; transform:none;
+    transition:opacity .3s var(--ease), transform .36s var(--ease); }
+  body.closing .win{ opacity:0; transform:scale(1.014);
+    transition:opacity .25s var(--ease), transform .3s var(--ease); }
   body.closing .bg, body.closing .deskbar{ opacity:0; transition:opacity .2s ease; }
 
   /* title bar: traffic-light controls · centred title with the dot-mark · the self-verified κ chip */
@@ -220,6 +227,7 @@
   <div class="bg-neb"></div>
   <div class="bg-aurora"></div>
   <div class="bg-stars"></div>
+  <div class="bg-gl" id="vanta"></div>
   <div class="bg-scrim"></div>
 </div>
 
@@ -302,6 +310,81 @@
     </div>
   </article>
 </main>
+
+<!-- the SAME homepage background: Vanta CLOUDS2 (Vanta.js + three.js r134, both MIT), vendored locally and
+     served same-origin (no runtime CDN). Deferred so they never block the window's reveal; the glass window
+     then frosts this live cloudscape exactly as the app-search launcher frosts the homepage. -->
+<script defer src="system/vendor/vanta/three.min.js"></script>
+<script defer src="system/vendor/vanta/vanta.clouds2.min.js"></script>
+<script type="module">
+  // Immersive background — the genuine Vanta CLOUDS2 effect, mounted on #vanta and pinned to the tuned
+  // homepage horizon (we patch the shader on the effect's prototype at runtime, so the vendored file's
+  // bytes — and its seal — are untouched). Graceful CSS fallback if WebGL/the libraries are unavailable.
+  (function () {
+    const el = document.getElementById("vanta");
+    if (!el || !window.VANTA || !window.VANTA.CLOUDS2) return;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.style.overflow = "hidden";
+    const HOLO_HORIZON = "0.46";
+    let horizonPatched = false;
+    function patchHorizon() {
+      if (horizonPatched) return;
+      horizonPatched = true;
+      try {
+        const probe = document.createElement("div");
+        probe.style.cssText = "position:absolute;left:-9999px;top:0;width:8px;height:8px;pointer-events:none";
+        document.body.appendChild(probe);
+        const t = window.VANTA.CLOUDS2({ el: probe, THREE: window.THREE, mouseControls: false, touchControls: false, gyroControls: false, speed: 0.0, texturePath: "system/vendor/vanta/noise.png" });
+        const proto = t && Object.getPrototypeOf(t);
+        if (proto && typeof proto.fragmentShader === "string" && proto.fragmentShader.includes("- 0.65")) {
+          proto.fragmentShader = proto.fragmentShader.replace("coord / iResolution.y - 0.65", "coord / iResolution.y - " + HOLO_HORIZON);
+        }
+        try { t.destroy(); } catch {}
+        probe.remove();
+      } catch (e) {}
+    }
+    const STEPS = [1, 1.5, 2, 3];
+    let si = 0, inst = null, fpsRAF = 0;
+    const scaleNow = () => STEPS[si];
+    const on = () => document.documentElement.getAttribute("data-immersive") === "full" && !document.hidden;
+    function apply() { if (!inst) return; const ns = scaleNow(); try { inst.setOptions({ scale: ns, scaleMobile: ns }); inst.scale = ns; inst.resize(); } catch {} }
+    function start() {
+      if (inst) return;
+      patchHorizon();
+      try {
+        inst = window.VANTA.CLOUDS2({
+          el: el, THREE: window.THREE,
+          mouseControls: false, touchControls: false, gyroControls: false,
+          scale: scaleNow(), scaleMobile: scaleNow(),
+          texturePath: "system/vendor/vanta/noise.png",
+          speed: reduce ? 0.0 : 1.0,
+        });
+        document.body.classList.add("vanta-on");
+        if (!reduce) watchFps();
+      } catch (e) { inst = null; }
+    }
+    function lighten() { if (!inst || si >= STEPS.length - 1) return; si++; apply(); }
+    function watchFps() {
+      cancelAnimationFrame(fpsRAF);
+      let frames = 0, t0 = 0;
+      const tick = (now) => {
+        if (!inst) return;
+        if (!t0) { t0 = now; frames = 0; fpsRAF = requestAnimationFrame(tick); return; }
+        frames++;
+        if (now - t0 < 1400) { fpsRAF = requestAnimationFrame(tick); return; }
+        if ((frames * 1000) / (now - t0) < 45) lighten();
+        t0 = 0; fpsRAF = requestAnimationFrame(tick);
+      };
+      setTimeout(() => { if (inst && on()) fpsRAF = requestAnimationFrame(tick); }, 800);
+    }
+    function stop() { cancelAnimationFrame(fpsRAF); document.body.classList.remove("vanta-on"); if (inst) { try { inst.destroy(); } catch {} inst = null; } }
+    function sync() { if (on()) start(); else stop(); }
+    new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-immersive"] });
+    document.addEventListener("visibilitychange", sync);
+    addEventListener("resize", () => { if (inst) { try { inst.resize(); } catch {} } }, { passive: true });
+    sync();
+  })();
+</script>
 
 <script>
 (function(){

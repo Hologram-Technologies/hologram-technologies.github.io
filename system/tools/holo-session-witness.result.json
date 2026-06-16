@@ -1,0 +1,63 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "a signed-in operator's entire experience (tabs + order + active + open-surfaces incl. per-app state + every settings axis) round-trips through an ENCRYPTED κ-store byte-for-byte",
+    "at rest the manifest is ciphertext: a wrong key yields a clean default and a tampered byte is refused (Law L5) — not readable by another operator on the profile",
+    "an identical experience + key seals to an identical κ (synthetic-IV determinism, κ-memo preserved)",
+    "a GUEST realm persists like an operator, and a single sign-in CLAIMS it into the operator with ZERO loss, consumes the guest head, and leaks ZERO bytes to a different operator",
+    "per-operator + same-machine-only (device-binding) isolation hold under encryption",
+    "a stale second tab does not clobber a newer save (seq guard); a v1 plaintext manifest migrates forward; a quota error never corrupts the last good snapshot",
+    "NO network egress on any path (local κ-store only, Law L4); the reset escape hatch forgets the active realm"
+  ],
+  "checks": {
+    "save-returns-kappa-seq": true,
+    "settings-allowlist-excludes-identity": true,
+    "settings-allowlist-captures-every-axis": true,
+    "manifest-carries-schema-version": true,
+    "at-rest-is-ciphertext": true,
+    "decrypt-round-trip-every-axis": true,
+    "round-trip-open-surfaces-appstate": true,
+    "apply-restores-tabs-active-order": true,
+    "kappa-memo-identical": true,
+    "kappa-memo-idempotent-store": true,
+    "wrong-key-clean-default": true,
+    "L5-tamper-refused": true,
+    "device-isolation-clean-default": true,
+    "guest-realm-persists": true,
+    "claim-returns-operator-body": true,
+    "claim-zero-loss": true,
+    "claim-consumes-guest-head": true,
+    "claim-operator-can-read": true,
+    "claim-zero-bleed-other-operator": true,
+    "claimed-data-not-device-readable": true,
+    "operator-isolation-clean-default": true,
+    "concurrency-stale-tab-skips": true,
+    "concurrency-newer-survives": true,
+    "concurrency-resynced-tab-writes": true,
+    "v1-plaintext-migrates-forward": true,
+    "v1-migrated-tagged-v1": true,
+    "quota-save-honest-fail": true,
+    "quota-head-unchanged": true,
+    "quota-last-good-snapshot-intact": true,
+    "reset-clears-head-and-settings": true,
+    "coverage-prefixes": true,
+    "coverage-excludes": true,
+    "no-network-egress": true
+  },
+  "failed": [],
+  "authority": "W3C PROV-O · W3C EARL 1.0 · IETF RFC 8785 (JCS) · FIPS 180-4 (SHA-256) · NIST SP 800-38D (AES-GCM) · NIST SP 800-132 (PBKDF2) · UOR-ADDR · Laws L1/L4/L5",
+  "sample": {
+    "manifestKappa": "did:holo:sha256:94670373de825ffc43b66f956888e169fb9c781b1d141da1951cfe95bc046869",
+    "guestRealm": "guest:dddd0000",
+    "axes": [
+      "holo-widgets.v5",
+      "holo-widgets.mode.v5",
+      "holo.voice.wake",
+      "holo:wall-live",
+      "holo-vinyl.dockpin.v1",
+      "holo.q.tier",
+      "holo.playground"
+    ]
+  }
+}

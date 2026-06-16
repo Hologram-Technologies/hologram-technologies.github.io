@@ -1,0 +1,36 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "subject": "Holo Playground 3.0 (Stage 3) — MINI-GAMES on the screen's own objects (Whack · Match) behind a pluggable data-driven game host, plus marquee MULTI-SELECT and SCALE / ROTATE handles. A game is the most ephemeral activity in Playground: it runs in its OWN private play session (separate from the surface's editable session), so it can NEVER seal — quitting restores the screen exactly. The pure game logic is deterministic (seeded LCG, no random/Date/DOM); the selection + handle geometry (rectsIntersect, scaleFromHandle, rotateFromPointer) is pure arithmetic; multi-select / handle / game chrome is [data-holo-ephemeral] + holo-pg-* classes that cleanClass strips, so none of it ever seals (L5)",
+  "covers": [
+    "whack (deterministic pops + scoring)",
+    "match (pairing + win + miss + ignore)",
+    "data-driven game registry + objectKey",
+    "marquee rectsIntersect",
+    "scale/rotate handle math (clamped)",
+    "a game never seals (inert host + no sealer)"
+  ],
+  "passed": 19,
+  "failed": 0,
+  "checks": {
+    "whack-pop-sequence-is-deterministic-for-a-seed-reproducible--1": true,
+    "whack-ends-after-its-rounds-popnext-1-over-2": true,
+    "tapping-the-popped-object-scores-a-hit-1-3": true,
+    "tapping-any-other-object-is-a-miss-score-unchanged-misses-1-4": true,
+    "first-pick-is-pending-one-card-up-5": true,
+    "a-matching-second-pick-clears-the-pair-and-scores-not-yet-wo-6": true,
+    "clearing-the-last-pair-wins-7": true,
+    "a-non-matching-pair-is-a-miss-no-score-picks-reset-8": true,
+    "re-picking-an-already-up-card-is-ignored-9": true,
+    "the-registry-ships-whack-and-match-as-data-presets-unknown-n-10": true,
+    "objectkey-signs-an-object-by-tag-first-class-so-match-pairs--11": true,
+    "rectsintersect-overlapping-rects-select-12": true,
+    "rectsintersect-disjoint-rects-don-t-select-13": true,
+    "scalefromhandle-grows-as-a-corner-is-pulled-away-from-centre-14": true,
+    "scalefromhandle-is-clamped-can-t-invert-or-explode-15": true,
+    "angleof-measures-a-pointer-s-angle-around-the-centre-16": true,
+    "rotatefrompointer-gives-the-relative-turn-from-the-grab-angl-17": true,
+    "creategamehost-is-a-no-op-without-a-document-start-false-nev-18": true,
+    "the-pure-game-logic-exposes-no-sealer-publish-games-run-in-a-19": true
+  }
+}

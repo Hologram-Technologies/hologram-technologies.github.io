@@ -1,0 +1,127 @@
+{
+  "@context": "/usr/share/ns/browser-skin.jsonld",
+  "@type": "holo:BrowserSkin",
+  "holo:skinId": "hhgttg",
+  "holo:title": "The Hitchhiker's Guide",
+  "holo:fidelitySource": "Hitchhiker's Guide to the Galaxy (Douglas Adams) — re-authored homage, no copyrighted assets",
+  "holo:appliesTo": "browser",
+  "holo:chrome": {
+    "html": "did:holo:sha256:a01ef987edeb85254dea57ee0b1cc32f362ae06080bf375066f590654128cc21",
+    "css": "did:holo:sha256:446f24627e841328d826960da5e6346fd3075d6de51d183a0cb0e9a61941519e"
+  },
+  "holo:shellCss": "did:holo:sha256:972af61277fab7ecb46ee1a592047b030d357316707ca111121054db9dcff69d",
+  "holo:glyphs": {
+    "back": "did:holo:sha256:efbda565dc249ec793d4a89a9e33f2b4c6caf622eca052c38686a1aed141672c",
+    "forward": "did:holo:sha256:122f587d45d00db7a7acc15f6426fb6bb0e1017294056c671a4d0c17d793cb15",
+    "home": "did:holo:sha256:8f066620a5d92ce5d81407ae432b2e263794d1c2a129d8241ab81483294122c3",
+    "reload": "did:holo:sha256:edb3df56d7bbf8655f79fc9a4e2a88b489a9ceadadf04e6a16a9ae6f9cd0c17d",
+    "open": "did:holo:sha256:d5aae6d3a4388c31f2f7a4d19c90ab102b01e322400505ec5d6975a036e3692a",
+    "stop": "did:holo:sha256:de0c1ea19b2f2cc5ee8a63068db183bbbb3d1c96c361dbfab69e489d5460237e",
+    "newwin": "did:holo:sha256:760f78cef1e24df64a2e98e0ad117741e5395af1eac057748f451cf63ded08a0"
+  },
+  "holo:throbber": {
+    "kind": "svg",
+    "fps": 24,
+    "svg": "did:holo:sha256:c081feeed27a9d5ef7cf1c71d439a5ce5cb82a6b2dfc552538f71209fd8c218b"
+  },
+  "holo:palette": {
+    "chrome": "#031206",
+    "bevelLight": "#33ff66",
+    "bevelDark": "#063",
+    "linkUnvisited": "#7fffa0",
+    "linkVisited": "#33cc88",
+    "text": "#5fffa0",
+    "statusBg": "#031206"
+  },
+  "holo:font": {
+    "ui": "'Courier New', 'DejaVu Sans Mono', monospace",
+    "doc": "'Courier New', monospace"
+  },
+  "holo:behavior": {
+    "throbberSource": "loading",
+    "statusSource": "nav.current.url",
+    "backEnabled": "nav.canGoBack",
+    "forwardEnabled": "nav.canGoForward",
+    "securityChip": "securityState",
+    "menus": [
+      {
+        "label": "GUIDE",
+        "items": [
+          {
+            "label": "New Entry",
+            "action": "tab.new"
+          },
+          {
+            "label": "Look Up…",
+            "action": "omni.focus"
+          },
+          {
+            "label": "Close",
+            "action": "tab.close"
+          }
+        ]
+      },
+      {
+        "label": "ENTRY",
+        "items": [
+          {
+            "label": "Reload",
+            "action": "nav.reload"
+          },
+          {
+            "label": "Stop",
+            "action": "nav.stop"
+          },
+          {
+            "label": "Mostly Harmless",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "HITCHHIKE",
+        "items": [
+          {
+            "label": "Back",
+            "action": "nav.back"
+          },
+          {
+            "label": "Forward",
+            "action": "nav.forward"
+          },
+          {
+            "label": "Home",
+            "action": "nav.home"
+          }
+        ]
+      },
+      {
+        "label": "BABEL FISH",
+        "items": [
+          {
+            "label": "Translate",
+            "action": "noop"
+          },
+          {
+            "label": "Improbability Drive",
+            "action": "noop"
+          }
+        ]
+      },
+      {
+        "label": "DON'T PANIC",
+        "items": [
+          {
+            "label": "About the Guide",
+            "action": "about"
+          },
+          {
+            "label": "The Answer is 42",
+            "action": "noop"
+          }
+        ]
+      }
+    ]
+  },
+  "@id": "did:holo:sha256:7238de6361c1fcd3efa55c710e8c5e2c3f1b2a1c50f6b6e6d9045c32f53ca0b9"
+}

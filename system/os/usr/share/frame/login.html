@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Appearance, before first paint: pin the canonical palette/immersive onto <html> so the lock
+     screen wears the SAME theme the operator chose, with no flash — consistent boot end to end. -->
+<script src="./_shared/holo-appearance-boot.js"></script>
 <title>Hologram OS Sign in</title>
 <!-- AI agents: machine-readable sign-in instructions live in <script id="holo-agent-login"> (JSON) and on
      window.HoloLogin. Guest = act now (or load ?guest=1). Ask Human = request the person to approve. -->
@@ -188,6 +191,67 @@
     .users { max-width: 42vw; }
     .agentlink { bottom: calc(var(--g1) + var(--u) * 2.9); }
   }
+
+  /* ── MOBILE CONFORMANCE (Compact window-size class OR coarse pointer) ──────────────────────────
+     This greeter is a VERBATIM SDDM reproduction (font-exempt in the UI-conformance witness), so we do
+     NOT apply the global holo-mobile.css floor here — it would alter the pixel-exact desktop projection
+     and overflow the submit button nested inside the password field. Instead we meet the same standard,
+     scoped to phones: MD3 48dp touch targets (Material 3 · Accessibility → Touch target), WCAG 2.2
+     §2.5.8 (Target Size, Minimum), and CSS env() safe-area so the fixed furniture clears the notch and
+     home indicator. The desktop greeter is untouched. */
+  @media (max-width: 600px), (pointer: coarse) {
+    /* primary controls reach the 48dp floor */
+    .box input { height: max(var(--g2), 48px); }
+    .box .submit { width: 44px; height: 44px; }     /* nested in the 48px field — visually contained, still a generous target */
+    .bio { min-height: 48px; }
+    .ctl { width: 48px; height: 48px; }
+    .chip { min-height: 48px; }
+    .alt { min-height: 48px; padding-left: var(--u); padding-right: var(--u); }
+    .agentlink { min-height: 48px; }
+    .ap-opt button { min-height: 48px; }
+    .pop button { min-height: 48px; }
+    /* safe-area: keep the fixed bottom furniture above the home indicator and clear of the side notch */
+    .users { left: max(var(--g1), env(safe-area-inset-left, 0px)); bottom: max(var(--g1), env(safe-area-inset-bottom, 0px)); }
+    .controls { right: max(var(--g1), env(safe-area-inset-right, 0px)); bottom: max(var(--g1), env(safe-area-inset-bottom, 0px)); }
+    .agentlink { bottom: calc(var(--g1) + var(--u) * 2.9 + env(safe-area-inset-bottom, 0px)); }   /* keep the corner-clearing lift, add home-bar clearance */
+    .pop { right: max(var(--g1), env(safe-area-inset-right, 0px)); bottom: calc(var(--g1) + var(--u) * 2.9 + env(safe-area-inset-bottom, 0px)); }
+    .agentpanel { bottom: calc(var(--g1) + var(--u) * 2.8 + env(safe-area-inset-bottom, 0px)); }
+    /* top furniture clears the notch / Dynamic Island */
+    .session, .agentcall { top: max(var(--g1), env(safe-area-inset-top, 0px)); }
+  }
+
+  /* ── APPEARANCE (Dark · Light · Immersive) ─────────────────────────────────────────────────────
+     The lock screen reflects the operator's chosen theme (set pre-paint by holo-appearance-boot.js
+     and live by the toggle below), so sign-in matches the desktop it opens into. Immersive = the
+     signature aurora; Dark / Light drop the aurora glows for a clean, launcher-quiet surface. */
+  :root[data-holo-immersive="off"] .wall i { opacity: 0; }                 /* clean, no aurora glows */
+  :root[data-holo-palette="dark"][data-holo-immersive="off"] .wall { background: #09090B; }
+  /* Light: a soft daylight wall, dark ink, a bright frost — every key surface flipped. */
+  :root[data-holo-palette="light"] { --ink: #1a1d24; --ink-dim: rgba(26,29,36,.74); --ink-faint: rgba(26,29,36,.5); }
+  :root[data-holo-palette="light"] body { background: #eceae4; }
+  :root[data-holo-palette="light"] .wall { background: radial-gradient(120% 120% at 20% 0%, #dfe7f2 0%, #ece9e3 60%, #f5f3ed 100%); }
+  :root[data-holo-palette="light"] .wall i { mix-blend-mode: multiply; opacity: .28; }
+  :root[data-holo-palette="light"] .frost { background: rgba(245,244,240,.42);
+    -webkit-backdrop-filter: blur(80px) saturate(1.2) brightness(1.04); backdrop-filter: blur(80px) saturate(1.2) brightness(1.04); }
+  :root[data-holo-palette="light"] .name, :root[data-holo-palette="light"] .sub, :root[data-holo-palette="light"] .status { text-shadow: none; }
+  :root[data-holo-palette="light"] .box input { color: #1a1d24; background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.14); }
+  :root[data-holo-palette="light"] .box input::placeholder { color: rgba(26,29,36,.5); }
+  :root[data-holo-palette="light"] .box input:focus { background: rgba(0,0,0,.03); }
+  :root[data-holo-palette="light"] .status { color: #0f7a5a; }
+  :root[data-holo-palette="light"] .chip { background: rgba(0,0,0,.05); } :root[data-holo-palette="light"] .chip:hover { background: rgba(0,0,0,.09); }
+  :root[data-holo-palette="light"] .chip .lab, :root[data-holo-palette="light"] .chip .pic { color: #1a1d24; }
+  :root[data-holo-palette="light"] .ctl { background: rgba(0,0,0,.06); color: #1a1d24; } :root[data-holo-palette="light"] .ctl:hover { background: rgba(0,0,0,.12); color: #000; }
+  :root[data-holo-palette="light"] .alt:hover { color: #000; }
+  :root[data-holo-palette="light"] .agentlink { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.12); } :root[data-holo-palette="light"] .agentlink:hover { color: #000; }
+
+  /* the appearance toggle — a single quiet icon (top-right) that cycles Dark → Light → Immersive */
+  #appearance-toggle { position: fixed; top: var(--g1); right: var(--g1); z-index: 5; width: calc(var(--u) * 2.5); height: calc(var(--u) * 2.5);
+    border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center; font-size: calc(var(--u) * 1.1);
+    color: #e7ecf7; background: rgba(255,255,255,.07); transition: background .15s, color .15s; }
+  #appearance-toggle:hover { background: rgba(255,255,255,.16); color: #fff; }
+  :root[data-holo-palette="light"] #appearance-toggle { background: rgba(0,0,0,.06); color: #1a1d24; }
+  :root[data-holo-palette="light"] #appearance-toggle:hover { background: rgba(0,0,0,.12); color: #000; }
+  @media (max-width: 600px), (pointer: coarse) { #appearance-toggle { width: 48px; height: 48px; top: max(var(--g1), env(safe-area-inset-top, 0px)); right: max(var(--g1), env(safe-area-inset-right, 0px)); } }
 </style>
 </head>
 <body>
@@ -197,11 +261,40 @@
 <div class="users" id="users"></div>
 <div class="pop" id="powmenu"></div>
 <div class="controls" id="controls"></div>
+<button id="appearance-toggle" type="button" aria-label="Appearance — Dark, Light or Immersive" title="Appearance"></button>
 <button class="agentlink" id="agentbtn" aria-haspopup="dialog" aria-controls="agentpanel"></button>
 <section class="agentpanel" id="agentpanel" role="region" aria-label="AI agent sign-in instructions" data-agent-login></section>
 <div class="agentcall" id="agentcall"></div>
 <div class="session" id="session" title="the session this sign-in will open"></div>
 <div id="fallback"><div>The display manager could not start.<code id="fallbackMsg"></code></div></div>
+
+<!-- Appearance toggle — cycles Dark → Light → Immersive, applied live AND persisted to the canonical
+     holo.theme.v1 the bootstrap reads, so the choice carries into the desktop and every future boot.
+     Classic + standalone (no engine dependency): mirrors holo-appearance-boot.js's apply logic. -->
+<script>
+(function () {
+  var KEY = "holo.theme.v1", root = document.documentElement, ORDER = ["dark", "light", "immersive"];
+  var GLYPH = { dark: "🌙", light: "☀️", immersive: "🏞️" };
+  function read() { try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { return {}; } }
+  function curMode(s) { return s.immersive ? "immersive" : (s.palette === "light" ? "light" : "dark"); }
+  function apply(mode) {
+    var s = read();
+    if (mode === "light") { s.palette = "light"; s.immersive = false; }
+    else if (mode === "dark") { s.palette = "dark"; s.immersive = false; }
+    else { s.immersive = true; if (!s.palette || s.palette === "auto") s.palette = "dark"; }
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+    if (s.palette && s.palette !== "auto") { root.setAttribute("data-holo-palette", s.palette); root.style.setProperty("color-scheme", s.palette); }
+    root.setAttribute("data-holo-immersive", s.immersive ? "on" : "off");
+    reflect(mode);
+  }
+  function reflect(mode) { if (btn) { btn.textContent = GLYPH[mode] || "🌙"; btn.setAttribute("title", "Appearance — " + mode.charAt(0).toUpperCase() + mode.slice(1)); } }
+  var btn = document.getElementById("appearance-toggle");
+  if (btn) {
+    reflect(curMode(read()));
+    btn.addEventListener("click", function () { var now = curMode(read()); apply(ORDER[(ORDER.indexOf(now) + 1) % ORDER.length]); });
+  }
+})();
+</script>
 
 <!-- Machine-readable sign-in instructions for AI agents. Always present in the DOM, even before scripts run. -->
 <script type="application/json" id="holo-agent-login">

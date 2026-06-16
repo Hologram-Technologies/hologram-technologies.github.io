@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Holo Splash Hologram OS</title>
     <meta name="description" content="Holo Splash the hologram-native Plymouth: real .plymouth themes (script · two-step · text · details), a faithful Plymouth-script interpreter, boot progress, messages and password prompts content-addressed and κ-verified, running entirely in the browser. No server." />
+    <!-- Appearance, before first paint: publish the canonical palette/immersive onto <html> so the
+         splash matches the chosen theme from the first frame (the bg-* hook below reads it). -->
+    <script src="_shared/holo-appearance-boot.js"></script>
     <!-- The mobile conformance layer every shipped holospace adopts (the enforce-witnesses gate). -->
     <link rel="stylesheet" href="_shared/holo-mobile.css" />
     <link rel="stylesheet" href="_shared/holo-phi.css" />
@@ -23,6 +26,9 @@
       body { background: #000; color: var(--holo-ink); display: flex; flex-direction: column;
         font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
       body.bg-light { background: #f0eee8; }
+      /* Pre-paint appearance: holo-appearance-boot.js sets data-holo-palette on <html> before the
+         body paints, so the canonical Light theme is on the FIRST frame — no black flash, no seam. */
+      html[data-holo-palette="light"] body, html[data-holo-palette="light"] #stage { background: #f0eee8; }
 
       /* Thin holospace chrome — identity · κ-address · Law-L5 · mode · theme — the
          same vocabulary as os.html / winamp.html / boot.html (ADR-026). */
@@ -188,7 +194,7 @@
       body.handoff #toast { display: none; }
       @media (max-width: 640px) {
         #bar .k { max-width: 60vw; } #bar .stat { order: 9; flex-basis: 100%; max-width: 96vw; }
-        #bar button, #bar select, #dock button, #dock select { min-height: 44px; }
+        #bar button, #bar select, #dock button, #dock select { min-height: 48px; }   /* MD3 48dp touch target */
       }
       #toast { position: fixed; bottom: 4.2rem; left: 50%; transform: translateX(-50%); background: var(--holo-surface-2);
         border: 1px solid var(--holo-border); border-radius: 8px; padding: 0.45rem 0.8rem; font-size: 12px; opacity: 0;
@@ -321,7 +327,7 @@
         .a-info { flex-basis: 100%; }
         .cine .hud { flex-basis: 100%; margin-left: 0; text-align: right; }
         .imp-head, .imp-chips, .imp-grid, .imp-boot { padding-left: var(--holo-size-s); padding-right: var(--holo-size-s); }
-        .imp-action button, .imp-chip, .imp-x { min-height: 44px; }
+        .imp-action button, .imp-chip, .imp-x { min-height: 48px; }   /* MD3 48dp touch target */
       }
     </style>
   </head>
@@ -577,7 +583,15 @@
       const BG_MODES = ["dark", "light", "immersive"];
       const BG_PREF = "holo-splash:bg";
       let themeBg = null;   // the active theme's OWN background — captured at load, restored in Immersive
-      let bgMode = (() => { try { const v = localStorage.getItem(BG_PREF); return v === "theme" ? "immersive" : (BG_MODES.includes(v) ? v : "immersive"); } catch { return "immersive"; } })();
+      // Honor the OS-wide appearance (holo.theme.v1) first, so the splash wears the same theme the
+      // operator chose in the shell / login picker; fall back to the splash's own legacy key.
+      let bgMode = (() => {
+        try {
+          const t = JSON.parse(localStorage.getItem("holo.theme.v1") || "null");
+          if (t) { if (t.immersive) return "immersive"; if (t.palette === "light") return "light"; if (t.palette === "dark") return "dark"; }
+        } catch {}
+        try { const v = localStorage.getItem(BG_PREF); return v === "theme" ? "immersive" : (BG_MODES.includes(v) ? v : "immersive"); } catch { return "immersive"; }
+      })();
       const saveBg = () => { try { localStorage.setItem(BG_PREF, bgMode); } catch {} };
       function reflectBgSeg() { const seg = document.getElementById("bgSeg"); if (seg) for (const b of seg.children) b.classList && b.classList.toggle("on", b.dataset && b.dataset.bg === bgMode); }
       // An IMPORTED theme's own backdrop sprite (its background.png / wallpaper art) — the LARGEST

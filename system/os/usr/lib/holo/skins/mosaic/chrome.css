@@ -1,0 +1,49 @@
+/* NCSA Mosaic chrome — Motif look. 2-tone beveled grey chrome (#c0c0c0), Helvetica/Nimbus UI font,
+   the page body keeps blue/visited-purple links. Scoped to the .skin-chrome host the engine mounts
+   inside the <holo-window> shadow root, so it never leaks into OS chrome or into the page iframe. */
+.skin-chrome { --mos-face:#c0c0c0; --mos-light:#ffffff; --mos-dark:#808080; --mos-darker:#404040; --mos-ink:#000;
+  font-family: Helvetica, "Nimbus Sans", Arial, sans-serif; font-size: 12px; color: var(--mos-ink); }
+
+/* a raised Motif bevel (light top-left, dark bottom-right) and its inset inverse */
+.skin-chrome .mos { background: var(--mos-face); border-bottom: 2px solid var(--mos-dark);
+  box-shadow: inset 1px 1px 0 var(--mos-light), inset -1px -1px 0 var(--mos-darker); }
+
+/* ── menu bar ── */
+.skin-chrome .mos-menubar { display: flex; align-items: center; gap: 2px; padding: 3px 4px; position: relative; }
+.skin-chrome .mos-menu { font: inherit; background: var(--mos-face); color: var(--mos-ink); border: 0; padding: 2px 10px; cursor: default;
+  box-shadow: inset 1px 1px 0 var(--mos-light), inset -1px -1px 0 var(--mos-dark); }
+.skin-chrome .mos-menu:active, .skin-chrome .mos-menu[aria-expanded="true"] { box-shadow: inset -1px -1px 0 var(--mos-light), inset 1px 1px 0 var(--mos-dark); }
+.skin-chrome .mos-help { margin-left: 6px; }
+.skin-chrome .mos-globe { margin-left: auto; width: 38px; height: 38px; display: grid; place-items: center; }
+.skin-chrome .mos-globe svg { width: 34px; height: 34px; display: block; }
+.skin-chrome .mos-globe.spinning svg { animation: mos-spin 1.1s steps(24) infinite; }
+@keyframes mos-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .skin-chrome .mos-globe.spinning svg { animation: none; } }
+
+/* ── toolbar ── */
+.skin-chrome .mos-toolbar { display: flex; align-items: center; gap: 4px; padding: 4px 6px; }
+.skin-chrome .mos-btn { width: 30px; height: 28px; display: grid; place-items: center; background: var(--mos-face); border: 0; cursor: default;
+  box-shadow: inset 1px 1px 0 var(--mos-light), inset -1px -1px 0 var(--mos-darker); }
+.skin-chrome .mos-btn:active { box-shadow: inset -1px -1px 0 var(--mos-light), inset 1px 1px 0 var(--mos-darker); }
+.skin-chrome .mos-btn[disabled] { opacity: .45; }
+.skin-chrome .mos-btn svg { width: 18px; height: 18px; display: block; }
+.skin-chrome .mos-sep { width: 2px; height: 22px; margin: 0 3px; box-shadow: inset 1px 0 0 var(--mos-dark), inset -1px 0 0 var(--mos-light); }
+
+/* ── the labelled Document Title / URL fields ── */
+.skin-chrome .mos-fields { padding: 2px 6px 6px; display: grid; gap: 3px; }
+.skin-chrome .mos-field { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 6px; }
+.skin-chrome .mos-label { text-align: right; font-weight: 700; }
+.skin-chrome .mos-input { font: 12px "Courier New", monospace; background: #fff; color: #000; border: 0; padding: 2px 5px;
+  box-shadow: inset 1px 1px 0 var(--mos-dark), inset -1px -1px 0 var(--mos-light); outline: 0; }
+
+/* ── status bar (bottom row) ── */
+.skin-chrome .mos-status { display: flex; align-items: center; gap: 8px; padding: 3px 8px; background: var(--mos-face);
+  box-shadow: inset 1px 1px 0 var(--mos-light), inset -1px -1px 0 var(--mos-dark); }
+.skin-chrome .mos-status-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skin-chrome .mos-meter { width: 120px; height: 12px; background: #fff; box-shadow: inset 1px 1px 0 var(--mos-dark), inset -1px -1px 0 var(--mos-light); }
+.skin-chrome .mos-meter-fill { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, #000080 0 4px, #1030b0 4px 8px); transition: width .2s; }
+.skin-chrome .mos-security[data-state="secure"]::before { content: "🔒"; }
+.skin-chrome .mos-security[data-state="warning"]::before, .skin-chrome .mos-security[data-state="dangerous"]::before { content: "⚠"; }
+
+/* region layout (display:contents + order + entrance) is engine-owned STRUCTURAL_CSS (holo-skin.js),
+   so this file carries only Mosaic's visual styling. */

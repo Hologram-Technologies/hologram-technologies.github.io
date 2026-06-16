@@ -19,8 +19,8 @@
   if (W.HoloWidgets) return;
   try { if (W.top !== W.self) return; } catch (e) { return; }     // top shell only — survive app frames
 
-  var LS = "holo-widgets.v5";          // v5: split the combined Welcome widget into independent dayring + greeting (reseeds cleanly)
-  var SEED_LS = "holo-widgets.seeded.v5";
+  var LS = "holo-widgets.v6";          // v6: every intent mode (Learn·Work·Play) reseats onto the shared centre-hero + four-corner golden grammar (reseeds cleanly)
+  var SEED_LS = "holo-widgets.seeded.v6";
   var TYPES = {};                                                 // type id → spec
   var PROVIDERS = {};                                            // provider name → factory()
   var live = [];                                                 // mounted instances {id,type,x,y,w,h,config,el,body,_subs}
@@ -683,7 +683,7 @@
   // A mode is just a scene flagged {mode:true}. Switching REPLACES the board, but each mode REMEMBERS its
   // own layout (per-mode localStorage), so flipping between them is non-destructive — your customised Work
   // board is still there when you come back from Play. Active only on a persisting board (the Home desktop).
-  var MODE_LS = "holo-widgets.mode.v5", MODES_LS = "holo-widgets.modeboards.v5", currentMode = null;
+  var MODE_LS = "holo-widgets.mode.v6", MODES_LS = "holo-widgets.modeboards.v6", currentMode = null;
   function modeBoardsLoad() { try { return JSON.parse(W.localStorage.getItem(MODES_LS) || "{}"); } catch (e) { return {}; } }
   function modeBoardsSave(m) { try { W.localStorage.setItem(MODES_LS, JSON.stringify(m)); } catch (e) {} }
   function currentModeName() { if (currentMode) return currentMode; try { return W.localStorage.getItem(MODE_LS) || null; } catch (e) { return null; } }
@@ -1218,6 +1218,24 @@
   // every tile shares one golden progression and the primary:secondary split is φ:1 (≈1.618:1).
   function LAD(hero) { var sec = Math.round(hero / PHI), head = Math.round(sec / PHI); return { hero: hero, sec: sec, head: head }; }
 
+  // ── ONE balanced composition shared by the three intent modes (Learn · Work · Play): a φ-scaled HERO
+  //    held at the CENTRE, and one calm widget in each CORNER. The sticky Q orb always rides the
+  //    bottom-right corner (anchorOrb), so a mode fills only three corners (top-left, top-right,
+  //    bottom-left) + the centre — and the orb completes the fourth. Switching modes swaps only WHICH
+  //    widgets fill this same frame, so every mode reads as the same well-ordered, symmetric space.
+  //    Sizes ride the golden ladder: each corner = secondary width, the centre hero = secondary × φ
+  //    (≈ φ:1), so the focal piece is exactly one golden step larger than its four satellites.
+  function GRID5(W_, H_, b, heroW) {
+    var m = MARGIN(W_, H_), top = (b.minY || 0), cw = LAD(heroW).sec;
+    return {
+      m: m, cw: cw, heroW: heroW,
+      tl:  { w: cw,    x: HX(b, m),       y: GY(top, H_, m, 0) },       // top-left corner
+      tr:  { w: cw,    x: RX(W_, cw, m),  y: GY(top, H_, m, 0) },       // top-right corner
+      bl:  { w: cw,    x: HX(b, m),       y: GY(top, H_, m, 0.70) },    // bottom-left corner
+      mid: { w: heroW, x: CX(W_, heroW),  y: GY(top, H_, m, 0.40) },    // centre hero (top set so its mass centres)
+    };                                                                   // bottom-right corner is held by the sticky Q orb
+  }
+
   // ── launch — a crisp, φ-proportioned APP tile (Files · Code · Wallet · Ask Q): one tap opens the real
   //    holospace through the shell's own launcher (window.HoloShell) or summons Q. The only "app" surface
   //    on the calm board — no iframe, no mockup, it just opens the live app. ──
@@ -1283,57 +1301,55 @@
     },
   });
 
-  // Learn — a φ:1 two-column study space: LEFT a reading/notes surface (hero) over a sprint timer; RIGHT
-  // your resources and Q as copilot. Distinct from Work — reading + thinking, not a productivity grid.
+  // Learn — a study space on the shared centre+corners grammar: the reading/notes surface is the HERO at
+  // the centre; the clock anchors the top-left, your resources the top-right, a sprint timer the
+  // bottom-left. The sticky Q orb sits bottom-right as your copilot — so there's no separate "Ask Q" tile
+  // to duplicate it. Reading + thinking, distinct from Work's productivity set.
   W.HoloWidgets.defineScene("learn", {
     name: "Learn", icon: "school", mode: true,
-    blurb: "Study: a reading/notes surface, a sprint timer, your resources, and Q as your copilot.",
+    blurb: "Study: a reading/notes surface at the centre, the time, your resources, a sprint timer — Q as copilot.",
     layout: function (W_, H_, b) {
-      var m = MARGIN(W_, H_), top = (b.minY || 0), L = LAD(400);
+      var g = GRID5(W_, H_, b, 420);
       return [
-        { type: "clock",  config: { greet: false }, w: L.head, x: HX(b, m), y: GY(top, H_, m, 0) },
-        { type: "note",   config: { text: "What are you learning today?", rule: true }, w: L.hero, x: HX(b, m), y: GY(top, H_, m, 0.382) },
-        { type: "focus",  config: { minutes: 25 }, w: L.sec, x: HX(b, m), y: GY(top, H_, m, 0.618) },
-        { type: "links",  config: { title: "Resources" }, w: L.sec, x: RX(W_, L.sec, m), y: GY(top, H_, m, 0.382) },
-        { type: "launch", config: { app: "q", label: "Ask Q", icon: "sparkles" }, w: L.head, x: RX(W_, L.head, m), y: GY(top, H_, m, 0.618) },
+        { type: "note",  config: { text: "What are you learning today?", rule: true }, w: g.mid.w, x: g.mid.x, y: g.mid.y },
+        { type: "clock", config: { greet: false }, w: g.tl.w, x: g.tl.x, y: g.tl.y },
+        { type: "links", config: { title: "Resources" }, w: g.tr.w, x: g.tr.x, y: g.tr.y },
+        { type: "focus", config: { minutes: 25 }, w: g.bl.w, x: g.bl.x, y: g.bl.y },
       ];
     },
   });
 
-  // Work — a φ:1 workspace: LEFT your to-do (hero), RIGHT the schedule; the machine sits quietly in the
-  // header; a row of real APP tiles (Files · Code · Wallet) anchors the lower-left. The bottom-right stays
-  // clear for the Q orb. One-tap into the live apps — the calm board, now a launchpad.
+  // Work — your day on the shared centre+corners grammar: the to-do is the HERO at the centre; the clock
+  // (with greeting) anchors the top-left, the month's schedule the top-right, the weather the bottom-left.
+  // The sticky Q orb holds the bottom-right. A focused productivity board — the live apps stay one tap
+  // away in the dock, so they no longer crowd the surface as a row of tiles.
   W.HoloWidgets.defineScene("work", {
     name: "Work", icon: "briefcase", mode: true,
-    blurb: "A workspace: your day, your to-do, the machine — and one-tap Files · Code · Wallet.",
+    blurb: "Your day: the to-do at the centre, the time, the month, the weather — Q a tap away.",
     layout: function (W_, H_, b) {
-      var m = MARGIN(W_, H_), top = (b.minY || 0), L = LAD(400), lw = 128, gap = lw + Math.round(m * PHI_INV);
+      var g = GRID5(W_, H_, b, 420);
       return [
-        { type: "clock",    config: { greet: true }, w: L.head, x: HX(b, m), y: GY(top, H_, m, 0) },
-        { type: "system",   config: {}, w: L.sec, x: CX(W_, L.sec), y: GY(top, H_, m, 0) },
-        { type: "weather",  config: { place: "" }, w: L.head, x: RX(W_, L.head, m), y: GY(top, H_, m, 0) },
-        { type: "tasks",    config: { title: "To-do" }, w: L.hero, x: HX(b, m), y: GY(top, H_, m, 0.382) },
-        { type: "calendar", config: {}, w: L.sec, x: RX(W_, L.sec, m), y: GY(top, H_, m, 0.382) },
-        { type: "launch", config: { appId: "org.hologram.HoloFiles",  label: "Files",  icon: "folder" }, w: lw, x: HX(b, m),           y: GY(top, H_, m, 0.618) },
-        { type: "launch", config: { appId: "org.hologram.HoloForge",  label: "Code",   icon: "code" },   w: lw, x: HX(b, m) + gap,     y: GY(top, H_, m, 0.618) },
-        { type: "launch", config: { appId: "org.hologram.HoloWallet", label: "Wallet", icon: "wallet" }, w: lw, x: HX(b, m) + gap * 2, y: GY(top, H_, m, 0.618) },
+        { type: "tasks",    config: { title: "To-do" }, w: g.mid.w, x: g.mid.x, y: g.mid.y },
+        { type: "clock",    config: { greet: true }, w: g.tl.w, x: g.tl.x, y: g.tl.y },
+        { type: "calendar", config: {}, w: g.tr.w, x: g.tr.x, y: g.tr.y },
+        { type: "weather",  config: { place: "" }, w: g.bl.w, x: g.bl.x, y: g.bl.y },
       ];
     },
   });
 
-  // Play — wind down, roomy: the disc UP FRONT on the golden focal point (0.382), what's playing on the
-  // complementary line (0.618), the time held quietly above, a thought below. Margins relaxed one φ-step.
+  // Play — wind down on the shared centre+corners grammar: the disc is the HERO UP FRONT at the centre;
+  // the clock anchors the top-left, a thought (quote) the top-right, what's playing the bottom-left. The
+  // sticky Q orb holds the bottom-right. The disc, what's playing, the time, a thought — relaxed and roomy.
   W.HoloWidgets.defineScene("play", {
     name: "Play", icon: "player-play", mode: true,
-    blurb: "Wind down: the disc up front, what's playing, the time, a thought — relaxed and roomy.",
+    blurb: "Wind down: the disc up front at the centre, the time, a thought, what's playing.",
     layout: function (W_, H_, b) {
-      var m = Math.round(MARGIN(W_, H_) * PHI), top = (b.minY || 0), L = LAD(400);   // one φ-step roomier margins
+      var g = GRID5(W_, H_, b, 372);                                     // a touch smaller hero so the square disc breathes
       return [
-        { type: "clock",       config: { greet: true }, w: L.head, x: HX(b, m), y: GY(top, H_, m, 0) },
-        { type: "weather",     config: { place: "" }, w: L.head, x: RX(W_, L.head, m), y: GY(top, H_, m, 0) },
-        { type: "vinyl",       w: 372, x: GPX(b, 372, 0.382), y: GY(top, H_, m, 0.382) },
-        { type: "now-playing", w: L.sec, x: GPX(b, L.sec, 0.618), y: GY(top, H_, m, 0.382) },
-        { type: "quote",       config: { text: "" }, w: L.hero, x: CX(W_, L.hero), y: GY(top, H_, m, 0.618) },
+        { type: "vinyl",       w: g.mid.w, x: g.mid.x, y: g.mid.y },
+        { type: "clock",       config: { greet: true }, w: g.tl.w, x: g.tl.x, y: g.tl.y },
+        { type: "quote",       config: { text: "" }, w: g.tr.w, x: g.tr.x, y: g.tr.y },
+        { type: "now-playing", config: {}, w: g.bl.w, x: g.bl.x, y: g.bl.y },
       ];
     },
   });
