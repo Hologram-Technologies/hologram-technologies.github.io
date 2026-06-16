@@ -1144,7 +1144,7 @@
   addEventListener("keydown", (e) => { if (e.key === "Enter" && !(e.target.closest && e.target.closest(".search"))) { e.preventDefault(); boot(); } });
   try { $("enter").focus({ preventScroll: true }); } catch {}
 
-  // ── Free Download — opens the native-app holospace (download.html), a computer window on the OS
+  // ── Free Download — opens the native-app holospace (docs/download.html), a computer window on the OS
   // desktop that says, plainly, that Local Hologram OS is coming soon to every major platform, and
   // that it already runs today in any browser. We still sniff the platform once and swap in the
   // matching glyph, so the button reads as "for you"; the window then flags the visitor's own device.
@@ -1171,7 +1171,7 @@
     }
     const os = detectOS();
     icHost.innerHTML = ICON[os] || ICON.win;
-    dl.href = "download.html";                            // the native-app holospace window (coming-soon door)
+    dl.href = "docs/download.html";                       // the native-app holospace window (coming-soon door)
     dl.removeAttribute("target"); dl.removeAttribute("rel");
     dl.setAttribute("aria-label", "Free Download — Hologram OS for " + (LABEL[os] || "your device") + ", native apps coming soon");
     dl.title = "Free Download · Hologram OS for " + (LABEL[os] || "your device");

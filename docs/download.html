@@ -6,7 +6,7 @@
 <title>Download Hologram OS</title>
 <meta name="description" content="A supercomputer you already own. Hologram turns this machine into a personal supercomputer that answers to you alone. It runs today in any browser, and native apps for every platform are on their way. Held as a self-verifying content-addressed object." />
 <meta name="theme-color" content="#000000" />
-<link rel="icon" type="image/svg+xml" href="os/usr/share/icons/hologram-dark.svg" />
+<link rel="icon" type="image/svg+xml" href="../os/usr/share/icons/hologram-dark.svg" />
 <!-- apply the saved appearance before first paint, exactly as the gateway does, so there is no flash and
      this object seams straight out of the homepage rather than reading as a separate website page. -->
 <script>var d=document.documentElement;d.setAttribute("data-theme","dark");d.setAttribute("data-immersive","full");</script>
@@ -326,7 +326,7 @@
 </div>
 
 <header class="deskbar">
-  <a class="brand" href="./" aria-label="Hologram OS, home">
+  <a class="brand" href="../" aria-label="Hologram OS, home">
     <svg class="mk" aria-hidden="true"><use href="#holo-mark"/></svg>
     <span class="brand-name">HOLOGRAM OS</span>
   </a>
@@ -351,7 +351,7 @@
         <p class="kicker"><span class="dot" aria-hidden="true"></span>Coming soon to every platform</p>
         <h1>A supercomputer you already own.</h1>
         <p class="lede">The power is already in your hands. Hologram turns it into a supercomputer that is yours alone. <b>Fast, free, private.</b></p>
-        <p class="now"><span class="pulse" aria-hidden="true"></span>Runs today in any browser. <a href="./">Power up &rarr;</a></p>
+        <p class="now"><span class="pulse" aria-hidden="true"></span>Runs today in any browser. <a href="../">Power up &rarr;</a></p>
 
         <div class="platforms">
           <p class="cap">Native apps, on their way</p>
@@ -419,8 +419,8 @@
 <!-- the SAME homepage background: Vanta CLOUDS2 (Vanta.js + three.js r134, both MIT), vendored locally and
      served same-origin (no runtime CDN). Deferred so they never block the window's reveal; the glass window
      then frosts this live cloudscape exactly as the app-search launcher frosts the homepage. -->
-<script defer src="system/vendor/vanta/three.min.js"></script>
-<script defer src="system/vendor/vanta/vanta.clouds2.min.js"></script>
+<script defer src="../system/vendor/vanta/three.min.js"></script>
+<script defer src="../system/vendor/vanta/vanta.clouds2.min.js"></script>
 <script type="module">
   // Immersive background — the genuine Vanta CLOUDS2 effect, mounted on #vanta and pinned to the tuned
   // homepage horizon (we patch the shader on the effect's prototype at runtime, so the vendored file's
@@ -439,7 +439,7 @@
         const probe = document.createElement("div");
         probe.style.cssText = "position:absolute;left:-9999px;top:0;width:8px;height:8px;pointer-events:none";
         document.body.appendChild(probe);
-        const t = window.VANTA.CLOUDS2({ el: probe, THREE: window.THREE, mouseControls: false, touchControls: false, gyroControls: false, speed: 0.0, texturePath: "system/vendor/vanta/noise.png" });
+        const t = window.VANTA.CLOUDS2({ el: probe, THREE: window.THREE, mouseControls: false, touchControls: false, gyroControls: false, speed: 0.0, texturePath: "../system/vendor/vanta/noise.png" });
         const proto = t && Object.getPrototypeOf(t);
         if (proto && typeof proto.fragmentShader === "string" && proto.fragmentShader.includes("- 0.65")) {
           proto.fragmentShader = proto.fragmentShader.replace("coord / iResolution.y - 0.65", "coord / iResolution.y - " + HOLO_HORIZON);
@@ -461,7 +461,7 @@
           el: el, THREE: window.THREE,
           mouseControls: false, touchControls: false, gyroControls: false,
           scale: scaleNow(), scaleMobile: scaleNow(),
-          texturePath: "system/vendor/vanta/noise.png",
+          texturePath: "../system/vendor/vanta/noise.png",
           speed: reduce ? 0.0 : 1.0,
         });
         document.body.classList.add("vanta-on");
@@ -725,7 +725,7 @@
   });
 
   // ── close like an app: the red light, Esc, or the empty desk return you home with a soft power-down.
-  function home(){ if (BODY.classList.contains("closing")) return; BODY.classList.add("closing"); setTimeout(function(){ location.href = "./"; }, 210); }
+  function home(){ if (BODY.classList.contains("closing")) return; BODY.classList.add("closing"); setTimeout(function(){ location.href = "../"; }, 210); }
   DOC.getElementById("close").addEventListener("click", function(e){ e.stopPropagation(); home(); });
   DOC.getElementById("desk").addEventListener("mousedown", function(e){ if (e.target && e.target.id === "desk") home(); });
   DOC.addEventListener("keydown", function(e){ if (e.key === "Escape") home(); });
