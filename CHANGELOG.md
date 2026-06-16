@@ -23,6 +23,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Raise the horizon so the dark sky is narrower and the blue taller
 - Remove the strange white halo at the top of the landing
 - Ship the static manifesto/download pages verbatim so embed mode reaches production
 - Show framed pages as one clean window, not window-in-window
