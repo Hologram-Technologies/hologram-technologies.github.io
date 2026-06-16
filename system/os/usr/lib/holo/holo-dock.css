@@ -211,7 +211,12 @@
   flex-direction: column; width: max-content; min-height: 0; height: 100%; margin: 0;
   border: 0; border-right: 1px solid var(--hd-glass-border); border-radius: 0;
   justify-content: flex-start; padding: var(--hd-sp3) var(--hd-pad);
+  /* never spill past the screen — when the pins + tray are taller than the viewport, the rail scrolls
+   * inside its own strip (thin, unobtrusive) instead of pushing the tray off the bottom edge. */
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
 }
+#holo-dock[data-orient="left"] .holo-dock-inner::-webkit-scrollbar { width: 6px; }
+#holo-dock[data-orient="left"] .holo-dock-inner::-webkit-scrollbar-thumb { background: var(--hd-border); border-radius: 999px; }
 #holo-dock[data-orient="left"] .holo-dock-items { flex-direction: column; align-items: center; }
 #holo-dock[data-orient="left"] .holo-dock-sep { flex: 1 1 auto; }
 #holo-dock[data-orient="left"] .holo-dock-tray { flex-direction: column; margin-left: 0; margin-top: var(--hd-sp3); }
@@ -312,7 +317,10 @@
   flex-direction: column; width: max-content; min-height: 0; height: 100%; margin: 0;
   border: 0; border-left: 1px solid var(--hd-glass-border); border-radius: 0;
   justify-content: flex-start; padding: var(--hd-sp3) var(--hd-pad);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
 }
+#holo-dock[data-orient="right"] .holo-dock-inner::-webkit-scrollbar { width: 6px; }
+#holo-dock[data-orient="right"] .holo-dock-inner::-webkit-scrollbar-thumb { background: var(--hd-border); border-radius: 999px; }
 /* free = a floating rounded pill at the drop point (not an edge bar) */
 #holo-dock[data-orient="free"] .holo-dock-inner {
   flex-direction: column; width: max-content; min-height: 0; height: max-content;

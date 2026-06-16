@@ -44,10 +44,16 @@
     return m ? "/.holo/" + m[1].toLowerCase() + "/" + m[2] : String(w);
   }
 
+  // First-run default — a brand-new operator (no saved choice, no legacy key) lands on the immersive
+  // galaxy backdrop (the curated Milky Way, attributed Unsplash). Seeded ONCE into the canonical state
+  // so the async engine (holo-theme.js) reads it as the saved choice and never overrides this frame.
+  var FIRST_RUN = { palette: "dark", immersive: true, wallpaper: "/usr/share/wallpapers/galaxy.jpg" };
+
   var s = readState();
   if (!s) {
     var mig = fromLegacy();
-    if (mig) { s = mig; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+    s = mig || FIRST_RUN;
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
   s = s || {};
 

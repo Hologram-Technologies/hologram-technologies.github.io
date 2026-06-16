@@ -5588,7 +5588,7 @@
             if (op) {
               const wkey = "holo.notify.welcomed." + op.split(":").pop().slice(0, 16);
               if (!localStorage.getItem(wkey)) {
-                window.HoloNotify.q({ title: "I'm Q — I'll leave notes here.", body: "When I notice something, finish a task, or have a heads-up for you, it lands in this Center. Open it any time from the bell.", deepLink: { kind: "q" } });
+                window.HoloNotify.q({ title: "I'm Q — I'll leave notes here.", body: "When I notice something, finish a task, or have a heads-up for you, it lands in this Center. Open it any time from the bell.", deepLink: { kind: "q" }, actionLabel: "Open Q" });
                 try { localStorage.setItem(wkey, "1"); } catch (e) {}
               }
             }
