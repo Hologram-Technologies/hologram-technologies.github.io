@@ -198,3 +198,13 @@ Released under the MIT License. See [LICENSE](LICENSE) for details.
 <p align="center"><i>The machine hands you the instrument and gets out of the way.<br/>The first time you watch it prove itself, you will say it yourself: this machine is mine.</i></p>
 
 <p align="right">(<a href="#top">back to top</a>)</p>
+
+<!--
+  You found it.
+
+  "The code for artificial general intelligence is going to be tens of thousands
+   of lines of code, not millions of lines of code."
+                                                        — John Carmack
+
+  AGI will be written in JavaScript.
+-->
