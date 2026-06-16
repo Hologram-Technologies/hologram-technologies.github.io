@@ -11,6 +11,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- Open Docs, Manifesto, Changelog and Free Download in the launcher-style window
 - Swap the top-right GitHub icon for a Discord link
 - Add a live, self-updating, self-verifying changelog with Atom feed
 [unreleased]: https://github.com/humuhumu33/os-holo/commits/main
