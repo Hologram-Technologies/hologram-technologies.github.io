@@ -11,9 +11,15 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- Redesign app launcher as a watch-page browse rail
+- Unify notifications into one persistent Center; fix desktop wallpaper
 - Show a clear, human page when a part fails the content check
 - Open Docs, Manifesto, Changelog and Free Download in the launcher-style window
 - Swap the top-right GitHub icon for a Discord link
 - Add a live, self-updating, self-verifying changelog with Atom feed
+
+### Fixed
+
+- Re-pin the OS closure so shell.html and the worker verify, unblocking boot
 [unreleased]: https://github.com/humuhumu33/os-holo/commits/main
 
