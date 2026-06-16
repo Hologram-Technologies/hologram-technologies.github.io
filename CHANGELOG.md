@@ -8,7 +8,9 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ## [Unreleased]
 
-### Added
-- Live, self-updating changelog: a styled, self-verifying changelog page, a Keep a Changelog source of truth, and an Atom feed, generated from Conventional Commits by git-cliff on every deploy.
 
+### Added
+
+- Add a live, self-updating, self-verifying changelog with Atom feed
 [unreleased]: https://github.com/humuhumu33/os-holo/commits/main
+
