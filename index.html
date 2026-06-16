@@ -668,13 +668,17 @@
      computer-window as the app launcher, so the whole surface is one consistent place (no
      full-page jumps). Reuses the launcher's window chrome (traffic-light bar, frosted header,
      framed iframe) without touching its search/preview logic. */
-  .fw{ position:fixed; inset:var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l); z-index:45; display:flex;
-    padding:clamp(14px,2.3vmin,30px); opacity:0; transform:scale(.992); pointer-events:none;
-    transition:opacity .22s var(--ease), transform .24s var(--ease); }
+  /* identical footprint + frosted panel to the app launcher (.lx): same inset, radius, blur and
+     entrance, with the window filling the padded interior — so it opens at the SAME size. */
+  .fw{ position:fixed; inset:var(--frame-t) var(--frame-r) var(--frame-b) var(--frame-l); z-index:45; border-radius:var(--frame-rad); overflow:hidden;
+    display:flex; padding:clamp(14px,2.3vmin,30px); background:color-mix(in srgb, var(--bg) 60%, transparent);
+    -webkit-backdrop-filter:blur(28px) saturate(1.2); backdrop-filter:blur(28px) saturate(1.2);
+    opacity:0; transform:scale(1.014); pointer-events:none;
+    transition:opacity .3s var(--ease), transform .36s var(--ease); }
   .fw.open{ opacity:1; transform:none; pointer-events:auto; }
   .fw[hidden]{ display:none; }
-  .fw-scrim{ position:absolute; inset:0; background:rgba(3,5,10,.5); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
-  .fw-win{ position:relative; flex:1; margin:auto; width:100%; max-width:1180px; height:100%; display:flex; flex-direction:column;
+  .fw-scrim{ position:absolute; inset:0; background:transparent; }   /* click the frosted surround to close */
+  .fw-win{ position:relative; flex:1; width:100%; height:100%; display:flex; flex-direction:column;
     border-radius:calc(var(--u)*1.05); overflow:hidden; border:1px solid var(--line-strong); background:var(--bg);
     box-shadow:0 40px 110px -34px rgba(0,0,0,.78), inset 0 1px 0 rgba(255,255,255,.05); }
   .fw-bar{ flex:none; display:flex; align-items:center; gap:.85em; height:calc(var(--u)*3); padding:0 1em; position:relative;
