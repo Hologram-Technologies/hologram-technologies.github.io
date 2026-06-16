@@ -1,115 +1,198 @@
-# Hologram OS
+<a id="top"></a>
 
-🌐 **Your personal internet supercomputer.** Fast, free and private.
+<p align="center">
+  <img src="assets/banner.svg" alt="Hologram OS" width="100%">
+</p>
 
-*An internet computer for the open, semantic web.*
+# Hologram OS 🌐
 
-> ⏻ **Boot it:** open [`index.html`](index.html) — the single gateway. It brings up the κ Service Worker (the substrate gateway) and enters the boot chain (rEFInd → Plymouth → SDDM → PrimeOS), all in your browser, rooted in your hardware.
+<p align="center">
+  <a href="index.html">Open Hologram OS</a> &nbsp;|&nbsp; <a href="MANIFESTO.md">Manifesto</a> &nbsp;|&nbsp; <a href="CONSTITUTION.md">Constitution</a> &nbsp;|&nbsp; <a href="AGENTS.md">For AI agents</a>
+</p>
+
+<p align="center">
+  <a href="MANIFESTO.md"><img src="https://img.shields.io/badge/Docs-read%20the%20manifesto-7DEFC9?style=for-the-badge" alt="Docs"></a>
+  <a href="CONSTITUTION.md"><img src="https://img.shields.io/badge/Self%20verifying-did%3Aholo-5B8CFF?style=for-the-badge" alt="Self verifying"></a>
+  <a href="index.html"><img src="https://img.shields.io/badge/Runs%20in-your%20browser-111111?style=for-the-badge" alt="Runs in your browser"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-3FB950?style=for-the-badge" alt="License MIT"></a>
+  <a href="https://uor.foundation/"><img src="https://img.shields.io/badge/Built%20with-UOR%20Foundation-C77BFF?style=for-the-badge" alt="Built with the UOR Foundation"></a>
+</p>
+
+> 🌐 **Your personal internet supercomputer. Fast, free and private.**
 >
-> 🤖 **AI agents — start at [`AGENTS.md`](AGENTS.md)** · map: [`llms.txt`](system/llms.txt) · capabilities: [`agents.json`](system/os/.well-known/agents.json). Every action is governed by the **[Constitution](CONSTITUTION.md)** — a fail-closed conscience (ADR-033), front and centre.
+> Hologram enables you to seamlessly build, run and share 100% serverless applications.
 
-Every object — a holospace (app), a file, a track, a credential — is named by its own
-self-verifying content address (`did:holo:sha256:…`), expressed as W3C linked data
-(JSON-LD), and composes into one infinitely-nestable, serverless object graph. Resolve
-any reference, re-derive its hash, and you have verified it — no server to trust (**Law L5**).
+Hologram OS is a whole computer that opens inside a single browser tab. It is fast, free, private, and beautiful, and it belongs entirely to you. There is no account to create, no server to rent, and nothing to install. You just open it, and it runs.
 
-It runs in the browser, boots from a content address, and is built as a first-party
-**product** on [holospaces](https://github.com/Hologram-Technologies/holospaces), consumed
-*unmodified* as a pinned submodule (ADR-006) — the engine is canonical; this repo carries
-only product.
+Most of computing today is borrowed. The powerful part lives in a building you will never enter, watching while it works, and you get a small window into it. Hologram does the opposite. It holds the hard parts so you keep the simple ones: the power, the control, and the proof. The supercomputer becomes yours, and it fits in a tab.
 
-## The idea
+Under the surface it unites three worlds that have always been kept apart, the everyday web, the open value web, and AI, on one shared foundation we call the **substrate**. The substrate is grounded in plain mathematics (abstract algebra) and runs on geometry your browser already knows how to compute, so it needs no special hardware and no outside help. Everything in it is **self verifying**: each object carries a name made from its own contents, so you can always check that a thing is exactly what it claims to be.
 
-Content addressing alone gives a graph of opaque, self-verifying blobs — no meaning (raw
-IPFS). W3C linked data alone gives meaning, but it is unverifiable and server-bound. Put
-both on the same object and you get what none of web2 / web3 / AI has alone: a
-**self-verifying, interpretable, serverless object graph**. UOR is the structural piece
-(identity + composition); W3C is the semantic piece (meaning). That union is the OS.
+> **Heads up:** every promise on this page is something the system already does, and you can prove each one yourself. You do not have to trust this README. You can [verify it](CONSTITUTION.md).
 
-## Architecture
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-| Layer | What | Where |
+## Open it
+
+There is no setup. Open the gateway and a full computer powers on in your browser, rooted in your own device.
+
+```
+Open index.html in any modern browser.
+```
+
+That single file brings up the substrate and walks through a real start up sequence, the same calm boot you would expect from a serious machine, all of it local to you. Want to serve it over a local address instead of opening the file directly?
+
+```bash
+cd system
+npm run serve        # serves the OS at a local web address
+```
+
+When it opens, it is already yours. Nothing asks you to prove who you are to a stranger. The key is you.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## What you can do
+
+Three verbs describe the whole experience: **build**, **run**, and **share**.
+
+| You want to | What you do | What happens |
 |---|---|---|
-| Substrate | UOR content-addressable storage / compute / networking (the κ axis) | upstream `hologram` |
-| Engine | holospaces — realizations, κ-addressing, the wasm browser peer | `holospaces/` (submodule) |
-| OS image | the bootable, content-addressed web image served to the browser / Pages | `os/` |
-| Addressing | `did:holo` identity · `holo://<κ>` native · dereferenceable HTTPS IRI — one canonical form | ADR-022 |
-| Objects | every object a self-verifying linked-data node | ADR-025 |
-| Conformance | every component witnessed against an external W3C authority; a strict gate blocks any non-conformant build | ADR-024 |
+| **Build** an app | Describe it in plain words | It is composed beside you, in the open, beautiful by default. Change one thing and the rest heals to match. |
+| **Run** anything | Just ask | It runs at once, with no install, no server, and no sign up, in any browser, anywhere. |
+| **Share** your work | Copy one address | Whoever opens that address simply runs it, with no account, no permission, and no trace back to you. |
+| **Bring the web in** | Paste a link | A page, a repository, or an app is pulled into your space as something you own and govern, not a place that watches you. |
+| **Ask Q** | Open the companion | Q is a faculty of your own mind that lives on your device. It offers, it never nags, and it keeps the thread of what you have made. |
 
-## Repository layout
+Everything you create stays on your device unless you choose to send it somewhere. Apps and agents do not take. They ask, once, for each thing they need, and you decide. Whatever you grant, you can take back. This is the floor, not a setting you have to find.
 
-The root is deliberately minimal — open the repo and you see a gateway and a few docs;
-the entire system is one folder away.
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-```
-hologram-os/
-├── index.html         ← the gateway: open this and a whole OS boots from one file
-├── README.md          ← you are here
-├── AGENTS.md          ← AI agents start here
-├── CONSTITUTION.md    ← the fail-closed conscience (ADR-033) — governs every action
-└── system/            everything else — the OS image, the engine, the tooling
-    ├── os/                the bootable, content-addressed OS image (served by hash; ADR-026)
-    ├── holospaces/        the engine — pinned submodule, consumed unmodified (ADR-006)
-    ├── crates/            Rust — the browser peer (wasm32) + the hologram-mcp npm package
-    ├── docs/              architecture decisions (adr/) + the did:holo method spec (specs/)
-    ├── conformance/       the W3C conformance regime + strict gate (ADR-024)
-    ├── tools/             serve · witnesses · build
-    ├── scripts/           repo tooling — relay, new-spec, serve
-    ├── llms.txt           the agent map
-    └── codemeta.json · package.json · CODE_OF_CONDUCT · CONTRIBUTING · SECURITY
-```
+## You do not trust it. You verify it.
 
-The deploy publishes only the gateway + the `os/` image (lean, no source), and the
-Service Worker maps the flat URL space onto the FHS tree at runtime.
+This is the heart of the project, so it is worth saying plainly.
 
-## Build
+Every part of the system carries a name computed from its own contents. Resolve any name, recompute it from the bytes, and if they match you have verified that thing yourself, with no server and no authority standing in between. Change a single byte and the name changes and the part will not run. You can watch this check finish, live, in front of you.
 
-```
-git submodule update --init --recursive
-# the browser peer + OS image build from crates/holospaces-web by its own scripts
-# (wasm-pack / the GitHub Pages deploy). See that crate.
-```
+Even the rules the system lives by are held this way. The law it runs under is itself one of these verifiable objects, and the system enforces only the law it has recomputed for itself. Alter one byte of that law and the whole thing seals shut and refuses to run, rather than obey a rule it cannot prove. It fails closed, and it fails closed on your side.
 
-## Conformance — how "done" is defined
+That is what we mean by **sovereign**: a machine that answers to you, that holds firm lines it will not cross even at your own command (it will never surrender your private identity, never reveal what you have sealed, and it stops the instant you say stop), and whose every claim you can check rather than take on faith.
 
-Nothing is complete until a witness proves it against an **external authority** (W3C,
-IETF, IPLD, schema.org). The regime is declared in
-[`os/etc/conformance.jsonld`](system/os/etc/conformance.jsonld) and enforced by
-[`tools/gate.mjs`](system/tools/gate.mjs):
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-```
-cd system && npm run gate    # node tools/gate.mjs — must pass to ship
-```
+## How it works
 
-The gate re-runs each pure-Node witness live, fails closed on any unwitnessed required row,
-and emits a W3C **EARL** report
-([`os/etc/earl-report.jsonld`](system/os/etc/earl-report.jsonld)); the catalog is itself
-valid JSON-LD.
+You never have to think about any of this to use Hologram. It is here for the curious.
+
+Two good ideas have always been kept on separate tables. One gives every object a trustworthy name made from its own contents, so nothing can be quietly swapped, but the objects are blank and carry no meaning. The other describes what things mean in a shared, open vocabulary, but it has always needed a server to vouch for it. Put both on the same object and you get something none of the everyday web, the open value web, or AI has alone: a foundation that is at once **self verifying**, meaningful, and **serverless**. That union is the substrate, and the substrate is the OS.
+
+| Layer | In plain words | In one line |
+|---|---|---|
+| Substrate | The shared foundation everything sits on | Storage, compute, and networking addressed by content, grounded in abstract algebra |
+| Engine | The part that brings objects to life in the browser | The browser native peer, consumed unchanged from the open holospaces project |
+| OS image | The actual computer you boot | A bootable, content addressed system, served by its own name |
+| Objects | Every file, app, message, and credential | A self verifying node of open, linked data |
+| Conformance | How we define the word done | Nothing ships until an independent, public authority has witnessed it |
+
+A few words this README uses, kept short:
+
+* **Substrate** is the shared foundation that storage, computing, and networking all sit on.
+* **Content address** is an object's name, made from the object's own bytes. Recompute it to verify.
+* **Holospace** is an app, held as one self verifying object.
+* **Self verifying** means you can confirm a thing is exactly itself, with no server to trust.
+* **Sovereign** means it is wholly yours and answers only to you.
+* **Serverless** means it simply runs, with nothing to host and nothing to keep alive.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## The usual computer, and this one
+
+| | The usual computer | Hologram OS |
+|---|---|---|
+| Where it runs | Someone else's building | Your own browser tab |
+| Who holds your work | A company's machines | Your device |
+| To begin | Create an account | Just open it |
+| To share something | Grant access, leave a trail | Hand over one address |
+| Why you trust it | Because you are told to | Because you can verify it |
+| Cost | Rented by the hour | Free |
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Documentation
+
+| Document | What is inside |
+|---|---|
+| [Manifesto](MANIFESTO.md) | Why Hologram OS exists, in plain language |
+| [Constitution](CONSTITUTION.md) | The law every app and agent runs under, held as an object you can verify |
+| [For AI agents](AGENTS.md) | Where an agent starts, plus the machine readable map and capabilities |
+| [Architecture notes](system/docs/) | The decision records and the naming method behind the system |
+| [Contributing guide](system/CONTRIBUTING.md) | How to make a change and prove it |
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## For AI agents
 
-Start with **[AGENTS.md](AGENTS.md)**. Every object is self-describing JSON-LD with a
-verifiable `did:holo`, so an agent can fetch, interpret, *and verify* with no trusted
-server. The MCP server projects holospaces as **self-verifying** MCP resources + tools,
-generated from the `apps/<id>/holospace.json` manifests, with a built-in `verify_object`
-tool no ordinary MCP server has. Two tiers: the **official MCP SDK**
-([`holo-mcp-sdk.mjs`](system/os/holo-mcp-sdk.mjs) — `@modelcontextprotocol/sdk`
-vendored unmodified, Law-L5 pinned) for Node, and a dependency-free core
-([`holo-mcp.mjs`](system/os/holo-mcp.mjs)) for the browser/edge. The same
-tool registry projects to **OpenAI** and **Anthropic** tool schemas. It is reachable over
-stdio and **Streamable HTTP** (with MCP prompts and a `.well-known/mcp.json` discovery doc),
-and the **OpenAI Agents SDK** is witnessed consuming it. A holospace can even ask the
-agent's *own* model back (MCP **sampling** — the inverse direction). The server is near
-MCP feature-complete (resources, tools, prompts, sampling, completions, roots, elicitation,
-subscriptions) and ships as the standalone **[`hologram-mcp`](system/crates/holospaces-mcp/)** npm
-package: `npx hologram-mcp` (the deploy publishes `.well-known/mcp.json` for discovery).
+Hologram OS is built to be acted on by software, not only by people. Every object describes itself in open, linked data and carries a verifiable name, so an agent can fetch it, understand it, and confirm it, all with no trusted server. Agents reach the system through a standard tool interface (the Model Context Protocol) that uniquely offers a tool to verify any object, and the same tools project cleanly into the common AI tool formats. Start at [AGENTS.md](AGENTS.md).
 
-## Relationship to holospaces
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-Hologram OS evolves independently and consumes the engine unmodified — no forks, no
-duplication. Engine-level work belongs upstream in holospaces (ADR-006).
+## Build from source
+
+You do not need this to use Hologram. It is for people who want to run the project from its source and take part in building it.
+
+```bash
+git clone <this repository>
+cd hologram-os
+git submodule update --init --recursive   # brings in the engine, used unchanged
+
+cd system
+npm run serve                             # run the OS locally
+npm run gate                              # prove the build: every required check must pass
+```
+
+The browser native peer and the OS image build from their own scripts inside the `system` folder. The engine lives in a separate, open project and is included here without modification, so improvements to the engine belong upstream where everyone benefits.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Contributing
+
+Hologram OS is open source, and your help is genuinely welcome. You do not need to know everything to start. A clear question, a fixed typo, a sharper sentence, a small app, or a deep change to the substrate are all real contributions, and newcomers are warmly invited.
+
+One idea runs through everything here, and it makes contributing simpler than usual: **a change is done when it can prove itself.** We do not claim something works. We add a small, automatic check, witnessed against an independent public authority, that shows it works, and we keep every required check passing.
+
+A good first path:
+
+1. Read the [Manifesto](MANIFESTO.md) and this README, then skim the [Contributing guide](system/CONTRIBUTING.md).
+2. Open the OS, find something you wish were better, and try it.
+3. Make your change together with the check that proves it.
+4. Run `npm run gate` inside `system` and make sure every required check passes.
+5. Open a pull request that explains, in plain words, why the change matters.
+
+Be kind and be clear. The [Code of Conduct](system/CODE_OF_CONDUCT.md) asks for nothing more and nothing less.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Community
+
+* Questions, ideas, and proposals are welcome in the project's issues and discussions on GitHub.
+* To report something sensitive, please follow the [Security policy](system/SECURITY.md).
+* To learn about the foundation and community behind the substrate, visit the [UOR Foundation](https://uor.foundation/).
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Acknowledgments
+
+Hologram OS stands on the work of the **[UOR Foundation](https://uor.foundation/)** and its community. The UOR Foundation gives the project its structural heart: a way to give every object one stable, self verifying identity and to compose those objects into a single, decentralised, interoperable whole. Their open work is what makes a personal supercomputer that is genuinely yours possible at all, and this project is grateful to everyone who has contributed to it.
+
+Thanks as well to the wider open community whose standards for naming, meaning, and proof Hologram OS reuses rather than reinvents, so that what runs here can speak to the rest of the open web.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-License: see [LICENSE](LICENSE). Architecture decisions: [docs/adr/](system/docs/adr/).
+<p align="center"><i>The machine hands you the instrument and gets out of the way.<br/>The first time you watch it prove itself, you will say it yourself: this machine is mine.</i></p>
+
+<p align="right">(<a href="#top">back to top</a>)</p>
