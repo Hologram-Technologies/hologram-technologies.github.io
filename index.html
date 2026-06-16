@@ -621,6 +621,7 @@
     .cta .btn{ width:min(78vw, 19rem); min-width:0; }
     .hero{ gap:calc(var(--u) * 1.9); }
     .sub{ max-width:32ch; }
+  }
 
   /* ════════════════════════════════════════════════════════════════════════════════════════════
      THE LAUNCHER — a full-screen, Spotlight-grade search over the native app catalogue, with a LIVE
@@ -1136,9 +1137,10 @@
     sync();
   })();
 
-  // ── PARALLAX — the sky responds to the viewer ───────────────────────────────────────────────
+  // ── PARALLAX — a touch of scroll-driven depth ────────────────────────────────────────────────
   // A few px of lerped drift on the light + dither layers (set via --par-x/--par-y), so the scene
   // has depth against the static cloud bank and feels alive without ever competing with the hero.
+  // Pointer-tracking parallax is intentionally OFF; only scroll nudges the sky.
   // rAF runs ONLY while settling (no idle cost); a still sky under reduced-motion never drifts.
   (function () {
     const bg = document.querySelector(".bg");
@@ -1152,11 +1154,8 @@
       if (Math.abs(px - tx) > 0.1 || Math.abs(py - ty) > 0.1) raf = requestAnimationFrame(frame);
     };
     const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
-    addEventListener("pointermove", (e) => {
-      px = (0.5 - e.clientX / innerWidth) * 2 * MAX;
-      py = (0.5 - e.clientY / innerHeight) * 2 * MAX;
-      kick();
-    }, { passive: true });
+    // Mouse-movement parallax removed — the sky no longer drifts with the pointer.
+    // Scroll still gives a touch of vertical depth without the pointer-tracking feel.
     addEventListener("scroll", () => { py = Math.max(-MAX, Math.min(MAX, -scrollY * 0.04)); kick(); }, { passive: true });
   })();
 
@@ -1174,13 +1173,13 @@
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     // ── tuning ─────────────────────────────────────────────────────────────────
     const CLOUD_SPEED = reduce ? 0 : 1.0;     // == the Vanta CLOUDS2 `speed`: bind the stars to the clouds' cadence
-    const DENSITY = 0.00020;                   // stars per CSS px² of the star band
+    const DENSITY = 0.00034;                   // stars per CSS px² of the star band
     const BAND = 0.46;                         // star band height = BAND · viewport; stars melt into the clouds below it
     const DRIFT = 3.0;                         // px/sec the FARTHEST stars travel at cloud-speed 1 (near stars go faster)
     const DIR = { x: 0.32, y: 0.95 };          // drift direction — gently down the sky, the way the clouds flow
     const PARALLAX = 1.7;                      // how strongly the shared --par-x/--par-y moves the nearest stars
     const TWINKLE = 0.55;                      // 0..1 scintillation depth
-    const MAX_DPR = 1.75, MAX_STARS = 260;
+    const MAX_DPR = 1.75, MAX_STARS = 420;
     let W = 0, H = 0, band = 0, dpr = 1, stars = [], raf = 0, t0 = 0, running = false;
     const rnd = (a, b) => a + Math.random() * (b - a);
     const hue = (t) => t < 0.55
@@ -1192,7 +1191,7 @@
       for (let i = 0; i < n; i++) {
         const m = Math.pow(Math.random(), 3);                 // magnitude — power law: many faint, few bright
         stars.push({ x: Math.random() * W, y: Math.pow(Math.random(), 1.7) * band,   // density rises toward the zenith
-          z: rnd(0.3, 1), r: 0.45 + m * 1.25, a: 0.32 + m * 0.68, c: hue(Math.random()),
+          z: rnd(0.3, 1), r: 0.6 + m * 1.5, a: 0.55 + m * 0.45, c: hue(Math.random()),
           tp: rnd(0, 6.283), tf: rnd(0.5, 1.7) * (0.6 + m) });
       }
     }
