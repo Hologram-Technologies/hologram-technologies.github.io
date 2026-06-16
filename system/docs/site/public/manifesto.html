@@ -28,8 +28,10 @@
     --u-phi2: calc(var(--u) * 2.618);
     --u-phi3: calc(var(--u) * 4.236);
     /* a stable, rem-anchored READING size (never below the 16px legibility floor), independent of the
-       vmin chrome unit, so prose stays comfortable on short and tall screens alike. */
-    --read: clamp(16.5px, 0.62vw + 13.5px, 19.5px);
+       vmin chrome unit, so prose stays comfortable on short and tall screens alike. Set generously: a
+       manifesto is meant to be read, so the type is confident and the measure substantial. */
+    --read: clamp(17.5px, 0.5vw + 15px, 21px);
+    --measure: 68ch;   /* the reading column — wide enough to fill the window, short enough to stay legible */
     --ease:cubic-bezier(.4,0,.2,1);
     --frame: clamp(7px, 0.95vmin, 14px);
     --frame-r: clamp(16px, 1.9vmin, 28px);
@@ -175,7 +177,21 @@
   .win-body::-webkit-scrollbar-thumb{ background:var(--line-strong); border:3px solid transparent;
     background-clip:padding-box; border-radius:999px; }
   .win-body::-webkit-scrollbar-thumb:hover{ background:#4a4a52; background-clip:padding-box; }
-  .doc{ max-width:64ch; margin:0 auto; }
+  .doc{ max-width:var(--measure); margin:0 auto; }
+
+  /* a slim reading-progress bar — the manifesto's spine drawn as you move through it. Shown in the
+     embedded doc-window (where it crowns the reading surface); the standalone window has its own chrome. */
+  .reading-progress{ display:none; }
+  :root[data-embed] .reading-progress{ display:block; position:fixed; top:0; left:0; right:0; height:3px;
+    z-index:9; pointer-events:none; }
+  .reading-progress > span{ display:block; height:100%; width:0; border-radius:0 999px 999px 0;
+    background:linear-gradient(90deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
+    box-shadow:0 0 12px -2px color-mix(in srgb, var(--accent-2) 70%, transparent); will-change:width; }
+
+  /* gentle one-time reveal: each block rises in as you reach it. The class is added by JS, so if scripting
+     is off the prose is simply all visible — text is never trapped behind an animation. */
+  .doc > .reveal{ opacity:0; transform:translateY(12px); transition:opacity .6s var(--ease), transform .6s var(--ease); }
+  .doc > .reveal.in{ opacity:1; transform:none; }
 
   .doc .eyebrow{ font-size:calc(var(--read) * .8); letter-spacing:.18em; text-transform:uppercase;
     color:var(--muted); font-weight:600; margin:0 0 .9em; }
@@ -189,7 +205,7 @@
   .doc .lede b{ color:var(--fg); font-weight:700; }
   .doc .rule{ height:1px; border:0; margin:clamp(28px,5vmin,52px) 0; background:linear-gradient(90deg, transparent, var(--line-strong) 30%, var(--line-strong) 70%, transparent); }
 
-  .doc p{ font-size:var(--read); line-height:1.72; color:var(--fg-soft); margin:0 0 1.15em; text-wrap:pretty; }
+  .doc p{ font-size:var(--read); line-height:1.78; color:var(--fg-soft); margin:0 0 1.2em; text-wrap:pretty; }
   .doc p.intro{ color:var(--muted); }
   .doc h2{ display:flex; align-items:center; gap:.6em; font-size:clamp(20px, 2.7vmin, 27px); font-weight:700;
     letter-spacing:-.012em; color:var(--fg); margin:2.2em 0 .7em; line-height:1.2; }
@@ -216,13 +232,16 @@
   @media (prefers-reduced-motion: reduce){
     *{ animation:none !important; }
     .bg, .deskbar, .win{ transition:opacity .2s ease !important; opacity:1; transform:none; filter:none; }
+    .doc > .reveal{ opacity:1 !important; transform:none !important; transition:none !important; }
   }
 
   /* ── EMBED — shown inside the gateway's doc-window. Drop our OWN window chrome and backdrop so the
      doc-window is the single window, and present just the manifesto: one ink colour, generously set,
      centred and balanced in the larger frame. No redundant title, seal or "Esc to close" (the
      doc-window already carries them). ─────────────────────────────────────────────────────────── */
-  :root[data-embed] html, :root[data-embed] body{ height:auto; overflow:visible; background:transparent; }
+  /* `:root[data-embed]` IS the <html> element — target it directly (a `:root[data-embed] html` descendant
+     selector matches nothing, which is what left the root clipped at viewport height and unable to scroll). */
+  :root[data-embed], :root[data-embed] body{ height:auto; overflow:visible; background:transparent; }
   :root[data-embed] body::before{ display:none; }                    /* the inner screen bezel */
   :root[data-embed] .bg, :root[data-embed] .deskbar{ display:none; } /* clouds/field + brand · Esc-to-close */
   :root[data-embed] .desk{ position:static; inset:auto; padding:0; display:block; }
@@ -231,7 +250,7 @@
     opacity:1; transform:none; }
   :root[data-embed] .win-bar{ display:none; }                        /* inner traffic-lights · title · κ chip */
   :root[data-embed] .win-body{ overflow:visible; padding:clamp(40px,7vmin,96px) clamp(24px,6vw,72px) clamp(72px,12vmin,160px); }
-  :root[data-embed] .doc{ max-width:64ch; margin:0 auto; }
+  :root[data-embed] .doc{ max-width:var(--measure); margin:0 auto; }
   :root[data-embed] .doc .eyebrow{ display:none; }                   /* redundant with the window title */
   :root[data-embed] .doc .verify-note{ display:none; }               /* refers to the hidden seal */
   /* one consistent ink — no dim intro vs bright body */
@@ -271,6 +290,7 @@
     </div>
 
     <div class="win-body" id="winbody" tabindex="0">
+      <div class="reading-progress" aria-hidden="true"><span id="progress"></span></div>
       <div class="doc">
         <p class="eyebrow">The Hologram OS Manifesto</p>
         <h1>Your personal supercomputer.</h1>
@@ -451,6 +471,46 @@
   DOC.addEventListener("keydown", function(e){ if (e.key === "Escape") home(); });
   // focus the reading surface so arrow keys / space scroll the manifesto immediately.
   setTimeout(function(){ try { DOC.getElementById("winbody").focus({ preventScroll:true }); } catch(e){} }, 760);
+
+  // ── reading experience: a progress spine + a gentle section reveal. Both degrade safely — the bar simply
+  //    stays empty and every block stays visible if anything here is unavailable.
+  var embedded = DOC.documentElement.getAttribute("data-embed") === "1";
+  var winbody = DOC.getElementById("winbody");
+  // the scroller differs by mode: embedded, the iframe document scrolls; standalone, the .win-body does.
+  var scroller = embedded ? (DOC.scrollingElement || DOC.documentElement) : winbody;
+  var scrollTarget = embedded ? window : winbody;
+
+  // progress spine — fraction of the manifesto read, drawn as a thin accent line.
+  var bar = DOC.getElementById("progress");
+  var progRAF = 0;
+  function drawProgress(){
+    progRAF = 0;
+    // In embed mode the iframe document scrolls, so the VIEWPORT is window.innerHeight and the offset is
+    // pageYOffset (the root's overflow is visible, so its clientHeight is the full content, not the view).
+    // Standalone, .win-body is a real overflow:auto box, so its own client/scroll metrics are correct.
+    var view = embedded ? window.innerHeight : scroller.clientHeight;
+    var top = embedded ? (window.pageYOffset || scroller.scrollTop || 0) : scroller.scrollTop;
+    var max = scroller.scrollHeight - view;
+    var frac = max > 0 ? Math.min(1, Math.max(0, top / max)) : 0;
+    if (bar) bar.style.width = (frac * 100).toFixed(2) + "%";
+  }
+  function onScroll(){ if (!progRAF) progRAF = requestAnimationFrame(drawProgress); }
+  scrollTarget.addEventListener("scroll", onScroll, { passive: true });
+  addEventListener("resize", onScroll, { passive: true });
+  drawProgress();
+
+  // section reveal — add the .reveal hook from JS (so no-JS keeps prose visible), then lift each block in.
+  var blocks = [].slice.call(DOC.querySelectorAll(".doc > *"));
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (blocks.length && !reduce && "IntersectionObserver" in window){
+    blocks.forEach(function(el){ el.classList.add("reveal"); });
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { root: embedded ? null : winbody, rootMargin: "0px 0px -8% 0px", threshold: 0.04 });
+    blocks.forEach(function(el){ io.observe(el); });
+    // safety net: if a block never trips the observer (already on-screen, tab restored), show it anyway.
+    setTimeout(function(){ blocks.forEach(function(el){ el.classList.add("in"); }); }, 1800);
+  }
 })();
 </script>
 </body>
