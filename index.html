@@ -218,6 +218,44 @@
       radial-gradient(1px 1px at 30% 90%, #e9d5ff, transparent),
       radial-gradient(1.2px 1.2px at 78% 88%, #fff, transparent),
       radial-gradient(1px 1px at 8% 64%, #cbd5ff, transparent); }
+  /* ── CRISP DISTANT STARS — a real star field over the dark zenith of the live cloudscape. Sits
+     ABOVE the WebGL clouds (so it shows where bg-stars is dropped for perf), MASKED to the top dark
+     band so no stars bleed onto the blue horizon or clouds. Two large-tile layers (different sizes)
+     overlay into a field with no obvious repeat; pin-sharp sub-pixel points, varied size/hue/brightness,
+     a barely-there twinkle. Immersive + dark only; only while the genuine clouds are live. */
+  .bg-starfield{ position:absolute; inset:0; pointer-events:none; opacity:0; z-index:1;
+    background-repeat:repeat; background-size:760px 680px, 940px 820px;
+    background-image:
+      radial-gradient(1.3px 1.3px at 14% 9%,  rgba(255,255,255,.95), transparent),
+      radial-gradient(1px 1px at 38% 5%,       rgba(214,226,255,.80), transparent),
+      radial-gradient(.9px .9px at 61% 12%,    rgba(255,255,255,.75), transparent),
+      radial-gradient(1.5px 1.5px at 84% 7%,   rgba(255,250,242,.90), transparent),
+      radial-gradient(.8px .8px at 7% 20%,     rgba(255,255,255,.60), transparent),
+      radial-gradient(1px 1px at 29% 24%,      rgba(223,232,255,.80), transparent),
+      radial-gradient(.9px .9px at 52% 28%,    rgba(255,255,255,.70), transparent),
+      radial-gradient(1.2px 1.2px at 73% 22%,  rgba(255,255,255,.85), transparent),
+      radial-gradient(.8px .8px at 92% 26%,    rgba(210,224,255,.65), transparent),
+      radial-gradient(1px 1px at 46% 15%,      rgba(255,246,236,.80), transparent),
+      radial-gradient(.7px .7px at 19% 31%,    rgba(255,255,255,.55), transparent),
+      radial-gradient(1.1px 1.1px at 66% 33%,  rgba(255,255,255,.80), transparent),
+      radial-gradient(.9px .9px at 3% 12%,     rgba(255,255,255,.65), transparent),
+      radial-gradient(1px 1px at 78% 36%,      rgba(228,236,255,.70), transparent),
+      radial-gradient(1px 1px at 22% 14%,      rgba(255,255,255,.85), transparent),
+      radial-gradient(.8px .8px at 44% 8%,     rgba(255,255,255,.60), transparent),
+      radial-gradient(1.4px 1.4px at 68% 17%,  rgba(255,252,245,.92), transparent),
+      radial-gradient(.9px .9px at 88% 11%,    rgba(216,228,255,.75), transparent),
+      radial-gradient(1px 1px at 12% 27%,      rgba(255,255,255,.70), transparent),
+      radial-gradient(.7px .7px at 35% 33%,    rgba(255,255,255,.50), transparent),
+      radial-gradient(1.1px 1.1px at 57% 25%,  rgba(255,255,255,.82), transparent),
+      radial-gradient(.8px .8px at 80% 30%,    rgba(222,232,255,.62), transparent),
+      radial-gradient(1px 1px at 97% 20%,      rgba(255,255,255,.70), transparent),
+      radial-gradient(.9px .9px at 50% 38%,    rgba(255,248,238,.66), transparent);
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 22%, transparent 44%);
+            mask-image:linear-gradient(to bottom, #000 0%, #000 22%, transparent 44%); }
+  body.vanta-on .bg-starfield{ animation:twinkle 7s ease-in-out infinite; }   /* keyframes hold .82→1, so this both reveals and gently twinkles */
+  @keyframes twinkle{ 0%,100%{ opacity:1; } 50%{ opacity:.82; } }
+  :root[data-theme="light"] .bg-starfield{ display:none; }
+  @media (prefers-reduced-motion: reduce){ body.vanta-on .bg-starfield{ animation:none; opacity:1; } }
   /* the clouds layer — the genuine Vanta CLOUDS2 effect (vendored under system/vendor/vanta/), drawn only in
      Immersive mode. It is opaque when it runs, so it becomes the immersive sky; if WebGL/the libraries
      are unavailable it stays transparent and the CSS nebula/aurora/stars below show through as a
@@ -604,7 +642,15 @@
     .lx-kappa{ min-height:var(--tap); }
     .lx-bar .lights i.c{ position:relative; }                       /* the back ⌫ light — enlarge its hit area without resizing the dot */
     .lx-bar .lights i.c::after{ content:""; position:absolute; inset:-14px; border-radius:50%; }
-  }
+    /* ── MOBILE BOOT — one clean action ───────────────────────────────────────────────────────────
+       The native Free Download is a desktop-gateway affordance (no side-load on a phone here); on touch
+       the boot screen is just the headline and a single, centred Power-up pill — never a full-bleed
+       stretch or a stacked pair. Slightly tighter hero rhythm so it sits balanced, never cramped. */
+    #download{ display:none; }
+    .cta{ width:auto; max-width:100%; grid-auto-flow:row; justify-items:center; gap:0; }
+    .cta .btn{ width:min(78vw, 19rem); min-width:0; }
+    .hero{ gap:calc(var(--u) * 1.9); }
+    .sub{ max-width:32ch; }
 
   /* ════════════════════════════════════════════════════════════════════════════════════════════
      THE LAUNCHER — a full-screen, Spotlight-grade search over the native app catalogue, with a LIVE
@@ -753,10 +799,11 @@
   .fw-title{ display:inline-flex; align-items:center; gap:.5em; color:var(--fg-soft); font-weight:600; font-size:calc(var(--u)*.92); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .fw-ic{ display:inline-grid; place-items:center; width:1.08em; height:1.08em; color:var(--fg); flex:none; }
   .fw-ic .mk{ width:100%; height:100%; }
-  .fw-ext{ margin-left:auto; flex:none; display:grid; place-items:center; width:calc(var(--u)*2.2); height:calc(var(--u)*2.2);
-    border-radius:.55em; color:var(--muted); border:1px solid var(--line); background:var(--panel); font-size:1.1em;
-    text-decoration:none; transition:color .14s, background .14s, border-color .14s; }
-  .fw-ext:hover{ color:var(--fg); border-color:var(--line-strong); background:var(--panel-hover); }
+  /* the close affordance — IDENTICAL to the app launcher's (.lx-esc), replacing the old open-in-tab ↗ */
+  .fw-esc{ margin-left:auto; flex:none; color:var(--muted); font-size:calc(var(--u)*.82); display:inline-flex;
+    align-items:center; gap:.5em; cursor:pointer; background:none; border:0; transition:color .15s; }
+  .fw-esc:hover{ color:var(--fg); }
+  .fw-esc kbd{ background:var(--panel-2); border:1px solid var(--line); border-radius:.4em; padding:.16em .55em; font:600 .85em/1.4 inherit; color:var(--muted); }
   .fw-framewrap{ position:relative; flex:1; min-height:0; background:var(--bg); }
   .fw-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; opacity:0; transition:opacity .35s ease; background:var(--bg); }
   .fw-frame.in{ opacity:1; }
@@ -781,6 +828,7 @@
   <div class="bg-gl" id="vanta"></div>
   <div class="bg-sun"></div>
   <div class="bg-scrim"></div>
+  <div class="bg-starfield"></div>
   <div class="bg-grain"></div>
 </div>
 
@@ -902,7 +950,7 @@
     <div class="fw-bar">
       <span class="lights" aria-hidden="true"><i class="c" id="fwclose" title="Close"></i><i class="m"></i><i class="x"></i></span>
       <span class="fw-title"><span class="fw-ic"><svg class="mk" aria-hidden="true"><use href="#holo-mark"/></svg></span><span id="fwtitle">Hologram</span></span>
-      <a class="fw-ext" id="fwext" target="_blank" rel="noopener noreferrer" title="Open in its own tab" aria-label="Open in its own tab">&#8599;</a>
+      <button class="fw-esc" id="fwesc" type="button" aria-label="Close (Esc)"><kbd>Esc</kbd> close</button>
     </div>
     <div class="fw-framewrap">
       <iframe class="fw-frame" id="fwframe" title="Document" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allow="clipboard-write"></iframe>
@@ -1363,12 +1411,11 @@
   //    data-frame="<title>" routes here; its href is read at click time (so the download link's
   //    JS-assigned href is honored). Cmd/Ctrl/middle-click still open a real new tab. ───────────
   (function () {
-    const fw = $("fwin"), frame = $("fwframe"), titleEl = $("fwtitle"), ext = $("fwext"), loading = $("fwloading"), closeDot = $("fwclose"), scrim = $("fwscrim");
+    const fw = $("fwin"), frame = $("fwframe"), titleEl = $("fwtitle"), esc = $("fwesc"), loading = $("fwloading"), closeDot = $("fwclose"), scrim = $("fwscrim");
     if (!fw || !frame) return;
     let lastFocus = null;
     function open(url, title) {
       titleEl.textContent = title || "Hologram";
-      ext.href = url;
       frame.classList.remove("in"); loading.style.display = "grid";
       frame.src = url;
       fw.hidden = false; void fw.offsetWidth;   // force reflow so the open transition plays (rAF can stall on a throttled tab)
@@ -1390,6 +1437,7 @@
       try { frame.contentDocument.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); }); } catch {}
     });
     closeDot.addEventListener("click", close);
+    esc.addEventListener("click", close);
     scrim.addEventListener("click", close);
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     for (const a of document.querySelectorAll("[data-frame]")) {
