@@ -30,15 +30,18 @@ const doc = JSON.parse(readFileSync(CLOSURE, "utf8"));
 doc.closure = doc.closure || {};
 let copied = 0, sealed = 0, missing = [];
 
-// copy `src` → image `destRel`, and seal it in the closure under `key` (the serve-rel path the SW asks for)
-const place = (src, destRel, key) => {
-  if (!existsSync(src) || !statSync(src).isFile()) { missing.push(src); return; }
-  const buf = readFileSync(src);
+// write `buf` → image `destRel`, and seal it in the closure under `key` (the serve-rel path the SW asks for)
+const placeBytes = (buf, destRel, key) => {
   const out = join(OS, destRel);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, buf); copied++;
   const e = entry(buf);
   if (!doc.closure[key] || doc.closure[key].kappa !== e.kappa) { doc.closure[key] = e; sealed++; }
+};
+// copy `src` → image `destRel`, and seal it in the closure under `key` (the serve-rel path the SW asks for)
+const place = (src, destRel, key) => {
+  if (!existsSync(src) || !statSync(src).isFile()) { missing.push(src); return; }
+  placeBytes(readFileSync(src), destRel, key);
 };
 
 // 1 · the SDK shell's own files → usr/share/holospaces/sdk/ (key = the flat apps/sdk/* path)
@@ -47,14 +50,27 @@ const walk = (root, rel = "") => { const abs = join(root, rel); if (!existsSync(
 for (const rel of walk(join(APPS, "apps/sdk")))
   place(join(APPS, "apps/sdk", rel), join("usr/share/holospaces/sdk", rel), "apps/sdk/" + rel);
 
-// 2 · the apps catalog → usr/share/holospaces/index.jsonld (key = apps/index.jsonld; fhsMap routes it here)
-place(join(APPS, "apps/index.jsonld"), "usr/share/holospaces/index.jsonld", "apps/index.jsonld");
-
-// 3 · every app's icon.svg (the launcher tiles) → usr/share/holospaces/<id>/icon.svg
+// 2 · every app's icon.svg (the launcher tiles) → usr/share/holospaces/<id>/icon.svg.
+// An app's bytes resolve by κ from peers / the Apps repo (only the SHELL is enclosed); the icon is the
+// one per-app asset vendored into the image, so the set of vendored icons IS the set of launchable tiles.
+const vendored = new Set();
 for (const id of readdirSync(join(APPS, "apps"))) {
   const icon = join(APPS, "apps", id, "icon.svg");
-  if (existsSync(icon) && statSync(icon).isFile()) place(icon, join("usr/share/holospaces", id, "icon.svg"), `apps/${id}/icon.svg`);
+  if (existsSync(icon) && statSync(icon).isFile()) { place(icon, join("usr/share/holospaces", id, "icon.svg"), `apps/${id}/icon.svg`); vendored.add(id); }
 }
+
+// 3 · the apps catalog → usr/share/holospaces/index.jsonld (key = apps/index.jsonld; fhsMap routes it here).
+// Filter the live catalog to apps actually vendored above (one with a tile) so the served catalog never
+// lists an app the image can't show — and enrich nothing it can: name · description · category · landing ·
+// image come straight from the live entry, sorted by name for a stable, golden rhythm in the Play rail.
+const PICK = ["@id", "@type", "schema:name", "schema:identifier", "schema:description", "schema:applicationCategory", "dcat:landingPage", "schema:image"];
+const slugOf = (a) => String(a["dcat:landingPage"] || "").replace(/^apps\//, "").split("/")[0];
+const cat = JSON.parse(readFileSync(join(APPS, "apps/index.jsonld"), "utf8"));
+cat["dcat:dataset"] = (cat["dcat:dataset"] || [])
+  .filter((a) => vendored.has(slugOf(a)))
+  .sort((a, b) => String(a["schema:name"]).localeCompare(String(b["schema:name"])))
+  .map((a) => { const o = {}; for (const k of PICK) if (a[k] != null) o[k] = a[k]; o["hosfs:fhs"] = "/usr/share/holospaces/" + slugOf(a); return o; });
+placeBytes(Buffer.from(JSON.stringify(cat, null, 2) + "\n"), "usr/share/holospaces/index.jsonld", "apps/index.jsonld");
 
 // 4 · the one stray runtime module the shell imports from the root (../../holo-omni.mjs) → lib/
 place(join(ORIG, "holo-omni.mjs"), "lib/holo-omni.mjs", "holo-omni.mjs");
