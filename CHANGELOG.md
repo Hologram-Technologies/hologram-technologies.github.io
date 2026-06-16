@@ -11,6 +11,8 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- Add crisp distant stars in the dark sky
+- Hyper-real glass CTA buttons, and raise the sky horizon further
 - ADR-0111 Stage 0 — root the boot sequence in the substrate (security floor)
 - Crisp, immersive landing background
 - Build the documentation site — Diátaxis IA, generated reference, CI
