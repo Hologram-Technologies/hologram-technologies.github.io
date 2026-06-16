@@ -218,44 +218,14 @@
       radial-gradient(1px 1px at 30% 90%, #e9d5ff, transparent),
       radial-gradient(1.2px 1.2px at 78% 88%, #fff, transparent),
       radial-gradient(1px 1px at 8% 64%, #cbd5ff, transparent); }
-  /* ── CRISP DISTANT STARS — a real star field over the dark zenith of the live cloudscape. Sits
-     ABOVE the WebGL clouds (so it shows where bg-stars is dropped for perf), MASKED to the top dark
-     band so no stars bleed onto the blue horizon or clouds. Two large-tile layers (different sizes)
-     overlay into a field with no obvious repeat; pin-sharp sub-pixel points, varied size/hue/brightness,
-     a barely-there twinkle. Immersive + dark only; only while the genuine clouds are live. */
-  .bg-starfield{ position:absolute; inset:0; pointer-events:none; opacity:0; z-index:1;
-    background-repeat:repeat; background-size:760px 680px, 940px 820px;
-    background-image:
-      radial-gradient(1.3px 1.3px at 14% 9%,  rgba(255,255,255,.95), transparent),
-      radial-gradient(1px 1px at 38% 5%,       rgba(214,226,255,.80), transparent),
-      radial-gradient(.9px .9px at 61% 12%,    rgba(255,255,255,.75), transparent),
-      radial-gradient(1.5px 1.5px at 84% 7%,   rgba(255,250,242,.90), transparent),
-      radial-gradient(.8px .8px at 7% 20%,     rgba(255,255,255,.60), transparent),
-      radial-gradient(1px 1px at 29% 24%,      rgba(223,232,255,.80), transparent),
-      radial-gradient(.9px .9px at 52% 28%,    rgba(255,255,255,.70), transparent),
-      radial-gradient(1.2px 1.2px at 73% 22%,  rgba(255,255,255,.85), transparent),
-      radial-gradient(.8px .8px at 92% 26%,    rgba(210,224,255,.65), transparent),
-      radial-gradient(1px 1px at 46% 15%,      rgba(255,246,236,.80), transparent),
-      radial-gradient(.7px .7px at 19% 31%,    rgba(255,255,255,.55), transparent),
-      radial-gradient(1.1px 1.1px at 66% 33%,  rgba(255,255,255,.80), transparent),
-      radial-gradient(.9px .9px at 3% 12%,     rgba(255,255,255,.65), transparent),
-      radial-gradient(1px 1px at 78% 36%,      rgba(228,236,255,.70), transparent),
-      radial-gradient(1px 1px at 22% 14%,      rgba(255,255,255,.85), transparent),
-      radial-gradient(.8px .8px at 44% 8%,     rgba(255,255,255,.60), transparent),
-      radial-gradient(1.4px 1.4px at 68% 17%,  rgba(255,252,245,.92), transparent),
-      radial-gradient(.9px .9px at 88% 11%,    rgba(216,228,255,.75), transparent),
-      radial-gradient(1px 1px at 12% 27%,      rgba(255,255,255,.70), transparent),
-      radial-gradient(.7px .7px at 35% 33%,    rgba(255,255,255,.50), transparent),
-      radial-gradient(1.1px 1.1px at 57% 25%,  rgba(255,255,255,.82), transparent),
-      radial-gradient(.8px .8px at 80% 30%,    rgba(222,232,255,.62), transparent),
-      radial-gradient(1px 1px at 97% 20%,      rgba(255,255,255,.70), transparent),
-      radial-gradient(.9px .9px at 50% 38%,    rgba(255,248,238,.66), transparent);
-    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 22%, transparent 44%);
-            mask-image:linear-gradient(to bottom, #000 0%, #000 22%, transparent 44%); }
-  body.vanta-on .bg-starfield{ animation:twinkle 7s ease-in-out infinite; }   /* keyframes hold .82→1, so this both reveals and gently twinkles */
-  @keyframes twinkle{ 0%,100%{ opacity:1; } 50%{ opacity:.82; } }
+  /* ── CRISP DISTANT STARS — an inline <canvas> field over the dark zenith of the live cloudscape.
+     Every star has its own magnitude, hue and twinkle; the whole field DRIFTS in lockstep with the
+     clouds (rate tied to the Vanta speed) with parallax depth and the shared --par-x/--par-y, so the
+     dark sky and the cloudscape read as ONE medium you fly through. Painted only in immersive dark
+     while the genuine clouds are live (bg-stars stays the non-WebGL fallback); static under reduced
+     motion. All maths live in the inline script — no external assets (Law L5). */
+  .bg-starfield{ position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0; transition:opacity .9s ease; }
   :root[data-theme="light"] .bg-starfield{ display:none; }
-  @media (prefers-reduced-motion: reduce){ body.vanta-on .bg-starfield{ animation:none; opacity:1; } }
   /* the clouds layer — the genuine Vanta CLOUDS2 effect (vendored under system/vendor/vanta/), drawn only in
      Immersive mode. It is opaque when it runs, so it becomes the immersive sky; if WebGL/the libraries
      are unavailable it stays transparent and the CSS nebula/aurora/stars below show through as a
@@ -828,7 +798,7 @@
   <div class="bg-gl" id="vanta"></div>
   <div class="bg-sun"></div>
   <div class="bg-scrim"></div>
-  <div class="bg-starfield"></div>
+  <canvas class="bg-starfield" id="starfield" aria-hidden="true"></canvas>
   <div class="bg-grain"></div>
 </div>
 
@@ -1188,6 +1158,85 @@
       kick();
     }, { passive: true });
     addEventListener("scroll", () => { py = Math.max(-MAX, Math.min(MAX, -scrollY * 0.04)); kick(); }, { passive: true });
+  })();
+
+  // ── STARFIELD — hyper-real, MOVING stars over the dark zenith, drifting in lockstep with the clouds
+  // so the dark sky and the cloudscape read as ONE medium you fly through. Each star carries its own
+  // magnitude, hue and twinkle; the field drifts at a rate tied to the Vanta `speed` (so it can never
+  // desync), with parallax depth and the shared --par-x/--par-y. Inline canvas, asset-free (Law L5);
+  // painted only in immersive dark while the genuine clouds are live; one static frame under reduced
+  // motion; idles when the tab backgrounds. A handful of named dials tune the whole feel.
+  (function () {
+    const cv = document.getElementById("starfield");
+    if (!cv || !cv.getContext) return;
+    const ctx = cv.getContext("2d");
+    const bg = document.querySelector(".bg"), root = document.documentElement, body = document.body;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // ── tuning ─────────────────────────────────────────────────────────────────
+    const CLOUD_SPEED = reduce ? 0 : 1.0;     // == the Vanta CLOUDS2 `speed`: bind the stars to the clouds' cadence
+    const DENSITY = 0.00020;                   // stars per CSS px² of the star band
+    const BAND = 0.46;                         // star band height = BAND · viewport; stars melt into the clouds below it
+    const DRIFT = 3.0;                         // px/sec the FARTHEST stars travel at cloud-speed 1 (near stars go faster)
+    const DIR = { x: 0.32, y: 0.95 };          // drift direction — gently down the sky, the way the clouds flow
+    const PARALLAX = 1.7;                      // how strongly the shared --par-x/--par-y moves the nearest stars
+    const TWINKLE = 0.55;                      // 0..1 scintillation depth
+    const MAX_DPR = 1.75, MAX_STARS = 260;
+    let W = 0, H = 0, band = 0, dpr = 1, stars = [], raf = 0, t0 = 0, running = false;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const hue = (t) => t < 0.55
+      ? (205 + (t * 90 | 0)) + "," + (220 + (t * 60 | 0)) + ",255"                         // cool blue-white
+      : "255," + (252 - ((t - 0.55) * 70 | 0)) + "," + (244 - ((t - 0.55) * 150 | 0));      // faint warm
+    function build() {
+      const n = Math.min(MAX_STARS, Math.round(W * band * DENSITY));
+      stars = [];
+      for (let i = 0; i < n; i++) {
+        const m = Math.pow(Math.random(), 3);                 // magnitude — power law: many faint, few bright
+        stars.push({ x: Math.random() * W, y: Math.pow(Math.random(), 1.7) * band,   // density rises toward the zenith
+          z: rnd(0.3, 1), r: 0.45 + m * 1.25, a: 0.32 + m * 0.68, c: hue(Math.random()),
+          tp: rnd(0, 6.283), tf: rnd(0.5, 1.7) * (0.6 + m) });
+      }
+    }
+    function resize() {
+      dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
+      W = cv.clientWidth; H = cv.clientHeight; band = H * BAND;
+      cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr));
+      build();
+    }
+    function draw(now) {
+      if (!t0) t0 = now;
+      const t = (now - t0) / 1000;
+      const parX = parseFloat(bg && bg.style.getPropertyValue("--par-x")) || 0;
+      const parY = parseFloat(bg && bg.style.getPropertyValue("--par-y")) || 0;
+      const fade0 = band * 0.6;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (const s of stars) {
+        const v = DRIFT * CLOUD_SPEED * (0.35 + s.z);                    // near stars faster → parallax depth
+        let x = s.x + DIR.x * v * t + parX * PARALLAX * s.z;
+        let y = s.y + DIR.y * v * t + parY * PARALLAX * s.z;
+        x = ((x % W) + W) % W; y = ((y % band) + band) % band;           // seamless toroidal wrap
+        const f = y > fade0 ? Math.max(0, 1 - (y - fade0) / (band - fade0)) : 1;   // melt into the clouds
+        const tw = reduce ? 1 : 1 - TWINKLE * 0.5 + Math.sin(t * s.tf * 2 + s.tp) * TWINKLE * 0.5;
+        const a = s.a * f * tw;
+        if (a < 0.012) continue;
+        ctx.fillStyle = "rgba(" + s.c + "," + a.toFixed(3) + ")";
+        ctx.beginPath(); ctx.arc(x * dpr, y * dpr, s.r * dpr, 0, 6.2832); ctx.fill();
+      }
+      if (running) raf = requestAnimationFrame(draw);
+    }
+    function start() { if (running) return; running = true; t0 = 0; raf = requestAnimationFrame(draw); }
+    function stop() { running = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+    const active = () => body.classList.contains("vanta-on") && root.getAttribute("data-immersive") === "full"
+      && root.getAttribute("data-theme") !== "light" && !document.hidden;
+    function sync() {
+      if (!W) resize();
+      if (active()) { cv.style.opacity = "1"; if (reduce) { stop(); t0 = 0; draw(performance.now()); } else start(); }
+      else { cv.style.opacity = "0"; stop(); }
+    }
+    addEventListener("resize", resize, { passive: true });
+    document.addEventListener("visibilitychange", sync);
+    new MutationObserver(sync).observe(body, { attributes: true, attributeFilter: ["class"] });
+    new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ["data-immersive", "data-theme"] });
+    resize(); sync();
   })();
 
   // ── SELF-CERTIFICATION (Law L5) — the gateway must PROVE its own bytes before it will boot ─────────
