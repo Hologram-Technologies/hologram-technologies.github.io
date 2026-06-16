@@ -48,32 +48,38 @@ libs) but resolve their I/O via `import.meta.url` relative to `usr/lib/holo/`
 writes to `_shared/vendor/`). They are co-located with their inputs/outputs by
 design; moving them to `system/tools/` would break those paths.
 
-## Deferred — folding single-app libraries into their apps
+## Folding single-app libraries into their apps
 
-The goal of moving each single-consumer library out of os-holo and into its one
-owning app was investigated and **deferred** to a dedicated, verifiable pass.
+Of the 27 libraries declared by exactly one app, **15 were folded** out of
+os-holo's `_shared` and into their one owning app (Hologram Apps); the other **12
+stay** because they are also imported by core os-holo libraries.
 
-Findings that make this a sub-project rather than a file move:
+**Folded (15)** — file moved into the app, `_shared/<lib>` imports rewritten to
+app-relative, dropped from `holospace.json` `shared[]`, lock resealed:
 
-1. Of 27 libraries declared by exactly one app, **15 are also imported by core
-   os-holo libraries that must stay** (e.g. `holo-telemetry.mjs` ← `holo-theme.js`
-   + `holo-sdk.js`; the `holo-qvac.*` pair ← voice/sdk/scaffold/q; `holo-record`/
-   `holo-memory` ← `holo-manage.js`; `holo-atlas.js` ← `holo-pm.mjs`; `holo-omni.js`
-   ← `holo-search.js`; `holo-solana-stream.js` ← `holo-solana.js`; `holo-dock-config.json`
-   ← the core dock). Folding those out breaks the shell; they are app-declared but
-   OS-internal.
-2. Folding even the ~12 cleanly-isolated libraries is a **cross-repo reseal
-   pipeline**, not a copy: move file → rewrite `./_shared/X.js` imports to `./X.js`
-   → edit `holospace.json` → `relock-app.mjs` (changes the app root κ) → regenerate
-   `apps/index.jsonld` → re-seal os-holo's `os-closure.json` (which pins each app
-   root). It requires per-app runtime verification that the app still loads, which
-   is not possible from the witness/gate alone.
+| App | Folded libs |
+|-----|-------------|
+| etherscan | holo-blockscout, holo-chain-brand, holo-eth-stream, holo-etherscan-api, holo-scan-tools |
+| stream | holo-obs, holo-owncast, holo-pump |
+| git | holo-git, holo-gitea |
+| capture | holo-capture · browser: holo-install · ipfs: holo-snapshot · music: holo-subsonic · notepad: holo-roam |
 
-The cleanly-foldable subset, for the future pass: `holo-capture.js`→capture,
-`holo-blockscout.js`/`holo-chain-brand.js`/`holo-eth-stream.js`/
-`holo-etherscan-api.js`/`holo-scan-tools.js`→etherscan, `holo-install.js`→browser,
-`holo-owncast.js`/`holo-pump.js`→stream, `holo-snapshot.js`→ipfs,
-`holo-subsonic.js`→music, `holo-roam.js`→notepad.
+(`holo-etherscan-api.js` still imports the staying `holo-eth.js` via `./_shared/`.)
+
+**Kept (12, core-wired)** — also imported by core libs that stay, so folding would
+break the shell: `holo-telemetry.mjs` ← `holo-theme.js`/`holo-sdk.js`; the
+`holo-qvac.*` pair ← voice/sdk/scaffold/q; `holo-record`/`holo-memory` ←
+`holo-manage.js`; `holo-atlas.js` ← `holo-pm.mjs`; `holo-omni.js` ← `holo-search.js`;
+`holo-solana-stream.js` ← `holo-solana.js`; `holo-dock-config.json` ← the core dock;
+`holo-audio.js`, `holo-jellyfin.js`, `holo-stations.js`. Folding these would require
+refactoring the core libraries off the app libraries first.
+
+The fold is a **cross-repo reseal pipeline**: per app, file moved → imports rewritten
+→ `holospace.json` edited → `relock-app.mjs` (new app root κ) → `apps/index.jsonld`
+regenerated. Verified statically (syntax + import resolution + no stale `_shared`
+refs) and via the gate (18 reds, **zero net-new**). Note: `os-closure.json`'s
+`apps[]` root pins were already stale before this work (no auto-regenerator) and are
+not gate-checked; they were left as-is rather than partially hand-edited.
 
 ## Classification method
 
