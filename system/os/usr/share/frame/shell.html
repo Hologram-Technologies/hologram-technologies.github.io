@@ -3861,6 +3861,20 @@
             return surf;
           } catch (e) { return null; }
         }
+        // publishAgent() — make THIS published holospace instantly reachable by agents (MCP /~<id>/mcp) and
+        // by other apps (the unified REST API /~<id>/api — gated, metered, monetizable by the creator via the
+        // HTTP 402 + spend-ledger in holo-api-core). Lives on the studio so closeCreate (a separate scope) can
+        // fire it on Publish; reuses the SAME bridge imports ride (ADR-0093). Synthetic import record →
+        // baseline surface (resolve · verify · describe + the app's own κ); declared OpenAPI tools project in
+        // when the source carries a spec. Serverless, no reload.
+        { const _st = studio;   // capture THIS studio — closeCreate nulls the module `studio` var before firing this
+          _st.publishAgent = function () {
+            if (!_st.lastSavedK || !_st.ta) return Promise.resolve(null);
+            const k = _st.lastSavedK, nm = (_st.node && _st.node.name) || "app";
+            const li = { runnable: true, app: { id: k }, html: _st.ta.value,
+              repo: { repo: String(nm), owner: "you", url: "holo://" + String(k).split(":").pop() } };
+            return registerLiveAgent(li);   // in scope here (inside openCreate); files:null ⇒ baseline surface
+          }; }
         // publish the imported app's manifest + self-verifying κ-objects into the SW imports cache, so the
         // Service Worker answers /~<id>/mcp + /~<id>/api for it with NO origin server (ADR-0093 transport bridge).
         async function publishImportToSW(surf) {
@@ -4053,7 +4067,15 @@
           s.stage.style.transform = "translate(" + (to.left - pr.left) + "px," + (to.top - pr.top) + "px) scale(" + sx + "," + sy + ")"; }
         s.ov.classList.remove("on"); syncDockWidth();   // release the dock squeeze → the desktop reflows back to full width
         setTimeout(function () { try { s.ov.remove(); } catch (e) {} }, 520);
-        if (apply && s.editable && s.lastSavedK) toast("✦ saved · holo://" + String(s.lastSavedK).split(":").pop().slice(0, 12) + "…");
+        if (apply && s.editable && s.lastSavedK) {
+          toast("✦ saved · holo://" + String(s.lastSavedK).split(":").pop().slice(0, 12) + "…");
+          // every published app auto-joins the agent fabric: MCP for agents + the unified REST API for
+          // gated, metered, monetizable cross-app calls (ADR-0093). The action lives on the studio (where
+          // registerLiveAgent is in scope). Non-blocking — the κ is already committed.
+          try { if (s.publishAgent) s.publishAgent()
+            .then(function (surf) { if (surf && surf.appId) toast("⚡ agent-ready · MCP + REST API live at /~" + surf.appId + "/"); })
+            .catch(function () {}); } catch (e) {}
+        }
       }
       $("#verb-build").onclick = function () { if (studio) closeCreate(true); else openCreate(); };   // the verb toggles the carriage (consistent with Play / Share)
       try { registerAsideCloser(function () { if (studio) closeCreate(true); }); } catch (e) {}   // Play/Share opening closes Create (one carriage at a time)
