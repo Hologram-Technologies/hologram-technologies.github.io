@@ -8,7 +8,7 @@
 //     low-latency property — and the per-hop timings are recorded.
 // This witness IS the behavioral definition of the holospaces target rows CC-linkeddata (+ perf-deref).
 //   node tools/holo-linkeddata-witness.mjs
-import { makeObject, linkTo } from "../os/sbin/holo-object.mjs";
+import { makeObject, linkTo } from "../os/usr/lib/holo/holo-object.mjs";
 import { kappaToUri, uriToKappa, kappaForms, URI_FORMS, isKappaUri, hexOf } from "../os/sbin/holo-uri.mjs";
 import { deref, traverse, verifyHop } from "../os/sbin/holo-graph.mjs";
 

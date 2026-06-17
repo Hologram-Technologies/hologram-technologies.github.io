@@ -10,7 +10,7 @@
 // injected, so the witness drives it with a fixture store and the SW drives it with real gateways.
 
 import * as holoIpfs from "../usr/lib/holo/holo-ipfs.js";
-import { assembleUnixFs } from "./holo-omni.mjs";
+import { assembleUnixFs } from "./holo-omni-object.mjs";
 import { IPFS_GATEWAYS } from "./holo-peers.mjs";
 import { discoverGateways } from "./holo-routing.mjs";
 import { selectRender, kindOfContentType } from "./holo-render-contract.mjs";   // dependency-free (no node:crypto) — SW-safe

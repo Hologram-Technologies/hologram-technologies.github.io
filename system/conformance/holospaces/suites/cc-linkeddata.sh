@@ -15,6 +15,9 @@
 # Upstreams to: holospaces  vv/suites/cc-linkeddata.sh   (catalog row CC-linkeddata, arc42 ch.10).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SYSTEM="$(cd "$HERE/../../.." && pwd)"
+SYSTEM="${HOLO_SYSTEM:-$(cd "$HERE/../../.." && pwd)}"   # holospaces vv/: export HOLO_SYSTEM=<pinned HOLOGRAM>/holo-os/system
+command -v node >/dev/null 2>&1 || { echo "CC-linkeddata: SKIP — node not available in this environment" >&2; exit 127; }
 echo "CC-linkeddata — URI⇄κ binding + L5 link-dereference traversal (W3C Linked Data · multiformats CID · Law L5)"
-node "$SYSTEM/tools/holo-linkeddata-witness.mjs"
+WITNESS="$SYSTEM/tools/holo-linkeddata-witness.mjs"
+[ -f "$WITNESS" ] || { echo "CC-linkeddata: SKIP — witness not found (set HOLO_SYSTEM to a HOLOGRAM holo-os/system checkout)" >&2; exit 127; }
+node "$WITNESS"

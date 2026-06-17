@@ -17,6 +17,8 @@ const { namedNode, literal, quad } = DataFactory;
 // CURIE prefixes from the UOR contexts (holo-object UOR_CONTEXT + holo-render-contract RENDER_CONTEXT).
 export const PREFIXES = Object.freeze({
   rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+  owl: "http://www.w3.org/2002/07/owl#",
   schema: "https://schema.org/",
   holo: "https://hologram.os/ns#",
   prov: "http://www.w3.org/ns/prov#",
@@ -43,6 +45,9 @@ export function objToQuads(obj) {
   if (typeof obj.name === "string") out.push(quad(s, namedNode(PREFIXES.schema + "name"), literal(obj.name), g));
   if (obj.render && obj.render.renderKind) out.push(quad(s, namedNode(PREFIXES.holo + "renderKind"), literal(obj.render.renderKind), g));
   for (const l of obj.links || []) out.push(quad(s, namedNode(PREFIXES.schema + "hasPart"), namedNode(l.id), g));
+  // axioms: an object may carry ontology assertions ([s,p,o] CURIE/IRI triples, e.g. an RDFS schema). They
+  // materialize into the SAME named graph (the object's κ), so a schema is itself L5-verified linked data.
+  for (const [as, ap, ao] of obj.axioms || []) out.push(quad(namedNode(expandCurie(as)), namedNode(expandCurie(ap)), namedNode(expandCurie(ao)), g));
   return out;
 }
 

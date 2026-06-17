@@ -5,12 +5,12 @@
 // re-derive is REFUSED mid-traversal; the refusal carries the offending κ. Trust is in the math, not the
 // source (the same discipline as holo-resolver).
 //
-// Node/app-side: UOR object verification re-hashes the canonical content-without-id (verify()), which is
-// synchronous via holo-uor (node:crypto). The browser path needs an isomorphic verify (a later slice); the
-// URI⇄κ binding it builds on (holo-uri.mjs) is already isomorphic/SW-safe.
+// UOR object verification re-hashes the canonical content-without-id (verify()), synchronous via the ONE
+// isomorphic substrate (holo-uor's pure-JS SHA-256 — Node + browser + SW, byte-identical to node:crypto);
+// the URI⇄κ binding it builds on (holo-uri.mjs) is already isomorphic/SW-safe.
 
-import { verify, sriOf } from "./holo-object.mjs";
-import { sha256hex } from "./holo-uor.mjs";
+import { verify, sriOf } from "../usr/lib/holo/holo-object.mjs";   // the one isomorphic substrate (Node + browser + SW)
+import { sha256hex } from "../usr/lib/holo/holo-uor.mjs";
 import { uriToKappa, hexOf } from "./holo-uri.mjs";
 
 const toU8 = (b) => (b instanceof Uint8Array ? b : new Uint8Array(b));

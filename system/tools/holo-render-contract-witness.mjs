@@ -4,10 +4,9 @@
 // ADDITIVE (a non-renderable object's address is byte-stable — Laws L1/L2). This witness IS the behavioral
 // definition of the holospaces target row CC-render (see vv target wrapper).
 //   node tools/holo-render-contract-witness.mjs
-import {
-  makeObject, makeRenderable, renderContract, selectRender, kindOfContentType,
-  verify, verifyDeep, resolve, RENDER_KINDS,
-} from "../os/sbin/holo-object.mjs";
+import { makeObject, verify, verifyDeep, resolve } from "../os/usr/lib/holo/holo-object.mjs";   // canonical isomorphic substrate
+import { makeRenderable } from "../os/sbin/holo-renderable.mjs";
+import { renderContract, selectRender, kindOfContentType, RENDER_KINDS } from "../os/sbin/holo-render-contract.mjs";
 import { dispatchRender, resolveIpfsPath } from "../os/sbin/holo-ipfs-gateway.mjs";
 import * as holoIpfs from "../os/usr/lib/holo/holo-ipfs.js";
 

@@ -1,0 +1,9 @@
+// arc42 chapter 10 (Conformance catalog) — rows to append in holospaces
+// docs/src/arc42/adoc/10_quality_requirements.adoc, mirroring the existing | CC-N | … | format.
+// CC numbers are PROPOSED (targets currently reach CC-48); the maintainer assigns final numbers.
+
+| CC-51 | A κ-object renders by the contract it DECLARES, in any browser | IANA media types + schema.org `encodingFormat` (the declared Content-Type), honoured by the serve-time gateway; dispatch is a pure view over bytes already re-derived | re-derivation (Law L5) + a pure dispatch witness | live (`vv/suites/cc51-semantic-render`)
+| CC-52 | The κ-object graph is navigable Linked Data | W3C Linked Data principles (a URI dereferences to data) + multiformats CIDv1 (κ⇄CID⇄ipfs:// bijection) | bijection check + N-hop traversal where every hop re-derives, tamper refused mid-traversal (Law L5) | live (`vv/suites/cc52-linked-data`)
+| CC-53 | The verified graph is queryable RDF | W3C RDF 1.1 N-Quads + SPARQL 1.1 Basic Graph Pattern + RDF/JS Data Model (via the vendored, κ-sealed N3.js) | N-Quads round-trip + a BGP join spanning ≥2 source objects; each triple's named graph is its source κ (provenance, Law L5) | live (`vv/suites/cc53-sparql`)
+| CC-54 | Machine reasoning over the verified graph, with proof | W3C RDF 1.1 Semantics (RDFS entailment §9.2.1) + W3C SHACL Core | a derived triple is entailed-not-asserted, its proof chain resolves to re-deriving source κ; node-shapes validate (Law L5) | live (`vv/suites/cc54-reasoning`)
+| CC-55 | An accountable Agentic-Web trust face | W3C OWL 2 RL profile + W3C DID Core (did:holo method) + W3C VC Data Model 2.0 / VC-DI eddsa-jcs-2022 (ed25519 + JCS = Law L2) | OWL entailments trace to source κ; valid DID Documents; VC issue/verify with tamper + wrong-key refused; a bound credential is doubly protected by signature AND object κ (Law L5) | live (`vv/suites/cc55-agentic-trust`)

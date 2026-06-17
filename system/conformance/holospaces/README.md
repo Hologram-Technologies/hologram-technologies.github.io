@@ -18,11 +18,15 @@ fast in the HOLOGRAM dev loop; the `.sh` is what `vv/run.sh` invokes once upstre
 |---|---|---|---|
 | `CC-render` | live (green) | `suites/cc-render.sh` | IANA media types; `schema:encodingFormat`; Law L5 (dispatch is a view over re-derived bytes) |
 | `CC-linkeddata` | live (green) | `suites/cc-linkeddata.sh` | W3C Linked Data principles; multiformats CIDv1 (κ⇄CID bijection); Law L5 (every hop re-derives). Carries the S2 latency property (warm traversal is network-free) |
+| `CC-sparql` | live (green) | `suites/cc-sparql.sh` | W3C RDF 1.1 N-Quads; SPARQL 1.1 Basic Graph Pattern; RDF/JS Data Model (vendored κ-sealed N3.js); Law L5 (provenance + sealed engine). Full DAWG suite attaches at promotion |
+| `CC-reasoning`, `CC-shacl` | live (green) | `suites/cc-reasoning.sh` | W3C RDF 1.1 Semantics (RDFS entailment §9.2.1); W3C SHACL Core; Law L5 (proof chain traces to source κ). Full SHACL/entailment test suites attach at promotion |
+| `CC-owl`, `CC-did`, `CC-vc` | live (green) | `suites/cc-agentic.sh` | W3C OWL 2 RL profile; W3C DID Core (did:holo method); W3C VC Data Model 2.0 + VC-DI eddsa-jcs-2022 (ed25519 + JCS = Law L2); Law L5 (proofs + doubly-protected bound credentials). Full OWL/DID/VC suites attach at promotion |
 
-Planned (subsequent slices, target-first against the official W3C test suites):
-`CC-sparql` (SPARQL 1.1 / DAWG, with JSON-LD 1.1 + RDF 1.1 triple materialization), `CC-reasoning` (RDF
-Semantics / RDFS entailment), `CC-shacl` (SHACL), `CC-owl` (OWL 2 RL), `CC-did` (DID Core), `CC-vc` (VC Data
-Model 2.0). The render/resolve latency budget rides the relevant suite (mirrors `vv/suites/perf-throughput.sh`).
+Vendored, κ-sealed engines: `os/usr/lib/holo/vendor/n3/` (N3.js — RDF term model, store, N-Quads, reasoner; `SEAL.json`).
+
+All six staged rows are live/green — the W3C Semantic-Web → Agentic-Web stack (render · linked data · SPARQL ·
+reasoning · OWL/DID/VC) realized on the κ-substrate, each witnessed against its external authority + Law L5.
+The official W3C test suites (JSON-LD/RDF/SPARQL-DAWG/SHACL/OWL/DID/VC) attach as each row is promoted upstream.
 
 ## Upstream
 
