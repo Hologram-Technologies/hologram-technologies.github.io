@@ -51,7 +51,7 @@ export async function loadIndex(indexCid, blocks, { embedder = null } = {}) {
   const corpus = createCorpus({ embedder });
   const docs = new Map();
   for (const e of (manifest.docs || [])) { await corpus.index({ id: e.cid, text: e.text, meta: { ...(e.meta || {}), cid: e.cid, title: e.title } }); docs.set(e.cid, e); }
-  return { corpus, manifest, docs, blocks, getBlock, stateKappa: await corpus.stateKappa() };
+  return { indexCid: holoIpfs.cidToString(holoIpfs.parseCID(indexCid)), corpus, manifest, docs, blocks, getBlock, stateKappa: await corpus.stateKappa() };
 }
 
 // toIndexCar / fromIndexCar — the index as a single shareable file (the universal transport). Re-exported

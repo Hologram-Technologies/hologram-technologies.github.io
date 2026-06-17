@@ -16,7 +16,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OS2 = join(here, "../os");
-const APPS = "C:/Users/pavel/Desktop/Hologram Apps";
+const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");
 const results = []; let passed = 0, failed = 0;
 const rec = (n, ok, d = "") => { results.push({ name: n, ok, detail: d }); ok ? passed++ : failed++; console.log(`${ok ? "PASS" : "FAIL"} — ${n}${d ? "  (" + d + ")" : ""}`); };
 

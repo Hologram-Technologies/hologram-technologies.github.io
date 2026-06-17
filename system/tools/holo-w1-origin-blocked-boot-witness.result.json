@@ -1,14 +1,15 @@
 {
   "witnessed": false,
   "staticLane": "pass",
-  "liveLane": "skipped",
-  "passed": 4,
-  "failed": 0,
+  "liveLane": "fail",
+  "passed": 5,
+  "failed": 2,
   "covers": [
     "the bootstrap entry document is served by the dumb static gatewa",
     "the boot closure is COMPLETE — every boot-critical NAME is a κ i",
     "the κ-route serves every boot κ BY CONTENT — /.holo/sha256/<hex>",
-    "a κ NOT in the closure index is REFUSED — bytes are content, nev"
+    "a κ NOT in the closure index is REFUSED — bytes are content, nev",
+    "no fatal page errors while booting offline"
   ],
   "results": [
     {
@@ -30,6 +31,21 @@
       "name": "a κ NOT in the closure index is REFUSED — bytes are content, never trusted by location (Law L5, fail-closed)",
       "ok": true,
       "detail": "bogus κ → 404"
+    },
+    {
+      "name": "ORIGIN BLOCKED — the shell still boots offline, served network-free from the κ-keyed content cache (L3 + serverless)",
+      "ok": false,
+      "detail": "did not boot offline"
+    },
+    {
+      "name": "every boot-critical resource is served x-holo-cache:hit with the origin blocked (zero network)",
+      "ok": false,
+      "detail": "0/5 hit · holospace.html:502/null,shell.html:502/null,holo-launch.mjs:502/null"
+    },
+    {
+      "name": "no fatal page errors while booting offline",
+      "ok": true,
+      "detail": "clean"
     }
   ],
   "spec": "W1 — Hologram OS boots with the origin blocked, serving its boot closure network-free from the κ-keyed content cache (L3 store-is-memory · L5 verify-at-boundary · serverless). HTTP lane proves the necessary condition (closure complete + κ-route serviceable + bogus κ refused) live in Node; the browser lane proves the sufficient condition (blocks all origin network, re-opens, asserts the frame boots from cache with zero network) under Playwright. Skipped browser lane is reported as an honest red, never a fabricated green."

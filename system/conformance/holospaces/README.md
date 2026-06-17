@@ -17,11 +17,12 @@ fast in the HOLOGRAM dev loop; the `.sh` is what `vv/run.sh` invokes once upstre
 | Row | Status | Suite | External authority |
 |---|---|---|---|
 | `CC-render` | live (green) | `suites/cc-render.sh` | IANA media types; `schema:encodingFormat`; Law L5 (dispatch is a view over re-derived bytes) |
+| `CC-linkeddata` | live (green) | `suites/cc-linkeddata.sh` | W3C Linked Data principles; multiformats CIDv1 (κ⇄CID bijection); Law L5 (every hop re-derives). Carries the S2 latency property (warm traversal is network-free) |
 
 Planned (subsequent slices, target-first against the official W3C test suites):
-`CC-linkeddata` (JSON-LD 1.1 API + RDF 1.1), `CC-sparql` (SPARQL 1.1 / DAWG), `CC-reasoning` (RDF Semantics /
-RDFS entailment), `CC-shacl` (SHACL), `CC-owl` (OWL 2 RL), `CC-did` (DID Core), `CC-vc` (VC Data Model 2.0),
-plus a `perf-*` row for the render/resolve latency budget (mirrors `vv/suites/perf-throughput.sh`).
+`CC-sparql` (SPARQL 1.1 / DAWG, with JSON-LD 1.1 + RDF 1.1 triple materialization), `CC-reasoning` (RDF
+Semantics / RDFS entailment), `CC-shacl` (SHACL), `CC-owl` (OWL 2 RL), `CC-did` (DID Core), `CC-vc` (VC Data
+Model 2.0). The render/resolve latency budget rides the relevant suite (mirrors `vv/suites/perf-throughput.sh`).
 
 ## Upstream
 

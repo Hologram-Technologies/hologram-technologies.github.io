@@ -29,7 +29,7 @@ import { verify } from "../os/usr/lib/holo/holo-object.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OS = join(here, "../os");
-const APPS = process.env.HOLO_APPS_DIR || "C:/Users/pavel/Desktop/Hologram Apps/apps";
+const APPS = process.env.HOLO_APPS_DIR || join(here, "../../../holo-apps/apps");
 
 const ENGINE = ["holo-theme.js", "holo-ui-kernel.js", "holo-ui.js", "holo-ux.js"];
 

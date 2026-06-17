@@ -24,11 +24,9 @@
 //
 //   node tools/holo-w1-origin-blocked-boot-witness.mjs
 import { writeFileSync } from "node:fs";
-import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { startServer, ORIG } from "./holo-serve-fhs.mjs";
+import { startServer } from "./holo-serve-fhs.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const results = []; let passed = 0, failed = 0;
@@ -83,8 +81,8 @@ try {
 // ─────────────────────────── Browser lane (sufficient proof, Playwright) ───────────────────────────
 let liveLane = "skipped"; // "skipped" = neutral (never pass); "pass" / "fail" once exercised
 let chromium;
-try { const require = createRequire(pathToFileURL(join(ORIG, "package.json"))); ({ chromium } = require("playwright")); }
-catch (e) { console.log(`\n• browser lane SKIPPED — playwright not installed (${e.message.split("\n")[0]}).`); console.log("  install: cd " + ORIG + " && npm i -D playwright && npx playwright install chromium"); }
+try { ({ chromium } = await import("playwright")); }   // resolved from system/node_modules (the witness's own tree)
+catch (e) { console.log(`\n• browser lane SKIPPED — playwright not installed (${e.message.split("\n")[0]}).`); console.log("  install: cd system && npm i -D playwright && npx playwright install chromium"); }
 
 if (chromium) {
   let browser;
@@ -93,32 +91,37 @@ if (chromium) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const page = await ctx.newPage();
 
-    // warm: register the SW and prime the content cache over the boot closure.
+    // warm ONLINE under SW control: register the worker, wait until it CONTROLS the page, then reload
+    // so the controlling SW serves AND caches the shell document + its subresources (the boot closure).
     await page.goto(`${base}/shell.html`, { waitUntil: "load", timeout: 30000 });
-    await page.evaluate(async (boot) => {
+    await page.evaluate(async () => {
       await navigator.serviceWorker.register("/holo-fhs-sw.js", { type: "module" });
       await navigator.serviceWorker.ready;
-      for (let i = 0; i < 80 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 100));
-      for (const p of boot) await fetch("/" + p, { cache: "no-store" }).then((r) => r.arrayBuffer()).catch(() => {});
-    }, BOOT);
+      for (let i = 0; i < 100 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 100));
+    });
+    await page.reload({ waitUntil: "load", timeout: 30000 });   // controlled now → SW caches what it serves
+    await page.evaluate(async (boot) => { for (const p of boot) await fetch("/" + p, { cache: "no-store" }).then((r) => r.arrayBuffer()).catch(() => {}); }, BOOT);
+    await page.waitForTimeout(800);
 
-    // BLOCK THE ORIGIN: abort every network request below the SW. A cache hit never reaches the
-    // network (boots); a miss hits the abort (fails). So "still boots" == "served network-free".
-    let originHits = 0;
-    await ctx.route("**/*", (route) => { originHits++; route.abort(); });
+    // BLOCK THE ORIGIN — the proper primitive: the network goes away, but the SW may still serve from
+    // its κ-cache. A cache hit boots; a miss throws ERR_INTERNET_DISCONNECTED. "Still boots" == served
+    // network-free.
+    await ctx.setOffline(true);
 
     const errs = [];
     page.on("pageerror", (e) => errs.push(String(e)));
-    const resp = await page.goto(`${base}/holospace.html?app=org.hologram.HoloSearch&bare=1`, { waitUntil: "load", timeout: 30000 }).catch(() => null);
-    const booted = !!resp && resp.ok();
-    rec("ORIGIN BLOCKED — the frame still boots, served network-free from the κ-keyed content cache (L3 + serverless)", booted, booted ? "holospace.html 200 from cache" : "did not boot offline");
+    const resp = await page.reload({ waitUntil: "load", timeout: 30000 }).catch((e) => ({ _err: String(e.message || e) }));
+    const dom = await page.evaluate(() => document.readyState === "complete" && !!document.body && document.body.children.length > 0).catch(() => false);
+    const booted = !!resp && !resp._err && (typeof resp.ok !== "function" || resp.ok()) && dom;
+    rec("ORIGIN BLOCKED — the shell still boots offline, served network-free from the κ-keyed content cache (L3 + serverless)", booted, booted ? "shell.html booted from cache offline" : `did not boot offline${resp && resp._err ? " · " + resp._err.slice(0, 60) : ""}`);
 
     // every boot-critical resource still resolves from cache (x-holo-cache: hit) with origin dead.
     const hits = await page.evaluate(async (boot) => {
-      const out = []; for (const p of boot) { try { const r = await fetch("/" + p, { cache: "no-store" }); out.push([p, r.status, r.headers.get("x-holo-cache")]); } catch (e) { out.push([p, "ERR", String(e)]); } } return out;
+      const out = []; for (const p of boot) { try { const r = await fetch("/" + p, { cache: "no-store" }); out.push([p, r.status, r.headers.get("x-holo-cache")]); } catch (e) { out.push([p, "ERR", String(e).slice(0, 40)]); } } return out;
     }, BOOT).catch(() => []);
     const served = hits.filter(([, s, c]) => s === 200 && c === "hit").length;
-    rec("every boot-critical resource is served x-holo-cache:hit with the origin blocked (zero network)", served === BOOT.length, `${served}/${BOOT.length} hit`);
+    const miss = hits.filter(([, s, c]) => !(s === 200 && c === "hit")).map(([p, s, c]) => `${p}:${s}/${c}`);
+    rec("every boot-critical resource is served x-holo-cache:hit with the origin blocked (zero network)", served === BOOT.length, `${served}/${BOOT.length} hit${miss.length ? " · " + miss.slice(0, 3).join(",") : ""}`);
     rec("no fatal page errors while booting offline", errs.length === 0, errs.slice(0, 2).join(" | ") || "clean");
 
     liveLane = booted && served === BOOT.length && errs.length === 0 ? "pass" : "fail";

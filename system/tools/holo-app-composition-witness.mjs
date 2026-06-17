@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const APPS = process.env.HOLO_APPS_DIR || "C:/Users/pavel/Desktop/Hologram Apps/apps";
+const APPS = process.env.HOLO_APPS_DIR || join(here, "../../../holo-apps/apps");
 const UI = join(APPS, "ui");
 const BASELINE = join(here, "holo-app-composition-baseline.json");
 const update = process.argv.includes("--update-baseline");

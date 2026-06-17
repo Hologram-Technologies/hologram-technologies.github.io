@@ -17,7 +17,7 @@ import { startServer } from "./holo-serve-fhs.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OS2 = join(here, "../os");
-const APPS = "C:/Users/pavel/Desktop/Hologram Apps";
+const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");
 const SHELL = "shell.html";
 
 const results = []; let passed = 0, failed = 0;

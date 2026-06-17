@@ -150,6 +150,23 @@ import { createSemantic } from "../../../sbin/holo-semantic.mjs";
 import { publishToKStore } from "../../../sbin/holo-web-snapshot.mjs";
 import { loadIndexFromCar, indexAdapter } from "../../../sbin/holo-index.mjs";
 import { resolveEmbedder } from "../../lib/holo/q/holo-q-embed.js";   // never-throw: bge-small if it loads, else a deterministic floor
+import { verifyPointer } from "../../../sbin/holo-index-pointer.mjs"; // T2: the signed mutable pointer to the CURRENT index
+
+// the pinned index-authority pubkey (Ed25519, hex). A pointer signed by any other key is refused; an older
+// seq than we've accepted is refused (rollback). Update the index by publishing a higher-seq pointer — no
+// code change — and clients follow it, verified.
+const PINNED_INDEX_PUB = "028982a7282a3268bd26f62bd0e2cb39a3b95a604f347e8edc6294df13554b37";
+async function checkIndexPointer(loadedCid) {
+  try {
+    const ptr = await (await fetch("./holo-index.ptr.json")).json();
+    const minSeq = parseInt(localStorage.getItem("holo:index-seq") || "-1", 10);
+    const v = await verifyPointer(ptr, { pinnedPub: PINNED_INDEX_PUB, minSeq });
+    if (!v.ok) return "unverified (" + v.reason + ")";
+    if (v.target !== loadedCid) return "stale CAR (≠ signed target)";
+    try { localStorage.setItem("holo:index-seq", String(v.seq)); } catch {}
+    return "✓ seq " + v.seq;
+  } catch { return "unsigned"; }
+}
 
 const $ = (id) => document.getElementById(id);
 const qIn = $("q"), results = $("results"), laneEl = $("lane");
@@ -170,13 +187,17 @@ function proxyFetch(u, opts) { const s = String(u); if ($("proxy").checked && /^
 //    (holo-index.car) the moment it loads: that source answers network-free, re-derived on load (Law L5),
 //    and RRF fuses its hits with the live ones. Index missing/unreachable → live linked-data only.
 let semantic = createSemantic({ discovery: createDiscovery({ adapters: [linkedDataAdapter()], fetchImpl: proxyFetch }) });
+let indexInfo = null;   // sidecar metadata (count + builtAt) → honest staleness on the card
 (async () => {
   try {
     const embedder = await resolveEmbedder();   // ONE embedder for docs + queries (same vector space); never throws
     const car = new Uint8Array(await (await fetch("./holo-index.car")).arrayBuffer());
     const loaded = await loadIndexFromCar(car, { embedder });   // index search is now hybrid (vector ⊕ BM25 ⊕ RRF)
+    const pointer = await checkIndexPointer(loaded.indexCid);   // verify the signed mutable pointer attests this index
+    try { indexInfo = await (await fetch("./holo-index.json")).json(); } catch {}
+    if (indexInfo) indexInfo.pointer = pointer;
     semantic = createSemantic({ discovery: createDiscovery({ adapters: [indexAdapter(loaded), linkedDataAdapter()], fetchImpl: proxyFetch }) });
-    if (window.__omni) { window.__omni.semantic = semantic; window.__omni.index = loaded; window.__omni.embedder = embedder; }
+    if (window.__omni) { window.__omni.semantic = semantic; window.__omni.index = loaded; window.__omni.embedder = embedder; window.__omni.indexInfo = indexInfo; }
   } catch (e) { /* no pre-built index asset → live linked-data discovery only */ }
 })();
 
@@ -316,8 +337,9 @@ async function renderSemantic(card, r) {
   const srcRows = (r.sources || []).map((s, i) => `<div class="row"><div class="k">[${i + 1}] ${esc(s.source || "")}</div><div class="v"><a class="link" data-cid="ipfs://${esc(s.cid)}" href="#">${esc(s.title || s.entityId || "")}</a> · <span style="color:#566c8a">${esc(short(s.cid, 8))}</span></div></div>`).join("");
   const ans = r.answer ? `<div class="row"><div class="k">answer</div><div class="v" style="font:13px/1.5 system-ui;color:#cbd6ea">${esc(r.answer)}</div></div>` : "";
   const preview = r.html ? `<div class="pv"><iframe sandbox="allow-same-origin" src="${URL.createObjectURL(new Blob([r.html], { type: "text/html" }))}"></iframe></div>` : "";
+  const idxLine = indexInfo ? `<div style="color:var(--dim);font:11px var(--mono);margin-bottom:9px">κ-index · ${indexInfo.count} docs · built ${esc((indexInfo.builtAt || "").slice(0, 10))} · pointer ${esc(indexInfo.pointer || "—")} · ${esc(short(indexInfo.indexCid || "", 7))}</div>` : "";
   card.innerHTML = `<div class="hd">${glyphFor("#fbbf24", "Q")}<div><div class="ttl">${esc(r.query)}</div><div class="meta">semantic web → ${r.sources.length} verified source${r.sources.length === 1 ? "" : "s"} · ${esc((r.probes || []).join(" ⊕ "))}</div></div><span class="badge nl">semantic</span></div>`
-    + `<div class="body">${ans}${srcRows}</div>` + preview + sealStrip(r, null)
+    + `<div class="body">${idxLine}${ans}${srcRows}</div>` + preview + sealStrip(r, null)
     + `<div class="seal"><span class="ok">✓ composed κ-page · every source re-derived (Law L5)</span><a class="open" href="/ipfs/${esc(r.cid)}/" target="_blank" rel="noopener" style="margin-left:auto">Open κ-page ↗</a></div>`;
   wireCard(card);
   try { corpus.index({ id: r.cid, text: `${r.query}\n${(r.sources || []).map((s) => s.title).join("\n")}\n${r.answer || ""}`, meta: { path: "semantic" } }).catch(() => {}); } catch {}

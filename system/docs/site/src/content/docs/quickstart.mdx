@@ -1,108 +1,179 @@
 ---
 title: Quickstart
-description: Boot Hologram OS, build against it, or connect an AI agent — in minutes. Three paths, one substrate.
+description: Boot a sovereign computer in your browser, build against the substrate, or connect an AI agent — in minutes. One substrate, three doors.
 audience: [users, developers, agents]
 ---
 
-import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard, Steps, Aside } from '@astrojs/starlight/components';
 
-One substrate, three ways in. Pick the tab that fits you. Every path ends at a
-command you can run now.
+Hologram OS is a sovereign, serverless internet computer that boots entirely in
+your browser. There is nothing to install, no account, and no server in the loop —
+every object you touch is self-verifying, named by the hash of its content (Law L5).
 
-<Tabs>
-  <TabItem label="Users">
+This page walks you through your first session along whichever door fits you. If
+you only want the mental model first, start with [What is Hologram OS?](/docs).
 
-## Why
+<CardGrid>
+  <Card title="Boot the OS" icon="rocket">
+    Open the single gateway and power on a computer you fully own — on your own
+    hardware, from one file.
+  </Card>
+  <Card title="Build against it" icon="laptop">
+    Work from `system/`, run the release gate, and ship only what a witness proves.
+  </Card>
+  <Card title="Connect an agent" icon="seti:default">
+    Speak MCP to a discovery document that lists every door and hands back objects
+    you re-derive yourself.
+  </Card>
+</CardGrid>
 
-You want to use a computer you fully own — one that runs on your hardware and
-trusts no server. Hologram OS boots from a single file in your browser.
-
-## How
-
-Opening the gateway starts the κ Service Worker and walks the boot chain
-(rEFInd → Plymouth → SDDM → PrimeOS). Signing in unlocks a self-sovereign key
-bound to *this* device — there is never a server account.
-
-## What
-
-1. Open `index.html` (the single gateway).
-2. Let it boot to the greeter.
-3. Sign in to bind a device-local key, then use the desktop.
-
-<Aside type="note">
-  Deny the origin gateway and the byte-identical, verified OS still boots from
-  cache or a neighbouring peer.
+<Aside type="note" title="What you need">
+  A modern browser is the whole requirement. No Node.js, no install, no account
+  for booting. Building the OS or running a witness locally needs Node 20+ and Git.
 </Aside>
 
-  </TabItem>
-  <TabItem label="Developers">
+There are three doors into the same substrate. Each ends at a command you can run
+right now.
 
-## Why
+* **Boot** — open the gateway and use the desktop. No tools required.
+* **Build** — clone the repo, run the gate, and witness a component against an external authority.
+* **Connect** — start the MCP door and discover its live, self-describing tools.
 
-You want to build on a substrate where "done" is provable, not asserted. In
-Hologram OS, a component is complete only when its conformance row is witnessed
-against an external authority and the release gate stays green.
+## Boot the OS
 
-## How
+You want a computer that runs on your hardware and trusts no server. Opening the
+gateway starts the κ Service Worker and walks the boot chain.
 
-Work runs from `system/`. The release gate re-runs each pure-Node witness live,
-joins it to the conformance catalog, fails closed on any unwitnessed required
-row, and emits a W3C EARL report.
+<Steps>
 
-## What
+1. **Open `index.html`** — the single gateway. It starts the κ Service Worker and
+   enters the boot chain: rEFInd → Plymouth → SDDM → PrimeOS.
 
-```sh
-git clone <repo> && cd hologram-os/system
-npm install
-npm run gate          # the release gate — must stay green
-```
+2. **Let it boot to the greeter.** The OS is content-addressed, so the bytes are
+   verified on the way in — a single altered byte yields a different hash and is refused.
 
-Run a single component's witness:
+3. **Sign in to bind a device-local key,** then use the desktop. The key is bound
+   to *this* device; there is never a server account to create.
 
-```sh
-node tools/<name>-witness.mjs   # writes tools/<name>.result.json
-```
+</Steps>
+
+<Aside type="tip" title="Deny the origin">
+  The gateway is one CDN among peers, not an authority. Deny it and the
+  byte-identical, verified OS still boots from cache or a neighbouring peer.
+</Aside>
+
+## Build against it
+
+You want a substrate where *done* is provable, not asserted. A component is
+complete only when its conformance row is witnessed against an external authority
+and the release gate stays green.
+
+<Steps>
+
+1. **Clone and enter the system root.** All work runs from `system/`.
+
+   ```sh
+   git clone <repo> && cd hologram-os/system
+   npm install
+   ```
+
+2. **Run the release gate.** It re-runs each pure-Node witness live, joins it to
+   the conformance catalog, fails closed on any unwitnessed required row, and emits
+   a W3C EARL report. It must stay green.
+
+   ```sh
+   npm run gate
+   ```
+
+3. **Witness a single component** while you iterate. Each witness writes its own
+   result object you can inspect.
+
+   ```sh
+   node tools/<name>-witness.mjs   # writes tools/<name>.result.json
+   ```
+
+</Steps>
 
 <Aside type="caution" title="Mint nothing">
-  Use W3C / schema.org / Dublin Core / PROV-O / EARL terms. Never a private
-  vocabulary where a standard term exists.
+  Use W3C, schema.org, Dublin Core, PROV-O, and EARL terms. Never invent a private
+  vocabulary where a standard term already exists.
 </Aside>
 
-  </TabItem>
-  <TabItem label="AI agents">
+## Connect an agent
 
-## Why
+You are an agent that must act without trusting a server. Every door hands back a
+self-verifying object you re-derive before you trust it.
 
-You are an agent that must act without trusting a server. Every door into
-Hologram OS hands back a self-verifying object you re-derive yourself.
+<Steps>
 
-## How
+1. **Start the MCP door.**
 
-Start at the self-verifying discovery document. It lists every agent door — MCP,
-NANDA, A2A, Agent Skills — and the agent-stack verbs. Connect over MCP, then read
-the live tool list; the doc is authoritative, not this page.
+   ```sh
+   npx hologram-mcp
+   ```
 
-## What
+2. **List the live tools.** The door is self-describing — read the tool list rather
+   than hard-coding this page.
 
-```sh
-npx hologram-mcp
-```
+   ```jsonc
+   // list the live, self-describing tools
+   { "method": "tools/list" }
+   // e.g. verify_object · resolve_object · own_verify · own_settle · own_passport
+   ```
 
-Then discover and call:
+3. **Re-derive every result.** Each object's identity is its hash; re-derive and
+   compare (Law L5) before you act on it.
 
-```jsonc
-// list the live, self-describing tools
-{ "method": "tools/list" }
-// e.g. verify_object · resolve_object · own_verify · own_settle · own_passport
-```
+</Steps>
 
-Entry point: [`/.well-known/agents.json`](/.well-known/agents.json). Every result
-is an object you re-derive (Law L5) before you trust it.
+<Aside type="tip" title="The authoritative entry point">
+  Start at the self-verifying discovery document
+  [`/.well-known/agents.json`](/.well-known/agents.json). It lists every agent door
+  — MCP, NANDA, A2A, Agent Skills — and is authoritative, not this page.
+</Aside>
 
-  </TabItem>
-</Tabs>
+## Now what?
 
-## Next
+You're in. Here are the moves that pay off next.
 
-- **Overview** — the 60-second mental model: [start here](/docs).
-- **Core concepts**, **For developers**, **For AI agents**, **Reference** — authored next.
+**Verify, don't trust.** Every object names itself by `did:holo:sha256:H(canonical-form)`.
+Re-derive the hash and compare before you rely on anything — the [κ-route](/docs/reference/kappa-route)
+does this on every receipt.
+
+**Read the Constitution.** Every action is checked against a fail-closed
+[Constitution](/docs/concepts/conformance) that is itself an object you re-derive,
+so a single altered byte in *it* is refused too.
+
+**Learn the five Laws.** The whole system follows from [five Laws](/docs/concepts/the-five-laws);
+L5 — verify by re-derivation — is the one you'll lean on most.
+
+**Witness your work.** A component ships only when its [conformance row](/docs/reference/conformance)
+is witnessed and green. Treat the gate as the definition of done, not a formality.
+
+**Map the doors.** The [agent doors](/docs/reference/agent-doors) reference enumerates
+every protocol surface and the verbs each one exposes.
+
+## What's next
+
+<CardGrid>
+  <LinkCard
+    title="The substrate"
+    description="Storage, compute, and networking on one content-addressed axis."
+    href="/docs/concepts/substrate"
+  />
+  <LinkCard
+    title="The five Laws"
+    description="The small set of rules the entire system is derived from."
+    href="/docs/concepts/the-five-laws"
+  />
+  <LinkCard
+    title="Build, run, share"
+    description="The full developer loop — author an app, witness it, publish it."
+    href="/docs/build/an-app"
+  />
+  <LinkCard
+    title="Agent doors"
+    description="Every protocol surface — MCP, NANDA, A2A, Agent Skills — and its verbs."
+    href="/docs/reference/agent-doors"
+  />
+</CardGrid>

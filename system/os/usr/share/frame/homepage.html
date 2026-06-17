@@ -571,18 +571,35 @@ import("/sbin/holo-omni-q.mjs").then((m) => { askPrivate = m.askPrivate; }).catc
 //    citing L5-verified source CIDs. Dynamically imported so it never blocks the portal paint; upgrades to
 //    also query the κ-index when the asset loads (network-free, re-derived on load). Null until ready →
 //    resolveUnified's NL lane falls back to the private Q.recall tag, unchanged. ──
-let semantic = null, publishKStore = null;
+let semantic = null, publishKStore = null, indexInfo = null;
+// the pinned index-authority pubkey (Ed25519). A pointer signed by another key — or an older seq — is refused.
+const PINNED_INDEX_PUB = "028982a7282a3268bd26f62bd0e2cb39a3b95a604f347e8edc6294df13554b37";
 Promise.all([
   import("/sbin/holo-discover.mjs"), import("/sbin/holo-semantic.mjs"),
   import("/sbin/holo-index.mjs"), import("/sbin/holo-web-snapshot.mjs"), import("/usr/lib/holo/q/holo-q-embed.js"),
-]).then(async ([disco, sem, idx, snap, emb]) => {
+  import("/sbin/holo-index-pointer.mjs"),
+]).then(async ([disco, sem, idx, snap, emb, ptrmod]) => {
   publishKStore = snap.publishToKStore;
   const mk = (adapters) => sem.createSemantic({ discovery: disco.createDiscovery({ adapters, fetchImpl: proxyFetch }) });
   semantic = mk([disco.linkedDataAdapter()]);
+  const checkPointer = async (loadedCid) => {
+    try {
+      const ptr = await (await fetch("/usr/share/frame/holo-index.ptr.json")).json();
+      const minSeq = parseInt(localStorage.getItem("holo:index-seq") || "-1", 10);
+      const v = await ptrmod.verifyPointer(ptr, { pinnedPub: PINNED_INDEX_PUB, minSeq });
+      if (!v.ok) return "unverified (" + v.reason + ")";
+      if (v.target !== loadedCid) return "stale CAR (≠ signed target)";
+      try { localStorage.setItem("holo:index-seq", String(v.seq)); } catch {}
+      return "✓ seq " + v.seq;
+    } catch { return "unsigned"; }
+  };
   try {
     const embedder = await emb.resolveEmbedder();   // ONE embedder for docs + queries; bge-small if it loads, else floor
     const car = new Uint8Array(await (await fetch("/usr/share/frame/holo-index.car")).arrayBuffer());
     const loaded = await idx.loadIndexFromCar(car, { embedder });   // hybrid vector ⊕ BM25 ⊕ RRF over the κ-index
+    const pointer = await checkPointer(loaded.indexCid);
+    try { indexInfo = await (await fetch("/usr/share/frame/holo-index.json")).json(); } catch {}
+    if (indexInfo) indexInfo.pointer = pointer;
     semantic = mk([idx.indexAdapter(loaded), disco.linkedDataAdapter()]);
   } catch (e) { /* no pre-built index asset → live linked-data discovery only */ }
 }).catch(() => {});
@@ -1314,8 +1331,9 @@ async function renderSemantic(card, r){
   const ans = r.answer ? `<div class="rrow"><div class="k">answer</div><div class="v">${esc(r.answer)}</div></div>` : "";
   const preview = r.html ? `<div class="pv"><iframe sandbox="allow-same-origin" src="${URL.createObjectURL(new Blob([r.html],{type:"text/html"}))}"></iframe></div>` : "";
   const open = `<a class="open" href="/ipfs/${esc(r.cid)}/" target="_blank" rel="noopener">Open κ-page ↗</a>`;
+  const idxLine = indexInfo ? `<div style="color:var(--dim);font:11px var(--mono);margin-bottom:9px">κ-index · ${indexInfo.count} docs · built ${esc((indexInfo.builtAt||"").slice(0,10))} · pointer ${esc(indexInfo.pointer||"—")} · ${esc(short(indexInfo.indexCid||"",7))}</div>` : "";
   card.innerHTML = `<div class="rhd">${glyph("#10b981","Q")}<div><div class="ttl">${esc(r.query)}</div><div class="sub">semantic web → ${r.sources.length} verified source${r.sources.length===1?"":"s"} · ${esc((r.probes||[]).join(" ⊕ "))}</div></div><span class="badge">semantic</span></div>`
-    + `<div class="rbody">${ans}${srcRows}</div>` + preview + sealStrip(r, open);
+    + `<div class="rbody">${idxLine}${ans}${srcRows}</div>` + preview + sealStrip(r, open);
   wire(card);
   try { if (corpus) corpus.index({ id:r.cid, text:`${r.query}\n${(r.sources||[]).map(s=>s.title).join("\n")}\n${r.answer||""}`, meta:{ path:"semantic" } }).catch(()=>{}); } catch {}
 }

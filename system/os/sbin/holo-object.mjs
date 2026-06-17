@@ -101,50 +101,16 @@ export function makeObject(store, { type, context = [], links = [], ...props }) 
   return put(store, obj);
 }
 
-// ── Render contract (S1): a UOR object MAY declare HOW a browser instantiates it. Three kinds,
-// named once — "doc" (a static document), "media" (a streamed media object), "experience" (a live
-// interactive surface). The contract rides in a SEPARATE context appended only to renderable
-// objects, so a non-renderable object's address is byte-stable (Laws L1/L2 — no global churn).
-export const RENDER_CONTEXT = Object.freeze({
-  holo: "https://hologram.os/ns#",
-  render: { "@id": "holo:render" },
-  renderKind: "holo:renderKind",
-  contentType: "schema:encodingFormat",   // reuse schema.org's MIME term — interpretable by any agent
-  entry: "holo:entry",
-});
-export const RENDER_KINDS = Object.freeze(["doc", "media", "experience"]);
+// Render contract (S1): the vocab + pure read-side helpers live in a DEPENDENCY-FREE module (no node:crypto)
+// so the browser service worker can import them. Here we add makeRenderable, which seals (needs crypto).
+// Re-exported so existing importers/witnesses read them off holo-object.
+export { RENDER_CONTEXT, RENDER_KINDS, renderContract, kindOfContentType, selectRender } from "./holo-render-contract.mjs";
+import { RENDER_CONTEXT as _RC, renderContract as _renderContract } from "./holo-render-contract.mjs";
 
-// renderContract({kind, contentType, entry}) — a typed render descriptor. `entry` names the link rel
-// (or relative path) the renderer instantiates; `contentType` is its MIME. Throws on an unknown kind.
-export function renderContract({ kind, contentType, entry } = {}) {
-  if (!RENDER_KINDS.includes(kind)) throw new Error("render kind must be one of " + RENDER_KINDS.join("|"));
-  return { "@type": "holo:RenderContract", renderKind: kind,
-    ...(contentType ? { contentType } : {}), ...(entry ? { entry } : {}) };
-}
-
-// makeRenderable(store, {render, ...}) — a UOR object carrying a render contract. The render context
-// is appended HERE (not to UOR_CONTEXT), so existing non-renderable objects are unchanged. `render`
-// may be a built contract or the plain {kind,contentType,entry} args.
+// makeRenderable(store, {render, ...}) — a UOR object carrying a render contract. The render context is
+// appended HERE (not to UOR_CONTEXT), so existing non-renderable objects are unchanged (byte-stable κ).
+// `render` may be a built contract or the plain {kind,contentType,entry} args.
 export function makeRenderable(store, { type, context = [], links = [], render, ...props }) {
-  const contract = render && render["@type"] === "holo:RenderContract" ? render : renderContract(render || {});
-  return makeObject(store, { type, context: [RENDER_CONTEXT, ...context], links, render: contract, ...props });
-}
-
-// kindOfContentType(ct) — the deterministic fallback dispatch when no contract is declared: video/audio
-// instantiate as "media"; everything else (html/json/text/image/…) renders as a "doc". "experience" is
-// never inferred — a live surface must declare itself explicitly.
-export function kindOfContentType(ct) {
-  const s = String(ct || "").toLowerCase();
-  return (s.startsWith("video/") || s.startsWith("audio/")) ? "media" : "doc";
-}
-
-// selectRender(obj) — the SINGLE render-dispatch authority. Honor a declared contract; else fall back to
-// content-type → kind inference. Returns { kind, contentType, entry }; never throws. NOTE: dispatch is a
-// VIEW over already-verified bytes — trust still comes from verify()/verifyDeep() (Law L5), not from here.
-export function selectRender(obj) {
-  const c = obj && obj.render;
-  if (c && RENDER_KINDS.includes(c.renderKind))
-    return { kind: c.renderKind, contentType: c.contentType || null, entry: c.entry || null };
-  const ct = obj && (obj.contentType || obj.encodingFormat) || null;
-  return { kind: kindOfContentType(ct), contentType: ct, entry: null };
+  const contract = render && render["@type"] === "holo:RenderContract" ? render : _renderContract(render || {});
+  return makeObject(store, { type, context: [_RC, ...context], links, render: contract, ...props });
 }

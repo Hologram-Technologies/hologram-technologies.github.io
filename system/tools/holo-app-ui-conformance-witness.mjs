@@ -22,7 +22,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FLOOR = 16;                                          // px — matches DEFAULTS.fontMin (holo-theme.js)
-const APPS = process.env.HOLO_APPS_DIR || "C:/Users/pavel/Desktop/Hologram Apps/apps";
+const APPS = process.env.HOLO_APPS_DIR || join(here, "../../../holo-apps/apps");
 const BASELINE = join(here, "holo-app-ui-baseline.json");
 const update = process.argv.includes("--update-baseline");
 const PX = /font-size:\s*(\d+(?:\.\d+)?)px/g;                       // the font-size property

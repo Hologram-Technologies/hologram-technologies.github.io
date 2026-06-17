@@ -71,3 +71,20 @@ body {
   font-size: var(--sl-text-lg);
   color: var(--sl-color-white);
 }
+
+/* Steps: the numbered markers carry the gateway's violet, so a walkthrough reads
+   as a deliberate sequence rather than a default list. Sharp, solid, high-contrast. */
+.sl-steps > li::before {
+  background: var(--sl-color-accent);
+  color: var(--sl-color-white);
+  border: 1px solid var(--sl-color-accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+:root[data-theme='dark'] .sl-steps > li::before {
+  color: #fff;
+}
+/* The connecting rail between steps picks up a hairline, not a heavy gray. */
+.sl-steps > li:not(:last-child) {
+  border-inline-start-color: var(--sl-color-hairline-light, var(--sl-color-hairline));
+}

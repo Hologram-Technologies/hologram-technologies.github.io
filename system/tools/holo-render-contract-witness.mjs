@@ -8,7 +8,8 @@ import {
   makeObject, makeRenderable, renderContract, selectRender, kindOfContentType,
   verify, verifyDeep, resolve, RENDER_KINDS,
 } from "../os/sbin/holo-object.mjs";
-import { dispatchRender } from "../os/sbin/holo-ipfs-gateway.mjs";
+import { dispatchRender, resolveIpfsPath } from "../os/sbin/holo-ipfs-gateway.mjs";
+import * as holoIpfs from "../os/usr/lib/holo/holo-ipfs.js";
 
 const r = [];
 const ok = (label, pass, d = "") => { r.push({ label, pass: !!pass }); console.log(`${pass ? "PASS" : "FAIL"} — ${label}${d ? "  (" + d + ")" : ""}`); return !!pass; };
@@ -73,6 +74,22 @@ ok("a non-renderable object's @context is exactly the 3-entry UOR base (no rende
 // re-build the identical plain object → identical address (deterministic, content-derived)
 const plain2 = makeObject(new Map(), { type: ["schema:Thing"], name: "plain" });
 ok("identical plain inputs → identical address (κ stability)", plain.id === plain2.id);
+
+// H · INTEGRATION — the IPFS path gateway (the layer the service worker serves from) honors a render
+//     contract carried in a single raw leaf. Build a real RAW CIDv1 for the envelope bytes, drive
+//     resolveIpfsPath with a fixture getBlock, and assert it serves the DECLARED content type + kind.
+await (async () => {
+  const bytes = new Uint8Array(new TextEncoder().encode(JSON.stringify(docObj)));
+  const cid = holoIpfs.cidToString(await holoIpfs.cidOf(bytes, holoIpfs.CODEC.RAW));
+  const getBlock = async (c) => (c === cid ? bytes : null);
+  const out = await resolveIpfsPath(cid, "", getBlock);
+  ok("resolveIpfsPath serves a UOR envelope's DECLARED content type (SW dispatch path)", out.kind === "file" && out.contentType === "text/html" && out.renderKind === "doc", out.contentType + "/" + out.renderKind);
+  // a raw leaf with no contract still resolves via the existing sniffer (no regression)
+  const plainBytes = new Uint8Array(new TextEncoder().encode("<!doctype html><title>x</title>"));
+  const pcid = holoIpfs.cidToString(await holoIpfs.cidOf(plainBytes, holoIpfs.CODEC.RAW));
+  const pout = await resolveIpfsPath(pcid, "", async (c) => (c === pcid ? plainBytes : null));
+  ok("resolveIpfsPath still sniffs plain (non-UOR) bytes — no regression", pout.kind === "file" && pout.contentType === "text/html" && !pout.renderKind);
+})();
 
 const passed = r.filter((x) => x.pass).length;
 console.log(`\n${passed}/${r.length} checks`);

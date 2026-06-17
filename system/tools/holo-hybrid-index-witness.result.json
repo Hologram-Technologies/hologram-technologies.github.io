@@ -1,0 +1,22 @@
+{
+  "@type": "holo:WitnessResult",
+  "witness": "holo-hybrid-index",
+  "step": "R1",
+  "embedder": "reference-floor",
+  "topVia": [
+    "vector",
+    "bm25"
+  ],
+  "pass": 6,
+  "fail": 0,
+  "total": 6,
+  "ok": true,
+  "checks": {
+    "resolveembedder-returns-a-never-throw-embedder-real-or-f-1": true,
+    "hybrid-index-returns-ranked-results-2": true,
+    "the-vector-leg-is-live-and-fused-a-hit-s-via-includes-ve-3": true,
+    "top-hit-is-a-rome-doc-not-the-unrelated-one-4": true,
+    "embedder-null-degrades-to-bm25-only-no-vector-in-via-sti-5": true,
+    "bm25-only-still-ranks-a-rome-doc-first-6": true
+  }
+}

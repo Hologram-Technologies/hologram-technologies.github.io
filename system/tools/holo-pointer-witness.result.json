@@ -1,0 +1,23 @@
+{
+  "@type": "holo:WitnessResult",
+  "witness": "holo-pointer",
+  "step": "T2",
+  "pub": "77a174f873a9e2cb67fc6201fc82c2d19e33d5b94b104f335a32595fb5d7dc84",
+  "pass": 11,
+  "fail": 0,
+  "total": 11,
+  "ok": true,
+  "checks": {
+    "signpointer-emits-a-holo-indexpointer-with-a-signature-1": true,
+    "a-valid-pointer-verifies-and-yields-the-current-target-c-2": true,
+    "a-tampered-target-is-refused-signature-breaks-3": true,
+    "a-tampered-seq-is-refused-signature-breaks-4": true,
+    "a-tampered-signature-is-refused-5": true,
+    "a-pointer-signed-by-a-non-pinned-key-is-refused-authorit-6": true,
+    "a-strictly-lower-seq-is-refused-rollback-downgrade-prote-7": true,
+    "re-seeing-the-same-seq-is-accepted-re-visit-not-a-rollba-8": true,
+    "an-expired-pointer-is-refused-9": true,
+    "integrity-binding-served-index-cid-verified-target-accep-10": true,
+    "integrity-binding-a-mismatched-served-cid-is-detected-re-11": true
+  }
+}
