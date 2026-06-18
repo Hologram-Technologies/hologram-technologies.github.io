@@ -69,6 +69,10 @@ const ctOf = (rel) => _SWT[(rel.split(".").pop() || "").toLowerCase()] || "appli
 // refuse/passthrough, so the boot happy-path is byte-identical and cannot regress. The sealed ANCHOR is
 // out of scope here by construction — these are os-closure/app-lock κ, never the constitution's own bytes.
 const HEAL_MS = 6000;
+// A fast HTTP content source for APP bytes: the apps-holo repo, served raw by GitHub's CDN (whole files,
+// CORS, large files included). heal() fetches an app file from here by its serve-rel path and verifies the
+// whole-file κ — so an app streams by content from here, IPFS, or the mesh interchangeably (Law L1).
+const APPS_HOLO_BASE = "https://raw.githubusercontent.com/humuhumu33/apps-holo/holo-share-to-run/";
 const MIME = { html: "text/html", js: "text/javascript", mjs: "text/javascript", css: "text/css", json: "application/json", jsonld: "application/ld+json", svg: "image/svg+xml", png: "image/png", webp: "image/webp", wasm: "application/wasm", woff2: "font/woff2", map: "application/json", txt: "text/plain", wav: "audio/wav" };
 const mimeOf = (rel) => MIME[String(rel).split(".").pop().toLowerCase()] || "application/octet-stream";
 
@@ -171,13 +175,25 @@ const recovery = () => RECOVERY || (RECOVERY = [(() => { try { return ipfsPeer({
 // heal(rel, hex, axis, resp) → Response | null — κ-verified bytes recovered from a non-origin source, time-boxed.
 async function heal(rel, hex, axis, resp) {
   if (axis !== "sha256" || !/^[0-9a-f]{64}$/.test(hex)) return null;   // IPFS/mesh κ are sha2-256 (the open-web axis)
-  let bytes = null;
-  try { bytes = await Promise.race([resolveByKappa("did:holo:sha256:" + hex, recovery(), new Map()), new Promise((r) => setTimeout(() => r(null), HEAL_MS))]); }
-  catch { bytes = null; }                                              // resolveByKappa throws when no source served a κ-verified copy
+  let bytes = null, src = "mesh";
+  // FAST content source: the apps-holo repo serves app files WHOLE by path (GitHub CDN — no IPFS
+  // chunking/propagation lag, large files included). Try it first for app bytes and VERIFY the whole-file
+  // κ (Law L5) so a wrong byte is refused. Location is just a latency choice; the κ is the identity (Law L1).
+  if (rel.startsWith("apps/")) {
+    try {
+      const r = await fetch(APPS_HOLO_BASE + rel, { cache: "no-store" });
+      if (r.ok) { const ab = await r.arrayBuffer(); if ((await sha256hex(ab)) === hex) { bytes = new Uint8Array(ab); src = "apps-holo"; } }
+    } catch {}
+  }
+  // fallback: IPFS trustless gateways + WebRTC mesh, re-derived, time-boxed.
+  if (!bytes) {
+    try { bytes = await Promise.race([resolveByKappa("did:holo:sha256:" + hex, recovery(), new Map()), new Promise((r) => setTimeout(() => r(null), HEAL_MS))]); }
+    catch { bytes = null; }                                            // resolveByKappa throws when no source served a κ-verified copy
+  }
   if (!bytes) return null;
   const ct = (resp && resp.headers.get("content-type")) || mimeOf(rel);
   const h = new Headers(); for (const [k, v] of Object.entries(COI)) h.set(k, v);
-  h.set("content-type", ct); h.set("x-holo-cache", "heal"); h.set("x-holo-source", "mesh");
+  h.set("content-type", ct); h.set("x-holo-cache", "heal"); h.set("x-holo-source", src);
   try { (await caches.open(KCACHE)).put(kKey(axis, hex), new Response(bytes.slice(0), { headers: h })); } catch {}   // seed the verified copy → tier-0 serves it network-free next time
   return new Response(bytes, { status: 200, headers: h });
 }
