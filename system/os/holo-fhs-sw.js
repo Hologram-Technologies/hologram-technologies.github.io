@@ -191,7 +191,10 @@ async function heal(rel, hex, axis, resp) {
     catch { bytes = null; }                                            // resolveByKappa throws when no source served a κ-verified copy
   }
   if (!bytes) return null;
-  const ct = (resp && resp.headers.get("content-type")) || mimeOf(rel);
+  // Derive the type from the FILE (extension), NOT from `resp` — resp is the origin's 404 page, whose
+  // content-type is text/html. Serving a healed .js/.wasm as text/html breaks module-script loading
+  // ("Expected a JavaScript-or-Wasm module script…"), which silently stalls workers. mimeOf wins.
+  const ct = mimeOf(rel) || (resp && resp.headers.get("content-type")) || "application/octet-stream";
   const h = new Headers(); for (const [k, v] of Object.entries(COI)) h.set(k, v);
   h.set("content-type", ct); h.set("x-holo-cache", "heal"); h.set("x-holo-source", src);
   try { (await caches.open(KCACHE)).put(kKey(axis, hex), new Response(bytes.slice(0), { headers: h })); } catch {}   // seed the verified copy → tier-0 serves it network-free next time
