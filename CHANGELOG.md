@@ -11,6 +11,8 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- Update holo-linux κ-lock (IPFS-streamed boot artifacts)
+- Vendor the holo-linux κ-lock into the OS image (κ-launch readiness)
 - RDF/graph services, pages workflow + docs rebuild
 - Complete the κ-native W3C Semantic-Web → Agentic-Web stack (S4-S6) + holospaces bundle
 - Graph/render-contract/pointer services + docs rebuild
