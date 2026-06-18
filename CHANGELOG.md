@@ -48,6 +48,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Apply flat→FHS mapping to the app-lock fetch so apps heal by κ on static hosts
 - Restore docs-reference-witness.mjs (orphaned by 0a2092a, still called by pages.yml)
 - Use absolute vendor paths in importmap
 - Make Astro base deployment-relative so project-page docs aren't unstyled
