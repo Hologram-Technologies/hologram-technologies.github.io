@@ -128,7 +128,7 @@ A few words this README uses, kept short:
 | [Constitution](CONSTITUTION.md) | The law every app and agent runs under, held as an object you can verify |
 | [For AI agents](AGENTS.md) | Where an agent starts, plus the machine readable map and capabilities |
 | [Architecture notes](system/docs/) | The decision records and the naming method behind the system |
-| [Contributing guide](system/CONTRIBUTING.md) | How to make a change and prove it |
+| [Contributing guide](.github/CONTRIBUTING.md) | How to make a change and prove it |
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -164,13 +164,13 @@ One idea runs through everything here, and it makes contributing simpler than us
 
 A good first path:
 
-1. Read the [Manifesto](MANIFESTO.md) and this README, then skim the [Contributing guide](system/CONTRIBUTING.md).
+1. Read the [Manifesto](MANIFESTO.md) and this README, then skim the [Contributing guide](.github/CONTRIBUTING.md).
 2. Open the OS, find something you wish were better, and try it.
 3. Make your change together with the check that proves it.
 4. Run `npm run gate` inside `system` and make sure every required check passes.
 5. Open a pull request that explains, in plain words, why the change matters.
 
-Be kind and be clear. The [Code of Conduct](system/CODE_OF_CONDUCT.md) asks for nothing more and nothing less.
+Be kind and be clear. The [Code of Conduct](.github/CODE_OF_CONDUCT.md) asks for nothing more and nothing less.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -178,7 +178,7 @@ Be kind and be clear. The [Code of Conduct](system/CODE_OF_CONDUCT.md) asks for 
 
 * Join the conversation on the community [Discord](https://discord.gg/ZwuZaNyuve), where you can see who is online right now.
 * Questions, ideas, and proposals are welcome in the project's issues and discussions on GitHub.
-* To report something sensitive, please follow the [Security policy](system/SECURITY.md).
+* To report something sensitive, please follow the [Security policy](.github/SECURITY.md).
 * To learn about the foundation and community behind the substrate, visit the [UOR Foundation](https://uor.foundation/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>

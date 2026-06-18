@@ -42,7 +42,7 @@ jobs:
         continue-on-error: true   # if git-cliff hiccups, fall back to the committed CHANGELOG.md — never break the site deploy
         uses: orhun/git-cliff-action@v4
         with:
-          config: cliff.toml
+          config: .github/cliff.toml
           args: --verbose
         env:
           OUTPUT: CHANGELOG.md

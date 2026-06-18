@@ -37,3 +37,8 @@ system/tools/bin/yt-dlp.exe
 
 # local-only private signing key
 system/tools/.holo-index-key.json
+
+# Generated docs site — Astro Starlight build output, emitted into ./docs by the Pages deploy
+# (system/docs/site → npm run build). Source of truth is system/docs/site; never edit ./docs by
+# hand and never commit it. Rebuild locally with: cd system/docs/site && npm ci && npm run build.
+/docs/

@@ -2,8 +2,8 @@
 
 Thanks for helping build an internet computer. This repo is small on purpose: it carries
 only *product* on top of the [holospaces](https://github.com/Hologram-Technologies/holospaces)
-engine (a pinned, unmodified submodule). Read [AGENTS.md](AGENTS.md) and
-[README.md](README.md) first.
+engine (a pinned, unmodified submodule). Read [AGENTS.md](../AGENTS.md) and
+[README.md](../README.md) first.
 
 ## Principles
 
@@ -25,7 +25,7 @@ engine (a pinned, unmodified submodule). Read [AGENTS.md](AGENTS.md) and
    - `node --test *.test.mjs` (host unit tests)
    - `node <name>-witness.mjs` (your component's witness)
    - `node ../conformance/w3c-gate.mjs --strict` (the release gate — must pass)
-3. For an architectural decision, add an ADR under [`docs/adr/`](docs/adr/) (`NNNN-title.md`)
+3. For an architectural decision, add an ADR under [`docs/adr/`](../system/docs/adr/) (`NNNN-title.md`)
    and, if it adds a conformance obligation, a row in `w3c-conformance.jsonld`.
 4. Commit with an imperative message that explains the *why*; name the catalog row if a
    conformance change. Open a PR.
@@ -49,7 +49,7 @@ history and published live at [`/changelog.html`](../changelog.html).
 - **How it maps** (Conventional Commit → [Keep a Changelog](https://keepachangelog.com/) section):
   `feat` → Added · `fix` → Fixed · `perf`/`refactor`/`revert` → Changed · deprecations → Deprecated ·
   removals → Removed · security → Security. `docs`/`style`/`test`/`chore`/`ci`/`build` are omitted as
-  noise; anything unmatched falls under Changed. The full mapping lives in [`cliff.toml`](../cliff.toml).
+  noise; anything unmatched falls under Changed. The full mapping lives in [`cliff.toml`](cliff.toml).
 - **Releases follow [SemVer](https://semver.org/):** cut a `vMAJOR.MINOR.PATCH` tag to close the
   `[Unreleased]` section into a dated release. The Pages deploy then regenerates `CHANGELOG.md`,
   the [`git-cliff`](https://git-cliff.org/) source, the Atom `feed.xml`, and the live page — and a
