@@ -11,6 +11,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- Heal app bytes from the apps-holo repo by κ (fast, whole-file, location-agnostic)
 - Update holo-linux κ-lock (IPFS-streamed boot artifacts)
 - Vendor the holo-linux κ-lock into the OS image (κ-launch readiness)
 - RDF/graph services, pages workflow + docs rebuild
