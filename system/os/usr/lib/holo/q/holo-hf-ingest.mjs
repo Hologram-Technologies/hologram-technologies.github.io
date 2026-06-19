@@ -94,6 +94,12 @@ export async function rangeDownload(url, { fetch, token, size, chunkSize = 8 << 
 export async function ingest(repo, ctx = {}) {
   const { fetch, token, revision = "main", format, kput, sha256hex, chunkSize, blockSize = 1 << 18, onProgress } = ctx;
   const info = await fetchModelInfo(repo, { fetch, token });
+  // /api/models/{id} siblings omit size — patch from the tree endpoint FIRST, so selection picks the SMALLEST quant
+  // (otherwise the size-blind picker falls back to name order and grabs e.g. fp16 because "f" < "q").
+  try {
+    const tree = await (await fetch(`https://huggingface.co/api/models/${repo}/tree/${revision}?recursive=true`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })).json();
+    if (Array.isArray(tree)) { const sz = new Map(tree.map((t) => [t.path, t.size])); for (const s of (info.siblings || [])) { const z = sz.get(s.rfilename || s.path); if (z) s.size = z; } }
+  } catch { /* selection falls back to name order; honest size error below if truly unknown */ }
   const sel = selectModelFile(info, { format });
   const sib = (info.siblings || []).find((s) => (s.rfilename || s.path) === sel.file);
   const size = (sib && (sib.size ?? sib.lfs?.size));
