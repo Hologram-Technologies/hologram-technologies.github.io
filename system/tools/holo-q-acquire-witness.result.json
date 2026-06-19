@@ -1,0 +1,24 @@
+{
+  "spec": "Holo Forge Unified (ADR-0114) S3 — the end-to-end self-acquisition loop (holo-q-acquire.mjs) with the S2 authorization gate STRUCTURALLY on the critical path: discover → authorize → forge → bind. A listed model acquires; an unsigned/off-manifest model is refused with forge NEVER reached (the gate cannot be bypassed); a pinned model's streamed κ is guarded before bind; no specialist falls back to main (never fakes); a warm κ-cache rebinds with zero forge.",
+  "authority": "holospaces Laws L1/L5 · ADR-0114 · ADR-0084 Holo Q Mux · ADR-0033 Constitution · ADR-0111 (secp256k1 M-of-N) · RFC 8785 JCS",
+  "note": "Orchestration + the REAL authorize()/pinGuard() are Node-proven. Injected (already-witnessed or S1-pending): pickSpecialist (network discovery), forge/HF-download (S1), makeProvider (openHoloStream→engine), the conscience (faithful mirror; sealed edit deferred), and the signature primitive (test stand-in for secp256k1.verify). The #q-acquire row depends on #forge-acquire-authz; both register in conformance.jsonld in the reseal step.",
+  "witnessed": true,
+  "covers": [
+    "q-self-acquire",
+    "gate-on-critical-path",
+    "refuses-unsigned",
+    "off-manifest-consent",
+    "pinned-kappa-guard",
+    "fallback-never-fakes",
+    "warm-reload-network-free"
+  ],
+  "checks": {
+    "acquiresListedModel": true,
+    "gateBeforeForge_order": true,
+    "refusesUnsigned_noForge": true,
+    "refusesOffManifestNoConsent": true,
+    "pinnedKappaGuardRefuses": true,
+    "fallbackWhenNoSpecialist": true,
+    "warmReloadNetworkFree": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "spec": "Holo Forge Unified (ADR-0114) S1 — in-browser HuggingFace ingestion (holo-hf-ingest.mjs): discover info, select the GGUF/ONNX file + companions, RANGE-stream multi-GB weights (resume-able), map auth/gated/404 honestly, detect format by magic, and register the bytes as κ-blocks. A range-ignoring server is surfaced as servedWhole and a thrown fetch as network/cors — never a silent partial. Live cross-origin CORS+206 is the deferred browser-session check.",
+  "authority": "holospaces Laws L1/L5 · ADR-0114 · ADR-0092 governed fetch · HuggingFace Hub API · HTTP Range/206 (RFC 7233)",
+  "note": "Logic is REAL + Node-proven against a mock fetch. Deferred to a browser session: the LIVE check that huggingface.co answers cross-origin Range reads (CORS + 206); if it does not, ingestion routes through the host-proxy /sc/* precedent (a relay in the path — not literally serverless). Wiring ingest()→forge→sealHolo is S0/S3.",
+  "witnessed": true,
+  "covers": [
+    "hf-ingest",
+    "range-stream-resume",
+    "status-mapping",
+    "format-detect",
+    "kappa-block-register",
+    "cors-honest-fallback",
+    "auth-token"
+  ],
+  "checks": {
+    "mapsHfStatuses": true,
+    "selectsGgufWithCompanions": true,
+    "rangeAssemblesExactBytes": true,
+    "resumeSkipsHaveChunks": true,
+    "detectsRangeIgnored": true,
+    "corsBlockSurfaces": true,
+    "detectsGgufMagic": true,
+    "registersKappaBlocks": true,
+    "authHeaderOnlyWhenToken": true
+  }
+}

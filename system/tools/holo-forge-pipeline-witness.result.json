@@ -1,0 +1,21 @@
+{
+  "spec": "Holo Forge Unified (ADR-0114) — FULL PIPELINE composition: ingest (S1) → forgeToHolo/sealHolo (S0) → authorize (S2) → acquireSpecialist (S3) run as ONE flow through the real built modules, and the produced .holo validates through the REAL production reader. A signed+listed model binds end-to-end with tier 'pinned'; an unsigned manifest is refused with the network never touched; a wrong pinned source κ is refused after download and before bind; a warm reload is network-free.",
+  "authority": "holospaces Laws L1/L3/L5 · ADR-0114 · ADR-0084 · ADR-0033 · ADR-0111 · HTTP Range/206 (RFC 7233)",
+  "note": "Load-bearing code is REAL: S1 ingest, S0 forgeToHolo/sealHolo, the production readHolo/openHoloStream reader, S2 authorize/verifyManifest/pinGuard, S3 acquireSpecialist. Mocked: fetch (HF) and the GGUF tensor-split (forgeGguf is witnessed separately by gguf-forge.test.mjs). This proves the STAGES COMPOSE; the live HF CORS check + reseal cut-over remain the browser-session steps (holo-forge-unified-cutover.md).",
+  "witnessed": true,
+  "covers": [
+    "full-pipeline-compose",
+    "ingest-forge-seal-authorize-acquire",
+    "real-reader-validates-output",
+    "gate-before-network",
+    "pinned-source-kappa",
+    "warm-network-free"
+  ],
+  "checks": {
+    "pipelineBindsListedModel": true,
+    "producedHoloRoundTrips": true,
+    "refusesUnsignedNoIngest": true,
+    "pinnedSourceKappaMismatch": true,
+    "warmReloadNetworkFree": true
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "spec": "Holo Forge Unified (ADR-0114) S2 — the model-acquisition authorization gate (holo-q-authz.mjs): Q may auto-acquire a HuggingFace model only on a SIGNED, κ-addressed skill→model manifest within hard caps, or off-manifest only behind the fail-closed conscience + explicit consent; L5 proves integrity, this proves provenance+bounds. Refuses unsigned/tampered/oversized/bad-license/off-manifest-without-consent, and fails closed when the conscience is unsealed.",
+  "authority": "holospaces Laws L1/L5 · ADR-0114 Holo Forge Unified · ADR-0033 Holo Constitution · ADR-0111 Holo Boot Root (secp256k1 M-of-N) · RFC 8785 JCS",
+  "note": "Gate logic is REAL + Node-proven. The conscience is a faithful local mirror of holo-conscience.js (the sealed-file edit is the deferred reseal step); the signature primitive is a deterministic stand-in for the already-witnessed secp256k1.verify (ADR-0111). The #forge-acquire-authz row registration in conformance.jsonld + the live conscience edit are the remaining pinned/reseal steps.",
+  "witnessed": true,
+  "covers": [
+    "acquire-authz",
+    "signed-manifest-m-of-n",
+    "hard-caps",
+    "signed-allowlist",
+    "off-manifest-consent",
+    "fail-closed-conscience",
+    "pinned-kappa-guard",
+    "law-l5-vs-provenance"
+  ],
+  "checks": {
+    "allowsListedModelPinned": true,
+    "refusesUnlistedModel": true,
+    "refusesUnsignedManifest": true,
+    "refusesTamperedManifest": true,
+    "refusesOversizedModel": true,
+    "refusesBadLicense": true,
+    "consentGrantsOffManifest": true,
+    "deniedConsentBlocks": true,
+    "failsClosedWhenUnsealed": true,
+    "pinnedTierBindsExactKappa": true,
+    "_numParams": true
+  }
+}
