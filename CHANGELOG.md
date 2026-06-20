@@ -49,6 +49,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Stage the gateway's static-import modules so the live site can boot
 - Healed files get their MIME from the file ext, not the origin 404 page
 - Vendor the holospaces wasm runtime so apps boot on the deploy
 - Apply flat→FHS mapping to the app-lock fetch so apps heal by κ on static hosts
