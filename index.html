@@ -977,8 +977,14 @@
 <script type="module">
   // Hologram-native WebGPU cloud sky — a WGSL port of the Vanta CLOUDS2 shader (witnessed pixel-parity
   // in /_shared/clouds-parity.html). Used when a WebGPU device is present; Vanta/WebGL is the fallback.
-  import HoloCloudsGPU from "./system/os/usr/lib/holo/holo-clouds-gpu.js";
-  import HoloCloudsVolumetricGPU from "./system/os/usr/lib/holo/holo-clouds-volumetric-gpu.js";
+  // GUARD (fail-soft): the gateway is served RAW (outside the Service Worker), so a missing/404 raw
+  // module here would abort this ENTIRE inline module — taking the clouds, the κ projection AND the
+  // boot logic down with it (exactly the staging-gap that blanked the page). Load the OPTIONAL WebGPU
+  // cloud shaders DYNAMICALLY so a 404 degrades to `null` and the Vanta (WebGL) fallback below carries
+  // the sky; everything else in this module still runs. (The WebGPU path is disabled below regardless,
+  // and the GPU init is already wrapped in try/catch → Vanta — so `null` is always safe here.)
+  const HoloCloudsGPU = await import("./system/os/usr/lib/holo/holo-clouds-gpu.js").then((m) => m.default).catch(() => null);
+  const HoloCloudsVolumetricGPU = await import("./system/os/usr/lib/holo/holo-clouds-volumetric-gpu.js").then((m) => m.default).catch(() => null);
   const $ = (id) => document.getElementById(id);
 
   // ── Fail-closed boot-refusal screen (ADR-033) — sharp, on-brand, self-contained (NO fetch). ──
