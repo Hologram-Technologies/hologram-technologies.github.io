@@ -962,14 +962,14 @@
 
 <!-- AI agents: the full machine map is in the JSON-LD + /.well-known links in <head>; AGENTS.md is the human door. -->
 
-<!-- Vanta CLOUDS2 effect — vendored locally (Vanta.js + three.js r134, both MIT), served same-origin (no
-     runtime CDN). DEFERRED so they NEVER block first paint: the hero (text · CTAs · search) renders
-     instantly, then the cloud sky fades in (.bg-gl has an opacity transition) once three+vanta load.
-     defer preserves order — three → vanta → holo-fx → the module — so window.THREE/VANTA/HoloFX are all
-     ready before the module runs. The effect is the genuine vantajs.com clouds2; we only tune pixel
-     ratio + frame rate. -->
-<script defer src="system/vendor/vanta/three.min.js"></script>
-<script defer src="system/vendor/vanta/vanta.clouds2.min.js"></script>
+<!-- NATIVE-FIRST cold-load: on a WebGPU device the cloud sky is the ~12 KB Hologram WGSL shader (GPU-native,
+     full device DPR) — so we DON'T ship the ~615 KB three.js at all, the single biggest cold-load saving for
+     capable hardware. Vanta/WebGL is preloaded (deferred, order-preserved — three → vanta) ONLY when WebGPU
+     is absent. If WebGPU is present but the clouds fail at runtime, the page's CSS nebula sky is the graceful
+     fallback. (Both paths still fade in after first paint — the hero never waits on the sky.) -->
+<script>
+  if (!navigator.gpu) document.write('<scr' + 'ipt defer src="system/vendor/vanta/three.min.js"></scr' + 'ipt><scr' + 'ipt defer src="system/vendor/vanta/vanta.clouds2.min.js"></scr' + 'ipt>');
+</script>
 <!-- Holo FX (the OS's faithful unicode-animations adoption): renders every κ as a streaming braille
      projection of its own bytes (hover/focus reveals the hash) and auto-upgrades any did:holo digest
      in the page. Deferred → window.HoloFX is ready before the module, but never blocks paint. -->
@@ -1140,20 +1140,36 @@
     const scaleNow = () => STEPS[si];
     const on = () => document.documentElement.getAttribute("data-immersive") === "full" && !document.hidden;
     function apply() { if (!inst) return; const ns = scaleNow(); try { inst.setOptions({ scale: ns, scaleMobile: ns }); inst.scale = ns; inst.resize(); } catch {} }
+    // ensureVanta() — three.js + vanta are preloaded only on non-WebGPU devices (the `document.write` above).
+    // On a WebGPU device we skip them at boot; if WebGPU turns out to be unusable (navigator.gpu present but
+    // no adapter) or the clouds fail, lazy-load them then — so the sky always appears. Resolves instantly when
+    // already present. Ordered (three → vanta), since vanta depends on window.THREE.
+    function loadScript(src) { return new Promise((res, rej) => { const e = document.createElement("script"); e.src = src; e.onload = res; e.onerror = rej; document.head.appendChild(e); }); }
+    let _vanta = null;
+    function ensureVanta() {
+      if (window.VANTA && window.VANTA.CLOUDS2) return Promise.resolve();
+      if (_vanta) return _vanta;
+      _vanta = loadScript("system/vendor/vanta/three.min.js").then(() => loadScript("system/vendor/vanta/vanta.clouds2.min.js")).catch(() => {});
+      return _vanta;
+    }
     function start() {
       if (inst || gpuInst) return;
       if (useGpu) {                                       // ── Hologram-native WebGPU clouds ──
-        // default = true VOLUMETRIC raymarch; ?clouds=classic = the CLOUDS2 WGSL port
-        const classic = /[?&]clouds=classic\b/i.test(location.search || "");
+        // DEFAULT = the witnessed pixel-parity CLOUDS2 WGSL port (matches the approved Vanta look);
+        // the richer true-volumetric raymarch is opt-in via ?clouds=volumetric. Render at the device's
+        // NATIVE pixel ratio for full-resolution crispness — the WGSL sky is a cheap fragment shader, so
+        // native DPR stays low-latency where the 880 KB WebGL path could not (best experience on capable HW).
+        const dpr = (typeof devicePixelRatio !== "undefined" && devicePixelRatio) || 1;
+        const volumetric = /[?&]clouds=volumetric\b/i.test(location.search || "") && HoloCloudsVolumetricGPU;
         try {
           const c = document.createElement("canvas");
           c.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block";
           el.appendChild(c);
-          gpuInst = classic
-            ? HoloCloudsGPU.createBackground(c, { reduced: reduce, horizon: 0.26, noiseURL: "system/vendor/vanta/noise.png" })
-            : HoloCloudsVolumetricGPU.createBackground(c, { reduced: reduce });
+          gpuInst = volumetric
+            ? HoloCloudsVolumetricGPU.createBackground(c, { reduced: reduce, maxScale: dpr })
+            : HoloCloudsGPU.createBackground(c, { reduced: reduce, horizon: 0.26, noiseURL: "system/vendor/vanta/noise.png", maxScale: dpr });
           if (gpuInst) {
-            document.documentElement.dataset.cloudRenderer = classic ? "webgpu-clouds2" : "webgpu-volumetric";
+            document.documentElement.dataset.cloudRenderer = volumetric ? "webgpu-volumetric" : "webgpu-clouds2";
             document.body.classList.add("vanta-on");
             // robustness: if WebGPU never paints a frame while visible (device blocked/lost), drop to Vanta
             setTimeout(() => {
@@ -1167,18 +1183,24 @@
           c.remove();                                     // createBackground returned null → fall through to Vanta
         } catch (e) { gpuInst = null; }
       }
-      patchHorizon();                                     // ensure the prototype carries the tuned horizon BEFORE the real mount builds its material
-      try {
-        inst = window.VANTA.CLOUDS2({
-          el: el, THREE: window.THREE,                    // mount at native viewport size — no stage, no transform, no zoom
-          mouseControls: false, touchControls: false, gyroControls: false,
-          scale: scaleNow(), scaleMobile: scaleNow(),
-          texturePath: "system/vendor/vanta/noise.png",
-          speed: reduce ? 0.0 : 1.0,
-        });
-        document.body.classList.add("vanta-on");          // the real clouds are live → drop the CSS fallback sky from compositing (perf)
-        if (!reduce) watchFps();
-      } catch (e) { inst = null; }
+      // Vanta (WebGL) fallback — lazy-load three.js + vanta now if not preloaded (a WebGPU device whose sky
+      // was skipped at boot, then WebGPU proved unusable: navigator.gpu present but no adapter). Resolves
+      // instantly when already present; the hero never waited on it either way.
+      ensureVanta().then(() => {
+        if (inst || gpuInst || !on() || !window.VANTA || !window.VANTA.CLOUDS2) return;
+        patchHorizon();                                   // tuned horizon on the prototype BEFORE the real mount builds its material
+        try {
+          inst = window.VANTA.CLOUDS2({
+            el: el, THREE: window.THREE,                  // mount at native viewport size — no stage, no transform, no zoom
+            mouseControls: false, touchControls: false, gyroControls: false,
+            scale: scaleNow(), scaleMobile: scaleNow(),
+            texturePath: "system/vendor/vanta/noise.png",
+            speed: reduce ? 0.0 : 1.0,
+          });
+          document.body.classList.add("vanta-on");        // the real clouds are live → drop the CSS fallback sky from compositing (perf)
+          if (!reduce) watchFps();
+        } catch (e) { inst = null; }
+      });
     }
     function lighten() { if (!inst || si >= STEPS.length - 1) return; si++; apply(); }   // fewer pixels, LIVE (no destroy → no flicker)
     function sharpen() { if (!inst || si <= 0) return; si--; apply(); }                  // climb BACK toward crisp once the GPU proves it can
@@ -1210,8 +1232,12 @@
     new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ["data-immersive"] });
     document.addEventListener("visibilitychange", sync);
     addEventListener("resize", () => { if (gpuInst) { try { gpuInst.resize(); } catch {} } else if (inst) { try { inst.resize(); } catch {} } }, { passive: true });
-    // Background is the original Vanta CLOUDS2 (WebGL). The WebGPU cloud path is disabled.
-    useGpu = false; document.documentElement.dataset.cloudRenderer = "vanta"; sync();
+    // Native-hardware first: use the Hologram WebGPU WGSL cloud sky whenever the device exposes WebGPU
+    // (lowest latency, native DPR, GPU-native), and fall back to Vanta/WebGL otherwise. The start() path
+    // above already self-heals — if WebGPU throws or never paints a frame, it drops to Vanta — so this is
+    // safe to enable by default. `HoloCloudsGPU` may be null (fail-soft dynamic import); guard on it.
+    useGpu = !!(navigator.gpu && HoloCloudsGPU);
+    document.documentElement.dataset.cloudRenderer = useGpu ? "webgpu" : "vanta"; sync();
   })();
 
   // ── PARALLAX — a touch of scroll-driven depth ────────────────────────────────────────────────
