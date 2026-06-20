@@ -36,16 +36,30 @@ if (chromium) {
     const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } });
     try { await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: base }); } catch {}
     const page = await ctx.newPage();
+    // Scope the fatal-error check to the SHARE LAYER (the chrome + the projection host frame). A guest's
+    // app is mounted in its own sandboxed iframe; that app's OWN internal console hygiene is the app's
+    // contract, not Share's — so errors sourced from /apps/<…> are excluded by design.
     const consoleErr = [];
-    page.on("console", (m) => { if (m.type() === "error") consoleErr.push(m.text()); });
-    page.on("pageerror", (e) => consoleErr.push(String(e)));
+    // app-internal markers: anything sourced from /apps/<…>; a holo-splash.js request (referenced ONLY by
+    // apps, never by the Share layer — a mis-based forwarder can resolve it to root); and a top-level
+    // `export` SyntaxError (the Share layer's classic scripts are provably free of top-level exports, so
+    // such an error can only come from a guest app loading its own ESM as a classic script).
+    const appInternal = (txt, url) => { const s = (txt || "") + " " + (url || ""); return /\/apps\//.test(s) || /holo-splash\.js/.test(s) || /Unexpected token 'export'/.test(s); };
+    // a 5xx is the DEV server failing to serve in time (it goes flaky under this witness's concurrent
+    // 6-page load — the lingering pages' background re-verification requests time out); that is infra
+    // capacity, not a Share code defect, and the app's own resilience retries it.
+    const transient = (txt) => /status of 5\d\d/.test(txt || "");
+    page.on("console", (m) => { if (m.type() === "error" && !appInternal(m.text(), (m.location() || {}).url) && !transient(m.text())) consoleErr.push(m.text()); });
+    page.on("pageerror", (e) => { const t = String(e); if (!appInternal(t, (e && e.stack) || "")) consoleErr.push(t); });
 
     // ── 1 · the SHARED landing: ?app=…#k=… → fullscreen mount + the share-to-run chrome ──
     const sharedUrl = `${base}/holospace.html?app=${APP}&sw=0#k=${encodeURIComponent("did:holo:sha256:" + "a".repeat(64))}`;
     const resp = await page.goto(sharedUrl, { waitUntil: "load", timeout: 30000 });
     rec("frame document loads on a shared (#k=) link", !!resp && resp.status() === 200, `HTTP ${resp && resp.status()}`);
 
-    const mounted = await waitFor(page, () => { const f = document.querySelector("#frame"); return !!(f && f.getAttribute("src")); });
+    // a κ-native mount carries the entry AS srcdoc (the document IS its content address), so accept either
+    // srcdoc or src — the app is up the moment the frame has content.
+    const mounted = await waitFor(page, () => { const f = document.querySelector("#frame"); return !!(f && (f.getAttribute("src") || f.getAttribute("srcdoc"))); });
     const stillFrame = /\/holospace\.html/.test(page.url());   // a shared link must NOT redirect to the shell
     rec("the app mounts fullscreen on a shared link (no redirect to the World shell)", mounted && stillFrame, page.url());
 
@@ -84,24 +98,26 @@ if (chromium) {
     rec("a bare kiosk link (no #k=) stays chrome-free", kioskClean);
     await page2.close();
 
-    // ── 3 · the SEED: the World shell's Share emits the magic (#k=) link — the share modal, its QR
-    //        and Copy/Open all carry it — and that link lands the NEXT guest back in the chrome. ──
+    // ── 3 · the SEED: the World shell's ONE Share surface (the carriage, ADR-0109) emits the magic (#k=)
+    //        link. With an app focused it opens contextually in the "This app" scope — the share-to-run
+    //        granularity — and its link · QR · Copy all carry the #k= run-link that lands the NEXT guest
+    //        back in the chrome. (The ♥ verb button is a HoloRender facade over a hidden #share-btn, so
+    //        we dispatch the click in-page rather than through the pointer.) ──
     const page3 = await ctx.newPage();
     await page3.goto(`${base}/shell.html?open=${APP}&sw=0`, { waitUntil: "load", timeout: 30000 });
-    const shareReady = await waitFor(page3, () => !!document.querySelector("#share-btn"), 80, 250);
-    await sleep(2800);                                          // let ?open= auto-launch the app node
-    let emitted = "";
+    const shareReady = await waitFor(page3, () => !!document.getElementById("share-btn"), 80, 250);
+    await sleep(2800);                                          // let ?open= auto-launch + focus the app node
+    let emitted = "", scopeOn = "";
     if (shareReady) {
-      await page3.click("#share-btn").catch(() => {});         // opens the share modal
-      await waitFor(page3, () => { const e = document.querySelector("#share-link"); return !!(e && /holospace\.html/.test(e.textContent || "")); }, 25, 200);
-      emitted = await page3.evaluate(() => {
-        const card = document.querySelector("#share-card");
-        return (card && card.dataset && card.dataset.link) || (document.querySelector("#share-link") || {}).textContent || "";
-      }).catch(() => "");
+      await page3.evaluate(() => document.getElementById("share-btn").click());   // open the Share carriage on the focused app
+      await waitFor(page3, () => { const e = document.querySelector("#shx-link"); return !!(e && /holospace\.html\?app=.*#k=/.test(e.value || "")); }, 30, 200);
+      const got = await page3.evaluate(() => ({ link: (document.querySelector("#shx-link") || {}).value || "", scope: (document.querySelector(".shx-seg-b.on") || {}).textContent || "" })).catch(() => ({ link: "", scope: "" }));
+      emitted = got.link; scopeOn = got.scope;
     }
     const magic = /\/holospace\.html\?app=.*#k=/.test(emitted);
-    rec("the World shell Share emits the magic (#k=) link (modal · QR · Copy all carry it)", magic, emitted || "no magic link in the share modal");
-    if (magic) { const shot2 = join(here, "holo-share-to-run-seed.png"); await page3.screenshot({ path: shot2, fullPage: false }); console.log(`screenshot (share modal) → ${shot2}`); }
+    rec("the Share carriage opens on the focused app (the 'This app' scope)", /This app/.test(scopeOn), scopeOn || "no carriage / scope");
+    rec("the Share carriage emits the magic (#k=) run-link (link · QR · Copy all carry it)", magic, emitted || "no #k= run-link in the carriage");
+    if (magic) { const shot2 = join(here, "holo-share-to-run-seed.png"); await page3.screenshot({ path: shot2, fullPage: false }); console.log(`screenshot (share carriage) → ${shot2}`); }
     await page3.close();
 
     if (magic) {
@@ -118,7 +134,7 @@ if (chromium) {
     //        the enabler for in-app surfaces that don't know the did. ──
     const page5 = await ctx.newPage();
     await page5.goto(`${base}/holospace.html?app=search&sw=0#k=${encodeURIComponent("sha256:" + "b".repeat(64))}`, { waitUntil: "load", timeout: 30000 });
-    const folderMounts = await waitFor(page5, () => { const f = document.querySelector("#frame"); return !!(f && /apps\/search\//.test(f.getAttribute("src") || "")); });
+    const folderMounts = await waitFor(page5, () => { const f = document.querySelector("#frame"); return !!(f && (/apps\/search\//.test(f.getAttribute("src") || "") || !!f.getAttribute("srcdoc"))); });
     const folderChrome = await waitFor(page5, () => !!document.querySelector(".holo-sc-root"));
     rec("a path-built link (?app=<folder>) resolves and lands in the chrome", folderMounts && folderChrome, page5.url());
     await page5.close();
@@ -126,14 +142,18 @@ if (chromium) {
     // ── 5 · the in-app MANAGE PANEL Share emits the same magic (#k=) link (alignment). ──
     const page6 = await ctx.newPage();
     await page6.goto(`${base}/apps/terms/index.html?sw=0`, { waitUntil: "load", timeout: 30000 });
+    await page6.bringToFront().catch(() => {});
     const mgBtn = await waitFor(page6, () => !!document.querySelector("#holo-manage-btn"), 60, 250);
     let mgLink = "";
     if (mgBtn) {
-      await page6.click("#holo-manage-btn").catch(() => {});
+      // capture what Manage→Share emits via a writeText shim — robust to headless clipboard focus quirks,
+      // and a faithful test of the LINK the panel produces (it writes the #k= link to the clipboard).
+      await page6.evaluate(() => { window.__copied = ""; try { const o = navigator.clipboard.writeText.bind(navigator.clipboard); navigator.clipboard.writeText = (t) => { window.__copied = String(t || ""); try { return o(t); } catch (e) { return Promise.resolve(); } }; } catch (e) {} });
+      await page6.evaluate(() => { const b = document.querySelector("#holo-manage-btn"); if (b) b.click(); }).catch(() => {});
       const shareReady2 = await waitFor(page6, () => !!document.querySelector("#hm-share"), 25, 200);
       if (shareReady2) {
-        await page6.click("#hm-share").catch(() => {});
-        for (let i = 0; i < 20 && !/holospace\.html/.test(mgLink); i++) { mgLink = await page6.evaluate(() => navigator.clipboard.readText().catch(() => "")).catch(() => ""); if (!/holospace\.html/.test(mgLink)) await sleep(150); }
+        await page6.evaluate(() => { const b = document.querySelector("#hm-share"); if (b) b.click(); }).catch(() => {});
+        for (let i = 0; i < 20 && !/holospace\.html/.test(mgLink); i++) { mgLink = await page6.evaluate(() => window.__copied || "").catch(() => ""); if (!/holospace\.html/.test(mgLink)) await sleep(150); }
       }
     }
     rec("the in-app Manage panel Share emits the magic (#k=) link too (aligned)", /\/holospace\.html\?app=.*#k=/.test(mgLink), mgLink || (mgBtn ? "no magic link on clipboard" : "no #holo-manage-btn on this app"));

@@ -600,8 +600,14 @@
     dockId: VIDEO_ID, defaultSrc: DEFAULT_SRC
   };
 
-  // boot: pin the tile, then prewarm the player at idle (so the cold cost is paid before the first tap,
-  // never on it). requestIdleCallback keeps the warm off the critical boot path; setTimeout is the fallback.
-  function boot() { ensureDockPin(); try { (W.requestIdleCallback || function (f) { return setTimeout(f, 1500); })(function () { prewarm(); }); } catch (e) { setTimeout(prewarm, 1500); } }
+  // boot: pin the tile, then prewarm the player AFTER the boot critical path. Gate on `load`, then idle —
+  // bare requestIdleCallback fires in ANY idle gap (including one mid-boot), so an 8K default reel would
+  // warm-buffer while the shell is still loading. Waiting for `load` keeps that heavy stream off the boot
+  // window; a tap before then still builds+plays on demand (open()), so only the prewarm moves later.
+  function boot() {
+    ensureDockPin();
+    var warm = function () { try { (W.requestIdleCallback || function (f) { return setTimeout(f, 400); })(function () { prewarm(); }, { timeout: 3000 }); } catch (e) { setTimeout(prewarm, 400); } };
+    if (DOC.readyState === "complete") warm(); else W.addEventListener("load", warm, { once: true });
+  }
   if (DOC.readyState === "loading") DOC.addEventListener("DOMContentLoaded", boot); else boot();
 })();

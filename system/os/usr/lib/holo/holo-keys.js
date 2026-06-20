@@ -45,10 +45,12 @@ export function createKeymap(opts = {}) {
   }
   const resetSeq = () => { buf = []; clearTimeout(bufT); bufT = null; };
 
-  // bind(spec | [specs], run, { id, title, group, global }) → a content-addressed command.
+  // bind(spec | [specs], run, { id, title, group, global, hint }) → a content-addressed command.
+  // `hint` (a one-word label) opts a command into the ambient which-key bloom; the shell projects
+  // every entry with a truthy `hint` into the Home-tab affordance, so new hints appear automatically.
   function bind(spec, run, info = {}) {
     const specs = Array.isArray(spec) ? spec : [spec];
-    const entry = { id: info.id || specs[0], specs, spec: specs[0], run, title: info.title || "", group: info.group || "General", global: !!info.global };
+    const entry = { id: info.id || specs[0], specs, spec: specs[0], run, title: info.title || "", group: info.group || "General", global: !!info.global, hint: info.hint || "" };
     for (const s of specs) { const p = parse(s); if (p.seq) seqs.push({ keys: p.seq, entry }); else chords.set(canon(p.mods, p.key), entry); }
     registry.push(entry); return entry;
   }

@@ -32,6 +32,18 @@ const canon = (v) => Array.isArray(v) ? "[" + v.map(canon).join(",") + "]"
   : JSON.stringify(v);
 const kappaOf = (s) => "did:holo:sha256:" + hex(sha256(te.encode(s)));
 
+// ── Attenuation (SEC-2 / Invariant A6): authority can only NARROW. A child capability set is admissible
+//    only if every capability is one the issuer itself holds. `issuerCaps === null` means a SOVEREIGN root
+//    PC (a human owns its own pillars outright) — unbounded by design; any non-null array is a DELEGATED
+//    issuer (an NPC re-delegating) and is bounded by its own grant. `*` / `<ns>:*` are honoured as wildcards.
+const capMatch = (held, want) => held === want || held === "*"
+  || (held.endsWith(":*") && (want === held.slice(0, -1) || want.startsWith(held.slice(0, -1))));
+export const attenuates = (issuerCaps, childCaps) =>
+  issuerCaps === null || issuerCaps === undefined                                   // sovereign root → unbounded
+    ? true
+    : Array.isArray(issuerCaps) && Array.isArray(childCaps)
+      && childCaps.every((c) => issuerCaps.some((h) => capMatch(h, c)));            // every child cap ⊆ issuer
+
 // ── mint an NPC: a fresh sovereign hybrid identity (Ed25519 ‖ ML-DSA sign keys + an X25519 ‖ ML-KEM
 //    key). κ is the content address of its hybrid pubkey. Keep .sign/.kem private to the agent. ──
 export function mintNpc(label = "agent") {
@@ -48,7 +60,13 @@ export function mintNpc(label = "agent") {
 // ── the PC issues a delegation: a hybrid-signed, content-addressed capability grant + an optional ZK
 //    minimal disclosure sealed to the NPC's KEM key. `pc` is a holo-login principal
 //    ({ kappa, pub, pqPub, sign(), pqSign() }). `pcCeremony` = { digests, disclosures } from firstRun. ──
-export async function delegate(pc, npc, { capabilities = [], discloseKeys = [], notAfter = null, nowIso = null } = {}, pcCeremony = null) {
+export async function delegate(pc, npc, { capabilities = [], discloseKeys = [], notAfter = null, nowIso = null, issuerCaps = null } = {}, pcCeremony = null) {
+  // SEC-2 / A6 — fail CLOSED at mint time: a delegated issuer (issuerCaps is an array) may grant ONLY a
+  // subset of what it holds; authority can only narrow. A sovereign root PC (issuerCaps === null) is unbounded.
+  if (!attenuates(issuerCaps, capabilities)) {
+    const over = capabilities.filter((c) => !issuerCaps.some((h) => capMatch(h, c)));
+    throw new Error("holo-delegate: capability escalation refused (L5/SEC-2) — issuer cannot grant " + JSON.stringify(over));
+  }
   const body = {
     "@context": "https://hologram.os/ns/identity", "@type": "HoloDelegation",
     issuer: pc.kappa, issuerPub: pc.pub, issuerPq: pc.pqPub,            // lineage: anchored by reference (L4)

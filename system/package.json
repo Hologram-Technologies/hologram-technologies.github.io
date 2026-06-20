@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "gate": "node tools/gate.mjs",
+    "boot-budget": "node tools/boot-budget-ci.mjs",
     "serve": "node tools/holo-serve-fhs.mjs",
     "witness": "node tools/fhs-graph-witness.mjs",
     "boot": "node tools/boot-os2-witness.mjs",
@@ -25,7 +26,9 @@
     "qml-witness": "node tools/qml-engine-witness.mjs",
     "qml-render": "node tools/qml-render-witness.mjs",
     "qml-mcp": "node tools/qml-mcp-witness.mjs",
-    "reseal": "node tools/reseal-drift.mjs",
+    "reseal": "node tools/reseal.mjs",
+    "reseal:check": "node tools/reseal.mjs --check",
+    "reseal-drift": "node tools/reseal-drift.mjs",
     "watch-reseal": "node tools/watch-reseal.mjs",
     "seal-greeter": "node tools/seal-greeter.mjs",
     "seal-login": "node tools/seal-login-closure.mjs",

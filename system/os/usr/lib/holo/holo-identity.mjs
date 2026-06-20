@@ -126,6 +126,39 @@ export async function roster() {
 }
 export async function forget(kappa) { return store.del(kappa); }
 
+// ── the content-addressed roster (SEC-4): a roster is itself a κ-object that BINDS its operator.
+// The device-local `roster()` above is a convenience list with no identity of its own. This produces
+// the verifiable form: members are reduced to their identity κ and SORTED (canonical order, Law L2),
+// the operator's identity κ is committed as a first-class field, and the whole is content-addressed
+// (Law L1) by the SAME addressOf/sha mechanism the rest of the file uses (no second hashing path).
+// The resulting `rosterKappa` re-derives (Law L5) and CHANGES if membership OR the operator changes.
+//
+// `operator` is the signed-in principal (or its κ). Binding is by operator κ here; a full operator
+// SIGNATURE over the canonical bytes is the next step (call principal.sign(canon) and attach `sig`)
+// — the content-addressing + operator-commitment below are already real and self-verifying.
+export async function contentRoster(operator) {
+  const opKappa = operator && typeof operator === "object" ? operator.kappa : operator;
+  if (!opKappa) throw new Error("a content-addressed roster must bind an operator κ");
+  const members = (await store.all()).map((r) => r.kappa).sort();      // each member = its identity κ, sorted
+  const body = { "@type": "HoloRoster", operator: opKappa, members };  // the operator is committed, not incidental
+  const canonical = canon(body);
+  const rosterKappa = await addressOf(te.encode(canonical));           // κ = address of the canonical bytes (Law L1)
+  return { rosterKappa, canonical, ...body };
+}
+
+// Verify a content-addressed roster end-to-end (Law L5, fail closed): re-derive its κ from its own
+// canonical bytes and refuse a mismatch. Returns the verified body (incl. operator binding) or null.
+export async function verifyRoster(roster) {
+  try {
+    if (!roster || !roster.rosterKappa) return null;
+    const { rosterKappa, canonical, ...body } = roster;
+    if (canon(body) !== canonical) return null;                        // bytes must match the committed canon
+    if (await addressOf(te.encode(canonical)) !== rosterKappa) return null;  // κ must re-derive from those bytes
+    if (!body.operator) return null;                                   // the roster must bind an operator
+    return body;
+  } catch { return null; }
+}
+
 // ── a session assertion: a content-addressed, signed claim "this operator opened this
 //    session" — the handoff token the greeter writes and the shell verifies (Law L5).
 // A session carries subjectType (pc = human player · npc = agent) and, when the principal has a
@@ -217,6 +250,14 @@ export async function selftest() {
   r.session = !!(await verifySession(tok));
   const tampered = { ...tok, operator: "did:holo:sha256:" + "0".repeat(64) };
   r.tamperCaught = (await verifySession(tampered)) === null;
+  // SEC-4: the content-addressed roster is a verifiable object that binds its operator.
+  const cr = await contentRoster(p);                                   // operator p committed in the body
+  r.rosterKappa = /^did:holo:sha256:[0-9a-f]{64}$/.test(cr.rosterKappa) && cr.operator === p.kappa;
+  r.rosterDeterministic = (await contentRoster(p)).rosterKappa === cr.rosterKappa;  // (1) deterministic from members+operator
+  r.rosterVerifies = (await verifyRoster(cr)) !== null;                // re-derives from its own bytes (Law L5)
+  const crOther = { ...cr, operator: "did:holo:sha256:" + "0".repeat(64) };
+  r.rosterBindsOperator = (await verifyRoster(crOther)) === null;      // (2) changing the operator breaks the κ
+  r.rosterTamperCaught = (await verifyRoster({ ...cr, members: [] })) === null;     // (3) tampering a member breaks the κ
   await forget(p.kappa);
   r.ok = Object.values(r).every(Boolean);
   return r;

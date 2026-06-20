@@ -797,6 +797,20 @@
       w.audio.preload = "auto"; w.audio.src = streamSrc(t.url); try { w.audio.load(); } catch (e) {}
     } catch (e) {}
   }
+  // Warm the disc for an instant first tap — but OFF the boot critical path. The SoundCloud resolve
+  // (/sc/resolve) + opener pre-buffer (/sc/stream) are ~2–3s of bandwidth that, run at mount, stole the
+  // boot window from the shell. The artwork still shows instantly (bundled cover); the audio warms on the
+  // first idle, or the moment the disc is hovered — whichever comes first. A tap that beats both still
+  // plays: play()/playTrack() resolve on demand. Net: nothing audio-related touches the network at boot.
+  function warmDiscNow(w) { if (!w || w._warmed) return; w._warmed = true; try { prefetchOpener(w); } catch (e) {} try { enrich(w); } catch (e) {} }
+  function warmDisc(w) {
+    if (!w || w._warmed || w._warmScheduled) return; w._warmScheduled = true;
+    // Gate on the LOAD event, not bare idle: requestIdleCallback alone fires in any idle gap — including
+    // one mid-boot — which is exactly the window we're trying to keep clear. Waiting for `load` means the
+    // shell's boot resources are done before the disc touches the network; then take the first idle.
+    var go = function () { var ric = W.requestIdleCallback || function (cb) { return W.setTimeout(cb, 400); }; try { ric(function () { warmDiscNow(w); }, { timeout: 3000 }); } catch (e) { warmDiscNow(w); } };
+    if (DOC.readyState === "complete") go(); else W.addEventListener("load", go, { once: true });
+  }
 
   function dockTile() {
     injectCss();
@@ -807,8 +821,8 @@
       DOCKP.audio = new Audio(); DOCKP.audio.preload = "auto";       // warm-buffer the stream → low-latency first play
       DOCKP.audio.addEventListener("ended", function () { next(DOCKP); });
       DOCKP.audio.addEventListener("error", function () { if (DOCKP.playing) { toast("Couldn’t stream that track"); stop(DOCKP); } });
-      if (!DOCKP._touched) getDefaults().then(function (d) { if (DOCKP && !DOCKP._touched) { DOCKP.config = JSON.parse(JSON.stringify(d)); DOCKP.idx = 0; syncDisc(DOCKP); refreshMini(DOCKP); prefetchOpener(DOCKP); } enrich(DOCKP); });
-      else { prefetchOpener(DOCKP); enrich(DOCKP); }
+      if (!DOCKP._touched) getDefaults().then(function (d) { if (DOCKP && !DOCKP._touched) { DOCKP.config = JSON.parse(JSON.stringify(d)); DOCKP.idx = 0; syncDisc(DOCKP); refreshMini(DOCKP); } warmDisc(DOCKP); });
+      else { warmDisc(DOCKP); }
     }
     var box = DOC.createElement("div"); box.className = "hv-widget hv-dock";
     if (DOCKP.config && DOCKP.config.accent) box.style.setProperty("--holo-accent", DOCKP.config.accent);
@@ -827,6 +841,7 @@
   }
   function wireDockTap(w) {
     var lastTap = 0, tapTimer = 0;
+    w.el.addEventListener("pointerenter", function () { warmDiscNow(w); }, { once: true, passive: true });   // hover the disc → warm now (beats idle), so the first tap is instant
     w.el.addEventListener("click", function (e) {
       e.preventDefault(); e.stopPropagation();
       var now = Date.now();

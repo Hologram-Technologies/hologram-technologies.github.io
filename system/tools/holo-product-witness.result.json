@@ -1,7 +1,7 @@
 {
   "spec": "Holo Product (ADR-0065) is the canonical, self-verifying foundation for Hologram-native products: it bundles + BALANCES Holo UI (look) and Holo UX (experience) as ten faculties (five per hemisphere, each wired + obligated) and binds a hybrid delivery method (discover · define · design · build · verify · deliver) drawn from the field's PM frameworks. Sealed as one UOR object that re-derives to its content address and whose linked hemispheres re-derive (Law L5); it rests on the proven Holo UI + Holo UX gate rows. Every product binds the κ rather than re-deciding the basics.",
   "authority": "ADR-0065 (Holo Product) · ADR-0030/0057 (Holo UI) · ADR-0062 (Holo UX) · Agile · Scrum · Kanban · Waterfall · Lean · PRINCE2 · Six Sigma · Hybrid (cited) · W3C OWL 2 / RDFS / SKOS · UOR-ADDR (κ = H(canonical_form)) · verify by re-derivation (Law L5)",
-  "witnessed": true,
+  "witnessed": false,
   "covers": [
     "holo-product",
     "bundle-ui-ux",
@@ -28,7 +28,7 @@
   "checks": {
     "product.uor.json exists + is a UOR object with a did": true,
     "product.uor.json re-derives to its content address (Law L5 — tamper-refused)": true,
-    "all 10 hemisphere/source links re-derive against the on-disk files (Law L5)": true,
+    "all 10 hemisphere/source links re-derive against the on-disk files (Law L5)": false,
     "the two hemispheres are balanced — 5 UX faculties + 5 UI faculties": true,
     "every faculty has a checkable obligation + a hemisphere": true,
     "every faculty is REALIZED by a present canonical artifact (already wired, not aspirational)": true,
@@ -45,7 +45,9 @@
     "the bundle practises the plain voice (no jargon in its faculties / method / descriptions)": true,
     "Holo Product is OPERATIVE — the SDK exposes product() AND the scaffolder builds new products on the foundation (manifest builtOn + conformsTo + a DECISION.md method record)": true
   },
-  "linkBad": [],
+  "linkBad": [
+    "hosprod:ui-engine: usr/lib/holo/holo-theme.js does not re-derive"
+  ],
   "facultyMissing": [],
   "missingRows": [],
   "jargonHits": []

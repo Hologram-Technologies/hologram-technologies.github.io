@@ -1,0 +1,31 @@
+{
+  "spec": "CC-10 — a κ-disk/image is admitted to an emulator engine only when their architectures match; a missing or mismatched platform is an explicit, descriptive error (ArchMismatchError naming both arches), never a silently-wrong architecture. The shared guard (os/usr/lib/holo/holo-arch.mjs) is enforced by the canonical emulator app (holo-x86) BEFORE it instantiates the engine or fetches heavy bytes.",
+  "authority": "holospaces docs/10-Quality-Requirements CC-10 (missing platform matches must be an explicit error, never a silently wrong architecture) · CC-9 (boot to userspace on the emulator core) — guard os/usr/lib/holo/holo-arch.mjs; wiring holo-apps/apps/holo-x86 (kappa.json + index.html)",
+  "witnessed": true,
+  "covers": [
+    "cc-10",
+    "explicit-arch-error",
+    "no-silent-wrong-arch",
+    "guard-enforced-before-boot"
+  ],
+  "engineArch": "x86",
+  "imageArch": "x86",
+  "note": "Guard logic proven by import; enforcement proven by source against the real holo-x86 files. The full-browser render of the error page is a separate tier — the guard fires before any heavy fetch, so a mismatch errors instantly. Adoption beyond holo-x86 (the ~100 v86 distro apps) is incremental: each declares image arch + calls the same guard.",
+  "checks": {
+    "match: identical arch passes (boot may proceed)": true,
+    "match: well-known aliases collapse (i686 ≡ x86; aarch64 ≡ arm64)": true,
+    "mismatch: throws ArchMismatchError (refuses a wrong architecture)": true,
+    "mismatch: the error is EXPLICIT — names BOTH architectures (never silent)": true,
+    "missing declaration: an undeclared/empty image arch is an EXPLICIT error (no silent guess)": true,
+    "non-vacuous: genuinely different arches do not collapse (x86 ≠ riscv64 ≠ arm64)": true,
+    "holo-x86 kappa.json declares engine arch AND image arch": true,
+    "holo-x86 declared arches match (the app boots, never self-refuses on its own image)": true,
+    "holo-x86 imports the shared guard (single source of truth)": true,
+    "holo-x86 CALLS assertEngineArch (enforced, not just present)": true,
+    "the guard runs BEFORE the engine is instantiated (new V86)": true,
+    "the guard runs BEFORE any heavy engine/image fetch (fails fast, no wasted download)": true,
+    "the guard, applied to holo-x86's own declared arches, PASSES (mechanism is live + consistent)": true
+  },
+  "passed": 13,
+  "failed": 0
+}

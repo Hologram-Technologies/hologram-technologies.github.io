@@ -1,7 +1,13 @@
 {
   "spec": "Hologram OS — a shared (#k=) link lands the guest fullscreen in the running app with the share-to-run chrome (run · remix · share · save); a bare kiosk link stays clean (ADR-064, Phase 0)",
-  "witnessed": false,
-  "covers": [],
+  "witnessed": true,
+  "covers": [
+    "share-to-run",
+    "guest-landing",
+    "remix",
+    "share",
+    "save"
+  ],
   "results": [
     {
       "name": "frame document loads on a shared (#k=) link",
@@ -11,7 +17,7 @@
     {
       "name": "the app mounts fullscreen on a shared link (no redirect to the World shell)",
       "ok": true,
-      "detail": "http://127.0.0.1:50398/holospace.html?app=org.hologram.HoloSearch&sw=0#k=did%3Aholo%3Asha256%3Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "detail": "http://127.0.0.1:51050/holospace.html?app=org.hologram.HoloSearch&sw=0#k=did%3Aholo%3Asha256%3Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
     {
       "name": "the share-to-run chrome renders over the app",
@@ -26,7 +32,7 @@
     {
       "name": "chrome shows the app's VERIFIED content address (κ chip)",
       "ok": true,
-      "detail": "sha256:2c704f90"
+      "detail": "sha256:6cc8367f"
     },
     {
       "name": "chrome carries the 'Made on Hologram' loop",
@@ -44,29 +50,34 @@
       "detail": ""
     },
     {
-      "name": "the World shell Share emits the magic (#k=) link (modal · QR · Copy all carry it)",
-      "ok": false,
-      "detail": "no magic link in the share modal"
+      "name": "the Share carriage opens on the focused app (the 'This app' scope)",
+      "ok": true,
+      "detail": "This app"
+    },
+    {
+      "name": "the Share carriage emits the magic (#k=) run-link (link · QR · Copy all carry it)",
+      "ok": true,
+      "detail": "http://127.0.0.1:51050/holospace.html?app=did%3Aholo%3Asha256%3A6cc8367fca791f4b50023ec484b082b0bfceb46f3402192bedd1ef9ebb1beff3#k=did%3Aholo%3Asha256%3A6cc8367fca791f4b50023ec484b082b0bfceb46f3402192bedd1ef9ebb1beff3"
     },
     {
       "name": "that shared link lands the next guest in the chrome (the loop is closed)",
-      "ok": false,
-      "detail": "no magic link to follow"
+      "ok": true,
+      "detail": "http://127.0.0.1:51050/holospace.html?app=did%3Aholo%3Asha256%3A6cc8367fca791f4b50023ec484b082b0bfceb46f3402192bedd1ef9ebb1beff3&sw=0#k=did%3Aholo%3Asha256%3A6cc8367fca791f4b50023ec484b082b0bfceb46f3402192bedd1ef9ebb1beff3"
     },
     {
       "name": "a path-built link (?app=<folder>) resolves and lands in the chrome",
       "ok": true,
-      "detail": "http://127.0.0.1:50398/holospace.html?app=search&sw=0#k=sha256%3Abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "detail": "http://127.0.0.1:51050/holospace.html?app=search&sw=0#k=sha256%3Abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     },
     {
       "name": "the in-app Manage panel Share emits the magic (#k=) link too (aligned)",
-      "ok": false,
-      "detail": "no magic link on clipboard"
+      "ok": true,
+      "detail": "http://127.0.0.1:51050/holospace.html?app=terms#k=terms"
     },
     {
       "name": "no fatal page errors",
-      "ok": false,
-      "detail": "Failed to load resource: the server responded with a status of 504 () | Failed to load resource: the server responded with a status of 504 () | Failed to load resource: the server responded with a status of 504 ()"
+      "ok": true,
+      "detail": "clean"
     }
   ]
 }

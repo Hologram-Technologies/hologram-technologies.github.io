@@ -27,6 +27,7 @@ const SHELL_PATH = () => { try { return location.pathname || "/shell.html"; } ca
 const HOLO_MARK = `<svg viewBox="-104 -104 208 208" fill="currentColor" aria-hidden="true"><g><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg>`;
 
 function travelLine(scope, manifest, sealerMod) {
+  if (scope === "app") return "This app opens RUNNING for anyone — fullscreen, no sign-in. One tap remixes it back into their own desktop.";
   if (scope === "workspace") {
     const exp = (manifest && manifest["holo:experience"]) || {}; const tabs = Array.isArray(exp.tabs) ? exp.tabs : [];
     let apps = 0; for (const t of tabs) for (const n of ((t.snap && t.snap.world) || [])) if (n && n.kind === "app") apps++;
@@ -43,17 +44,34 @@ function travelLine(scope, manifest, sealerMod) {
 
 // mountShare(trigger, { getHolospace, getWorkspace, onImport, requireEverythingAuth }) — the trigger (the
 // ❤️ Share verb) toggles the carriage. Content renders into the shared aside's body.
-export function mountShare(trigger, { getHolospace, getWorkspace, onImport, requireEverythingAuth } = {}) {
+export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImport, requireEverythingAuth } = {}) {
   injectStyles();
   const aside = createAside({ id: "share", title: "Share", logo: HOLO_MARK });   // golden scale + collapse chevron from the shared template
   const body = aside.body;
   const file = document.createElement("input"); file.type = "file"; file.accept = ".car,application/vnd.ipld.car"; file.style.display = "none"; aside.el.appendChild(file);
+  const hasApp = typeof getApp === "function";          // the finest grain (share-to-run) is wired in
   let _scope = "holospace", _sealed = null, _view = "share", _gated = false, _publishing = false;
 
-  async function openShare() { aside.open(); await seal(); }
+  // Open contextually: if an app is focused, default to sharing THAT app (the most common, most magical
+  // act — hand someone a running app). Otherwise the holospace. Recomputed each open so the carriage
+  // always reflects what's in front of you.
+  async function openShare() { aside.open(); if (_scope !== "workspace") { let live = false; try { live = !!(hasApp && getApp()); } catch (e) {} _scope = live ? "app" : "holospace"; } await seal(); }
   function bindTrigger() { if (!trigger) return; trigger.setAttribute("aria-expanded", "false"); trigger.addEventListener("click", (e) => { e.preventDefault(); if (aside.isOpen()) aside.close(); else openShare(); trigger.setAttribute("aria-expanded", aside.isOpen() ? "true" : "false"); }); }
 
   async function seal() {
+    // ── SHARE-TO-RUN (the finest grain): the focused app as a #k= link. No CAR to seal — the app's bytes
+    //    are delivered + re-derived (Law L5) by the runtime, so the link is short (always fits a QR) and
+    //    opens the app RUNNING, fullscreen, with the viral chrome. Falls back to holospace if nothing's
+    //    focused, so the scope never strands the user on an empty share.
+    if (_scope === "app") {
+      let cap = null; try { cap = getApp && getApp(); } catch (e) {}
+      if (cap && cap.link) {
+        _view = "share"; _publishing = false; _gated = false;
+        _sealed = { app: true, link: cap.link, world: null, name: cap.name || "App", kappa: cap.kappa || "", travels: travelLine("app", cap, null) };
+        render(); paintCurrentQR(); return;
+      }
+      _scope = "holospace";   // nothing shareable focused → degrade gracefully
+    }
     if (_scope === "workspace" && requireEverythingAuth) { let ok = true; try { ok = await requireEverythingAuth(); } catch (e) { ok = false; } if (!ok) { _scope = "holospace"; _gated = true; } }
     _view = "share"; _publishing = false; renderBusy();
     try {
@@ -106,37 +124,43 @@ export function mountShare(trigger, { getHolospace, getWorkspace, onImport, requ
   function render() {
     if (_view === "open") return renderOpen();
     if (_sealed && _sealed.error) { body.innerHTML = `<div class="shx"><div class="shx-mid"><div class="shx-empty">Could not seal this yet.<br>${esc(_sealed.error)}</div></div><div class="shx-bot"><button class="shx-primary" data-act="retry">Try again</button></div></div>`; bind(); return; }
-    const s = _sealed || {}, ws = _scope === "workspace";
+    const s = _sealed || {};
     const link = s.world || s.link || "";
-    const cid = s.bundle ? String(s.bundle.did || s.bundle.rootCid).split(":").pop().slice(0, 14) : "";
-    const reach = s.world
-      ? `<span class="shx-tick world">◉</span><span>Published to IPFS. Opens worldwide.</span>`
-      : `<span class="shx-tick">✓</span><span>Re&#8202;derives to its address. No server.</span>`;
+    const why = s.app ? "Hand someone this app, running." : _scope === "workspace" ? "Your whole workspace, one link." : "Your holospace is one living link.";
+    const cid = s.app ? String(s.kappa || "").split(":").pop().slice(0, 14) : (s.bundle ? String(s.bundle.did || s.bundle.rootCid).split(":").pop().slice(0, 14) : "");
+    const reach = s.app
+      ? `<span class="shx-tick world">◉</span><span>Opens running, fullscreen. No sign-in.</span>`
+      : s.world
+        ? `<span class="shx-tick world">◉</span><span>Published to IPFS. Opens worldwide.</span>`
+        : `<span class="shx-tick">✓</span><span>Re&#8202;derives to its address. No server.</span>`;
+    const qrcap = s.app ? `Scan to open · <b>running</b>` : s.world ? `Scan to open worldwide` : `Scan to open · <b>no server</b>`;
+    const seg = `<div class="shx-seg" role="tablist">` +
+      (hasApp ? `<button class="shx-seg-b${_scope === "app" ? " on" : ""}" data-scope="app" role="tab">This app</button>` : ``) +
+      `<button class="shx-seg-b${_scope === "holospace" ? " on" : ""}" data-scope="holospace" role="tab">This holospace</button>` +
+      `<button class="shx-seg-b${_scope === "workspace" ? " on" : ""}" data-scope="workspace" role="tab">Everything</button></div>`;
+    const dests = s.app
+      ? `<button class="shx-dest wide" data-act="openlink"><span class="shx-di">↗</span><span>Preview as a guest</span></button>`
+      : `<button class="shx-dest" data-act="file"><span class="shx-di">⤓</span><span>Save a file</span></button>` +
+        `<button class="shx-dest${s.world ? " done" : ""}" data-act="publish"${_publishing ? " disabled" : ""}><span class="shx-di">${s.world ? "◉" : "☁"}</span><span>${_publishing ? "Publishing…" : s.world ? "Published" : "Sovereign cloud"}</span></button>`;
     body.innerHTML = `<div class="shx">
       <div class="shx-top">
         <div class="shx-intro">
-          <div class="shx-why">Your holospace is one living link.</div>
+          <div class="shx-why">${why}</div>
           <div class="shx-how">${esc(s.travels || "Every byte proves its own address, so it opens anywhere with no server.")}</div>
         </div>
-        <div class="shx-seg" role="tablist">
-          <button class="shx-seg-b${ws ? "" : " on"}" data-scope="holospace" role="tab">This holospace</button>
-          <button class="shx-seg-b${ws ? " on" : ""}" data-scope="workspace" role="tab">Everything</button>
-        </div>
+        ${seg}
         ${_gated ? `<div class="shx-gate">Confirm with your device unlock, then choose Everything again.</div>` : ``}
       </div>
       <div class="shx-mid">
         <div class="shx-qrcard">
           <div class="shx-qrwrap"><div class="shx-qr" aria-label="Scan to open on a phone"></div><div class="shx-qrlogo">${HOLO_MARK}</div></div>
-          <div class="shx-qrcap">${s.world ? `Scan to open worldwide` : `Scan to open · <b>no server</b>`}</div>
+          <div class="shx-qrcap">${qrcap}</div>
         </div>
       </div>
       <div class="shx-bot">
-        <div class="shx-linkrow"><input class="shx-link" readonly value="${esc(link)}" aria-label="Link" /><button class="shx-mini" data-act="copy">Copy</button></div>
+        <div class="shx-linkrow"><input class="shx-link" id="shx-link" readonly value="${esc(link)}" aria-label="Link" /><button class="shx-mini" data-act="copy">Copy</button></div>
         <button class="shx-primary" data-act="share"><span class="shx-pi">↗</span>Share link</button>
-        <div class="shx-dests">
-          <button class="shx-dest" data-act="file"><span class="shx-di">⤓</span><span>Save a file</span></button>
-          <button class="shx-dest${s.world ? " done" : ""}" data-act="publish"${_publishing ? " disabled" : ""}><span class="shx-di">${s.world ? "◉" : "☁"}</span><span>${_publishing ? "Publishing…" : s.world ? "Published" : "Sovereign cloud"}</span></button>
-        </div>
+        <div class="shx-dests">${dests}</div>
         <div class="shx-proof">${reach}${cid ? `<span class="shx-cid">${esc(cid)}</span>` : ``}<button class="shx-open" data-act="openview">Open a link</button></div>
       </div></div>`;
     _gated = false; bind();
@@ -176,6 +200,9 @@ export function mountShare(trigger, { getHolospace, getWorkspace, onImport, requ
     try { const ws = await sealer(); let rootCid = null, source = null;
       if (buf) { const { roots, blocks } = ws.importCar(buf instanceof Uint8Array ? buf : new Uint8Array(buf)); rootCid = roots[0]; source = ws.verifiedBlockSource(blocks); }
       else if (pasted) {
+        // a SHARE-TO-RUN link (#k= / holospace.html?app=) opens the app RUNNING as a guest, not an import
+        // into this shell — so route it straight to its landing in a new view.
+        if (/#k=|holospace\.html\?app=/.test(String(pasted))) { window.open(String(pasted).trim(), "_blank", "noopener"); aside.close(); return; }
         const carM = String(pasted).match(/car=([A-Za-z0-9]+)/);                         // a worldwide pinned link
         if (carM) { const got = await ws.openCarByCid(carM[1]); if (got && got.roots[0]) { rootCid = got.roots[0]; source = ws.verifiedBlockSource(got.blocks); } }
         else if (ws.looksLikeToken(pasted)) { rootCid = pasted.trim(); source = ws.cloudBlockSource(); }
@@ -195,6 +222,7 @@ export function mountShare(trigger, { getHolospace, getWorkspace, onImport, requ
     body.querySelectorAll("[data-act]").forEach((b) => b.onclick = () => {
       const a = b.getAttribute("data-act");
       if (a === "share") doShare(); else if (a === "copy") doCopy(); else if (a === "file") doFile(); else if (a === "publish") doPublish();
+      else if (a === "openlink") { const l = currentLink(); if (l) window.open(l, "_blank", "noopener"); }
       else if (a === "openview") { _view = "open"; renderOpen(); } else if (a === "backshare") { _view = "share"; render(); paintCurrentQR(); }
       else if (a === "retry") seal(); else if (a === "pickfile") file.click();
       else if (a === "gopaste") { const inp = body.querySelector(".shx-paste"); doImport(null, inp && inp.value); }

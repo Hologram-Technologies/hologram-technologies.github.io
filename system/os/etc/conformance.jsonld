@@ -30,6 +30,96 @@
       "hosc:category": "Runtime"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#sec7-egress-opaque",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-7 — the egress forwarder is CONTENT-BLIND: the SW↔page egress seam (sbin/holo-egress-sw.mjs) relays an outbound response as OPAQUE BYTES — forwarded verbatim across chunk boundaries, never decoded, parsed, or mutated — and returns null (the caller falls back) rather than FABRICATING a response when no page can egress. Witnessed live pure-Node against the real exported seam: a multi-chunk byte stream (including invalid-UTF-8 and malformed-JSON bytes) is relayed byte-identical; an upstream error surfaces as a stream error, never as substituted content; zero/silent/absent clients each resolve to null; and an end-to-end mock page bridge has its stream relayed byte-identical with the content-type forwarded verbatim.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-7 (an egress peer forwards as opaque bytes and never perceives or alters it) · Law L1 (identity is content) · WHATWG Streams · HTML MessageChannel — tools/holo-egress-witness.mjs",
+      "hosc:witness": "tools/holo-egress-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#l5-whole-os-served",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "L5 (whole-OS coverage) — re-derivation (Law L5) covers EVERY served first-party byte, not only the boot closure. The Service Worker pins boot-critical files via os-closure.json (~500 κ) but serves the whole os/ tree; the served-set closure (os/etc/os-served.json, tools/seal-served.mjs) pins every served file (serve-rel/FHS key → did:holo:sha256) and the SW folds it lazily with the same foldClosure(), resolving a pin by the request path OR its fhsMap disk-path alias. Witnessed live pure-Node: under that exact lookup over os-closure ⊕ os-served, every served first-party file resolves a pin (whole-OS L5 coverage, not ~7%), a deterministic parity sample re-derives to the on-disk bytes (so enabling verification cannot false-refuse — boot-safe), and a tampered byte fails its pin (the refusal is real, not vacuous). The live prod-SW browser confirmation (offline boot + a tampered served byte → 409) is a separate tier.",
+      "hosc:authority": "holospaces Architecture Constraints §L5 (verify by re-derivation) · §L1 (identity is content) · §T3 (untrusted GitHub-Pages gateway) · docs/13-Product-Security §13.5 SEC-1 (integrity) — tools/holo-served-coverage-witness.mjs; pin source tools/seal-served.mjs; enforcement os/holo-fhs-sw.js (ensureServed + dual pin lookup)",
+      "hosc:witness": "tools/holo-served-coverage-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#l5-whole-os-served-browser",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "L5 (whole-OS coverage, real browser) — in real Chromium in PROD cache-first mode (a non-localhost host so the SW's dev-fresh bypass is OFF, exactly like a GitHub-Pages deploy), the Service Worker folds os-served.json and routes a file OUTSIDE the boot closure through the verify+cache branch: x-holo-cache is set (not the unpinned passthrough), its bytes re-derive to the pinned κ, and a re-fetch serves from the κ cache (cached only because it passed L5) — with no boot regression and no fatal page errors. The refuse-on-mismatch path is the same code os-closure files already exercise (witnessed by holo-w1 / holo-dev-fresh-gate).",
+      "hosc:authority": "holospaces Architecture Constraints §L5 (verify by re-derivation) · §T3 (untrusted GitHub-Pages gateway) · docs/13-Product-Security §13.5 SEC-1 · W3C Service Workers · verify in real Chromium prod-mode (Playwright, HTTPS proxy on a non-localhost host) — tools/holo-served-enforce-witness.mjs",
+      "hosc:witness": "tools/holo-served-enforce-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#cc10-arch-explicit-error",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CC-10 — a κ-disk/image is admitted to an emulator engine ONLY when their architectures match; a missing or mismatched platform is an EXPLICIT, descriptive error (it names both architectures), never a silently-wrong architecture. The shared guard os/usr/lib/holo/holo-arch.mjs throws ArchMismatchError on a mismatch AND on a missing arch declaration; the canonical emulator app holo-x86 declares engine+image arch in kappa.json and calls the guard BEFORE it instantiates v86 and BEFORE it fetches the heavy engine/image bytes (fail-fast, no wasted download). Witnessed live pure-Node: the guard's match/alias/mismatch/missing-declaration behaviour, and that holo-x86 actually enforces it before boot.",
+      "hosc:authority": "holospaces docs/10-Quality-Requirements CC-10 (missing platform matches must be an explicit error, never a silently wrong architecture) · CC-9 (boot to userspace on the emulator core) — tools/holo-arch-witness.mjs; guard os/usr/lib/holo/holo-arch.mjs; wiring holo-apps/apps/holo-x86 (kappa.json + index.html)",
+      "hosc:witness": "tools/holo-arch-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec8-ipfs-declared-length-bounded",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-8 — an untrusted DECLARED length is bounded by ACTUAL payload, never trusted. The IPFS CID parsers (os/usr/lib/holo/holo-ipfs.js) parse CIDs embedded in untrusted DAG-PB/CAR blocks fetched from public gateways; a CID's declared multihash length is refused when it exceeds the bytes present (parseCIDPrefix now mirrors parseCID's truncation guard) — so a hostile block cannot drive the parse offset past the payload and make the caller over-read the next block. Witnessed live pure-Node against the real parsers: valid CIDs parse and consume exactly their bytes (including embedded in a larger block), a declared length past the payload is explicitly refused (it names declared vs present), both CID parsers agree (no asymmetric trust), and the off-by-one boundary is caught.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-8 (every allocation driven by untrusted input is bounded by actual payload or fixed quota, never by declared count) · IPFS Trustless Gateway / dag-pb / CAR / multiformats CID — tools/holo-ipfs-bounds-witness.mjs; fix os/usr/lib/holo/holo-ipfs.js (parseCIDPrefix)",
+      "hosc:witness": "tools/holo-ipfs-bounds-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec1-closure-anchor",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-1 (trust root) — the SW's PIN SET is itself verified. etc/os-closure.json carries every per-path κ pin; were the untrusted origin able to swap it, it could re-point every pin to forged-but-self-consistent bytes and the per-byte L5 check would pass against the forgery. So os-closure.json is re-derived against a baked anchor (CLOSURE_KAPPA in os/holo-fhs-sw.js, sealed by tools/holo-anchor-sw.mjs); a tampered or re-pointed pin set fails to re-derive and the worker fails CLOSED (refuseClosure) instead of serving the forgery. Witnessed live pure-Node: the baked anchor equals sha256(os-closure.json) so prod boots, a 1-byte tamper of the manifest breaks the anchor, re-pointing ANY single pin breaks the anchor, and the fail-closed guard is present in the fetch handler.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-1 (content is its κ; any byte that does not re-derive is refused; forgery structurally cannot occur) · Architecture Constraints §L5 — tools/holo-closure-anchor-witness.mjs; anchor os/holo-fhs-sw.js (CLOSURE_KAPPA); seal tools/holo-anchor-sw.mjs",
+      "hosc:witness": "tools/holo-closure-anchor-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec2-delegation-attenuates",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-2 (authority attenuates) — a delegated capability grant can only NARROW. The PC→NPC seam (os/usr/lib/holo/holo-delegate.mjs) wired to the wallet gate and Q authz refuses, at mint time and fail-closed, any re-delegated grant whose capabilities are not a subset of the issuer's own (attenuates()); a sovereign root PC is unbounded by design (the human approves at the gate). Witnessed live pure-Node: a child ⊄ issuer is refused, child ⊆ issuer is admitted, namespace/'*' wildcards resolve, and delegate() throws on an escalating re-delegation (e.g. an issuer holding wallet:read+spend cannot mint fs:write).",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-2 (a holospace runs under exactly its κ-addressed capability set; authority can only be attenuated) · gist §1.4 A6 (capability attenuates, never escalates) — tools/holo-delegate-witness.mjs; enforcement os/usr/lib/holo/holo-delegate.mjs (attenuates)",
+      "hosc:witness": "tools/holo-delegate-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec5-at-rest-vault",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-5 (at-rest vault) — the per-operator/guest session realm is sealed at rest with AES-GCM from a device/operator key (os/usr/lib/holo/holo-session.mjs): wrong key → null, a tampered vault → refuse, and one realm cannot read another (zero bleed). Witnessed live pure-Node. SCOPE NOTE (honest): this covers the ON-DEVICE vault only. SEC-5 per-content NETWORK confidentiality (content perceivable only via a granted κ) is a DOCUMENTED NORTH-STAR, NOT yet enforced — κ is an address, not a secret; the future path is an AEAD/epoch-key layer (harvest crates/holospaces-web/src/mls.rs). The app layer already provides real per-room E2E for collaborative content via holo-collab.js (AES-GCM, key from the link secret).",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-5 (content addressable — hence perceivable — only via its κ) — tools/holo-session-witness.mjs (at-rest); North-Star: crates/holospaces-web/src/mls.rs",
+      "hosc:witness": "tools/holo-session-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec6-catalog-identity",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-6 (identity is content) — every app-catalog @id is a content κ (did:holo:sha256:…), never a did:holo:slug: placeholder. A name/location is the REQUEST; the κ is the IDENTITY (SEC-6: discovery is not authority). The deployed Pages catalog (usr/share/holospaces/index.jsonld) and source catalog are 50/50 content-κ; the Tauri desktop mirror's 13 legacy slug @ids were re-keyed to each app's holospace.lock.json root (tools/holo-fix-tauri-catalog.mjs). Witnessed live pure-Node: all three catalogs carry ZERO slug @ids and every @id is a sha256 κ — fails closed if any catalog reintroduces a slug.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-6 (the located reference is the request; the κ is the identity; content verified by re-derivation; discovery is not authority) · Architecture Constraints §L1 (identity is content, not location) — tools/holo-catalog-identity-witness.mjs; fixer tools/holo-fix-tauri-catalog.mjs",
+      "hosc:witness": "tools/holo-catalog-identity-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#cc1-cc2-engine-parity",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CC-1/CC-2 — browser and native engines yield IDENTICAL κ. In real Chromium and in Node, the dual-axis κ (sha256 serving ⊕ BLAKE3 σ-axis) is byte-for-byte identical over the same real OS objects and edge inputs — so a Node-sealed pin (os-closure/os-served) always re-derives in the browser Service Worker (Law L5), and the σ-axis matches the reference BLAKE3 KAT (browser ≡ Node ≡ reference). Witnessed in real Chromium against the served holo-blake3.mjs + WebCrypto sha256, compared to Node's node:crypto + the same BLAKE3 module. The live Rust-wasm oracle (a third engine) stays gated on HOLO_SUBSTRATE_PKG and is not required — the KAT vectors are the reference σ-axis (pinned 20/20 by holo-blake3-witness).",
+      "hosc:authority": "holospaces docs/10-Quality-Requirements CC-1 (byte-for-byte equality with the reference σ-axis) · CC-2 (browser and native engines yield identical κ) · BLAKE3 reference KAT · W3C WebCrypto — tools/holo-engine-parity-witness.mjs; engine os/usr/lib/holo/holo-blake3.mjs; reference tools/holo-blake3-witness.mjs",
+      "hosc:witness": "tools/holo-engine-parity-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
       "@type": "hosc:ConformanceAssertion",
       "name": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode).",

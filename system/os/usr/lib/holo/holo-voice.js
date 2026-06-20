@@ -42,7 +42,13 @@
     // transformers/ONNX ear; set to null to force ONNX. κ = sha256 of the .holo (for the static/IPFS κ-route).
     knativeEar: { module: "/apps/q/forge/gpu/holo-moonshine-ear.mjs",
       holoUrl: "/apps/q/forge/.models/moonshine-tiny-int8.holo", kappa: "bbd89df22c86fc54455779be070395cc8dab0c3438cbe85974c9f02d2a291780", release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-int8.holo",
-      upgradeUrl: "/apps/q/forge/.models/moonshine-tiny-f16.holo", upgradeKappa: "ff7e1c8b3c9e360ab062ce96a297e6f2467608c634f2e4b171078180056a72d8", upgradeRelease: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-f16.holo" } },   // resolve: path(dev) → Release asset(prod) → κ-route(IPFS), all per-block L5-verified
+      upgradeUrl: "/apps/q/forge/.models/moonshine-tiny-f16.holo", upgradeKappa: "ff7e1c8b3c9e360ab062ce96a297e6f2467608c634f2e4b171078180056a72d8", upgradeRelease: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-f16.holo" },   // resolve: path(dev) → Release asset(prod) → κ-route(IPFS), all per-block L5-verified
+    // κ-served voice: serve Kokoro's ONNX files from kokoro-82m.holo (Range + per-block L5 + OPFS + serverless
+    // multi-source) into the same engine — content-addressed delivery, no engine change. Transparently falls
+    // back to the vendored ONNX on any failure; set to null to force the vendored path. Resolved via the one
+    // mux/faculty bridge below (κ unchanged when unbound), exactly like the "listen" ear.
+    knativeVoice: { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs",
+      holoUrl: "/apps/q/forge/.models/kokoro-82m.holo", kappa: "a528332cbe262333c3eef76f581add5de8cd2d54b81c7685914353ad016ff1e5", release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/kokoro-82m.holo" } },
     W.HOLO_VOICE_CONFIG || {});   // turn-taking + barge-in (tune on real HW)
   // persisted user toggles override config: the agent brain runs on WebGPU (1.5B, fast on a real GPU)
   // or the WASM floor (0.5B, any browser); and the wake word (its name) is whatever you choose.
@@ -376,8 +382,17 @@
       _ttsTried = true;
       _ttsLoading = (async function () {
         try {
+          // CANONICAL WIRING (ADR-0084): let the one settings picker route the "speak" faculty. Resolve the
+          // active model via the holo-q-mux bridge — honor a pinned/override choice, fail SAFE to the hardcoded
+          // knativeVoice default (κ unchanged when unbound). Lazy + off the boot path (runs on first speak).
+          var kv = CFG.knativeVoice;
+          try {
+            var fmv = await import(BASE + "voice/holo-q-faculty-models.mjs");
+            var rfv = fmv.resolveFacultyModel && fmv.resolveFacultyModel("speak");
+            if (rfv && rfv.instant && kv) kv = Object.assign({}, kv, { holoUrl: rfv.instant.url, kappa: rfv.instant.kappa, release: rfv.instant.release });
+          } catch (e) {}
           var m = await import(BASE + "voice/holo-voice-tts.mjs");
-          var engine = (m.createTTS || m.default)({ voice: CFG.voice, preferWebGPU: CFG.preferWebGPU });
+          var engine = (m.createTTS || m.default)({ voice: CFG.voice, preferWebGPU: CFG.preferWebGPU, knativeVoice: kv });   // κ-served Kokoro from the .holo (falls back to vendored ONNX on any failure)
           await engine.load(function () {});   // load SILENTLY — the baked welcome covers first run + the built-in voice covers any gap, so the model warms invisibly (the orb is the only cue; never a "loading" label)
           _tts = { engine }; return _tts;
         } catch (e) { console.warn("[HoloVoice] neural voice unavailable (run tools/vendor-voice-model.mjs) — using built-in voice:", e && e.message || e); return null; }
@@ -506,7 +521,12 @@
             }
           } catch (e) {}
           var mod = await import(BASE + "voice/holo-voice-asr.mjs");
-          STATE.asr = (mod.createASR || mod.default)({ remote: CFG.remote, proxy: CFG.stream !== false, knativeEar: ear, lang: CFG.lang || "en" });   // κ-native Holo GGUF ear when WebGPU (falls back to ONNX); streaming → worker
+          // κ-served WASM fallback: when there's no WebGPU (κ-native ear off), serve Whisper's ONNX from its
+          // .holo so the any-browser floor is ALSO content-addressed/warm/serverless (falls back to vendored ONNX).
+          var serve = { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "/apps/q/forge/.models/whisper-tiny-onnx.holo",
+            modelId: "onnx-community/whisper-tiny", kappa: "bed091f088f786ca772a0f00b89a3a20ac0a0f95f8aba10801b1302c994432e7",
+            release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/whisper-tiny-onnx.holo" };
+          STATE.asr = (mod.createASR || mod.default)({ remote: CFG.remote, proxy: CFG.stream !== false, knativeEar: ear, knativeServe: serve, lang: CFG.lang || "en" });   // κ-native ear when WebGPU; κ-served Whisper on the WASM floor; both fall back to vendored ONNX; streaming → worker
           bindSeam();
           await STATE.asr.load(function () { if (!quiet) hud("loading", "Getting ready to listen…"); });
           STATE.mode = "serverless";
@@ -1090,8 +1110,8 @@
           try {
             var gm = await import(BASE + "voice/holo-voice-gpu-brain.mjs");
             var gpuEng = (gm.createGpuBrain || gm.default)({});
-            if (!quiet) hud("loading", "Loading Q's GPU coder — first time…");
-            await gpuEng.load(function () { if (!quiet) hud("loading", "Loading Q's GPU coder — first time…"); });
+            if (!quiet) hud("loading", "Getting ready…");
+            await gpuEng.load(function () { if (!quiet) hud("loading", "Getting ready…"); });
             _brain = { engine: gpuEng, gpu: true };
             bindMind(gpuEng);
             bindSeamBrain(2, gpuEng);                                  // full brain → the QVAC completion seam (tier 2)
@@ -1101,8 +1121,8 @@
         try {
           var m = await import(BASE + "voice/holo-voice-llm.mjs");
           var engine = (m.createLLM || m.default)({ preferWebGPU: CFG.preferWebGPU });
-          if (!quiet) hud("loading", "Waking Q up — first time only…");
-          await engine.load(function () { if (!quiet) hud("loading", "Waking Q up — first time only…"); });
+          if (!quiet) hud("loading", "Getting ready…");
+          await engine.load(function () { if (!quiet) hud("loading", "Getting ready…"); });
           _brain = { engine };
           bindMind(engine);                                            // give the OS orchestrator Q's mind (sampler)
           bindSeamBrain(2, engine);                                    // full brain → the QVAC completion seam (tier 2)
@@ -1310,7 +1330,12 @@
       _embedLoading = (async function () {
         try {
           var m = await import(BASE + "voice/holo-voice-embed.mjs");
-          var engine = (m.createEmbed || m.default)({});
+          // κ-served embedder: serve EmbeddingGemma's ONNX files from embeddinggemma-300m.holo (Range + per-block
+          // L5 + OPFS + serverless multi-source) into the same engine. Falls back to vendored ONNX on any failure
+          // (so this is safe before the .holo is published to the Release / pinned — out-of-band step).
+          var engine = (m.createEmbed || m.default)({ knative: { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs",
+            holoUrl: "/apps/q/forge/.models/embeddinggemma-300m.holo", kappa: "53e9ff521f4b75157a9e86298d4392c3e3846f6560bc5a450feab55e200af0f8",
+            release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/embeddinggemma-300m.holo" } });
           await engine.load();
           _embed = engine;
           var Q = await ensureQVAC();
@@ -1335,7 +1360,12 @@
       _visionLoading = (async function () {
         try {
           var m = await import(BASE + "voice/holo-voice-vision.mjs");
-          var engine = (m.createVision || m.default)({});
+          // κ-served sight: serve SmolVLM's ONNX files from smolvlm-256m.holo (Range + per-block L5 + OPFS +
+          // serverless multi-source). Falls back to vendored ONNX on any failure (safe before the .holo is
+          // published to the Release / pinned — out-of-band step).
+          var engine = (m.createVision || m.default)({ knative: { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs",
+            holoUrl: "/apps/q/forge/.models/smolvlm-256m.holo", kappa: "eeeeabd3c4171cae4d2e1e165f1ada1a1a29a1782a5e910708e75cf944263779",
+            release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/smolvlm-256m.holo" } });
           await engine.load();
           _vision = engine;
           return _vision;
@@ -1620,7 +1650,7 @@
     //    word-salad. DO still works (commands route without a model); only free-form chat waits for the brain.
     if (!reply) {
       reply = _boundTier === 0
-        ? "Still waking up. Give me a moment, then ask again. You can already tell me what to do: “open files”, “change the theme”."
+        ? "One moment — I’m almost ready. You can already tell me what to do: “open files”, “change the theme”."
         : "I couldn’t form an answer just now. Try once more?";
     }
     _history.push({ role: "assistant", content: reply });
@@ -1826,7 +1856,7 @@
     segmenter(wakeStream);                                               // mic + VAD armed now — no waiting
     ensureVAD();                                                         // warm the sovereign stage-1 gate (tiny; no-op when CFG.vad is off)
     ensureWakeAsr().then(function (asr) {                                // warm the dedicated BASE wake recognizer in the background, no frozen bubble
-      if (wakeOn && !asr && !STATE.asr) { stopWake(); speakToast("Wake word needs the on-device model — vendor it (tools/vendor-voice-model.mjs)."); }
+      if (wakeOn && !asr && !STATE.asr) { stopWake(); speakToast("Wake word isn’t available on this device yet."); }
     });
     return true;
   }
@@ -2929,7 +2959,7 @@
 
   async function runWelcome() {
     if (!STATE.liveOn) return;
-    capHint.textContent = "waking up…";
+    capHint.textContent = "one moment…";
     unlockAudio();                                                   // autoBegin guarantees a gesture (or autoplay) → audio is allowed
     STATE.live = "speaking";
     var baked = await loadWelcomeBaked();                            // pre-rendered welcome audio → INSTANT (prefetched during the invite)
@@ -3149,6 +3179,18 @@
       });
     },
     activate: activate,                    // quick one-shot push-to-talk (Alt+V)
+    // dictate() — capture one utterance and RETURN the on-device transcript (no action routing). The
+    // one-shot ear, exposed for surfaces that want raw text (e.g. Play's "ask" filter via q.dictate).
+    dictate: async function () {
+      if (STATE.busy) return "";
+      STATE.busy = true;
+      try { pauseWake(); } catch (e) {}
+      try { setBtn(true); } catch (e) {}
+      try { hud("listening", "Listening…"); } catch (e) {}
+      try { var t = await recognize(); STATE.lastText = t || ""; if (!t) { try { hud("miss", "Didn’t catch that."); } catch (e) {} } return t || ""; }
+      catch (e) { var denied = /denied|not-allowed|permission/i.test(String(e)); try { hud("error", denied ? "I need your microphone to hear you." : "Something slipped."); } catch (_) {} return ""; }
+      finally { STATE.busy = false; try { setBtn(false); } catch (e) {} try { resumeWake(); } catch (e) {} setTimeout(function () { try { if (!STATE.busy) hide(); } catch (e) {} }, 1800); }
+    },
     speak: function (t, o) { return (W.HoloQVAC && W.HoloQVAC.textToSpeech) ? W.HoloQVAC.textToSpeech({ text: t }).catch(function () { return speak(t, o); }) : speak(t, o); },
     converse: converseAgent,
     route: route,                         // run a voice command (deterministic OS actions, native calls)

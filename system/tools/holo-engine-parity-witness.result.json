@@ -1,0 +1,48 @@
+{
+  "witnessed": true,
+  "passed": 6,
+  "failed": 0,
+  "objects": 8,
+  "covers": [
+    "the browser engine produced a κ for every object (WebCrypto + the serv",
+    "CC-2 · sha256 (serving axis): browser ≡ Node for every object",
+    "CC-2 · BLAKE3 (substrate σ-axis): browser ≡ Node for every object",
+    "non-vacuous: distinct inputs yield distinct browser κ (engine is real,",
+    "CC-1 · the σ-axis matches the reference BLAKE3 KAT (browser ≡ Node ≡ r",
+    "no fatal page errors"
+  ],
+  "results": [
+    {
+      "name": "the browser engine produced a κ for every object (WebCrypto + the served holo-blake3.mjs ran)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CC-2 · sha256 (serving axis): browser ≡ Node for every object",
+      "ok": true,
+      "detail": "8/8"
+    },
+    {
+      "name": "CC-2 · BLAKE3 (substrate σ-axis): browser ≡ Node for every object",
+      "ok": true,
+      "detail": "8/8"
+    },
+    {
+      "name": "non-vacuous: distinct inputs yield distinct browser κ (engine is real, not a stub)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "CC-1 · the σ-axis matches the reference BLAKE3 KAT (browser ≡ Node ≡ reference)",
+      "ok": true,
+      "detail": "BLAKE3(\"\") = af1349b9f5f9a1a6…"
+    },
+    {
+      "name": "no fatal page errors",
+      "ok": true,
+      "detail": "clean"
+    }
+  ],
+  "spec": "CC-1/CC-2 — in real Chromium and in Node, the dual-axis κ (sha256 serving ⊕ BLAKE3 σ-axis) is byte-for-byte identical over the same real OS objects and edge inputs. The deployment-critical engine pair (Node seal-engine ↔ browser runtime) agrees, so a Node-sealed pin always re-derives in the SW. The σ-axis matches the reference BLAKE3 KAT; browser ≡ Node ≡ reference. The Rust-wasm oracle (a third engine) stays gated on HOLO_SUBSTRATE_PKG and is not required, since the KAT vectors are the reference.",
+  "authority": "holospaces docs/10-Quality-Requirements CC-1 (byte-for-byte equality with the reference σ-axis) · CC-2 (browser and native engines yield identical κ) · BLAKE3 reference KAT · W3C WebCrypto — tools/holo-engine-parity-witness.mjs; engine os/usr/lib/holo/holo-blake3.mjs; reference holo-blake3-witness.mjs (20/20 KAT)"
+}

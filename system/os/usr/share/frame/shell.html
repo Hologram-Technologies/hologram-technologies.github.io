@@ -73,7 +73,11 @@
     <!-- PERF: warm the default wallpaper at parse time (parallel with everything), high priority, so it is
          already in the HTTP cache by the time initWall() seals + paints it — seedItems' force-cache fetch
          then reads the cached bytes instead of a cold download. -->
-    <link rel="preload" as="image" fetchpriority="high" href="/usr/share/wallpapers/uor-8k.jpg" />
+    <!-- RIGHT-SIZED boot wallpaper: the 7680×4800 master is sharp but ~3× oversized for every real display
+         (always downscaled — no crispness gained, 2.2MB spent). Preload the 2560 rendition (371KB, pixel-
+         perfect to 1440p = most devices) so the high-priority boot path is light; 4K+ displays seal the
+         master via the seed (WALL_SEED, picked by screen size). Same blur-up → sharp, a fraction of the bytes. -->
+    <link rel="preload" as="image" fetchpriority="high" href="/usr/share/wallpapers/uor-2560.jpg" />
     <!-- Adaptive-fidelity policy (exploration: hyper-real, device-adaptive holospaces): reads the
          user's hardware ⊗ connection ⊗ preferences and publishes --holo-fx-* + <html data-holo-fidelity>
          so every surface scales its effects to the device. Loads early; CSS vars default to full (1). -->
@@ -94,19 +98,29 @@
     <link rel="stylesheet" href="/_shared/holo-dock.css" data-holo-shared="holo-dock.css" />
     <style>
       :root { color-scheme: dark; --accent: var(--holo-accent, #5b8cff); --win-font: var(--holo-font-sans, system-ui, sans-serif);   /* ONE accent + ONE typeface, adopted from holo-theme.css — chrome, widgets and apps share them */
-        /* ── ONE golden type + spacing scale for the whole desktop (φ-stepped, legible floor) ──
-           label = every interactive label (tabs · omnibox · menus · sidebar · icons), the dominant
-           size; meta = secondary text (breadcrumbs · hints · status · κ · credit), never tiny;
-           display = titles/headings. edge = the consistent margin from the screen border. */
+        /* ════════════ ONE golden design system for the whole shell chrome ════════════
+           Every font-size, icon-size, gap and margin in the chrome resolves to a token
+           below — no magic numbers. φ-stepped (φ = 1.618), with a legible floor so
+           nothing reads small. Tabs · omnibox · rail · top-right cluster · greeting ·
+           hint bar · footer all draw from this one ladder, so the shell reads as one
+           crisp, even, measured object. Abstract the complexity here → simplicity out. */
         --phi: 1.618;
-        --fs-label: var(--holo-text-sm, 1rem);
-        --fs-meta: max(13px, calc(var(--fs-label) * 0.82));
-        --fs-display: calc(var(--fs-label) * var(--phi));
-        --edge: clamp(14px, 1.8vmin, 24px);
-        /* ONE size + weight for every top-bar label — tabs · omnibox · verbs · identity — so the whole
-           chrome reads as one crisp, even row. Integer px (no clamp/calc) = pixel-sharp on every display.
-           (--holo-text-sm is mobile-only; the desktop chrome must not lean on its undefined fallback.) */
-        --chrome-fs: 14px; --chrome-fw: 500; --chrome-fs-sm: 13px; }   /* -sm: the bottom status/credit row (secondary scale) */
+        /* TYPE — √φ (≈1.272) steps off a 14px body; caption is the legible floor (nothing smaller). */
+        --fs-caption: 13px;   /* secondary chrome: hints · status · κ · footer · pills */
+        --fs-body:    14px;   /* the workhorse: tabs · omnibox · verbs · identity — the dominant size */
+        --fs-label:   18px;   /* emphasis labels */
+        --fs-title:   23px;   /* headings */
+        /* SPACE — φ / Fibonacci ladder; ONE rhythm for every gap, padding and margin. */
+        --sp-1: 4px; --sp-2: 8px; --sp-3: 13px; --sp-4: 21px; --sp-5: 34px; --sp-6: 55px;
+        --edge: clamp(14px, 1.8vmin, 24px);   /* the consistent margin from the screen border */
+        /* ICONS — two glyph sizes inside ONE φ tap-target, so every icon-button reads as one even rhythm. */
+        --icon-sm:  16px;   /* inline / secondary glyphs */
+        --icon-md:  20px;   /* primary toolbar + cluster action glyphs */
+        --icon-tap: 34px;   /* the round hit-target every chrome icon-button shares */
+        /* back-compat aliases — older rules + the secondary scale fold onto the system above, so there is
+           no parallel set of sizes anywhere in the chrome. Integer px = pixel-sharp on every display. */
+        --chrome-fw: 500; --chrome-fs: var(--fs-body); --chrome-fs-sm: var(--fs-caption);
+        --fs-meta: var(--fs-caption); --fs-display: var(--fs-title); }
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; overflow: hidden; color: #c9d1d9;
         background: #141417;   /* the shell FRAME — the dock, strip, and the gutter around each holospace all share it */
@@ -176,7 +190,7 @@
       #tabstrip { position: fixed; top: 0; left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px)); right: var(--holo-aside-w, 0px); height: var(--tabrow-h); z-index: 60; display: flex; align-items: flex-end; gap: 1px; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
         padding: 0 var(--gap); background: #141417; overflow-x: auto; scrollbar-width: none; user-select: none; }   /* recessed strip BEHIND the tabs; tabs are inset by --gap horizontally to line up with the holospace card below. No vertical padding → align-self:center cluster gets EQUAL top/bottom space; tabs are flex-end so they're unaffected. */
       #tabstrip::-webkit-scrollbar { display: none; }
-      #tabstrip .tab { flex: 0 1 150px; min-width: 60px; height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 12px;
+      #tabstrip .tab { flex: 0 1 150px; min-width: 60px; height: 38px; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-2) 0 var(--sp-3);
         -webkit-appearance: none; appearance: none; border: 0;   /* drop the harsh native <button> outline */
         border-radius: 10px 10px 0 0; background: transparent; color: var(--holo-ink-dim);
         cursor: default; font: var(--chrome-fw) var(--chrome-fs) var(--win-font); white-space: nowrap; position: relative; transition: background .12s ease, color .12s ease, box-shadow .12s ease; }
@@ -198,8 +212,8 @@
       /* the right cluster (+ · identity · wallet · fullscreen) is aligned to the TAB centre-line — every
          control sits at flex-end with a 4px lift so its midpoint matches the 38px tab's, giving one crisp
          horizontal row across the whole strip. */
-      #newtab { flex: 0 0 auto; width: 30px; height: 30px; margin: 0 0 4px 2px; align-self: flex-end; border: 0; border-radius: 50%; cursor: pointer;
-        background: transparent; color: var(--holo-ink-dim); font-size: 19px; line-height: 1; transition: background .12s ease, color .12s ease, transform .12s ease; }
+      #newtab { flex: 0 0 auto; width: var(--icon-tap); height: var(--icon-tap); margin: 0 0 2px 2px; align-self: flex-end; border: 0; border-radius: 50%; cursor: pointer;
+        background: transparent; color: var(--holo-ink-dim); font-size: var(--icon-md); line-height: 1; transition: background .12s ease, color .12s ease, transform .12s ease; }
       #newtab:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
       #newtab:active { transform: scale(.92); }
       /* ── toolbar — Chrome layout: nav buttons · omnibox (fills) · actions ── */
@@ -207,15 +221,16 @@
          contained, κ-addressable holospace (remix · run · share), inset + rounded, isolated from the
          shell frame (dock + tab strip). It connects seamlessly to the canvas (#world) directly beneath. */
       #navbar { position: fixed; top: var(--tabrow-h); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); height: var(--toolbar-h); z-index: 60; display: flex; align-items: center; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
-        gap: 2px; padding: 0 10px; background: #1F1F21; border-bottom: 1px solid var(--holo-border);
+        gap: var(--sp-1); padding: 0 var(--sp-2); background: #1F1F21; border-bottom: 1px solid var(--holo-border);
         box-shadow: 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.12); }   /* hairline ring + a lit top rim (the card's top edge catches light → physical); active tab merges into it (tab → toolbar → canvas = one holospace) */
-      #navbar .nav { width: 34px; height: 34px; flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink);
-        display: grid; place-items: center; transition: background .12s ease; }
+      #navbar .nav { width: var(--icon-tap); height: var(--icon-tap); flex: 0 0 auto; border: 0; border-radius: 50%; cursor: pointer; background: transparent; color: var(--holo-ink);
+        display: grid; place-items: center; transition: background .12s ease, transform .12s ease; }
       #navbar .nav:hover:not(:disabled) { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); }
+      #navbar .nav:active:not(:disabled) { transform: scale(.92); }
       #navbar .nav:disabled { opacity: .3; cursor: default; }
-      #navbar .nav svg { width: 18px; height: 18px; }
+      #navbar .nav svg { width: var(--icon-md); height: var(--icon-md); }
       /* the holospace you're in — the active tab's app name, next to ⌂ (standardised across every tab) */
-      #scope { flex: 0 0 auto; max-width: 26ch; margin: 0 6px 0 4px; padding: 5px 12px; border-radius: 999rem;
+      #scope { flex: 0 0 auto; max-width: 26ch; margin: 0 var(--sp-1) 0 var(--sp-1); padding: var(--sp-1) var(--sp-3); border-radius: 999rem;
         font: 650 var(--holo-text-sm, 0.875rem)/1 var(--holo-sans, ui-sans-serif, system-ui); letter-spacing: -.01em; color: var(--holo-ink);
         background: color-mix(in srgb, var(--holo-ink) 8%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       @media (max-width: 760px) { #scope { display: none !important; } }
@@ -223,7 +238,7 @@
          blooms and slowly rotates on focus: one box that unlocks the whole content-addressed spectrum. */
       @property --omni-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
       @keyframes omni-spin { to { --omni-spin: 360deg; } }
-      #omni { flex: 0 1 clamp(300px, 50vw, 720px); min-width: 0; display: flex; align-items: center; gap: 9px; height: 32px; margin: 0 auto; padding: 0 6px 0 12px;
+      #omni { flex: 0 1 clamp(300px, 50vw, 720px); min-width: 0; display: flex; align-items: center; gap: var(--sp-2); height: 32px; margin: 0 auto; padding: 0 var(--sp-1) 0 var(--sp-3);
         border: 1.5px solid transparent; border-radius: 999rem; transition: box-shadow .18s ease;
         background: linear-gradient(var(--holo-bg), var(--holo-bg)) padding-box,
           conic-gradient(from var(--omni-spin), rgba(255,59,107,.58), rgba(255,158,44,.58), rgba(255,226,74,.58), rgba(70,224,138,.58), rgba(43,212,255,.58), rgba(91,140,255,.58), rgba(199,123,255,.58), rgba(255,59,107,.58)) border-box; }
@@ -232,7 +247,7 @@
           conic-gradient(from var(--omni-spin), #ff3b6b, #ff9e2c, #ffe24a, #46e08a, #2bd4ff, #5b8cff, #c77bff, #ff3b6b) border-box;
         animation: omni-spin 7s linear infinite; }
       #omni .sec { display: inline-flex; align-items: center; flex: 0 0 auto; }
-      #omni .sec svg { display: block; filter: drop-shadow(0 0 5px rgba(130,150,255,.30)); }
+      #omni .sec svg { display: block; width: var(--icon-md); height: var(--icon-md); filter: drop-shadow(0 0 5px rgba(130,150,255,.30)); }
       #omni input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--holo-ink); outline: none; font: var(--chrome-fw) var(--chrome-fs) var(--win-font); }
       #omni input::placeholder { color: var(--holo-ink-dim); opacity: 1; }
       /* the "go" key — a holographic spectrum gem that echoes the omnibox's rainbow ring + spectrum
@@ -244,7 +259,7 @@
           conic-gradient(from var(--omni-spin), #ff3b6b, #ff9e2c, #ffe24a, #46e08a, #2bd4ff, #5b8cff, #c77bff, #ff3b6b);
         box-shadow: 0 2px 9px rgba(120,140,255,.42), inset 0 0 0 1px rgba(255,255,255,.24);
         transition: filter .14s ease, transform .12s ease, box-shadow .16s ease; }
-      #omni .go svg { width: 15px; height: 15px; display: block; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+      #omni .go svg { width: var(--icon-sm); height: var(--icon-sm); display: block; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); transition: transform .18s cubic-bezier(.2,.8,.2,1); }
       #omni .go:hover { transform: translateY(-1px); filter: saturate(1.14) brightness(1.06); box-shadow: 0 5px 15px rgba(120,140,255,.6), inset 0 0 0 1px rgba(255,255,255,.32); }
       #omni .go:hover svg { transform: translateX(2px); }
       #omni .go:active { transform: translateY(0) scale(.92); }
@@ -275,7 +290,10 @@
       #tabdetach.on { opacity: 1; }
       /* the side dock is THIS shell's menu bar — share the chrome's exact surface so dock · tabs · toolbar
          read as ONE coherent, sharp frame (flat, no light frost/bevel; border = the chrome hairline). */
-      html #holo-dock { --hd-blur-bg: #141417; --hd-opaque-bg: #141417; --hd-acrylic-bg: #141417; --hd-clear-bg: #141417; --hd-blur-fx: none; --hd-glass-border: var(--holo-border); --hd-glass-edge: transparent; --hd-ink: var(--holo-ink); --hd-ink-dim: var(--holo-ink-dim); --hd-border: var(--holo-border); --hd-surface: var(--holo-surface-2); --hd-hover: color-mix(in srgb, var(--holo-ink) 12%, transparent); }
+      html #holo-dock { --hd-blur-bg: #141417; --hd-opaque-bg: #141417; --hd-acrylic-bg: #141417; --hd-clear-bg: #141417; --hd-blur-fx: none; --hd-glass-border: var(--holo-border); --hd-glass-edge: transparent; --hd-ink: var(--holo-ink); --hd-ink-dim: var(--holo-ink-dim); --hd-border: var(--holo-border); --hd-surface: var(--holo-surface-2); --hd-hover: color-mix(in srgb, var(--holo-ink) 12%, transparent);
+        /* bind the rail to the chrome's ONE icon system — the left-rail tiles + glyphs read at the exact
+           same tap-target and icon size as the toolbar, so every icon across the shell is one rhythm */
+        --hd-tile: var(--icon-tap); --hd-icon: var(--icon-md); }
       #holo-dock .holo-dock-inner { box-shadow: none; }
       /* Left-pinned, the dock is a FULL-HEIGHT rail (top:0) so the whole left bar is one uniform
          surface — no darker chrome notch above it. The tab strip + toolbar inset to its right via
@@ -356,6 +374,28 @@
         border: 1px solid color-mix(in srgb, var(--c, #2dd4bf) 24%, #2a313c); font-size: clamp(15px, 1.3vmin, 17px); font-weight: 700; color: #cdd6e4; }
       #empty .disc-card .apps .ic img { width: 100%; height: 100%; object-fit: cover; }
       #empty .disc-card .apps .more { font-size: clamp(14px, 1.2vmin, 16px); color: #8b97ab; margin-left: 5px; }
+      /* ── FORMING — a holospace's tiled skeleton, painted the instant you open it: every pane sits in
+         its REAL slot (geomFor) wearing the app's mark, breathing, while consent settles. render() hides
+         #empty the moment the real panes mount on top, so this is a pure, self-clearing on-ramp — the
+         space is always assembling in front of you, never a void. (#empty is pointer-events:none → the
+         consent card above stays fully interactive.) */
+      #empty .disc-forming { position: absolute; inset: 0; pointer-events: none; }
+      #empty .forming-tile { position: absolute; border-radius: clamp(12px, 1.3vmin, 18px); overflow: hidden;
+        display: grid; place-content: center; justify-items: center; gap: clamp(8px, 1vmin, 13px);
+        border: 1px solid color-mix(in srgb, var(--c, #2dd4bf) 26%, #222a36);
+        background: radial-gradient(120% 120% at 30% 0%, color-mix(in srgb, var(--c, #2dd4bf) 16%, #0d1117), #0a0d13 70%);
+        animation: forming-rise .5s cubic-bezier(.4, 0, .2, 1) both; animation-delay: var(--d, 0ms); }
+      #empty .forming-tile::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+        background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--c, #2dd4bf) 15%, transparent) 50%, transparent 70%);
+        background-size: 220% 100%; animation: forming-shimmer 1.6s linear infinite; }
+      #empty .forming-ic { position: relative; z-index: 1; width: clamp(40px, 4.4vmin, 60px); height: clamp(40px, 4.4vmin, 60px);
+        border-radius: 14px; overflow: hidden; display: grid; place-items: center; background: #161d29;
+        border: 1px solid color-mix(in srgb, var(--c, #2dd4bf) 28%, #2a313c); font-weight: 700; color: #cdd6e4; font-size: clamp(15px, 1.6vmin, 19px); }
+      #empty .forming-ic img { width: 100%; height: 100%; object-fit: cover; }
+      #empty .forming-nm { position: relative; z-index: 1; font-size: clamp(14px, 1.5vmin, 17px); font-weight: 600; color: #cdd6e4; letter-spacing: -.01em; }
+      @keyframes forming-rise { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+      @keyframes forming-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+      @media (prefers-reduced-motion: reduce) { #empty .forming-tile, #empty .forming-tile::after { animation: none; } }
       /* one quiet secondary action, top-right on the title row — light glass, nudged down to sit by the subtitle */
       #empty .disc-all { align-self: flex-start; flex: 0 0 auto; margin-top: clamp(10px, 1.2vmin, 18px); pointer-events: auto;
         border: 1px solid rgba(255, 255, 255, .14); color: #f4f8ff;
@@ -375,24 +415,71 @@
       #empty .nt-hint b { color: #cdd6e4; font-weight: 600; }
       #empty .nt-hint kbd { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 2px 8px; color: #c9d1d9; }
 
-      /* ── keyboard hint bar — a calm, OS-correct affordance pinned bottom-center on the Home tab,
-         above the credit strip. Subtle by default, brightens on hover, dismissible (first-boot only). */
-      #hint-bar { position: fixed; left: 50%; transform: translateX(-50%);
-        bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b, 34px) + 14px); z-index: 6;
-        display: none; align-items: center; gap: 13px; padding: 6px 8px 6px 13px; border-radius: 999px;
-        background: color-mix(in srgb, var(--holo-surface, #0c111b) 76%, transparent); border: 1px solid var(--holo-border, #2a313c);
-        -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font: 500 12px var(--win-font, system-ui);
-        color: var(--holo-ink-dim, #8b94a6); box-shadow: 0 12px 32px -18px rgba(0,0,0,.72); opacity: 0; transition: opacity .5s ease; pointer-events: none; }
-      #hint-bar.show { display: inline-flex; opacity: .82; pointer-events: auto; }
-      #hint-bar.show:hover { opacity: 1; }
-      #hint-bar .hint { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; background: 0; border: 0; color: inherit; font: inherit; padding: 0; }
-      #hint-bar .hint:hover { color: var(--holo-ink, #e8edf6); }
-      #hint-bar .hint kbd { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 2px 7px; font: 600 11px ui-monospace, monospace; color: #e6edf3; white-space: nowrap; }
-      #hint-bar .sep { width: 1px; height: 14px; background: var(--holo-border, #2a313c); }
-      #hint-bar .hint-x { margin-left: 1px; color: var(--holo-ink-dim, #6e7681); border: 0; background: 0; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 5px; border-radius: 6px; }
-      #hint-bar .hint-x:hover { color: var(--holo-ink, #e8edf6); background: #21262d; }
-      @media (prefers-reduced-motion: reduce) { #hint-bar { transition: none; } }
-      @media (max-width: 640px) { #hint-bar { display: none !important; } }   /* touch / narrow = no keyboard hints */
+      /* ── keyboard which-key bloom — the Home-tab affordance as a single ambient point of light.
+         IDLE: a tiny breathing dot, near-zero weight (one CSS animation, no JS at rest).
+         HOLD the OS modifier: the legend resolves outward from the point — a live projection of the
+         keymap (km.registry, every command flagged `hint`). RELEASE: it de-resolves. The bloom toggles
+         a single class, so it lands in the same frame as the press and only animates opacity/transform. */
+      #hint-dot { position: fixed; left: 50%; transform: translateX(-50%); z-index: 6;
+        bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b, 34px) + 16px); display: none; align-items: center; gap: 9px; pointer-events: none; }
+      #hint-dot.show { display: inline-flex; }   /* dot + label as one centred row */
+      /* the point of light — a calm breath; this is the ONLY thing running while idle */
+      #hint-dot .hk-core { display: block; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+        cursor: pointer; pointer-events: auto;
+        background: radial-gradient(circle at 50% 45%, #fff 0%, var(--accent, #5b8cff) 58%, color-mix(in srgb, var(--accent, #5b8cff) 35%, transparent) 100%);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #5b8cff) 38%, transparent), 0 0 16px 0 var(--accent, #5b8cff);
+        animation: hk-breathe 3.4s ease-in-out infinite; transition: opacity .22s ease, box-shadow .2s ease; }
+      #hint-dot .hk-core:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #5b8cff) 55%, transparent), 0 0 22px 0 var(--accent, #5b8cff); }
+      @keyframes hk-breathe { 0%, 100% { opacity: .62; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.14); } }
+      /* the self-describing tag — a quiet label beside the idle dot so its purpose is obvious;
+         it fades out on bloom (the legend takes over) and is clickable like the dot. */
+      #hint-dot .hk-tag { white-space: nowrap; pointer-events: auto; cursor: pointer; opacity: .9;
+        font: 500 var(--fs-caption) var(--win-font, system-ui); color: var(--holo-ink-dim, #8b94a6);
+        transition: opacity .26s ease, transform .24s ease; animation: hk-tag-in .5s ease both; }
+      #hint-dot .hk-tag kbd { background: #21262d; border: 1px solid #30363d; border-radius: 5px; margin: 0 1px; padding: 1px 6px; font: 600 var(--fs-caption) ui-monospace, monospace; color: #e6edf3; }
+      #hint-dot .hk-tag:hover { color: var(--holo-ink, #e8edf6); }
+      #hint-dot.bloom .hk-tag { opacity: 0; pointer-events: none; transform: translateX(4px); }
+      @keyframes hk-tag-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: .9; transform: translateX(0); } }
+      /* long-press to banish — the point "absorbs" inward over ~600ms, telegraphing the dismiss */
+      #hint-dot .hk-core.arming { animation: none; transform: scale(.55); opacity: .85;
+        transition: transform .6s cubic-bezier(.5,0,.85,.3), opacity .6s ease; }
+      @media (prefers-reduced-motion: reduce) { #hint-dot .hk-core.arming { transition: opacity .6s ease; transform: none; }
+        #hint-dot .hk-tag { animation: none; transition: opacity .2s ease; } }
+      /* the legend — a true-black radial card that condenses up out of the point, then de-resolves */
+      #hint-dot .hk-legend { position: absolute; left: 50%; bottom: calc(100% + 10px); transform-origin: 50% 100%;
+        transform: translate(-50%, 8px) scale(.92); opacity: 0; pointer-events: none; overflow: hidden;
+        display: inline-flex; align-items: center; gap: var(--sp-3); white-space: nowrap;
+        padding: var(--sp-1) var(--sp-2); border-radius: 999px;
+        background: radial-gradient(130% 220% at 50% 130%, color-mix(in srgb, var(--accent, #5b8cff) 12%, #000) 0%, #000 72%);
+        border: 1px solid color-mix(in srgb, var(--accent, #5b8cff) 26%, var(--holo-border, #2a313c));
+        -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+        box-shadow: 0 14px 40px -16px #000, 0 0 26px -10px color-mix(in srgb, var(--accent, #5b8cff) 60%, transparent);
+        font: 500 var(--fs-caption) var(--win-font, system-ui); color: var(--holo-ink-dim, #8b94a6);
+        transition: opacity .16s ease, transform .24s cubic-bezier(.2,.9,.25,1); }
+      /* a faint sheen drifting across the card on bloom — the hologram shimmer (reduced-motion-aware) */
+      #hint-dot .hk-legend::before { content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+        background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--accent, #5b8cff) 22%, transparent) 50%, transparent 70%); }
+      #hint-dot.bloom .hk-legend { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
+      #hint-dot.bloom .hk-legend::before { animation: hk-shimmer 1.5s ease-out .04s 1; }
+      @keyframes hk-shimmer { to { transform: translateX(120%); } }
+      #hint-dot.bloom .hk-core { opacity: .35; }
+      /* chips — each resolves out of the point with a tiny outward stagger */
+      #hint-dot .hk-chip { display: inline-flex; align-items: center; gap: var(--sp-2); background: 0; border: 0; cursor: pointer;
+        color: inherit; font: inherit; padding: 0; white-space: nowrap; opacity: 0; transform: translateY(3px);
+        transition: opacity .2s ease, transform .26s cubic-bezier(.2,.9,.25,1), color .15s ease; }
+      #hint-dot .hk-chip:hover { color: var(--holo-ink, #e8edf6); }
+      #hint-dot .hk-chip kbd { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 2px 7px; font: 600 var(--fs-caption) ui-monospace, monospace; color: #e6edf3; white-space: nowrap; }
+      #hint-dot.bloom .hk-chip { opacity: 1; transform: translateY(0); }
+      #hint-dot.bloom .hk-chip:nth-child(1) { transition-delay: .02s; }
+      #hint-dot.bloom .hk-chip:nth-child(2) { transition-delay: .06s; }
+      #hint-dot.bloom .hk-chip:nth-child(3) { transition-delay: .10s; }
+      #hint-dot.bloom .hk-chip:nth-child(n+4) { transition-delay: .12s; }
+      @media (prefers-reduced-motion: reduce) {   /* cross-fade only: no breathe, no scale, no shimmer, no stagger */
+        #hint-dot .hk-core { animation: none; }
+        #hint-dot .hk-legend { transform: translate(-50%, 0) scale(1); transition: opacity .18s ease; }
+        #hint-dot .hk-chip { transform: none; transition: opacity .18s ease, color .15s ease; transition-delay: 0s !important; }
+        #hint-dot.bloom .hk-legend::before { animation: none; } }
+      @media (max-width: 640px) { #hint-dot { display: none !important; } }   /* touch / narrow = no keyboard hints */
       /* desktop credit line — bottom-center, behind windows (z 1, above the wallpaper), on every tab */
       /* the OS signature line — lives in the bottom FRAME gutter (beneath the holospace card, centred
          under it), so it reads as "this whole machine is powered by HOLOGRAM", not desktop content. */
@@ -401,20 +488,20 @@
          Holo Dock reorients to the bottom edge (holo-dock.js → "bottom") and would otherwise cover this bar. */
       #holo-credit { position: fixed; left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px)); right: var(--holo-aside-w, 0px); bottom: var(--holo-dock-h, 0px); height: var(--gap-b); z-index: 2; pointer-events: none; transition: left .34s cubic-bezier(.2,.8,.2,1);
         transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1), bottom .34s cubic-bezier(.2,.8,.2,1), background .22s, border-color .22s;
-        display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; user-select: none; white-space: nowrap;
+        display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 0 var(--sp-3); user-select: none; white-space: nowrap;
         font: var(--chrome-fw) var(--chrome-fs-sm)/1 var(--win-font, ui-sans-serif, system-ui); }
       /* FULL SCREEN: just lift the status bar into the gap ABOVE the bottom dock — no enclosure. Transparent,
          borderless, flush over the wallpaper, so Privacy · POWERED BY HOLOGRAM · timer · version stay as clean as possible. */
       html[data-fs] #holo-credit { bottom: calc(var(--holo-dock-h, 0px) + var(--gap) * 0.5); }
-      #holo-credit .cv-left, #holo-credit .cv-right { display: flex; align-items: center; gap: 13px; min-width: 0; }
-      #holo-credit .cv-center { position: absolute; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; pointer-events: none; }
+      #holo-credit .cv-left, #holo-credit .cv-right { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+      #holo-credit .cv-center { position: absolute; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: var(--sp-1); pointer-events: none; }
       #holo-credit .pw { color: var(--holo-ink-dim, #8b949e); opacity: .62; letter-spacing: .22em; text-transform: uppercase; }
       #holo-credit .hg { font-weight: 800; letter-spacing: .26em; color: #fff; text-transform: uppercase; filter: drop-shadow(0 1px 6px rgba(0, 0, 0, .35)); }
       @media (prefers-reduced-transparency: reduce) { #holo-credit .hg { filter: none; } }
       #holo-credit .cv-pill { pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--holo-ink-dim, #9aa6b8);
         background: color-mix(in srgb, var(--holo-ink, #c9d1d9) 6%, transparent); border: 1px solid var(--holo-border, #2a313c); border-radius: 999rem; padding: 4px 11px; font: inherit; letter-spacing: .02em; transition: color .12s, border-color .12s, background .12s; }
       #holo-credit .cv-pill:hover { color: var(--holo-ink, #e8edf6); border-color: color-mix(in srgb, var(--holo-accent, #4f8cff) 55%, var(--holo-border, #2a313c)); }
-      #holo-credit .cv-pill svg { width: 13px; height: 13px; }
+      #holo-credit .cv-pill svg { width: var(--icon-sm); height: var(--icon-sm); }
       #holo-credit .cv-ver .vk { color: var(--holo-ok, #2fcf6f); display: inline-flex; }
       #holo-credit .cv-timer { pointer-events: auto; color: var(--holo-ink-dim, #9aa6b8); letter-spacing: .05em; font-variant-numeric: tabular-nums; }
       #holo-privacy-btn { display: none !important; }   /* Privacy now lives in the bottom bar (left) */
@@ -600,6 +687,8 @@
       .cheat-row kbd { background: #21262d; border: 1px solid #30363d; border-radius: var(--holo-radius, 6px); padding: 2px 8px; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: #e6edf3; white-space: nowrap; }
       .cheat-f { padding: 12px 18px; border-top: 1px solid #21262d; font: var(--holo-text-sm, 1rem) var(--win-font); color: #8b949e; }
       .cheat-f .k { color: #58a6ff; font-family: ui-monospace, monospace; }
+      .cheat-f .cheat-link { background: 0; border: 0; padding: 0; cursor: pointer; font: inherit; color: #58a6ff; text-decoration: underline; text-underline-offset: 2px; }
+      .cheat-f .cheat-link:hover { color: #79c0ff; }
       /* virtual keyboard — a real on-screen keyboard that mirrors physical typing */
       #vk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 110%); z-index: 90; width: min(60rem, 98vw); background: #0d1117f2; border: 1px solid #30363d; border-bottom: 0; border-radius: var(--holo-radius, 14px) 14px 0 0; padding: 10px; backdrop-filter: blur(10px); transition: transform .2s cubic-bezier(.2, .7, .3, 1); box-shadow: 0 -10px 40px #0008; }
       #vk.open { transform: translate(-50%, 0); }
@@ -820,14 +909,13 @@
         </div>
       </div>
     </div>
-    <!-- keyboard hint bar — Home-tab affordance; labels are OS-adapted at runtime (see mountHintBar) -->
-    <div id="hint-bar" aria-label="Keyboard shortcuts">
-      <button class="hint" type="button" data-act="search"><kbd id="hint-k">Ctrl K</kbd> Search &amp; apps</button>
-      <span class="sep" aria-hidden="true"></span>
-      <button class="hint" type="button" data-act="tabs"><kbd id="hint-tab">Ctrl ]</kbd> Switch tabs</button>
-      <span class="sep" aria-hidden="true"></span>
-      <button class="hint" type="button" data-act="help"><kbd>?</kbd> Shortcuts</button>
-      <button class="hint-x" type="button" data-act="dismiss" title="Hide hints" aria-label="Hide hints">×</button>
+    <!-- keyboard which-key bloom — a single ambient point of light on the Home tab. Hold the OS
+         modifier to bloom the live legend; the chips are projected from the keymap at runtime
+         (see mountHintBar). Click the dot for the full cheat sheet. -->
+    <div id="hint-dot">
+      <button class="hk-core" type="button" aria-label="Keyboard shortcuts" title="Shortcuts"></button>
+      <span class="hk-tag"></span>
+      <div class="hk-legend" aria-hidden="true"></div>
     </div>
     <div id="grid"></div>
     <div id="snap"></div>
@@ -885,7 +973,7 @@
       import { createLiveEditor } from "/_shared/holo-live-edit.mjs";   // liveEdit: the ONE primitive chat·DevTools·agents edit through
       import * as HoloSkin from "/_shared/holo-skin.js";   // Holo Browser SKINS (holo:BrowserSkin): hot-swappable vintage chrome (NCSA Mosaic …), κ-addressed, state-preserving, browser-tabs only
       import { createPlaygroundHost, createPlaygroundAgent } from "/_shared/holo-playground-agent.mjs";   // Holo Playground: in-app (iframe) AND in-shell element edits route to that ONE primitive
-      import { capabilitiesToSandbox, linkFor } from "/holo-launch.mjs";
+      import { capabilitiesToSandbox, linkFor, projectHtml, entryBase } from "/holo-launch.mjs";
       import { classify, matches } from "/holo-omni.mjs";
       import { resolveAny, parseRef } from "/sbin/holo-omni-object.mjs";   // the discovery-backed κ-resolver (trustless gateways + Delegated Routing V1)
       import { record as omniRemember, search as omniRecent } from "/sbin/holo-omni-index.mjs";   // the omnibar's MEMORY: it remembers + ranks everything you've opened (private, instant, holo-rank-aware)
@@ -914,9 +1002,11 @@
       import { mountEgressConnect } from "/usr/share/holo-web-recorder/holo-egress-connect.mjs";   // "Connect the web" icon by the omnibar: live egress status + simplest install path
       import { resolveBootResume } from "/_shared/holo-workspace-sync-ui.mjs";   // Holo Workspace Sync (ADR-0105): boot-resume a #wks link / ?wks token (the sealer is dynamic-imported on use)
       import { createAside, registerAsideCloser, closeAllAsides, syncDockWidth } from "/_shared/holo-aside.mjs";   // Holo Aside: the ONE right side-carriage template shared by Create · Play · Share · Notify · Wallet (golden scale · slide · collapse chevron · single-open)
-      import { mountShare } from "/_shared/holo-share-ui.mjs";   // Holo Share (ADR-0109): the ❤️ Share verb, rendered in the shared carriage — one link · file · sovereign cloud
-      import { mountNotifications } from "/_shared/holo-notify.mjs";   // Holo Notify: the ONE notification surface — quiet toast → persistent Center carriage; home for Q's notes (window.HoloNotify)
-      import { mountPlay } from "/_shared/holo-play-ui.mjs";   // Holo Play (ADR-0109): the ▶ Play verb — an immersive browse rail (categories + titles) in the shared carriage, launching holospaces live
+      import { mountNotifications } from "/_shared/holo-notify.mjs";   // Holo Notify: the ONE notification surface — quiet toast → persistent Center carriage; home for Q's notes (window.HoloNotify). Eager: it paints the unread badge at boot.
+      // PERF — Play (▶) and Share (❤️) are CARRIAGES: never needed until their verb is engaged. Their UI
+      // bundles (the browse rail + the QR/social-card sealer and their transitive deps) are kept OFF the boot
+      // path and lazy-loaded on first hover/focus/click of the verb (lazyVerb, below) — same discipline as the
+      // omnibar's resolver legs (ensureOmniLegs). mountShare/mountPlay are dynamic-imported at that point.
       // searchDirectory (holo-dweb, → holo-ipfs) is loaded lazily with the omnibar legs (ensureOmniLegs, above) —
       // it's only used in as-you-type suggestions, so it no longer pulls holo-ipfs onto the boot path.
       import { profileFor } from "/_shared/holo-platform.js";
@@ -974,7 +1064,7 @@
       document.documentElement.style.setProperty("--win-font", P.font);
       $("#os").textContent = P.label;
       gpuInfo().then((g) => { $("#gpu").textContent = gpuLabel(g); }).catch(() => { $("#gpu").textContent = "2D"; });
-      $("#kk").textContent = P.shortcuts.spotlight; { const hk = $("#hint-k"); if (hk) hk.textContent = P.shortcuts.spotlight; }
+      $("#kk").textContent = P.shortcuts.spotlight;   // hint-bar labels are now projected live from km.registry (see mountHintBar)
       const modDown = (e) => (P.apple ? e.metaKey : e.ctrlKey);
 
       // ── load real OSS web components IN-SHELL (no iframe) → first-class objects ──────────
@@ -2504,7 +2594,11 @@
       //   Right-click the desktop → Change wallpaper… reopens the same gallery, so previously-added
       //   wallpapers persist (the "previous gallery"). Bump SEED_V to refresh the bundled defaults
       //   without dropping the user's own additions.
-      const WALL_KEY = "holo:wallpapers", WALL_SEED = "/usr/share/wallpapers/uor-8k.jpg", WALL_DEPTH = "/usr/share/wallpapers/uor-depth.png", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 9;
+      // pick the wallpaper rendition for THIS display — the master is downscaled on every real screen, so a
+      // 1080p/1440p device seeds the 2560 rendition (371KB) at identical crispness; only a 4K+/retina panel
+      // (device px > 2560) needs the 7680px master. Right-sizes the bytes, never the apparent sharpness.
+      const _wallMaxDim = (Math.max(screen.width || 0, screen.height || 0) || 1920) * (window.devicePixelRatio || 1);
+      const WALL_KEY = "holo:wallpapers", WALL_SEED = "/usr/share/wallpapers/" + (_wallMaxDim <= 2560 ? "uor-2560.jpg" : "uor-8k.jpg"), WALL_DEPTH = "/usr/share/wallpapers/uor-depth.png", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 10;
       // curated default collection — bundled photos sealed to κ at first boot (via Unsplash, attributed)
       const CURATED = [
         { file: "earth-nasa.jpg",    name: "Crescent Earth", by: "NASA",             byLink: "https://unsplash.com/@nasa" },
@@ -3346,12 +3440,34 @@
       // signed agreement (prompting for sensitive/egress), {} = bare sandbox. Fail-closed: no
       // HoloTerms ⇒ the declared set (the prior contract); any error inside gate ⇒ {} (default-deny).
       async function gateCaps(def) { return window.HoloTerms ? await window.HoloTerms.gate(def) : (def.capabilities || {}); }
+      // kappaEntry(app, def) — the κ-native frame BODY for an app (Law L1/L5): resolve the entry's κ from the
+      // app's content lock, fetch it BY ITS κ-route, re-derive it (refuse a mismatch), and return the projected
+      // srcdoc — the document IS the κ, mounted as content, not navigated to a path. projectHtml injects ONE
+      // <base> at the app's dir (a resolver hint only) so the app's relative subresources resolve, each
+      // re-derived to its κ by the worker. null ⇒ caller path-loads (still worker-verified) — resilient, no stub.
+      async function kappaEntry(app, def) {
+        try {
+          const dir = entryBase(app.landing);                                   // /apps/<id>/
+          const lock = await fetch(dir + "holospace.lock.json").then((r) => r.json());
+          const entry = (def && def.entry) || "index.html";
+          const rel = Object.keys(lock.closure || {}).find((p) => p.endsWith("/" + entry) || p === entry);
+          const hex = rel && String(lock.closure[rel].kappa || "").split(":").pop();
+          if (!/^[0-9a-f]{64}$/.test(hex || "")) return null;
+          const r = await fetch("/.holo/sha256/" + hex, { cache: "force-cache" });
+          if (!r.ok) return null;
+          const bytes = new Uint8Array(await r.arrayBuffer());
+          const reHex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+          if (reHex !== hex) return null;                                        // Law L5: re-derive before mount, or refuse
+          return projectHtml(new TextDecoder().decode(bytes), dir);
+        } catch (e) { return null; }
+      }
       async function launch(app) {
         if (!app) return; closeSpot();
         let def = {}; try { def = await fetch(app.landing.replace(/[^/]+$/, "holospace.json")).then((r) => r.json()); } catch {}
         const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(def));
         if (needNewTab()) newTab(app.name);   // the app gets its OWN tab; Home + a busy canvas stay put
-        addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name + "  ·  " + linkFor(app.did), src: app.landing, sandbox, allow, state: "max" });
+        const srcdoc = await kappaEntry(app, def);   // κ-native frame body (content), or null → path-load (worker-verified)
+        addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name + "  ·  " + linkFor(app.did), src: app.landing, srcdoc: srcdoc || undefined, sandbox, allow, state: "max" });
         setActiveTabTitle(app.name); setActiveTabAddr("holo://" + app.id); recordNav();   // a content-addressed κ address for this holospace · a history entry for back/home
         try { omniRemember({ addr: "holo://" + app.id, input: app.name, kind: "app", title: app.name, kappa: app.did }); } catch (e) {}   // the bar remembers this holospace
       }
@@ -3408,10 +3524,14 @@
         if (needNewTab()) newTab(name);
         const myTab = activeTab;
         setActiveTabTitle(name); setActiveTabAddr("holo://" + app.id); recordNav();
-        const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(await appDef(app)));
+        const def = await appDef(app);
+        const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(def));
         if (activeTab !== myTab) { if (tabs[myTab]) selectTab(myTab); else return; }   // mount into the tab we opened
         const src = app.landing + (query ? "?" + query : "");
-        addNode({ kind: "app", appId: app.id, appDid: app.did, title: name, src, sandbox, allow, state: "max" });
+        // Content-mount when there's no routing query to preserve (srcdoc has no URL, so location.search is
+        // empty). A query (?go= / deep-link) keeps the path-load — still κ-verified at delivery (Law L5).
+        const srcdoc = query ? undefined : await kappaEntry(app, def);
+        addNode({ kind: "app", appId: app.id, appDid: app.did, title: name, src, srcdoc, sandbox, allow, state: "max" });
       }
       // pre-warm the Play target (Holo Hub) at idle so the very first Play mounts with no fetch wait
       try { (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => { const h = catalog.find((a) => a.id === "org.hologram.HoloHub"); if (h) appDef(h); }); } catch {}
@@ -3473,6 +3593,21 @@
         const myTab = activeTab;
         setActiveTabTitle(tpl.name); setActiveTabAddr("holo://space/" + tpl.id); recordNav();
         const states = layoutStates(tpl.layout, picked.length);
+        // Forming on-ramp: paint the tiled skeleton NOW — before the def fetch + consent — so the click
+        // lands on a holospace that is already assembling in its real layout, never a blank tab. render()
+        // hides #empty the instant the first real pane mounts on top; we clear t.forming once they all have.
+        try {
+          tabs[myTab].forming = {
+            accent: tpl.accent,
+            tiles: picked.map((app, i) => ({
+              state: states[i] || "normal",
+              label: (app.name || "").replace(/^Holo\s+/i, "") || (app.name || ""),
+              src: app.landing ? app.landing.replace(/[^/]+$/, "icon.svg") : "",
+              ini: ((app.name ? app.name.replace(/^Holo\s+/i, "") : "?").trim()[0] || "?").toUpperCase(),
+            })),
+          };
+          if (activeTab === myTab) paintEmpty();
+        } catch (e) {}
         // ONE consent for the whole holospace: pre-fetch every member's def, then a single "Agree to all"
         // (HoloTerms.gateAll) instead of a card per app. Records written are identical to gating each
         // app alone, so governance is unchanged. Falls back to the per-app gate if gateAll isn't present.
@@ -3489,9 +3624,11 @@
           // a hairline seam between siblings, and the drag/controls grip + an accent ring fade in only on
           // hover. Repositioning (drag to re-tile / float) and tear-off to a tab use the window manager's
           // EXISTING gestures unchanged (a tile drag tears loose; drag onto the tab strip → popToTab).
-          addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name, src: app.landing, sandbox, allow, state, frameless: true, nested: true });
+          const srcdoc = await kappaEntry(app, def);   // κ-native content frame for each tiled member (no query → mount by content)
+          addNode({ kind: "app", appId: app.id, appDid: app.did, title: app.name, src: app.landing, srcdoc: srcdoc || undefined, sandbox, allow, state, frameless: true, nested: true });
         }
-        picked.forEach((app, i) => { mountMember(app, defs[i], states[i] || "normal").catch(() => {}); });   // fire all; consent already settled once
+        const mounts = picked.map((app, i) => mountMember(app, defs[i], states[i] || "normal").catch(() => {}));   // fire all; consent already settled once
+        Promise.allSettled(mounts).then(() => { try { if (tabs[myTab]) delete tabs[myTab].forming; } catch (e) {} });   // panes are up (or done trying) → retire the skeleton so it never re-shows if the tab later empties
         try { omniRemember({ addr: "holo://space/" + tpl.id, input: tpl.name, kind: "holospace", title: tpl.name }); } catch (e) {}
       }
       window.HoloShell = window.HoloShell || {};
@@ -3506,6 +3643,32 @@
         const ini = ((a && a.name ? a.name.replace(/^Holo\s+/i, "") : (ref || "?")).trim()[0] || "?").toUpperCase();
         const tip = a ? (a.name || "") : ref;
         return '<span class="ic" title="' + String(tip).replace(/"/g, "&quot;") + '"><img alt="" src="' + ic + '" onerror="this.remove()"/>' + ini + '</span>';
+      }
+      // formingOverlayHTML(f) — the tiled skeleton for a holospace being assembled. Each tile sits in the
+      // SAME slot its real pane will take, mirroring geomFor's snap-states as PERCENT rects (so it is exact
+      // the instant of the click — no dependency on the canvas's pixel width mid-transition — and reflows
+      // on resize for free). Inset a hair so siblings read as separate panes; wears the app's mark + name.
+      // Pure presentation: no app code runs until consent settles.
+      const FORM_RECT = {   // state → [left%, top%, width%, height%], matching geomFor's tiling exactly
+        max: [0, 0, 100, 100],
+        left: [0, 0, 50, 100], right: [50, 0, 50, 100],
+        top: [0, 0, 100, 50], bottom: [0, 50, 100, 50],
+        tl: [0, 0, 50, 50], tr: [50, 0, 50, 50], bl: [0, 50, 50, 50], br: [50, 50, 50, 50],
+      };
+      function formingOverlayHTML(f) {
+        if (!f || !f.tiles || !f.tiles.length) return "";
+        const g = 6;   // seam between panes
+        const tiles = f.tiles.map((t, i) => {
+          const r = FORM_RECT[t.state] || FORM_RECT.max;
+          const css = "left:calc(" + r[0] + "% + " + g + "px);top:calc(" + r[1] + "% + " + g + "px);" +
+            "width:calc(" + r[2] + "% - " + (g * 2) + "px);height:calc(" + r[3] + "% - " + (g * 2) + "px);";
+          const img = t.src ? '<img alt="" src="' + esc(t.src) + '" onerror="this.remove()"/>' : "";
+          return '<div class="forming-tile" style="' + css + '--d:' + (i * 60) + 'ms">' +
+            '<span class="forming-ic">' + img + esc(t.ini) + '</span>' +
+            '<span class="forming-nm">' + esc(t.label) + '</span>' +
+            '</div>';
+        }).join("");
+        return '<div class="disc-forming" style="--c:' + esc(f.accent || "#2dd4bf") + '">' + tiles + '</div>';
       }
       function renderDiscover() {
         const host = $("#empty"); if (!host) return;
@@ -3524,7 +3687,7 @@
             '<div class="disc-head">' +
               '<div class="disc-hero">' +
                 '<h1 class="disc-title">Welcome to your Hologram</h1>' +
-                '<p class="disc-sub">Explore curated bundled holo app experiences made just for you.</p>' +
+                '<p class="disc-sub">Each opens several apps, arranged and ready.</p>' +
               '</div>' +
               '<button class="disc-all" id="disc-all" type="button">Browse all apps</button>' +
             '</div>' +
@@ -3540,6 +3703,9 @@
       function paintEmpty() {
         const host = $("#empty"); if (!host) return;
         const t = tabs[activeTab];
+        // a holospace mid-assembly: paint its tiled skeleton (survives a tab switch away and back). render()
+        // hides #empty once the real panes mount, and openHolospace clears t.forming when they have.
+        if (t && t.forming) { host.classList.remove("starthere"); host.innerHTML = formingOverlayHTML(t.forming); host.dataset.mode = "forming"; return; }
         // cache by mode so switching tabs is a cheap class/flag flip — never a DOM rebuild (crisp nav)
         if (t && t.startHere) { if (host.dataset.mode !== "start") { host.classList.add("starthere"); renderDiscover(); host.dataset.mode = "start"; } }
         else { if (host.dataset.mode !== "home") { host.classList.remove("starthere"); host.innerHTML = ""; host.dataset.mode = "home"; } }   // Home stays clean — its Welcome widgets (greeting + day ring) are the face; the Start here TAB carries discovery
@@ -4247,11 +4413,12 @@
         async function ensureCodegen(onProgress) {
           if (_cgReady) return _cg; if (_cgLoading) return null; _cgLoading = true;
           try {
-            const [mod, act, mx, cb] = await Promise.all([
+            const [mod, act, mx, cb, casc] = await Promise.all([
               import("/_shared/q/holo-q-codegen.js"),
               import("/_shared/q/holo-q-active.mjs"),
               import("/_shared/q/holo-q-mux.js"),
               import("/_shared/q/holo-q-corebrains.mjs"),
+              import("/_shared/q/holo-q-codegen-cascade.mjs").catch(function () { return null; }),
             ]);
             const mux = mx.default || mx;
             if (!window.__holoCoreBrains) {                                // once per shell: bind + background-load the core brains (lazy → no boot cost)
@@ -4260,8 +4427,23 @@
               const makeCode = async () => { const g = await import("/_shared/voice/holo-voice-gpu-brain.mjs"); return (g.createGpuBrain || g.default)({}); };
               window.__holoCoreBrains = cb.mountCoreBrains(mux, { makeText: makeText, makeCode: makeCode, hasGPU: hasGPU, onProgress: onProgress });
             }
-            // the canonical device sampler: the `code` brain when it's loaded, the `respond` TEXT brain until then.
-            const device = act.facultySampler(mux, "code", { chain: ["code", "respond"], onResolve: function (r) { _lastActiveCode = r; } });
+            // the device sampler. CASCADE (holo-q-codegen-cascade): while the coder's κ-disk is still streaming
+            // in, the fast `respond` brain LEADS the build (real output in ~seconds, not a 1.5GB wait) and the
+            // `code` coder takes over via {replace} the moment it lands (blurry→sharp, within the SAME build).
+            // When the coder is already warm, or unavailable (no WebGPU), this is the plain single sampler —
+            // identical to before. Best-effort: any issue falls back to the canonical sampler. [verify in a real shell.]
+            let device = null;
+            try {
+              const cores = window.__holoCoreBrains || {};
+              const coderLoading = cores.code && cores.code.isReady && !cores.code.isReady();
+              if (coderLoading && casc && casc.createCascadeSampler) {
+                device = casc.createCascadeSampler({ tiers: [
+                  { name: "draft", sampler: act.facultySampler(mux, "respond", { chain: ["respond"] }), whenReady: cores.text ? function () { return cores.text.kick(); } : null },
+                  { name: "coder", sampler: act.facultySampler(mux, "code", { chain: ["code"], onResolve: function (r) { _lastActiveCode = r; } }), whenReady: function () { return cores.code.kick(); } },
+                ] });
+              }
+            } catch (e) { device = null; }
+            if (!device) device = act.facultySampler(mux, "code", { chain: ["code", "respond"], onResolve: function (r) { _lastActiveCode = r; } });
             _codeBadge = function () { try { return act.describeActive(mux, "code", { chain: ["code", "respond"] }); } catch (e) { return null; } };
             const boost = (typeof window !== "undefined" && typeof window.HoloBoost === "function") ? function (m, o) { return window.HoloBoost(m, o); } : null;
             _cg = mod.createCodegen({ device: device, boost: boost }); _cgReady = true;
@@ -4367,9 +4549,12 @@
               if (pin.files["esbuild.wasm"] !== "did:holo:sha256:" + hex) throw new Error("esbuild.wasm κ mismatch refused (L5)");
               wasmModule = await WebAssembly.compile(bytes);
             } catch (e) { eb = null; }
-            if (!eb) {   // FALLBACK: the CDN ESM (until vendored on this host)
-              eb = await import("https://esm.sh/esbuild-wasm@0.21.5/esm/browser.min.js");
-              wasmURL = "https://esm.sh/esbuild-wasm@0.21.5/esbuild.wasm";
+            if (!eb) {   // FAIL CLOSED (G3 / Law L5): no cross-origin code in the boot/shell path.
+              // The old fallback dynamic-imported esbuild-wasm from a CDN (esm.sh) — an unverified
+              // foreign module that bypassed the κ-gate entirely. We refuse it. Run tools/vendor-esbuild-wasm.mjs
+              // to vendor the κ-pinned toolchain locally; until then the forge degrades honestly to the
+              // "not runnable" notice (caller catches), never a fake app and never unverified code.
+              throw new Error("esbuild toolchain not vendored — run tools/vendor-esbuild-wasm.mjs (G3: no cross-origin code load)");
             }
             await eb.initialize(wasmModule ? { wasmModule } : { wasmURL });
             _esbuild = eb; return eb;
@@ -4776,7 +4961,122 @@
       // golden-ratio list of holospaces (thumbnail · title · concise description). Picking one launches it
       // LIVE in the main holospace to the left, while the rail stays open to browse on. Same carriage as
       // Create · Share; the rail reads the served app catalogue itself.
-      try { mountPlay(document.getElementById("verb-run"), { launch: (it) => { try { openHolospaceApp(it.id, "", it.name); } catch (e) {} } }); } catch (e) { console.warn("holo-play:", e); }
+      // lazyVerb — keep a carriage's bundle off the boot path. Prewarm on hover/focus so the click is
+      // instant; a click before the warm completes mounts-then-opens (re-dispatch). Idempotent; fail-soft.
+      const lazyVerb = (btn, load) => {
+        if (!btn) return;
+        let mounted = false, p = null;
+        const ensure = () => (p = p || Promise.resolve(load()).then(() => { mounted = true; }).catch((e) => { p = null; console.warn("holo-verb lazy:", e); }));
+        btn.addEventListener("pointerenter", ensure, { passive: true });
+        btn.addEventListener("focus", ensure);
+        // a click before the bundle has MOUNTED (cold tap, or a tap that beat the hover-prewarm) mounts then
+        // re-dispatches so the carriage opens; once mounted, the verb's own handler owns the click.
+        btn.addEventListener("click", () => { if (mounted) return; ensure().then(() => { if (mounted) btn.click(); }); });
+      };
+      // ── Play → a two-pane browse studio (like Create): the honeycomb fills a fresh tab on the LEFT, a
+      //    golden rail on the RIGHT drives it (categories · search · voice) and inspects the touched app.
+      //    Widgets hidden (cs-active). One carriage at a time. The rail owns the controls; the map stays clean.
+      var playRail = null, playFrame = null;
+      var plEsc = function (x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); };
+      function playHoneyMap() { try { if (!playFrame || !playFrame.isConnected) { var fr = [].slice.call(document.querySelectorAll("#world iframe")).filter(function (f) { return /apps\/spaces/.test(f.getAttribute("src") || f.src || ""); }); playFrame = fr[fr.length - 1] || null; } return playFrame && playFrame.contentWindow && playFrame.contentWindow.HoloSpacesMap; } catch (e) { return null; } }
+      function playRailHTML() {
+        return '<div class="pl-rail">' +
+          '<div class="pl-head"><div class="pl-title">Play</div><button class="pl-collapse" id="pl-collapse" title="Close" aria-label="Close">»</button></div>' +
+          '<div class="pl-srow"><input id="pl-search" placeholder="Search apps…" autocomplete="off" spellcheck="false"><button id="pl-mic" class="pl-mic" title="Voice">🎙</button></div>' +
+          '<div class="pl-cats" id="pl-cats"></div>' +
+          '<div class="pl-card" id="pl-card"></div>' +
+        '</div>';
+      }
+      function renderPlayCard(m) {
+        if (!playRail) return; var card = playRail.querySelector("#pl-card"); if (!card) return;
+        if (!m) { card.innerHTML = '<div class="pl-empty"><div class="pl-empty-i">⬡</div><div>Touch a hexagon to preview it.</div></div>'; return; }
+        var hue = (m.hue == null ? 200 : m.hue);
+        card.innerHTML =
+          '<div class="pl-vis" style="--h:' + hue + '">' + (m.icon ? '<img src="' + plEsc(m.icon) + '" alt="">' : "") + '</div>' +
+          '<div class="pl-name">' + plEsc(m.name || "App") + '</div>' +
+          '<div class="pl-cat">' + plEsc(m.cat || "App") + '</div>' +
+          (m.desc ? '<div class="pl-desc">' + plEsc(m.desc) + '</div>' : "") +
+          '<button class="pl-open" id="pl-open">Open</button>' +
+          '<div class="pl-meta"><span>by Hologram</span><span class="pl-k" id="pl-k" title="Copy κ">holo://' + plEsc(String(m.kappa || "").split(":").pop().slice(0, 8)) + '…</span></div>' +
+          '<div class="pl-rev"><div class="pl-rev-h">Reviews</div><div class="pl-rev-e">No reviews yet.</div></div>';
+        var ob = card.querySelector("#pl-open"); if (ob) ob.onclick = function () { if (m.appId) openHolospaceApp(m.appId, "", m.name); };
+        var kb = card.querySelector("#pl-k"); if (kb) kb.onclick = function () { try { navigator.clipboard.writeText(m.kappa || ""); toast("κ copied"); } catch (e) {} };
+      }
+      function wirePlayRail() {
+        var tries = 0;
+        (function bind() {
+          var map = playHoneyMap();
+          if (map) {
+            map.onSelect = renderPlayCard; map.onOpen = function (info) { try { if (info && info.appId) openHolospaceApp(info.appId, "", info.name); } catch (e) {} };
+            var chips = playRail && playRail.querySelector("#pl-cats");
+            if (chips) {
+              chips.innerHTML = '<button class="pl-chip on" data-c="">All</button>' + (map.categories || []).map(function (c) { return '<button class="pl-chip" data-c="' + plEsc(c) + '">' + plEsc(c) + "</button>"; }).join("");
+              chips.querySelectorAll(".pl-chip").forEach(function (b) { b.onclick = function () { chips.querySelectorAll(".pl-chip").forEach(function (x) { x.classList.toggle("on", x === b); }); var q = b.getAttribute("data-c") || ""; var sb = playRail.querySelector("#pl-search"); if (sb) sb.value = q; var mm = playHoneyMap(); if (mm) mm.filter(q); }; });
+            }
+            return;
+          }
+          if (++tries < 100) setTimeout(bind, 80);
+        })();
+      }
+      function openPlay() {
+        if (playRail) { closePlay(); return; }
+        try { if (studio) closeCreate(true); } catch (e) {}
+        try { closeAllAsides(); } catch (e) {}
+        newTab("▶ Play");
+        addNode({ kind: "app", title: "▶ Play", src: "/apps/spaces/index.html?embed=play", sandbox: "allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock allow-downloads", allow: "fullscreen; clipboard-write; microphone", state: "max" });
+        try { setActiveTabTitle("Play"); } catch (e) {}
+        playFrame = null;
+        var ov = document.createElement("div"); ov.id = "play-studio"; ov.className = "holo-aside"; ov.innerHTML = playRailHTML();
+        document.body.appendChild(ov); document.body.classList.add("cs-active"); void ov.offsetWidth; ov.classList.add("on"); syncDockWidth();
+        playRail = ov;
+        var cl = ov.querySelector("#pl-collapse"); if (cl) cl.addEventListener("click", function () { closePlay(); });
+        var sb = ov.querySelector("#pl-search"); if (sb) { var t = 0; sb.addEventListener("input", function () { clearTimeout(t); var v = sb.value; t = setTimeout(function () { var m = playHoneyMap(); if (m) m.filter(v); }, 150); }); }
+        var mic = ov.querySelector("#pl-mic"); if (mic) mic.addEventListener("click", async function () { try { var hv = window.HoloVoice; if (hv && hv.dictate) { mic.classList.add("on"); var txt = await hv.dictate(); mic.classList.remove("on"); if (txt) { var s2 = ov.querySelector("#pl-search"); if (s2) s2.value = txt; var m = playHoneyMap(); if (m) m.filter(txt); } } else { toast("Voice unavailable"); } } catch (e) { mic.classList.remove("on"); } });
+        renderPlayCard(null); wirePlayRail();
+        var b = $("#verb-run"); if (b) { b.classList.add("on"); b.setAttribute("aria-expanded", "true"); }
+      }
+      function closePlay() {
+        if (!playRail) return; var ov = playRail; playRail = null; playFrame = null;
+        document.body.classList.remove("cs-active");
+        ov.classList.remove("on"); syncDockWidth(); setTimeout(function () { try { ov.remove(); } catch (e) {} }, 520);
+        var b = $("#verb-run"); if (b) { b.classList.remove("on"); b.setAttribute("aria-expanded", "false"); }
+      }
+      playInjectStyle();
+      $("#verb-run").onclick = function () { if (playRail) closePlay(); else openPlay(); };
+      try { registerAsideCloser(function () { if (playRail) closePlay(); }); } catch (e) {}
+      function playInjectStyle() {
+        if (document.getElementById("play-studio-styles")) return;
+        var st = document.createElement("style"); st.id = "play-studio-styles";
+        st.textContent = "#play-studio .pl-rail{--phi:1.618;--s1:8px;--s2:13px;--s3:21px;--s4:34px;display:flex;flex-direction:column;gap:var(--s2);height:100%;min-height:0;padding:var(--s3);color:var(--holo-ink,#e9e9ee);font:18px/1.5 var(--win-font,ui-sans-serif,system-ui);overflow:hidden}"
+          + "#play-studio .pl-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between}"
+          + "#play-studio .pl-title{font-size:28px;font-weight:800;letter-spacing:-.01em}"
+          + "#play-studio .pl-collapse{width:36px;height:36px;border-radius:11px;border:1px solid var(--holo-border,#2a2350);background:rgba(255,255,255,.05);color:inherit;cursor:pointer;font-size:18px}"
+          + "#play-studio .pl-srow{flex:0 0 auto;display:flex;gap:var(--s1);align-items:center}"
+          + "#play-studio #pl-search{flex:1;min-width:0;padding:12px 18px;font:inherit;color:inherit;background:rgba(255,255,255,.05);border:1px solid var(--holo-border,#2a2350);border-radius:999px}"
+          + "#play-studio #pl-search:focus{outline:none;border-color:color-mix(in srgb,var(--holo-accent,#5b8cff) 55%,transparent)}"
+          + "#play-studio .pl-mic{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:1px solid var(--holo-border,#2a2350);background:rgba(255,255,255,.05);color:inherit;cursor:pointer;font-size:18px}"
+          + "#play-studio .pl-mic.on{color:var(--holo-accent,#5b8cff);border-color:var(--holo-accent,#5b8cff)}"
+          + "#play-studio .pl-cats{flex:0 0 auto;display:flex;gap:var(--s1);overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none;-webkit-mask:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 30px),transparent)}"
+          + "#play-studio .pl-cats::-webkit-scrollbar{display:none}"
+          + "#play-studio .pl-chip{flex:0 0 auto;padding:9px 16px;font-size:15px;border-radius:999px;border:1px solid var(--holo-border,#2a2350);background:rgba(255,255,255,.05);color:#bdbdc6;cursor:pointer;white-space:nowrap}"
+          + "#play-studio .pl-chip:hover,#play-studio .pl-chip.on{color:#0a0a0b;background:#f4f4f6;border-color:#f4f4f6}"
+          + "#play-studio .pl-card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:var(--s2);overflow:hidden}"
+          + "#play-studio .pl-empty{margin:auto;text-align:center;color:#85858f;font-size:18px;display:flex;flex-direction:column;gap:var(--s2)}"
+          + "#play-studio .pl-empty-i{font-size:52px;opacity:.5}"
+          + "#play-studio .pl-vis{flex:1 1 auto;min-height:0;border-radius:18px;display:grid;place-items:center;background:radial-gradient(125% 130% at 30% 16%,hsl(var(--h,200) 78% 58%),hsl(var(--h,200) 70% 22%) 70%,#0a0a10);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}"
+          + "#play-studio .pl-vis img{width:42%;height:42%;max-width:168px;max-height:168px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}"
+          + "#play-studio .pl-name{flex:0 0 auto;font-size:27px;font-weight:800;line-height:1.05;letter-spacing:-.01em}"
+          + "#play-studio .pl-cat{flex:0 0 auto;align-self:flex-start;padding:5px 13px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.08);color:#cfcfe0}"
+          + "#play-studio .pl-desc{flex:0 0 auto;font-size:16px;line-height:1.45;color:#c2c2cc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}"
+          + "#play-studio .pl-open{flex:0 0 auto;padding:14px;border:0;border-radius:14px;font:700 18px var(--win-font,system-ui);color:#fff;background:var(--holo-accent,#5b8cff);cursor:pointer}"
+          + "#play-studio .pl-open:hover{filter:brightness(1.08)}"
+          + "#play-studio .pl-meta{flex:0 0 auto;display:flex;justify-content:space-between;font-size:13px;color:#85858f}"
+          + "#play-studio .pl-k{cursor:pointer;font-family:ui-monospace,monospace}"
+          + "#play-studio .pl-rev{flex:0 0 auto}"
+          + "#play-studio .pl-rev-h{font-size:15px;font-weight:700;margin-top:4px}"
+          + "#play-studio .pl-rev-e{font-size:14px;color:#85858f}";
+        document.head.appendChild(st);
+      }
       // ── omnibox: one box runs a holospace OR opens the web (κ-verified), each into its own tab ──
       // A content address (κ · did:holo · ipfs:// · CID) resolves THROUGH the discovery path
       // (sbin/holo-omni + Delegated Routing V1): the bar locates the bytes ANYWHERE, re-derives every
@@ -5131,7 +5431,14 @@
       try { window.HoloAside = { closeAll: closeAllAsides, registerCloser: registerAsideCloser }; } catch (e) {}
       try { registerAsideCloser(function () { try { if (window.HoloVoice && window.HoloVoice.closePanel) window.HoloVoice.closePanel(); } catch (x) {} }); } catch (e) {}
       try { mountEgressConnect(document.getElementById("omni")); } catch (e) { console.warn("egress-connect:", e); }   // "Connect the web" icon beside the omnibar
-      try { mountShare(document.getElementById("share-btn"), { getHolospace: captureHolospace, getWorkspace: captureWorkspace, onImport: onImportShared, requireEverythingAuth: everythingAuthGate }); } catch (e) { console.warn("holo-share:", e); }   // ❤️ Share → the shared right side-carriage (ADR-0109): one link (file · sovereign cloud), "this holospace" OR "everything" (biometric-gated for signed-in), serverless
+      lazyVerb(document.getElementById("share-btn"), async () => {   // ❤️ Share → the shared right side-carriage (ADR-0109), lazy on first engage (QR/social-card sealer off the boot path)
+        const { mountShare } = await import("/_shared/holo-share-ui.mjs");
+        // getApp → the UNIFIED finest grain: share the focused app as a SHARE-TO-RUN link (#k=). The guest
+        // lands in that app RUNNING, fullscreen, with the viral chrome (ADR-064) — one Share surface, three
+        // κ-granularities (this app · this holospace · everything). Null when nothing shareable is focused.
+        const getApp = () => { try { const n = activeHolospace(); const link = shareLinkFor(n); if (!link) return null; return { link, name: cleanName(n.title) || n.appId || "App", kappa: n.appDid || n.contentRef || n.appId || "" }; } catch (e) { return null; } };
+        mountShare(document.getElementById("share-btn"), { getHolospace: captureHolospace, getWorkspace: captureWorkspace, getApp, onImport: onImportShared, requireEverythingAuth: everythingAuthGate });
+      });
       // Holo Notify → the bell opens the persistent Notification Center (the shared right carriage). Every
       // toast files itself here; per-operator history. A deep-link routes through the omnibox / Q orb.
       try {
@@ -5324,7 +5631,7 @@
         // updates url→snapshot) — so the frozen-cache tradeoff is safe, the gesture is the familiar reload.
         const node = (typeof findNode === "function") ? findNode(focusedId) : null;
         if (node && node.commonsCid && node.webAddr) { toast("↻ fetching live + re-sealing…"); openHoloBrowser(node.webAddr, { live: true }); return; }
-        const el = (focusedId && mounted.get(focusedId)) || world.querySelector("holo-window"); const f = el && el.querySelector("iframe"); if (f) { try { f.src = f.src; } catch {} } else { render(desktop.doc()); } toast("↻ reloaded");
+        const el = (focusedId && mounted.get(focusedId)) || world.querySelector("holo-window"); const f = el && el.querySelector("iframe"); if (f) { try { if (f.srcdoc) { const s = f.srcdoc; f.srcdoc = ""; f.srcdoc = s; } else { f.src = f.src; } } catch {} } else { render(desktop.doc()); } toast("↻ reloaded");
       };
       $("#nav-home").onclick = goHome;   // ⌂ → this holotab's original view (app · page · desktop), not a new tab
       updateNav();
@@ -6016,7 +6323,7 @@
       const km = createKeymap({ apple: P.apple, seqMs: 900 });
       const focused = () => focusedId && desktop.doc().world.find((w) => w.id === focusedId);
       const closeAll = () => { closeSpot(); closeLib(); closePalette(); closeCheat(); hideCtx(); auth.classList.remove("open"); };
-      km.bind("mod+k", () => openSpot(), { id: "open-holospace", title: "Open holospace", group: "Go" });
+      km.bind("mod+k", () => openSpot(), { id: "open-holospace", title: "Open holospace", group: "Go", hint: "Search" });
       km.bind("mod+shift+p", () => openPalette(), { id: "command-palette", title: "Command palette", group: "Go" });
       km.bind("mod+shift+n", () => promptScaffold(), { id: "sdk-scaffold", title: "New holospace · Holo SDK scaffold", group: "Create" });
       km.bind(["mod+shift+l", "g l"], () => openLib(), { id: "library", title: "Component library", group: "Go" });
@@ -6032,7 +6339,7 @@
       km.bind("mod+shift+g", () => toggleGrid(), { id: "grid", title: "Toggle window grid / zones", group: "Window" });
       km.bind("g g", () => cycleLayout(), { id: "layout", title: "Cycle zone layout (Halves · Columns · 2×2 · 3×3 · Golden · KWin)", group: "Window" });
       km.bind("mod+shift+k", () => toggleVK(), { id: "keyboard", title: "Toggle virtual keyboard", group: "View" });
-      km.bind("?", () => openCheat(), { id: "help", title: "Keyboard shortcuts", group: "Help" });
+      km.bind("?", () => openCheat(), { id: "help", title: "Keyboard shortcuts", group: "Help", hint: "Shortcuts" });
       km.bind("esc", () => closeAll(), { id: "escape", title: "Close / dismiss", group: "Help", global: true });
 
       // ── mouse automation (holo-auto) — a visible cursor drives the OS; macros are content-addressed ─
@@ -6063,28 +6370,65 @@
       //    literal Ctrl+Tab via a tiny listener (km can't express a non-mod Ctrl). Wraps tabs[]. ──
       const standalone = (() => { try { return matchMedia("(display-mode: standalone)").matches || !!window.__TAURI__ || navigator.standalone === true; } catch { return false; } })();
       const cycleTab = (dir) => { const n = tabs.length; if (n < 2) return; const i = ((activeTab + dir) % n + n) % n; selectTab(i); };
-      km.bind("mod+]", () => cycleTab(1),  { id: "tab-next", title: "Next tab", group: "Tabs" });
+      km.bind("mod+]", () => cycleTab(1),  { id: "tab-next", title: "Next tab", group: "Tabs", hint: "Tabs" });
       km.bind("mod+[", () => cycleTab(-1), { id: "tab-prev", title: "Previous tab", group: "Tabs" });
       if (standalone) addEventListener("keydown", (e) => { if (e.ctrlKey && (e.key === "Tab")) { e.preventDefault(); cycleTab(e.shiftKey ? -1 : 1); } }, true);
 
-      // ── the Home-tab keyboard hint bar — three calm, OS-correct hints (search · tabs · help).
-      //    Labels derive from P / the active tab chord; clicks run the same commands the keys do;
-      //    dismiss is sticky (first-boot only). renderTabs() calls __syncHints to keep it Home-only. ──
+      // ── the Home-tab which-key bloom — a single ambient point of light. Idle = one breathing dot.
+      //    Holding the OS modifier blooms a legend that is a LIVE PROJECTION of the keymap (every
+      //    command flagged `hint`), so new shortcuts appear automatically — no hardcoded list. The
+      //    bloom is bound straight to the modifier's keydown/keyup, so it lands in the SAME frame as
+      //    the press (just a className toggle — no timer, no layout). renderTabs() calls __syncHints
+      //    to keep it Home-only; click the dot for the full cheat sheet. ──
       (function mountHintBar() {
-        const bar = $("#hint-bar"); if (!bar) return;
+        const dot = $("#hint-dot"); if (!dot) return;
+        const legend = dot.querySelector(".hk-legend"), core = dot.querySelector(".hk-core"), tag = dot.querySelector(".hk-tag");
+        // Build the chips ONCE — the registry is fully populated by now, and pre-rendering keeps the
+        // key path free of layout (bloom only touches opacity/transform). km.label() is OS-adapted.
+        legend.innerHTML = km.registry.filter((c) => c.hint).map((c) =>
+          `<button class="hk-chip" type="button" tabindex="-1" data-run="${c.id}" title="${c.title}"><kbd>${km.label(c.spec)}</kbd><span>${c.hint}</span></button>`).join("");
+        if (core) core.title = "Shortcuts — hold " + P.modSymbol;
+        if (tag) tag.innerHTML = `<kbd>${P.modSymbol}</kbd> for shortcuts`;   // self-describing label beside the idle dot (OS-adapted: Ctrl / ⌘)
+
+        // Hiding is a persisted preference — an ambient dot should be banishable, but never lose the
+        // shortcuts: `?` opens the cheat sheet regardless, and its footer offers the dot back.
         const DKEY = "holo.hints.dismissed.v1";
-        const dismissed = () => { try { return localStorage.getItem(DKEY) === "1"; } catch { return false; } };
-        const kTab = $("#hint-tab"); if (kTab) kTab.textContent = P.modSymbol + " ]";   // mod (Ctrl / ⌘), matching #hint-k (set to P.shortcuts.spotlight in the P-init block)
+        const hidden = () => { try { return localStorage.getItem(DKEY) === "1"; } catch { return false; } };
         const onHome = () => { try { return !!(tabs[activeTab] && tabs[activeTab].home); } catch { return false; } };
-        const sync = () => bar.classList.toggle("show", onHome() && !dismissed());
-        bar.addEventListener("click", (e) => {
-          const b = e.target.closest("[data-act]"); if (!b) return; const act = b.dataset.act;
-          if (act === "search") { try { openSpot(); } catch (x) {} }
-          else if (act === "tabs") { cycleTab(1); }
-          else if (act === "help") { try { openCheat(); } catch (x) {} }
-          else if (act === "dismiss") { try { localStorage.setItem(DKEY, "1"); } catch (x) {} bar.classList.remove("show"); }
+        const sync = () => dot.classList.toggle("show", onHome() && !hidden());
+        const setHidden = (on) => { try { localStorage.setItem(DKEY, on ? "1" : "0"); } catch (x) {} sync(); };
+
+        // Bloom on the bare modifier. Additive + never preventDefault → literal Ctrl / Ctrl+Tab intact.
+        const isMod = (e) => (km.apple ? e.key === "Meta" : e.key === "Control");
+        let bloomed = false;
+        const bloom = (on) => { if (on === bloomed) return; bloomed = on; dot.classList.toggle("bloom", on); };
+        addEventListener("keydown", (e) => { if (!e.repeat && isMod(e) && dot.classList.contains("show")) bloom(true); }, true);
+        addEventListener("keyup", (e) => { if (isMod(e)) bloom(false); }, true);
+        addEventListener("blur", () => bloom(false));                                  // window lost focus mid-hold → keyup may never arrive
+        document.addEventListener("visibilitychange", () => { if (document.hidden) bloom(false); });
+
+        // Long-press the dot to banish it — the core "arms" (a slow absorb) and at ~600ms folds away.
+        // A short tap falls through to the click handler (cheat sheet); the long-press suppresses that click.
+        let pressT = null, didLong = false;
+        const disarm = () => { clearTimeout(pressT); pressT = null; if (core) core.classList.remove("arming"); };
+        if (core) {
+          core.addEventListener("pointerdown", (e) => {
+            if (e.button) return; didLong = false; core.classList.add("arming");
+            pressT = setTimeout(() => { didLong = true; disarm(); bloom(false); setHidden(true); try { toast("Hint dot hidden press ? for shortcuts, or turn it back on there"); } catch (x) {} }, 600);
+          });
+          ["pointerup", "pointerleave", "pointercancel"].forEach((t) => core.addEventListener(t, disarm));
+        }
+
+        dot.addEventListener("click", (e) => {
+          if (didLong) { didLong = false; e.preventDefault(); e.stopPropagation(); return; }   // the long-press already acted
+          const chip = e.target.closest(".hk-chip");
+          if (chip) { try { km.run(chip.dataset.run); } catch (x) {} return; }
+          try { openCheat(); } catch (x) {}                                            // tap the dot (or no keyboard) → full cheat sheet
         });
+
         window.__syncHints = sync;
+        window.__hintsHidden = hidden;        // the cheat sheet reads/flips the dot via these
+        window.__hintsSetHidden = setHidden;
         sync();
       })();
 
@@ -6108,11 +6452,18 @@
       const closeCheat = () => cheat.classList.remove("open");
       function openCheat() {
         const groups = {}; for (const c of km.registry) { if (!c.title) continue; (groups[c.group] = groups[c.group] || []).push(c); }
+        const dotHidden = (() => { try { return !!(window.__hintsHidden && window.__hintsHidden()); } catch (x) { return false; } })();
         cheat.querySelector(".sheet").innerHTML = `<div class="cheat-h">Keyboard shortcuts <span class="muted">· ${P.label}</span></div><div class="cheat-grid">`
           + Object.entries(groups).map(([g, cs]) => `<div class="cheat-col"><h4>${g}</h4>` + cs.map((c) => `<div class="cheat-row"><span>${c.title}</span><kbd>${km.label(c.spec)}</kbd></div>`).join("") + `</div>`).join("")
-          + `</div><div class="cheat-f">your keymap is content-addressed <span class="k">${keymapDid.replace("did:holo:sha256:", "holo://").slice(0, 30)}…</span> · share the link to sync your shortcuts</div>`;
+          + `</div><div class="cheat-f">your keymap is content-addressed <span class="k">${keymapDid.replace("did:holo:sha256:", "holo://").slice(0, 30)}…</span> · share the link to sync your shortcuts`
+          + ` · <button type="button" class="cheat-link" data-hint-toggle>${dotHidden ? "show the hint dot" : "hide the hint dot"}</button></div>`;
         cheat.classList.add("open");
       }
+      cheat.addEventListener("click", (e) => {       // footer toggle: banish or restore the ambient dot, then refresh the label
+        if (!e.target.closest("[data-hint-toggle]")) return;
+        try { const h = window.__hintsHidden && window.__hintsHidden(); window.__hintsSetHidden && window.__hintsSetHidden(!h); } catch (x) {}
+        openCheat();
+      });
 
       // ── virtual keyboard — mirrors physical typing; clicks type, or fire commands with modifiers ─
       const vkPanel = $("#vk"); let vkEl = null;
@@ -6224,11 +6575,11 @@
       /* ONE dynamic control at the right of the tab row — identity AND wallet are the same sovereign κ.
          Guest → an inviting accent "Sign in" that opens your wallet; signed in → your avatar + name,
          opening the wallet you already own. Replaces the old avatar/name/Sign-in/wallet-icon cluster. */
-      #identity-btn { margin-left: auto; flex: 0 0 auto; display: none; align-items: center; gap: 8px; align-self: center;
-        height: 30px; padding: 2px 13px 2px 3px; border: 1px solid color-mix(in srgb, var(--holo-ink) 14%, transparent);
+      #identity-btn { margin-left: auto; flex: 0 0 auto; display: none; align-items: center; gap: var(--sp-2); align-self: center;
+        height: var(--icon-tap); padding: 2px var(--sp-3) 2px 3px; border: 1px solid color-mix(in srgb, var(--holo-ink) 14%, transparent);
         border-radius: 999rem; background: transparent; color: var(--holo-ink); cursor: pointer;
         font: var(--chrome-fw) var(--chrome-fs) var(--win-font);
-        transition: background .14s ease, border-color .14s ease, filter .12s ease, transform .1s ease; }
+        transition: background .12s ease, border-color .12s ease, filter .12s ease, transform .1s ease; }
       #identity-btn.show { display: inline-flex; }
       #identity-btn:hover { background: color-mix(in srgb, var(--holo-ink) 8%, transparent); }
       #identity-btn:active { transform: scale(.97); }
@@ -6236,7 +6587,7 @@
       #identity-btn .ib-av { width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center;
         font-weight: 700; font-size: max(var(--holo-font-min, 16px), 13px); color: white;
         background: color-mix(in srgb, var(--holo-ink) 16%, transparent); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
-      #identity-btn .ib-av svg { width: 15px; height: 15px; }
+      #identity-btn .ib-av svg { width: var(--icon-sm); height: var(--icon-sm); }
       #identity-btn .ib-nm { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       /* guest → a confident, inviting call to action (the accent fill) */
       #identity-btn.guest { background: var(--accent); border-color: transparent; color: white; padding-left: 4px; }
@@ -6244,22 +6595,22 @@
       #identity-btn.guest .ib-av { background: color-mix(in srgb, white 22%, transparent); }
       /* window controls — same 30px height + 9px rhythm as the identity control, vertically CENTRED in the
          strip so the whole corner sits with equal space above and below it (one balanced row) */
-      #fullscreen-btn { flex: 0 0 auto; width: 30px; height: 30px; margin-left: 9px; align-self: center; display: grid; place-items: center;
+      #fullscreen-btn { flex: 0 0 auto; width: var(--icon-tap); height: var(--icon-tap); margin-left: var(--sp-2); align-self: center; display: grid; place-items: center;
         border: 0; border-radius: 9px; background: transparent; color: var(--holo-ink-dim); cursor: pointer; transition: background .12s ease, color .12s ease, transform .12s ease; }
       #fullscreen-btn:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
       #fullscreen-btn:active { transform: scale(.92); }
-      #fullscreen-btn svg { width: 18px; height: 18px; }
+      #fullscreen-btn svg { width: var(--icon-md); height: var(--icon-md); }
       /* notifications bell — sits to the LEFT of fullscreen, wearing the SAME calm icon-button (light,
          ink-dim, thin glyph). Light and lively: NO heavy ring around it — instead the bell gives a single
          gentle swing when a message lands, and a soft count pill pops in to say how many are waiting. The
          #tabstrip prefix out-specifies the notify module's own #notif-btn rules so the chrome wins. */
-      #tabstrip #notif-btn { flex: 0 0 auto; width: 30px; height: 30px; margin-left: 6px; align-self: center; position: relative;
+      #tabstrip #notif-btn { flex: 0 0 auto; width: var(--icon-tap); height: var(--icon-tap); margin-left: var(--sp-1); align-self: center; position: relative;
         display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--holo-ink-dim);
         cursor: pointer; transition: background .12s ease, color .12s ease, transform .12s ease; }
       #tabstrip #notif-btn:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
       #tabstrip #notif-btn:active { transform: scale(.92); }
       #tabstrip #notif-btn.has-unread { color: var(--holo-ink); }
-      #tabstrip #notif-btn svg { width: 18px; height: 18px; transform-origin: 50% 4px; }
+      #tabstrip #notif-btn svg { width: var(--icon-md); height: var(--icon-md); transform-origin: 50% 4px; }
       /* a single playful swing of the bell on arrival — replaces the old hard accent ring entirely */
       #tabstrip #notif-btn.ring::after { content: none; }
       #tabstrip #notif-btn.ring svg { animation: notif-swing .9s cubic-bezier(.36,.07,.19,.97); }
@@ -6299,9 +6650,9 @@
       /* The THREE native verbs of holospace — Build · Run · Share — the shell's ubiquitous hero trio.
          Always visible, one tap each: the whole point of a holospace, made effortless. */
       /* the three verbs — inline at the right of the toolbar (a browser's action buttons), no longer a floating pill */
-      #verbs { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin-left: 4px; }
+      #verbs { display: flex; align-items: center; gap: var(--sp-1); flex: 0 0 auto; margin-left: var(--sp-1); }
       #verbs button { border: 0; border-radius: 999rem; cursor: pointer; background: transparent; color: var(--holo-ink);
-        padding: 6px 12px; font: var(--chrome-fw) var(--chrome-fs) var(--win-font); white-space: nowrap; transition: background .12s ease; }
+        padding: var(--sp-2) var(--sp-3); font: var(--chrome-fw) var(--chrome-fs) var(--win-font); white-space: nowrap; transition: background .12s ease, transform .12s ease; }
       #verbs button:hover { background: var(--holo-surface-2); color: var(--accent); }
       #verbs button:active { transform: scale(.96); }
       #verbs #share-btn { color: var(--holo-ink); }   /* Share — matched to Create/Play (white ink) */

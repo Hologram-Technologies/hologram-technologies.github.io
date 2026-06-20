@@ -16,6 +16,11 @@ const DEFAULTS = {
   dtype: "q8",            // → onnx/model_quantized.onnx
   voice: "af_heart",      // warm, natural default
   preferWebGPU: false,
+  // κ-served voice (opt-in): serve Kokoro's ONNX files from its .holo (HTTP-Range + per-block L5 + OPFS warm
+  // cache + serverless multi-source) into the SAME kokoro-js/onnxruntime engine — content-addressed weight
+  // delivery, no engine change. Set { module, holoUrl, modelId?, kappa, release } to enable; ANY failure
+  // transparently restores fetch and falls back to the vendored ONNX files below. null = off (vendored path).
+  knativeVoice: null,     // e.g. { module: "../../q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "…/kokoro-82m.holo" }
 };
 
 function moduleBase() { try { return new URL("./", import.meta.url).href; } catch (e) { return new URL("./", location.href).href; } }
@@ -39,12 +44,27 @@ export function createTTS(opts = {}) {
           TF.env.backends.onnx.wasm.proxy = true;                      // worker → no UI freeze while synthesizing
         }
       }
+      // κ-served voice (opt-in): install the .holo fetch shim BEFORE kokoro loads, so its model files are
+      // served by content address from the .holo. Transparently falls back to the vendored ONNX on any failure.
+      let kserve = null;
+      if (cfg.knativeVoice && cfg.knativeVoice.module && cfg.knativeVoice.holoUrl) {
+        try {
+          const km = await import(/* @vite-ignore */ new URL(cfg.knativeVoice.module, base).href);
+          kserve = await (km.serveModelFromHolo || km.default)({
+            holoUrl: new URL(cfg.knativeVoice.holoUrl, base).href,
+            modelId: cfg.knativeVoice.modelId || cfg.model,
+            release: cfg.knativeVoice.release || "",
+          });
+        } catch (e) { try { console.warn("[HoloVoice TTS] κ-served voice unavailable, using vendored ONNX:", e && e.message || e); } catch (_) {} kserve = null; }
+      }
       const mod = await import(/* @vite-ignore */ new URL(cfg.kokoroLib, base).href);
       const KokoroTTS = mod.KokoroTTS || (mod.default && mod.default.KokoroTTS);
       // device: explicit cfg.device wins (the bake-off harness sets it); else preferWebGPU→webgpu when available, else wasm.
       const device = cfg.device || ((cfg.preferWebGPU && navigator.gpu) ? "webgpu" : "wasm");
-      tts = await KokoroTTS.from_pretrained(cfg.model, { dtype: cfg.dtype, device, progress_callback: onProgress });
-      info = { ready: true, device, model: cfg.model, dtype: cfg.dtype };
+      try {
+        tts = await KokoroTTS.from_pretrained(cfg.model, { dtype: cfg.dtype, device, progress_callback: onProgress });
+      } catch (e) { if (kserve) { try { kserve.restore(); } catch (_) {} } throw e; }   // κ-served load failed → un-shim so the caller's fallback fetches the vendored files
+      info = { ready: true, device, model: cfg.model, dtype: cfg.dtype, engine: kserve ? "kokoro-κserved" : "kokoro-onnx", servedFromHolo: kserve ? kserve.served.length : 0 };
       return info;
     })().catch((e) => { loading = null; throw e; });
     return loading;

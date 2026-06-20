@@ -224,6 +224,14 @@ const archiveStore = () => (ARCHIVES ||= makeArchiveStore());   // shares db/sto
 let BYPATH = null;    // os-relative path → sha256 hex (the verification pins)
 let CSPRO = null;     // serve-rel HTML name → strict CSP, served Report-Only (etc/boot-csp.json, tools/csp-hashes.mjs)
 const APPLOCK = new Set();   // app-ids whose lock closure has been folded into the pins (lazy, L5 for app bytes)
+// ── G1 / SEC-1 — the TRUST ROOT. etc/os-closure.json carries every per-path κ pin; were the origin able to
+// swap it, it could re-point every pin to forged-but-self-consistent bytes and the per-byte L5 check below
+// would pass against the forgery. So the pin set itself is verified: re-derive os-closure.json against this
+// baked anchor — the ONE κ a tamperer cannot forge without also editing this worker, which the browser loads
+// out-of-band (SW registration / SRI), never through the handler it defines. Sealed by tools/holo-anchor-sw.mjs
+// on every reseal. Empty string ⇒ an unsealed dev tree → enforcement off (no false refusal before first seal).
+const CLOSURE_KAPPA = "a06fb6e2bfd77862db06a7974801f8084d39c2e8493c45ed5e70554ba5a6ec3e";
+let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {
     const k = typeof v === "string" ? v : (v.kappa || v.did || v["@id"] || "");
@@ -235,7 +243,11 @@ function foldClosure(closure) {
 async function loadClosure() {
   if (BYPATH) return;
   BYHEX = new Map(); BYBLAKE = new Map(); BYPATH = new Map(); CSPRO = new Map();
-  try { foldClosure((await (await fetch(BASE + "etc/os-closure.json", { cache: "no-store" })).json()).closure); }
+  try {
+    const buf = await (await fetch(BASE + "etc/os-closure.json", { cache: "no-store" })).arrayBuffer();
+    if (CLOSURE_KAPPA && !DEV && (await sha256hex(buf)) !== CLOSURE_KAPPA) { CLOSURE_TRUSTED = false; return; }   // G1/SEC-1: tampered pin set → fail CLOSED (handler refuses every request)
+    foldClosure(JSON.parse(new TextDecoder().decode(buf)).closure);
+  }
   catch { /* no closure → serve unverified (flat mapping still works) */ }
   // Strict per-page CSP for the boot screens, served REPORT-ONLY (observe, never block) until a browser
   // pass confirms zero violations — then promoted to the enforcing header. Hash-derived (not nonce-based)
@@ -284,6 +296,28 @@ async function ensureVoiceManifest(rel) {
     for (const [id, files] of Object.entries(m.models || {})) for (const [f, k] of Object.entries(files)) put(`usr/lib/holo/voice/vendor/models/${id}/${f}`, k);
     for (const [f, k] of Object.entries(m.runtime || {})) put(`usr/lib/holo/voice/vendor/transformers/${f}`, k);
   } catch { /* unpinned → as before */ }
+}
+// Lazily fold the SERVED-set closure (os/etc/os-served.json) into the pins, ONCE. os-closure.json is the
+// curated network-free BOOT set (~500 κ); but the SW also serves the WHOLE os/ tree, and without this the
+// ~93% of served files outside the boot closure pass UNVERIFIED (the unpinned branch below). os-served
+// pins every served file (serve-rel/FHS-disk key → sha256), so re-derivation (Law L5) covers the whole OS,
+// not just boot. Best-effort: a missing/!ok manifest leaves the extra paths unpinned (served as before,
+// NEVER refused) — so this can only ADD verification; it cannot regress boot, and offline boot still
+// verifies via the boot closure (os-closure). Folded with the SAME foldClosure() as os-closure (Law L5).
+// A shared PROMISE, not a boolean: concurrent early-boot requests must AWAIT the same fold, else a request
+// that arrives mid-fetch would see "already folding" and race ahead to an empty pin map → serve unverified.
+// Memoized, so the manifest is fetched+folded exactly once; a miss/error resolves (those bytes stay
+// unpinned = served as before, no regression) and is not retried in a loop.
+let SERVEDFOLD = null, SERVED_OK = false;
+const SEALED_TOPS = new Set();   // top-level dirs os-served pins → a "sealed zone". Excludes apps/* (they verify via per-app locks), so an app byte is never caught by the fail-closed refuse below.
+function ensureServed() {
+  return SERVEDFOLD || (SERVEDFOLD = (async () => {
+    try {
+      const r = await fetch(BASE + "etc/os-served.json", { cache: "no-store" });
+      if (r.ok) { const j = await r.json(); foldClosure(j.closure); for (const k of Object.keys(j.closure || {})) SEALED_TOPS.add(k.split("/")[0]); SERVED_OK = true; }
+    }
+    catch { /* no served manifest → those bytes stay unpinned (served unverified, as before) — no regression */ }
+  })());
 }
 const sha256hex = async (buf) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", buf))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
@@ -369,6 +403,8 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
 </script>
 </body></html>`;
 const refuse = (rel, want, got, axis = "sha256") => new Response(refuseHtml(rel, want, got, axis), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
+// G1/SEC-1: the pin set itself failed to re-derive against the baked anchor → the whole boot is untrusted. Fail closed.
+const refuseClosure = () => new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
 
 // ── SERVERLESS MCP — the SW answers the Model Context Protocol with NO origin server (Law L1/L4).
 // Discovery (GET .well-known/mcp.json + /~<app>/.well-known/mcp.json) and JSON-RPC (POST /mcp +
@@ -503,6 +539,7 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith((async () => {
     await loadClosure();
+    if (!CLOSURE_TRUSTED) return refuseClosure();              // G1/SEC-1: baked anchor present but os-closure.json did not re-derive → refuse all
     let rel = decodeURIComponent(url.pathname.slice(BASE.length)).replace(/^\/+/, "");
     if (rel === "" || rel.endsWith("/")) rel += "index.html";
 
@@ -555,7 +592,8 @@ self.addEventListener("fetch", (event) => {
     } else {
       await ensureAppLock(rel);                               // app bytes are verified too (lazy lock fold) — not just OS bytes
       await ensureVoiceManifest(rel);                         // voice weights heal by κ (gitignored, never deployed)
-      expect = BYPATH.get(rel) || null;                       // the pinned (sha256) κ for this path, if any
+      await ensureServed();                                   // fold the SERVED-set closure → re-derive EVERY served byte, not just boot (Law L5)
+      expect = BYPATH.get(rel) || BYPATH.get(fhsMap(rel) || rel) || null;   // pin by the request path OR its FHS-mapped disk path (os-served is disk-keyed; flat aliases like _shared/* route through fhsMap)
     }
 
     // κ-routes are content-addressed (immutable) → cacheable + verified. PATH requests bypass the by-κ
@@ -620,6 +658,13 @@ self.addEventListener("fetch", (event) => {
       return out;
     }
     if (expect) return finalize(await resp.arrayBuffer(), resp, rel, { "x-holo-cache": "dev-fresh" });   // DEV path request: served fresh, never cached, never refused
+    // L5/SEC-1 fail-CLOSED for sealed zones: we reach here only UNPINNED. If os-served loaded (SERVED_OK) and
+    // this path sits under a top-level os-served pins (a "sealed zone"), an unpinned 200 is an anomaly — an
+    // unsealed or injected first-party byte — so in PROD refuse it instead of serving it unverified. Whole-OS
+    // coverage means every legitimate sealed byte IS pinned, so this only catches a reseal gap or tamper. Gated
+    // on SERVED_OK → a failed manifest load degrades to the prior passthrough (never bricks); apps/* is not a
+    // sealed zone here (it verifies via per-app locks), so an app byte is never refused.
+    if (!DEV && SERVED_OK && SEALED_TOPS.has((fhsMap(rel) || rel).split("/")[0])) return refuse(rel, "(sealed — must be in os-served)", "(unpinned)");
     if (BASE !== "/" && HTMLISH(rel)) return finalize(await resp.arrayBuffer(), resp, rel);   // unpinned HTML still needs the subpath re-root
     return withHeaders(resp.body, resp);
   })());

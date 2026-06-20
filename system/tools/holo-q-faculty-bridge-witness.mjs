@@ -37,6 +37,17 @@ ok(listen.upgrade && listen.upgrade.url === FORGE + "moonshine-tiny-f16.holo" &&
 const code = bridge.instantSpec("code");
 ok(code.url === FORGE + "qwen2.5-coder-3b-instruct.holo" && code.kappa === "33ca24ae50bf5649b4c431817ebf15924b8aa929ab87868c33abeeeb8f695a17", "code (Coder-3B) url+κ unchanged");
 
+// speak (TTS) — the 4th core I/O faculty. Resolved by the SAME control plane to a pinned κ .holo, so the
+// (pending) κ-served Kokoro path loads from the one bridge, exactly like listen/ASR.
+const speak = bridge.instantSpec("speak");
+ok(speak && speak.url === FORGE + "kokoro-82m.holo", "speak holoUrl resolves to the pinned Kokoro .holo");
+ok(speak && speak.kappa === "a528332cbe262333c3eef76f581add5de8cd2d54b81c7685914353ad016ff1e5", "speak κ unchanged");
+ok(speak && speak.release === REL + "kokoro-82m.holo", "speak release unchanged");
+
+// the control plane addresses ALL FOUR core I/O faculties (respond/code/listen/speak) to content-addressed .holo.
+const core = ["respond", "code", "listen", "speak"].map((f) => bridge.instantSpec(f));
+ok(core.every((s) => s && /^[0-9a-f]{64}$/.test(s.kappa) && s.url.endsWith(".holo")), "all 4 core faculties → a κ-pinned .holo (single control plane, 100% coverage)");
+
 // holo-voice-holo-brain's MODELS catalog now resolves the SAME specs (κ deduped from the mux).
 console.log("\nholo-voice-holo-brain consumes the bridge (κ deduped, faculty-aware):");
 ok(brain.modelKeyForFaculty("respond") === "qwen2.5-0.5b", "modelKeyForFaculty(respond) → the pinned instant tier");

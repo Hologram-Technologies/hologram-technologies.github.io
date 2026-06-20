@@ -17,6 +17,11 @@ const DEFAULTS = {
   localPath: "vendor/models/",
   dtype: "q8",            // research: q8, NOT fp16
   proxy: true,            // ORT in a Web Worker → embedding a batch never freezes the UI / VAD loop
+  // κ-served embedder (opt-in): serve EmbeddingGemma's ONNX files from its .holo (HTTP-Range + per-block L5 +
+  // OPFS warm cache + serverless multi-source) into the SAME transformers.js engine — content-addressed
+  // delivery, no engine change, identical to the κ-served voice. ANY failure restores fetch + falls back to
+  // the vendored ONNX files below. null = off (vendored path). Same shim every ONNX faculty uses.
+  knative: null,          // e.g. { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "…/embeddinggemma-300m.holo" }
 };
 
 // EmbeddingGemma's official task prompts — they materially improve retrieval. Stored items use the
@@ -52,8 +57,19 @@ export function createEmbed(opts = {}) {
         }
       }
       const prog = (p) => { try { onProgress && onProgress({ phase: p.status || "load", file: p.file, loaded: p.loaded, total: p.total }); } catch (e) {} };
-      pipe = await pipeline("feature-extraction", cfg.model, { dtype: cfg.dtype, progress_callback: prog });
-      info = { ready: true, model: cfg.model, device: "wasm", dim: null };
+      // κ-served embedder (opt-in): install the .holo fetch shim BEFORE the pipeline loads, so the model files
+      // are served by content address. Transparently falls back to the vendored ONNX on any failure.
+      let kserve = null;
+      if (cfg.knative && cfg.knative.module && cfg.knative.holoUrl) {
+        try {
+          const km = await import(/* @vite-ignore */ new URL(cfg.knative.module, base).href);
+          kserve = await (km.serveModelFromHolo || km.default)({ holoUrl: new URL(cfg.knative.holoUrl, base).href, modelId: cfg.knative.modelId || cfg.model, release: cfg.knative.release || "" });
+        } catch (e) { try { console.warn("[HoloVoice Embed] κ-served model unavailable, using vendored ONNX:", e && e.message || e); } catch (_) {} kserve = null; }
+      }
+      try {
+        pipe = await pipeline("feature-extraction", cfg.model, { dtype: cfg.dtype, progress_callback: prog });
+      } catch (e) { if (kserve) { try { kserve.restore(); } catch (_) {} } throw e; }   // κ-served load failed → un-shim so the caller's fallback fetches the vendored files
+      info = { ready: true, model: cfg.model, device: "wasm", dim: null, engine: kserve ? "embed-κserved" : "embed-onnx", servedFromHolo: kserve ? kserve.served.length : 0 };
       return info;
     })().catch((e) => { loading = null; throw e; });
     return loading;

@@ -1,0 +1,25 @@
+{
+  "spec": "SEC-8 — the IPFS CID parsers (os/usr/lib/holo/holo-ipfs.js) bound a DECLARED multihash length by the ACTUAL payload present, never by the declared count: a valid CID parses and consumes exactly its bytes, while a CID whose declared multihash length exceeds the bytes present is explicitly refused (so a hostile DAG-PB/CAR block cannot drive the parse offset past the payload and make the caller over-read).",
+  "authority": "holospaces docs/13-Product-Security §13.5 SEC-8 (every allocation driven by untrusted input is bounded by actual payload or fixed quota, never by declared count) · IPFS Trustless Gateway / dag-pb / CAR · multiformats CID — parsers os/usr/lib/holo/holo-ipfs.js (parseCID, parseCIDPrefix)",
+  "witnessed": true,
+  "covers": [
+    "sec-8",
+    "declared-length-bounded-by-payload",
+    "no-over-read",
+    "cid-parser-symmetry"
+  ],
+  "note": "Proven against the real exported parsers (no reimplementation). parseCIDPrefix previously trusted the declared multihash length (computed end = off + declared, no payload check) while parseCID guarded it — this witness pins both to the actual-payload bound.",
+  "checks": {
+    "valid CID: parseCIDPrefix returns the exact consumed length + full digest": true,
+    "valid CID: parseCID round-trips the 32-byte sha2-256 digest": true,
+    "valid CID embedded in a larger block: consumes exactly the CID, not the trailing bytes": true,
+    "non-vacuous: the hostile CID DECLARES far more digest than is present": true,
+    "parseCIDPrefix REFUSES a declared length past the payload (bounded by actual bytes, never declared count)": true,
+    "the refusal is EXPLICIT — it states declared vs present (never a silent over-advance)": true,
+    "parseCID REFUSES the same hostile length (the two CID parsers agree — no asymmetric trust)": true,
+    "boundary: declared length == actual digest length is accepted": true,
+    "boundary: declared length one byte past the payload is refused (off-by-one is caught)": true
+  },
+  "passed": 9,
+  "failed": 0
+}

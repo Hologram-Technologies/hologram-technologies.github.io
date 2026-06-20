@@ -35,6 +35,144 @@
         "dcterms:title": "Hologram OS"
       },
       "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#sec7-egress-opaque",
+        "dcterms:title": "SEC-7 — the egress forwarder is CONTENT-BLIND: the SW↔page egress seam (sbin/holo-egress-sw.mjs) relays an outbound response as OPAQUE BYTES — forwarded verbatim across chunk boundaries, never decoded, parsed, or mutated — and returns null (the caller falls back) rather than FABRICATING a response when no page can egress. Witnessed live pure-Node against the real exported seam: a multi-chunk byte stream (including invalid-UTF-8 and malformed-JSON bytes) is relayed byte-identical; an upstream error surfaces as a stream error, never as substituted content; zero/silent/absent clients each resolve to null; and an end-to-end mock page bridge has its stream relayed byte-identical with the content-type forwarded verbatim."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#l5-whole-os-served",
+        "dcterms:title": "L5 (whole-OS coverage) — re-derivation (Law L5) covers EVERY served first-party byte, not only the boot closure. The Service Worker pins boot-critical files via os-closure.json (~500 κ) but serves the whole os/ tree; the served-set closure (os/etc/os-served.json, tools/seal-served.mjs) pins every served file (serve-rel/FHS key → did:holo:sha256) and the SW folds it lazily with the same foldClosure(), resolving a pin by the request path OR its fhsMap disk-path alias. Witnessed live pure-Node: under that exact lookup over os-closure ⊕ os-served, every served first-party file resolves a pin (whole-OS L5 coverage, not ~7%), a deterministic parity sample re-derives to the on-disk bytes (so enabling verification cannot false-refuse — boot-safe), and a tampered byte fails its pin (the refusal is real, not vacuous). The live prod-SW browser confirmation (offline boot + a tampered served byte → 409) is a separate tier."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#l5-whole-os-served-browser",
+        "dcterms:title": "L5 (whole-OS coverage, real browser) — in real Chromium in PROD cache-first mode (a non-localhost host so the SW's dev-fresh bypass is OFF, exactly like a GitHub-Pages deploy), the Service Worker folds os-served.json and routes a file OUTSIDE the boot closure through the verify+cache branch: x-holo-cache is set (not the unpinned passthrough), its bytes re-derive to the pinned κ, and a re-fetch serves from the κ cache (cached only because it passed L5) — with no boot regression and no fatal page errors. The refuse-on-mismatch path is the same code os-closure files already exercise (witnessed by holo-w1 / holo-dev-fresh-gate)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#cc10-arch-explicit-error",
+        "dcterms:title": "CC-10 — a κ-disk/image is admitted to an emulator engine ONLY when their architectures match; a missing or mismatched platform is an EXPLICIT, descriptive error (it names both architectures), never a silently-wrong architecture. The shared guard os/usr/lib/holo/holo-arch.mjs throws ArchMismatchError on a mismatch AND on a missing arch declaration; the canonical emulator app holo-x86 declares engine+image arch in kappa.json and calls the guard BEFORE it instantiates v86 and BEFORE it fetches the heavy engine/image bytes (fail-fast, no wasted download). Witnessed live pure-Node: the guard's match/alias/mismatch/missing-declaration behaviour, and that holo-x86 actually enforces it before boot."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#sec8-ipfs-declared-length-bounded",
+        "dcterms:title": "SEC-8 — an untrusted DECLARED length is bounded by ACTUAL payload, never trusted. The IPFS CID parsers (os/usr/lib/holo/holo-ipfs.js) parse CIDs embedded in untrusted DAG-PB/CAR blocks fetched from public gateways; a CID's declared multihash length is refused when it exceeds the bytes present (parseCIDPrefix now mirrors parseCID's truncation guard) — so a hostile block cannot drive the parse offset past the payload and make the caller over-read the next block. Witnessed live pure-Node against the real parsers: valid CIDs parse and consume exactly their bytes (including embedded in a larger block), a declared length past the payload is explicitly refused (it names declared vs present), both CID parsers agree (no asymmetric trust), and the off-by-one boundary is caught."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#cc1-cc2-engine-parity",
+        "dcterms:title": "CC-1/CC-2 — browser and native engines yield IDENTICAL κ. In real Chromium and in Node, the dual-axis κ (sha256 serving ⊕ BLAKE3 σ-axis) is byte-for-byte identical over the same real OS objects and edge inputs — so a Node-sealed pin (os-closure/os-served) always re-derives in the browser Service Worker (Law L5), and the σ-axis matches the reference BLAKE3 KAT (browser ≡ Node ≡ reference). Witnessed in real Chromium against the served holo-blake3.mjs + WebCrypto sha256, compared to Node's node:crypto + the same BLAKE3 module. The live Rust-wasm oracle (a third engine) stays gated on HOLO_SUBSTRATE_PKG and is not required — the KAT vectors are the reference σ-axis (pinned 20/20 by holo-blake3-witness)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
         "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
         "dcterms:title": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode)."
       },
@@ -294,7 +432,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
@@ -455,7 +593,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -1277,6 +1415,236 @@
         "dcterms:title": "Hologram OS"
       },
       "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-courier",
+        "dcterms:title": "Q'S VOICE, WITH DISCIPLINE — the only path from a proposal to a message in the user's inbox (Holo Courier, S3 of the autonomy spine sense → reason → SPEAK). S2 (#holo-observer) raised ranked proposals; this proves the courier turns a proposal into a HoloNotify message (#holo-notify) only through a send filter that keeps Q high-signal, never spam. The send seam is tiny; the value is the filter. A proposal becomes a message only if ALL hold: PROVENANCE — it derives from a real S2 proposal and the body is the proposal's OWN suggestedAction, a HANDED note never generated (the witnessed HoloNotify property: Q delivers, it does not author — the courier calls no model); IT CHANGES WHAT YOU'D DO — only a RAISED proposal (already past S2's salience hi-gate) is eligible, pure status is never sent; NOT ALREADY SAID — a subject spoken once stays quiet until it is RELEASED (fixed / faded) and later RE-RAISED, and a stable per-subject note id updates its one note in place (never a growing pile, never a re-nag); WITHIN THE NOISE BUDGET — at most `budget` messages per delivery, the highest-salience win the budget and the rest are HELD (not dropped) and sent on a later delivery once it frees. NO-NOISE (nothing raised ⇒ nothing sent) and COHERENCE-TRIGGERED (Q speaks because state changed, never because a clock ticked) are inherited from S2. The courier is stateful across deliveries yet deterministic. Composition is proven end to end: a real heal sweep → S1 → S2 → an inbox note carrying its provenance (the proposal-set κ)"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-trust",
+        "dcterms:title": "THE TRUST BOUNDARY — the contract that lets Q ACT while the user stays in the driving seat (Holo Trust, S4 of the autonomy spine). S3 let Q speak; this resolves every proposed action to ONE disposition through a pure, auditable lattice: disposition = min(user-trust(topic), risk-cap(action)) under the constitutional conscience floor. Four dispositions, least→most autonomous: never < propose < ask < silent — propose is THE DEFAULT for any unconfigured topic (default-deny: Q never acts autonomously until the user explicitly grants it). THREE HARD GUARANTEES the user's trust level can never override are enforced in code, not policy: (1) RISK CAP — value-moving (wallet-out), irreversible, egress, or authority-granting actions are capped at `ask`, so money and the irreversible always require an explicit per-instance YES and can never be silent; (2) NO BLIND SILENT ACT — a silent act with no undo is refused and downgraded to ask, so no autonomous act is irreversible (reversibility is the price of autonomy); (3) CONSCIENCE FLOOR — every disposition sits under the ADR-0033 conscience gate, so a block (or unsealed conscience) ⇒ deny, fail-closed, regardless of trust. ONE-MOVE control: pause() caps everything at propose (Q goes fully hands-off in one call), resume() restores, and setTrust is the ONLY mutator of trust — decide()/act() never widen Q's own latitude. Every autonomous (silent) or explicitly-approved act seals a re-derivable PROV-O receipt (Law L5) recording the action, disposition, conscience verdict, approver, and that it is undoable — an act you can prove and reverse, not merely trust"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-evolve",
+        "dcterms:title": "THE CLOSED SELF-IMPROVING LOOP — Q improves itself, gated and reversible (Holo Evolve, S0 of the Q-unification: perceive → reason → speak → ACT → re-perceive). The faculties of a self-evolving Q were all built but disconnected: the spine OBSERVES (#holo-observer proposals), the factory CAN fix (ADR-0097), and the trust boundary CAN govern (#holo-trust) — but nothing wired observe → propose-fix → decide → ship → re-observe, and Q.trust was attached to the one door yet called by nobody. This is the connective tissue, and it makes Q.trust LOAD-BEARING: every autonomous fix ships ONLY through trust.act, so the boundary that keeps the user in the seat is the real gate, not decoration. For the most salient proposal, Q asks the factory for a SHIPPABLE, REVERSIBLE fix plan, then puts shipping it through trust.act — which performs it ONLY if the disposition resolves to silent (topic granted + reversible + an undo), sealing a re-derivable PROV-O receipt; otherwise the fix is SURFACED (propose/ask) and Q acts only after the user says so. PROPOSE-ONLY by default (Q earns autonomy per topic, never assumes it); a value-moving or irreversible fix can never ship silently (trust's risk cap); a topic the user set to never is never acted on; the factory stops honestly when it can't fix (only the heads-up stands); and after a fix ships the loop re-observes so the concern provably clears (or Q tries again). Human commands stay sovereign — this governs only Q's UNPROMPTED acts. Self-improvement you can prove and reverse, not a claim"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-ambient",
+        "dcterms:title": "ONE AMBIENT LOOP — a single scheduler owns Q's heartbeat (Holo Ambient, S1 of the Q-unification). Self-improvement ran on TWO uncoordinated timers (the spine's idle loop and trinity's setInterval drift-heal), a standing cost with no coordination; this is the single ambient AUTHORITY that dispatches to registered FACULTIES (reflect · drift-heal · evolve) at their own cadence, so no module owns a timer anymore. One tick runs every DUE faculty in registration order; cadence is per-faculty (everyTicks); a faculty that throws is FAULT-ISOLATED (reported, never stalls the heartbeat or its siblings); dispatch is DETERMINISTIC (integer tick count, no clock in the core — a witness replays to identical order); pause()/resume() halts the whole ambient layer in one move; register is idempotent (same name replaces, never duplicates) and returns an unregister handle; and start() arms exactly ONE loop via an injected pump (requestIdleCallback / setInterval), the core holding no timer (the holo-heal-supervisor idiom). One heartbeat, many organs"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-memory",
+        "dcterms:title": "Q'S PERSISTENT USER MODEL — Q remembers you across reloads (Holo Memory, S2 of the Q-unification). The audit found Q forgets the user every reload: ctx (recent intents + 👍/👎) was session-only with no persistence, the corpus host-must-index, the stores disconnected. This is the one coherent, DURABLE, content-addressed memory of the user's world — what you asked, what you built, what you liked — so Q.briefing / Q.recall become genuinely personal and survive a reload. Each remembered signal is a self-verifying UOR record (hold its κ, re-derive it; tamper it, the id breaks — the user model can't be silently forged, Law L5). It LEARNS preference affinity ∈ [-1,1] from your votes on similar things (so Q leans your way, with zero model — deterministic, yours); it is BOUNDED (a cap trims the oldest, never an unbounded log); YOU can forget anything on request (delete by kind / before a time, persisted); and it is PRIVATE-FIRST — it lives in your local store and export() is default-deny AND conscience-gated (Law L1), it does not phone home. Usage SHAPE (intents · votes · artifacts), never surveillance. The durable backend is injected (a witness proves a fresh instance over the same store recovers the memory; the browser uses localStorage / IndexedDB)"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-brain-floor",
+        "dcterms:title": "Q ALWAYS HAS A BRAIN — guarantee a usable brain on the one door (Holo Brain Floor, S3 of the Q-unification). The audit found Q's brains are bind-or-die: the on-device CPU .holo floor is never bound, the WebGPU brain lives inside the Q app, and the mux falls through to a 'main' specialist that may not exist — so Q.create / Q.ask can fatally throw 'no specialist bound for task'. This removes the cliff: a deterministic, ZERO-DOWNLOAD floor specialist is bound to every core task at boot, so routing ALWAYS resolves to something usable. A real brain (the WebGPU engine, a boost model, a self-acquired specialist) silently UPGRADES over the floor where the shell binds it; the floor is the safety net underneath, never the ceiling, and ensure NEVER clobbers a real brain already bound. A governed self-acquire (the dormant discover → AUTHORIZE → forge → bind path) fills a gap when a real specialist can be acquired, and KEEPS the floor when refused or unavailable. THE FLOOR IS HONEST: it does not fabricate a model answer — for `ask` it states plainly that no language model is loaded and what it can still do; for `create` it emits a minimal valid scaffold from the prompt — deterministic and re-derivable (Law L5), no hallucination, no download, no throw. Q always answers: gracefully degraded, never broken"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-intent",
+        "dcterms:title": "ONE INTENT CLASSIFIER — every input surface decides through the one Q (Holo Intent, S4 of the Q-unification, the last seam). The audit found input is decided TWICE: typed text goes through Q.intent (deterministic), but voice runs its own route() heuristic — so the same words can be classified differently by source, and only voice's 'unhandled' lines fall through to Q. This is the single canonical router every surface funnels through: the typed omnibar, voice, and an app's cross-frame call all classify with the ONE Q.intent and dispatch through ONE table, so a request is decided ONCE by the orchestrator and spoken/typed CONVERGE — across a batch of varied utterances, voice-sourced and typed-sourced decisions match every time. Source is carried (for telemetry / provenance) but is NEVER an input to the decision (decide() sees only the text). An unhandled kind is reported (handled:false), never thrown, so a caller can fall back gracefully; a blank or unclassifiable input resolves to an honest fallback kind; the classifier is deterministic (Law L5). Pure + dependency-injected — the browser passes window.Q.intent and the shell's real executors (open · close · ask → Q.ask · build → Q.create); voice routes its transcript here instead of re-classifying"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-resolve",
+        "dcterms:title": "ONE FRONT DOOR FOR INTENT — every input surface decides through one resolver (Holo Resolve, Fork 1 of the intent-unification). The audit found the user's intent is classified by a DIFFERENT engine per surface: the omnibar runs its own classify(), voice runs its own route(), the '+' runs decideRoute() — so the same words get decided three ways. Q.intent is the canonical classifier but the surfaces don't call it. This is the single resolver every surface routes through, so intent is decided ONCE wherever it is expressed. The subtlety the audit surfaced is handled correctly: the omnibar legitimately handles NAVIGATION (a URL, a content-address κ, an onion, an explicit search) which is NOT a Q-intent and must never be 'built' — so the resolver LAYERS two lanes in order, a NAVIGATION lane (→ the nav handler) and an INTENT lane (→ the one Q.intent classifier → ask · build · open · close). Navigation stays navigation; natural language is decided once. Every surface — typed omnibar, spoken voice, dropped '+', an app's call — calls resolve() and gets the SAME {lane,kind,target}; source is carried for the record but is NEVER an input to the decision; an unhandled kind is reported (handled:false), never thrown, so a surface can fall back; blank input resolves to an honest fallback; the decision is deterministic (Law L5). Pure + dependency-injected — the browser passes window.Q.intent + the omnibar's navigation detectors + the real executors"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-q-faculty",
+        "dcterms:title": "THE FACULTY BRIDGE — an intent inside an app reaches the SAME Q, governed (Holo Q Faculty, Fork 2 of the intent-unification). The audit found that inside an app frame window.Q is a thin proxy {summon,ask,create,act}: an intent raised in an app reaches the shell's Q but NOT its faculties (coherence · briefing · notices · memory), so an app's create runs against nothing it knows about the user while the shell's runs against the full user model. This extends the governed cross-frame serve so an app reaches the same Q — but GOVERNED, because an app is a separate principal: it READS the OS reflection (q.coherence · q.briefing · q.notices, read-only — system state, not personal); its create/ask is GROUNDED in the user model by the SHELL (affinity for the request + relevant recent intents) so the app receives a context-aware RESULT and NEVER the raw model (Law L1, private-first — the model stays the shell's, the benefit crosses); q.remember WRITES THROUGH attributed to the app (provenance) so the model adapts across the whole experience; and it is REFUSED fail-closed the user's private and privileged surfaces — q.trust.* (an app can never change the user's grants or act AS the user) and raw memory (q.memory.recent / export / forget). Non-faculty methods fall through to the base governed serve (q.create → Q.agent, fail-closed + receipted) unchanged; an unknown method is refused, never thrown; a thin Q degrades to honest empties, never a throw"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-fix-proposer",
+        "dcterms:title": "Q ACTUALLY FIXES, WITHIN TRUST — a real fix proposer feeds the evolve loop (Holo Fix Proposer, C5 of the autonomy spine). The evolve loop (#holo-evolve) ships a fix ONLY through trust.act; until now no proposer was bound, so Q could only SURFACE concerns. This is the real adapter: for the concerns Q raises it produces SAFE, REVERSIBLE fixes the OS already knows how to do — with NO code-generating brain required — and honestly STOPS on the ones that need one. An app that hit an error → RELOAD the crashed app frame (reversible: it reopens, nothing destroyed), capped per app so a persistently-crashing app is surfaced not reload-looped; an unrecoverable/flaky object → RE-ATTEMPT recovery (the heal sweep re-derives from every source incl. mesh/IPFS; reversible — heal only admits L5-verified bytes, never destroys — so it recovers if a source has since become reachable and simply no-ops on a true dead-end); a red conformance row → null, an HONEST STOP (repairing it needs the code-gen factory brain, so Q surfaces it instead of faking a fix). Every plan is reversible with an undo, so trust.act ships it silently ONLY where the user granted the topic and the risk cap allows; default-deny keeps it propose-only until granted; a missing seam degrades to null (evolve stays propose-only, safe). Composed with the witnessed evolve + trust + observer, Q goes from propose-only to actually fixing — reversibly, gated, receipted"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
         "@id": "https://hologram.os/conformance/os2#holo-control",
         "dcterms:title": "OBSERVABILITY COMMAND CENTER — Holo Control (the telemetry monitoring & control dashboard, ADR-0073 consumer): models the whole system as a graph (this OS at center, every external interaction a governable edge — app · agent · resource · human · wallet) and stays CALM BY DEFAULT via a robust signal-processing core. This row witnesses that core (tools/holo-control-dsp-witness.mjs, pure + deterministic): a noise floor from median + MAD (a few loud spikes do NOT inflate it and hide the next signal); a robust z-score (a degenerate window does not divide by zero); an EMA low-pass (steady-state) + first-difference high-pass (change); SALIENCE = magnitude × novelty × governance-risk (egress / wallet-out / agent-write weigh heaviest), so ranking surfaces the one thing worth the operator's eyes; thresholding WITH hysteresis (an alert latches at the high gate, releases below the low gate — it cannot flap); an aggregate SNR (the fraction of activity that is genuine signal); and a matched filter for the exfiltration signature (sustained egress to a NEW destination), distinct from a lone spike. The app is additionally render-witnessed in a real browser (tools/holo-control-render-witness.mjs, committed result): it boots, binds the Holo UI tokens, populates REAL edges from the live catalog, ranks/switches/inspects, runs a conscience-gated control action that seals a verifiable receipt, and is HONEST where a feed is unwired (no fabricated flows/balances/presence). Local-first; the dashboard observes and nothing leaves the device unasked"
       },
@@ -1720,7 +2088,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -1927,7 +2295,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
