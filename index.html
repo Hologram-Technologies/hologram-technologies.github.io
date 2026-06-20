@@ -485,7 +485,7 @@
      κ and shows it — a quiet proof you are already inside the substrate, not on a normal website. */
   .sig{ position:fixed; left:var(--frame-l); right:var(--frame-r); bottom:calc(var(--frame-b) + var(--u) * .9); z-index:4; text-align:center;
     padding:0 6vw; pointer-events:none; line-height:1.55; }
-  .sig #kappa{ font-size:calc(var(--u) * 1.18); font-weight:600; letter-spacing:.01em; color:var(--fg); opacity:1; }
+  .sig #kappa{ font-size:calc(var(--u) * 1.18); font-weight:600; letter-spacing:.01em; color:#000; opacity:1; }
   .sig .dot{ display:inline-block; width:.55em; height:.55em; border-radius:50%; background:var(--fg);
     vertical-align:middle; margin-right:.55em; position:relative; top:-0.06em; }
   .sig .kx{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.95em; opacity:1; margin-left:.5em; white-space:nowrap;
@@ -900,7 +900,7 @@
 </main>
 
 <!-- the gateway's own content address — proof this page is one self-verifying UOR object (Law L5) -->
-<div class="sig"><i class="dot"></i><span id="kappa">Self-certified by <a class="uor" href="https://uor.foundation/" target="_blank" rel="noopener noreferrer">UOR</a> substrate<span class="uor-colon">:</span> <span id="kx" class="kx">computing…</span></span></div>
+<div class="sig"><span id="kappa">Self-certified by <a class="uor" href="https://uor.foundation/" target="_blank" rel="noopener noreferrer">UOR</a> substrate<span class="uor-colon">:</span> <span id="kx" class="kx">computing…</span></span></div>
 
 <!-- ── THE LAUNCHER — full-screen app search with a live, sealed-holospace preview (wired below) ── -->
 <div class="lx" id="launcher" role="dialog" aria-modal="true" aria-label="Search Hologram apps" hidden>
