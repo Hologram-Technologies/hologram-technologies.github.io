@@ -11,6 +11,9 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- CC-1/CC-2 live engine parity + fail-closed L5 for sealed zones
+- CC-10 — explicit error on architecture mismatch, never silently wrong
+- Extend Law L5 verification to the whole served OS + witness SEC-7
 - Heal app bytes from the apps-holo repo by κ (fast, whole-file, location-agnostic)
 - Update holo-linux κ-lock (IPFS-streamed boot artifacts)
 - Vendor the holo-linux κ-lock into the OS image (κ-launch readiness)
@@ -49,6 +52,8 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Living Map two-pane studio with honeycomb seam updates and reseal
+- SEC-8 — bound a declared multihash length by actual payload (CID parser)
 - Stage the gateway's static-import modules so the live site can boot
 - Healed files get their MIME from the file ext, not the origin 404 page
 - Vendor the holospaces wasm runtime so apps boot on the deploy
