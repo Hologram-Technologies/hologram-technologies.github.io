@@ -8,11 +8,12 @@
 //
 //   node tools/holo-control-render-witness.mjs        (needs the FHS serve on :8300)
 import { createRequire } from "node:module";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { join, dirname } from "node:path";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";
 
-const ORIG = "C:/Users/pavel/Desktop/hologram-os";
+// Hermetic (G9): resolve from this file, not a hardcoded machine path. HOLO_OS_REPO overrides.
+const ORIG = process.env.HOLO_OS_REPO || join(dirname(fileURLToPath(import.meta.url)), "..", "..");   // holo-os repo root
 const { chromium } = createRequire(pathToFileURL(join(ORIG, "package.json")))("playwright");
 const BASE = "http://127.0.0.1:8300";
 const results = [];
@@ -116,7 +117,7 @@ try {
   const orbit = await page.evaluate(() => { const s = document.querySelector("#view svg#orbit"); return s ? { lines: s.querySelectorAll("line").length, nodes: s.querySelectorAll("circle").length } : null; });
   ok("birds-eye renders the radial edge graph", orbit && orbit.lines >= 5 && orbit.nodes >= 5, orbit ? `${orbit.lines} edges, ${orbit.nodes} nodes` : "none");
 
-  await page.screenshot({ path: join(ORIG, "..", "Hologram OS2", "system", "tools", "holo-control-render-witness.png"), fullPage: false }).catch(() => {});
+  await page.screenshot({ path: join(dirname(fileURLToPath(import.meta.url)), "holo-control-render-witness.png"), fullPage: false }).catch(() => {});
 } finally {
   await browser.close();
 }

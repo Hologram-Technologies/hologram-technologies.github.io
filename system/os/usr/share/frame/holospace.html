@@ -13,6 +13,12 @@
   html, body { margin: 0; height: 100%; background: #0b071e; color: #e8e6f0;
     font: var(--holo-text-sm, 1rem)/1.6 system-ui, -apple-system, sans-serif; overflow: hidden; }
   #frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #0b071e; }
+  /* MATERIALIZE ON ARRIVAL — a guest opening a shared link watches the app form like a hologram: a brief
+     brighten + settle, GPU-only (opacity/transform/filter), honoured-off for reduced motion. The magic
+     of receiving a living object, not loading a file. */
+  #frame.holo-materialize { animation: holoMaterialize .62s cubic-bezier(.2,.85,.25,1) both; }
+  @keyframes holoMaterialize { from { opacity: 0; transform: scale(.985); filter: brightness(1.7) saturate(1.25); } to { opacity: 1; transform: none; filter: none; } }
+  @media (prefers-reduced-motion: reduce) { #frame.holo-materialize { animation: none; } }
   #msg { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 2rem; }
   #msg code { color: #8b5cf6; } a { color: #2dd4bf; text-decoration: none; } a:hover { text-decoration: underline; }
   .apps { margin-top: 1rem; line-height: 2.4; }
@@ -40,7 +46,7 @@
      is defined before the projection finishes mounting; renders nothing unless asked. -->
 <script src="_shared/holo-share-chrome.js" defer></script>
 <script type="module">
-import { mount, parseLink } from "./holo-launch.mjs";
+import { mount, parseLink, projectHtml, entryBase } from "./holo-launch.mjs";
 import { sealConstitution } from "./_shared/holo-admit.mjs";
 
 const msg = document.getElementById("msg");
@@ -147,8 +153,27 @@ async function boot() {
   f.setAttribute("sandbox", m.sandbox);
   if (m.allow) f.setAttribute("allow", m.allow);
   f.setAttribute("title", m.name);
-  f.src = "./" + landing;                                   // (the κ-service-worker resolver — serve every
-                                                            //  subresource by content, from anywhere — is the next step)
+  // κ-NATIVE FRAME BOUNDARY (Law L1/L5): fetch the entry BY ITS CONTENT (its κ-route), re-derive it
+  // (L5 — refuse a mismatch), and mount it AS the frame's content (srcdoc) — the document IS the κ, not a
+  // location. projectHtml() injects ONE <base> at the entry's canonical dir (a resolver hint only) so the
+  // app's relative subresources resolve, each re-derived to its κ by the worker. If the κ-entry can't be
+  // resolved (no worker yet / cold miss), fall back to the path mount — the worker still verifies it.
+  const entryHex = (m.entry || "").split(":").pop();
+  let mountedByKappa = false;
+  if (/^[0-9a-f]{64}$/.test(entryHex)) {
+    try {
+      const r = await fetch("/.holo/sha256/" + entryHex, { cache: "force-cache" });
+      if (r.ok) {
+        const bytes = new Uint8Array(await r.arrayBuffer());
+        const reHex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+        if (reHex === entryHex) {                            // Law L5: re-derive before mount, or refuse
+          f.srcdoc = projectHtml(new TextDecoder().decode(bytes), entryBase("/" + landing));
+          mountedByKappa = true;
+        }
+      }
+    } catch (e) { /* cold miss → resilient path mount below (still worker-verified) */ }
+  }
+  if (!mountedByKappa) f.src = "./" + landing;
   document.title = `${m.name} · holospace`;
   if (bootFx) bootFx.stop("");
   msg.remove();
@@ -180,7 +205,7 @@ function restoreSharedWidgets() {
   document.body.appendChild(s);
 }
 if (params.get("bare") === "1" || shared) {
-  boot().then((ctx) => { if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); restoreSharedWidgets(); })
+  boot().then((ctx) => { if (wantChrome) { const fr = document.getElementById("frame"); if (fr) fr.classList.add("holo-materialize"); } if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); restoreSharedWidgets(); })
         .catch((e) => die("Boot failed: <code>" + (e && e.message || e) + "</code>"));
 } else {
   // Normal link → the ONE canonical shell (os/usr/share/frame/shell.html), which hosts the app in its

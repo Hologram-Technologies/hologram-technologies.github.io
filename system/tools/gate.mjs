@@ -35,6 +35,9 @@ const LIVE_EXIT = new Set([
   "tools/holo-catalog-terms-witness.mjs",
   "tools/holo-ui-terms-witness.mjs",
   "tools/holo-tube-witness.mjs",
+  "tools/holo-closure-anchor-witness.mjs",   // G1/SEC-1 — pin set verified against a baked anchor
+  "tools/holo-delegate-witness.mjs",         // G4/SEC-2 — delegation attenuates, escalation refused
+  "tools/holo-catalog-identity-witness.mjs", // G6/SEC-6 — every catalog @id is a content κ, never a slug
 ]);
 
 function classify(witnessRel) {
@@ -42,8 +45,16 @@ function classify(witnessRel) {
     try { execFileSync(process.execPath, [join(here, "..", witnessRel)], { stdio: "ignore" }); return { ok: true, detail: "witnessed live (exit 0)" }; }
     catch { return { ok: false, detail: "witness failed (nonzero exit)" }; }
   }
-  if (LIVE.has(witnessRel)) { try { execFileSync(process.execPath, [join(here, "..", witnessRel)], { stdio: "ignore" }); } catch {} }
+  // G5/SEC-integrity: a LIVE witness is RE-RUN; if it errors we must NOT silently fall back to a stale
+  // committed .result.json (the old `catch {}` did exactly that → green that was never reproduced). On a
+  // live error the row fails closed. A clean exit 0 freshly rewrites the result we then read below.
+  let liveFailed = false;
+  if (LIVE.has(witnessRel)) {
+    try { execFileSync(process.execPath, [join(here, "..", witnessRel)], { stdio: "ignore" }); }
+    catch { liveFailed = true; }
+  }
   const resPath = join(here, "..", witnessRel.replace(/\.mjs$/, ".result.json"));
+  if (liveFailed) return { ok: false, detail: "FAILED LIVE — re-run errored; committed result not trusted (G5)", live: "failed" };
   if (!existsSync(resPath)) return { ok: false, detail: "no result (run the witness)" };
   const r = JSON.parse(readFileSync(resPath, "utf8"));
   if (witnessRel.includes("audit-apps")) {                 // pass = every app 0 fallbacks
@@ -72,5 +83,21 @@ for (const row of rows) {
 writeFileSync(join(OS2, "etc/earl-report.jsonld"),
   JSON.stringify({ "@context": "http://www.w3.org/ns/earl", "dcterms:title": "Hologram OS — EARL conformance report", "@graph": earl }, null, 2) + "\n");
 
-console.log(`\n${fails ? `FAIL — ${fails} required row(s) not witnessed` : `PASS — all ${rows.length} required conformance rows witnessed ✓`}   ·   EARL → os/etc/earl-report.jsonld`);
+// ── performance gate (not a conformance row) — the boot working-set budget. It needs a headless browser
+// + dev server, so it can't live in the host-agnostic conformance witness set (like webgpu-parity-ci, it
+// stays out of the EARL rows). Enforced here so `npm run gate` catches a boot regression WHERE a browser
+// exists, and SKIPS — never spuriously fails — where one doesn't: exit 0 pass · 1 over-budget · 2 skip.
+console.log("\nPerformance gate:");
+if (process.env.GATE_SKIP_PERF === "1") {
+  console.log("  ⚠  boot-budget — SKIPPED (GATE_SKIP_PERF=1)");
+} else {
+  let code = 0;
+  try { execFileSync(process.execPath, [join(here, "boot-budget-ci.mjs")], { stdio: "ignore" }); }
+  catch (e) { code = (e && typeof e.status === "number") ? e.status : 1; }
+  if (code === 2) console.log("  ⚠  boot-budget — SKIPPED (no browser/server here · run `npm run boot-budget` on a browser host)");
+  else if (code === 0) console.log("  ✓  boot-budget — boot working set within tools/boot-budget.json");
+  else { console.log("  ✗  boot-budget — boot working set OVER budget (run `npm run boot-budget` for detail)"); fails++; }
+}
+
+console.log(`\n${fails ? `FAIL — ${fails} required check(s) not witnessed` : `PASS — all ${rows.length} conformance rows witnessed + boot budget ✓`}   ·   EARL → os/etc/earl-report.jsonld`);
 process.exit(fails ? 1 : 0);

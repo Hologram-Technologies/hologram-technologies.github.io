@@ -1,17 +1,15 @@
 {
   "witnessed": false,
-  "passed": 14,
-  "failed": 4,
+  "passed": 12,
+  "failed": 6,
   "covers": [
     "the default boot ('/') routes to the ONE",
     "the canonical shell is served from OS2 (",
     "the served shell IS the spatial holospac",
     "the rEFInd boot loader hands off to the ",
-    "the boot chain interposes the greeter fo",
     "the greeter's default session + fallback",
     "holospace.html folds a normal app link i",
     "no duplicate DEFAULT shell in the catalo",
-    "the old duplicate shell CODE is retired ",
     "the retired shells are unreachable — no ",
     "the ONE shared embed guard exists in the",
     "no app renders its own tab strip when em",
@@ -41,7 +39,7 @@
     },
     {
       "name": "the boot chain interposes the greeter for the shell (rEFInd → SDDM → shell)",
-      "ok": true,
+      "ok": false,
       "detail": ""
     },
     {
@@ -57,11 +55,11 @@
     {
       "name": "no duplicate DEFAULT shell in the catalog (a kept self-contained app is exempt)",
       "ok": true,
-      "detail": "52 apps · self-contained exempt: org.hologram.HoloBrowser"
+      "detail": "50 apps · self-contained exempt: org.hologram.HoloBrowser"
     },
     {
       "name": "the old duplicate shell CODE is retired (holospaces/browser · holospaces/sdk · apps/sdk)",
-      "ok": true,
+      "ok": false,
       "detail": ""
     },
     {
@@ -82,12 +80,12 @@
     {
       "name": "the shell is sealed in the OS-wide κ-route closure (a did:holo content address)",
       "ok": true,
-      "detail": "κ e0cd1f204db8ad77…"
+      "detail": "κ abc29c7d26511e0c…"
     },
     {
       "name": "the served shell RE-DERIVES to its sealed κ — tamper-refused (Law L5)",
       "ok": false,
-      "detail": "served 3982bedae685 ≠ sealed e0cd1f204db8"
+      "detail": "served 1889ec40b9e0 ≠ sealed abc29c7d2651"
     },
     {
       "name": "the shell resolves BY CONTENT at /.holo/sha256/<κ> (substrate-addressable, not path-only)",
@@ -102,12 +100,12 @@
     {
       "name": "the shell is anchored on the unified UOR substrate (carries its did:holo:blake3 σ-axis κ)",
       "ok": true,
-      "detail": "blake3 9eeb33f4f888e8f2…"
+      "detail": "blake3 7fb79b8576da16d6…"
     },
     {
       "name": "the served shell RE-DERIVES to its substrate κ via OS2 BLAKE3 (≡ substrate kappa(), Law L5 / CC-51)",
       "ok": false,
-      "detail": "served 5e07f7e0c88b ≠ sealed 9eeb33f4f888"
+      "detail": "served 17145710ae07 ≠ sealed 7fb79b8576da"
     }
   ],
   "spec": "Hologram OS — one canonical holospace shell (shell.html, in OS2): the default and only launcher for every app; duplicates retired; the embed guard enforced for every app"

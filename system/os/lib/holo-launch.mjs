@@ -72,6 +72,28 @@ export function mount({ def, lock, grant } = {}) {
   };
 }
 
+// ── the FRAME BOUNDARY (Law L1/L4/L5): make the entry document location-independent ───────────────
+// A projection used to navigate its frame to a PATH (`./apps/<id>/index.html`) and trust the worker to
+// resolve it by content — so the frame's IDENTITY was a location. These two pure helpers let a projection
+// instead fetch the entry BY ITS κ, re-derive it (L5), and mount it as the frame's CONTENT (srcdoc): the
+// document IS the κ. The app's own relative subresources still need somewhere to resolve, so we inject ONE
+// <base> at the entry's canonical directory — a resolver HINT, never identity — and the worker re-derives
+// each of those to its κ in turn (Law L5). Absolute (`/_shared/…`) refs ignore the base and resolve the
+// same way; an app that already declares a <base> is left untouched.
+
+// entryBase(landing) → the canonical directory of the entry, as an origin-absolute href (the resolver hint).
+export function entryBase(landing) {
+  return "/" + String(landing).replace(/^\/+/, "").replace(/[^/]+$/, "");
+}
+
+// projectHtml(html, baseHref) → the entry document with a single <base> injected (idempotent: honors an
+// existing <base>; inserts at the start of <head>, or prepends if there is none). Pure, dependency-free.
+export function projectHtml(html, baseHref) {
+  if (/<base\s/i.test(html)) return html;
+  const tag = `<base href="${baseHref}">`;
+  return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (m) => m + tag) : tag + html;
+}
+
 // validateMount(m) → string[] — W3C well-formedness of the isolated mount (empty ⇒ valid).
 export function validateMount(m) {
   const errs = [];

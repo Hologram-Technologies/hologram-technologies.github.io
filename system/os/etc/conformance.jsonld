@@ -75,6 +75,42 @@
       "hosc:category": "Security"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#sec1-closure-anchor",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-1 (trust root) — the SW's PIN SET is itself verified. etc/os-closure.json carries every per-path κ pin; were the untrusted origin able to swap it, it could re-point every pin to forged-but-self-consistent bytes and the per-byte L5 check would pass against the forgery. So os-closure.json is re-derived against a baked anchor (CLOSURE_KAPPA in os/holo-fhs-sw.js, sealed by tools/holo-anchor-sw.mjs); a tampered or re-pointed pin set fails to re-derive and the worker fails CLOSED (refuseClosure) instead of serving the forgery. Witnessed live pure-Node: the baked anchor equals sha256(os-closure.json) so prod boots, a 1-byte tamper of the manifest breaks the anchor, re-pointing ANY single pin breaks the anchor, and the fail-closed guard is present in the fetch handler.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-1 (content is its κ; any byte that does not re-derive is refused; forgery structurally cannot occur) · Architecture Constraints §L5 — tools/holo-closure-anchor-witness.mjs; anchor os/holo-fhs-sw.js (CLOSURE_KAPPA); seal tools/holo-anchor-sw.mjs",
+      "hosc:witness": "tools/holo-closure-anchor-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec2-delegation-attenuates",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-2 (authority attenuates) — a delegated capability grant can only NARROW. The PC→NPC seam (os/usr/lib/holo/holo-delegate.mjs) wired to the wallet gate and Q authz refuses, at mint time and fail-closed, any re-delegated grant whose capabilities are not a subset of the issuer's own (attenuates()); a sovereign root PC is unbounded by design (the human approves at the gate). Witnessed live pure-Node: a child ⊄ issuer is refused, child ⊆ issuer is admitted, namespace/'*' wildcards resolve, and delegate() throws on an escalating re-delegation (e.g. an issuer holding wallet:read+spend cannot mint fs:write).",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-2 (a holospace runs under exactly its κ-addressed capability set; authority can only be attenuated) · gist §1.4 A6 (capability attenuates, never escalates) — tools/holo-delegate-witness.mjs; enforcement os/usr/lib/holo/holo-delegate.mjs (attenuates)",
+      "hosc:witness": "tools/holo-delegate-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec5-at-rest-vault",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-5 (at-rest vault) — the per-operator/guest session realm is sealed at rest with AES-GCM from a device/operator key (os/usr/lib/holo/holo-session.mjs): wrong key → null, a tampered vault → refuse, and one realm cannot read another (zero bleed). Witnessed live pure-Node. SCOPE NOTE (honest): this covers the ON-DEVICE vault only. SEC-5 per-content NETWORK confidentiality (content perceivable only via a granted κ) is a DOCUMENTED NORTH-STAR, NOT yet enforced — κ is an address, not a secret; the future path is an AEAD/epoch-key layer (harvest crates/holospaces-web/src/mls.rs). The app layer already provides real per-room E2E for collaborative content via holo-collab.js (AES-GCM, key from the link secret).",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-5 (content addressable — hence perceivable — only via its κ) — tools/holo-session-witness.mjs (at-rest); North-Star: crates/holospaces-web/src/mls.rs",
+      "hosc:witness": "tools/holo-session-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#sec6-catalog-identity",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-6 (identity is content) — every app-catalog @id is a content κ (did:holo:sha256:…), never a did:holo:slug: placeholder. A name/location is the REQUEST; the κ is the IDENTITY (SEC-6: discovery is not authority). The deployed Pages catalog (usr/share/holospaces/index.jsonld) and source catalog are 50/50 content-κ; the Tauri desktop mirror's 13 legacy slug @ids were re-keyed to each app's holospace.lock.json root (tools/holo-fix-tauri-catalog.mjs). Witnessed live pure-Node: all three catalogs carry ZERO slug @ids and every @id is a sha256 κ — fails closed if any catalog reintroduces a slug.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-6 (the located reference is the request; the κ is the identity; content verified by re-derivation; discovery is not authority) · Architecture Constraints §L1 (identity is content, not location) — tools/holo-catalog-identity-witness.mjs; fixer tools/holo-fix-tauri-catalog.mjs",
+      "hosc:witness": "tools/holo-catalog-identity-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#cc1-cc2-engine-parity",
       "@type": "hosc:ConformanceAssertion",
       "name": "CC-1/CC-2 — browser and native engines yield IDENTICAL κ. In real Chromium and in Node, the dual-axis κ (sha256 serving ⊕ BLAKE3 σ-axis) is byte-for-byte identical over the same real OS objects and edge inputs — so a Node-sealed pin (os-closure/os-served) always re-derives in the browser Service Worker (Law L5), and the σ-axis matches the reference BLAKE3 KAT (browser ≡ Node ≡ reference). Witnessed in real Chromium against the served holo-blake3.mjs + WebCrypto sha256, compared to Node's node:crypto + the same BLAKE3 module. The live Rust-wasm oracle (a third engine) stays gated on HOLO_SUBSTRATE_PKG and is not required — the KAT vectors are the reference σ-axis (pinned 20/20 by holo-blake3-witness).",

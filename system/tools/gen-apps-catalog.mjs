@@ -34,6 +34,36 @@ const lockRoot = (dir) => {
 // top-level icons. Discriminator: a `org.hologram.V86*` id or an "<OS> on (the) v86 —" summary.
 const isOsImage = (d) => /^org\.hologram\.V86/.test(d.id || "") || /\bon (?:the )?v86\b/i.test(d.summary || "");
 
+// Category corrections (catalog-only — applicationCategory is index metadata, never part of the app's
+// κ identity, so this re-tags WITHOUT changing any κ). Fixes clear mis-tags so each category chip shows
+// apps that genuinely belong (e.g. miners/explorers are Finance, storage is Utilities — not "Comms").
+const CATEGORY_FIX = {
+  // web3 → Finance
+  "org.hologram.HoloBrc": "FinanceApplication",        // BRC miner
+  "org.hologram.HoloBtc": "FinanceApplication",        // BTC miner
+  "org.hologram.HoloEtherscan": "FinanceApplication",  // chain explorer
+  "org.hologram.HoloEVM": "FinanceApplication",        // EVM, not generic Dev
+  "org.hologram.HoloTrade": "FinanceApplication",
+  // storage / infra → Utilities
+  "org.hologram.HoloIpfs": "UtilitiesApplication",
+  "org.hologram.HoloCloud": "UtilitiesApplication",
+  "org.hologram.HoloHub": "UtilitiesApplication",      // the app hub, not Business
+  "org.kde.PlasmaDesktop": "UtilitiesApplication",     // a desktop env, not its own "System"
+  // AI (a real category, not a lonely "Productivity")
+  "org.hologram.HoloQ": "AIApplication",
+  "org.hologram.QvacSdk": "AIApplication",
+  // docs/notes are Work, not "Business"
+  "org.hologram.HoloDocs": "ProductivityApplication",
+  "org.hologram.HoloNotepad": "ProductivityApplication",
+  // misc
+  "org.hologram.HoloGuide": "ReferenceApplication",    // a guide → Reference, not Social
+};
+
+// Display-name corrections (catalog-only, no κ change) — disambiguate duplicate names.
+const NAME_FIX = {
+  "org.hologram.HoloCodeDesktop": "Holo Code Desktop", // distinguish from the in-browser "Holo Code"
+};
+
 const dirs = readdirSync(join(APPS, "apps")).filter((d) => { try { return statSync(join(APPS, "apps", d)).isDirectory(); } catch { return false; } }).sort();
 const dataset = []; const slug = []; let osImages = 0;
 for (const dir of dirs) {
@@ -47,10 +77,12 @@ for (const dir of dirs) {
     "@id": kappa,                                 // identity = the app's content root κ (Law L1)
     "holo:root": kappa,                           // the standard's named single-address discovery key (SEC-6)
     "@type": d.type || ["schema:SoftwareApplication", "schema:WebApplication"],
-    "schema:name": d.name,
+    "schema:name": NAME_FIX[d.id] || d.name,
     "schema:identifier": d.id,                    // the human slug — a label, never the identity
     "schema:description": d.summary || "",
-    "schema:applicationCategory": d.applicationCategory || "Utility",
+    "schema:applicationCategory": CATEGORY_FIX[d.id] || d.applicationCategory || "Utility",
+    ...(Array.isArray(d.categories) && d.categories.length ? { "holo:categories": d.categories } : {}),
+    ...(Array.isArray(d.keywords) && d.keywords.length ? { "schema:keywords": d.keywords } : {}),
     "dcat:landingPage": `apps/${dir}/${d.entry || "index.html"}`,
     ...(d.icon ? { "schema:image": `apps/${dir}/${d.icon}` } : {}),
     ...(Array.isArray(d.shared) && d.shared.length ? { "schema:softwareRequirements": d.shared } : {}),

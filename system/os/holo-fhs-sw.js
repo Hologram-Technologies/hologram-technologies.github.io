@@ -224,6 +224,14 @@ const archiveStore = () => (ARCHIVES ||= makeArchiveStore());   // shares db/sto
 let BYPATH = null;    // os-relative path → sha256 hex (the verification pins)
 let CSPRO = null;     // serve-rel HTML name → strict CSP, served Report-Only (etc/boot-csp.json, tools/csp-hashes.mjs)
 const APPLOCK = new Set();   // app-ids whose lock closure has been folded into the pins (lazy, L5 for app bytes)
+// ── G1 / SEC-1 — the TRUST ROOT. etc/os-closure.json carries every per-path κ pin; were the origin able to
+// swap it, it could re-point every pin to forged-but-self-consistent bytes and the per-byte L5 check below
+// would pass against the forgery. So the pin set itself is verified: re-derive os-closure.json against this
+// baked anchor — the ONE κ a tamperer cannot forge without also editing this worker, which the browser loads
+// out-of-band (SW registration / SRI), never through the handler it defines. Sealed by tools/holo-anchor-sw.mjs
+// on every reseal. Empty string ⇒ an unsealed dev tree → enforcement off (no false refusal before first seal).
+const CLOSURE_KAPPA = "a06fb6e2bfd77862db06a7974801f8084d39c2e8493c45ed5e70554ba5a6ec3e";
+let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {
     const k = typeof v === "string" ? v : (v.kappa || v.did || v["@id"] || "");
@@ -235,7 +243,11 @@ function foldClosure(closure) {
 async function loadClosure() {
   if (BYPATH) return;
   BYHEX = new Map(); BYBLAKE = new Map(); BYPATH = new Map(); CSPRO = new Map();
-  try { foldClosure((await (await fetch(BASE + "etc/os-closure.json", { cache: "no-store" })).json()).closure); }
+  try {
+    const buf = await (await fetch(BASE + "etc/os-closure.json", { cache: "no-store" })).arrayBuffer();
+    if (CLOSURE_KAPPA && !DEV && (await sha256hex(buf)) !== CLOSURE_KAPPA) { CLOSURE_TRUSTED = false; return; }   // G1/SEC-1: tampered pin set → fail CLOSED (handler refuses every request)
+    foldClosure(JSON.parse(new TextDecoder().decode(buf)).closure);
+  }
   catch { /* no closure → serve unverified (flat mapping still works) */ }
   // Strict per-page CSP for the boot screens, served REPORT-ONLY (observe, never block) until a browser
   // pass confirms zero violations — then promoted to the enforcing header. Hash-derived (not nonce-based)
@@ -391,6 +403,8 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
 </script>
 </body></html>`;
 const refuse = (rel, want, got, axis = "sha256") => new Response(refuseHtml(rel, want, got, axis), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
+// G1/SEC-1: the pin set itself failed to re-derive against the baked anchor → the whole boot is untrusted. Fail closed.
+const refuseClosure = () => new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
 
 // ── SERVERLESS MCP — the SW answers the Model Context Protocol with NO origin server (Law L1/L4).
 // Discovery (GET .well-known/mcp.json + /~<app>/.well-known/mcp.json) and JSON-RPC (POST /mcp +
@@ -525,6 +539,7 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith((async () => {
     await loadClosure();
+    if (!CLOSURE_TRUSTED) return refuseClosure();              // G1/SEC-1: baked anchor present but os-closure.json did not re-derive → refuse all
     let rel = decodeURIComponent(url.pathname.slice(BASE.length)).replace(/^\/+/, "");
     if (rel === "" || rel.endsWith("/")) rel += "index.html";
 

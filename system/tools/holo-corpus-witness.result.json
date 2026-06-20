@@ -1,11 +1,12 @@
 {
-  "witnessed": false,
-  "passed": 4,
-  "failed": 1,
-  "files": 34611,
-  "objects": 29895,
-  "sampled": 29058,
+  "witnessed": true,
+  "passed": 5,
+  "failed": 0,
+  "files": 34830,
+  "objects": 34830,
+  "sampled": 33818,
   "covers": [
+    "every first-party file in both folders is a firs",
     "no orphan objects — every index entry exists on ",
     "every object is dual-axis — did:holo:sha256 ⊕ di",
     "a bounded sample RE-DERIVES to both κ — content ",
@@ -14,28 +15,28 @@
   "results": [
     {
       "name": "every first-party file in both folders is a first-class addressed object (full coverage)",
-      "ok": false,
-      "detail": "29895/34611 files indexed · 4716 live-churn: 0113-holo-dial.md, 0114-holo-forge-unified.md, holo-forge-authz-spec.md"
+      "ok": true,
+      "detail": "34830/34830 files indexed"
     },
     {
       "name": "no orphan objects — every index entry exists on disk",
       "ok": true,
-      "detail": "29895 entries"
+      "detail": "34830 entries"
     },
     {
       "name": "every object is dual-axis — did:holo:sha256 ⊕ did:holo:blake3 (substrate σ-axis)",
       "ok": true,
-      "detail": "29895/29895"
+      "detail": "34830/34830"
     },
     {
       "name": "a bounded sample RE-DERIVES to both κ — content addresses, not arbitrary (Law L5)",
       "ok": true,
-      "detail": "29003/29058 re-derive · 55 live-churn: manifesto.html, index.html, README.md"
+      "detail": "33813/33818 re-derive · 5 live-churn: os-closure.json, os-served.json, holo-q-faculty-bridge-witness.mjs"
     },
     {
       "name": "the index is deterministic (sorted keys, no timestamps) → re-derives byte-for-byte",
       "ok": true,
-      "detail": "count 29895"
+      "detail": "count 34830"
     }
   ],
   "spec": "Every first-party file in Hologram OS2 + Hologram Apps is a first-class attribute-addressed object on the unified UOR substrate (dual-axis did:holo:sha256 ⊕ did:holo:blake3), re-derivable (Law L5)"

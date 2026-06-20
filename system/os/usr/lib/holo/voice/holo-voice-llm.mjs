@@ -20,6 +20,11 @@ const DEFAULTS = {
   maxTokens: 256,
   preferWebGPU: false,    // WASM floor is the default; opt into WebGPU after verifying it on real HW.
   proxy: true,            // run onnxruntime-web in a Web Worker so load/generation never freezes the UI.
+  // κ-served brain (opt-in): serve the brain's ONNX files from its .holo (HTTP-Range + per-block L5 + OPFS +
+  // serverless) into the SAME transformers.js engine — so the any-browser WASM floor is content-addressed/warm,
+  // not a flat download. Activates only for the spec whose model === knativeServe.modelId; ANY failure restores
+  // fetch + falls back to the vendored ONNX. null = off. (Pending: forge + pin the brain ONNX file-bundle .holo.)
+  knativeServe: null,     // e.g. { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "…/qwen2.5-0.5b-onnx.holo", modelId: "onnx-community/Qwen2.5-0.5B-Instruct" }
 };
 
 function moduleBase() {
@@ -50,19 +55,29 @@ export function createLLM(opts = {}) {
         }
       }
       const prog = (p) => { try { onProgress && onProgress({ phase: p.status || "load", file: p.file, loaded: p.loaded, total: p.total }); } catch (e) {} };
-      const build = (device, spec) => pipeline("text-generation", spec.model, { device, dtype: spec.dtype, progress_callback: prog });
+      // κ-served brain: install the .holo fetch shim for the spec whose model matches knativeServe.modelId,
+      // BEFORE that spec loads, so its ONNX files are served by content address. Restores + falls back on failure.
+      let kserve = null;
+      const installServe = async (modelId) => {
+        if (kserve || !cfg.knativeServe || !cfg.knativeServe.module || !cfg.knativeServe.holoUrl || cfg.knativeServe.modelId !== modelId) return;
+        try { const km = await import(/* @vite-ignore */ new URL(cfg.knativeServe.module, base).href);
+          kserve = await (km.serveModelFromHolo || km.default)({ holoUrl: new URL(cfg.knativeServe.holoUrl, base).href, modelId, release: cfg.knativeServe.release || "" });
+        } catch (e) { try { console.warn("[HoloVoice LLM] κ-served brain unavailable, using vendored ONNX:", e && e.message || e); } catch (_) {} kserve = null; }
+      };
+      const build = async (device, spec) => { await installServe(spec.model); try { return await pipeline("text-generation", spec.model, { device, dtype: spec.dtype, progress_callback: prog }); } catch (e) { if (kserve) { try { kserve.restore(); } catch (_) {} kserve = null; } throw e; } };
+      const eng = () => kserve ? "transformers-κserved" : "transformers";
       const wantGPU = cfg.preferWebGPU && (await hasWebGPU());
       try {
-        if (wantGPU) { pipe = await build("webgpu", cfg.webgpu); info = { ready: true, model: cfg.webgpu.model, device: "webgpu", dtype: cfg.webgpu.dtype }; return info; }
+        if (wantGPU) { pipe = await build("webgpu", cfg.webgpu); info = { ready: true, engine: eng(), model: cfg.webgpu.model, device: "webgpu", dtype: cfg.webgpu.dtype }; return info; }
       } catch (e) { /* WebGPU path failed → fall through to the WASM floor (any browser) */ }
       try {
         pipe = await build("wasm", cfg.wasm);
-        info = { ready: true, model: cfg.wasm.model, device: "wasm", dtype: cfg.wasm.dtype };
+        info = { ready: true, engine: eng(), model: cfg.wasm.model, device: "wasm", dtype: cfg.wasm.dtype };
         return info;
       } catch (e) {                                                    // coder not vendored / failed → the lighter 0.5B floor
         if (!cfg.wasmFallback || cfg.wasmFallback.model === cfg.wasm.model) throw e;
         pipe = await build("wasm", cfg.wasmFallback);
-        info = { ready: true, model: cfg.wasmFallback.model, device: "wasm", dtype: cfg.wasmFallback.dtype };
+        info = { ready: true, engine: eng(), model: cfg.wasmFallback.model, device: "wasm", dtype: cfg.wasmFallback.dtype };
         return info;
       }
     })().catch((e) => { loading = null; throw e; });

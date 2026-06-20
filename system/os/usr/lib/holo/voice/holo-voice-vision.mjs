@@ -16,6 +16,10 @@ const DEFAULTS = {
   dtype: { embed_tokens: "q8", vision_encoder: "q8", decoder_model_merged: "q8" },   // q8 → the _quantized ONNX files
   maxTokens: 256,
   proxy: true,            // ORT in a Web Worker → encoding + generation never freeze the UI
+  // κ-served sight (opt-in): serve SmolVLM's 3 ONNX files + configs from its .holo (HTTP-Range + per-block L5
+  // + OPFS warm cache + serverless multi-source) into the SAME transformers.js engine — content-addressed
+  // delivery, no engine change. ANY failure restores fetch + falls back to the vendored ONNX. null = off.
+  knative: null,          // e.g. { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "…/smolvlm-256m.holo" }
 };
 
 function moduleBase() {
@@ -43,9 +47,20 @@ export function createVision(opts = {}) {
         }
       }
       const prog = (p) => { try { onProgress && onProgress({ phase: p.status || "load", file: p.file, loaded: p.loaded, total: p.total }); } catch (e) {} };
-      processor = await AutoProcessor.from_pretrained(cfg.model, { progress_callback: prog });
-      model = await AutoModelForVision2Seq.from_pretrained(cfg.model, { dtype: cfg.dtype, device: "wasm", progress_callback: prog });
-      info = { ready: true, model: cfg.model, device: "wasm" };
+      // κ-served sight (opt-in): install the .holo fetch shim BEFORE the model loads, so SmolVLM's 3 ONNX
+      // sessions + configs are served by content address. Transparently falls back to vendored ONNX on failure.
+      let kserve = null;
+      if (cfg.knative && cfg.knative.module && cfg.knative.holoUrl) {
+        try {
+          const km = await import(/* @vite-ignore */ new URL(cfg.knative.module, base).href);
+          kserve = await (km.serveModelFromHolo || km.default)({ holoUrl: new URL(cfg.knative.holoUrl, base).href, modelId: cfg.knative.modelId || cfg.model, release: cfg.knative.release || "" });
+        } catch (e) { try { console.warn("[HoloVoice Vision] κ-served model unavailable, using vendored ONNX:", e && e.message || e); } catch (_) {} kserve = null; }
+      }
+      try {
+        processor = await AutoProcessor.from_pretrained(cfg.model, { progress_callback: prog });
+        model = await AutoModelForVision2Seq.from_pretrained(cfg.model, { dtype: cfg.dtype, device: "wasm", progress_callback: prog });
+      } catch (e) { if (kserve) { try { kserve.restore(); } catch (_) {} } throw e; }   // κ-served load failed → un-shim so the caller's fallback fetches the vendored files
+      info = { ready: true, model: cfg.model, device: "wasm", engine: kserve ? "vision-κserved" : "vision-onnx", servedFromHolo: kserve ? kserve.served.length : 0 };
       return info;
     })().catch((e) => { loading = null; throw e; });
     return loading;

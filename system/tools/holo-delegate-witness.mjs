@@ -4,7 +4,7 @@
 import { principalFromSeed } from "../os/usr/lib/holo/holo-login.mjs";
 import { firstRun } from "../os/usr/lib/holo/holo-ceremony.mjs";
 import { generateMnemonic, seedFromMnemonic } from "../os/usr/lib/holo/holo-wdk.js";
-import { mintNpc, delegate, verifyDelegation, openDelegation, grants, authorizeRequest } from "../os/usr/lib/holo/holo-delegate.mjs";
+import { mintNpc, delegate, verifyDelegation, openDelegation, grants, authorizeRequest, attenuates } from "../os/usr/lib/holo/holo-delegate.mjs";
 
 let pass = 0, fail = 0;
 const ok = (n, c) => { (c ? pass++ : fail++); console.log(`  ${c ? "✓" : "✗"}  ${n}`); };
@@ -56,6 +56,23 @@ ok("read-only grant CAN read an address", authorizeRequest(readGrant, { kind: "a
 ok("a revoked agent is refused", authorizeRequest(spendGrant, { kind: "send", revoked: [spender.kappa] }).ok === false);
 ok("an expired grant is refused at the seam", authorizeRequest((await delegate(pc, spender, { capabilities: ["wallet:spend"], notAfter: "2000-01-01T00:00:00Z" })).credential, { kind: "send", nowIso: "2026-06-15T00:00:00Z" }).ok === false);
 ok("no delegation ⇒ not an agent request (governed elsewhere)", authorizeRequest(null, { kind: "send" }).ok === true && authorizeRequest(null, {}).agent === null);
+
+// ── SEC-2 / A6 ATTENUATION: authority can only NARROW. A delegated issuer (an NPC re-delegating) may grant
+//    only a subset of what it holds; escalation fails CLOSED at mint time. A sovereign root PC is unbounded. ──
+ok("attenuates: sovereign root (null) may grant anything", attenuates(null, ["wallet:spend", "q:create"]) === true);
+ok("attenuates: child ⊆ issuer admitted", attenuates(["wallet:read", "wallet:spend"], ["wallet:read"]) === true);
+ok("attenuates: child ⊄ issuer refused (escalation)", attenuates(["wallet:read"], ["wallet:spend"]) === false);
+ok("attenuates: wildcard namespace honoured", attenuates(["wallet:*"], ["wallet:spend", "wallet:read"]) === true);
+ok("attenuates: '*' grants all", attenuates(["*"], ["anything:goes"]) === true);
+
+// the delegated NPC `spender` (holds wallet:read+spend) re-delegates to a sub-agent
+let escalated = false;
+try { await delegate(pc, mintNpc("SubAgent"), { capabilities: ["wallet:spend", "fs:write"], issuerCaps: ["wallet:read", "wallet:spend"] }); }
+catch { escalated = true; }
+ok("delegate() REFUSES a re-delegated grant exceeding the issuer (fs:write)", escalated);
+const { credential: subGrant } = await delegate(pc, mintNpc("SubAgent2"),
+  { capabilities: ["wallet:read"], issuerCaps: ["wallet:read", "wallet:spend"], notAfter: "2030-01-01T00:00:00Z" });
+ok("delegate() ADMITS a re-delegated grant within the issuer (wallet:read)", !!verifyDelegation(subGrant));
 
 console.log(`\n${fail ? "WITNESS FAILED" : "WITNESSED ✓"}  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

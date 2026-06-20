@@ -36,6 +36,11 @@ const DEFAULTS = {
   // forward, no transformers.js/ONNX. Set { module, holoUrl } (resolved relative to this module) to
   // enable; ANY failure transparently falls back to the transformers path below. null = off.
   knativeEar: null,       // e.g. { module: "../../q/forge/gpu/holo-whisper-ear.mjs", holoUrl: "…/whisper-base.holo" }
+  // κ-served WASM fallback (opt-in): when the κ-native ear is off (no WebGPU) and the transformers/ONNX path
+  // runs, serve Whisper's ONNX files from its .holo (HTTP-Range + per-block L5 + OPFS + serverless) into the
+  // SAME engine — so the any-browser floor is ALSO content-addressed/warm/serverless, not a flat download.
+  // ANY failure restores fetch + falls back to the vendored ONNX files. null = off. Same shim every faculty uses.
+  knativeServe: null,     // e.g. { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "…/whisper-tiny-onnx.holo" }
   lang: "en",
 };
 
@@ -89,15 +94,25 @@ export function createASR(opts = {}) {
         try { if (!webgpu && cfg.proxy !== false && env.backends && env.backends.onnx && env.backends.onnx.wasm) env.backends.onnx.wasm.proxy = true; } catch (e) {}
       }
       const prog = (p) => { try { onProgress && onProgress({ phase: p.status || "load", file: p.file, loaded: p.loaded, total: p.total, device, model }); } catch (e) {} };
+      // κ-served WASM fallback: install the .holo fetch shim BEFORE the pipeline loads, so Whisper's ONNX files
+      // are served by content address. Transparently falls back to vendored ONNX on any failure.
+      let kserve = null;
+      if (cfg.knativeServe && cfg.knativeServe.module && cfg.knativeServe.holoUrl) {
+        try {
+          const km = await import(/* @vite-ignore */ new URL(cfg.knativeServe.module, base).href);
+          kserve = await (km.serveModelFromHolo || km.default)({ holoUrl: new URL(cfg.knativeServe.holoUrl, base).href, modelId: cfg.knativeServe.modelId || model, release: cfg.knativeServe.release || "" });
+        } catch (e) { try { console.warn("[HoloVoice ASR] κ-served fallback unavailable, using vendored ONNX:", e && e.message || e); } catch (_) {} kserve = null; }
+      }
       const dtype = cfg.quantized ? "q8" : "fp32";
       const build = (m) => pipeline("automatic-speech-recognition", m, { device, dtype, progress_callback: prog });
       let used = model;
       try { pipe = await build(model); }
       catch (e) {                                                        // tiny not vendored (or load failed) → fall back to base
+        if (kserve) { try { kserve.restore(); } catch (_) {} kserve = null; }   // the κ-served tiny failed → un-shim so base loads vendored
         if (!webgpu && cfg.modelWASMFallback && cfg.modelWASMFallback !== model) { used = cfg.modelWASMFallback; pipe = await build(used); }
         else throw e;
       }
-      info = { ready: true, engine: "transformers", model: used, device };
+      info = { ready: true, engine: kserve ? "transformers-κserved" : "transformers", model: used, device, servedFromHolo: kserve ? kserve.served.length : 0 };
       return info;
     })().catch((e) => { loading = null; throw e; });
     return loading;

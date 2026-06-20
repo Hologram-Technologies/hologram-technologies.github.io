@@ -40,6 +40,17 @@ const TARGETS = [
   { rel: "login.html", file: join(OS, "usr/share/frame/login.html") },
 ];
 
+// G3 (Law L5): the app platform pages can't take a hash-only script-src (too many inline blocks/handlers)
+// and they legitimately reach the network. So they get a NARROWER policy whose ONLY job is to forbid
+// cross-origin CODE EXECUTION: script-src locked to 'self'+wasm+inline (no https: origin), connect-src
+// left unrestricted (no default-src ⇒ data fetches stay open, governed by Law L4 not CSP). Emitted as a
+// fixed string (not hash-derived) so it survives regeneration; still served Report-Only by the SW.
+const SCRIPT_LOCK = "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'";
+const PLATFORM = [
+  { rel: "shell.html", file: join(OS, "usr/share/frame/shell.html") },
+  { rel: "home-screen.html", file: join(OS, "usr/share/frame/home-screen.html") },
+];
+
 // A CSP hash-source MUST be single-quoted (`'sha256-…'`); unquoted it is an invalid source expression
 // the browser silently ignores — which would drop script-src to just 'self' and block every inline block.
 const b64sha256 = (text) => "'sha256-" + createHash("sha256").update(text, "utf8").digest("base64") + "'";
@@ -108,6 +119,22 @@ for (const t of TARGETS) {
   if (styles) { blockers++; console.log(`      ⚠ ENFORCE-BLOCKER — ${styles} inline style="" attribute(s) (move to a <style> block / class, or style-src needs 'unsafe-inline')`); }
   if (ext.length) { blockers++; console.log(`      ⚠ ENFORCE-BLOCKER — cross-origin ref(s): ${ext.join(", ")} (add the origin to the matching directive)`); }
   if (!handlers.length && !styles && !ext.length) console.log(`      ✓ no enforcement blockers — safe to promote Report-Only → enforcing after a browser pass`);
+}
+
+// G3: the platform pages carry only the cross-origin-CODE lock (script-src), reported for code offenders.
+manifest["_shell_comment"] = "shell.html / home-screen.html are the APP PLATFORM, not a controlled boot screen: many inline scripts/handlers + real network reach (RPCs, gateways, peers, governed import fetch). A hash-only script-src is infeasible; the G3 goal is narrower — forbid cross-origin CODE EXECUTION. script-src locks to 'self'+wasm+inline (no https: origin serves a script/module); connect-src stays open (data fetches governed by Law L4, not CSP). Report-Only until a browser pass.";
+for (const t of PLATFORM) {
+  if (!existsSync(t.file)) { console.log(`  ?  ${t.rel} — not found, skipped`); continue; }
+  const html = readFileSync(t.file, "utf8");
+  const codeLoads = [
+    ...html.matchAll(/\bimport\s*\(\s*["']https?:\/\/[^"']+/gi),
+    ...html.matchAll(/\bimport\b[^;'"]*?\bfrom\s*["']https?:\/\/[^"']+/gi),
+    ...html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']https?:\/\//gi),
+  ];
+  manifest[t.rel] = SCRIPT_LOCK;
+  console.log(`\n  ◆ ${t.rel} (platform — script-src lock only)`);
+  if (codeLoads.length) { blockers++; console.log(`      ⚠ G3 BLOCKER — ${codeLoads.length} cross-origin CODE load(s) remain; vendor them before promoting to enforcing`); }
+  else console.log(`      ✓ no cross-origin code load — safe to promote Report-Only → enforcing after a browser pass`);
 }
 
 if (!checkOnly) { writeFileSync(OUT, JSON.stringify(manifest, null, 2) + "\n"); console.log(`\nwrote ${OUT}`); }

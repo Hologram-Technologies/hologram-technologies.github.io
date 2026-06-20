@@ -1,8 +1,8 @@
 {
   "witnessed": false,
-  "passed": 5,
-  "failed": 3,
-  "apps": 48,
+  "passed": 6,
+  "failed": 2,
+  "apps": 154,
   "sample": [
     "files",
     "notepad",
@@ -16,23 +16,24 @@
     "EVERY closure entry of EVERY app carries its κ — no app byte",
     "a sampled leaf of EVERY app RE-DERIVES to its pinned κ — app",
     "the ONE Holo Runtime Service Worker controls the page — ever",
+    "each sampled app SELF-RESOLVES by its content address — its ",
     "a wrong κ is REFUSED for every sampled app — the origin is o"
   ],
   "results": [
     {
       "name": "EVERY app has a single content-derived ROOT κ — the whole app collapses to one address you can share",
       "ok": true,
-      "detail": "48/48 apps"
+      "detail": "154/154 apps"
     },
     {
       "name": "EVERY closure entry of EVERY app carries its κ — no app byte is trusted by location (Law L1)",
       "ok": true,
-      "detail": "48/48 apps fully κ-pinned"
+      "detail": "154/154 apps fully κ-pinned"
     },
     {
       "name": "a sampled leaf of EVERY app RE-DERIVES to its pinned κ — apps self-resolve from content, not path (Law L5)",
       "ok": true,
-      "detail": "48/48 re-derive"
+      "detail": "154/154 re-derive"
     },
     {
       "name": "the ONE Holo Runtime Service Worker controls the page — every app is delivered through it (no per-app opt-in)",
@@ -42,17 +43,17 @@
     {
       "name": "each sampled app's 1st open verifies + fills the κ-cache (cache MISS, Law L5)",
       "ok": false,
-      "detail": "files:null notepad:null btc:null search:null git:null forge:null"
+      "detail": "files:dev-fresh notepad:dev-fresh btc:dev-fresh search:dev-fresh git:dev-fresh forge:dev-fresh"
     },
     {
       "name": "each sampled app's 2nd open is NETWORK-FREE from the κ-keyed content cache (x-holo-cache: hit) — the runtime advantage",
       "ok": false,
-      "detail": "files:null notepad:null btc:null search:null git:null forge:null"
+      "detail": "files:dev-fresh notepad:dev-fresh btc:dev-fresh search:dev-fresh git:dev-fresh forge:dev-fresh"
     },
     {
       "name": "each sampled app SELF-RESOLVES by its content address — its index returns from the κ-route and the bytes match its κ",
-      "ok": false,
-      "detail": "files:✗ notepad:✗ btc:✗ search:✗ git:✗ forge:✗"
+      "ok": true,
+      "detail": "files:✓ notepad:✓ btc:✓ search:✓ git:✓ forge:✓"
     },
     {
       "name": "a wrong κ is REFUSED for every sampled app — the origin is one untrusted CDN (Law L5)",

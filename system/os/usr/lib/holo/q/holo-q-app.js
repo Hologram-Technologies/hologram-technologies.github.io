@@ -40,6 +40,7 @@ export function createQClient({ target, source } = {}) {
     ask: (text, context, onDelta) => call("q.ask", { text, context: context || null }, onDelta),
     create: (text, context) => call("q.create", { text, context: context || null }),
     act: (text, context) => call("q.act", { text, context: context || null }),               // governed OS action
+    dictate: () => call("q.dictate", {}),                                                     // one-shot on-device ear → transcript
     // FACULTY BRIDGE (Fork 2): the app reaches the SAME Q's faculties — read the OS reflection + contribute to
     // the user model. The raw model never crosses the frame; trust/privileged surfaces are refused host-side.
     coherence: () => call("q.coherence", {}),
@@ -62,6 +63,7 @@ export function installQApp(opts = {}) {
     ask: (text, onDelta) => client.ask(text, appContext(), onDelta),
     create: (text) => client.create(text, appContext()),
     act: (text) => client.act(text, appContext()),
+    dictate: () => client.dictate(),                              // capture one utterance → on-device transcript
     // same faculty names as the shell Q, so an app reads the one Q's reflection + contributes to the user model.
     coherence: () => client.coherence(),
     briefing: () => client.briefing(),
@@ -98,6 +100,7 @@ export function createQServe({ Q, summon } = {}) {
       if (method === "q.ask") { const ans = await Q.ask(String(args.text || ""), { context: ctxFrom(args.context, caller), grounding: ground(String(args.text || "")) }); return { result: ans != null ? ans : "" }; }
       if (method === "q.create") { const r = await Q.agent(String(args.text || ""), { caller: caller, params: { current: (args.context && args.context.source) || null, grounding: ground(String(args.text || "")) } }); return { result: r }; }
       if (method === "q.act") { const r = await Q.act(String(args.text || ""), { caller: caller, context: args.context || null }); return { result: r }; }   // GOVERNED OS action from an app/agent
+      if (method === "q.dictate") { const hv = (typeof window !== "undefined" && window.HoloVoice); const t = (hv && typeof hv.dictate === "function") ? await hv.dictate() : ""; return { result: t || "" }; }   // one-shot on-device ear → transcript (host owns the mic)
       return { error: "unsupported q method: " + method };
     } catch (e) { return { error: String((e && e.message) || e) }; }
   };

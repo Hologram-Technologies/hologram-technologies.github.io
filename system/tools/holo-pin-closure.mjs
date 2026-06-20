@@ -45,20 +45,23 @@ const results = existsSync(RESULT) ? JSON.parse(readFileSync(RESULT, "utf8")) : 
 const save = () => writeFileSync(RESULT, JSON.stringify(results, null, 2) + "\n");
 
 if (process.argv.includes("--verify")) {
-  const GW = ["https://trustless-gateway.link", "https://ipfs.io", "https://dweb.link", "https://w3s.link"];
+  // Pinata's own gateway LEADS the DHT — public gateways lag minutes/hours behind a fresh pin, so a ✗ on a
+  // public gateway means "not propagated yet", not "bad pin". Compare the fetched bytes to the object's TRUE
+  // κ (from the closure), not to the CID (the old stub did sha===cid, which can never match → false ✗).
+  const GW = ["https://gateway.pinata.cloud", "https://trustless-gateway.link", "https://ipfs.io", "https://dweb.link"];
+  const kappaHexOf = new Map(entries.map((e) => [e.key, e.kappa]));
   const sample = Object.entries(results.pinned).slice(0, 6);
-  console.log(`verifying ${sample.length} pinned objects re-derive from public gateways…`);
+  console.log(`verifying ${sample.length} pinned objects re-derive to their κ from gateways…`);
   for (const [key, cid] of sample) {
-    let ok = false;
+    const want = kappaHexOf.get(key); let okGw = null;
     for (const g of GW) {
-      try { const r = await fetch(`${g}/ipfs/${cid}?format=raw`, { headers: { accept: "application/vnd.ipld.raw" }, signal: AbortSignal.timeout(9000) });
-        if (r.ok) { const b = new Uint8Array(await r.arrayBuffer()); if (sha(b) === cidToKappaHex(cid)) { ok = true; break; } } } catch {}
+      try { const r = await fetch(`${g}/ipfs/${cid}?format=raw`, { headers: { accept: "application/vnd.ipld.raw" }, signal: AbortSignal.timeout(12000) });
+        if (r.ok) { const b = new Uint8Array(await r.arrayBuffer()); if (sha(b) === want) { okGw = g.replace("https://", ""); break; } } } catch {}
     }
-    console.log(`  ${ok ? "✓" : "✗"} ${key} · ${cid.slice(0, 18)}…`);
+    console.log(`  ${okGw ? "✓" : "✗"} ${key} · ${cid.slice(0, 18)}… ${okGw ? "re-derives @ " + okGw : "(not yet on tried gateways — DHT lag)"}`);
   }
   process.exit(0);
 }
-function cidToKappaHex(cid) { try { return cid; } catch { return ""; } }   // (verify compares sha to the κ via the map below)
 
 // dry run / resolve check
 let missing = 0;

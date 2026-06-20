@@ -77,6 +77,10 @@ export function createOrb(canvas, opts) {
   var D = JSON.parse(JSON.stringify(opts.descriptor || ORB_DESCRIPTOR));
   if (opts.detail != null) D.geometry.detail = opts.detail;
   if (opts.spin != null) { D.motion.spinY *= opts.spin; D.motion.spinX *= opts.spin; }
+  // optional max device-pixel-ratio cap (default 2). A caller wanting MAXIMUM sharpness on a Hi-DPI phone
+  // can raise this (e.g. to the device's full dpr) for a crisp, hyper-real wireframe; the frame-time
+  // adaptive loop still backs off under load, so quality is high by default and never at the cost of fps.
+  var PRCAP = Math.max(1, opts.maxPixelRatio || 2);
   var radius = D.geometry.radius, getLevel = typeof opts.level === "function" ? opts.level : function () { return 0; };
   var getColor = typeof opts.color === "function" ? opts.color : function () { return null; };
   var noise = createNoise3D();
@@ -92,7 +96,7 @@ export function createOrb(canvas, opts) {
   scene.add(camera);
 
   var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PRCAP));
 
   // the SPECTRUM stops as rgb (0..1) — parsed from the κ descriptor (same colours as the omnibar outline)
   var SPEC = D.spectrum || ORB_DESCRIPTOR.spectrum;
@@ -264,7 +268,7 @@ export function createOrb(canvas, opts) {
   resize();
 
   var raf = 0, running = false;
-  var _lastT = 0, _emaDt = 0, _fc = 0, _prCap = Math.min(window.devicePixelRatio || 1, 2), _pr = _prCap;
+  var _lastT = 0, _emaDt = 0, _fc = 0, _prCap = Math.min(window.devicePixelRatio || 1, PRCAP), _pr = _prCap;
   var _rmq = null; try { _rmq = window.matchMedia("(prefers-reduced-motion: reduce)"); } catch (e) {}
   // one frame: spin, run the transform stack (deform + spectrum), render. Exposed as step() for
   // deterministic/manual rendering; frame() adds the rAF loop + frame-time adaptive resolution.

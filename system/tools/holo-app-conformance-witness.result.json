@@ -1,7 +1,7 @@
 {
   "spec": "Every holospace application is a self-contained, shareable, provenance-tracked κ-holospace: it runs in the ONE canonical shell (P1), is a sealed serverless κ-object with no undeclared backend (P2), is named by a content address resolvable by any transport tier (P3), is discoverable + launchable from its single root κ via the one door (P4), is shareable as a link with a per-app social card (P5), and embeds an out-of-band κ-addressed version chain with per-version creator κ for programmatic royalties (P6). Enforced as a RATCHET over the served app repo: no app may LOSE a property, so conformance only increases. Properties not yet met are reported RED, never faked green (Law L5).",
   "authority": "ADR-0112 over ADR-0109 (Share) · ADR-0105/0106 (Workspace Sync + Session capture) · ADR-0082 (PROV-O) · ADR-0111 (Boot root + CSP/clickjacking floor) · ADR-0103 (Omni resolver) · #app-mobile-conformance (ratchet template) · Gateway launcher · static analysis of the served app repo + apps/index.jsonld",
-  "witnessed": false,
+  "witnessed": true,
   "covers": [
     "canonical-shell",
     "self-contained",
@@ -15,13 +15,13 @@
     "ratchet",
     "honest-null"
   ],
-  "appsScanned": 153,
+  "appsScanned": 155,
   "perProperty": {
-    "P1": 153,
-    "P2": 151,
-    "P3": 153,
-    "P4": 0,
-    "P5": 52,
+    "P1": 155,
+    "P2": 152,
+    "P3": 154,
+    "P4": 50,
+    "P5": 50,
     "P6": 0
   },
   "fullyConformant": 0,
@@ -31,7 +31,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -39,7 +39,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -47,7 +47,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -55,7 +55,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -63,7 +63,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -71,7 +71,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -79,7 +79,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -87,15 +87,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
-      "share-as-link": true,
-      "provenance": false
-    },
-    "buildroot": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -103,7 +95,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -111,7 +103,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -119,7 +111,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -127,7 +119,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -135,7 +127,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -143,7 +135,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -151,7 +143,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -159,7 +151,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -167,7 +159,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -175,7 +167,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -183,15 +175,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
-      "share-as-link": true,
-      "provenance": false
-    },
-    "freedos": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -199,7 +183,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -207,7 +191,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -215,7 +199,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -223,7 +207,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -231,7 +215,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -239,7 +223,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -247,7 +231,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -255,7 +239,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -263,15 +247,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
-      "share-as-link": true,
-      "provenance": false
-    },
-    "kolibri": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -279,7 +255,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -287,7 +263,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -295,7 +271,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -303,7 +279,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -311,7 +287,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -319,7 +295,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -327,7 +303,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -335,7 +311,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -343,7 +319,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -351,7 +327,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -359,7 +335,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -367,7 +343,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -375,7 +351,15 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "spaces": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -383,7 +367,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -391,7 +375,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -399,7 +383,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -407,7 +391,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -415,7 +399,7 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -423,7 +407,23 @@
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
-      "single-address": false,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "browser": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "etherscan": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": true,
+      "single-address": true,
       "share-as-link": true,
       "provenance": false
     },
@@ -563,12 +563,12 @@
       "share-as-link": false,
       "provenance": false
     },
-    "browser": {
+    "buildroot": {
       "canonical-shell": true,
-      "self-contained": false,
+      "self-contained": true,
       "storage-agnostic": true,
       "single-address": false,
-      "share-as-link": true,
+      "share-as-link": false,
       "provenance": false
     },
     "buildroot6": {
@@ -659,14 +659,6 @@
       "share-as-link": false,
       "provenance": false
     },
-    "etherscan": {
-      "canonical-shell": true,
-      "self-contained": false,
-      "storage-agnostic": true,
-      "single-address": false,
-      "share-as-link": true,
-      "provenance": false
-    },
     "floppybird": {
       "canonical-shell": true,
       "self-contained": true,
@@ -676,6 +668,14 @@
       "provenance": false
     },
     "forthos": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
+    },
+    "freedos": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -748,6 +748,14 @@
       "provenance": false
     },
     "jx": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
+    },
+    "kolibri": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -1250,386 +1258,15 @@
       "single-address": false,
       "share-as-link": false,
       "provenance": false
+    },
+    "plus": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": false,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
     }
   },
-  "regressions": [
-    {
-      "app": "amp",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "atlas",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "atlas96",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "book",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "brcminer",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "browser",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "btc",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "capture",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "cloud",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "code",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "code-desktop",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "control",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "cosmos",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "docs",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "etherscan",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "evm",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "f1",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "files",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "forge",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "git",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "hub",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "ipfs",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "jypyter",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "liberty",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "meet",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "music",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "notepad",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "notepadpp",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "os",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "plasma",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "player",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "privacy",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "q",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "qemu",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "qvac",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "search",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "stream",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "terms",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "trade",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "ui",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "video",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    },
-    {
-      "app": "workspace",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    }
-  ]
+  "regressions": []
 }

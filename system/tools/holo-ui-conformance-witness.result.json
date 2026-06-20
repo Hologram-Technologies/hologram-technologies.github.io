@@ -19,7 +19,7 @@
     "holo-mobile.css floors form controls to --holo-font-min": true
   },
   "contractOk": true,
-  "scanned": 123,
+  "scanned": 125,
   "fidelityExempt": [
     "os/usr/lib/holo/holo-sddm.js",
     "os/usr/share/frame/login.html",
@@ -28,27 +28,39 @@
   "violations": [
     {
       "file": "os/usr/lib/holo/holo-video.js",
-      "line": 54,
+      "line": 77,
       "px": 14,
       "snippet": "\"color:var(--holo-ink,#eef2f6);font:var(--holo-text-sm,14px)/1.4 var(--holo-font-sans,ui-s"
     },
     {
       "file": "os/usr/lib/holo/holo-video.js",
-      "line": 101,
+      "line": 127,
       "px": 12,
       "snippet": "\".hvid-time{font:600 12px/1 ui-monospace,Menlo,Consolas,monospace;color:#fff;opacity:.85;l"
     },
     {
       "file": "os/usr/lib/holo/holo-vinyl.js",
-      "line": 197,
-      "px": 15,
-      "snippet": "\".hv-cue-ttl{color:var(--holo-ink,#e7e7ea);font-weight:650;font-size:15px;line-height:1.3;"
+      "line": 181,
+      "px": 14,
+      "snippet": "\"color:var(--holo-ink,#e7e7ea);font:var(--holo-text-sm,14px)/1.35 var(--holo-font-sans,ui-"
     },
     {
       "file": "os/usr/lib/holo/holo-vinyl.js",
-      "line": 198,
+      "line": 194,
+      "px": 9,
+      "snippet": "\".hv-pill-kicker{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;let"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-vinyl.js",
+      "line": 201,
+      "px": 10,
+      "snippet": "\".hv-pill-sub{color:var(--holo-ink-dim,#c8c8cf);font-size:10px;line-height:1.3;white-space"
+    },
+    {
+      "file": "os/usr/lib/holo/holo-vinyl.js",
+      "line": 219,
       "px": 13,
-      "snippet": "\".hv-cue-sub{color:var(--holo-ink-dim,#c8c8cf);font-size:13px;line-height:1.4;white-space:"
+      "snippet": "\"border:0;cursor:pointer;display:grid;place-items:center;font-size:13px;line-height:1;opac"
     }
   ]
 }

@@ -52,7 +52,10 @@ export function createCodegen({ device = null, boost = null, maxTokens = 2048 } 
     const t0 = now(); let raw = "";
     for await (const d of sampler(messages, { maxTokens, signal })) {
       if (signal && signal.aborted) break;
-      raw += (d && d.delta != null ? d.delta : d);
+      // a tiered/cascade sampler hands us { replace } when a better tier takes over → its full doc REPLACES the
+      // prior tier's (blurry→sharp); a plain sampler only ever yields deltas, so this is a no-op for it.
+      if (d && typeof d === "object" && d.replace != null) raw = String(d.replace);   // typeof guard: a STRING delta has a .replace method too
+      else raw += (d && d.delta != null ? d.delta : d);
       if (onToken) { try { onToken(extractHTML(raw) || raw, raw); } catch (e) {} }
     }
     const source = extractHTML(raw);

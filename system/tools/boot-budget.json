@@ -1,0 +1,11 @@
+{
+  "_comment": "Boot working-set ceiling for the canonical shell. Regenerated with `node tools/boot-budget-ci.mjs --update` (measured × headroom). Lower is better; raising a ceiling should be a reviewed, intentional change.",
+  "maxRequests": 161,
+  "maxTransferKB": 6268,
+  "maxDomInteractiveMs": 1200,
+  "baseline": {
+    "requests": 140,
+    "transferKB": 5450,
+    "domInteractiveMs": 394
+  }
+}
