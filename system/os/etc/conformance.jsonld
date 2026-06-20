@@ -57,6 +57,15 @@
       "hosc:category": "Security"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#cc10-arch-explicit-error",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CC-10 — a κ-disk/image is admitted to an emulator engine ONLY when their architectures match; a missing or mismatched platform is an EXPLICIT, descriptive error (it names both architectures), never a silently-wrong architecture. The shared guard os/usr/lib/holo/holo-arch.mjs throws ArchMismatchError on a mismatch AND on a missing arch declaration; the canonical emulator app holo-x86 declares engine+image arch in kappa.json and calls the guard BEFORE it instantiates v86 and BEFORE it fetches the heavy engine/image bytes (fail-fast, no wasted download). Witnessed live pure-Node: the guard's match/alias/mismatch/missing-declaration behaviour, and that holo-x86 actually enforces it before boot.",
+      "hosc:authority": "holospaces docs/10-Quality-Requirements CC-10 (missing platform matches must be an explicit error, never a silently wrong architecture) · CC-9 (boot to userspace on the emulator core) — tools/holo-arch-witness.mjs; guard os/usr/lib/holo/holo-arch.mjs; wiring holo-apps/apps/holo-x86 (kappa.json + index.html)",
+      "hosc:witness": "tools/holo-arch-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
       "@type": "hosc:ConformanceAssertion",
       "name": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode).",
