@@ -8,8 +8,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const SRC = process.argv[2] || "CHANGELOG.md";
 const OUT = process.argv[3] || "feed.xml";
-const SITE = "https://humuhumu33.github.io/os-holo";
-const REPO = "https://github.com/humuhumu33/os-holo";
+const HTML_OUT = process.argv[4] || "";   // optional: also emit a styled changelog.html (the gateway's Changelog door)
+const SITE = process.env.HOLO_SITE || "https://hologram-technologies.github.io/hologram-os";
+const REPO = process.env.HOLO_REPO || "https://github.com/Hologram-Technologies/hologram-os";
 const SECTIONS = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"];
 
 const xml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]));
@@ -62,3 +63,43 @@ ${entries}
 
 writeFileSync(OUT, feed);
 console.log(`changelog-feed: wrote ${OUT} (${releases.length} release entr${releases.length === 1 ? "y" : "ies"})`);
+
+// ── styled changelog.html — the gateway's "Changelog" door opens this in its framed doc-window.
+// Self-contained (inline CSS), generated from the SAME parsed releases as the feed so it never drifts.
+if (HTML_OUT) {
+  const body = releases.map((r) => {
+    let secs = "";
+    for (const name of SECTIONS) {
+      const items = r.secs[name]; if (!items?.length) continue;
+      secs += `<h3>${name}</h3><ul>` + items.map((i) => `<li>${xml(i)}</li>`).join("") + `</ul>`;
+    }
+    return `<section class="rel"><h2>v${xml(r.version)}${r.date ? ` <time>${xml(r.date)}</time>` : ""}</h2>${secs}</section>`;
+  }).join("\n");
+  const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Changelog — Hologram OS</title>
+<link rel="alternate" type="application/atom+xml" href="${xml(SITE)}/feed.xml" title="Hologram OS — Changelog"/>
+<style>
+  :root{ --fg:#eaf0fb; --soft:#c6d2e6; --muted:#8b97ad; --line:#1b2433; --accent:#7defc9; }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{ background:radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 58%, #05070c 100%) fixed; color:var(--fg);
+    font:400 16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:clamp(20px,5vw,56px); }
+  main{ max-width:760px; margin:0 auto; }
+  h1{ font-size:clamp(26px,5vw,34px); letter-spacing:-.02em; margin:0 0 6px; color:#fff; }
+  .sub{ color:var(--muted); margin:0 0 34px; }
+  .sub a{ color:var(--accent); text-decoration:none; } .sub a:hover{ text-decoration:underline; }
+  .rel{ border-top:1px solid var(--line); padding:22px 0; }
+  .rel h2{ font-size:19px; margin:0 0 10px; color:#fff; display:flex; align-items:baseline; gap:12px; }
+  .rel h2 time{ font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--muted); }
+  h3{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:16px 0 6px; }
+  ul{ margin:0 0 4px; padding-left:20px; } li{ margin:4px 0; color:var(--soft); }
+</style></head>
+<body><main>
+  <h1>Changelog</h1>
+  <p class="sub">Notable changes, generated from the repository history · <a href="${xml(SITE)}/feed.xml">Atom feed</a></p>
+  ${body || "<p class=\"sub\">No released versions yet.</p>"}
+</main></body></html>`;
+  writeFileSync(HTML_OUT, page);
+  console.log(`changelog-feed: wrote ${HTML_OUT} (styled page)`);
+}

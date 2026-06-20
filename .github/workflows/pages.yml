@@ -132,9 +132,12 @@ jobs:
           # guaranteed to ship verbatim regardless of how the docs build treats public/*.html.
           cp system/docs/site/public/manifesto.html _site/docs/manifesto.html
           cp system/docs/site/public/download.html _site/docs/download.html
-          # The live changelog: the styled reader page now ships under docs/ (copied via `cp -r docs`
-          # above), so here we only stage its Keep a Changelog source and the Atom feed at the root.
-          cp CHANGELOG.md feed.xml _site/
+          # The live changelog: the Astro build does NOT emit changelog.html, so generate the styled
+          # reader page directly into the staged docs (the gateway's "Changelog" door opens
+          # /docs/changelog.html) and write the Atom feed alongside — both from the same parsed CHANGELOG.md
+          # so they never drift. Then stage the Keep a Changelog source at the root.
+          node system/tools/changelog-feed.mjs CHANGELOG.md _site/feed.xml _site/docs/changelog.html
+          cp CHANGELOG.md _site/
           cp system/llms.txt _site/
           cp -r system/os _site/os
           # Vendor the apps at their FLAT serve path (/os/apps/<id>/*), mirroring the dev server's
