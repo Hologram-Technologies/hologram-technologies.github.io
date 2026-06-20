@@ -66,6 +66,15 @@
       "hosc:category": "Runtime"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#sec8-ipfs-declared-length-bounded",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-8 — an untrusted DECLARED length is bounded by ACTUAL payload, never trusted. The IPFS CID parsers (os/usr/lib/holo/holo-ipfs.js) parse CIDs embedded in untrusted DAG-PB/CAR blocks fetched from public gateways; a CID's declared multihash length is refused when it exceeds the bytes present (parseCIDPrefix now mirrors parseCID's truncation guard) — so a hostile block cannot drive the parse offset past the payload and make the caller over-read the next block. Witnessed live pure-Node against the real parsers: valid CIDs parse and consume exactly their bytes (including embedded in a larger block), a declared length past the payload is explicitly refused (it names declared vs present), both CID parsers agree (no asymmetric trust), and the off-by-one boundary is caught.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-8 (every allocation driven by untrusted input is bounded by actual payload or fixed quota, never by declared count) · IPFS Trustless Gateway / dag-pb / CAR / multiformats CID — tools/holo-ipfs-bounds-witness.mjs; fix os/usr/lib/holo/holo-ipfs.js (parseCIDPrefix)",
+      "hosc:witness": "tools/holo-ipfs-bounds-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
       "@type": "hosc:ConformanceAssertion",
       "name": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode).",

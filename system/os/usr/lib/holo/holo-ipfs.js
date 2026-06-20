@@ -127,6 +127,11 @@ export function parseCIDPrefix(buf, off) {
   [version, o] = varintRead(buf, o); [codec, o] = varintRead(buf, o);
   const mhStart = o; [hashCode, o] = varintRead(buf, o); [hashSize, o] = varintRead(buf, o);
   const end = o + hashSize; const digest = buf.subarray(o, end);
+  // SEC-8: a declared multihash length is bounded by ACTUAL payload, never trusted. Refuse a length that
+  // runs past the bytes present — otherwise the parser advances `off` by a DECLARED count into untrusted
+  // space and the caller over-reads the next block. Mirrors parseCID's truncation guard (this is the same
+  // multihash, parsed in place inside a CAR/dag-pb stream).
+  if (digest.length !== hashSize) throw new Error("CID multihash truncated (declared " + hashSize + " bytes, " + digest.length + " present)");
   return { cid: mkcid(1, codec, hashCode, hashSize, digest, buf.subarray(off, end), buf.subarray(mhStart, end)), length: end - off };
 }
 export function makeCIDv1(codec, hashCode, digest) {
