@@ -49,6 +49,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Healed files get their MIME from the file ext, not the origin 404 page
 - Vendor the holospaces wasm runtime so apps boot on the deploy
 - Apply flat→FHS mapping to the app-lock fetch so apps heal by κ on static hosts
 - Restore docs-reference-witness.mjs (orphaned by 0a2092a, still called by pages.yml)
@@ -61,5 +62,9 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 - Show framed pages as one clean window, not window-in-window
 - Open doc windows at the same size as the app launcher
 - Re-pin the OS closure so shell.html and the worker verify, unblocking boot
+
+### Security
+
+- Tidy repo root — CI config + governance into .github, untrack generated docs
 [unreleased]: https://github.com/humuhumu33/os-holo/commits/main
 
