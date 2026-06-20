@@ -158,12 +158,17 @@ jobs:
           fi
           cp -r system/os/.well-known _site/.well-known
           # The gateway (index.html) is served RAW by the host — NOT through the Service Worker — so its own
-          # classic-script assets must sit at the dev-layout paths it references: the vendored Vanta
-          # cloudscape (immersive background) and the standalone Holo FX braille animator, plus the llms.txt
-          # discovery copy. Without these the gateway silently falls back to the CSS nebula and a static κ.
+          # classic-script assets AND its ES-module imports must sit at the dev-layout paths it references:
+          # the vendored Vanta cloudscape (immersive background), the standalone Holo FX braille animator,
+          # the WebGPU cloud-sky modules it STATICALLY imports (holo-clouds-gpu / -volumetric-gpu — a failed
+          # static import aborts the WHOLE gateway module, so Power-up would silently die and nothing boots),
+          # the conscience module the boot gate imports, plus the llms.txt discovery copy. Without these the
+          # gateway can't boot (static-import abort) or falls back to the CSS nebula and a static κ.
           mkdir -p _site/system/vendor _site/system/os/usr/lib/holo
           cp -r system/vendor/* _site/system/vendor/
-          cp system/os/usr/lib/holo/holo-fx.js _site/system/os/usr/lib/holo/holo-fx.js
+          for f in holo-fx.js holo-clouds-gpu.js holo-clouds-volumetric-gpu.js holo-conscience.js; do
+            cp "system/os/usr/lib/holo/$f" "_site/system/os/usr/lib/holo/$f"
+          done
           cp system/llms.txt _site/system/llms.txt
       - uses: actions/upload-pages-artifact@v3
         with:
