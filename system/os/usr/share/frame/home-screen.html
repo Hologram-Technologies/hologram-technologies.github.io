@@ -77,8 +77,10 @@
 
   /* ── CLOCK — sits high on the surface; the only adornment is a thin arc = the share of today elapsed.
      Nothing else competes: time, then a short date. Crisp white on black (the reference). ─────────── */
+  /* the clock sits at the upper-golden node: empty space above ≈ 1/φ of the space below, so the eye rests
+     on the time first. Shifted down a touch from the very top, the golden --g2 gap holds time + greeting. */
   main { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: flex-start; gap: var(--g2); padding: calc(11vh + env(safe-area-inset-top)) var(--g2) 0; }
+    justify-content: flex-start; gap: var(--g2); padding: calc(16vh + env(safe-area-inset-top)) var(--g2) 0; }
   .clock { position: relative; width: min(70vw, 50vh, 290px); aspect-ratio: 1; display: grid; place-items: center; }
   .clock svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
   .ring-prog  { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round;
@@ -94,24 +96,23 @@
   :root[data-holo-immersive="on"] .time, :root[data-holo-immersive="on"] .date,
   :root[data-holo-immersive="on"] .greeting { text-shadow: 0 2px 18px rgba(0,0,0,.55); }
 
-  /* ── CORNER FURNITURE ──────────────────────────────────────────────────────────────────────────
-     hamburger (bottom-left), appearance toggle (top-right). Round, crisp, 48dp touch targets. */
+  /* ── CORNER FURNITURE — ONE set of four identical controls, one in each corner ───────────────────
+     Appearance (top-left), full-screen (top-right), apps (bottom-left), Q orb (bottom-right). Every
+     control is the SAME size (var(--fab)), the SAME golden inset (var(--g1)) and the SAME quiet stroke
+     language — crisp line glyphs, no filled chips (the reference look): subtle .5 at rest, full on touch,
+     with a legibility shadow only over an immersive photo. The Q orb takes its corner as the living orb. */
   .corner { position: fixed; z-index: 3; }
   .fab { width: var(--fab); height: var(--fab);
     border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center; color: var(--ink);
-    background: var(--ctl); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-    transition: background .15s, transform .12s; }
-  .fab:hover { background: var(--ctl-hi); } .fab:active { transform: scale(.94); }
-  .fab svg { width: calc(var(--fab) * .47); height: calc(var(--fab) * .47); }   /* glyph is a φ-fraction of the control */
-  #menu  { left: max(var(--g1), env(safe-area-inset-left)); bottom: max(var(--g1), env(safe-area-inset-bottom)); }
-  /* the appearance toggle is a QUIET icon, not a chip: no fill, no blur — just a thin line glyph in the
-     same stroke language as the hamburger, at a subtle .5 until touched. Sharp on every surface. */
-  #appear { top: max(var(--g1), env(safe-area-inset-top)); right: max(var(--g1), env(safe-area-inset-right));
     background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
-    animation: none; opacity: .5; transition: opacity .18s; }   /* quiet resting state, reliably subtle */
-  #appear svg { width: calc(var(--fab) * .44); height: calc(var(--fab) * .44); }
-  #appear:hover, #appear:focus-visible { opacity: 1; background: transparent; }
-  :root[data-holo-immersive="on"] #appear { filter: drop-shadow(0 1px 6px rgba(0,0,0,.55)); }   /* legible over a photo */
+    animation: none; opacity: .5; transition: opacity .18s, transform .12s; }   /* quiet resting state, reliably subtle */
+  .fab:hover, .fab:focus-visible { opacity: 1; }
+  .fab:active { transform: scale(.92); }
+  .fab svg { width: calc(var(--fab) * .46); height: calc(var(--fab) * .46); }   /* one glyph size for every control (golden fraction of the control) */
+  #menu       { left:  max(var(--g1), env(safe-area-inset-left));  bottom: max(var(--g1), env(safe-area-inset-bottom)); }
+  #appear     { top:   max(var(--g1), env(safe-area-inset-top));   left:   max(var(--g1), env(safe-area-inset-left)); }
+  #fullscreen { top:   max(var(--g1), env(safe-area-inset-top));   right:  max(var(--g1), env(safe-area-inset-right)); }
+  :root[data-holo-immersive="on"] .fab { filter: drop-shadow(0 1px 6px rgba(0,0,0,.55)); }   /* legible over a photo */
 
   /* ── Q ORB (bottom-right) — the SAME living form as the desktop: a φ-native icosahedron wireframe
      painted with the OS brand spectrum (createOrb, voice/holo-voice-orb.mjs). Same size as the
@@ -152,9 +153,59 @@
   .q-ask button svg { width: 22px; height: 22px; }
   .q-chips { display: flex; flex-wrap: wrap; gap: calc(var(--u) * .4); margin-top: var(--u); }
   .q-chips button { border: 1px solid var(--line); background: transparent; color: var(--ink-dim); font: inherit;
-    font-size: calc(var(--u) * .86); border-radius: 99px; padding: calc(var(--u) * .45) var(--u); cursor: pointer; min-height: 40px; }
+    font-size: calc(var(--u) * .95); border-radius: 99px; padding: calc(var(--u) * .5) var(--u); cursor: pointer; min-height: 44px; }
   .q-chips button:hover { background: var(--ctl); color: var(--ink); }
   .q-reply { margin-top: var(--g1); font-size: calc(var(--u) * .96); color: var(--ink-dim); line-height: 1.6; min-height: 1.6em; }
+
+  /* ── Q HERO — full-screen, voice-first Q. The orb is the whole interface; everything else is gone.
+     A deep void backdrop (the Star-Trek-computer feel), one large living orb centred, a single status
+     word and your spoken intent below it. WebGPU-rendered when the phone has it, at full DPR. ───────── */
+  #qhero { position: fixed; inset: 0; z-index: 40; display: none; opacity: 0; touch-action: none;
+    background: radial-gradient(120% 100% at 50% 42%, #0b0c12 0%, #060609 58%, #000 100%);
+    transition: opacity .42s var(--ease); }
+  #qhero.on { display: block; opacity: 1; animation: fade .42s var(--ease) both; }
+  /* the orb fills the screen's heart; the canvas is generous so the particle-aura halo blooms unclipped */
+  #qhero-canvas { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: min(86vw, 58vh); height: min(86vw, 58vh); display: block; cursor: pointer; }
+  .qhero-fallback { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: min(58vw, 39vh); height: min(58vw, 39vh); border-radius: 50%; pointer-events: none;
+    background: conic-gradient(from 0deg, var(--spectrum));
+    -webkit-mask: radial-gradient(circle, transparent 34%, #000 37%, #000 60%, transparent 64%);
+    mask: radial-gradient(circle, transparent 34%, #000 37%, #000 60%, transparent 64%);
+    animation: q-spin 7s linear infinite; opacity: .9; }   /* shown ONLY as the pre-render floor (no WebGPU/WebGL) */
+  #qhero.live .qhero-fallback { opacity: 0; }   /* the real orb is up → the disc is gone entirely (no stray glow/shadow) */
+  .qhero-x { position: absolute; top: max(var(--g1), env(safe-area-inset-top)); right: max(var(--g1), env(safe-area-inset-right)); z-index: 2; }
+  .qhero-stage { position: absolute; left: 0; right: 0; bottom: calc(var(--g3) + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; align-items: center; gap: var(--g0); padding: 0 var(--g2);
+    text-align: center; pointer-events: none; }
+  .qhero-status { font-size: var(--t-meta); letter-spacing: .22em; text-transform: uppercase; font-weight: 500;
+    color: var(--accent); animation: heroBreathe 2.6s ease-in-out infinite; }
+  @keyframes heroBreathe { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+  .qhero-text { font-size: var(--t-greet); font-weight: 300; line-height: 1.34; max-width: 20ch; min-height: 1.5em;
+    text-shadow: 0 2px 24px rgba(0,0,0,.65); }
+  .qhero-hint { position: absolute; left: 50%; bottom: calc(var(--g1) + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    border: 0; background: transparent; color: var(--ink-faint); font: inherit; font-size: calc(var(--u) * .9);
+    cursor: pointer; padding: var(--g0) var(--u); border-radius: 99px; opacity: .5; transition: opacity .18s, color .18s; }
+  .qhero-hint:hover, .qhero-hint:focus-visible { opacity: 1; color: var(--ink-dim); }
+  /* compose-on-the-fly: a κ surface (app/holospace) mounted INTO the hero. The orb shrinks to a living
+     corner presence while it's up; "back" / a tap on the orb dissolves it back to full Q. */
+  .qhero-surface { position: absolute; inset: 0; z-index: 1; display: none; flex-direction: column;
+    opacity: 0; transition: opacity .3s var(--ease); }
+  #qhero.composing .qhero-surface { display: flex; opacity: 1; }
+  #qhero.composing .qhero-stage, #qhero.composing .qhero-hint, #qhero.composing .qhero-x { opacity: 0; pointer-events: none; }
+  .qhero-surfbar { display: flex; align-items: center; gap: var(--u); flex: 0 0 auto; color: var(--ink);
+    padding: max(var(--g0), env(safe-area-inset-top)) var(--g1) var(--g0); }
+  .qhero-surfback { width: 42px; height: 42px; border: 0; border-radius: 50%; background: var(--ctl); color: var(--ink);
+    cursor: pointer; display: grid; place-items: center; flex: 0 0 auto; transition: background .12s; }
+  .qhero-surfback:hover { background: var(--ctl-hi); }
+  .qhero-surfback svg { width: 22px; height: 22px; }
+  .qhero-surftitle { font-size: var(--u); font-weight: 600; letter-spacing: .005em; }
+  #qhero-frame { flex: 1 1 auto; width: 100%; border: 0; background: var(--bg); border-radius: var(--g1) var(--g1) 0 0; }
+  /* the orb → a small, live, tappable PiP presence while a surface is composed (Q is still here) */
+  #qhero.composing #qhero-canvas { z-index: 2; left: auto; top: auto; transform: none;
+    right: max(var(--g1), env(safe-area-inset-right)); bottom: calc(var(--g1) + env(safe-area-inset-bottom));
+    width: calc(var(--fab) * 1.25); height: calc(var(--fab) * 1.25); filter: drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
+  @media (prefers-reduced-motion: reduce) { #qhero.on { animation: none; } .qhero-fallback { animation: none; } .qhero-status { animation: none; opacity: .9; } }
 
   /* ── SHEETS (drawer · settings · timer) — one frosted card primitive that rises from the bottom ── */
   .scrimsheet { position: fixed; inset: 0; z-index: 10; background: rgba(4,6,12,.5);
@@ -203,7 +254,7 @@
   /* settings — grouped categories matching the OS appearance/focus axes */
   .grp { padding: var(--u) 0; border-bottom: 1px solid var(--line); }
   .grp:last-child { border-bottom: 0; }
-  .grp > label { display: block; font-size: calc(var(--u) * .82); color: var(--ink-dim); margin-bottom: calc(var(--u) * .6);
+  .grp > label { display: block; font-size: calc(var(--u) * .9); color: var(--ink-dim); margin-bottom: calc(var(--u) * .6);
     text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
   .seg { display: flex; gap: calc(var(--u) * .4); flex-wrap: wrap; }
   .seg button { flex: 1 1 auto; min-height: 48px; border: 1px solid var(--line); background: transparent; color: inherit;
@@ -213,7 +264,7 @@
   .seg button[aria-pressed="true"] { background: var(--accent); color: #06140f; border-color: transparent; font-weight: 600; }
   .row { display: flex; align-items: center; justify-content: space-between; gap: var(--u); min-height: 48px; }
   .row .lab { font-size: calc(var(--u) * .96); }
-  .row .hint { font-size: calc(var(--u) * .8); color: var(--ink-faint); margin-top: 2px; }
+  .row .hint { font-size: calc(var(--u) * .9); color: var(--ink-faint); margin-top: 2px; }
   /* a clean toggle switch */
   .sw { position: relative; width: 52px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 99px; cursor: pointer;
     background: var(--ctl-hi); transition: background .18s; }
@@ -226,7 +277,7 @@
   .walls button { aspect-ratio: 1; border-radius: var(--r); border: 2px solid transparent; cursor: pointer; padding: 0;
     background-size: cover; background-position: center; }
   .walls button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-  .about { font-size: calc(var(--u) * .86); color: var(--ink-dim); line-height: 1.6; }
+  .about { font-size: calc(var(--u) * .94); color: var(--ink-dim); line-height: 1.6; }
 
   /* ── FOCUS TIMER — the gentle question before any app opens ──────────────────────────────────── */
   .timer { text-align: center; }
@@ -247,6 +298,66 @@
   .expand svg { width: 24px; height: 24px; transition: transform .2s; }
   .expand.on svg { transform: rotate(180deg); }
 
+  /* ── Q PROACTIVE + INBOX — Q speaks unbidden, but only when EARNED: one quiet pill at a time (tap → Inbox),
+     never a nag. Letters live in the Inbox in three honest categories (action / update / letter). ───────── */
+  .qpill { position: fixed; z-index: 6; left: 50%; top: max(var(--g1), env(safe-area-inset-top)); transform: translate(-50%, -16px);
+    display: none; align-items: center; gap: calc(var(--u) * .55); max-width: min(92vw, 460px);
+    padding: calc(var(--u) * .5) calc(var(--u) * .55) calc(var(--u) * .5) calc(var(--u) * .85); border-radius: 999px;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    opacity: 0; transition: opacity .3s var(--ease), transform .3s var(--ease); cursor: pointer; }
+  .qpill.on { display: flex; opacity: 1; transform: translate(-50%, 0); }
+  .qpill .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--accent); }
+  .qpill.cat-action .dot { background: #ff9e2c; } .qpill.cat-update .dot { background: #5b8cff; }
+  .qpill .ptext { font-size: calc(var(--u) * .95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qpill .pclose { width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--ink-faint);
+    cursor: pointer; flex: 0 0 auto; display: grid; place-items: center; }
+  .qpill .pclose:hover { background: var(--ctl); color: var(--ink); } .qpill .pclose svg { width: 16px; height: 16px; }
+  /* an unread badge on the Inbox affordance */
+  .badge { display: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #06140f;
+    font-size: calc(var(--u) * .72); font-weight: 700; line-height: 18px; text-align: center; margin-left: calc(var(--u) * .4); }
+  .badge.on { display: inline-block; }
+  /* Inbox list */
+  .inbox-cats { display: flex; gap: calc(var(--u) * .4); margin-bottom: var(--u); flex: 0 0 auto; }
+  .inbox-cats button { flex: 1 1 auto; min-height: 44px; border: 1px solid var(--line); background: transparent; color: var(--ink-dim);
+    border-radius: var(--r); cursor: pointer; font: inherit; font-size: calc(var(--u) * .9); transition: background .12s; }
+  .inbox-cats button:hover { background: var(--ctl); }
+  .inbox-cats button[aria-pressed="true"] { background: var(--accent); color: #06140f; border-color: transparent; font-weight: 600; }
+  .inbox-list { list-style: none; margin: 0; padding: 0; }
+  .inbox-list li { padding: var(--u) calc(var(--u) * .4); border-bottom: 1px solid var(--line); display: flex; gap: var(--u); align-items: flex-start; }
+  .inbox-list li:last-child { border-bottom: 0; }
+  .inbox-list .idot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex: 0 0 auto; background: var(--accent); opacity: .35; }
+  .inbox-list li.unread .idot { opacity: 1; }
+  .inbox-list li.cat-action .idot { background: #ff9e2c; } .inbox-list li.cat-update .idot { background: #5b8cff; }
+  .inbox-list .ititle { font-size: calc(var(--u) * 1.02); font-weight: 600; margin-bottom: 3px; }
+  .inbox-list .ibody { font-size: calc(var(--u) * .92); color: var(--ink-dim); line-height: 1.5; }
+  .inbox-list .iwhen { font-size: calc(var(--u) * .8); color: var(--ink-faint); margin-top: 4px; }
+  .inbox-empty { color: var(--ink-faint); text-align: center; padding: var(--g2) 0; font-size: calc(var(--u) * .95); }
+  .inbox-foot { display: flex; justify-content: flex-end; margin-top: var(--u); flex: 0 0 auto; padding-top: var(--u); border-top: 1px solid var(--line); }
+
+  /* ── AUTHORITY (P5) — Q never performs an irreversible or outward action silently. A confirm card gates
+     the consequential; the prohibited (passwords, payments, trades) Q declines and defers to you. ─────── */
+  .confirm-scrim { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center;
+    padding: var(--g1); background: rgba(4,6,12,.6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    opacity: 0; transition: opacity .2s var(--ease); }
+  .confirm-scrim.on { display: flex; opacity: 1; }
+  .confirm-card { width: min(420px, 100%); background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    border-radius: var(--g1); padding: var(--g1); box-shadow: 0 24px 70px rgba(0,0,0,.5);
+    -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px); animation: rise .26s var(--ease) both; }
+  .confirm-icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; margin-bottom: var(--u);
+    background: rgba(229,72,77,.16); color: #ff6b6b; }
+  .confirm-icon svg { width: 24px; height: 24px; }
+  .confirm-title { font-size: calc(var(--u) * 1.2); font-weight: 600; margin-bottom: calc(var(--u) * .4); }
+  .confirm-body { font-size: calc(var(--u) * .96); color: var(--ink-dim); line-height: 1.5; }
+  .confirm-note { font-size: calc(var(--u) * .88); color: var(--ink-faint); margin-top: calc(var(--u) * .6); }
+  .confirm-actions { display: flex; gap: calc(var(--u) * .5); margin-top: var(--g1); }
+  .confirm-btn { flex: 1 1 auto; min-height: 52px; border-radius: var(--r); border: 1px solid var(--line); cursor: pointer;
+    font: inherit; font-size: var(--u); font-weight: 600; background: var(--ctl); color: var(--ink); transition: background .12s, opacity .12s; }
+  .confirm-btn.ghost { background: transparent; } .confirm-btn.ghost:hover { background: var(--ctl); }
+  .confirm-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #06140f; border-color: transparent; }
+  .confirm-btn.danger { background: #e5484d; color: #fff; border-color: transparent; }
+  .confirm-btn:disabled { opacity: .5; cursor: not-allowed; }
+
   /* ── APP OVERLAY — the opened holospace fills the screen; the timer runs over it ──────────────── */
   #appview { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: none; flex-direction: column; }
   #appview.on { display: flex; }
@@ -255,7 +366,7 @@
   .appbar .back { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--ctl); color: var(--ink);
     cursor: pointer; display: grid; place-items: center; } .appbar .back:hover { background: var(--ctl-hi); }
   .appbar .title { font-size: var(--u); font-weight: 600; }
-  .appbar .left { font-size: calc(var(--u) * .82); color: var(--ink-dim); margin-left: auto; font-variant-numeric: tabular-nums;
+  .appbar .left { font-size: calc(var(--u) * .9); color: var(--ink-dim); margin-left: auto; font-variant-numeric: tabular-nums;
     display: inline-flex; align-items: center; gap: calc(var(--u) * .4); }
   .appbar .left.warn { color: #ffcf8f; }
   .appbar .left svg { width: calc(var(--u) * 1.05); height: calc(var(--u) * 1.05); }
@@ -291,12 +402,19 @@
 
 <!-- corner furniture -->
 <button class="fab corner" id="menu" aria-label="Open apps" title="Apps">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
 </button>
 <button class="fab corner" id="appear" aria-label="Appearance — Dark, Light or Immersive" title="Appearance"></button>
+<button class="fab corner" id="fullscreen" aria-label="Toggle full screen" title="Full screen"></button>
 
 <!-- Q — the living assistant: the desktop's icosahedron-wireframe orb in the brand spectrum -->
 <button class="corner" id="qorb" aria-label="Ask Q" title="Q"><span class="q-fallback"></span><canvas class="q-canvas" id="qcanvas"></canvas></button>
+
+<!-- Q's one quiet proactive pill — appears only when Q has something earned to say; tap → Inbox -->
+<div class="qpill" id="qpill" role="button" tabindex="0" aria-label="Open Q's inbox">
+  <span class="dot"></span><span class="ptext" id="qpill-text"></span>
+  <button class="pclose" id="qpill-x" aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
 
 <!-- sheets -->
 <div class="scrimsheet" id="scrim"></div>
@@ -307,7 +425,7 @@
   <div class="sheet-body"><ul class="applist" id="applist"></ul></div>
   <div class="drawer-foot">
     <button class="ghost" id="open-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4 15a1.6 1.6 0 0 0-1.5-1H2a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4 8.6a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1h.1a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg> Settings</button>
-    <span class="hint" id="appcount" style="font-size:calc(var(--u)*.78);color:var(--ink-faint)"></span>
+    <button class="ghost" id="open-inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg> Inbox<span class="badge" id="inbox-badge"></span></button>
   </div>
 </aside>
 
@@ -340,6 +458,13 @@
       <div class="seg" id="set-default" style="margin-top:calc(var(--u)*.4)">
         <button data-min="5">5</button><button data-min="10">10</button>
         <button data-min="15">15</button><button data-min="30">30</button>
+      </div>
+    </div>
+    <div class="grp">
+      <label>Voice</label>
+      <div class="row">
+        <div><div class="lab">Listen for “Q”</div><div class="hint">Hands-free — say “Q” to wake the assistant. The mic runs on-device; nothing leaves your phone.</div></div>
+        <button class="sw" id="sw-wake" role="switch" aria-checked="false" aria-label="Listen for Q"></button>
       </div>
     </div>
     <div class="grp">
@@ -377,7 +502,7 @@
   <div class="grab"></div>
   <div class="q-head">
     <span class="q-mini"><span class="q-fallback"></span></span>
-    <div><h2 style="margin:0;font-size:calc(var(--u)*1.15)">Q</h2><div class="hint" style="font-size:calc(var(--u)*.82);color:var(--ink-faint)">Your on-device assistant</div></div>
+    <div><h2 style="margin:0;font-size:calc(var(--u)*1.15)">Q</h2><div class="hint" style="font-size:calc(var(--u)*.9);color:var(--ink-faint)">Your on-device assistant</div></div>
     <button class="x" data-close aria-label="Close" style="margin-left:auto">×</button>
   </div>
   <div class="q-ask">
@@ -386,6 +511,22 @@
   </div>
   <div class="q-chips" id="q-chips"></div>
   <div class="q-reply" id="q-reply"></div>
+</aside>
+
+<aside class="sheet" id="inbox" role="dialog" aria-modal="true" aria-label="Inbox">
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>Inbox</h2><button class="x" data-close aria-label="Close">×</button></div>
+  <div class="inbox-cats" id="inbox-cats">
+    <button data-cat="all" aria-pressed="true">All</button>
+    <button data-cat="letter">Letters</button>
+    <button data-cat="update">Updates</button>
+    <button data-cat="action">Actions</button>
+  </div>
+  <div class="sheet-body">
+    <ul class="inbox-list" id="inbox-list"></ul>
+    <div class="inbox-empty" id="inbox-empty" hidden>Nothing here yet. Q will write when there's something worth your while.</div>
+  </div>
+  <div class="inbox-foot"><button class="ghost" id="inbox-clear">Clear all</button></div>
 </aside>
 
 <!-- opened app fills the screen; the focus timer runs in its bar -->
@@ -403,6 +544,42 @@
   <button class="secondary" id="nudge-stay">Stay</button>
   <button id="nudge-done">Done</button>
 </div>
+
+<!-- Q HERO — the full-screen, voice-first Q. The orb is the whole interface; tap it to talk, swipe down to leave. -->
+<section id="qhero" aria-label="Q" aria-hidden="true">
+  <canvas id="qhero-canvas" aria-label="Q"></canvas>
+  <span class="qhero-fallback" aria-hidden="true"></span>
+  <button class="fab qhero-x" id="qhero-x" aria-label="Close Q" title="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div class="qhero-stage">
+    <div class="qhero-status" id="qhero-status">Listening</div>
+    <div class="qhero-text" id="qhero-text"></div>
+  </div>
+  <button class="qhero-hint" id="qhero-hint" type="button">type instead</button>
+  <!-- AUTHORITY confirm card (P5) — gates any irreversible/outward action; rides above the hero (z 60) -->
+  <div class="confirm-scrim" id="confirm" aria-hidden="true">
+    <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="confirm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+      <div class="confirm-title" id="confirm-title"></div>
+      <div class="confirm-body" id="confirm-body"></div>
+      <div class="confirm-note" id="confirm-note" hidden></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn ghost" id="confirm-cancel">Not now</button>
+        <button class="confirm-btn danger" id="confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <!-- compose-on-the-fly — an intent mounts a κ surface (app/holospace) RIGHT HERE; the orb shrinks to a
+       living corner presence, and "back"/dismiss dissolves it. No pre-built dashboards. -->
+  <div class="qhero-surface" id="qhero-surface" aria-hidden="true">
+    <div class="qhero-surfbar">
+      <button class="qhero-surfback" id="qhero-surfback" aria-label="Back to Q" title="Back to Q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="qhero-surftitle" id="qhero-surftitle"></span>
+    </div>
+    <iframe id="qhero-frame" title="Q surface" referrerpolicy="no-referrer"></iframe>
+  </div>
+</section>
 
 <script>
 (function () {
@@ -471,6 +648,27 @@
     applyMode(ORDER[(ORDER.indexOf(now) + 1) % ORDER.length]);
   });
 
+  // ── Full-screen toggle (top-right) — quiet line glyph that mirrors the real fullscreen state ─────
+  // Same single-stroke vocabulary as the hamburger/appearance icons: arrows OUT to enter, IN to exit.
+  // Hidden entirely where the Fullscreen API is unavailable (e.g. iOS Safari) so it's never a dead control.
+  (function () {
+    var btn = $("fullscreen"); if (!btn) return;
+    var rde = document.documentElement;
+    var request = rde.requestFullscreen || rde.webkitRequestFullscreen || rde.msRequestFullscreen;
+    if (!request) { btn.remove(); return; }   // no API → no control
+    var exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    var FS_OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+    var FS_IN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3a1 1 0 0 0 1-1V4M16 4v3a1 1 0 0 0 1 1h3M4 16h3a1 1 0 0 1 1 1v3M16 20v-3a1 1 0 0 1 1-1h3"/></svg>';
+    function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement); }
+    function reflect() { btn.innerHTML = isFs() ? FS_IN : FS_OUT; btn.title = isFs() ? "Exit full screen" : "Full screen"; }
+    btn.addEventListener("click", function () {
+      try { if (isFs()) { exit && exit.call(document); } else { request.call(rde); } } catch (e) {}
+    });
+    document.addEventListener("fullscreenchange", reflect);
+    document.addEventListener("webkitfullscreenchange", reflect);
+    reflect();
+  })();
+
   // ── Clock — time + the day-progress arc ───────────────────────────────────────────────────────
   var prog = $("arc-prog"), R = 46, C = 2 * Math.PI * R;
   prog.style.strokeDasharray = C;
@@ -507,40 +705,512 @@
   }
   tick(); setInterval(tick, 1000 * 15);
 
-  // ── Q orb — the desktop's living form, reused verbatim: load the vendored THREE r134 global, then the
-  //    κ-addressed orb module (icosahedron wireframe, brand spectrum). Degrades to the CSS spectrum disc. ─
+  // ── Q LIVING SIGNALS — shared by the corner orb AND the full-screen hero ─────────────────────────
+  // Q_VOICE is the live voice meter the hero fills from the microphone; both orbs read it, so Q visibly
+  // answers your voice. The signals are the desktop's vocabulary, self-contained so Q reads as alive and
+  // conscious even before the on-device brain is up.
+  var Q_VOICE = { level: 0, bass: 0, mid: 0, treble: 0, onset: 0, state: "idle", energy: 1, armed: false };
+  var cornerOrb = null;                                                          // the corner orb instance (paused while the hero is up)
+  function loadThree() {
+    return new Promise(function (res) {
+      if (window.THREE) return res(true);
+      var s = document.createElement("script"); s.src = "/_shared/voice/lib/three.min.js";
+      s.onload = function () { res(!!window.THREE); }; s.onerror = function () { res(false); };
+      (document.head || document.documentElement).appendChild(s);
+    });
+  }
+  // level — an ever-present breath + a slow ~13s "thinking" swell, with the live mic riding on top while Q
+  // listens (so the orb breathes with your voice). color — circadian warmth/dim + an attentive teal that
+  // brightens while Q is listening/thinking/speaking.
+  function liveLevel() {
+    var t = performance.now();
+    var breath = 0.06 * (0.6 + 0.4 * Math.sin(t / 700));
+    var think = 0.12 * Math.max(0, Math.sin(t / 13000 * Math.PI * 2 - 1.1));
+    var voice = Q_VOICE.level || 0;
+    try { var v = window.HoloVoice; if (v && typeof v.level === "number") voice = Math.max(voice, v.level); else if (window.Q && typeof window.Q.level === "number") voice = Math.max(voice, window.Q.level); } catch (e) {}
+    var st = Q_VOICE.state, active = (st === "listening" || st === "thinking" || st === "speaking" || st === "welcome");
+    var lvl = Math.min(1.4, breath + think * 0.6 + voice);
+    var energy = active ? 1 : (0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t / 5200)));
+    return { level: lvl, energy: energy, state: active ? st : (think > 0.05 ? "thinking" : "idle"),
+      bass: Q_VOICE.bass, mid: Math.max(breath * 0.6, Q_VOICE.mid), treble: Q_VOICE.treble, onset: Q_VOICE.onset, bright: think };
+  }
+  function liveColor() {
+    var t = performance.now(), hr = 12; try { var d = new Date(); hr = d.getHours() + d.getMinutes() / 60; } catch (e) {}
+    var night = (1 + Math.cos((hr / 24) * 2 * Math.PI)) / 2;                    // 1 at midnight, 0 at noon
+    var listening = (Q_VOICE.state === "listening");
+    var attn = (listening ? 0.16 : (Q_VOICE.armed ? 0.085 : 0.03)) + 0.03 * Math.sin(t / 1500);   // a faint steady teal when the wake word is armed
+    return { warm: night * 0.7, dim: night * 0.4, wake: Math.max(0, attn) };
+  }
+  // ── Q's MIND — the conversational brain behind both the hero and the text panel ────────────────────
+  // Preference order: (1) the live OS mux on this surface (window.HoloVoice.ask / window.Q) when Q is
+  // already running in the OS; (2) Q's OWN brain via the REAL mux faculties (holo-q-route → Mixture-of-
+  // Specialists: the coder for code, the text model otherwise, the coder silently upgrading in once loaded),
+  // STREAMED token-by-token and context-aware via a short rolling history; (3) the single text brain as a
+  // deeper floor; (4) the shell parent; (5) an honest "not awake yet". qBrain(text,{onDelta,signal})→Promise<string>.
+  var Q_SYS = "You are Q, the on-device assistant for Hologram OS. You run entirely on this device — private, no servers. Answer in a warm, concise, spoken style: a sentence or two, plain prose, no markdown or lists unless asked. If you don't know, say so plainly.";
+  var qHistory = [];                                                            // [{role,content}] rolling conversation
+  var qLLM = null, qLLMTried = false, qRouter = null, qRouterTried = false;
+  function ensureRouter() {                                                     // route through the real mux faculties
+    if (qRouterTried) return Promise.resolve(qRouter);
+    qRouterTried = true;
+    return import("/_shared/voice/holo-q-route.mjs").then(function (m) { qRouter = m.createQRouter({}); return qRouter; })
+      .catch(function () { qRouter = null; return null; });
+  }
+  function ensureLLM() {                                                        // the single-text-brain floor (if the mux can't load)
+    if (qLLMTried) return Promise.resolve(qLLM);
+    qLLMTried = true;
+    return import("/_shared/voice/holo-voice-llm.mjs").then(function (m) {
+      // WASM, NOT WebGPU: the q8 decoder hits an ORT WebGPU kernel bug on this stack (verified gibberish) → WASM is correct.
+      var llm = m.createLLM({ wasm: { model: "onnx-community/Qwen2.5-0.5B-Instruct", dtype: "q8" }, wasmFallback: { model: "onnx-community/Qwen2.5-0.5B-Instruct", dtype: "q8" }, preferWebGPU: false, maxTokens: 128 });
+      return llm.load().then(function () { qLLM = llm; return llm; });
+    }).catch(function () { qLLM = null; return null; });
+  }
+  function fallbackLLM(text, onDelta, o, convo) {
+    return ensureLLM().then(function (llm) {
+      if (!llm) {
+        if (window.parent && window.parent !== window) { try { window.parent.postMessage({ type: "holo-q-ask", text: text }, "*"); } catch (e) {} return "Sent to Q."; }
+        return "I come online with the OS — ask me again once I'm awake.";
+      }
+      var msgs = [{ role: "system", content: Q_SYS }].concat(convo);
+      var it = llm.generate(msgs, { maxTokens: 128, signal: o.signal }), acc = "";
+      function step() { return it.next().then(function (res) { if (res && !res.done) { acc += res.value; if (onDelta) onDelta(acc.trim()); return step(); } return acc.trim() || "…"; }); }
+      return step().catch(function () { return acc.trim() || "I couldn't answer that just now."; });
+    });
+  }
+  function qBrain(text, o) {
+    o = o || {}; text = (text || "").trim(); if (!text) return Promise.resolve("");
+    var onDelta = typeof o.onDelta === "function" ? o.onDelta : null;
+    // (1) the live OS mux on this surface
+    var brain = (window.HoloVoice && window.HoloVoice.ask) || (window.Q && (window.Q.ask || window.Q));
+    if (typeof brain === "function") {
+      return Promise.resolve(brain.call(window.HoloVoice || window.Q || window, text))
+        .then(function (r) { var s = (r && (r.text || r.answer)) || (typeof r === "string" ? r : "Done."); if (onDelta) onDelta(s); return s; })
+        .catch(function () { return "I couldn't answer that just now."; });
+    }
+    // (2) Q's own brain via the mux faculties — the router injects a faculty-appropriate system prompt, so
+    //     we pass just the conversation (history + this turn).
+    var convo = qHistory.slice(-8).concat([{ role: "user", content: text }]);
+    function remember(reply) { if (reply) { qHistory.push({ role: "user", content: text }); qHistory.push({ role: "assistant", content: reply }); if (qHistory.length > 16) qHistory = qHistory.slice(-16); } return reply || "…"; }
+    return ensureRouter().then(function (router) {
+      if (!router) return fallbackLLM(text, onDelta, o, convo).then(remember);
+      return router.ask(text, { messages: convo, onDelta: onDelta, signal: o.signal })
+        .then(function (r) { var reply = (r && r.text) || ""; if (!reply) return fallbackLLM(text, onDelta, o, convo).then(remember); return remember(reply); })
+        .catch(function () { return fallbackLLM(text, onDelta, o, convo).then(remember); });
+    });
+  }
+
+  // ── Q orb (corner) — the desktop's living form on the WebGL substrate; degrades to the CSS disc. ───
   (function bootOrb() {
     var canvas = $("qcanvas"); if (!canvas) return;
-    function loadThree() {
-      return new Promise(function (res) {
-        if (window.THREE) return res(true);
-        var s = document.createElement("script"); s.src = "/_shared/voice/lib/three.min.js";
-        s.onload = function () { res(!!window.THREE); }; s.onerror = function () { res(false); };
-        (document.head || document.documentElement).appendChild(s);
-      });
-    }
     loadThree().then(function (ok) {
       if (!ok) return;                                                          // no THREE → keep the spectrum-disc fallback
       import("/_shared/voice/holo-voice-orb.mjs").then(function (m) {
         try {
           if (m.orbSupported && !m.orbSupported()) return;                      // no WebGL → fallback stays
-          var orb = m.createOrb(canvas, { detail: 4, spin: 0.8, level: function () { return 0; } });
-          orb.start(); $("qorb").classList.add("live");
-          window.addEventListener("resize", function () { try { orb.resize(); } catch (e) {} });
+          cornerOrb = m.createOrb(canvas, { detail: 8, level: liveLevel, color: liveColor,   // detail 8 = the reference wireframe density …
+            maxPixelRatio: Math.min(window.devicePixelRatio || 2, 3) });                       // … at the phone's full DPR so every edge is razor-sharp
+          cornerOrb.start(); $("qorb").classList.add("live");
+          window.addEventListener("resize", function () { try { cornerOrb.resize(); } catch (e) {} });
         } catch (e) {}
       }).catch(function () {});
     });
   })();
 
+  // ── Q HERO — tap the orb and Q fills the screen: one large living orb, voice-first, everything else
+  //    gone. Native WebGPU when the phone has it (high-res raymarched orb), WebGL otherwise, the CSS disc
+  //    as the floor. Speak → your words surface as intent → Q answers aloud. Star-Trek-clean: the orb is
+  //    the whole interface. (Complexity abstracted away — one tap in, swipe down out.) ─────────────────
+  var Hero = (function () {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var el = null, orb = null, mounted = false, rec = null, listening = false, mic = {}, prevEnergy = 0, micRaf = 0;
+    function $h(id) { return document.getElementById(id); }
+    function setStatus(s) { var n = $h("qhero-status"); if (n) n.textContent = s; }
+    function setText(s) { var n = $h("qhero-text"); if (n) n.textContent = s; }
+
+    // ── compose-on-the-fly: resolve an utterance to a κ app and mount it INTO the hero ──────────────
+    function appCatalog() { try { return (typeof apps !== "undefined" && apps && apps.length) ? apps : CURATED; } catch (e) { return []; } }
+    var DISMISS = /\b(back|dismiss|close|done|home|exit|go back|never mind|nevermind|return|cancel)\b/i;
+    function resolveCompose(text) {
+      var t = (text || "").toLowerCase().replace(/[.?!,]/g, " ").replace(/\s+/g, " ").trim(); if (!t) return null;
+      var openVerb = /\b(open|launch|show|start|bring up|pull up|take me to|go to|goto|load|run|use)\b/.test(t);
+      var list = appCatalog(), best = null;
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i], nm = String(a.name || a.id || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim(); if (!nm) continue;
+        if (new RegExp("\\b" + nm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(t)) { if (!best || nm.length > best._n) best = { ref: a.kappa || a.id, name: a.name || a.id, _n: nm.length }; }
+      }
+      // require an open-ish verb OR a terse utterance (≤3 words: a bare "notes", "browser") so normal
+      // questions that merely mention an app name aren't hijacked.
+      if (best && (openVerb || t.split(" ").length <= 3)) return best;
+      return null;
+    }
+    function composeSurface(hit) {
+      var f = $h("qhero-frame"); if (!f) return;
+      $h("qhero-surftitle").textContent = hit.name;
+      // mount by CONTENT identity (Law L1): the κ (or id) → holospace.html resolves def+lock and mounts it.
+      f.src = "/holospace.html?app=" + encodeURIComponent(hit.ref) + "&bare=1";
+      el.classList.add("composing");
+      try { if (orb && orb.resize) setTimeout(function () { orb.resize(); }, 360); } catch (e) {}   // orb shrank → re-fit
+    }
+    function dissolveSurface() {
+      if (!el || !el.classList.contains("composing")) return false;
+      el.classList.remove("composing");
+      var f = $h("qhero-frame"); if (f) setTimeout(function () { try { f.src = "about:blank"; } catch (e) {} }, 320);
+      setText(""); Q_VOICE.state = "listening"; setStatus("Listening");
+      try { if (orb && orb.resize) setTimeout(function () { orb.resize(); }, 360); } catch (e) {}   // orb grew back → re-fit
+      return true;
+    }
+    // the one intent handler shared by the voice loop AND the browser fallback: dismiss → SAFETY → compose → answer.
+    function handleUtterance(t) {
+      if (el && el.classList.contains("composing") && DISMISS.test(t)) { dissolveSurface(); return Promise.resolve("Back to me."); }
+      // P5 authority: never act on a prohibited or irreversible/outward intent silently.
+      var risk = Authority.classify(t);
+      if (risk === "prohibited") return Promise.resolve(Authority.refusal());          // decline + defer to the human
+      if (risk === "confirm") return handleConsequential(t);                            // confirm before acting
+      var hit = resolveCompose(t);
+      if (hit) { composeSurface(hit); return Promise.resolve("Opening " + hit.name + "."); }
+      return qBrain(t, { onDelta: function (s) { setText(s); } });
+    }
+    // a consequential intent: gate the actions this surface can really perform (today: clearing the Inbox);
+    // anything else, Q recognises but won't do without your explicit go-ahead and the capability to do it.
+    function handleConsequential(t) {
+      if (/\b(clear|empty|delete|wipe)\b[^]*\b(inbox|letters|messages|notifications)\b/i.test(t)) {
+        return Authority.confirm({ title: "Clear your Inbox?", body: "This permanently removes all of Q's letters. It can't be undone.", ok: "Clear all", danger: true })
+          .then(function (yes) { if (yes) { try { Inbox.clear(); } catch (e) {} return "Done — your Inbox is clear."; } return "Left your Inbox as it is."; });
+      }
+      return Promise.resolve("That's something I'd only do with your explicit go-ahead — and I'm not wired to do it from here yet. Tell me the goal and I'll set it up properly.");
+    }
+
+    function mountOrb() {
+      var canvas = $h("qhero-canvas"); if (!canvas || mounted) return; mounted = true;
+      var prCap = Math.min(window.devicePixelRatio || 2, 3);
+      function webgl() {
+        loadThree().then(function (ok) { if (!ok) { mounted = false; return; }
+          import("/_shared/voice/holo-voice-orb.mjs").then(function (m) {
+            try { if (m.orbSupported && !m.orbSupported()) { mounted = false; return; }
+              orb = m.createOrb(canvas, { detail: 8, level: liveLevel, color: liveColor, maxPixelRatio: prCap });
+              orb.start(); $h("qhero").classList.add("live");
+            } catch (e) { mounted = false; }
+          }).catch(function () { mounted = false; });
+        });
+      }
+      if (window.navigator && navigator.gpu) {
+        import("/_shared/voice/holo-voice-orb-gpu.mjs").then(function (g) {
+          if (!(g.gpuSupported && g.gpuSupported())) return webgl();
+          g.createGpuOrb(canvas, { level: liveLevel, color: liveColor, maxPixelRatio: prCap })
+            .then(function (o) { orb = o; o.start(); $h("qhero").classList.add("live"); }, function () { webgl(); });
+        }).catch(function () { webgl(); });
+      } else webgl();
+    }
+
+    // mic → the orb's live level + bands (so it breathes with your voice). Permission-gated; if denied the
+    // orb still lives on its idle terms — never a dead stage.
+    function startMic() {
+      if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || mic.ctx) return;
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        mic.stream = stream; var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+        mic.ctx = new Ctx(); var src = mic.ctx.createMediaStreamSource(stream);
+        mic.an = mic.ctx.createAnalyser(); mic.an.fftSize = 256; mic.an.smoothingTimeConstant = 0.82; src.connect(mic.an);
+        var freq = new Uint8Array(mic.an.frequencyBinCount);
+        (function loop() {
+          if (!mic.an) return;
+          mic.an.getByteFrequencyData(freq);
+          var n = freq.length, third = (n / 3) | 0, sum = 0, b = 0, md = 0, tr = 0;
+          for (var i = 0; i < n; i++) { var vv = freq[i] / 255; sum += vv; if (i < third) b += vv; else if (i < 2 * third) md += vv; else tr += vv; }
+          var energy = sum / n, onset = Math.max(0, energy - prevEnergy) * 4; prevEnergy = energy;
+          Q_VOICE.level = Math.min(1.4, energy * 3.4);
+          Q_VOICE.bass = b / third; Q_VOICE.mid = md / third; Q_VOICE.treble = tr / Math.max(1, n - 2 * third); Q_VOICE.onset = Math.min(1, onset);
+          micRaf = requestAnimationFrame(loop);
+        })();
+      }).catch(function () {});
+    }
+    function stopMic() {
+      if (micRaf) cancelAnimationFrame(micRaf); micRaf = 0;
+      try { if (mic.stream) mic.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      try { if (mic.ctx) mic.ctx.close(); } catch (e) {}
+      mic = {}; Q_VOICE.level = 0; Q_VOICE.bass = Q_VOICE.mid = Q_VOICE.treble = Q_VOICE.onset = 0;
+    }
+
+    function startListen() {
+      if (!SR) { Q_VOICE.state = "idle"; setStatus("Q"); return; }
+      listening = true; Q_VOICE.state = "listening"; setStatus("Listening");
+      try { rec = new SR(); } catch (e) { listening = false; return; }
+      rec.lang = navigator.language || "en-US"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      rec.onresult = function (e) {
+        var txt = ""; for (var i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+        setText(txt);
+        if (e.results[e.results.length - 1].isFinal) { var f = txt.trim(); if (f) handleIntent(f); }
+      };
+      rec.onend = function () { if (listening && Q_VOICE.state === "listening") { try { rec.start(); } catch (e) {} } };
+      rec.onerror = function () {};
+      try { rec.start(); } catch (e) {}
+    }
+    function stopListen() { listening = false; if (rec) { try { rec.onend = null; rec.stop(); } catch (e) {} rec = null; } }
+
+    function handleIntent(text) {
+      Q_VOICE.state = "thinking"; setStatus("Thinking"); stopListen();
+      handleUtterance(text).then(function (reply) {
+        if (!el || !el.classList.contains("on")) return;
+        Q_VOICE.state = "speaking"; setStatus("Q"); setText(reply);
+        speak(reply, function () { if (el && el.classList.contains("on")) startListen(); });
+      });
+    }
+    function speak(text, done) {
+      try {
+        if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { if (done) done(); return; }
+        var u = new SpeechSynthesisUtterance(text); u.rate = 1.0; u.pitch = 1.0;
+        u.onend = function () { if (done) done(); }; u.onerror = function () { if (done) done(); };
+        speechSynthesis.cancel(); speechSynthesis.speak(u);
+      } catch (e) { if (done) done(); }
+    }
+    // ── Q's own on-device voice loop (Whisper ear + Kokoro voice + silero VAD, all serverless). PREFERRED;
+    //    if its weights/mic/graph aren't available it rejects and we keep the browser floor below. ───────
+    var qv = null, qvTried = false;
+    function ensureEngine() {
+      if (qvTried) return Promise.resolve(!!qv);
+      qvTried = true;
+      return import("/_shared/voice/holo-q-mobile.mjs").then(function (m) {
+        return m.createQVoice({
+          lang: (navigator.language || "en"),
+          signalSink: Q_VOICE,                                                  // mic + Q's voice → the orb, live
+          onState: function (s) { Q_VOICE.state = s; setStatus(s === "listening" ? "Listening" : s === "thinking" ? "Thinking" : s === "speaking" ? "Q" : "Tap to speak"); },
+          onText: function (t) { setText(t); },
+          onIntent: function (t) { return handleUtterance(t); }   // dismiss → compose a κ surface → else stream Q's reply
+        });
+      }).then(function (engine) { qv = engine; return true; }).catch(function () { qv = null; return false; });
+    }
+
+    function toggleListen() {
+      if (qv) { try { qv.toggle(); } catch (e) {} return; }
+      if (listening) { stopListen(); Q_VOICE.state = "idle"; setStatus("Tap to speak"); }
+      else { try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {} startListen(); }
+    }
+
+    // the post-wake words ("…open notes") run as the first utterance, so "Q, open notes" is one breath
+    function seedCommand(cmd) {
+      cmd = (cmd || "").trim(); if (!cmd) return;
+      setText(cmd); Q_VOICE.state = "thinking"; setStatus("Thinking");
+      handleUtterance(cmd).then(function (reply) {
+        if (!el || !el.classList.contains("on")) return;
+        Q_VOICE.state = "speaking"; setStatus("Q"); if (!el.classList.contains("composing")) setText(reply);
+        try { if (qv && qv.speak) qv.speak(reply); else if (window.speechSynthesis && window.SpeechSynthesisUtterance) { var u = new SpeechSynthesisUtterance(reply); speechSynthesis.cancel(); speechSynthesis.speak(u); } } catch (e) {}
+      });
+    }
+    function open(seed) {
+      el = $h("qhero"); if (!el) return;
+      if (typeof wakeStop === "function") { try { wakeStop(); } catch (e) {} }  // release the wake mic → the hero takes it
+      if (cornerOrb) { try { cornerOrb.stop(); } catch (e) {} }                 // one orb at a time — save power
+      document.body.style.overflow = "hidden";
+      el.classList.add("on"); el.setAttribute("aria-hidden", "false");
+      setText(""); setStatus("Waking");
+      mountOrb(); if (orb) { try { orb.start(); } catch (e) {} }
+      // pre-warm Q's brain while you speak your first words (only when the live mux isn't already here) →
+      // no cold hang on the first answer.
+      if (!((window.HoloVoice && window.HoloVoice.ask) || window.Q)) { try { ensureLLM(); } catch (e) {} }
+      ensureEngine().then(function (ok) {
+        if (!el.classList.contains("on")) { if (qv) try { qv.stop(); } catch (e) {} return; }   // closed before ready
+        if (ok && qv) { Q_VOICE.state = "listening"; setStatus("Listening"); try { qv.start(); } catch (e) {} }
+        else { setStatus(SR ? "Listening" : "Q"); startMic(); setTimeout(function () { if (el.classList.contains("on")) startListen(); }, 200); }   // browser floor
+        if (seed) setTimeout(function () { if (el.classList.contains("on")) seedCommand(seed); }, 350);   // hands-free one-breath command
+      });
+    }
+    function close() {
+      if (!el) el = $h("qhero"); if (!el) return;
+      if (qv) { try { qv.stop(); } catch (e) {} } else { stopListen(); stopMic(); try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {} }
+      Q_VOICE.state = "idle";
+      if (el.classList.contains("composing")) { el.classList.remove("composing"); var f = $h("qhero-frame"); if (f) try { f.src = "about:blank"; } catch (e) {} }   // tear down any composed surface
+      el.classList.remove("on"); el.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      if (orb) { try { orb.stop(); } catch (e) {} }                            // keep mounted for instant re-open
+      if (cornerOrb) { try { cornerOrb.start(); } catch (e) {} }
+      if (typeof wakeStart === "function") { try { wakeStart(); } catch (e) {} }   // re-arm the wake word (if enabled)
+    }
+
+    (function bind() {
+      el = $h("qhero"); if (!el) return;
+      // tap the orb → if a surface is composed, dissolve back to full Q; otherwise pause/resume listening
+      var canvas = $h("qhero-canvas"); if (canvas) canvas.addEventListener("click", function () { if (el.classList.contains("composing")) dissolveSurface(); else toggleListen(); });
+      var x = $h("qhero-x"); if (x) x.addEventListener("click", close);
+      var back = $h("qhero-surfback"); if (back) back.addEventListener("click", dissolveSurface);   // ← dissolve the κ surface
+      var type = $h("qhero-hint"); if (type) type.addEventListener("click", function () { close(); openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 300); });
+      var y0 = null;                                                            // swipe DOWN to return home
+      el.addEventListener("touchstart", function (e) { if (e.touches && e.touches.length === 1) y0 = e.touches[0].clientY; }, { passive: true });
+      el.addEventListener("touchmove", function (e) { if (y0 != null && e.touches[0].clientY - y0 > 90) { y0 = null; close(); } }, { passive: true });
+      el.addEventListener("touchend", function () { y0 = null; });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && el.classList.contains("on")) { if (el.classList.contains("composing")) dissolveSurface(); else close(); } });   // Esc: dissolve first, then leave
+    })();
+
+    return { open: open, close: close };
+  })();
+
+  // ── Hands-free wake word "Q" (P0) — opt-in, on-device, fail-closed ─────────────────────────────────
+  // When enabled (Settings → Voice), the home runs a low-duty wake loop (holo-q-wake.mjs). Say "Q" and the
+  // hero opens hands-free, carrying anything you said after it. The wake mic is released the moment the hero
+  // opens (the hero takes it) and re-armed when you leave. Default OFF — arming prompts for the mic.
+  var WKEY = "holo.wake.v1", wakeInst = null, wakeStarting = false;
+  function wakeEnabled() { try { return localStorage.getItem(WKEY) === "1"; } catch (e) { return false; } }
+  function setWakeEnabled(on) { try { localStorage.setItem(WKEY, on ? "1" : "0"); } catch (e) {} }
+  function wakeStart() {
+    if (!wakeEnabled()) return;
+    if ($("qhero") && $("qhero").classList.contains("on")) return;            // the hero owns the mic while it's open
+    if (wakeInst) { try { wakeInst.start(); } catch (e) {} Q_VOICE.armed = true; return; }
+    if (wakeStarting) return; wakeStarting = true;
+    import("/_shared/voice/holo-q-wake.mjs").then(function (m) {
+      return m.createWakeWord({ lang: (navigator.language || "en"), onWake: function (cmd) { try { Hero.open(cmd); } catch (e) {} } });
+    }).then(function (w) {
+      wakeInst = w; wakeStarting = false;
+      if (wakeEnabled() && !(($("qhero") && $("qhero").classList.contains("on")))) { try { w.start(); } catch (e) {} Q_VOICE.armed = true; }
+    }).catch(function () { wakeStarting = false; wakeInst = null; Q_VOICE.armed = false; });
+  }
+  function wakeStop() { Q_VOICE.armed = false; if (wakeInst) { try { wakeInst.stop(); } catch (e) {} } }
+
   // ── Sheets ────────────────────────────────────────────────────────────────────────────────────
   var scrim = $("scrim");
   function openSheet(el) { closeSheets(); scrim.classList.add("on"); el.classList.add("on"); }
-  function closeSheets() { scrim.classList.remove("on"); ["drawer", "settings", "timer", "qsheet"].forEach(function (id) { $(id).classList.remove("on"); }); }
+  function closeSheets() { scrim.classList.remove("on"); ["drawer", "settings", "timer", "qsheet", "inbox"].forEach(function (id) { $(id).classList.remove("on"); }); }
   scrim.addEventListener("click", closeSheets);
   document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeSheets); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheets(); });
   $("menu").addEventListener("click", function () { openSheet($("drawer")); });
   $("open-settings").addEventListener("click", function () { openSheet($("settings")); });
+
+  // ── AUTHORITY (P5) — Q never performs an irreversible or outward action silently. It classifies an
+  //    intent, DECLINES the prohibited class (passwords · payments · trades · access control) and defers to
+  //    you, and CONFIRMS the consequential class (delete · send · share · sign-out · settings) — with a
+  //    best-effort device biometric for the sensitive subset — before anything happens. Mounted bytes are
+  //    already L5-verified (compose mounts by κ through holospace.html). The human always has the last word.
+  var Authority = (function () {
+    var PROHIBITED = /\b(password|passcode|\bpin\b|credit ?card|card number|\bcvv\b|\bssn\b|social security|seed phrase|private key|api key|recovery (phrase|code)|bank (login|password|account)|(send|transfer|wire|move)\s+(money|funds|cash|\$|\d)|\bpay(ing)?\b|purchase|buy (it|now|this|\d|\$)|\btrade\b|sell\s+(stock|shares|crypto|bitcoin)|withdraw|deposit)\b/i;
+    var CONFIRM = /\b(delete|erase|empty|wipe|clear\s+(my\s+|the\s+)?(inbox|letters|history|data|notifications)|send\s+(a|an|the|this|my)?\s*(message|email|text|dm|reply)|reply to|publish|\bpost\b|\bshare\b|forward|unsubscribe|sign\s*(me\s*)?out|log\s*(me\s*)?out|cancel\s+(my|the)|schedule|book|order|grant|revoke|change\s+(my\s+)?(password|settings|account))\b/i;
+    function classify(text) { var t = String(text || ""); if (PROHIBITED.test(t)) return "prohibited"; if (CONFIRM.test(t)) return "confirm"; return "safe"; }
+    function refusal() { return "For your safety I won't enter passwords, move money, or place trades — those are yours to do directly. Tell me the goal and I'll help with everything around it."; }
+    function biometric() {
+      try {
+        if (!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.get)) return Promise.resolve(false);
+        var ch = new Uint8Array(32); if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(ch);
+        return navigator.credentials.get({ publicKey: { challenge: ch, timeout: 60000, userVerification: "required", rpId: location.hostname } }).then(function () { return true; }, function () { return false; });
+      } catch (e) { return Promise.resolve(false); }
+    }
+    function confirm(o) {
+      o = o || {};
+      return new Promise(function (resolve) {
+        var scrim = $("confirm"); if (!scrim) return resolve(false);
+        $("confirm-title").textContent = o.title || "Confirm"; $("confirm-body").textContent = o.body || "";
+        var ok = $("confirm-ok"); ok.textContent = o.ok || "Confirm"; ok.className = "confirm-btn " + (o.danger ? "danger" : "primary"); ok.disabled = false;
+        var note = $("confirm-note");
+        if (o.biometric) { note.hidden = false; note.textContent = "Checking it's you…"; ok.disabled = true; biometric().then(function (v) { note.textContent = v ? "Verified — it's you." : "Couldn't verify on this device — confirm to continue."; ok.disabled = false; }); }
+        else { note.hidden = true; }
+        scrim.classList.add("on"); scrim.setAttribute("aria-hidden", "false");
+        function finish(v) { scrim.classList.remove("on"); scrim.setAttribute("aria-hidden", "true"); $("confirm-cancel").removeEventListener("click", onC); ok.removeEventListener("click", onOk); document.removeEventListener("keydown", onKey, true); resolve(v); }
+        function onC() { finish(false); } function onOk() { finish(true); } function onKey(e) { if (e.key === "Escape") finish(false); }
+        $("confirm-cancel").addEventListener("click", onC); ok.addEventListener("click", onOk); document.addEventListener("keydown", onKey, true);
+      });
+    }
+    return { classify: classify, refusal: refusal, confirm: confirm, biometric: biometric };
+  })();
+
+  // ── Q PROACTIVE + INBOX (P4) — ambient, but earned. Q surfaces a single quiet pill when it has a letter
+  //    worth your attention; tap it to read the Inbox. Letters are categorised (letter / update / action),
+  //    persist locally, and are written ONLY on the home (not over an app), at most one per day plus a
+  //    one-time welcome — Q speaks unbidden, never naggy. In the full OS this Inbox bridges to the real
+  //    autonomy-spine / +-ingest brief (holo-brief, holo-insight); standalone, these honest letters are the floor. ─
+  var Inbox = (function () {
+    var IKEY = "holo.inbox.v1", inboxFilter = "all", pillTimer = null;
+    function read() { try { var a = JSON.parse(localStorage.getItem(IKEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function write(a) { try { localStorage.setItem(IKEY, JSON.stringify(a.slice(0, 50))); } catch (e) {} }
+    function unread() { return read().filter(function (l) { return !l.read; }).length; }
+    function nid() { return "l" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+    function when(ts) {
+      var d = Math.max(0, Date.now() - ts), m = Math.floor(d / 60000), h = Math.floor(d / 3600000), dy = Math.floor(d / 86400000);
+      return dy > 0 ? dy + "d ago" : h > 0 ? h + "h ago" : m > 0 ? m + "m ago" : "just now";
+    }
+    function refreshBadge() { var b = $("inbox-badge"); if (!b) return; var n = unread(); b.textContent = n > 9 ? "9+" : String(n); b.classList.toggle("on", n > 0); }
+    function add(letter) {
+      var a = read();
+      letter.id = nid(); letter.ts = Date.now(); letter.read = false; letter.cat = letter.cat || "letter";
+      a.unshift(letter); write(a); refreshBadge();
+      if (canSpeak()) showPill(letter);
+      return letter.id;
+    }
+    function canSpeak() {   // only over the calm home — never over the hero, an app, or another sheet
+      try {
+        if ($("qhero") && $("qhero").classList.contains("on")) return false;
+        if ($("appview") && $("appview").classList.contains("on")) return false;
+        if (scrim && scrim.classList.contains("on")) return false;
+      } catch (e) {}
+      return true;
+    }
+    function showPill(letter) {
+      var p = $("qpill"); if (!p) return;
+      $("qpill-text").textContent = letter.title;
+      p.className = "qpill cat-" + (letter.cat || "letter") + " on";
+      clearTimeout(pillTimer); pillTimer = setTimeout(hidePill, 8500);   // auto-retreat — never lingers
+    }
+    function hidePill() { var p = $("qpill"); if (p) p.classList.remove("on"); clearTimeout(pillTimer); }
+    function render() {
+      var ul = $("inbox-list"), a = read().filter(function (l) { return inboxFilter === "all" || l.cat === inboxFilter; });
+      ul.innerHTML = "";
+      $("inbox-empty").hidden = a.length > 0;
+      a.forEach(function (l) {
+        var li = document.createElement("li"); li.className = (l.read ? "" : "unread ") + "cat-" + (l.cat || "letter");
+        li.innerHTML = '<span class="idot"></span><div><div class="ititle"></div><div class="ibody"></div><div class="iwhen"></div></div>';
+        li.querySelector(".ititle").textContent = l.title || "";
+        li.querySelector(".ibody").textContent = l.body || "";
+        li.querySelector(".iwhen").textContent = when(l.ts);
+        ul.appendChild(li);
+      });
+    }
+    function open() {
+      hidePill(); render(); openSheet($("inbox"));
+      var a = read(); var changed = false; a.forEach(function (l) { if (!l.read) { l.read = true; changed = true; } });
+      if (changed) { write(a); }                       // opening the Inbox = read
+      setTimeout(function () { render(); refreshBadge(); }, 400);   // reflect read-state after the open animation
+    }
+    // wiring
+    $("open-inbox").addEventListener("click", open);
+    $("qpill").addEventListener("click", open);
+    $("qpill-text").addEventListener("click", open);
+    $("qpill-x").addEventListener("click", function (e) { e.stopPropagation(); hidePill(); });   // dismiss the pill; the letter waits in the Inbox
+    document.querySelectorAll("#inbox-cats button").forEach(function (b) {
+      b.addEventListener("click", function () { inboxFilter = b.dataset.cat; document.querySelectorAll("#inbox-cats button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); render(); });
+    });
+    function clear() { write([]); render(); refreshBadge(); }
+    $("inbox-clear").addEventListener("click", function () {   // a real irreversible action → gated by Authority (P5)
+      Authority.confirm({ title: "Clear your Inbox?", body: "This permanently removes all of Q's letters. It can't be undone.", ok: "Clear all", danger: true }).then(function (yes) { if (yes) clear(); });
+    });
+    refreshBadge();
+    return { add: add, open: open, unread: unread, refreshBadge: refreshBadge, canSpeak: canSpeak, showPill: showPill, clear: clear };
+  })();
+
+  // the proactive cadence: a one-time welcome, then at most a single gentle daily brief — written in Q's
+  // voice, instant (no model), personal (your name + the time of day). Runs once on a calm home load.
+  (function proactive() {
+    function todayKey() { var d = new Date(); return "holo.brief." + d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+    function once(key) { try { if (localStorage.getItem(key)) return false; localStorage.setItem(key, "1"); return true; } catch (e) { return false; } }
+    function name() { return (NAME && NAME.toLowerCase() !== "guest") ? NAME : ""; }
+    function brief() {
+      var h = new Date().getHours(), part = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening", nm = name();
+      var open = "Good " + part + (nm ? ", " + nm : "") + ".";
+      var tips = [
+        "Tap the orb and just talk — I run on this device, so everything stays with you.",
+        "Try “Q, open notes” — say what you want and I’ll bring it up, no hunting for apps.",
+        "I’m here in the background whenever you need me. Ask me anything.",
+        "Before you dive in, you can tell me how long you mean to stay — I’ll keep time."
+      ];
+      return { cat: "letter", title: open + " A quiet note from Q", body: open + " " + tips[new Date().getDate() % tips.length] };
+    }
+    setTimeout(function () {
+      try {
+        if (once("holo.inbox.welcomed")) {
+          Inbox.add({ cat: "letter", title: "Hi, I’m Q", body: "Welcome to Hologram. I’m your assistant, and I live right here on your device — nothing leaves your phone. Tap the orb whenever you want to talk." });
+        } else if (once(todayKey())) {
+          Inbox.add(brief());
+        } else if (Inbox.unread() > 0 && Inbox.canSpeak()) {
+          var first = (function () { try { return JSON.parse(localStorage.getItem("holo.inbox.v1") || "[]")[0]; } catch (e) { return null; } })();
+          if (first && !first.read) Inbox.showPill(first);
+        }
+      } catch (e) {}
+    }, 1600);
+  })();
 
   // ── Q — the living assistant. The orb opens a clean ask panel; a query is handed to the on-device
   //    brain when it is present (window.HoloVoice / window.Q, or the shell parent), never faked. ───
@@ -549,7 +1219,7 @@
     var chips = $("q-chips");
     CHIPS.forEach(function (t) { var b = document.createElement("button"); b.type = "button"; b.textContent = t;
       b.addEventListener("click", function () { $("q-input").value = t; ask(t); }); chips.appendChild(b); });
-    $("qorb").addEventListener("click", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); });
+    $("qorb").addEventListener("click", function () { Hero.open(); });   // tap the orb → Q fills the screen, voice-first
     // Right-click the orb → a compact context MENU of quick actions; it must NOT open the right-side ask
     // panel and must suppress the browser's native menu. Left-click still opens the panel.
     (function () {
@@ -558,8 +1228,10 @@
       function onDoc(e) { if (menu && !menu.contains(e.target)) close(); }
       function onKey(e) { if (e.key === "Escape") close(); }
       var ITEMS = [
-        ["Ask Q", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); }],
+        ["Ask Q", function () { Hero.open(); }],
+        ["Type to Q", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); }],
         ["Apps", function () { openSheet($("drawer")); }],
+        ["Inbox", function () { Inbox.open(); }],
         ["Focus timer", function () { openSheet($("timer")); }],
         ["Settings", function () { openSheet($("settings")); }],
       ];
@@ -579,19 +1251,7 @@
     function ask(text) {
       text = (text || "").trim(); if (!text) { $("q-input").focus(); return; }
       var reply = $("q-reply"); reply.textContent = "Thinking…";
-      var brain = (window.HoloVoice && window.HoloVoice.ask) || (window.Q && (window.Q.ask || window.Q));
-      try {
-        if (typeof brain === "function") {
-          Promise.resolve(brain.call(window.HoloVoice || window.Q || window, text))
-            .then(function (r) { reply.textContent = (r && (r.text || r.answer)) || (typeof r === "string" ? r : "Done."); })
-            .catch(function () { reply.textContent = "Q couldn't answer that just now."; });
-        } else if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: "holo-q-ask", text: text }, "*");
-          reply.textContent = "Sent to Q.";
-        } else {
-          reply.textContent = "Q comes online with the OS. Your question is ready to send the moment it wakes.";
-        }
-      } catch (e) { reply.textContent = "Q is waking up. Try again in a moment."; }
+      qBrain(text, { onDelta: function (s) { reply.textContent = s; } }).then(function (r) { reply.textContent = r || "Done."; });   // shared brain bridge (same as the hero)
     }
   })();
 
@@ -636,13 +1296,13 @@
       b.addEventListener("click", function () { promptOpen(a); });
       li.appendChild(b); ul.appendChild(li);
     });
-    $("appcount").textContent = apps.length + " apps";
+    var _ac = $("appcount"); if (_ac) _ac.textContent = apps.length + " apps";
   }
   renderApps();
   fetch("/apps/index.jsonld", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (idx) {
     if (!idx) return;
     var list = (idx["dcat:dataset"] || []).map(function (a) {
-      return { id: a["schema:identifier"], name: a["schema:name"], landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") };
+      return { id: a["schema:identifier"], name: a["schema:name"], kappa: a["@id"], landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") };
     }).filter(function (a) { return a.id && a.landing; });
     if (list.length) { apps = pick12(list); renderApps(); }
   }).catch(function () {});
@@ -659,11 +1319,14 @@
     $("sw-focus").setAttribute("aria-checked", String(!!f.ask));
     $("def-mins").textContent = f.mins ? f.mins + " min" : "No limit";
     document.querySelectorAll("#set-default button").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.min === f.mins)); });
+    var sw = $("sw-wake"); if (sw) sw.setAttribute("aria-checked", String(wakeEnabled()));
     var ts = $("set-text"); if (ts && !ts._init) { ts.value = String(s.fontScale || 1); ts._init = 1; }
   }
   document.querySelectorAll("#set-mode button").forEach(function (b) { b.addEventListener("click", function () { applyMode(b.dataset.mode); }); });
   document.querySelectorAll("#set-default button").forEach(function (b) { b.addEventListener("click", function () { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); syncSettings(); }); });
   $("sw-focus").addEventListener("click", function () { var f = readFocus(); f.ask = !f.ask; writeFocus(f); syncSettings(); });
+  $("sw-wake").addEventListener("click", function () { var on = !wakeEnabled(); setWakeEnabled(on); syncSettings(); if (on) wakeStart(); else wakeStop(); });
+  if (wakeEnabled()) setTimeout(wakeStart, 800);   // re-arm the wake word on load if the operator left it on
   $("set-text").addEventListener("input", function () {
     var s = readTheme(); s.fontScale = parseFloat(this.value); writeTheme(s);
     try { if (window.HoloTheme) window.HoloTheme.setFontScale(s.fontScale); } catch (e) {}
@@ -703,7 +1366,10 @@
     closeSheets();
     var v = $("appview");
     $("app-title").textContent = a.name || a.id;
-    $("appframe").src = a.landing;
+    // Open by CONTENT identity (Law L1): hand the projection the app's κ (@id) — else its id — and let
+    // holospace.html resolve def+lock and mount it, every byte re-derived (Law L5). Never the raw path.
+    var ref = a.kappa || a.id;
+    $("appframe").src = "/holospace.html?app=" + encodeURIComponent(ref) + "&bare=1";
     v.classList.add("on");
     if (countdownTimer) clearInterval(countdownTimer);
     var left = $("app-left");

@@ -142,6 +142,7 @@ export async function createGpuOrb(canvas, opts) {
   const D = JSON.parse(JSON.stringify(opts.descriptor || ORB_GPU_DESCRIPTOR));
   const getLevel = typeof opts.level === "function" ? opts.level : () => 0;
   const getColor = typeof opts.color === "function" ? opts.color : () => null;
+  const PRCAP = Math.max(1, opts.maxPixelRatio || 2);   // raise for a hero, full-DPR WebGPU render; auto-scales down under load
   const STEPS = (D.march && D.march.steps) || 72, OCT = (D.march && D.march.octaves) || 4;
 
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
@@ -176,7 +177,7 @@ export async function createGpuOrb(canvas, opts) {
   const inst = { descriptor: D, kappa: null, mode: "webgpu" };
   kappaOf(D).then((k) => { inst.kappa = k; try { canvas.dataset.kappa = k; } catch (e) {} }, () => {});
 
-  let _scale = 1, _prCap = Math.min(window.devicePixelRatio || 1, 2);
+  let _scale = 1, _prCap = Math.min(window.devicePixelRatio || 1, PRCAP);
   function resize() {
     const w = canvas.clientWidth || 300, h = canvas.clientHeight || 300, s = _prCap * _scale;
     const W = Math.max(1, Math.round(w * s)), H = Math.max(1, Math.round(h * s));
