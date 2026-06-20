@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Ambient (S1, one ambient loop) — a single scheduler owns the heartbeat and dispatches to registered faculties (reflect · drift-heal · evolve) at their own cadence: one loop runs many faculties in registration order, cadence (everyTicks) is respected, a throwing faculty is fault-isolated (never stalls the heartbeat), dispatch is deterministic, pause/resume halts the whole layer in one move, unregister/idempotent-register behave, and start() arms exactly one loop via the injected pump (no faculty owns a timer)",
+  "authority": "the holo-heal-supervisor injected-pump idiom (no clock in the core) · holospaces Law L2 (one canonical wire) · deterministic dispatch",
+  "witnessed": true,
+  "covers": [
+    "one-ambient-loop",
+    "faculty-registry",
+    "cadence",
+    "fault-isolation",
+    "deterministic-dispatch",
+    "one-move-pause",
+    "single-scheduler"
+  ],
+  "checks": {
+    "oneLoopRunsManyFaculties": true,
+    "cadenceRespected": true,
+    "faultIsolation": true,
+    "deterministicDispatch": true,
+    "pauseResumeWholeLayer": true,
+    "unregisterStops": true,
+    "idempotentRegister": true,
+    "singleSchedulerNoSelfTimers": true
+  },
+  "failed": []
+}

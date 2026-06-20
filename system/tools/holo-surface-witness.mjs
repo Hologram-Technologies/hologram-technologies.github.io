@@ -118,5 +118,141 @@ const canvas = () => ({ width: 0, height: 0, tagName: "CANVAS" });
   ok(S.normNode({ kind: "container", w: 200 }).kind === "container" && S.normNode({ kind: "text", text: "x" }).kind === "text" && S.normNode({ kind: "image", src: "k", w: 32, h: 32 }).kind === "image", "normNode: container/text/image kinds");
 }
 
-console.log(`\n${fail === 0 ? "GREEN" : "RED"} — ${pass} passed, ${fail} failed`);
+// 9 — BUTTON kind: the one interactive primitive (declarative κ-action, states/a11y, GPU proxy + DOM mirror)
+{
+  // minimal DOM stub — used both as renderSceneDOM's `doc` and as a global for the GPU proxy overlay
+  const mk = (tag) => ({
+    tagName: tag.toUpperCase(), children: [], _attrs: {}, style: {}, _l: {}, className: "", disabled: false, parentElement: null, _text: null,
+    setAttribute(k, v) { this._attrs[k] = String(v); }, getAttribute(k) { return k in this._attrs ? this._attrs[k] : null; },
+    addEventListener(t, f) { (this._l[t] = this._l[t] || []).push(f); },
+    appendChild(c) { this.children.push(c); c.parentElement = this; return c; },
+    replaceChildren(...cs) { this.children = []; for (const c of cs) this.appendChild(c); },
+    querySelectorAll() { const self = this; return { forEach(fn) { self.children.filter((c) => c.className === "holo-btn-proxy").forEach(fn); } }; },
+    remove() { const p = this.parentElement; if (p) { const i = p.children.indexOf(this); if (i >= 0) p.children.splice(i, 1); } },
+    click(ev) { (this._l.click || []).forEach((f) => f(ev || {})); },
+    set textContent(v) { this._text = v; }, get textContent() { return this._text; },
+  });
+  const doc = { createElement: (t) => mk(t) };
+  const findTag = (root, tag) => { if (root.tagName === tag) return root; for (const c of root.children || []) { const r = findTag(c, tag); if (r) return r; } return null; };
+
+  // 9a — normNode: a button carries its declarative action + toggle/disabled state + a label child for the GPU visual
+  const b = S.normNode({ "@type": "holo:Surface", kind: "button", label: "Like", action: "like", w: 90, h: 36, toggled: true, accent: [0.3, 0.6, 1, 1] });
+  ok(b.kind === "button" && b.action === "like" && b.toggled === true && b.toggleable === true, "button: normNode carries action + toggle state");
+  ok(b.children.length === 1 && b.children[0].kind === "text" && b.children[0].text === "Like", "button: label becomes a centered text child (GPU draws the visual)");
+  ok(Array.isArray(b.fill) && b.fill[0] === 0.3, "button: toggled+accent → accent fill (visible toggled state)");
+
+  // 9b — dispatch is declarative: id → app-registered fn; NO inline code; gate veto fail-closed; disabled inert
+  const fired = []; const actions = { like: () => fired.push("like"), buy: () => fired.push("buy") };
+  S.dispatchAction(b, {}, { actions });
+  ok(fired.length === 1 && fired[0] === "like", "button: dispatch runs the app-registered handler addressed by id");
+  S.dispatchAction({ kind: "button", action: "buy", disabled: true }, {}, { actions });
+  ok(fired.length === 1, "button: a disabled button is inert (no dispatch)");
+  S.dispatchAction({ kind: "button", action: "buy" }, {}, { actions, gate: () => false });
+  ok(fired.length === 1, "button: the conscience gate can VETO an action (P7, fail-closed)");
+  S.dispatchAction({ kind: "button", action: "buy" }, {}, { actions, gate: () => true });
+  ok(fired.length === 2 && fired[1] === "buy", "button: a gate-allowed action dispatches");
+  ok(typeof b.action === "string", "button: action is a content-addressed id, not inline code (L4/L5 — substrate runs no code)");
+
+  // 9c — hit-index exposes the action for the canvas/3D pointer-ray path
+  const lay = S.layoutScene({ "@type": "holo:Surface", kind: "container", w: 200, pad: 8, children: [{ kind: "button", label: "Go", action: "go", w: 80, h: 34 }] });
+  ok(S.buildHitIndex(lay.draws).some((e) => e.action === "go" && e.kind === "button"), "button: buildHitIndex exposes the action for pointer/ray hit dispatch");
+
+  // 9d — DOM mirror is a REAL <button> with WAI-ARIA; activating it dispatches (the a11y/input truth)
+  let domFired = false;
+  const target = mk("div");
+  await S.renderSceneDOM(target, { "@type": "holo:Surface", kind: "container", w: 200, children: [{ kind: "button", label: "Save", action: "save", aria: "Save video", toggleable: true }] }, { actions: { save: () => { domFired = true; } } }, doc);
+  const btn = findTag(target, "BUTTON");
+  ok(btn && btn.tagName === "BUTTON", "button: DOM mirror is a real <button> (natively focusable + keyboard-activatable)");
+  ok(btn.getAttribute("aria-label") === "Save video" && btn.getAttribute("aria-pressed") === "false", "button: DOM mirror exposes WAI-ARIA (aria-label + aria-pressed)");
+  btn.click(); ok(domFired, "button: activating the DOM mirror dispatches the κ-action");
+
+  // 9e — GPU path overlays a real <button> proxy at the button box, wired to the same dispatch (hybrid)
+  const savedDoc = globalThis.document, savedGCS = globalThis.getComputedStyle;
+  globalThis.document = doc; globalThis.getComputedStyle = () => ({ position: "static" });
+  let proxyFired = false;
+  const s = stub(); const cv = canvas(); const host = mk("div"); host.appendChild(cv); cv.parentElement = host;
+  await S.renderSceneGPU(cv, { "@type": "holo:Surface", kind: "container", w: 200, pad: 8, children: [{ kind: "button", action: "share", aria: "Share", w: 90, h: 34 }] }, { ...inj(s), actions: { share: () => { proxyFired = true; } } });
+  const proxies = host.children.filter((c) => c.className === "holo-btn-proxy");
+  ok(proxies.length === 1 && proxies[0].tagName === "BUTTON", "button: GPU path overlays a real <button> proxy (GPU pixels + DOM semantics)");
+  proxies[0].click(); ok(proxyFired, "button: clicking the GPU proxy dispatches through the same κ-action path");
+  if (savedDoc === undefined) delete globalThis.document; else globalThis.document = savedDoc;
+  if (savedGCS === undefined) delete globalThis.getComputedStyle; else globalThis.getComputedStyle = savedGCS;
+}
+
+// 10 — INPUT kind: the text-entry primitive (GPU box + real editable DOM mirror, declarative value/handlers)
+{
+  const mk = (tag) => ({
+    tagName: tag.toUpperCase(), children: [], _attrs: {}, style: {}, _l: {}, value: "", placeholder: "", name: "", disabled: false, parentElement: null,
+    setAttribute(k, v) { this._attrs[k] = String(v); }, getAttribute(k) { return k in this._attrs ? this._attrs[k] : null; },
+    addEventListener(t, f) { (this._l[t] = this._l[t] || []).push(f); },
+    appendChild(c) { this.children.push(c); c.parentElement = this; return c; },
+    replaceChildren(...cs) { this.children = []; for (const c of cs) this.appendChild(c); },
+    querySelectorAll() { const self = this; return { forEach(fn) { self.children.filter((c) => c.className === "holo-btn-proxy" || c.className === "holo-input-proxy").forEach(fn); } }; },
+    dispatch(t, ev) { (this._l[t] || []).forEach((f) => f(ev || {})); },
+  });
+  const doc = { createElement: (t) => mk(t) };
+  const findTag = (root, tag) => { if (root.tagName === tag) return root; for (const c of root.children || []) { const r = findTag(c, tag); if (r) return r; } return null; };
+
+  // 10a — normNode: declared value/placeholder/action/submit; single-line vs multiline; no children (text lives in the DOM mirror)
+  const i = S.normNode({ "@type": "holo:Surface", kind: "input", value: "hi", placeholder: "Search…", action: "type", submit: "go", w: 240 });
+  ok(i.kind === "input" && i.value === "hi" && i.placeholder === "Search…" && i.action === "type" && i.submit === "go", "input: normNode carries value/placeholder/action/submit");
+  ok(i.multiline === false && S.normNode({ kind: "input", multiline: true }).multiline === true, "input: single-line vs multiline");
+  ok(typeof i.action === "string" && typeof i.submit === "string" && i.children.length === 0, "input: handlers are content-addressed ids; no inline-code children (L4/L5)");
+
+  // 10b — DOM mirror is a REAL editable field; "input" fires action(value); Enter fires submit
+  let typed = null, submitted = false;
+  const target = mk("div");
+  await S.renderSceneDOM(target, { "@type": "holo:Surface", kind: "container", w: 260, children: [{ kind: "input", placeholder: "Search…", action: "type", submit: "go", aria: "Search" }] }, { actions: { type: (n, ev) => { typed = ev.target.value; }, go: () => { submitted = true; } } }, doc);
+  const fld = findTag(target, "INPUT");
+  ok(fld && fld.tagName === "INPUT", "input: DOM mirror is a real <input> (text entry / IME / caret / selection / clipboard are native)");
+  ok(fld.getAttribute("aria-label") === "Search" && fld.placeholder === "Search…", "input: DOM mirror exposes accessible name + placeholder");
+  fld.value = "abc"; fld.dispatch("input", { target: fld }); ok(typed === "abc", "input: typing dispatches action(value) on input");
+  fld.dispatch("keydown", { key: "Enter", preventDefault() {}, target: fld }); ok(submitted, "input: Enter dispatches the submit action");
+  const ta = mk("div");
+  await S.renderSceneDOM(ta, { "@type": "holo:Surface", kind: "container", w: 260, children: [{ kind: "input", multiline: true, action: "type" }] }, { actions: {} }, doc);
+  ok(findTag(ta, "TEXTAREA"), "input: multiline → a real <textarea>");
+
+  // 10c — GPU path overlays a real editable <input> proxy at the box (GPU chrome + DOM editing)
+  const savedDoc = globalThis.document, savedGCS = globalThis.getComputedStyle;
+  globalThis.document = doc; globalThis.getComputedStyle = () => ({ position: "static" });
+  let gtyped = null;
+  const s = stub(); const cv = canvas(); const host = mk("div"); host.appendChild(cv); cv.parentElement = host;
+  await S.renderSceneGPU(cv, { "@type": "holo:Surface", kind: "container", w: 260, pad: 8, children: [{ kind: "input", placeholder: "Comment…", action: "type", aria: "Add a comment" }] }, { ...inj(s), actions: { type: (n, ev) => { gtyped = ev.target.value; } } });
+  const proxies = host.children.filter((c) => c.className === "holo-input-proxy");
+  ok(proxies.length === 1 && proxies[0].tagName === "INPUT" && proxies[0].getAttribute("aria-label") === "Add a comment", "input: GPU path overlays a real editable <input> proxy with ARIA");
+  proxies[0].value = "nice"; proxies[0].dispatch("input", { target: proxies[0] }); ok(gtyped === "nice", "input: typing in the GPU proxy dispatches the κ-action");
+  if (savedDoc === undefined) delete globalThis.document; else globalThis.document = savedDoc;
+  if (savedGCS === undefined) delete globalThis.getComputedStyle; else globalThis.getComputedStyle = savedGCS;
+}
+
+// 11 — OVERLAY positioning: an `abs` child is placed at (ax,ay) and does NOT consume flow space
+{
+  const lay = S.layoutScene({ "@type": "holo:Surface", kind: "container", w: 200, h: 120, pad: 0, layout: "stack", children: [
+    { kind: "text", text: "flow", h: 30 },
+    { kind: "text", text: "badge", abs: true, ax: 8, ay: 8, w: 60, h: 20 },
+  ] });
+  const flow = lay.draws.find((d) => d.node && d.node.text === "flow");
+  const badge = lay.draws.find((d) => d.node && d.node.text === "badge");
+  ok(flow && flow.box[1] === 0, "overlay: flow child occupies the normal cursor (top)");
+  ok(badge && badge.box[0] === 8 && badge.box[1] === 8, "overlay: abs child is placed at (ax,ay)");
+  // a second flow child still sits right after the first (the abs child consumed no space)
+  const lay2 = S.layoutScene({ "@type": "holo:Surface", kind: "container", w: 200, pad: 0, gap: 0, layout: "stack", children: [
+    { kind: "text", text: "a", h: 30 }, { kind: "text", text: "over", abs: true, ax: 0, ay: 99, h: 10 }, { kind: "text", text: "b", h: 30 },
+  ] });
+  const b = lay2.draws.find((d) => d.node && d.node.text === "b");
+  ok(b && b.box[1] === 30, "overlay: an abs child between two flow children does not push the flow");
+}
+
+// 12 — ROW layout: children flow horizontally at their own widths (chips, button rows, headers)
+{
+  const lay = S.layoutScene({ "@type": "holo:Surface", kind: "container", w: 400, pad: 0, gap: 10, layout: "row", children: [
+    { kind: "button", label: "A", w: 80, h: 36 }, { kind: "button", label: "B", w: 120, h: 36 },
+  ] });
+  const bgs = lay.draws.filter((d) => d.node && d.node.kind === "button");
+  ok(bgs.length === 2 && bgs[0].box[0] === 0 && bgs[1].box[0] === 90, "row: children advance horizontally by width + gap (0 → 80+10)");
+  ok(bgs[0].box[1] === bgs[1].box[1], "row: children share the same top (one horizontal line)");
+}
+
+console.log(`
+${fail === 0 ? "GREEN" : "RED"} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

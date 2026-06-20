@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Evolve (S0, the closed self-improving loop) — the spine observes, the factory proposes a fix, shipping it goes ONLY through trust.act (making Q.trust load-bearing), and the loop re-observes so the concern clears: propose-only by default (Q earns autonomy per topic), value/irreversible fixes never ship silently, every shipped fix carries a re-deriving receipt + a working undo, a user veto (never) holds, the factory stops honestly when it can't fix, and Q's unprompted acts are the only thing governed (human commands stay sovereign)",
+  "authority": "the witnessed Holo Trust boundary (ADR-0033 conscience floor) · the Factory self-observing loop (ADR-0097) · W3C PROV-O · holospaces Laws L1/L5 · rests on #holo-observer + #holo-trust",
+  "witnessed": true,
+  "covers": [
+    "closed-evolve-loop",
+    "trust-load-bearing",
+    "propose-by-default",
+    "value-irreversible-never-silent",
+    "receipt-and-undo",
+    "user-veto",
+    "honest-stop",
+    "human-sovereign"
+  ],
+  "checks": {
+    "proposeOnlyByDefault": true,
+    "silentGrantClosesTheLoop": true,
+    "valueFixNeverSilent": true,
+    "irreversibleFixNeverSilent": true,
+    "everyShippedFixHasReceiptAndUndo": true,
+    "denyTopicNeverActs": true,
+    "factoryHonestStop": true,
+    "humanPathUnaffected": true
+  },
+  "failed": []
+}

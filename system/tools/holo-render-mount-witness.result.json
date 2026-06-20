@@ -1,0 +1,19 @@
+{
+  "spec": "Browser proof: a holo:Video κ mounts a <video> through the κ-render registry, its src resolves to the κ-route (content-addressed media), and a tampered κ is refused on the render path (L5 verify-before-render).",
+  "authority": "Chromium (Playwright) real DOM · the served _shared/holo-render.js + holo-render-media.mjs · holospaces Laws L4·L5",
+  "witnessed": true,
+  "lane": "browser",
+  "covers": [
+    "render-registry",
+    "media-mount",
+    "content-addressed-media",
+    "verify-before-render",
+    "law-l5"
+  ],
+  "checks": {
+    "videoRegistered": true,
+    "mounted": true,
+    "srcIsKappaRoute": true,
+    "tamperRefused": true
+  }
+}

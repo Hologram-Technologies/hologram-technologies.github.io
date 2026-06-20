@@ -72,7 +72,13 @@ const HEAL_MS = 6000;
 // A fast HTTP content source for APP bytes: the apps-holo repo, served raw by GitHub's CDN (whole files,
 // CORS, large files included). heal() fetches an app file from here by its serve-rel path and verifies the
 // whole-file κ — so an app streams by content from here, IPFS, or the mesh interchangeably (Law L1).
-const APPS_HOLO_BASE = "https://raw.githubusercontent.com/humuhumu33/apps-holo/holo-share-to-run/";
+const APPS_HOLO_BASE = "https://raw.githubusercontent.com/Hologram-Technologies/hologram-apps/main/";
+// HEAVY app bytes (model weights, OS images) exceed GitHub's 100 MB/file + 1 GB Pages limits, so they are
+// NOT in the git tree or the deploy — they are published as κ-NAMED assets on the apps repo's Releases
+// (assets ≤2 GB, served with CORS from objects.githubusercontent.com). The asset filename IS the sha256 κ,
+// so heal fetches by content with no manifest and verifies the whole-file hash (Law L5). Same identity
+// (Law L1), different location. Set the tag to the published weights release.
+const WEIGHTS_RELEASE_BASE = "https://github.com/Hologram-Technologies/hologram-apps/releases/download/weights-v1/";
 const MIME = { html: "text/html", js: "text/javascript", mjs: "text/javascript", css: "text/css", json: "application/json", jsonld: "application/ld+json", svg: "image/svg+xml", png: "image/png", webp: "image/webp", wasm: "application/wasm", woff2: "font/woff2", map: "application/json", txt: "text/plain", wav: "audio/wav" };
 const mimeOf = (rel) => MIME[String(rel).split(".").pop().toLowerCase()] || "application/octet-stream";
 
@@ -185,6 +191,16 @@ async function heal(rel, hex, axis, resp) {
       if (r.ok) { const ab = await r.arrayBuffer(); if ((await sha256hex(ab)) === hex) { bytes = new Uint8Array(ab); src = "apps-holo"; } }
     } catch {}
   }
+  // κ-NAMED RELEASE ASSET: heavy weights/images live on the apps repo's Releases, named by their κ.
+  // Fetch the asset whose name is this hex and verify the whole-file hash. Covers the >100 MB files that
+  // can never be in the tree (so the apps-holo raw fetch above 404s). CORS-enabled; follows the 302 to
+  // objects.githubusercontent.com. Tried before IPFS — a direct CDN GET beats DHT discovery latency.
+  if (!bytes) {
+    try {
+      const r = await fetch(WEIGHTS_RELEASE_BASE + hex, { cache: "no-store" });
+      if (r.ok) { const ab = await r.arrayBuffer(); if ((await sha256hex(ab)) === hex) { bytes = new Uint8Array(ab); src = "release"; } }
+    } catch {}
+  }
   // fallback: IPFS trustless gateways + WebRTC mesh, re-derived, time-boxed.
   if (!bytes) {
     try { bytes = await Promise.race([resolveByKappa("did:holo:sha256:" + hex, recovery(), new Map()), new Promise((r) => setTimeout(() => r(null), HEAL_MS))]); }
@@ -250,6 +266,25 @@ async function ensureAppLock(rel) {
   try { const r = await fetch(`${BASE}${fhsMap(lockRel) || lockRel}`, { cache: "no-store" }); if (r.ok) foldClosure((await r.json()).closure); }
   catch { /* unpinned → serve unverified, as before */ }
 }
+// Lazily fold the VOICE model κ-manifest into the pins (once). The voice weights live under
+// usr/lib/holo/voice/vendor/ — gitignored, never committed or Pages-deployed (3.4 GB, >1 GB cap). The
+// manifest (committed) maps each model file + runtime file to its sha256 κ. Folding it lets the SW HEAL
+// those bytes by κ (Release asset → IPFS) on a static deploy, exactly as app bytes heal via their lock.
+// The pinned paths aren't served from origin (gitignored), so a pin can only enable a heal, never cause
+// a false refusal. No manifest → voice paths stay unpinned (clean 404), never retried.
+let VOICEFOLDED = false;
+async function ensureVoiceManifest(rel) {
+  if (VOICEFOLDED || !rel.startsWith("usr/lib/holo/voice/vendor/")) return;
+  VOICEFOLDED = true;
+  try {
+    const r = await fetch(`${BASE}usr/lib/holo/voice/models.manifest.json`, { cache: "no-store" });
+    if (!r.ok) return;
+    const m = await r.json();
+    const put = (p, k) => { const hex = String(k).split(":").pop().toLowerCase(); if (/^[0-9a-f]{64}$/.test(hex)) { BYHEX.set(hex, p); if (!BYPATH.has(p)) BYPATH.set(p, hex); } };
+    for (const [id, files] of Object.entries(m.models || {})) for (const [f, k] of Object.entries(files)) put(`usr/lib/holo/voice/vendor/models/${id}/${f}`, k);
+    for (const [f, k] of Object.entries(m.runtime || {})) put(`usr/lib/holo/voice/vendor/transformers/${f}`, k);
+  } catch { /* unpinned → as before */ }
+}
 const sha256hex = async (buf) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", buf))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -271,7 +306,7 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
   body{ background:radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 58%, #05070c 100%) fixed; color:var(--fg);
     font:400 17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
     display:grid; place-items:center; padding:24px; -webkit-font-smoothing:antialiased; }
-  .card{ width:100%; max-width:580px; border:1px solid #2a3547; border-radius:16px; overflow:hidden;
+  .card{ width:100%; max-width:520px; border:1px solid #2a3547; border-radius:16px; overflow:hidden;
     background:rgba(12,17,27,.72); -webkit-backdrop-filter:blur(22px); backdrop-filter:blur(22px);
     box-shadow:0 40px 110px -34px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05); }
   .bar{ display:flex; align-items:center; gap:.85em; height:44px; padding:0 16px; border-bottom:1px solid var(--line);
@@ -280,22 +315,28 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
   .lights i.c{ background:#ff5f57; cursor:pointer; } .lights i.m{ background:#febc2e; } .lights i.x{ background:#28c840; }
   .lights i.c:hover{ filter:brightness(1.15); }
   .btitle{ color:var(--soft); font-weight:600; font-size:14px; letter-spacing:.01em; }
-  .body{ padding:30px clamp(22px,5vw,40px) 32px; }
-  .ico{ width:46px; height:46px; border-radius:12px; display:grid; place-items:center; margin:0 0 18px;
+  .body{ padding:34px clamp(22px,5vw,42px) 30px; }
+  .ico{ width:44px; height:44px; border-radius:12px; display:grid; place-items:center; margin:0 0 16px;
     color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); }
-  h1{ margin:0 0 .5em; font-size:clamp(23px,4vw,28px); font-weight:700; letter-spacing:-.01em; line-height:1.2; color:#fff; }
-  p{ margin:0 0 1em; color:var(--soft); } p.quiet{ color:var(--muted); font-size:15px; }
-  .acts{ display:flex; flex-wrap:wrap; gap:12px; margin:22px 0 4px; }
-  .btn{ -webkit-appearance:none; appearance:none; cursor:pointer; border:0; border-radius:999px; font:600 16px/1 inherit;
-    padding:14px 26px; transition:filter .14s, transform .1s; }
+  .kicker{ margin:0 0 10px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); }
+  h1{ margin:0 0 14px; font-size:clamp(24px,4vw,29px); font-weight:700; letter-spacing:-.02em; line-height:1.15; color:#fff; }
+  .lead{ margin:0 0 12px; font-size:17px; line-height:1.55; color:var(--soft); }
+  .quiet{ margin:0; font-size:15px; line-height:1.55; color:var(--muted); }
+  .micro{ margin:16px 0 0; font-size:13.5px; color:var(--muted); }
+  .acts{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:26px 0 0; }
+  .btn{ -webkit-appearance:none; appearance:none; cursor:pointer; border:0; border-radius:999px; font:600 15px/1 inherit;
+    padding:13px 24px; transition:filter .14s, transform .1s, border-color .14s; }
   .btn:active{ transform:translateY(1px); }
   .btn-p{ background:#fff; color:#0a0c12; } .btn-p:hover{ filter:brightness(.94); }
   .btn-g{ background:transparent; color:var(--soft); border:1px solid #2a3547; } .btn-g:hover{ color:#fff; border-color:#3a4760; }
-  details{ margin-top:26px; border-top:1px solid var(--line); padding-top:16px; }
-  summary{ cursor:pointer; color:var(--muted); font-size:14px; list-style:none; }
+  details{ margin-top:24px; border-top:1px solid var(--line); padding-top:14px; }
+  summary{ cursor:pointer; color:var(--muted); font-size:13.5px; list-style:none; display:inline-flex; align-items:center; gap:7px; }
   summary::-webkit-details-marker{ display:none; }
+  summary::before{ content:"›"; font-size:15px; line-height:1; transition:transform .15s; }
+  details[open] summary::before{ transform:rotate(90deg); }
   summary:hover{ color:var(--soft); }
-  .tech{ margin-top:12px; font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--muted); word-break:break-all; }
+  .tech{ margin-top:14px; display:grid; grid-template-columns:auto 1fr; gap:5px 16px;
+    font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--muted); word-break:break-all; }
   .tech b{ color:var(--soft); font-weight:600; }
   @media (prefers-reduced-motion: reduce){ *{ transition:none!important; } }
 </style></head>
@@ -304,17 +345,18 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
     <div class="bar"><span class="lights" aria-hidden="true"><i class="c" id="dot" title="Go back"></i><i class="m"></i><i class="x"></i></span><span class="btitle">Hologram OS</span></div>
     <div class="body">
       <div class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z"/><path d="M9.5 12.5l1.8 1.8 3.4-3.6"/></svg></div>
+      <div class="kicker">Safety stop</div>
       <h1 id="h">This didn’t match, so nothing opened</h1>
-      <p>Hologram checks that every part is exactly the real, untampered version before it runs. This part didn’t match what was expected, so it stopped right here, on purpose, to keep you safe.</p>
-      <p>Nothing was loaded and nothing is wrong with your device. This usually means the page was changed, or only part of it arrived.</p>
+      <p class="lead">Hologram verifies every part before it runs. This one didn’t match, so it stopped here to keep you safe.</p>
+      <p class="quiet">Nothing loaded, and your device is fine — the page was likely changed, or only partly arrived.</p>
       <div class="acts">
         <button class="btn btn-p" id="back" type="button">Go back</button>
         <button class="btn btn-g" id="reload" type="button">Try again</button>
       </div>
-      <p class="quiet">If it keeps happening, open Hologram from its official link.</p>
+      <p class="micro">If this keeps happening, open Hologram from its official link.</p>
       <details>
         <summary>Technical details</summary>
-        <div class="tech"><b>What was checked:</b> ${esc(rel)}<br/><b>Expected fingerprint:</b> ${axis}:${esc(want)}<br/><b>Found instead:</b> ${axis}:${esc(got)}<br/>Refused by the content check that proves each part is genuine.</div>
+        <div class="tech"><b>Checked</b><span>${esc(rel)}</span><b>Expected</b><span>${axis}:${esc(want)}</span><b>Found</b><span>${axis}:${esc(got)}</span></div>
       </details>
     </div>
   </main>
@@ -437,11 +479,27 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;            // only our origin (cross-origin untouched)
   if (!url.pathname.startsWith(BASE)) return;                 // out of scope
+  // Dynamic host back-end routes (dev media proxy, weather, web fetch) are NOT content-addressed and carry
+  // QUERY STRINGS — the path-resolver below re-fetches by pathname only and would DROP the query (so e.g.
+  // /sc/vstream?url=… and /sc/stream?url=… arrive with no url and the host refuses them). Let these hit the
+  // network untouched so the query survives. They simply 404 on a static deploy (same as a direct fetch).
+  {
+    const relDyn = url.pathname.slice(BASE.length).replace(/^\/+/, "");
+    if (/^sc\//.test(relDyn) || relDyn === "audio-proxy" || relDyn === "weather" ||
+        ((relDyn === "web" || relDyn.endsWith("/web")) && /[?&]url=/.test(url.search))) return;
+  }
   const relMcp = decodeURIComponent(url.pathname.slice(BASE.length)).replace(/^\/+/, "");
   if (MCP_API.test(relMcp)) { event.respondWith(apiRespond(req, relMcp)); return; }   // serverless REST κ-stream API
   if (isMcpRoute(relMcp)) { event.respondWith(mcpRespond(req, relMcp)); return; }   // serverless MCP endpoint
   if (req.method === "GET" && isIpfsRoute(relMcp)) { event.respondWith(ipfsRespond(req, relMcp, url)); return; }   // verified IPFS path gateway → native browsing
   if (req.method !== "GET") return;
+  // FLAT-ORIGIN GATEWAY PASSTHROUGH (dev / root deploy where BASE === "/"): the bare-root navigation is
+  // the marketing GATEWAY (repo-root index.html — the "Power up" cinematic boot landing), which lives at
+  // "/" but OUTSIDE the FHS closure. If the SW answered it, it would serve the in-closure boot index.html
+  // and jump straight to the shell, skipping the gateway. Let the bare root hit the network so the dev
+  // server / static host serves the gateway. Under a SUBPATH deploy (BASE !== "/") the gateway is already
+  // out of scope, so this never triggers and prod boot is byte-unchanged.
+  if (BASE === "/" && req.mode === "navigate" && (url.pathname === "/" || url.pathname === "")) return;
 
   event.respondWith((async () => {
     await loadClosure();
@@ -496,6 +554,7 @@ self.addEventListener("fetch", (event) => {
       }
     } else {
       await ensureAppLock(rel);                               // app bytes are verified too (lazy lock fold) — not just OS bytes
+      await ensureVoiceManifest(rel);                         // voice weights heal by κ (gitignored, never deployed)
       expect = BYPATH.get(rel) || null;                       // the pinned (sha256) κ for this path, if any
     }
 

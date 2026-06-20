@@ -1,0 +1,40 @@
+{
+  "spec": "One-term-one-meaning terminology lint: a canonical vocabulary enforced in first-party concept prose; banned synonyms (render substrate, k-object, k-address, k-store…) fail CI; the κ-substrate primitives (κ-object, did:holo, κ-store) are the canonical, allowed forms. Anti-drift ratchet.",
+  "authority": "Deliverable D terminology system · word-boundary scan of first-party .md/.mdx prose · self-test (planted detection + canonical-allowed) so the lint is provably non-vacuous",
+  "witnessed": true,
+  "banned": [
+    {
+      "canon": "render registry / renderer",
+      "why": "ambiguous — split into 'renderer' (κ→view) and 'model engine' (GPU inference)"
+    },
+    {
+      "canon": "κ-object",
+      "why": "one term for the content-addressed object"
+    },
+    {
+      "canon": "κ-address (or 'address')",
+      "why": "one term for the content-derived name"
+    },
+    {
+      "canon": "κ-store",
+      "why": "one term for the content-addressed store"
+    },
+    {
+      "canon": "κ-store",
+      "why": "one term for the content-addressed store"
+    }
+  ],
+  "covers": [
+    "terminology",
+    "one-term-one-meaning",
+    "anti-drift",
+    "canonical-vocabulary"
+  ],
+  "checks": {
+    "the lint detects planted banned synonyms (not vacuous)": true,
+    "canonical terms (κ-object · did:holo · render registry · κ-store) are NOT flagged": true,
+    "first-party concept prose holds the one-term-one-meaning vocabulary (anti-drift ratchet)": true
+  },
+  "passed": 3,
+  "failed": 0
+}

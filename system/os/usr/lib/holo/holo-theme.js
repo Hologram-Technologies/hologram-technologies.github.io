@@ -157,6 +157,27 @@
     } catch (e) {}
   })();
 
+  // Bootstrap the AUTONOMY SPINE (S0–S4): the OS observes itself (tap), reflects (coherence), proposes
+  // (observer), speaks under discipline (courier), and may act bounded (trust). Same canonical wire as
+  // Telemetry (Law L2) — no per-app script tag. Each module guards its own effects (binds its window.Holo*
+  // only when its deps exist, chained by holo-*-ready events); loading them is idempotent + additive. The
+  // live cadence is driven by the heal-boot idle loop calling window.HoloSpine.runOnce(tick) — proposals
+  // only; acting stays behind HoloTrust. Local-first throughout (Law L1).
+  (function bootHoloSpine() {
+    try {
+      if (window.__holoSpineBoot) return; window.__holoSpineBoot = true;
+      var mods = ["holo-control-dsp.js", "holo-telemetry-tap.mjs", "holo-coherence.mjs",
+                  "holo-observer.mjs", "holo-courier.mjs", "holo-trust.mjs", "holo-spine.mjs"];
+      mods.forEach(function (m) {
+        if (document.querySelector('script[src*="' + m + '"]')) return;
+        var s = document.createElement("script");
+        if (/\.mjs$/.test(m)) s.type = "module"; else s.defer = true;
+        s.src = SHARED + m;
+        (document.head || document.documentElement).appendChild(s);
+      });
+    } catch (e) {}
+  })();
+
   var KEY = "holo.theme.v1";            // one OS-wide choice, shared same-origin
   var TKEY = "holo.theme.tokens.v1";    // imported DTCG theme (JSON)
   var CKEY = "holo.theme.tokens.css.v1";// its compiled CSS (fast init, no format module)

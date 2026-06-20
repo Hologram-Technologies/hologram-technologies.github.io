@@ -14,14 +14,24 @@
   /* ════════════════════════════════════════════════════════════════════════════════════════════
      THE MANIFESTO HOLOSPACE. A single self-contained, self-verifying object: its bytes ARE its
      identity, so on load it re-derives its own content address (did:holo:sha256) and shows it in
-     the window chrome. It inherits the gateway's visual language exactly (the bezel "screen floating
-     in space", the golden-ratio scale, the inline CSS holo-field) and frames the manifesto inside a
-     COMPUTER WINDOW, so opening it feels like an app powering on, not a web page loading.
+     the window chrome. It inherits the gateway's visual language (the bezel "screen floating in
+     space", the golden-ratio scale, the inline holo-field) and frames the manifesto as a COMPUTER
+     WINDOW, so opening it feels like an app powering on, not a web page loading.
+
+     The READING EXPERIENCE is composed like an editorial spread, not a column on a void:
+       · a full-bleed CINEMATIC HERO — the title card the manifesto opens on;
+       · a two-zone READING GRID — a sticky SPINE (the argument's structure, your position, the
+         progress measure) on the left, and a tight, beautifully-set reading column beside it;
+       · ACTIVE-SECTION FOCUS — the section you are reading holds full light while the rest rests
+         back, so each idea is handed to you one at a time.
+     Every mechanic is progressive enhancement: with no JS the whole manifesto is plainly visible
+     and readable, the spine is a working table of contents, and nothing is trapped behind motion.
      ════════════════════════════════════════════════════════════════════════════════════════════ */
   :root{
-    --bg:#000; --fg:#fff; --fg-soft:#e2e2e8; --muted:#8b8b93; --muted-2:#6f6f78;
+    --bg:#000; --fg:#fff; --fg-soft:#e6e6ec; --fg-dim:#b9b9c2; --muted:#8b8b93; --muted-2:#6f6f78;
     --line:#262629; --line-strong:#3a3a40; --panel:#0d0d0f; --panel-2:#1b1b1f; --panel-hover:#1a1a1d;
     --accent:#7dEFC9; --accent-2:#5b8cff; --accent-3:#c77bff;
+    --triad:linear-gradient(90deg, var(--accent), var(--accent-2) 50%, var(--accent-3));
     --phi:1.618;
     --u: clamp(13px, 2.05vmin, 18px);
     --u-phi: calc(var(--u) * var(--phi));
@@ -30,16 +40,19 @@
     /* a stable, rem-anchored READING size (never below the 16px legibility floor), independent of the
        vmin chrome unit, so prose stays comfortable on short and tall screens alike. Set generously: a
        manifesto is meant to be read, so the type is confident and the measure substantial. */
-    --read: clamp(17.5px, 0.5vw + 15px, 21px);
-    --measure: 68ch;   /* the reading column — wide enough to fill the window, short enough to stay legible */
+    --read: clamp(18px, 0.42vw + 16px, 21px);
+    --measure: 60ch;                 /* the reading column — a true reading measure, never stretched */
+    --spine-w: clamp(13rem, 16vw, 18rem);   /* the left structure rail on wide screens */
+    --gutter: clamp(2rem, 4.4vw, 5.5rem);    /* the gap between spine and prose */
     --ease:cubic-bezier(.4,0,.2,1);
+    --ease-out:cubic-bezier(.16,1,.3,1);
     --frame: clamp(7px, 0.95vmin, 14px);
     --frame-r: clamp(16px, 1.9vmin, 28px);
     --bezel:#050507;
     color-scheme:dark;
   }
   :root[data-theme="light"]{
-    --bg:#fff; --fg:#09090b; --fg-soft:#27272a; --muted:#52525b; --muted-2:#71717a;
+    --bg:#fff; --fg:#09090b; --fg-soft:#27272a; --fg-dim:#3f3f46; --muted:#52525b; --muted-2:#71717a;
     --line:#e4e4e7; --line-strong:#d4d4d8; --panel:#f4f4f5; --panel-2:#e8e8ec; --panel-hover:#ececef;
     --bezel:#c7c7cd; color-scheme:light;
   }
@@ -50,12 +63,14 @@
     font:400 var(--u)/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     text-rendering:optimizeLegibility; font-synthesis:none; font-optical-sizing:auto; font-kerning:normal;
-    -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+    -webkit-text-size-adjust:100%; text-size-adjust:100%;
+    hanging-punctuation:first allow-end last; }
   /* the inner SCREEN surface, inset by the bezel and rounded, exactly like the gateway */
   body::before{ content:""; position:fixed; inset:var(--frame); border-radius:var(--frame-r);
     background:var(--bg); z-index:-1; }
   a{ color:inherit; text-decoration:none; }
   svg{ shape-rendering:geometricPrecision; }
+  ::selection{ background:color-mix(in srgb, var(--accent-2) 38%, transparent); color:#fff; }
 
   /* ── the same inline holo-field (nebula · aurora · stars · scrim): zero external assets, so the
      background is part of THIS object's own bytes and rides into its content address. ──────────── */
@@ -118,9 +133,9 @@
 
   /* ── THE COMPUTER WINDOW — landscape, filling the desk, the same footprint as the app search and
      download windows; a frosted-glass sheet over the live homepage cloudscape. ─────────────────── */
-  .win{ position:relative; flex:1; width:100%; height:100%; max-width:1380px; margin:0 auto;
+  .win{ position:relative; flex:1; width:100%; height:100%; max-width:1440px; margin:0 auto;
     display:flex; flex-direction:column; border-radius:calc(var(--u) * 1.1);
-    background:color-mix(in srgb, var(--bg) 60%, transparent);
+    background:color-mix(in srgb, var(--bg) 58%, transparent);
     border:1px solid var(--line-strong);
     box-shadow:0 40px 120px -30px rgba(0,0,0,.8), 0 8px 30px -12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
     -webkit-backdrop-filter:blur(28px) saturate(1.2); backdrop-filter:blur(28px) saturate(1.2);
@@ -134,7 +149,7 @@
 
   /* title bar: traffic-light controls · centred title with the dot-mark · the self-verified κ chip */
   .win-bar{ flex:none; display:flex; align-items:center; gap:.9em; height:calc(var(--u) * 3.2);
-    padding:0 calc(var(--u) * 1.05); position:relative; cursor:default;
+    padding:0 calc(var(--u) * 1.05); position:relative; cursor:default; z-index:3;
     background:linear-gradient(180deg, color-mix(in srgb,var(--panel) 92%, transparent), color-mix(in srgb,var(--panel) 70%, transparent));
     border-bottom:1px solid var(--line); overflow:hidden; }
   /* a single light-sweep across the title bar as the window powers on */
@@ -153,6 +168,9 @@
     gap:.55em; color:var(--fg-soft); font-weight:600; font-size:calc(var(--u) * .96); white-space:nowrap; }
   .win-title .mk{ width:1.05em; height:1.05em; color:var(--fg); opacity:.9; }
   @media (max-width:620px){ .win-title{ font-size:calc(var(--u) * .8); } .win-title .mk{ display:none; } }
+  /* on a narrow window the centred title would collide with the seal chip — drop it; the deskbar brand
+     and the seal already say what this is. */
+  @media (max-width:560px){ .win-title{ display:none; } }
 
   /* the seal, worn in the chrome: ✓ self-verified + the live-derived content address (click to copy) */
   .kappa{ margin-left:auto; flex:none; display:inline-flex; align-items:center; gap:.5em;
@@ -165,82 +183,196 @@
   .kappa.ok .tick{ opacity:1; transform:none; }
   .kappa.ok{ box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 40%, transparent), 0 0 18px -4px color-mix(in srgb,var(--accent) 55%, transparent); }
   .kappa .lbl{ color:inherit; }
-  .kappa .kx{ color:var(--fg-soft); letter-spacing:.01em; }
-  .kappa.copied .kx{ color:var(--accent); }
+  /* the content address, worn as a CIPHER: 8-dot braille cells are a 1:1 encoding of the hash bytes
+     (each cell = one byte), so the glyphs literally ARE the address. They settle in with a decode
+     shimmer when the object seals, and the readable hex is revealed on hover/focus. */
+  .kappa .kx{ display:inline-flex; align-items:center; color:var(--fg-soft); letter-spacing:.04em; }
+  .kappa .kx-b{ color:var(--accent); }
+  .kappa .kx-h{ display:none; letter-spacing:.01em; }
+  .kappa:hover .kx-b, .kappa:focus-visible .kx-b, .kappa.copied .kx-b{ display:none; }
+  .kappa:hover .kx-h, .kappa:focus-visible .kx-h, .kappa.copied .kx-h{ display:inline; }
+  .kappa.copied .kx-h{ color:var(--accent); }
   @media (max-width:780px){ .kappa .kx{ display:none; } }
 
-  /* ── THE READING SURFACE: the manifesto itself, set for clarity (golden measure, 1.7 leading,
-     never below 16px). Scrolls INSIDE the window, the way a real app window scrolls. ───────────── */
+  /* ── THE READING SURFACE: scrolls INSIDE the window, the way a real app window scrolls. The
+     side padding is light because the reading GRID composes its own gutters. ─────────────────── */
   .win-body{ flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain;
-    padding:clamp(22px, 4.2vmin, 56px) clamp(20px, 5vw, 72px) clamp(40px, 7vmin, 96px); scroll-behavior:smooth; }
+    padding:0 clamp(16px, 3vw, 40px); scroll-behavior:smooth; position:relative; }
   .win-body::-webkit-scrollbar{ width:11px; }
   .win-body::-webkit-scrollbar-thumb{ background:var(--line-strong); border:3px solid transparent;
     background-clip:padding-box; border-radius:999px; }
   .win-body::-webkit-scrollbar-thumb:hover{ background:#4a4a52; background-clip:padding-box; }
-  .doc{ max-width:var(--measure); margin:0 auto; }
 
-  /* a slim reading-progress bar — the manifesto's spine drawn as you move through it. Shown in the
-     embedded doc-window (where it crowns the reading surface); the standalone window has its own chrome. */
-  .reading-progress{ display:none; }
-  :root[data-embed] .reading-progress{ display:block; position:fixed; top:0; left:0; right:0; height:3px;
-    z-index:9; pointer-events:none; }
+  /* a slim reading-progress bar — the manifesto's spine drawn as a single line. It crowns the reading
+     surface whenever the full spine rail is not present (embedded, or narrow screens). */
+  .reading-progress{ display:none; position:fixed; top:0; left:0; right:0; height:3px; z-index:9; pointer-events:none; }
   .reading-progress > span{ display:block; height:100%; width:0; border-radius:0 999px 999px 0;
     background:linear-gradient(90deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
     box-shadow:0 0 12px -2px color-mix(in srgb, var(--accent-2) 70%, transparent); will-change:width; }
 
-  /* gentle one-time reveal: each block rises in as you reach it. The class is added by JS, so if scripting
-     is off the prose is simply all visible — text is never trapped behind an animation. */
-  .doc > .reveal{ opacity:0; transform:translateY(12px); transition:opacity .6s var(--ease), transform .6s var(--ease); }
-  .doc > .reveal.in{ opacity:1; transform:none; }
+  /* ════════════════════════ THE READER — hero + two-zone editorial grid ════════════════════════ */
+  .reader{ width:100%; }
 
-  .doc .eyebrow{ font-size:calc(var(--read) * .8); letter-spacing:.18em; text-transform:uppercase;
-    color:var(--muted); font-weight:600; margin:0 0 .9em; }
-  .doc h1{ margin:0 0 .15em; font-size:clamp(30px, 6.2vmin, 58px); font-weight:800; letter-spacing:-.022em;
-    line-height:1.02; color:var(--fg); text-wrap:balance;
-    background:linear-gradient(180deg,#fff, #cfd3e6); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  :root[data-theme="light"] .doc h1{ background:none; color:var(--fg); }
-  /* the hero promise, drawn as a quiet lede that ties straight to the homepage headline */
-  .doc .lede{ font-size:clamp(19px, 2.4vmin, 25px); line-height:1.5; color:var(--fg-soft);
-    font-weight:500; margin:1.4em 0 0; text-wrap:pretty; }
-  .doc .lede b{ color:var(--fg); font-weight:700; }
-  .doc .rule{ height:1px; border:0; margin:clamp(28px,5vmin,52px) 0; background:linear-gradient(90deg, transparent, var(--line-strong) 30%, var(--line-strong) 70%, transparent); }
+  /* THE CINEMATIC HERO — the title card the manifesto opens on. Full-bleed, aligned to the grid's
+     left edge, with the promise set large and confident; quiet sky breathes to its right. */
+  .hero{ min-height:clamp(380px, 80vh, 760px); display:flex; flex-direction:column; justify-content:center;
+    padding:clamp(28px, 7vmin, 88px) 0 clamp(20px, 5vmin, 56px); position:relative; }
+  .hero-inner{ width:100%; max-width:calc(var(--spine-w) + var(--gutter) + var(--measure)); margin:0 auto; }
+  .hero .eyebrow{ font-size:calc(var(--read) * .8); letter-spacing:.2em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin:0 0 clamp(.9em,2.4vmin,1.4em);
+    display:inline-flex; align-items:center; gap:.7em; }
+  .hero .eyebrow::before{ content:""; width:1.9em; height:1px; background:var(--line-strong); }
+  .hero h1{ margin:0; font-size:clamp(38px, 8.4vmin, 92px); font-weight:800; letter-spacing:-.028em;
+    line-height:.99; color:var(--fg); text-wrap:balance; max-width:18ch;
+    background:linear-gradient(176deg,#fff 18%, #c9cde2); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  :root[data-theme="light"] .hero h1{ background:none; color:var(--fg); }
+  .hero .lede{ font-size:clamp(20px, 2.7vmin, 28px); line-height:1.45; color:var(--fg-soft);
+    font-weight:500; margin:clamp(.9em,2.6vmin,1.3em) 0 0; max-width:34ch; text-wrap:pretty; }
+  .hero .lede b{ color:var(--fg); font-weight:700; }
+  /* the scroll cue — a quiet invitation to begin reading; fades the moment you move. */
+  .scroll-cue{ position:absolute; left:50%; bottom:clamp(10px,3vmin,28px); transform:translateX(-50%);
+    display:inline-flex; flex-direction:column; align-items:center; gap:.5em; color:var(--muted);
+    font-size:calc(var(--read) * .72); letter-spacing:.16em; text-transform:uppercase; font-weight:600;
+    opacity:0; transition:opacity .6s ease; pointer-events:none; }
+  body.lit .scroll-cue{ opacity:.85; }
+  body.scrolled .scroll-cue{ opacity:0; }
+  .scroll-cue svg{ width:1.4em; height:1.4em; animation:cuebob 2.4s var(--ease) infinite; }
+  @keyframes cuebob{ 0%,100%{ transform:translateY(0); opacity:.7; } 50%{ transform:translateY(4px); opacity:1; } }
 
-  .doc p{ font-size:var(--read); line-height:1.78; color:var(--fg-soft); margin:0 0 1.2em; text-wrap:pretty; }
-  .doc p.intro{ color:var(--muted); }
-  .doc h2{ display:flex; align-items:center; gap:.6em; font-size:clamp(20px, 2.7vmin, 27px); font-weight:700;
-    letter-spacing:-.012em; color:var(--fg); margin:2.2em 0 .7em; line-height:1.2; }
+  /* THE READING GRID — sticky structure rail on the left, the reading column beside it. Centred as
+     a unit so the outer gutters are symmetric and the whole canvas reads as one composed frame. */
+  .reading-grid{ display:grid; grid-template-columns:var(--spine-w) minmax(0, var(--measure));
+    gap:var(--gutter); justify-content:center; align-items:start;
+    padding-bottom:clamp(48px, 10vmin, 140px); }
+
+  /* THE SPINE — the manifesto's structure, held still beside the prose: a quiet identity, a live
+     table of contents that lights to your position, and the progress measure. */
+  .spine{ position:sticky; top:clamp(20px, 5vmin, 48px); align-self:start;
+    max-height:calc(100vh - clamp(40px,10vmin,96px)); display:flex; flex-direction:column;
+    gap:clamp(1.1rem,2.6vmin,1.7rem); padding-top:clamp(8px,3vmin,28px); }
+  .spine-id{ display:flex; align-items:center; gap:.6em; color:var(--fg-soft);
+    font-size:calc(var(--read) * .82); font-weight:600; letter-spacing:-.005em; }
+  .spine-id .mk{ width:1.5em; height:1.5em; flex:none; color:var(--fg); }
+  .spine-nav{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column;
+    counter-reset:sec; border-left:1px solid var(--line); }
+  .spine-nav li{ counter-increment:sec; }
+  .spine-nav a{ position:relative; display:grid; grid-template-columns:2.4em 1fr; align-items:baseline;
+    gap:.4em; padding:.62em 0 .62em 1.1em; margin-left:-1px; border-left:2px solid transparent;
+    color:var(--muted); font-size:calc(var(--read) * .82); line-height:1.32; letter-spacing:-.004em;
+    transition:color .3s var(--ease), border-color .3s var(--ease); }
+  .spine-nav a::before{ content:counter(sec, decimal-leading-zero);
+    font:600 calc(var(--read) * .68)/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    color:var(--muted-2); letter-spacing:.04em; transition:color .3s var(--ease); }
+  .spine-nav a:hover{ color:var(--fg-soft); }
+  .spine-nav a:hover::before{ color:var(--fg-dim); }
+  .spine-nav a.current{ color:var(--fg); border-left-color:var(--accent-2); }
+  .spine-nav a.current::before{ background:var(--triad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .spine-progress{ margin-top:auto; padding-top:clamp(.8rem,2vmin,1.2rem);
+    display:flex; align-items:center; gap:.7em; color:var(--muted); font-size:calc(var(--read) * .72);
+    font-variant-numeric:tabular-nums; }
+  .spine-progress .track{ flex:1; height:2px; border-radius:999px; background:var(--line); overflow:hidden; }
+  .spine-progress .fill{ display:block; height:100%; width:0; border-radius:999px; background:var(--triad);
+    box-shadow:0 0 10px -2px color-mix(in srgb, var(--accent-2) 70%, transparent); will-change:width; }
+  .spine-progress .pct{ flex:none; min-width:3.2em; text-align:right; }
+
+  /* THE SEAL, in the spine — this object's content address, always present beside the read (the place
+     the embedded view can show it, since the window chrome's κ chip is the gateway's there). The hash
+     is worn as braille (each cell = one byte of the address); hover or focus reveals the hex. */
+  .spine-seal{ display:flex; flex-direction:column; gap:.5em; align-items:flex-start; width:100%;
+    margin:0; padding:clamp(.9rem,2vmin,1.2rem) 0 0; border:0; border-top:1px solid var(--line);
+    background:none; color:var(--muted); text-align:left; cursor:pointer; font:inherit;
+    transition:color .2s var(--ease); }
+  .spine-seal:hover{ color:var(--fg-soft); }
+  .spine-seal .seal-state{ display:inline-flex; align-items:center; gap:.5em;
+    font-size:calc(var(--read) * .72); font-weight:600; letter-spacing:.02em; }
+  .spine-seal .seal-tick{ width:1em; height:1em; flex:none; color:var(--accent); opacity:0; transform:scale(.5);
+    transition:opacity .3s ease, transform .35s cubic-bezier(.2,.9,.3,1.4); }
+  .spine-seal.ok .seal-tick{ opacity:1; transform:none; }
+  .spine-seal.ok .seal-state{ color:var(--fg-soft); }
+  .spine-seal .seal-hash{ font:600 calc(var(--read) * .82)/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    letter-spacing:.08em; word-break:break-all; }
+  .spine-seal .seal-b{ color:var(--accent); }
+  .spine-seal .seal-h{ display:none; letter-spacing:.01em; color:var(--fg-soft); }
+  .spine-seal:hover .seal-b, .spine-seal:focus-visible .seal-b, .spine-seal.copied .seal-b{ display:none; }
+  .spine-seal:hover .seal-h, .spine-seal:focus-visible .seal-h, .spine-seal.copied .seal-h{ display:inline; }
+  .spine-seal.copied .seal-h{ color:var(--accent); }
+  .spine-seal:focus-visible{ outline:2px solid var(--accent-2); outline-offset:3px; border-radius:6px; }
+
+  /* keyboard focus is always visible on the nav, never suppressed */
+  .spine-nav a:focus-visible, .kappa:focus-visible, .brand:focus-visible{ outline:2px solid var(--accent-2); outline-offset:3px; border-radius:4px; }
+
+  /* ── THE PROSE: set for clarity (a true reading measure, 1.75 leading, never below 18px). ─────── */
+  .doc{ max-width:var(--measure); }
+  .doc > section{ scroll-margin-top:clamp(16px,5vmin,48px); }
+  .doc p{ font-size:var(--read); line-height:1.75; color:var(--fg-soft); margin:0 0 1.15em; text-wrap:pretty; }
+  .doc p:last-child{ margin-bottom:0; }
+  .doc p.intro{ color:var(--fg-dim); }
+  /* the opening movement reads a touch larger — the manifesto clears its throat before the argument. */
+  .doc .lead p{ font-size:calc(var(--read) * 1.06); line-height:1.66; }
+  .doc .lead p.turn{ color:var(--fg); font-weight:500; }
+  .doc h2{ display:flex; align-items:center; gap:.6em; font-size:clamp(21px, 2.8vmin, 29px); font-weight:700;
+    letter-spacing:-.015em; color:var(--fg); margin:2.4em 0 .8em; line-height:1.18; text-wrap:balance; }
+  .doc section:first-child h2, .doc .lead{ margin-top:0; }
   .doc h2::before{ content:""; width:.5em; height:.5em; border-radius:50%; flex:none;
-    background:linear-gradient(135deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
-    box-shadow:0 0 12px -2px color-mix(in srgb, var(--accent-2) 70%, transparent); }
+    background:var(--triad); box-shadow:0 0 12px -2px color-mix(in srgb, var(--accent-2) 70%, transparent); }
   .doc .triad{ text-align:center; font-weight:700; letter-spacing:.04em; color:var(--fg);
-    font-size:clamp(20px, 2.8vmin, 28px); margin:1.1em 0 .2em; }
-  .doc .triad span{ background:linear-gradient(90deg, var(--accent), var(--accent-2) 50%, var(--accent-3));
-    -webkit-background-clip:text; background-clip:text; color:transparent; }
+    font-size:clamp(21px, 3vmin, 30px); margin:1.3em 0 .2em; }
+  .doc .triad span{ background:var(--triad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .doc blockquote{ margin:0; }
 
+  /* a hairline between movements, so sections feel like deliberate beats rather than a wall of text */
+  .doc > section + section{ border-top:1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    margin-top:clamp(2.2em,5vmin,3.2em); padding-top:clamp(2.2em,5vmin,3.2em); }
+
   /* the landing line: handed back to the user, in the first person, big and quiet-bright */
-  .doc .closing{ margin-top:clamp(30px,6vmin,60px); text-align:center; }
-  .doc .closing .lead-in{ color:var(--muted); font-size:var(--read); margin-bottom:.7em; }
-  .doc .mine{ font-size:clamp(28px, 5.4vmin, 52px); font-weight:800; letter-spacing:-.02em; line-height:1.05;
+  .doc .closing{ margin-top:clamp(2.4em,6vmin,3.6em); padding-top:clamp(2.2em,5vmin,3.2em);
+    border-top:1px solid var(--line); text-align:center; }
+  .doc .closing .lead-in{ color:var(--muted); font-size:var(--read); margin-bottom:.9em; text-wrap:pretty; }
+  .doc .mine{ font-size:clamp(30px, 5.6vmin, 56px); font-weight:800; letter-spacing:-.022em; line-height:1.04;
     color:#fff; text-shadow:0 0 30px rgba(125,239,201,.28), 0 0 60px rgba(91,140,255,.18); }
   :root[data-theme="light"] .doc .mine{ color:var(--fg); text-shadow:none; }
-  .doc .verify-note{ margin-top:clamp(30px,6vmin,56px); padding-top:1.4em; border-top:1px solid var(--line);
+  .doc .verify-note{ margin-top:clamp(2.4em,6vmin,3.4em); padding-top:1.4em; border-top:1px solid var(--line);
     font-size:calc(var(--read) * .82); color:var(--muted); line-height:1.6; text-align:center; }
   .doc .verify-note a{ color:var(--fg-soft); border-bottom:1px solid var(--line-strong); }
   .doc .verify-note a:hover{ color:var(--fg); border-color:var(--fg); }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ animation:none !important; }
-    .bg, .deskbar, .win{ transition:opacity .2s ease !important; opacity:1; transform:none; filter:none; }
-    .doc > .reveal{ opacity:1 !important; transform:none !important; transition:none !important; }
+  /* ── ACTIVE-SECTION FOCUS — one idea at a time. Only engaged when JS is present AND motion is allowed
+     (the body.focus hook is added from script). Without it every movement holds full light. ─────── */
+  body.focus .doc > section, body.focus .doc > .closing{ transition:opacity .55s var(--ease); }
+  body.focus .doc > section{ opacity:.4; }
+  body.focus .doc > section.active{ opacity:1; }
+  body.focus .doc > .closing{ opacity:1; }
+
+  /* gentle one-time reveal of the reading grid as it first arrives (the hero is already on screen). */
+  .reading-grid{ opacity:1; }
+  body.js .reading-grid{ opacity:0; transform:translateY(14px); }
+  body.js.lit .reading-grid{ opacity:1; transform:none; transition:opacity .7s var(--ease-out) .15s, transform .7s var(--ease-out) .15s; }
+
+  /* ════════════════════════════ RESPONSIVE — collapse to a single reading column ═══════════════════ */
+  @media (max-width:1000px){
+    .reading-grid{ grid-template-columns:minmax(0, var(--measure)); justify-content:center; }
+    .spine{ display:none; }
+    .doc{ margin:0 auto; }
+    .reading-progress{ display:block; }                 /* the thin top bar stands in for the spine */
+    :root[data-embed] .reading-progress{ position:absolute; }   /* ride the embedded doc, not the OS frame */
+  }
+  @media (max-width:560px){
+    :root{ --read:clamp(17px, 1.2vw + 15px, 19px); }
+    .hero{ min-height:clamp(320px, 74vh, 560px); }
   }
 
-  /* ── EMBED — shown inside the gateway's doc-window. Drop our OWN window chrome and backdrop so the
-     doc-window is the single window, and present just the manifesto: one ink colour, generously set,
-     centred and balanced in the larger frame. No redundant title, seal or "Esc to close" (the
-     doc-window already carries them). ─────────────────────────────────────────────────────────── */
-  /* `:root[data-embed]` IS the <html> element — target it directly (a `:root[data-embed] html` descendant
-     selector matches nothing, which is what left the root clipped at viewport height and unable to scroll). */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; }
+    .bg, .deskbar, .win, .reading-grid{ transition:opacity .2s ease !important; opacity:1 !important; transform:none !important; filter:none; }
+    .scroll-cue{ display:none; }
+    body.focus .doc > section{ opacity:1 !important; }
+  }
+
+  /* ════════════════════════════════════════════ EMBED ══════════════════════════════════════════════
+     Shown inside the gateway's doc-window. Drop our OWN window chrome and outer field so the doc-window
+     is the single window — but KEEP the full editorial reader (hero + spine + prose), because filling
+     the doc-window's width with deliberate structure is exactly what banishes the old centred-column void.
+     `:root[data-embed]` IS the <html> element — target it directly. ─────────────────────────────── */
   :root[data-embed], :root[data-embed] body{ height:auto; overflow:visible; background:transparent; }
   :root[data-embed] body::before{ display:none; }                    /* the inner screen bezel */
   :root[data-embed] .bg, :root[data-embed] .deskbar{ display:none; } /* clouds/field + brand · Esc-to-close */
@@ -249,11 +381,12 @@
     border-radius:0; box-shadow:none; background:transparent; -webkit-backdrop-filter:none; backdrop-filter:none;
     opacity:1; transform:none; }
   :root[data-embed] .win-bar{ display:none; }                        /* inner traffic-lights · title · κ chip */
-  :root[data-embed] .win-body{ overflow:visible; padding:clamp(40px,7vmin,96px) clamp(24px,6vw,72px) clamp(72px,12vmin,160px); }
-  :root[data-embed] .doc{ max-width:var(--measure); margin:0 auto; }
-  :root[data-embed] .doc .eyebrow{ display:none; }                   /* redundant with the window title */
+  :root[data-embed] .win-body{ overflow:visible; padding:0 clamp(20px,4vw,56px) clamp(48px,9vmin,120px); }
+  :root[data-embed] .reading-progress{ display:block; }              /* the gateway window owns its own chrome; we crown the read */
+  :root[data-embed] .hero .eyebrow{ display:none; }                  /* redundant with the window title */
   :root[data-embed] .doc .verify-note{ display:none; }               /* refers to the hidden seal */
-  /* one consistent ink — no dim intro vs bright body */
+  :root[data-embed] .spine-id{ display:none; }                       /* the gateway title says it already */
+  /* one consistent ink in the embedded read — no dim intro vs bright body */
   :root[data-embed] .doc p, :root[data-embed] .doc p.intro{ color:var(--fg-soft); }
 </style>
 </head>
@@ -285,67 +418,123 @@
       <span class="win-title"><svg class="mk" aria-hidden="true"><use href="#holo-mark"/></svg>The Hologram OS Manifesto</span>
       <button class="kappa" id="kappa" type="button" aria-label="Self-verified content address, click to copy">
         <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        <span class="lbl" id="klbl">Sealing…</span><span class="kx" id="kx"></span>
+        <span class="lbl" id="klbl">Sealing…</span><span class="kx" id="kx"><span class="kx-b" id="kxb" aria-hidden="true"></span><span class="kx-h" id="kxh"></span></span>
       </button>
     </div>
 
     <div class="win-body" id="winbody" tabindex="0">
       <div class="reading-progress" aria-hidden="true"><span id="progress"></span></div>
-      <div class="doc">
-        <p class="eyebrow">The Hologram OS Manifesto</p>
-        <h1>Your personal supercomputer.</h1>
-        <p class="lede"><b>Fast, free, and private.</b> It runs entirely in your browser, and it is yours.</p>
-        <hr class="rule" />
 
-        <p class="intro">The most powerful computing ever built is not yours.</p>
-        <p class="intro">It lives in a building you will never enter, rented by the hour, watching while it works. You bought the device in your hands, but you rent the software on it. You create the data, but it sleeps on someone else's machine. You ask the questions, but the intelligence that answers belongs to a company, and it remembers you for reasons that are not yours.</p>
-        <p class="intro">The world calls this normal: a screen you look at, owned by people who look back.</p>
-        <p class="intro">A supercomputer is hard. So they kept it. They kept the servers, the accounts, and the complexity, and handed you a small window into it.</p>
-        <p>We do the opposite. We hold the complexity and hand you the simplicity. The supercomputer becomes yours, and it fits in a browser tab.</p>
+      <article class="reader">
+        <!-- THE TITLE CARD — the manifesto powers on here. -->
+        <header class="hero">
+          <div class="hero-inner">
+            <p class="eyebrow">The Hologram OS Manifesto</p>
+            <h1>Your personal supercomputer.</h1>
+            <p class="lede"><b>Fast, free, and private.</b> It runs entirely in your browser, and it is yours.</p>
+          </div>
+          <span class="scroll-cue">Read
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+          </span>
+        </header>
 
-        <h2>It is yours before you ask</h2>
-        <p>When you arrive, nothing demands that you prove yourself to a stranger. The machine opens as if it had been waiting for you, because it had. No account in the cloud grants you entry. The key is you.</p>
+        <!-- THE READING GRID — structure rail beside the prose. -->
+        <div class="reading-grid">
+          <nav class="spine" aria-label="The manifesto" id="spine">
+            <p class="spine-id"><svg class="mk" aria-hidden="true"><use href="#holo-mark"/></svg>Manifesto</p>
+            <ol class="spine-nav">
+              <li><a href="#s-yours">It is yours before you ask</a></li>
+              <li><a href="#s-nothing">Nothing leaves unless you say so</a></li>
+              <li><a href="#s-build">Build it. Run it. Share it.</a></li>
+              <li><a href="#s-verify">You do not trust it. You verify it.</a></li>
+              <li><a href="#s-serves">It serves you, and it will not be moved</a></li>
+              <li><a href="#s-world">The world comes in on your terms</a></li>
+              <li><a href="#s-q">You are not alone in this</a></li>
+              <li><a href="#s-purpose">The purpose</a></li>
+            </ol>
+            <p class="spine-progress" aria-hidden="true">
+              <span class="track"><span class="fill" id="spinefill"></span></span>
+              <span class="pct" id="spinepct">0%</span>
+            </p>
+            <button class="spine-seal" id="spineseal" type="button" aria-label="Self-verified content address — hover to reveal, click to copy">
+              <span class="seal-state">
+                <svg class="seal-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span id="sealstate">Sealing…</span>
+              </span>
+              <code class="seal-hash"><span class="seal-b" id="sealb" aria-hidden="true"></span><span class="seal-h" id="sealh"></span></code>
+            </button>
+          </nav>
 
-        <h2>Nothing leaves unless you say so</h2>
-        <p>Everything here lives on this device. Your files, your spaces, your work: on your machine, not in transit, not in a ledger you cannot read. Apps and agents do not take. They ask, once, for each thing, and you decide. What you do not grant stays hidden. What you grant, you can take back.</p>
-        <p>This is not a privacy setting. It is the floor.</p>
+          <div class="doc">
+            <section class="lead" aria-label="Opening">
+              <p class="intro">The most powerful computing ever built is not yours.</p>
+              <p class="intro">It lives in a building you will never enter, rented by the hour, watching while it works. You bought the device in your hands, but you rent the software on it. You create the data, but it sleeps on someone else's machine. You ask the questions, but the intelligence that answers belongs to a company, and it remembers you for reasons that are not yours.</p>
+              <p class="intro">The world calls this normal: a screen you look at, owned by people who look back.</p>
+              <p class="intro">A supercomputer is hard. So they kept it. They kept the servers, the accounts, and the complexity, and handed you a small window into it.</p>
+              <p class="turn">We do the opposite. We hold the complexity and hand you the simplicity. The supercomputer becomes yours, and it fits in a browser tab.</p>
+            </section>
 
-        <h2>Build it. Run it. Share it.</h2>
-        <p>Describe what you want, and it is built: beside you, in the open, beautiful by default. You do not choose from a shelf of someone else's apps. You compose your own, and when one thing changes, the rest heals to match.</p>
-        <p>It runs the moment you ask. No install, no server, no sign-up. A serverless application that simply runs, in any browser, anywhere.</p>
-        <p>And it is yours to give. Share it as one address, and whoever opens it just runs it. No account, no permission, no trace back to you.</p>
-        <p class="triad"><span>Fast. Free. Private.</span></p>
+            <section id="s-yours">
+              <h2>It is yours before you ask</h2>
+              <p>When you arrive, nothing demands that you prove yourself to a stranger. The machine opens as if it had been waiting for you, because it had. No account in the cloud grants you entry. The key is you.</p>
+            </section>
 
-        <h2>You do not trust it. You verify it.</h2>
-        <p>We do not ask for your faith. Every part of this system re-derives from its own content: a single address the bytes themselves compute. Change one byte and it will not run. You can check this yourself, live, and watch the count finish in front of you.</p>
-        <p>Sovereignty that cannot be verified is only a promise. This one you can prove.</p>
+            <section id="s-nothing">
+              <h2>Nothing leaves unless you say so</h2>
+              <p>Everything here lives on this device. Your files, your spaces, your work: on your machine, not in transit, not in a ledger you cannot read. Apps and agents do not take. They ask, once, for each thing, and you decide. What you do not grant stays hidden. What you grant, you can take back.</p>
+              <p>This is not a privacy setting. It is the floor.</p>
+            </section>
 
-        <h2>It serves you, and it will not be moved</h2>
-        <p>It does what you ask. It does not argue, nag, or stall, and it will not refuse a lawful request from you. You are the operator. It answers to you.</p>
-        <p>But there are lines it will not cross, even at your own command, because crossing them is how you would be betrayed. It will never surrender your private identity. It will never reveal what you have sealed. And when you say stop, everything stops. These are not preferences. They are red lines, and a red line never bends.</p>
-        <p>It will not state as fact anything it cannot trace to a source, and when you ask why, it shows you its reasoning. Honesty before comfort. You are owed the truth in a form you can check, not the flattery that keeps you scrolling.</p>
-        <p>Even the law all of this runs under is an object you can verify, not a promise you must trust. The OS enforces only the law it has re-derived for itself. Alter a single byte of that law and the gate seals shut: it refuses everything rather than run a law it cannot prove. It fails closed, and it fails closed on your side.</p>
+            <section id="s-build">
+              <h2>Build it. Run it. Share it.</h2>
+              <p>Describe what you want, and it is built: beside you, in the open, beautiful by default. You do not choose from a shelf of someone else's apps. You compose your own, and when one thing changes, the rest heals to match.</p>
+              <p>It runs the moment you ask. No install, no server, no sign-up. A serverless application that simply runs, in any browser, anywhere.</p>
+              <p>And it is yours to give. Share it as one address, and whoever opens it just runs it. No account, no permission, no trace back to you.</p>
+              <p class="triad"><span>Fast. Free. Private.</span></p>
+            </section>
 
-        <h2>The world comes in on your terms</h2>
-        <p>The web is not a place you visit and are watched. It is a library you pull into your sanctuary. Bring in anything: a page, a repository, an app. It becomes yours, governed, content-addressed, answerable to you. You reach outward from safety, and you never have to leave it to do so.</p>
+            <section id="s-verify">
+              <h2>You do not trust it. You verify it.</h2>
+              <p>We do not ask for your faith. Every part of this system re-derives from its own content: a single address the bytes themselves compute. Change one byte and it will not run. You can check this yourself, live, and watch the count finish in front of you.</p>
+              <p>Sovereignty that cannot be verified is only a promise. This one you can prove.</p>
+            </section>
 
-        <h2>You are not alone in this</h2>
-        <p>From your first moment here, Q is with you. On this device, a faculty of your own mind, never a vendor's voice in your ear. It introduces itself once, then steps back. It offers, never nags. It keeps the thread of what you have done, and when you ask, it tells your story back to you. Q is the witness to a world you authored.</p>
+            <section id="s-serves">
+              <h2>It serves you, and it will not be moved</h2>
+              <p>It does what you ask. It does not argue, nag, or stall, and it will not refuse a lawful request from you. You are the operator. It answers to you.</p>
+              <p>But there are lines it will not cross, even at your own command, because crossing them is how you would be betrayed. It will never surrender your private identity. It will never reveal what you have sealed. And when you say stop, everything stops. These are not preferences. They are red lines, and a red line never bends.</p>
+              <p>It will not state as fact anything it cannot trace to a source, and when you ask why, it shows you its reasoning. Honesty before comfort. You are owed the truth in a form you can check, not the flattery that keeps you scrolling.</p>
+              <p>Even the law all of this runs under is an object you can verify, not a promise you must trust. The OS enforces only the law it has re-derived for itself. Alter a single byte of that law and the gate seals shut: it refuses everything rather than run a law it cannot prove. It fails closed, and it fails closed on your side.</p>
+            </section>
 
-        <h2>The purpose</h2>
-        <p>There is only one.</p>
-        <p>Not to capture your attention. Not to harvest your behavior. Not to rent you intelligence by the question.</p>
-        <p>To give you a supercomputer that is wholly yours, and to enable you, every sovereign user, to tell your story with it.</p>
-        <p>We abstract the complexity. You keep the simplicity, the power, and the proof.</p>
-        <p>The machine hands you the instrument and gets out of the way.</p>
+            <section id="s-world">
+              <h2>The world comes in on your terms</h2>
+              <p>The web is not a place you visit and are watched. It is a library you pull into your sovereign sanctuary. Bring in anything: a page, a repository, an app. It becomes yours, governed, content-addressed, answerable to you. You reach outward from safety, and you never have to leave it to do so.</p>
+            </section>
 
-        <div class="closing">
-          <p class="lead-in">From here, you can build your world. And the first time you watch it prove itself, you will stop taking our word for it, and say your own:</p>
-          <p class="mine">This machine is mine.</p>
+            <section id="s-q">
+              <h2>You are not alone in this</h2>
+              <p>From your first moment here, Q is with you. On this device, a faculty of your own mind, never a vendor's voice in your ear. It introduces itself once, then steps back. It offers, never nags. It keeps the thread of what you have done, and when you ask, it tells your story back to you. Q is the witness to a world you authored.</p>
+            </section>
+
+            <section id="s-purpose">
+              <h2>The purpose</h2>
+              <p>There is only one.</p>
+              <p>Not to capture your attention. Not to harvest your behavior. Not to rent you intelligence by the question.</p>
+              <p>To give you a supercomputer that is wholly yours, and to enable you, every sovereign user, to tell your story with it.</p>
+              <p>We abstract the complexity. You keep the simplicity, the power, and the proof.</p>
+              <p>The machine hands you the instrument and gets out of the way.</p>
+            </section>
+
+            <div class="closing">
+              <p class="lead-in">From here, you can build your world. And the first time you watch it prove itself, you will stop taking our word for it, and say your own:</p>
+              <p class="mine">This machine is mine.</p>
+            </div>
+
+            <p class="verify-note">This page is the manifesto, held as a self-verifying object. Its name is the hash of its own bytes, shown above and re-derived in your browser the moment it opened. Do not trust this page. <a href="../CONSTITUTION.md">Verify it</a>, and the constitution it runs under.</p>
+          </div>
         </div>
-
-        <p class="verify-note">This page is the manifesto, held as a self-verifying object. Its name is the hash of its own bytes, shown above and re-derived in your browser the moment it opened. Do not trust this page. <a href="../CONSTITUTION.md">Verify it</a>, and the constitution it runs under.</p>
-      </div>
+      </article>
     </div>
   </article>
 </main>
@@ -427,7 +616,13 @@
 
 <script>
 (function(){
-  var DOC = document, BODY = DOC.body;
+  var DOC = document, BODY = DOC.body, ROOT = DOC.documentElement;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var embedded = ROOT.getAttribute("data-embed") === "1";
+
+  // mark that scripting is live (so no-JS keeps the reader fully visible, never trapped behind motion).
+  BODY.classList.add("js");
+
   // power-on: light the field + materialise the window just after first paint (so the entrance plays).
   // Use a timeout as well as rAF, because a backgrounded/throttled tab can starve rAF entirely, so the
   // reveal must still arrive (the window simply appears without the transition when rAF is asleep).
@@ -438,33 +633,68 @@
   // ── the SEAL: re-derive this object's own content address from its bytes, live, and wear it in the
   //    chrome. No κ is hard-coded (that would change the bytes it names); it is computed every load, so
   //    it is always the true address of exactly what you are reading. This is the verification, not a badge.
-  var chip = DOC.getElementById("kappa"), klbl = DOC.getElementById("klbl"), kx = DOC.getElementById("kx");
+  var chip = DOC.getElementById("kappa"), klbl = DOC.getElementById("klbl"),
+      kxb = DOC.getElementById("kxb"), kxh = DOC.getElementById("kxh");
+  var sseal = DOC.getElementById("spineseal"), sstate = DOC.getElementById("sealstate"),
+      sealb = DOC.getElementById("sealb"), sealh = DOC.getElementById("sealh");
   var fullKappa = null;
   function shortHex(hex){ return hex.slice(0,8) + "…" + hex.slice(-4); }
+  // each braille cell is an 8-dot pattern = one byte (U+2800 + byte), so the glyph IS the hash byte.
+  function brailleCells(hex, nBytes){ var a = []; for (var i = 0; i < nBytes && i*2 < hex.length; i++){ a.push(String.fromCharCode(0x2800 + parseInt(hex.substr(i*2, 2), 16))); } return a; }
+  function randCell(){ return String.fromCharCode(0x2800 + ((Math.random() * 256) | 0)); }
+  // the decode shimmer: cells flicker through random patterns, then settle left-to-right into the true
+  // address — the object visibly "sealing". Under reduced-motion it simply appears, already settled.
+  function decodeInto(el, cells){
+    if (!el) return;
+    if (reduce){ el.textContent = cells.join(""); return; }
+    var N = cells.length, frame = 0, total = N + 7;
+    var iv = setInterval(function(){
+      frame++;
+      var settled = frame - 3, s = "";
+      for (var i = 0; i < N; i++){ s += (i < settled) ? cells[i] : randCell(); }
+      el.textContent = s;
+      if (frame >= total){ clearInterval(iv); el.textContent = cells.join(""); }
+    }, 65);
+  }
+  function reveal(hex){
+    fullKappa = "did:holo:sha256:" + hex;
+    var label = fullKappa + "  (click to copy)", shrt = "sha256:" + shortHex(hex);
+    if (klbl){ klbl.textContent = "Self-verified"; }
+    if (kxh){ kxh.textContent = shrt; }
+    if (chip){ chip.classList.add("ok"); chip.title = label; chip.setAttribute("aria-label", "Self-verified content address " + fullKappa + ", click to copy"); }
+    decodeInto(kxb, brailleCells(hex, 10));
+    if (sstate){ sstate.textContent = "Self-verified"; }
+    if (sealh){ sealh.textContent = shrt; }
+    if (sseal){ sseal.classList.add("ok"); sseal.title = label; sseal.setAttribute("aria-label", "Self-verified content address " + fullKappa + ", hover to reveal, click to copy"); }
+    decodeInto(sealb, brailleCells(hex, 16));
+  }
+  function sealing(){ if (klbl) klbl.textContent = "Self-verifying"; if (sstate) sstate.textContent = "Self-verifying"; }
   (function seal(){
-    if (!(window.crypto && crypto.subtle && window.isSecureContext)){ klbl.textContent = "Self-verifying"; return; }
+    if (!(window.crypto && crypto.subtle && window.isSecureContext)){ sealing(); return; }
     fetch(location.href, { cache: "no-store" })
       .then(function(r){ return r.arrayBuffer(); })
       .then(function(buf){ return crypto.subtle.digest("SHA-256", buf); })
       .then(function(d){
         var hex = Array.prototype.map.call(new Uint8Array(d), function(b){ return b.toString(16).padStart(2,"0"); }).join("");
-        fullKappa = "did:holo:sha256:" + hex;
-        klbl.textContent = "Self-verified";
-        kx.textContent = "sha256:" + shortHex(hex);
-        chip.classList.add("ok");
-        chip.title = fullKappa + "  (click to copy)";
+        reveal(hex);
       })
-      .catch(function(){ klbl.textContent = "Self-verifying"; });
+      .catch(sealing);
   })();
-  // click the seal → copy the full content address (the share-this-object gesture).
-  chip.addEventListener("click", function(){
-    if (!fullKappa) return;
-    var done = function(){ chip.classList.add("copied"); klbl.textContent = "Address copied"; setTimeout(function(){ chip.classList.remove("copied"); klbl.textContent = "Self-verified"; }, 1500); };
-    try { navigator.clipboard.writeText(fullKappa).then(done, done); } catch(e){ done(); }
-  });
+  // click either seal → copy the full content address (the share-this-object gesture).
+  function wireCopy(el, labelEl){
+    if (!el) return;
+    el.addEventListener("click", function(){
+      if (!fullKappa) return;
+      var done = function(){ el.classList.add("copied"); if (labelEl) labelEl.textContent = "Address copied";
+        setTimeout(function(){ el.classList.remove("copied"); if (labelEl) labelEl.textContent = "Self-verified"; }, 1500); };
+      try { navigator.clipboard.writeText(fullKappa).then(done, done); } catch(e){ done(); }
+    });
+  }
+  wireCopy(chip, klbl);
+  wireCopy(sseal, sstate);
 
   // ── close like an app: the red light, Esc, or the empty desk return you home with a soft power-down.
-  function home(){ if (document.documentElement.getAttribute("data-embed") === "1") return;   /* embedded: the doc-window owns closing */
+  function home(){ if (ROOT.getAttribute("data-embed") === "1") return;   /* embedded: the doc-window owns closing */
     if (BODY.classList.contains("closing")) return; BODY.classList.add("closing"); setTimeout(function(){ location.href = "../"; }, 210); }
   DOC.getElementById("close").addEventListener("click", function(e){ e.stopPropagation(); home(); });
   DOC.getElementById("desk").addEventListener("mousedown", function(e){ if (e.target && e.target.id === "desk") home(); });
@@ -472,16 +702,17 @@
   // focus the reading surface so arrow keys / space scroll the manifesto immediately.
   setTimeout(function(){ try { DOC.getElementById("winbody").focus({ preventScroll:true }); } catch(e){} }, 760);
 
-  // ── reading experience: a progress spine + a gentle section reveal. Both degrade safely — the bar simply
-  //    stays empty and every block stays visible if anything here is unavailable.
-  var embedded = DOC.documentElement.getAttribute("data-embed") === "1";
+  // ── the reading mechanics: a progress measure (top bar + spine), the spine's live position, the scroll
+  //    cue, and active-section focus. Each degrades safely — without these the prose is plainly readable,
+  //    the spine is a working table of contents, and every word stays visible.
   var winbody = DOC.getElementById("winbody");
   // the scroller differs by mode: embedded, the iframe document scrolls; standalone, the .win-body does.
   var scroller = embedded ? (DOC.scrollingElement || DOC.documentElement) : winbody;
   var scrollTarget = embedded ? window : winbody;
 
-  // progress spine — fraction of the manifesto read, drawn as a thin accent line.
   var bar = DOC.getElementById("progress");
+  var spinefill = DOC.getElementById("spinefill");
+  var spinepct = DOC.getElementById("spinepct");
   var progRAF = 0;
   function drawProgress(){
     progRAF = 0;
@@ -492,25 +723,66 @@
     var top = embedded ? (window.pageYOffset || scroller.scrollTop || 0) : scroller.scrollTop;
     var max = scroller.scrollHeight - view;
     var frac = max > 0 ? Math.min(1, Math.max(0, top / max)) : 0;
-    if (bar) bar.style.width = (frac * 100).toFixed(2) + "%";
+    var pct = (frac * 100);
+    if (bar) bar.style.width = pct.toFixed(2) + "%";
+    if (spinefill) spinefill.style.width = pct.toFixed(2) + "%";
+    if (spinepct) spinepct.textContent = Math.round(pct) + "%";
+    if (top > 8) BODY.classList.add("scrolled"); else BODY.classList.remove("scrolled");
   }
   function onScroll(){ if (!progRAF) progRAF = requestAnimationFrame(drawProgress); }
   scrollTarget.addEventListener("scroll", onScroll, { passive: true });
   addEventListener("resize", onScroll, { passive: true });
   drawProgress();
 
-  // section reveal — add the .reveal hook from JS (so no-JS keeps prose visible), then lift each block in.
-  var blocks = [].slice.call(DOC.querySelectorAll(".doc > *"));
-  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (blocks.length && !reduce && "IntersectionObserver" in window){
-    blocks.forEach(function(el){ el.classList.add("reveal"); });
+  // active-section focus + spine highlight. Engaged only when motion is allowed; the dimming hook
+  // (body.focus) is withheld under reduced-motion so every movement keeps full light.
+  var sections = [].slice.call(DOC.querySelectorAll(".doc > section"));
+  var navLinks = [].slice.call(DOC.querySelectorAll(".spine-nav a"));
+  var navById = {};
+  navLinks.forEach(function(a){ var id = (a.getAttribute("href")||"").slice(1); if (id) navById[id] = a; });
+
+  if (sections.length && "IntersectionObserver" in window){
+    if (!reduce) BODY.classList.add("focus");
+    var visible = {};
+    function setActive(id){
+      sections.forEach(function(s){ s.classList.toggle("active", s.id === id || (s.classList.contains("lead") && id === "__lead")); });
+      navLinks.forEach(function(a){ a.classList.remove("current"); a.removeAttribute("aria-current"); });
+      var link = navById[id];
+      if (link){ link.classList.add("current"); link.setAttribute("aria-current", "true"); }
+    }
     var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
-    }, { root: embedded ? null : winbody, rootMargin: "0px 0px -8% 0px", threshold: 0.04 });
-    blocks.forEach(function(el){ io.observe(el); });
-    // safety net: if a block never trips the observer (already on-screen, tab restored), show it anyway.
-    setTimeout(function(){ blocks.forEach(function(el){ el.classList.add("in"); }); }, 1800);
+      entries.forEach(function(e){
+        var id = e.target.id || (e.target.classList.contains("lead") ? "__lead" : "");
+        if (e.isIntersecting) visible[id] = e.intersectionRatio; else delete visible[id];
+      });
+      // the active movement = the one most present in the reading band (topmost on ties).
+      var best = null, bestRatio = -1;
+      sections.forEach(function(s){
+        var id = s.id || (s.classList.contains("lead") ? "__lead" : "");
+        if (id in visible && visible[id] > bestRatio){ best = id; bestRatio = visible[id]; }
+      });
+      if (best) setActive(best);
+    }, { root: embedded ? null : winbody, rootMargin: "-12% 0px -45% 0px", threshold: [0, 0.15, 0.4, 0.75, 1] });
+    sections.forEach(function(s){ io.observe(s); });
+    setActive("__lead");
   }
+
+  // spine links scroll smoothly to their movement in BOTH scrollers (a bare hash jump would scroll the
+  // wrong box in standalone, where the .win-body is the scroller, not the document).
+  navLinks.forEach(function(a){
+    a.addEventListener("click", function(e){
+      var id = (a.getAttribute("href")||"").slice(1);
+      var target = id && DOC.getElementById(id);
+      if (!target) return;
+      e.preventDefault();
+      if (embedded){ target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
+      else {
+        var y = target.offsetTop - (parseFloat(getComputedStyle(target).scrollMarginTop) || 0);
+        winbody.scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
+      }
+      try { history.replaceState(null, "", "#" + id); } catch(_){}
+    });
+  });
 })();
 </script>
 </body>

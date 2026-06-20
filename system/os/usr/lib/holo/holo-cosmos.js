@@ -143,4 +143,38 @@ export function start(canvas, opts = {}) {
       try { gl.getExtension("WEBGL_lose_context") && gl.getExtension("WEBGL_lose_context").loseContext(); } catch {} } };
 }
 
-export default { start };
+// ── deterministic single-frame render (P2 parity witness) ────────────────────────────────────────
+// Renders ONE frame with EXPLICIT uniforms — no input listeners, no time/camera drift — and returns
+// RGBA8 bytes in TOP-LEFT row-major order, so a WebGPU backend (holo-cosmos-gpu.js) can be diff'd
+// against this exact WebGL2 baseline pixel-for-pixel. Uses the same VERT/FRAG/seedVec the live cockpit
+// ships, so the test reflects the real shader, not a copy. Returns null where WebGL2 is unavailable.
+export function renderOnce(canvas, params = {}) {
+  const W = Math.max(1, params.width | 0 || 256), H = Math.max(1, params.height | 0 || 256);
+  canvas.width = W; canvas.height = H;
+  const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+  if (!gl) return null;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { try { console.warn("renderOnce shader:", gl.getShaderInfoLog(s)); } catch {} return null; } return s; };
+  const vs = sh(gl.VERTEX_SHADER, VERT), fs = sh(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs) return null;
+  const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+  gl.useProgram(prog);
+  const U = (n) => gl.getUniformLocation(prog, n);
+  const seed = Array.isArray(params.seed) ? params.seed : seedVec(params.seed);
+  const cam = params.cam || [0, 0, 0], look = params.look || [0, 0];
+  gl.bindVertexArray(gl.createVertexArray());
+  gl.viewport(0, 0, W, H);
+  gl.uniform2f(U("uRes"), W, H); gl.uniform1f(U("uTime"), params.time || 0);
+  gl.uniform3f(U("uCam"), cam[0], cam[1], cam[2]); gl.uniform2f(U("uLook"), look[0], look[1]);
+  gl.uniform3f(U("uSeed"), seed[0], seed[1], seed[2]); gl.uniform1f(U("uReduced"), params.reduced ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish();
+  const flip = new Uint8Array(W * H * 4), glrows = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, glrows);   // readPixels is bottom-left origin…
+  for (let y = 0; y < H; y++) flip.set(glrows.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);   // …flip to top-left to match WebGPU
+  try { gl.getExtension("WEBGL_lose_context")?.loseContext(); } catch {}
+  return { w: W, h: H, rgba: flip };
+}
+
+export { VERT as GLSL_VERT, FRAG as GLSL_FRAG, seedVec };
+export default { start, renderOnce, seedVec };

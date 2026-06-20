@@ -1,29 +1,25 @@
-// holo-qr.js — Holo QR: the hologram-native QR layer. GENERATION over node-qrcode (`qrcode`) and
-// READING over ZXing (`@zxing/library`) — both vendored content-addressed and κ-pinned (Law L5 vs
-// upstream, see _shared/vendor/{qrcode,zxing}/manifest.json), so the OS makes + reads QR codes
-// offline with no CDN. Reading prefers the browser-native W3C BarcodeDetector and falls back to
-// ZXing, so it works everywhere. Isomorphic: the relative bundle imports resolve in the browser
-// (served at /_shared/…) AND in Node (the witness), so the SAME code is proven both places.
+// holo-qr.js — Holo QR: the hologram-native QR layer. GENERATION over the OS's OWN self-contained encoder
+// (holo-qr-encode.mjs — pure ES Reed–Solomon, no vendored library, no CDN, no network; module-exact with
+// the reference across all 40 versions × 4 ECC levels, see tools/holo-qr-witness.mjs) and READING over the
+// browser-native W3C BarcodeDetector. Isomorphic: the same code makes a QR in the browser (served at
+// /_shared/…) AND in Node (the witness), so generation is proven both places. Offline and serverless by
+// construction — nothing here reaches the network.
 //
-// Used by "Share this OS on my LAN": render a join URL as a QR, and scan one to join.
+// Used by Share (render a holospace link / token as a scannable QR) and the LAN/phone pairing flows.
 
-import QRCode from "./vendor/qrcode/qrcode@1.5.4/es2022/qrcode.bundle.mjs";
-import * as ZX from "./vendor/zxing/@zxing/library@0.21.3/es2022/library.bundle.mjs";
+import { encode } from "./holo-qr-encode.mjs";
 
-// ── generate (node-qrcode) ─────────────────────────────────────────────────────────
-// create(text, opts) → the raw QR symbol; ecc ∈ L|M|Q|H (default M).
+// ── generate (self-contained encoder) ──────────────────────────────────────────────
+// create(text, opts) → the raw QR symbol; ecc ∈ L|M|Q|H (default M). `data` is a flat 0/1 grid (compat).
 export function create(text, { ecc = "M", version } = {}) {
-  const qr = QRCode.create(String(text), { errorCorrectionLevel: ecc, ...(version ? { version } : {}) });
-  return { size: qr.modules.size, data: qr.modules.data, version: qr.version, ecc };
+  const qr = encode(String(text), { ecc, version });
+  const data = new Uint8Array(qr.size * qr.size);
+  for (let r = 0; r < qr.size; r++) for (let c = 0; c < qr.size; c++) data[r * qr.size + c] = qr.modules[r][c] ? 1 : 0;
+  return { size: qr.size, data, version: qr.version, ecc: qr.ecc };
 }
 
-// toMatrix(text, opts) → { size, version, modules: boolean[][] } (true = dark module).
-export function toMatrix(text, opts) {
-  const { size, data, version, ecc } = create(text, opts);
-  const modules = [];
-  for (let r = 0; r < size; r++) { const row = []; for (let c = 0; c < size; c++) row.push(!!data[r * size + c]); modules.push(row); }
-  return { size, version, ecc, modules };
-}
+// toMatrix(text, opts) → { size, version, ecc, modules: boolean[][] } (true = dark module).
+export function toMatrix(text, opts) { return encode(String(text), opts || {}); }
 
 // toSVG(text, opts) → a crisp, themeable SVG string (no canvas; works in a worker / SSR).
 export function toSVG(text, { margin = 4, dark = "#0b071e", light = "#ffffff", scale = 8, rounded = 0, opts } = {}) {
@@ -56,50 +52,26 @@ export function toDataURL(text, opts = {}) {
   return toCanvas(document.createElement("canvas"), text, opts).toDataURL("image/png");
 }
 
-// ── read (W3C BarcodeDetector → ZXing) ──────────────────────────────────────────────
-// rgbaToLuminance(rgba, w, h) → 1 byte/px (BT.601), the form ZXing's RGBLuminanceSource wants.
-function rgbaToLuminance(rgba, w, h) {
-  const lum = new Uint8ClampedArray(w * h);
-  for (let i = 0, j = 0; i < lum.length; i++, j += 4) lum[i] = (rgba[j] * 299 + rgba[j + 1] * 587 + rgba[j + 2] * 114) / 1000;
-  return lum;
-}
-
-// decodeLuminance(lum, w, h) → text | null. ZXing QR reader over a luminance buffer (no DOM).
-export function decodeLuminance(lum, w, h) {
-  try {
-    const bitmap = new ZX.BinaryBitmap(new ZX.HybridBinarizer(new ZX.RGBLuminanceSource(lum, w, h)));
-    return new ZX.QRCodeReader().decode(bitmap).getText();
-  } catch { return null; }
-}
-
-export function decodeImageData(img) { return decodeLuminance(rgbaToLuminance(img.data, img.width, img.height), img.width, img.height); }
-
+// ── read (W3C BarcodeDetector) ──────────────────────────────────────────────────────
 // decode(source) → Promise<text|null>. source: ImageData | canvas | ImageBitmap | <video>/<img>.
-// Prefers the W3C BarcodeDetector (hardware-accelerated) and falls back to ZXing.
+// Uses the browser-native, hardware-accelerated BarcodeDetector (supported on Chrome/Edge/Android and,
+// behind a flag, others). Returns null where it is unavailable rather than pulling in a vendored reader —
+// the OS generates QRs everywhere; reading is a best-effort on capable devices (the phones doing the scan).
 export async function decode(source) {
-  if (typeof BarcodeDetector !== "undefined") {
-    try {
-      const fmts = await BarcodeDetector.getSupportedFormats?.().catch(() => []);
-      if (!fmts || fmts.includes("qr_code")) {
-        const det = new BarcodeDetector({ formats: ["qr_code"] });
-        const codes = await det.detect(source);
-        if (codes && codes.length) return codes[0].rawValue;
-      }
-    } catch {}
-  }
-  // ZXing fallback — rasterize the source to ImageData.
-  let img = source;
-  if (typeof ImageData !== "undefined" && source instanceof ImageData) return decodeImageData(source);
-  if (typeof document !== "undefined") {
-    const w = source.videoWidth || source.naturalWidth || source.width;
-    const h = source.videoHeight || source.naturalHeight || source.height;
-    if (!w || !h) return null;
-    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-    const ctx = cv.getContext("2d"); ctx.drawImage(source, 0, 0, w, h);
-    img = ctx.getImageData(0, 0, w, h);
-    return decodeImageData(img);
-  }
+  if (typeof BarcodeDetector === "undefined") return null;
+  try {
+    const fmts = await BarcodeDetector.getSupportedFormats?.().catch(() => []);
+    if (fmts && !fmts.includes("qr_code")) return null;
+    const det = new BarcodeDetector({ formats: ["qr_code"] });
+    const codes = await det.detect(source);
+    if (codes && codes.length) return codes[0].rawValue;
+  } catch {}
   return null;
+}
+// barcodeDetectorAvailable() → whether live scanning is possible on this device.
+export async function barcodeDetectorAvailable() {
+  if (typeof BarcodeDetector === "undefined") return false;
+  try { const f = await BarcodeDetector.getSupportedFormats?.().catch(() => []); return !f || f.includes("qr_code"); } catch { return false; }
 }
 
 // scanVideo(video, onResult, { interval, signal }) — poll a live <video> (camera) until a QR is read
@@ -117,6 +89,6 @@ export function scanVideo(video, onResult, { interval = 250, signal, once = true
   return stop;
 }
 
-export const VERSION = "holo-qr 1.0 (node-qrcode 1.5.4 · ZXing 0.21.3, κ-pinned)";
+export const VERSION = "holo-qr 2.0 (self-contained encoder · BarcodeDetector reader · no CDN)";
 
-if (typeof window !== "undefined") window.HoloQR = { create, toMatrix, toSVG, toCanvas, toDataURL, decode, decodeImageData, decodeLuminance, scanVideo, VERSION };
+if (typeof window !== "undefined") window.HoloQR = { create, toMatrix, toSVG, toCanvas, toDataURL, decode, barcodeDetectorAvailable, scanVideo, VERSION };

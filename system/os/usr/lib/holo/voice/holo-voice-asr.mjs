@@ -31,6 +31,12 @@ const DEFAULTS = {
   // WASM is the default: it's the any-browser floor (Firefox/Safari have no stable WebGPU) AND the
   // quantized Whisper decoder currently hits an ORT WebGPU kernel bug. Opt into WebGPU explicitly.
   preferWebGPU: false,
+  // κ-native Holo GGUF ear (opt-in): when WebGPU is present, run Whisper 100% on the κ-substrate —
+  // weights streamed by κ from the .holo (HTTP-Range + per-block L5 + OPFS), GPU encoder-decoder
+  // forward, no transformers.js/ONNX. Set { module, holoUrl } (resolved relative to this module) to
+  // enable; ANY failure transparently falls back to the transformers path below. null = off.
+  knativeEar: null,       // e.g. { module: "../../q/forge/gpu/holo-whisper-ear.mjs", holoUrl: "…/whisper-base.holo" }
+  lang: "en",
 };
 
 function moduleBase() {
@@ -45,14 +51,24 @@ async function hasWebGPU() {
 // ── the engine ──────────────────────────────────────────────────────────────────────────────────
 export function createASR(opts = {}) {
   const cfg = Object.assign({}, DEFAULTS, opts);
-  let pipe = null, info = { ready: false, engine: null, model: null, device: null };
+  let pipe = null, knative = null, info = { ready: false, engine: null, model: null, device: null };
   let loading = null;
 
   async function load(onProgress) {
-    if (pipe) return info;
+    if (pipe || knative) return info;
     if (loading) return loading;
     loading = (async () => {
       const base = moduleBase();
+      // κ-native Holo GGUF ear (opt-in, WebGPU only). Transparently falls back on any failure.
+      if (cfg.knativeEar && cfg.knativeEar.module && (await hasWebGPU())) {
+        try {
+          const mod = await import(/* @vite-ignore */ new URL(cfg.knativeEar.module, base).href);
+          const ear = (mod.createWhisperEar || mod.default)({ holoUrl: new URL(cfg.knativeEar.holoUrl, base).href, upgradeUrl: cfg.knativeEar.upgradeUrl ? new URL(cfg.knativeEar.upgradeUrl, base).href : null, kappa: cfg.knativeEar.kappa, release: cfg.knativeEar.release || "", upgradeKappa: cfg.knativeEar.upgradeKappa || "", upgradeRelease: cfg.knativeEar.upgradeRelease || "", language: cfg.lang });
+          await ear.load(onProgress);
+          knative = ear; info = Object.assign({ ready: true, engine: "holo-gguf-κnative" }, ear.info());
+          return info;
+        } catch (e) { try { console.warn("[HoloVoice ASR] κ-native ear unavailable, using transformers:", e && e.message || e); } catch (_) {} }
+      }
       const libUrl = cfg.remote ? cfg.libRemote : new URL(cfg.lib, base).href;
       const tf = await import(/* @vite-ignore */ libUrl);              // throws here if not vendored → caller falls back
       const { pipeline, env } = tf;
@@ -89,7 +105,8 @@ export function createASR(opts = {}) {
 
   // transcribe(audio, opts) — audio is a Float32Array of mono PCM at 16 kHz (Holo Voice resamples).
   async function transcribe(audio, o = {}) {
-    if (!pipe) await load(o.onProgress);
+    if (!pipe && !knative) await load(o.onProgress);
+    if (knative) return knative.transcribe(audio, o);                  // κ-native ear (same {text,…} shape)
     const args = { language: o.language || null, task: "transcribe", chunk_length_s: 30, stride_length_s: 5 };
     if (o.prompt) args.prompt = o.prompt;                              // best-effort decoding bias (ignored where unsupported)
     const r = await pipe(audio, args);

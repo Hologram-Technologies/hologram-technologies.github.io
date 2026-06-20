@@ -220,102 +220,6 @@
       ]
     },
     {
-      "id": "agent_facts",
-      "name": "agent_facts",
-      "description": "NANDA AgentFacts for a Hologram OS holospace (ADR-034): a self-verifying agent description (identity · provider · endpoints · capabilities · skills) that is, on the same bytes, a valid NANDA AgentFacts record AND a did:holo you re-derive (Law L5) AND a W3C VC. Give a holospace slug (e.g. 'holowallet') or omit for the OS agent.",
-      "tags": [
-        "mcp",
-        "uor",
-        "agent"
-      ],
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ]
-    },
-    {
-      "id": "agent_reputation",
-      "name": "agent_reputation",
-      "description": "An agent's verifiable, tamper-evident REPUTATION (Holo AgentTrust, ADR-039): a content-addressed, append-only chain — one κ commits to the whole history. Returns a recomputed (not self-reported) summary: age, uptime, certifications, distinct issuers, freshly-minted + revocation signals, and the chain head κ you re-derive (verifyDeep, Law L5). Give a holospace slug.",
-      "tags": [
-        "mcp",
-        "uor",
-        "agent"
-      ],
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ]
-    },
-    {
-      "id": "verify_receipt",
-      "name": "verify_receipt",
-      "description": "Verify a multi-agent WORK RECEIPT (Holo Orchestrate, ADR-045): re-derive a content-addressed execution DAG and report — for an answer assembled by many agents — WHO acted (NANDA identity), HOW trustworthy (AgentTrust), UNDER WHAT AUTHORITY (UCAN delegation), that EVERY STEP passed the conscience gate (Constitution, ADR-033), and EXACTLY what they produced. Tamper any step and it refuses (Law L5). Give the receipt bundle as 'graph' (array of UOR objects); omit to verify a freshly-built demo.",
-      "tags": [
-        "mcp",
-        "uor",
-        "agent"
-      ],
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ]
-    },
-    {
-      "id": "verify_delegation",
-      "name": "verify_delegation",
-      "description": "Verify a capability DELEGATION chain (Holo Delegate, ADR-042 / UCAN): re-derive the chain and report whether agent B's authority is valid — principal alignment (you can only re-delegate what you were granted), attenuation (no privilege escalation), roots in the resource owner, not expired, not revoked. Give the chain as 'graph' + the resource owner 'sub'; omit for a demo.",
-      "tags": [
-        "mcp",
-        "uor",
-        "agent"
-      ],
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ]
-    },
-    {
-      "id": "verify_settlement",
-      "name": "verify_settlement",
-      "description": "Verify a SETTLEMENT and release payment against PROVEN work (Holo Settle, ADR-048 / x402-NP): re-derive the work receipt and release a voucher per contributing agent ONLY if it re-derives + every step was authorized + conscience-accepted. Tampered/unproven work releases nothing. Give the settlement bundle as 'graph'; omit for a demo.",
-      "tags": [
-        "mcp",
-        "uor",
-        "agent"
-      ],
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ]
-    },
-    {
-      "id": "agent_passport",
-      "name": "agent_passport",
-      "description": "One-link agent onboarding: a single SELF-VERIFYING object bundling a holospace agent's identity (NANDA AgentFacts κ), reputation (AgentTrust head κ + summary), skills, and every agent door (MCP · NANDA · A2A · Skills). Re-derive its did:holo to verify the whole bundle (Law L5). Give a holospace slug.",
-      "tags": [
-        "mcp",
-        "uor",
-        "agent"
-      ],
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ]
-    },
-    {
       "id": "browser_open",
       "name": "browser_open",
       "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
@@ -514,5 +418,5 @@
       "signature": "VU1CoKDX-TVKbTOMCHcP0RZI6ri5T58TiBGCv6rqv1zNegfkyFrsqzTdo8BGWufWOaYYkB3VNL-hH3_hGUtFCw"
     }
   ],
-  "id": "did:holo:sha256:7ae20e3d9f1574897a0d51fa3d6d5907bf566c37ec5bc3f8c460ede54073d0a4"
+  "id": "did:holo:sha256:9a27f083bd1770232c255e79c7ec79e6a8bb80fa76375ccae2d73cdbf1d9e805"
 }

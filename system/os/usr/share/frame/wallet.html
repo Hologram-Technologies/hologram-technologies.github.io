@@ -27,7 +27,11 @@
            reads in the same voice as the shell. No sub-floor px/rem literals leak through. */
         --font: var(--holo-font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
         --font-mono: var(--holo-font-mono, ui-monospace, "Cascadia Code", Menlo, Consolas, monospace);
-        --t: var(--holo-text, 1rem); --t-sm: var(--holo-text-sm, .9rem); --t-lg: var(--holo-text-lg, 1.3rem); --t-xl: var(--holo-text-xl, 2rem); }
+        /* ONE type unit (--u, 16px floor per ADR-0057) on a φ scale, so the whole wallet reads at the
+           OS desktop's size. Secondary text == body size (16px+); hierarchy comes from weight + colour,
+           never from shrinking below the floor. h2 = φ¹, h1 = φ². No sub-floor sizes anywhere. */
+        --u: clamp(16px, .42vw + 14.4px, 19px); --t: var(--u); --t-sm: var(--u);
+        --t-lg: calc(var(--u) * 1.618); --t-xl: calc(var(--u) * 2.618); }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
       body { background: radial-gradient(130% 90% at 50% -12%, color-mix(in srgb, var(--acc) 20%, var(--bg)) 0%, var(--bg) 52%);
@@ -39,7 +43,7 @@
       .muted { color: var(--dim); font-size: .85rem; } .hidden { display: none !important; }
       h1 { font-size: 1.5rem; margin: 0; } h2 { font-size: 1.1rem; margin: 0; }
       h3 { font: 600 .72rem ui-sans-serif; color: var(--dim); text-transform: uppercase; letter-spacing: .09em; margin: 0 0 .5rem; }
-      .grad { background: linear-gradient(90deg, var(--acc), #14f195 60%, #f7931a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .grad { color: var(--acc); }
 
       /* ── top bar ── */
       #bar { flex: 0 0 auto; display: flex; align-items: center; gap: .6rem; z-index: 40;
@@ -328,12 +332,76 @@
       input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
       /* let the dense surfaces breathe a touch at full carriage width */
       @media (min-width: 34rem) { .mm-actions { gap: var(--s-xs); } .eco-strip { gap: var(--s-m); } }
+
+      /* 4 · FLOOR — the last reading labels not yet on the ramp lift to the body size, so NOTHING reads
+         below 16px. Avatar initials / chain-dot glyphs keep their fixed sizes (iconography, not copy). */
+      .acctpill .anm b, .cat-act { font-size: var(--t); }
+      .tok .meta .addr, .tok-empty, .chg, .stat .sl b, .stat .sv .u, .acctpill .did,
+      .netrow .nm, .appmeta .m1, .risk, .explain .who { font-size: var(--t-sm); }
+      .stat .sv { font-size: var(--t); }
+
+      /* ═══ 5 · IDENTITY-FIRST — a sovereign platinum card heads the Identity tab, and every category
+         body now OWNS the full height of the carriage box (CTA / closing note settle at the foot, so
+         content is never cramped at the top with dead space below). One calm, balanced surface. ═══ */
+      #view-wallet { display: flex; flex-direction: column; min-height: 100%; }
+      .cat-nav { flex: 0 0 auto; }
+      .cat-pane:not(.hidden) { flex: 1 1 auto; display: flex; flex-direction: column; }
+      .cat-head { flex: 0 0 auto; }
+      .cat-body { flex: 1 1 auto; gap: clamp(.6rem, 1.9vh, 1.05rem); }
+      .cat-body > .cat-act { margin-top: auto; }            /* primary action settles at the foot of the box */
+      .cat-note { margin: auto 0 0; }                       /* a trailing note does the same when it's last */
+      #cat-identity { width: 100%; max-width: 27rem; margin-inline: auto; }
+
+      /* the Holo platinum card — a real sovereign identity object. Metallic platinum, an accent-tinted
+         holographic glow bound to the OS --acc, a slow sheen, an EMV-gold chip. It carries the name +
+         the SOVEREIGN tier, so the card IS the identity hero (no duplicate name row beneath it). */
+      /* TWO text colours only: --hc-ink (graphite) and the OS --acc. Everything on the card is one or the
+         other. The platinum surface itself is rendered by WebGPU (.hc-gpu) for a hyper-real brushed metal;
+         this CSS gradient is the exact fallback when WebGPU is unavailable. */
+      .holo-card { --hc-ink: #0a0e16; position: relative; width: 100%; aspect-ratio: 1.585 / 1; border-radius: var(--r-lg);
+        overflow: hidden; isolation: isolate; display: flex; flex-direction: column; justify-content: space-between;
+        padding: clamp(1rem, 4.4vw, 1.5rem); margin-bottom: .25rem; color: var(--hc-ink);
+        background: linear-gradient(135deg, #f4f6f9 0%, #d4dae2 26%, #b7bfcb 52%, #cfd5de 73%, #eef1f5 100%);
+        border: 1px solid rgba(255,255,255,.55);
+        box-shadow: 0 22px 48px -22px rgba(2,6,14,.85), inset 0 1px 0 rgba(255,255,255,.7), 0 0 0 1px rgba(8,14,26,.16); }
+      .holo-card::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; mix-blend-mode: screen; opacity: .55;
+        background: radial-gradient(120% 85% at 86% -12%, color-mix(in srgb, var(--acc) 62%, transparent) 0%, transparent 46%),
+                    radial-gradient(95% 75% at -8% 112%, color-mix(in srgb, var(--acc) 34%, transparent) 0%, transparent 52%); }
+      .holo-card::after { content: ""; position: absolute; top: -60%; left: -40%; width: 45%; height: 220%; z-index: 1; pointer-events: none;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent); transform: rotate(18deg); filter: blur(2px);
+        animation: hc-sheen 7s ease-in-out infinite; }
+      @keyframes hc-sheen { 0%, 70% { transform: translateX(-40%) rotate(18deg); } 86%, 100% { transform: translateX(620%) rotate(18deg); } }
+      @media (prefers-reduced-motion: reduce) { .holo-card::after { animation: none; } }
+      /* WebGPU surface: when it mounts, it owns the metal — drop the CSS gradient + pseudo sheen. */
+      .hc-gpu { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity .4s ease; }
+      .holo-card.gpu-on { background: #aeb6c2; }
+      .holo-card.gpu-on::before, .holo-card.gpu-on::after { display: none; }
+      .holo-card.gpu-on .hc-gpu { opacity: 1; }
+      .holo-card > *:not(.hc-gpu) { position: relative; z-index: 2; }
+      .hc-top { display: flex; align-items: center; justify-content: space-between; }
+      .hc-brand { display: inline-flex; align-items: center; gap: .42rem; font-weight: 800; letter-spacing: .15em; font-size: var(--t); color: var(--hc-ink); }
+      .hc-mk { color: var(--acc); font-size: 1.05rem; line-height: 1; transform: translateY(.02em); }
+      .hc-tier { font: 800 var(--t-sm)/1 var(--font); text-transform: uppercase; letter-spacing: .26em; color: var(--hc-ink); }
+      .hc-chip { width: 2.7rem; height: 2rem; border-radius: 6px; position: relative;
+        background: linear-gradient(135deg, #f6e3a0 0%, #d8b153 46%, #a87f29 100%); border: 1px solid rgba(0,0,0,.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.5), 0 1px 2px rgba(0,0,0,.25); }
+      .hc-chip::before { content: ""; position: absolute; inset: 18% 12%; border: 1px solid rgba(0,0,0,.3); border-radius: 3px;
+        background: linear-gradient(90deg, transparent 30%, rgba(0,0,0,.18) 30%, rgba(0,0,0,.18) 33%, transparent 33%, transparent 67%, rgba(0,0,0,.18) 67%, rgba(0,0,0,.18) 70%, transparent 70%); }
+      .hc-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: .7rem; }
+      .hc-name { font-weight: 800; font-size: var(--t-lg); letter-spacing: -.01em; line-height: 1.02; color: var(--hc-ink); }
+      .hc-sub { margin-top: .26rem; font: 800 var(--t-sm)/1 var(--font); text-transform: uppercase; letter-spacing: .28em; color: var(--acc); }
+      .hc-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: .42rem; }
+      .hc-verify { display: inline-flex; align-items: center; gap: .3rem; font: 800 var(--t-sm)/1 var(--font);
+        color: var(--acc); background: color-mix(in srgb, var(--acc) 12%, transparent); border: 1px solid color-mix(in srgb, var(--acc) 32%, transparent);
+        border-radius: var(--pill); padding: .22rem .55rem; }
+      .hc-verify svg { width: .9rem; height: .9rem; }
+      .hc-did { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-sm); color: var(--hc-ink); cursor: pointer; opacity: .82; }
+      .hc-did:hover { opacity: 1; }
     </style>
   </head>
   <body>
     <div id="bar">
       <span class="brand"><span class="mk">◈</span> Holo Wallet</span>
-      <span class="pill" id="verPill" title="Law L5: every address is re-derived from my seed in this tab (BIP-44 / SLIP-0010)">κ </span>
+      <span class="pill" id="verPill" title="Every address is derived from your seed in this tab (BIP-44 / SLIP-0010)">κ </span>
       <span class="sp"></span>
       <button class="iconbtn hidden" id="sitesBtn" title="Connected sites who can ask my wallet to sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg></button>
       <button class="iconbtn hidden" id="settingsBtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
@@ -347,7 +415,7 @@
         <div class="ucol">
           <svg class="shield" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="shg2" x1="0" y1="0" x2="1" y2="1"><stop class="a" offset="0"/><stop class="b" offset="1"/></linearGradient></defs><path fill="url(#shg2)" d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z"/></svg>
           <h1 style="font-size:1.5rem">Sign in to <span class="grad">Hologram</span></h1>
-          <p class="lede" style="max-width:19rem">One tap creates my self-custodial wallet every chain, no password, no server. My identity is a content address only I can re-derive.</p>
+          <p class="lede" style="max-width:19rem">One tap creates my self-custodial wallet every chain, no password, no server. My identity is a fingerprint only I can verify.</p>
           <button class="btn bio" id="signInBio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0 3 0 5-1 7M7.5 8.5a5 5 0 0 1 9 2.5c0 3-.5 5-1.5 7M5 11a7 7 0 0 1 12-5M9.5 12c0 4 0 6-1.5 8M12 15v2"/></svg> Sign in with Biometrics</button>
           <p class="muted" id="welcomeErr"></p>
           <a href="#" id="importBtn" class="muted">I already have a recovery phrase</a>
@@ -405,15 +473,15 @@
       <section id="view-wallet" class="wrap hidden">
         <!-- the six sovereign categories — one κ owns them all -->
         <div class="cat-nav" id="catNav">
-          <button class="cat" data-cat="identity"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></span>Identity</button>
-          <button class="cat on" data-cat="money"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><path d="M16 13h.01"/></svg></span>Money</button>
+          <button class="cat on" data-cat="identity"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></span>Identity</button>
+          <button class="cat" data-cat="money"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><path d="M16 13h.01"/></svg></span>Money</button>
           <button class="cat" data-cat="data"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button>
           <button class="cat" data-cat="intel"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.9L12 16l-1.9-5.1L5.5 9l4.6-1.2z"/></svg></span>Intelligence</button>
           <button class="cat" data-cat="compute"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></span>Compute</button>
           <button class="cat" data-cat="network"><span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="12" cy="18" r="2.3"/><path d="M7.7 7.6l8.6 0M7.2 7.9l4 8.2M16.8 7.9l-4 8.2"/></svg></span>Network</button>
         </div>
 
-        <div id="cat-money" class="cat-pane">
+        <div id="cat-money" class="cat-pane hidden">
         <div class="mm-head">
           <button class="netpill" id="netPill" title="Switch network"><span class="ndot" id="netDot"></span><span id="netName">All Networks</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
           <button class="acctpill" id="acctPill" title="Copy my address"><span class="av" id="acctAv">◈</span><span class="anm"><b id="acctName">Account 0</b><span class="did mono" id="walletDid">did:key </span></span></button>
@@ -439,32 +507,32 @@
         </div>
 
         <div id="pane-tokens" class="mm-pane">
-          <div class="eco-h">Ecosystems <span class="eco-k" id="ecoK" title="this ecosystem view, content-addressed (Law L5)"></span></div>
+          <div class="eco-h">Ecosystems <span class="eco-k" id="ecoK" title="this ecosystem view, verified"></span></div>
           <div class="eco-strip" id="ecoStrip"></div>
           <div class="card" id="chainList" style="padding:.2rem 1rem"></div>
-          <p class="muted" style="margin-top:.5rem; font-size:.76rem">Live balances · addresses re-derived in this tab (Law L5).</p>
+          <p class="muted" style="margin-top:.5rem">Live balances · addresses verified in this tab.</p>
         </div>
 
         <div id="pane-nfts" class="mm-pane hidden">
           <div class="empty-pane">
             <div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg></div>
             <b>No NFTs yet</b>
-            <p class="muted">NFT discovery isn’t wired to the Holo engine yet. When it is, my collectibles appear here content-addressed and verifiable.</p>
+            <p class="muted">NFT discovery isn’t wired to the Holo engine yet. When it is, my collectibles appear here verified and verifiable.</p>
           </div>
         </div>
 
         <div id="pane-activity" class="mm-pane hidden">
-          <div class="row spread" style="margin-bottom:.5rem"><h3 style="margin:0">Activity</h3><select id="actChain" style="width:auto; padding:.3rem .6rem; font-size:.82rem"></select></div>
+          <div class="row spread" style="margin-bottom:.5rem"><h3 style="margin:0">Activity</h3><select id="actChain" style="width:auto; padding:.3rem .6rem"></select></div>
           <div id="activityList"><p class="muted">Loading recent transactions…</p></div>
-          <p class="muted" style="margin-top:.5rem; font-size:.76rem">Each tx is content-addressed its hash <span class="kbadge">κ</span> re-derives from the signed bytes (Law L5).</p>
+          <p class="muted" style="margin-top:.5rem">Each tx verifies itself <span class="kbadge">κ</span> its hash checks against the signed bytes.</p>
         </div>
         </div><!-- /cat-money -->
 
-        <div id="cat-identity" class="cat-pane hidden"><div class="cat-head"><h2>Identity</h2><p>My one sovereign key. Everything else is signed by it.</p></div><div id="catBody-identity" class="cat-body"></div></div>
+        <div id="cat-identity" class="cat-pane"><div class="cat-head"><h2>Identity</h2><p>My one sovereign key. Everything else is signed by it.</p></div><div id="catBody-identity" class="cat-body"></div></div>
         <div id="cat-data" class="cat-pane hidden"><div class="cat-head"><h2>Data</h2><p>My data lives here. Nothing leaves unless I allow it.</p></div><div id="catBody-data" class="cat-body"></div></div>
-        <div id="cat-intel" class="cat-pane hidden"><div class="cat-head"><h2>Intelligence</h2><p>My private AI — create, ask and act, on my machine.</p></div><div id="catBody-intel" class="cat-body"></div></div>
-        <div id="cat-compute" class="cat-pane hidden"><div class="cat-head"><h2>Compute</h2><p>The machine that’s yours — exactly what it can do.</p></div><div id="catBody-compute" class="cat-body"></div></div>
-        <div id="cat-network" class="cat-pane hidden"><div class="cat-head"><h2>Network</h2><p>Connect peer-to-peer — a link, no server, no middleman.</p></div><div id="catBody-network" class="cat-body"></div></div>
+        <div id="cat-intel" class="cat-pane hidden"><div class="cat-head"><h2>Intelligence</h2><p>My private AI. Create, ask and act, on my machine.</p></div><div id="catBody-intel" class="cat-body"></div></div>
+        <div id="cat-compute" class="cat-pane hidden"><div class="cat-head"><h2>Compute</h2><p>The machine that’s yours. Exactly what it can do.</p></div><div id="catBody-compute" class="cat-body"></div></div>
+        <div id="cat-network" class="cat-pane hidden"><div class="cat-head"><h2>Network</h2><p>Connect peer to peer. A link, no server, no middleman.</p></div><div id="catBody-network" class="cat-body"></div></div>
       </section>
     </main>
 
@@ -485,12 +553,12 @@
       <label>Recipient address</label><input id="sendTo" class="mono" placeholder="0x… / bc1… / Solana address" />
       <label>Amount (<span id="sendSym"></span>)</label><input id="sendAmt" inputmode="decimal" placeholder="0.0" />
       <div class="row" style="margin-top:1.1rem"><button class="btn wide" id="reviewSend">Review &amp; send</button></div>
-      <p class="muted">Review opens the consent gate your wallet signs <b>only</b> after you approve. The same gate protects spends requested by AI agents and other holospaces.</p>
+      <p class="muted">Review opens the consent gate your wallet signs <b>only</b> after you approve. The same gate protects spends requested by AI agents and other apps.</p>
     </div>
 
     <div class="sheet" id="sheet-swap"><div class="grab"></div>
       <div class="head"><h2>Swap</h2><span class="pill">Solana spot · Jupiter</span><button class="iconbtn sheet-x" title="Close" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-      <p class="muted">The route is computed off-chain and <b>never trusted</b>: your wallet re-derives a min-received floor, requires the sealed Jupiter program, and simulates the swap then the gate shows you those verified numbers before it signs.</p>
+      <p class="muted">The route is computed off-chain and <b>never trusted</b>: your wallet checks itself a min-received floor, requires the sealed Jupiter program, and simulates the swap then the gate shows you those verified numbers before it signs.</p>
       <label>From</label><select id="swapFrom"></select>
       <label>To</label><select id="swapTo"></select>
       <label>Amount</label><input id="swapAmt" inputmode="decimal" placeholder="0.0" />
@@ -506,13 +574,13 @@
 
     <div class="sheet" id="sheet-sites"><div class="grab"></div>
       <div class="head"><h2>Connected sites</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-      <p class="muted">Holospaces, dapps and agents that have asked your wallet to sign. Block any of them a blocked requester is denied before the gate ever opens. This is the one signing seam for the whole OS.</p>
+      <p class="muted">Apps, dapps and agents that have asked your wallet to sign. Block any of them a blocked requester is denied before the gate ever opens. This is the one signing seam for the whole OS.</p>
       <div id="siteList" style="margin-top:.6rem"></div>
     </div>
 
     <div class="sheet" id="sheet-settings"><div class="grab"></div>
       <div class="head"><h2>Settings</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-      <button class="btn ghost wide" id="backupBtn" style="justify-content:flex-start; text-align:left; margin-bottom:.6rem">⧉ Copy backup link <span class="muted" style="margin-left:auto">one content-addressed κ restore anywhere</span></button>
+      <button class="btn ghost wide" id="backupBtn" style="justify-content:flex-start; text-align:left; margin-bottom:.6rem">⧉ Copy backup link <span class="muted" style="margin-left:auto">one verified object · restore anywhere</span></button>
       <button class="btn ghost wide" id="agentsBtn" style="justify-content:flex-start; text-align:left; margin-bottom:.6rem">🤖 AI agents <span class="muted" style="margin-left:auto">read open, every spend gated</span></button>
       <button class="btn danger wide" id="lockBtn">Lock wallet</button>
       <p class="muted" style="margin-top:.8rem">Identity <span class="mono" id="setDid"></span></p>
@@ -534,7 +602,7 @@
         <div class="risk ok" id="appRisk"><span>✓</span><span id="appRiskMsg">Default-deny nothing signs unless you confirm.</span></div>
         <h3 style="margin:.4rem 0 .2rem">Estimated changes</h3>
         <div id="appRows"></div>
-        <div class="kstamp"><div class="lbl">◈ Re-derived in this tab verify, don't trust</div><div class="val" id="appKappa">holo://</div></div>
+        <div class="kstamp"><div class="lbl">◈ Verified in this tab verify, don't trust</div><div class="val" id="appKappa">holo://</div></div>
       </div>
       <div class="afoot"><button class="btn ghost" id="appDeny">Reject</button><button class="btn" id="appApprove">Confirm</button></div>
     </section>
@@ -747,7 +815,10 @@
       const fmtUsd = (n) => n == null ? "" : (n >= 1 ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : Number(n).toPrecision(3));
 
       // retint the whole wallet to the ecosystem's identity (--acc cascades to --acc2 + the backdrop glow)
-      function applyEcoTheme(e) { document.documentElement.style.setProperty("--acc", ecoAccent(e)); }
+      // Chrome stays on the OS accent (--holo-accent / blue) so the wallet reads as one surface with the
+      // desktop. An ecosystem's identity still shows as DATA — chain dots, logos, the selected eco ring
+      // (--ec) — not by retinting the whole UI. (--ec scoped for any element that wants the chain hue.)
+      function applyEcoTheme(e) { document.documentElement.style.setProperty("--ec", ecoAccent(e)); }
       function updateNetPill() {
         const e = ecoOf(activeEco);
         $("netName").textContent = e.label;
@@ -828,7 +899,7 @@
       function kStamp(e, list) {
         const k = $("ecoK"); if (!k) return;
         kappaOf({ "@type": "holo:EcosystemView", eco: e.id, accent: ecoAccent(e), tokens: (list || []).map((t) => t.id) })
-          .then((kappa) => { const hex = String(kappa).split("/").pop().split(":").pop(); k.textContent = "holo://" + hex.slice(0, 10) + "…"; k.title = "this ecosystem view, content-addressed (Law L5) click to copy\n" + kappa; k.onclick = () => copy(kappa); })
+          .then((kappa) => { const hex = String(kappa).split("/").pop().split(":").pop(); k.textContent = "holo://" + hex.slice(0, 10) + "…"; k.title = "this ecosystem view, verified click to copy\n" + kappa; k.onclick = () => copy(kappa); })
           .catch(() => {});
       }
 
@@ -892,7 +963,7 @@
             const ic = dir === "out" ? "↑" : dir === "in" ? "↓" : "◆";
             const val = t.value != null ? fmt(t.value, c.decimals) + " " + c.symbol : "";
             const when = t.time ? new Date(t.time * 1000).toLocaleDateString() : "";
-            return `<div class="actitem"><div class="ai ${dir}">${ic}</div><div class="m"><b>${dir === "out" ? "Sent" : dir === "in" ? "Received" : "Transaction"} ${esc(val)}</b><div class="sub mono">${esc(short(t.hash, 8))} · ${esc(when)}</div></div><a class="kbadge" href="${esc(t.explorer)}" target="_blank" rel="noopener" title="content address re-derivable from the signed bytes">κ ↗</a></div>`;
+            return `<div class="actitem"><div class="ai ${dir}">${ic}</div><div class="m"><b>${dir === "out" ? "Sent" : dir === "in" ? "Received" : "Transaction"} ${esc(val)}</b><div class="sub mono">${esc(short(t.hash, 8))} · ${esc(when)}</div></div><a class="kbadge" href="${esc(t.explorer)}" target="_blank" rel="noopener" title="fingerprint, verifiable from the signed bytes">κ ↗</a></div>`;
           }).join("");
         } catch (e) { el.innerHTML = `<p class="muted">Could not load activity: ${esc(e.message || e)}</p>`; }
       }
@@ -956,6 +1027,7 @@
 
       async function enterWallet() {
         setIdentityBar(); fillChainSelects(); renderEcos(); $("sendSym").textContent = CHAINS[$("sendChain").value].symbol; show("view-wallet");
+        selectCat("identity");                                 // open on Identity — present the sovereign card first
         addresses = await wallet.addresses(0);
         selectEco(activeEco);                                  // gateway opens on the active ecosystem (Tether)
         loadPrices().then(() => renderNet()).catch(() => {});  // prices fill the 24h move once they arrive
@@ -1133,19 +1205,140 @@
         `<div class="stat">${icon ? `<div class="sd">${icon}</div>` : ""}<div class="sl"><b>${esc(label)}</b><span>${esc(sub || "")}</span></div>${kchip(kappa, id)}</div>`;
       const gib = (b) => b == null ? "—" : (Number(b) / 1073741824).toFixed(Number(b) >= 10737418240 ? 0 : 1) + " GiB";
       const parentWin = () => { try { return (window.parent && window.parent !== window) ? window.parent : null; } catch { return null; } };
+      // the sovereign Holo platinum card — name + Sovereign tier, accent-tinted, κ-verified. The Identity hero.
+      const holoCard = (name, did, hi) => {
+        const pq = !!(hi && hi.postQuantum);
+        return `<div class="holo-card"><canvas class="hc-gpu" aria-hidden="true"></canvas>
+            <div class="hc-top"><span class="hc-brand"><span class="hc-mk">◈</span> HOLOGRAM</span><span class="hc-tier">PLATINUM</span></div>
+            <div class="hc-chip" aria-hidden="true"></div>
+            <div class="hc-foot">
+              <div class="hc-id"><div class="hc-name">${esc(name)}</div><div class="hc-sub">Sovereign</div></div>
+              <div class="hc-meta"><span class="hc-verify">${IC.shield}${pq ? "post-quantum" : "verified"}</span><span class="hc-did mono" id="hcDid" title="tap to copy">${esc(short(did, 7))}</span></div>
+            </div>
+          </div>`;
+      };
+
+      // ── HYPER-REAL PLATINUM via WebGPU ──────────────────────────────────────────────────────────────
+      // The card's metal is rendered by a WebGPU fragment shader: a brushed-anisotropic platinum base,
+      // two slow specular sweeps, a rounded-box fresnel rim + top bevel, fine grain to kill banding, and a
+      // faint OS-accent reflection in the bright sweep. Reflections parallax to the pointer, so tilting the
+      // mouse over the card moves the light like real metal. Pure CSS gradient remains the exact fallback.
+      let cardGpu = null;
+      const cssRgb = (val) => { try { const d = document.createElement("div"); d.style.color = val; d.style.display = "none"; document.body.appendChild(d);
+        const m = getComputedStyle(d).color.match(/[\d.]+/g); d.remove(); return m ? [m[0]/255, m[1]/255, m[2]/255] : [0.27,0.6,1]; } catch { return [0.27,0.6,1]; } };
+      const HC_WGSL = `
+        struct U { res: vec2f, time: f32, _p0: f32, ptr: vec2f, _p1: vec2f, acc: vec4f };
+        @group(0) @binding(0) var<uniform> u: U;
+        @vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+          var p = array<vec2f,3>(vec2f(-1.,-1.), vec2f(3.,-1.), vec2f(-1.,3.));
+          return vec4f(p[i], 0., 1.);
+        }
+        fn hash(p: vec2f) -> f32 { return fract(sin(dot(p, vec2f(127.1,311.7))) * 43758.5453); }
+        fn vnoise(p: vec2f) -> f32 {
+          let i = floor(p); let f = fract(p);
+          let a = hash(i); let b = hash(i+vec2f(1.,0.)); let c = hash(i+vec2f(0.,1.)); let d = hash(i+vec2f(1.,1.));
+          let uu = f*f*(3.-2.*f);
+          return mix(mix(a,b,uu.x), mix(c,d,uu.x), uu.y);
+        }
+        fn sdRound(p: vec2f, b: vec2f, r: f32) -> f32 {
+          let q = abs(p) - b + vec2f(r);
+          return min(max(q.x,q.y),0.) + length(max(q,vec2f(0.))) - r;
+        }
+        @fragment fn fs(@builtin(position) frag: vec4f) -> @location(0) vec4f {
+          let res = u.res;
+          var uv = frag.xy / res; uv.y = 1. - uv.y;
+          let asp = res.x / res.y;
+          var p = uv - 0.5; p.x *= asp;
+          let tilt = u.ptr * 0.5;
+          let dir = normalize(vec2f(0.85, 0.55));
+          let g = dot(p, dir) + 0.5 + tilt.x*0.25 - tilt.y*0.15;
+          let lo  = vec3f(0.45, 0.49, 0.56);
+          let mid = vec3f(0.74, 0.78, 0.83);
+          let hi  = vec3f(0.97, 0.985, 1.0);
+          var col = mix(lo, mid, clamp(g*1.2, 0., 1.));
+          col = mix(col, hi, clamp((g-0.55)*2.0, 0., 1.));
+          let bp = vec2f(uv.x*460.0, uv.y*34.0);
+          col += (vnoise(bp) - 0.5) * 0.06;
+          let s = dot(p, dir) - tilt.x*0.6 + sin(u.time*0.18)*0.20;
+          let band1 = exp(-pow((s-0.10)*5.5, 2.0)) * 0.55;
+          let band2 = exp(-pow((s+0.32)*7.0, 2.0)) * 0.28;
+          let spec = band1 + band2;
+          col += vec3f(spec);
+          col = mix(col, u.acc.rgb, spec * 0.10);
+          let half = vec2f(0.5*asp, 0.5);
+          let d = sdRound(p, half - vec2f(0.012), 0.085);
+          col += vec3f(smoothstep(0.0, -0.05, d)) * 0.18;
+          let bevel = smoothstep(0.03, 0.0, abs(d+0.02)) * clamp(0.5+p.y, 0., 1.);
+          col += vec3f(bevel) * 0.12;
+          col += (hash(uv*res*0.5 + vec2f(u.time)) - 0.5) * 0.012;
+          let vig = 1.0 - smoothstep(0.45, 0.98, length(p*vec2f(0.9,1.1)));
+          col *= 0.92 + 0.08*vig;
+          col = clamp(col, vec3f(0.), vec3f(1.));
+          return vec4f(col, 1.0);
+        }`;
+      async function mountCardGPU(card) {
+        if (cardGpu) { try { cardGpu.dispose(); } catch {} cardGpu = null; }
+        const canvas = card && card.querySelector(".hc-gpu");
+        if (!canvas || !navigator.gpu) return;                              // → CSS gradient fallback
+        let alive = true, raf = 0;
+        try {
+          const adapter = await navigator.gpu.requestAdapter();
+          if (!adapter || !alive) return;
+          const device = await adapter.requestDevice();
+          if (!alive) { device.destroy?.(); return; }
+          const ctx = canvas.getContext("webgpu");
+          const format = navigator.gpu.getPreferredCanvasFormat();
+          ctx.configure({ device, format, alphaMode: "opaque" });
+          const mod = device.createShaderModule({ code: HC_WGSL });
+          const pipeline = device.createRenderPipeline({ layout: "auto",
+            vertex: { module: mod, entryPoint: "vs" },
+            fragment: { module: mod, entryPoint: "fs", targets: [{ format }] },
+            primitive: { topology: "triangle-list" } });
+          const ubuf = device.createBuffer({ size: 48, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+          const bind = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ubuf } }] });
+          const acc = cssRgb(getComputedStyle(card).getPropertyValue("--acc") || "#3b82f6");
+          const u = new Float32Array(12);   // res(2) time pad ptr(2) pad(2) acc(4)
+          u[8] = acc[0]; u[9] = acc[1]; u[10] = acc[2]; u[11] = 1;
+          const ptr = { x: 0, y: 0 }, tgt = { x: 0, y: 0 };
+          const onMove = (e) => { const r = card.getBoundingClientRect(); tgt.x = ((e.clientX - r.left) / r.width) * 2 - 1; tgt.y = ((e.clientY - r.top) / r.height) * 2 - 1; };
+          const onLeave = () => { tgt.x = 0; tgt.y = 0; };
+          card.addEventListener("pointermove", onMove); card.addEventListener("pointerleave", onLeave);
+          const dpr = Math.min(devicePixelRatio || 1, 2);
+          const resize = () => { const w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+            if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; } u[0] = canvas.width; u[1] = canvas.height; };
+          const ro = new ResizeObserver(resize); ro.observe(canvas); resize();
+          const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const t0 = performance.now();
+          const frame = () => {
+            if (!alive) return;
+            ptr.x += (tgt.x - ptr.x) * 0.06; ptr.y += (tgt.y - ptr.y) * 0.06;
+            u[2] = (performance.now() - t0) / 1000; u[4] = ptr.x; u[5] = ptr.y;
+            device.queue.writeBuffer(ubuf, 0, u);
+            const enc = device.createCommandEncoder();
+            const pass = enc.beginRenderPass({ colorAttachments: [{ view: ctx.getCurrentTexture().createView(), clearValue: { r: 0.68, g: 0.71, b: 0.76, a: 1 }, loadOp: "clear", storeOp: "store" }] });
+            pass.setPipeline(pipeline); pass.setBindGroup(0, bind); pass.draw(3); pass.end();
+            device.queue.submit([enc.finish()]);
+            raf = reduce ? 0 : requestAnimationFrame(frame);
+          };
+          card.classList.add("gpu-on");
+          frame();
+          cardGpu = { dispose() { alive = false; if (raf) cancelAnimationFrame(raf); try { ro.disconnect(); } catch {} card.removeEventListener("pointermove", onMove); card.removeEventListener("pointerleave", onLeave); try { device.destroy?.(); } catch {} } };
+        } catch (e) { alive = false; if (raf) cancelAnimationFrame(raf); /* keep CSS fallback */ }
+      }
 
       function populateIdentity() {
         const el = $("catBody-identity"), did = wallet.did || "—", hi = holoIdentity();
         let agents = []; try { agents = JSON.parse(localStorage.getItem("holo.agents:" + (currentOp && currentOp.kappa)) || "[]"); } catch {}
         const name = (hi && hi.label) || (currentOp && currentOp.label) || "Player";
-        const av = (String(name).trim()[0] || "◈").toUpperCase();
         el.innerHTML =
-            `<div class="stat"><div class="sd sd-av">${esc(av)}</div><div class="sl"><b>${esc(name)}</b><span>your sovereign identity</span></div><span class="pill-ok">${IC.shield}${(hi && hi.postQuantum) ? "post-quantum" : "self-verified"}</span></div>`
+            holoCard(name, did, hi)
           + kstat("Your key", "only you can re-derive it (Law L5)", did, "catIdK", IC.key)
           + stat("Agents", agents.length ? String(agents.length) : "none yet", "helpers that act only as you allow", IC.bot)
           + `<button class="cat-act" id="catRecover">${IC.lock} Recovery &amp; security</button>`;
+        $("hcDid").onclick = () => copy(did);
         $("catIdK").onclick = () => copy(did);
         $("catRecover").onclick = () => openSheet("settings");
+        mountCardGPU(el.querySelector(".holo-card"));   // hyper-real platinum surface (CSS gradient fallback)
       }
       async function populateData() {
         const el = $("catBody-data"); el.innerHTML = '<p class="muted">Reading your device…</p>';
@@ -1155,7 +1348,7 @@
           + stat("Left the device", "0 bytes", "telemetry is local-only by default", IC.up)
           + stat("Egress", "you approve each one", "nothing leaves without consent (Law L1)", IC.shield)
           + stat("Telemetry", tele ? "recording" : "ready", "signals kept as content-addressed objects", IC.pulse)
-          + '<p class="muted" style="font-size:.82rem; margin-top:.4rem">Your data is yours. Sharing anything is a one-tap, consent-gated decision — and re-derivable, so a recipient can verify it.</p>';
+          + '<p class="muted cat-note">Your data is yours. Sharing anything is a one-tap, consent-gated decision, and re-derivable, so a recipient can verify it.</p>';
       }
       function populateIntel() {
         const el = $("catBody-intel"); const pw = parentWin(); let q = false; try { q = !!(pw && pw.Q); } catch {}
@@ -1175,7 +1368,7 @@
         el.innerHTML = stat("Processor", cores + " cores", "runs your apps and on-device AI", IC.cpu)
           + stat("Graphics", gpu ? ((gpu.vendor || "GPU") + (gpu.architecture ? " · " + gpu.architecture : "")) : "—", (gpu && gpu.description) || "accelerates AI and visuals", IC.gpu)
           + stat("Memory", ram ? ram + " GiB" : "—", "working memory on this device", IC.mem)
-          + stat("Storage", free != null ? gib(free) + " free" : "—", "your κ-store — where your data lives", IC.drive)
+          + stat("Storage", free != null ? gib(free) + " free" : "—", "your κ-store, where your data lives", IC.drive)
           + stat("Secure compute", iso ? "isolated" : "shared", "for the in-tab WASM engines", IC.lock)
           + (h && h.hostKappa ? kstat("This machine", "content-addressed (κ)", "holo://" + String(h.hostKappa).split(":").pop(), "catHostK", IC.server) : "");
         const hk = $("catHostK"); if (hk && h) hk.onclick = () => copy(h.hostKappa);
@@ -1185,11 +1378,12 @@
         let peers = "just you"; try { const p = parentWin()?.document.getElementById("peers"); if (p && p.textContent) peers = p.textContent.trim(); } catch {}
         el.innerHTML = stat("Connection", on ? "online" : "offline", c.effectiveType ? ("via " + String(c.effectiveType).toUpperCase() + (c.downlink ? " · " + c.downlink + " Mbps" : "")) : "this device", IC.wifi)
           + stat("Peers", peers, "others on your holospace, right now", IC.users)
-          + stat("How you connect", "peer-to-peer", "a shareable link — no server in the middle", IC.share)
+          + stat("How you connect", "peer-to-peer", "a shareable link, no server in the middle", IC.share)
           + `<button class="cat-act" id="catConnect">${IC.share} Share a connection</button>`;
         $("catConnect").onclick = () => { try { parentWin()?.postMessage({ type: "holo-identity", action: "open-network" }, location.origin); } catch {} };
       }
       function selectCat(cat) {
+        if (cat !== "identity" && cardGpu) { try { cardGpu.dispose(); } catch {} cardGpu = null; }   // stop the GPU loop off-tab
         for (const b of document.querySelectorAll("#catNav .cat")) b.classList.toggle("on", b.dataset.cat === cat);
         for (const p of document.querySelectorAll("#view-wallet .cat-pane")) p.classList.add("hidden");
         const pane = $("cat-" + cat); if (pane) pane.classList.remove("hidden");

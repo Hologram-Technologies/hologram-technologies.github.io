@@ -1,39 +1,41 @@
 {
   "witnessed": false,
-  "passed": 2,
-  "failed": 3,
-  "files": 29177,
-  "objects": 13399,
-  "sampled": 12655,
+  "passed": 4,
+  "failed": 1,
+  "files": 34611,
+  "objects": 29895,
+  "sampled": 29058,
   "covers": [
+    "no orphan objects — every index entry exists on ",
     "every object is dual-axis — did:holo:sha256 ⊕ di",
+    "a bounded sample RE-DERIVES to both κ — content ",
     "the index is deterministic (sorted keys, no time"
   ],
   "results": [
     {
       "name": "every first-party file in both folders is a first-class addressed object (full coverage)",
       "ok": false,
-      "detail": "13307/29177 files indexed · 15870 live-churn: commitlint.yml, CHANGELOG.md, LICENSE"
+      "detail": "29895/34611 files indexed · 4716 live-churn: 0113-holo-dial.md, 0114-holo-forge-unified.md, holo-forge-authz-spec.md"
     },
     {
       "name": "no orphan objects — every index entry exists on disk",
-      "ok": false,
-      "detail": "92 orphan(s): apps/apps/wallet/coi-serviceworker.min.js, apps/apps/wallet/holospace.json, apps/apps/wallet/holospace.lock.json"
+      "ok": true,
+      "detail": "29895 entries"
     },
     {
       "name": "every object is dual-axis — did:holo:sha256 ⊕ did:holo:blake3 (substrate σ-axis)",
       "ok": true,
-      "detail": "13399/13399"
+      "detail": "29895/29895"
     },
     {
       "name": "a bounded sample RE-DERIVES to both κ — content addresses, not arbitrary (Law L5)",
-      "ok": false,
-      "detail": "12148/12655 re-derive · 507 live-churn: launch.json, settings.local.json, pages.yml"
+      "ok": true,
+      "detail": "29003/29058 re-derive · 55 live-churn: manifesto.html, index.html, README.md"
     },
     {
       "name": "the index is deterministic (sorted keys, no timestamps) → re-derives byte-for-byte",
       "ok": true,
-      "detail": "count 13399"
+      "detail": "count 29895"
     }
   ],
   "spec": "Every first-party file in Hologram OS2 + Hologram Apps is a first-class attribute-addressed object on the unified UOR substrate (dual-axis did:holo:sha256 ⊕ did:holo:blake3), re-derivable (Law L5)"

@@ -10,7 +10,7 @@
 
 import http from "node:http";
 import net from "node:net";                                  // raw socket for the Tor SOCKS5 onion transport
-import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, statSync, readdirSync, createReadStream, createWriteStream, mkdirSync, renameSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname } from "node:path";
 import { spawn } from "node:child_process";
@@ -73,12 +73,15 @@ async function scRoute(sub, params, res, req) {
   try {
     if (sub === "search") { const n = Math.min(50, parseInt(params.get("n") || "24", 10) || 24); const q = params.get("q") || "";
       return sendJson(res, await ytdlp(["-J", "--flat-playlist", "--no-warnings", `scsearch${n}:${q}`])); }
+    if (sub === "vstream") return vstreamRoute(params.get("url") || "", parseInt(params.get("h") || "4320", 10), req, res);   // any-site video → highest quality, same-origin (YouTube etc.)
     const url = params.get("url") || "";
     if (!/^https?:\/\/(?:[\w-]+\.)?(?:soundcloud\.com|snd\.sc)\//i.test(url)) return sendJson(res, { error: "not a SoundCloud url" });
     if (sub === "resolve") return sendJson(res, await ytdlp(["-J", "--flat-playlist", "--no-warnings", url]));
     if (sub === "track") return sendJson(res, await ytdlp(["-J", "--no-warnings", url]));
-    if (sub === "stream") {                                  // resolve a progressive (http) mp3 and PIPE it same-origin (so Holo Audio can shape it)
-      const direct = (await ytdlp(["-f", "http_mp3_128/http_mp3_0/bestaudio[protocol^=http]/bestaudio", "-g", "--no-warnings", url], true)).split("\n")[0].trim();
+    if (sub === "stream") {                                  // resolve the HIGHEST-bitrate progressive (http) stream and PIPE it same-origin (so Holo Audio can shape it)
+      // prefer the best seekable http(s) progressive, sorted by audio bitrate (then opus over mp3) so we serve
+      // the highest quality the track offers; fall back to the reliable 128k mp3, then anything.
+      const direct = (await ytdlp(["-f", "bestaudio[protocol^=http]/http_mp3_128/http_mp3_0/bestaudio", "-S", "abr,acodec:opus", "-g", "--no-warnings", url], true)).split("\n")[0].trim();
       if (!/^https?:/.test(direct)) return sendJson(res, { error: "no progressive stream" });
       return pipeUpstream(direct, req, res);
     }
@@ -113,6 +116,66 @@ async function pipeUpstream(rawUrl, req, res) {
   req.on("close", () => { try { node.destroy(); } catch {} });
   node.on("error", () => { try { res.end(); } catch {} });
   node.pipe(res);
+}
+
+// ── /sc/vstream?url=&h= — pin ANY video (YouTube, Vimeo, …) into the Holo Video player at the highest
+// quality the source offers (up to 8K), played same-origin. YouTube serves no muxed progressive above
+// 720p, so for higher resolutions we resolve the best video-only + best audio and let ffmpeg COPY-mux
+// them (no re-encode → zero quality loss) into a fragmented MP4 streamed live. The muxed result is teed
+// to a disk cache keyed by (url,height), so the FIRST play warms it (a few seconds) and EVERY later play
+// is instant + fully seekable from local disk. Dev-only, like the other /sc/* routes.
+const VCACHE = join(here, "bin", "vcache");
+function serveCachedVideo(file, req, res) {
+  let st; try { st = statSync(file); } catch { return false; }
+  if (!st.size) return false;
+  const total = st.size, head = { ...COI, "content-type": "video/mp4", "cache-control": "no-store", "accept-ranges": "bytes" };
+  const range = req.headers.range;
+  if (range) {
+    const m = /bytes=(\d*)-(\d*)/.exec(range) || [];
+    let start = m[1] ? parseInt(m[1], 10) : 0, end = m[2] ? parseInt(m[2], 10) : total - 1;
+    if (isNaN(start)) start = 0; if (isNaN(end) || end >= total) end = total - 1;
+    if (start > end || start >= total) { res.writeHead(416, { ...head, "content-range": `bytes */${total}` }); res.end(); return true; }
+    head["content-range"] = `bytes ${start}-${end}/${total}`; head["content-length"] = end - start + 1;
+    res.writeHead(206, head);
+    const rs = createReadStream(file, { start, end }); req.on("close", () => { try { rs.destroy(); } catch {} }); rs.on("error", () => { try { res.end(); } catch {} }); rs.pipe(res);
+  } else {
+    head["content-length"] = total; res.writeHead(200, head);
+    const rs = createReadStream(file); req.on("close", () => { try { rs.destroy(); } catch {} }); rs.on("error", () => { try { res.end(); } catch {} }); rs.pipe(res);
+  }
+  return true;
+}
+async function vstreamRoute(rawUrl, hWanted, req, res) {
+  const u = publicHttpUrl(rawUrl); if (!u) return sendJson(res, { error: "refused url" }, 400);
+  const h = Math.min(4320, Math.max(360, hWanted || 4320));
+  const key = createHash("sha1").update(u.href + "|" + h).digest("hex"), file = join(VCACHE, key + ".mp4");
+  if (existsSync(file) && serveCachedVideo(file, req, res)) return;          // instant + seekable on repeat plays
+  let lines;
+  try {
+    lines = (await ytdlp(["-f", `bv*[height<=${h}]+ba/b[height<=${h}]/b`,
+      "-S", "res,fps,vcodec:vp9,vcodec:av01,vcodec:h264,acodec:opus,acodec:aac",
+      "-g", "--no-warnings", u.href], true)).split("\n").map((s) => s.trim()).filter((s) => /^https?:/.test(s));
+  } catch (e) { return sendJson(res, { error: String((e && e.message) || e).slice(0, 200) }, 502); }
+  if (!lines.length) return sendJson(res, { error: "no playable stream" }, 502);
+  if (lines.length === 1) return pipeUpstream(lines[0], req, res);          // a single muxed progressive (≤720p YT) — instant + seekable
+  // separate video + audio → ffmpeg copy-mux to a fragmented MP4 streamed live, teed to the disk cache
+  try { mkdirSync(VCACHE, { recursive: true }); } catch {}
+  const tmp = file + ".part." + process.pid;
+  let cache = null; try { cache = createWriteStream(tmp); } catch {}
+  let killed = false;
+  const dropCache = () => { if (cache) { try { cache.destroy(); } catch {} cache = null; } try { if (existsSync(tmp)) unlinkSync(tmp); } catch {} };
+  res.writeHead(200, { ...COI, "content-type": "video/mp4", "cache-control": "no-store" });
+  const ff = spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", lines[0], "-i", lines[1],
+    "-map", "0:v:0", "-map", "1:a:0", "-c", "copy",
+    "-movflags", "frag_keyframe+empty_moov+default_base_moof", "-f", "mp4", "pipe:1"], { windowsHide: true });
+  ff.stdout.on("data", (c) => { try { res.write(c); } catch {} if (cache) { try { cache.write(c); } catch {} } });
+  ff.stderr.on("data", () => {});
+  ff.on("error", () => { dropCache(); try { res.end(); } catch {} });
+  ff.on("close", (code) => {
+    if (cache) { try { cache.end(); } catch {} }
+    if (code === 0 && !killed) { try { renameSync(tmp, file); } catch {} } else dropCache();   // cache only a COMPLETE mux
+    try { res.end(); } catch {}
+  });
+  req.on("close", () => { killed = true; try { ff.kill("SIGKILL"); } catch {} dropCache(); });
 }
 
 // /weather?q=<city>  (or ?lat=&lon=) → open-meteo geocode + current conditions, proxied same-origin.
@@ -197,7 +260,10 @@ function readRel(rel, stats) {
   // apps resolve from the separate Hologram Apps repo (a holospace boots from anywhere by κ)
   if (isApp) { const a = join(APPS, rel); if (existsSync(a) && statSync(a).isFile()) { stats.apps++; return { buf: readFileSync(a), rel }; } }
   const f = fhsOf(rel);
-  if (f && existsSync(f) && statSync(f).isFile()) { stats.os2++; let buf = readFileSync(f); if (rel === "holo-fhs-sw.js") buf = devEnableFresh(buf); return { buf, rel }; }
+  // HOLO_PROD_SW=1 serves the SW VERBATIM (sealed ALLOW_DEV_FRESH=false) so a localhost harness can
+  // witness the PROD code path (cache-first + L5 + heal, DEV=false) — exactly what a dumb static host
+  // ships. Without it, dev keeps the live-edit dev-fresh rewrite. The on-disk byte is untouched either way.
+  if (f && existsSync(f) && statSync(f).isFile()) { stats.os2++; let buf = readFileSync(f); if (rel === "holo-fhs-sw.js" && !process.env.HOLO_PROD_SW) buf = devEnableFresh(buf); return { buf, rel }; }
   // Law L1 (content, not location): an app resolves ONLY from its own content-addressed image
   // (Hologram Apps + the OS2 vendored holospaces), NEVER by path-borrowing from the legacy os/ —
   // so a retired app is truly gone (404), not silently served from the old monolith. The legacy
@@ -439,6 +505,40 @@ function pairMailbox(req, res, channel) {
 // and streams its NDJSON progress. ffmpeg reads the source URL directly (HLS/DASH/MP4/WebM),
 // upscales, re-encodes to CMAF, pins every byte, writes a PROV-O receipt, registers the owned
 // κ-item. DEV-ONLY (mirrors /ingest); on a static deploy this runs offline as a CLI.
+// pinRoute — Share's "Sovereign cloud" backend. The page POSTs a sealed CAR (the whole holospace, opaque
+// bytes); we upload it to PUBLIC IPFS via Pinata and return its content id, so a phone anywhere can pull it
+// back from any trustless gateway (holo-workspace-sync.openCarByCid) and re-derive every block (L5). The
+// IPFS credential lives ONLY here (PINATA_JWT_FILE, default C:/Users/pavel/.pinata.jwt), never in the page.
+// Absent token → an honest 503 so the UI falls back to the serverless link / file rather than faking reach.
+const PINATA_JWT_FILE = process.env.PINATA_JWT_FILE || "C:/Users/pavel/.pinata.jwt";
+let _pinJwt; const pinJwt = () => { if (_pinJwt === undefined) { try { _pinJwt = readFileSync(PINATA_JWT_FILE, "utf8").trim(); } catch { _pinJwt = null; } } return _pinJwt; };
+// Pinata's own gateway serves a freshly pinned CID immediately; the public trustless gateways catch up via
+// the DHT within minutes. Lead with Pinata so the scan/open resolves instantly, keep the others as the
+// censorship-resistant, no-single-host fallback (Law L1: location is a latency choice, not the identity).
+const PIN_GATEWAYS = ["https://gateway.pinata.cloud", "https://trustless-gateway.link", "https://ipfs.io", "https://dweb.link", "https://w3s.link"];
+function pinRoute(req, res) {
+  if (req.method !== "POST") { res.writeHead(405, COI); return res.end("POST only"); }
+  const jwt = pinJwt();
+  if (!jwt) { res.writeHead(503, { ...COI, "content-type": "application/json", "access-control-allow-origin": "*" }); return res.end(JSON.stringify({ error: "no pin credential configured" })); }
+  const chunks = []; let n = 0;
+  req.on("data", (c) => { n += c.length; if (n > 64 * 1024 * 1024) req.destroy(); else chunks.push(c); });   // 64MB ceiling for one shared holospace
+  req.on("end", async () => {
+    const car = Buffer.concat(chunks);
+    if (!car.length) { res.writeHead(400, COI); return res.end("empty body"); }
+    try {
+      const fd = new FormData();
+      fd.append("file", new Blob([car], { type: "application/vnd.ipld.car" }), "holospace.car");
+      fd.append("network", "public");
+      fd.append("name", "holo-share/" + createHash("sha256").update(car).digest("hex").slice(0, 16));
+      const r = await fetch("https://uploads.pinata.cloud/v3/files", { method: "POST", headers: { Authorization: `Bearer ${jwt}` }, body: fd, signal: AbortSignal.timeout(120000) });
+      const j = await r.json().catch(() => ({}));
+      const carCid = j && j.data && j.data.cid;
+      if (!carCid) { res.writeHead(502, { ...COI, "content-type": "application/json", "access-control-allow-origin": "*" }); return res.end(JSON.stringify({ error: "pin failed", detail: String(JSON.stringify(j)).slice(0, 200) })); }
+      sendJson(res, { carCid, gateways: PIN_GATEWAYS, bytes: car.length });
+    } catch (e) { res.writeHead(502, { ...COI, "content-type": "application/json", "access-control-allow-origin": "*" }); res.end(JSON.stringify({ error: "pin error", detail: String(e && e.message || e).slice(0, 200) })); }
+  });
+}
+
 function developRoute(req, res) {
   if (req.method !== "POST") { res.writeHead(405, COI); return res.end("POST only"); }
   const chunks = []; let n = 0;
@@ -498,12 +598,17 @@ function roomRoute(req, res, roomId) {
 export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: new Set() }) {
   return (req, res) => {
     let route = decodeURIComponent((req.url || "/").split("?")[0].split("#")[0]);
+    // CROSS-REPO ALIAS: the GGUF forge (apps/q/forge/*) imports the OS's holo-uor via the sibling-repo
+    // layout "/holo-os/system/os/<path>". On this canonical mount the OS lives at root, so strip that
+    // prefix → the OS-relative path. Lets Q's .holo WebGPU brain (holo-brain-engine.mjs) load from the shell.
+    if (route.startsWith("/holo-os/system/os/")) route = route.slice("/holo-os/system/os".length);
     // dev media backend — capability probe + SoundCloud (yt-dlp) proxy, served same-origin
     if (route === "/caps") return sendJson(res, { fetch: true, ingestAudio: false, ytdlp: HAS_YTDLP, soundcloud: HAS_YTDLP });
     if (route.startsWith("/sc/")) { scRoute(route.slice(4), new URLSearchParams((req.url || "").split("?")[1] || ""), res, req); return; }
     if (route === "/audio-proxy") { pipeUpstream(new URLSearchParams((req.url || "").split("?")[1] || "").get("url") || "", req, res); return; }
     if (route === "/weather") { weatherRoute(new URLSearchParams((req.url || "").split("?")[1] || ""), res); return; }   // dev weather proxy for the Holo Widgets weather tile
     if (route === "/develop") { developRoute(req, res); return; }   // dev SR→κ-pin backend (Holo Player "Develop to 8K")
+    if (route === "/api/pin") { pinRoute(req, res); return; }        // dev Share "Sovereign cloud" backend (pin a sealed CAR to public IPFS — Law L1 worldwide reach)
     const mRoom = route.match(/^\/room\/([\w-]{4,64})$/);            // dev Watch-Together room relay (SSE + POST)
     if (mRoom) { roomRoute(req, res, mRoom[1]); return; }
     if (route === "/mcp") { mcpProxy(req, res); return; }           // dev MCP forwarder — realizes the roster's declared /mcp endpoint (→ the substrate MCP server on :8787)
@@ -595,7 +700,7 @@ export function startServer(port = 0) {
 }
 
 if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/")}` || process.argv[1].endsWith("holo-serve-fhs.mjs")) {
-  const { port } = await startServer(parseInt(process.argv[2] || "8300", 10));
+  const { port } = await startServer(parseInt(process.argv[2] || process.env.PORT || "8300", 10));
   console.log(`holo-serve-fhs: OS2 booting at  http://127.0.0.1:${port}/   →  the ONE canonical shell (/shell.html, in OS2; the gateways take the SDDM greeter → this same shell)`);
   console.log(`  κ-route index: ${hexToPath.size} sha256 · ${blakeToPath.size} blake3 (substrate σ-axis) → paths · ${hexToAbs.size} full-substrate objects (re-derived)`);
 }

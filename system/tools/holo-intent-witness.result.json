@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Intent (S4, one intent classifier — the last Q-unification seam) — a single canonical router every surface funnels through: typed omnibar, voice, an app's cross-frame call all classify with the ONE Q.intent and dispatch through ONE table, so a request is decided ONCE and spoken/typed converge; source is carried but never changes the decision; an unhandled kind is reported (never thrown) so callers fall back gracefully; blank input resolves to an honest fallback; deterministic",
+  "authority": "the Q.intent deterministic classifier contract (holo-q.js) · holospaces Laws L2 (one canonical wire) / L5 (deterministic re-derivation)",
+  "witnessed": true,
+  "covers": [
+    "one-intent-classifier",
+    "voice-typed-converge",
+    "source-not-decisive",
+    "single-dispatch",
+    "honest-fallback",
+    "deterministic"
+  ],
+  "checks": {
+    "sameTextSameDecisionAnySource": true,
+    "voiceTypedConvergeAtScale": true,
+    "deterministic": true,
+    "dispatchesToHandler": true,
+    "sourceCarriedNotDecisive": true,
+    "unhandledKindReportedNotThrown": true,
+    "honestFallback": true,
+    "registerable": true
+  },
+  "failed": []
+}

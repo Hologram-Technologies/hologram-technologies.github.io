@@ -59,7 +59,9 @@ const LLMS = [
 // phonemizer (espeak inlined), resolved in the browser via an import map; runs serverless once vendored.
 const KOKORO = "onnx-community/Kokoro-82M-v1.0-ONNX";
 const KOKORO_VOICES = ["af_heart", "af_bella", "af_nicole", "am_michael", "am_fenrir", "am_puck", "bf_emma", "bm_george"];
-const KOKORO_FILES = ["config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_quantized.onnx",
+const KOKORO_FILES = ["config.json", "tokenizer.json", "tokenizer_config.json",
+  "onnx/model_quantized.onnx",                 // q8 — WASM (any browser)
+  "onnx/model_fp16.onnx",                      // fp16 — WebGPU (q8 won't run on the WebGPU EP); lower latency. Bootstrap: no PIN yet → fetched unpinned + sha256 printed to paste back.
   ...KOKORO_VOICES.map((v) => "voices/" + v + ".bin")];
 
 // Semantic turn-detector (deep-research RANK 1) — LiveKit's open-weights end-of-turn model, ONNX. Opt-in

@@ -133,29 +133,29 @@
       // hover toolbar — edit pencil + a verify badge that re-derives the widget's κ on hover (Law L5)
       ".hw-tools{position:absolute;top:-13px;right:-10px;z-index:5;display:flex;gap:5px;opacity:0;transform:translateY(-2px);transition:opacity .16s,transform .16s}",
       ".hw-widget:hover .hw-tools{opacity:1;transform:none}",
-      ".hw-tools button{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:50%;cursor:pointer;color:#fff;font-size:12px;",
+      ".hw-tools button{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:50%;cursor:pointer;color:#fff;font-size: var(--holo-text-sm, 0.75rem);",
         "background:rgba(10,12,16,.66);box-shadow:inset 0 0 0 1px rgba(255,255,255,.32),0 3px 9px rgba(0,0,0,.5);backdrop-filter:blur(4px);transition:background .14s}",
       ".hw-tools button:hover{background:var(--holo-accent,#3b82f6)}",
       ".hw-tools .ok{background:rgba(16,120,80,.8);box-shadow:inset 0 0 0 1px rgba(120,255,200,.5),0 3px 9px rgba(0,0,0,.5)}",
       // context menu (matches the shell's menu language)
       ".hw-menu{position:fixed;z-index:66;min-width:180px;background:var(--holo-surface,#14161b);border:1px solid var(--holo-border,#23272f);",
-        "border-radius:11px;box-shadow:0 16px 44px rgba(0,0,0,.5);padding:5px;font:14px ui-sans-serif,system-ui,sans-serif;color:var(--holo-ink,#eef2f6)}",
+        "border-radius:11px;box-shadow:0 16px 44px rgba(0,0,0,.5);padding:5px;font:var(--holo-text-sm, 0.875rem) ui-sans-serif,system-ui,sans-serif;color:var(--holo-ink,#eef2f6)}",
       ".hw-menu button{display:flex;width:100%;align-items:center;gap:9px;background:0;border:0;color:inherit;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;font:inherit}",
       ".hw-menu button:hover{background:rgba(255,255,255,.08)} .hw-menu hr{border:0;border-top:1px solid var(--holo-border,#23272f);margin:4px 2px}",
       // inline editor — fields generated from the type's declared schema ("its config is its source")
       ".hw-edit{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);min-width:230px;max-width:300px;padding:13px 14px 12px;border-radius:14px;",
         "background:color-mix(in srgb,var(--holo-surface,#161922) 94%,transparent);border:1px solid var(--holo-border,#2a2f3a);backdrop-filter:blur(20px) saturate(1.2);",
-        "box-shadow:0 24px 60px rgba(0,0,0,.55);color:var(--holo-ink,#eef2f6);font:14px ui-sans-serif,system-ui,sans-serif;text-shadow:none}",
-      ".hw-edit h4{margin:0 0 10px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--holo-ink-dim,#9aa3ad);font-weight:700}",
-      ".hw-edit label{display:block;margin:0 0 9px;font-size:12px;color:var(--holo-ink-dim,#aeb6c2)}",
+        "box-shadow:0 24px 60px rgba(0,0,0,.55);color:var(--holo-ink,#eef2f6);font:var(--holo-text-sm, 0.875rem) ui-sans-serif,system-ui,sans-serif;text-shadow:none}",
+      ".hw-edit h4{margin:0 0 10px;font-size: var(--holo-text-sm, 0.75rem);letter-spacing:.4px;text-transform:uppercase;color:var(--holo-ink-dim,#9aa3ad);font-weight:700}",
+      ".hw-edit label{display:block;margin:0 0 9px;font-size: var(--holo-text-sm, 0.75rem);color:var(--holo-ink-dim,#aeb6c2)}",
       ".hw-edit label>span{display:block;margin-bottom:3px}",
       ".hw-edit input[type=text],.hw-edit textarea,.hw-edit select{width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid var(--holo-border,#2a2f3a);",
-        "color:var(--holo-ink,#eef2f6);border-radius:8px;padding:7px 9px;font:14px inherit}",
+        "color:var(--holo-ink,#eef2f6);border-radius:8px;padding:7px 9px;font:var(--holo-text-sm, 0.875rem) inherit}",
       ".hw-edit textarea{resize:vertical;min-height:46px}",
       ".hw-edit input[type=color]{width:34px;height:26px;padding:0;border:1px solid var(--holo-border,#2a2f3a);border-radius:7px;background:none;vertical-align:middle}",
       ".hw-edit .row{display:flex;align-items:center;gap:9px} .hw-edit .row label{flex:1 1 auto;margin-bottom:0}",
       ".hw-edit .ft{display:flex;gap:8px;margin-top:6px}",
-      ".hw-edit .ft button{flex:1 1 auto;border:0;border-radius:8px;padding:8px;cursor:pointer;font:600 13px inherit}",
+      ".hw-edit .ft button{flex:1 1 auto;border:0;border-radius:8px;padding:8px;cursor:pointer;font:600 var(--holo-text-sm, 0.813rem) inherit}",
       ".hw-edit .ft .save{background:var(--holo-accent,#3b82f6);color:#fff} .hw-edit .ft .cancel{background:rgba(255,255,255,.08);color:var(--holo-ink,#eef2f6)}",
       // ── the widget gallery — a beautiful right-click "Add a widget" catalog ─────────────────
       ".hw-gallery-scrim{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px;",
@@ -163,11 +163,11 @@
       "@keyframes hw-fade{from{opacity:0}to{opacity:1}}",
       ".hw-gallery{width:min(640px,94vw);max-height:82vh;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;",
         "background:color-mix(in srgb,var(--holo-surface,#14161b) 94%,transparent);border:1px solid var(--holo-border,#23272f);",
-        "box-shadow:0 36px 90px rgba(0,0,0,.6);color:var(--holo-ink,#eef2f6);font:14px ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;",
+        "box-shadow:0 36px 90px rgba(0,0,0,.6);color:var(--holo-ink,#eef2f6);font:var(--holo-text-sm, 0.875rem) ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;",
         "animation:hw-pop .2s cubic-bezier(.34,1.4,.5,1)}",
       "@keyframes hw-pop{from{transform:scale(.94);opacity:.4}to{transform:scale(1);opacity:1}}",
       ".hw-gal-hd{display:flex;align-items:center;gap:10px;padding:16px 18px 4px}",
-      ".hw-gal-hd b{font-size:17px;font-weight:700;flex:1 1 auto} .hw-gal-hd .sub{color:var(--holo-ink-dim,#9aa3ad);font-size:12.5px;font-weight:400}",
+      ".hw-gal-hd b{font-size:17px;font-weight:700;flex:1 1 auto} .hw-gal-hd .sub{color:var(--holo-ink-dim,#9aa3ad);font-size: var(--holo-text-sm, 0.781rem);font-weight:400}",
       ".hw-gal-x{background:rgba(255,255,255,.06);border:0;color:var(--holo-ink,#eef2f6);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;flex:0 0 auto}",
       ".hw-gal-x:hover{background:rgba(255,255,255,.14)}",
       ".hw-gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;padding:14px 18px 20px;overflow-y:auto}",
@@ -175,14 +175,14 @@
         "background:rgba(255,255,255,.035);border:1px solid var(--holo-border,#23272f);color:inherit;font:inherit;transition:transform .14s,background .14s,border-color .14s}",
       ".hw-gal-card:hover{transform:translateY(-3px);background:color-mix(in srgb,var(--holo-accent,#3b82f6) 14%,transparent);border-color:color-mix(in srgb,var(--holo-accent,#3b82f6) 55%,transparent)}",
       ".hw-gal-card holo-icon{font-size:26px;width:1em;height:1em;color:var(--holo-accent,#7aa2ff)}",
-      ".hw-gal-card .nm{font-weight:650;font-size:14.5px}",
-      ".hw-gal-card .bl{font-size:12px;line-height:1.35;color:var(--holo-ink-dim,#9aa3ad)}",
+      ".hw-gal-card .nm{font-weight:650;font-size: var(--holo-text-sm, 0.906rem)}",
+      ".hw-gal-card .bl{font-size: var(--holo-text-sm, 0.75rem);line-height:1.35;color:var(--holo-ink-dim,#9aa3ad)}",
       // selection (shift-click) — a glowing accent frame marks objects chosen for bundling
       ".hw-widget.hw-sel .hw-frame{opacity:1;border-color:var(--holo-accent,#3b82f6);box-shadow:0 0 0 2px color-mix(in srgb,var(--holo-accent,#3b82f6) 65%,transparent),0 20px 54px rgba(0,0,0,.4)}",
       // the floating Bundle bar — appears when ≥2 objects are shift-selected
       ".hw-bundlebar{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:130;display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;",
         "background:color-mix(in srgb,var(--holo-surface,#14161b) 88%,transparent);border:1px solid var(--holo-border,#23272f);box-shadow:0 16px 44px rgba(0,0,0,.5);backdrop-filter:blur(10px);animation:hw-pop .18s cubic-bezier(.34,1.4,.5,1)}",
-      ".hw-bundlebar .b-go{background:var(--holo-accent,#3b82f6);color:#fff;border:0;border-radius:999px;padding:9px 17px;cursor:pointer;font:600 14px ui-sans-serif,system-ui,sans-serif}",
+      ".hw-bundlebar .b-go{background:var(--holo-accent,#3b82f6);color:#fff;border:0;border-radius:999px;padding:9px 17px;cursor:pointer;font:600 var(--holo-text-sm, 0.875rem) ui-sans-serif,system-ui,sans-serif}",
       ".hw-bundlebar .b-go:hover{filter:brightness(1.08)}",
       ".hw-bundlebar .b-x{background:rgba(255,255,255,.08);color:var(--holo-ink,#eef2f6);border:0;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1}",
       ".hw-bundlebar .b-x:hover{background:rgba(255,255,255,.16)}",
@@ -798,11 +798,16 @@
   //    flip the centre between "% of the day" and the local time + date. A standalone, movable object. ──
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   function monthDay(d) { return MON[d.getMonth()] + " " + d.getDate(); }
+  function hourOpts(a, b) { var o = []; for (var h = a; h <= b; h++) o.push({ value: String(h), label: ((h % 12) || 12) + (h < 12 ? " AM" : " PM") }); return o; }
   W.HoloWidgets.define("dayring", {
-    name: "Day ring", icon: "circle-dashed", blurb: "How much of the day has passed — tap for the time & date.",
+    name: "Day ring", icon: "circle-dashed", blurb: "How much of your day has passed by day, how much rest is left by night — tap for the time & date.",
     defaultW: 190, minW: 120, maxW: 460,
-    defaultConfig: { h24: true },
-    fields: [{ key: "h24", label: "24-hour time", type: "toggle" }],
+    defaultConfig: { h24: true, wake: "7", sleep: "19" },
+    fields: [
+      { key: "h24", label: "24-hour time", type: "toggle" },
+      { key: "wake", label: "Day starts", type: "select", options: hourOpts(4, 11) },
+      { key: "sleep", label: "Day ends", type: "select", options: hourOpts(16, 23) },
+    ],
     // tap flips %↔time/date via the RUNTIME's tap-vs-drag (NOT an .hw-interactive button) — so grabbing
     // the ring anywhere DRAGS the widget, and a clean tap flips it. (Inside a bundle it just shows %.)
     onTap: function (host) { host.state.showTime = !host.state.showTime; if (host.state._paint) host.state._paint(); },
@@ -813,22 +818,34 @@
       var ring = DOC.createElement("div");
       ring.style.cssText = "position:relative;width:100%;aspect-ratio:1;display:grid;place-items:center;margin:0 auto;color:inherit";
       ring.innerHTML =
-        '<svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block">' +
+        '<svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block;overflow:visible">' +
           '<circle cx="50" cy="50" r="' + R + '" fill="none" stroke="currentColor" stroke-opacity=".13" stroke-width="3"></circle>' +
-          '<circle class="prog" cx="50" cy="50" r="' + R + '" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="3" stroke-linecap="round" transform="rotate(-90 50 50)" stroke-dasharray="' + CIRC.toFixed(1) + '" stroke-dashoffset="' + CIRC.toFixed(1) + '" style="transition:stroke-dashoffset .5s ease"></circle>' +
+          '<circle class="prog" cx="50" cy="50" r="' + R + '" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="3" stroke-linecap="round" transform="rotate(-90 50 50)" stroke-dasharray="' + CIRC.toFixed(1) + '" stroke-dashoffset="' + CIRC.toFixed(1) + '" style="transition:stroke-dashoffset .5s ease,stroke-opacity .8s ease"></circle>' +
+          '<circle class="orb" cx="50" cy="' + (50 - R) + '" r="3.4" fill="currentColor" style="transition:cx .5s ease,cy .5s ease,r .8s ease,opacity .8s ease"></circle>' +
         '</svg>' +
         '<div class="lab" style="position:absolute;text-align:center;line-height:1.05;pointer-events:none">' +
           '<div class="big" style="font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:-.01em;font-size:clamp(22px,calc(var(--hw-w,190px)*.2),60px)"></div>' +
           '<div class="sub" style="margin-top:.5em;font-size:clamp(12px,calc(var(--hw-w,190px)*.074),18px);letter-spacing:.06em;opacity:.6"></div>' +
         '</div>';
       host.body.appendChild(ring);
-      var prog = ring.querySelector(".prog"), big = ring.querySelector(".big"), sub = ring.querySelector(".sub");
+      var prog = ring.querySelector(".prog"), orb = ring.querySelector(".orb"), big = ring.querySelector(".big"), sub = ring.querySelector(".sub");
+      function hr(v, def) { v = parseInt(v, 10); return isNaN(v) ? def : Math.max(0, Math.min(23, v)); }
       function paint(d) {
         d = d || new Date();                                           // local → the user's own time zone
-        var H = d.getHours(), frac = (H * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400;
+        var H = d.getHours(), mins = H * 60 + d.getMinutes() + d.getSeconds() / 60;
+        var wM = hr(c.wake, 7) * 60, sM = hr(c.sleep, 19) * 60; if (sM <= wM) sM = wM + 60;   // guard a positive day
+        var isDay = mins >= wM && mins < sM, frac;                     // "your day" = the waking window; the rest is night
+        if (isDay) frac = (mins - wM) / (sM - wM);                     // 7am→7pm fills toward dusk
+        else { var into = mins >= sM ? mins - sM : mins + (1440 - sM); frac = into / (1440 - (sM - wM)); } // dusk→dawn fills toward sunrise
+        frac = Math.max(0, Math.min(1, frac));
         prog.setAttribute("stroke-dashoffset", (CIRC * (1 - frac)).toFixed(1));
+        prog.setAttribute("stroke-opacity", isDay ? ".55" : ".3");     // the night ring rests a shade dimmer
+        var a = (-90 + frac * 360) * Math.PI / 180;                    // an orb rides the leading edge — sun by day, moon by night
+        orb.setAttribute("cx", (50 + R * Math.cos(a)).toFixed(2)); orb.setAttribute("cy", (50 + R * Math.sin(a)).toFixed(2));
+        orb.setAttribute("r", isDay ? "3.6" : "2.8"); orb.style.opacity = isDay ? "1" : ".7";
+        ring.style.color = isDay ? "" : "#9db4d6";                     // a cool, calm tint settles over the night face
         if (st.showTime) { var hh = c.h24 ? String(H).padStart(2, "0") : String(((H % 12) || 12)); big.textContent = hh + ":" + String(d.getMinutes()).padStart(2, "0"); sub.textContent = monthDay(d); }
-        else { big.textContent = Math.round(frac * 100) + "%"; sub.textContent = "of your day"; }
+        else { big.textContent = Math.round(frac * 100) + "%"; sub.textContent = isDay ? "of your day" : "of the night"; }
       }
       st._paint = paint; host.subscribe("time", paint); paint();
     },
@@ -1283,7 +1300,8 @@
       var greetW = Math.round(clamp(Math.min(W_, H_) * 0.62, 340, 640));       // wide → larger greeting type
       var gap = Math.round(ringW * 0.3);                                       // a tighter gap → greeting sits a little higher
       var total = ringW + gap + Math.round(greetW * 0.12);                     // ring (≈square) + gap + one greeting line
-      var startY = Math.round(top + Math.max(m, ((H_ - top) - total) / 2));    // centre the pair vertically
+      var lift = Math.round((H_ - top) * 0.06);                                // nudge the pair slightly above true centre
+      var startY = Math.round(top + Math.max(m, ((H_ - top) - total) / 2 - lift)); // centre the pair, lifted a touch higher
       return [
         { type: "dayring",  config: {}, w: ringW,  x: CX(W_, ringW),  y: startY },
         { type: "greeting", config: {}, w: greetW, x: CX(W_, greetW), y: startY + ringW + gap },

@@ -33,7 +33,9 @@ import { hexOf } from "./holo-resolver.mjs";
 //   sealAttestation: (info) → object                 mint a re-derivable UOR health attestation — optional, injected
 //   now            : () → string                     ISO timestamp (injected; no clock in the core)
 //   log            : (msg, info) → void              progress sink (default no-op) — invisible when healthy
-export function makeSupervisor({ loadClosure, healer, intact = async () => false, budget = Infinity, sealAttestation = null, now = () => "1970-01-01T00:00:00Z", log = () => {} } = {}) {
+//   backoffAfter   : number                          consecutive UNRESOLVED misses before a κ goes on cooldown (default 2)
+//   backoffMax     : number                          max cooldown in ticks for a chronically-unreachable κ (default 64)
+export function makeSupervisor({ loadClosure, healer, intact = async () => false, budget = Infinity, sealAttestation = null, now = () => "1970-01-01T00:00:00Z", log = () => {}, backoffAfter = 2, backoffMax = 64 } = {}) {
   const healLog = [];   // append-only: the sealed PROV-O receipt of every repair, ever — the OS's repair history
   const memory = new Map();   // hex → { path, visits, repairs, misses, lastRepairTick, lastSeenTick } — the EVOLVE leg's learning
   let _last = null;
@@ -46,8 +48,9 @@ export function makeSupervisor({ loadClosure, healer, intact = async () => false
   function remember(path, hex, outcome) {
     const m = memory.get(hex) || { path, visits: 0, repairs: 0, misses: 0, lastRepairTick: -1, lastSeenTick: -1 };
     m.path = path; m.visits++; m.lastSeenTick = _ticks;
-    if (outcome === "healed") { m.repairs++; m.lastRepairTick = _ticks; }
+    if (outcome === "healed") { m.repairs++; m.misses = 0; m.lastRepairTick = _ticks; }   // a successful heal CLEARS the backoff
     else if (outcome === "unresolved") { m.misses++; m.lastRepairTick = _ticks; }
+    else if (outcome === "healthy") { m.misses = 0; }                                      // verified intact → no longer missing
     memory.set(hex, m);
   }
 
@@ -87,16 +90,32 @@ export function makeSupervisor({ loadClosure, healer, intact = async () => false
   async function tick(reason = "boot") {
     _ticks++;
     const closure = await loadClosure();
+    // BACKOFF (EVOLVE): a κ that keeps coming back UNRESOLVED (no source anywhere has its bytes — an
+    // unreachable pin, or an object only the local origin holds) is retried on an EXPONENTIAL cooldown, not
+    // every tick. Without this, a couple of unrecoverable κ make the loop hammer the mesh (and flood the
+    // console) on every idle pass. Healthy + healable objects are untouched; a cooling κ is still COUNTED
+    // (honesty) and swept again once its cooldown elapses, and any success (heal or intact) clears it.
+    const all = Array.isArray(closure) ? closure.slice() : Object.entries(closure || {});
+    const due = []; let cooling = 0;
+    for (const e of all) {
+      const m = memory.get(kappaHex(e[1]));
+      if (m && m.misses >= backoffAfter) {
+        const wait = Math.min(2 ** (m.misses - backoffAfter + 1), backoffMax);   // 2, 4, 8, … ticks, capped
+        if (_ticks - m.lastSeenTick < wait) { cooling++; continue; }              // still cooling → skip this pass
+      }
+      due.push(e);
+    }
     const order = [];                                                       // the actual visit order, for proof
     const onVisit = (path, hex, outcome) => { remember(path, hex, outcome); order.push(hex); };
-    const summary = await healer.scrub(closure, { intact, order: rank, onVisit, budget });
+    const summary = await healer.scrub(due, { intact, order: rank, onVisit, budget });
+    summary.total = all.length; summary.cooling = cooling;                  // report the FULL closure + what we deferred to a cooldown
     for (const r of summary.receipts) healLog.push(r);                      // accumulate the verifiable repair trail
     const healthyAfter = summary.healthy + summary.healed;                  // intact + just-repaired
     const flaky = flakiness();
     const attestation = sealAttestation ? sealAttestation({
       total: summary.total, healthy: summary.healthy, healed: summary.healed,
-      unresolved: summary.unresolved, deferred: summary.deferred || 0, anchors: summary.anchors, healthyAfter,
-      whole: summary.unresolved === 0 && (summary.deferred || 0) === 0,     // every reachable non-anchor object swept & healthy
+      unresolved: summary.unresolved, deferred: summary.deferred || 0, cooling, anchors: summary.anchors, healthyAfter,
+      whole: summary.unresolved === 0 && (summary.deferred || 0) === 0 && cooling === 0,   // every reachable non-anchor object swept & healthy
       tracked: memory.size, flaky: flaky.length,                           // the LEARNED signal — the OS knows what keeps breaking
       reason, generatedAtTime: now(),
     }) : null;

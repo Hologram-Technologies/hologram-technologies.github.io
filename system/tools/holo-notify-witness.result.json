@@ -19,13 +19,14 @@
     "tokens",
     "golden-ratio"
   ],
-  "passed": 21,
-  "total": 21,
+  "passed": 22,
+  "total": 22,
   "checks": {
     "holo-notify.mjs exists and is the notification surface": true,
     "exports mountNotifications + installs window.HoloNotify": true,
     "notify() shows a transient toast AND files a durable record": true,
     "a bare/transient toast is shown but NOT filed (history stays meaningful)": true,
+    "the live pill collapses per concern too — ONE pill per concernKey, never a duplicate stack (persistent 'action' pills can't pile up)": true,
     "history is per-operator + durable (localStorage UI-state axis, survives reload + re-sign-in)": true,
     "history is a recent window, not an unbounded log (capped)": true,
     "the Center reuses the ONE shared right side-carriage primitive (createAside)": true,

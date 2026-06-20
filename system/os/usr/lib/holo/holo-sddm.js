@@ -138,27 +138,8 @@ const SESSIONS = [
   { id: "workspace", name: "Workspace (VS Code)", loader: "workspace.html" },
 ];
 
-// passphrasePrompt(name) — the graceful fallback when a device has no biometric/TEE (or the
-// operator's key predates biometrics). A minimal, theme-matched overlay that returns the typed
-// passphrase, or null if dismissed. Self-contained so the QML stays a single Name + Access field.
-function passphrasePrompt(name, firstRun) {
-  return new Promise((resolve) => {
-    const done = (v) => { try { document.body.removeChild(ov); } catch {} resolve(v); };
-    const inp = el("input", { type: "password", placeholder: "Passphrase", autocomplete: "current-password",
-      style: "width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3a356a;background:#06041a;color:#fff;padding:0 10px;font-size:14px;outline:none;" });
-    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") done(inp.value); if (e.key === "Escape") done(null); });
-    const go = Button({ text: "Access", width: 120, onClick: () => done(inp.value) });
-    const card = el("div", { style: "background:#0d0a24;border:1px solid #2a2550;border-radius:14px;padding:22px;width:300px;color:#e7e9ff;font-family:inherit;box-shadow:0 24px 80px rgba(0,0,0,.55);" },
-      el("div", { style: "font-weight:700;font-size:16px;margin-bottom:4px;" }, firstRun ? "Set a passphrase" : "Passphrase"),
-      el("div", { style: "opacity:.65;font-size:12px;margin-bottom:14px;" }, (firstRun ? "Protect " : "Unlock ") + (name || "your identity")),
-      inp,
-      el("div", { style: "display:flex;justify-content:flex-end;gap:8px;margin-top:14px;" }, go));
-    const ov = el("div", { style: "position:fixed;inset:0;background:rgba(7,4,26,.72);backdrop-filter:blur(4px);display:grid;place-items:center;z-index:99999;" }, card);
-    ov.addEventListener("mousedown", (e) => { if (e.target === ov) done(null); });
-    document.body.appendChild(ov);
-    setTimeout(() => inp.focus(), 30);
-  });
-}
+// (passphrasePrompt removed — Hologram sign-in is BIOMETRIC-ONLY; there is no passcode to type.
+// A device with no biometric uses the phone's biometric via pairWithPhone(), or enters as Guest.)
 
 // pairOverlay({ svg, onCancel }) — the "Sign in with your phone" panel: a themed card holding the
 // scannable QR (a Holo QR SVG) and a live status line. Self-contained DOM (like passphrasePrompt),
@@ -269,38 +250,32 @@ export async function createGreeter(params) {
         const { url } = await establish(principal, session);
         enterShell(url);
       };
-      // passphrase path: unlock an existing key, or enrol a new one wrapped with a typed secret.
-      const viaPassphrase = async () => {
-        const pass = await passphrasePrompt(name, !match);
-        if (pass == null) { emit("loginFailed"); return; }
-        return finish(match ? await unlock(match.kappa, pass) : await enroll({ label: name, passphrase: pass }));
-      };
+      // BIOMETRIC-ONLY (no passcode). The secret that wraps the sovereign key is released ONLY by
+      // this device's enclave (Windows Hello / Touch ID). There is nothing to type. If the device
+      // has no biometric — or the chosen identity has no biometric enrolled HERE — the operator
+      // signs in with their phone's biometric (pairWithPhone) or enters as Guest; we say so plainly.
       try {
         const reason = await teeReason();        // "" when a real biometric ceremony can run here
-        const hasTee = !reason;
-        // No TEE on this device, or an existing key that predates biometrics → passphrase
-        // (a biometric secret can't unwrap a passphrase-wrapped key).
-        if (!hasTee || (match && !match.cred)) {
-          if (!hasTee) emit("informationMessage", reason + " — use your passphrase");
-          return await viaPassphrase();
-        }
+        if (reason) { emit("informationMessage", (reason || "No biometric on this device") + " — sign in with your phone or continue as Guest"); emit("loginFailed"); return; }
+        if (match && !match.cred) { emit("informationMessage", "That identity has no biometric on this device — sign in with your phone"); emit("loginFailed"); return; }
         try {
           if (match && match.cred) {
             emit("informationMessage", "Verifying with " + teeName() + "…");
             const { secret } = await teeAssert({ credentialId: match.cred });
             return finish(await unlock(match.kappa, secret));
           }
-          // brand-new operator → bind a sovereign key to this device's enclave
+          // brand-new operator → bind a sovereign key to this device's enclave. `secret` here is the
+          // enclave-derived hardware secret (NOT a typed passcode); enroll's param name is legacy.
           emit("informationMessage", "Setting up " + teeName() + "…");
           const { credentialId, secret } = await teeEnroll({ name });
           return finish(await enroll({ label: name, passphrase: secret, cred: credentialId }));
         } catch (e) {
           // A real biometric cancel/timeout → report it. A capability gap (authenticator can't
-          // derive a hardware secret) → degrade gracefully to a passphrase so sign-in still works.
+          // derive a hardware secret) → steer to the phone's biometric; never to a passcode.
           if (/NotAllowed/i.test((e && e.name) || "")) throw e;
           if (/PRF|hardware secret|WebAuthn unavailable/i.test((e && e.message) || "")) {
-            emit("informationMessage", "Biometric unavailable here — use your passphrase");
-            return await viaPassphrase();
+            emit("informationMessage", "Biometric unavailable here — sign in with your phone or continue as Guest");
+            emit("loginFailed"); return;
           }
           throw e;
         }

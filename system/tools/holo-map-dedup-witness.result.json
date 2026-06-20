@@ -1,0 +1,42 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S2 DEDUP: the same entity ingested from two DISTINCT sources collapses to one node κ with no merge logic (the address IS H(identity)); a claim asserted by both sources keeps one claim κ but two provenance κs (multi-source attestation); a claim from one source keeps one provenance κ. Merge is order-invariant (Law L2) and the merged closure re-derives from its members (Law L5). This is the structural advantage over ANIMA's 3-database graph: dedup and multi-source evidence are free, not glued by app logic",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · W3C PROV-O · IETF RFC 8785 (JCS) · holospaces Laws L2/L5 · rests on #holo-ingest (S0) + #holo-map (S1)",
+  "witnessed": true,
+  "covers": [
+    "dedup",
+    "shared-entity-collapse",
+    "multi-source-provenance",
+    "evidence-set",
+    "merge-order-invariant",
+    "law-l2",
+    "law-l5",
+    "beats-anima-graph"
+  ],
+  "sample": {
+    "srcA": "did:holo:sha256:8c18fcb8c5824811b0da957a387aca521485564ac6d240eed40b403b27dbde10",
+    "srcB": "did:holo:sha256:88144fad1fdf7ad9f64b49db8e43d5d90a4f2bf1ec539290e1ee0bfccdb1826b",
+    "mergedStats": {
+      "entities": 3,
+      "claims": 3,
+      "provenance": 4,
+      "sources": 2
+    },
+    "sharedAcme": "did:holo:sha256:92ade21aa15f8a32fc5ac8c094de2eafeff616c48d34d0f5b00d87cf19604226",
+    "evidenceForSharedClaim": [
+      "did:holo:sha256:88144fad1fdf7ad9f64b49db8e43d5d90a4f2bf1ec539290e1ee0bfccdb1826b",
+      "did:holo:sha256:8c18fcb8c5824811b0da957a387aca521485564ac6d240eed40b403b27dbde10"
+    ]
+  },
+  "checks": {
+    "distinctSources": true,
+    "sharedEntityCollapses": true,
+    "collapseCounted": true,
+    "sharedClaimOneKappaTwoProv": true,
+    "evidenceSetIsMultiSource": true,
+    "uniqueFactStaysSingleProv": true,
+    "mergeOrderInvariantClosure": true,
+    "mergedClosureReDerives": true
+  },
+  "failed": []
+}

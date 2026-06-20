@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Fix Proposer (C5, a real fix proposer) — feeds the evolve loop SAFE, REVERSIBLE fixes the OS already knows how to do (reload a crashed app, re-attempt recovery) and honestly STOPS on what needs a code brain (a red conformance row); reloads are capped to avoid a crash-loop; every plan is reversible with an undo; composed with the witnessed evolve + trust, Q ships a fix only when granted, with a receipt — propose-only otherwise; missing seams degrade to null (safe)",
+  "authority": "the Holo Trust boundary (ADR-0033) · the heal supervisor recovery (Law L5, additive-only) · holospaces Laws L1/L5 · rests on #holo-evolve + #holo-trust + #holo-observer",
+  "witnessed": true,
+  "covers": [
+    "real-fix-proposer",
+    "app-reload-fix",
+    "heal-retry-fix",
+    "honest-stop",
+    "reload-capped",
+    "reversible",
+    "ships-only-when-granted"
+  ],
+  "checks": {
+    "appErrorProposesReversibleReload": true,
+    "healProposesReattemptRecovery": true,
+    "gateRedHonestStop": true,
+    "reloadCappedNoCrashLoop": true,
+    "everyPlanIsReversibleWithUndo": true,
+    "composesEvolveTrustShipsGranted": true,
+    "missingSeamDegradesToNull": true
+  },
+  "failed": []
+}

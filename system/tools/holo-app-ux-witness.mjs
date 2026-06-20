@@ -38,7 +38,9 @@ const ENGINE = ["holo-theme.js", "holo-ui-kernel.js", "holo-ui.js", "holo-ux.js"
 // It's held to the vendoring contract, not the inherit-the-doctrine contract — listed explicitly so
 // the exception is auditable. Because it doesn't load the engine, it also can't inherit the shared
 // reduced-motion guard; the vendored distro carries its own motion behavior, outside our wire.
-const VENDORED_EXEMPT = new Set(["jypyter"]);
+// holo-3d/holo-linux/holo-x86 embed a whole FOREIGN OS UI (KolibriOS · riscv64 Debian · v86) the OS
+// cannot restyle — held to the vendoring contract, like jypyter.
+const VENDORED_EXEMPT = new Set(["jypyter", "holo-3d", "holo-linux", "holo-x86"]);
 const read = (p) => { try { return readFileSync(p, "utf8"); } catch { return ""; } };
 
 const appIds = existsSync(APPS)

@@ -1,0 +1,37 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S3 SIGNAL: ingesting+mapping a source emits one verifiable signal into the autonomy spine's perception tap (the reflex trigger Q subscribes to, no query). The span carries the REAL graph stats + graphClosure κ (adoption, not a mock), re-derives from content (Law L5), is deterministic under any clock (Law L2), honest about empty inputs, and never bypasses the privacy boundary (Law L1)",
+  "authority": "OpenTelemetry + W3C Trace Context · W3C PROV-O · IETF RFC 8785 (JCS) · UOR-ADDR · holospaces L1/L2/L5 · rests on #holo-telemetry + #holo-ingest + #holo-map + #holo-telemetry-tap",
+  "witnessed": true,
+  "covers": [
+    "ingest-signal",
+    "reflex-trigger",
+    "real-stats-adoption",
+    "law-l5",
+    "law-l2",
+    "empty-honest",
+    "private-first",
+    "perception-tap"
+  ],
+  "sample": {
+    "source": "did:holo:sha256:6f9bd2a170ebc9433d7b8eb54be60abde9129f65eafe17d28de96081550a009d",
+    "span": "did:holo:sha256:5d3343f26b3641220f91f3c7ab7e34561c2f99a5db0551204380b8c078b1f1aa",
+    "graphClosure": "did:holo:sha256:65119c186cf029d255db08bf3234e0c68fa2658664ec0a7578544e23938ba83c",
+    "stats": {
+      "entities": 4,
+      "claims": 3,
+      "provenance": 3
+    }
+  },
+  "checks": {
+    "ingestEmitsVerifiableSpan": true,
+    "spanCarriesRealStats": true,
+    "metricsAndLogsReDerive": true,
+    "oneLogPerSource": true,
+    "tamperedSignalRefused": true,
+    "deterministicIdNotClock": true,
+    "emptyGraphHonestStatus": true,
+    "localOnlyEgressStillGated": true
+  },
+  "failed": []
+}

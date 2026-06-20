@@ -1,0 +1,48 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "The + Everywhere — A2 CONTEXT CAPTURE: the '+' assembles the LOCAL surface (activeApp, route, the input's current text, inputKind, current Q conversation) and threads it into runPlus as `context`, reaching the investigator (so A3 can rank to the now) and landing on the result (for A6 routing). User memory/history is OPT-IN — context.memory stays null and surface stays 'local' by default (Law L1 private-first). Graceful on missing globals, never throws",
+  "authority": "holospaces Laws L1 (private-first) / L2 · rests on #holo-plus",
+  "witnessed": true,
+  "covers": [
+    "context-capture",
+    "local-surface",
+    "input-text",
+    "q-conversation",
+    "memory-opt-in",
+    "threads-to-investigator",
+    "on-result",
+    "graceful"
+  ],
+  "sample": {
+    "ctx1": {
+      "activeApp": "notes",
+      "route": "/apps/notes/edit",
+      "inputText": "quarterly board memo",
+      "inputKind": "input",
+      "qConversationId": "conv-42",
+      "memory": null,
+      "surface": "local"
+    },
+    "termsMem": [
+      "notes",
+      "memo",
+      "prior",
+      "deals",
+      "with",
+      "acme",
+      "and",
+      "berlin"
+    ]
+  },
+  "checks": {
+    "capturesLocalSurface": true,
+    "inputTextFromValueAndCE": true,
+    "qConversationWhenPresent": true,
+    "localSurfaceOnlyByDefault": true,
+    "memoryIsOptIn": true,
+    "contextThreadsToInvestigator": true,
+    "contextOnResult": true,
+    "gracefulNoGlobals": true
+  },
+  "failed": []
+}

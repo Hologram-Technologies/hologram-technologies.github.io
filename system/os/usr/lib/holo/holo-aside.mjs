@@ -39,6 +39,22 @@ export function syncDockWidth() {
 }
 if (typeof window !== "undefined") window.addEventListener("resize", syncDockWidth);
 
+// reflowGlide() — nudge the floating widgets + Q orb to re-anchor IN LOCKSTEP with the carriage glide.
+// The holospace squeezes via --holo-aside-w (CSS), which does NOT change innerWidth, so holo-widgets'
+// centre-anchored reflow (keyed on the `resize` event) never fires on its own — the widgets and the Q
+// orb would stay stranded under the opening panel. Dispatch a short run of resize ticks across the
+// .42s slide so recenter()/anchorOrb() track the moving holospace centre the whole way, and OUTLAST
+// the ~120ms deskBounds cache (keyed on innerWidth, which is unchanged here) that a single tick reads
+// stale. Symmetric on open AND close, so the tab returns to its exact prior layout. Idempotent — extra
+// ticks are no-ops once the centre stops moving.
+function reflowGlide() {
+  if (typeof window === "undefined") return;
+  let n = 0;
+  const tick = () => { try { dispatchEvent(new Event("resize")); } catch (e) {} };
+  tick();                                                            // immediate — the desktop starts gliding with the panel, not after it
+  const id = setInterval(() => { tick(); if (++n >= 10) clearInterval(id); }, 48);   // ~480ms run covers the .42s slide + the bounds cache
+}
+
 export function createAside({ id, title = "", logo = "", minW = 360, maxW = 720, onClose } = {}) {
   const domId = "holo-aside-" + (id || "x");
   const existing = document.getElementById(domId);
@@ -66,12 +82,11 @@ export function createAside({ id, title = "", logo = "", minW = 360, maxW = 720,
     for (const a of registry) { if (a !== api) try { a.close(); } catch (e) {} }   // one carriage at a time
     for (const f of closers) try { f(); } catch (e) {}                             // close external surfaces (Create)
     open = true; registry.add(api);
-    el.classList.add("on"); syncDockWidth();
+    el.classList.add("on"); syncDockWidth(); reflowGlide();   // squeeze the holospace AND glide its widgets + Q orb in lockstep
   }
   function doClose() {
     if (!open) return; open = false; registry.delete(api);
-    el.classList.remove("on"); syncDockWidth();
-    try { dispatchEvent(new Event("resize")); } catch (e) {}
+    el.classList.remove("on"); syncDockWidth(); reflowGlide();   // restore full width AND glide everything back to its prior place
     try { onClose && onClose(); } catch (e) {}
   }
   const toggle = () => (open ? doClose() : doOpen());

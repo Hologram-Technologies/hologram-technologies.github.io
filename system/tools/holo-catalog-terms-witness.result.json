@@ -1,0 +1,28 @@
+{
+  "spec": "User-facing app catalog is jargon-free: every app name + description reads clearly, concisely and on-theme — substrate jargon (κ, content-addressed, re-derivation, holospace, L5, self-verifying) is banned in favour of the plain vocabulary (verified · checked genuine · self-checking · tamper-proof · no server). Internal identity fields are ignored; genuine proper names allowed.",
+  "authority": "Deliverable D user-facing vocabulary · scan of schema:name/schema:description in the served catalog · self-test (planted detection + plain-copy-allowed)",
+  "witnessed": true,
+  "banned": [
+    "no raw κ in user copy → say 'verified' / 'checked genuine'",
+    "→ 'verified' / 'tamper-proof'",
+    "→ 'checks itself' / 'proves itself genuine'",
+    "→ 'verified object' (proper name 'UOR-Framework' is allowed)",
+    "→ 'app' / 'space'",
+    "drop the law number from user copy",
+    "→ 'self-checking'"
+  ],
+  "covers": [
+    "user-facing-terminology",
+    "jargon-free",
+    "clarity",
+    "on-theme",
+    "anti-drift"
+  ],
+  "checks": {
+    "the lint detects planted catalog jargon (not vacuous)": true,
+    "plain on-theme copy passes (verified · self-checking · no server · UOR-Framework)": true,
+    "every app's name + description is clear, on-theme, jargon-free": true
+  },
+  "passed": 3,
+  "failed": 0
+}

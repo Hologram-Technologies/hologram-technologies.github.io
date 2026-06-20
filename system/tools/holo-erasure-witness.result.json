@@ -1,0 +1,31 @@
+{
+  "spec": "Fractal/erasure redundancy: Reed–Solomon parity over content-addressed shards — any k of (k+m) reconstruct the whole BYTE-EXACT; the whole-object κ is unchanged (L1-preserving); fail-closed below k.",
+  "authority": "Reed–Solomon MDS property verified EXHAUSTIVELY over every ≤m-loss pattern (RS spec, not self-reference) · GF(256) field identities · holospaces Laws L1·L2·L5 · extends hologram-store-native shard manifest",
+  "status": "live",
+  "witnessed": true,
+  "params": {
+    "data": 4,
+    "parity": 2,
+    "shardSize": 1024
+  },
+  "covers": [
+    "erasure",
+    "fractal",
+    "reed-solomon",
+    "byte-exact-reconstruction",
+    "fail-closed",
+    "l1-preserving",
+    "shard-dedup"
+  ],
+  "checks": {
+    "holo-erasure.mjs exports encode() + reconstruct()": true,
+    "whole-object κ is unchanged (erasure is additive, L1-preserving)": true,
+    "every data+parity shard is a κ-object that re-derives": true,
+    "full set reconstructs byte-exact": true,
+    "MDS: any k of (k+m) shards reconstruct byte-exact (exhaustive ≤m losses)": true,
+    "fail-closed below k shards (never fabricates a reconstruction)": true,
+    "identical shards share one κ (shard-level dedup, L2)": true
+  },
+  "passed": 7,
+  "failed": 0
+}

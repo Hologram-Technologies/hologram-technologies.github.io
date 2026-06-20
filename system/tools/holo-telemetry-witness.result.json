@@ -1,6 +1,6 @@
 {
   "@type": "earl:TestResult",
-  "witnessed": false,
+  "witnessed": true,
   "covers": [
     "system-wide observability as content-addressed UOR objects (OpenTelemetry data model + W3C Trace Context), NOT a Prometheus scraper — a span IS a PROV-O Activity whose κ is a content address",
     "Law L5 — holding only a signal's κ re-derives its W3C span-id / metric-id / log-id from the structural content; a tampered structural field breaks the id (verify-don't-trust)",
@@ -34,12 +34,9 @@
     "L1-local-only-by-default": true,
     "L1-egress-conscience-gated-then-otlp": true,
     "deterministic-ids-content-not-clock": true,
-    "sealed-doctrine-object-re-derives": false,
-    "sealed-doctrine-tampered-link-refused": false
+    "sealed-doctrine-object-re-derives": true,
+    "sealed-doctrine-tampered-link-refused": true
   },
-  "failed": [
-    "sealed-doctrine-object-re-derives — link digest mismatch",
-    "sealed-doctrine-tampered-link-refused"
-  ],
+  "failed": [],
   "authority": "OpenTelemetry data model + OTLP · W3C Trace Context · W3C PROV-O · W3C DID Core · IETF RFC 8785 (JCS) · UOR-ADDR · Holo Constitution (ADR-0033) · Law L1/L2/L5"
 }

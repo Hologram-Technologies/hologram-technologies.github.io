@@ -10,68 +10,481 @@
       "uri": "holo://sample",
       "name": "Sample UOR object",
       "mimeType": "application/ld+json"
+    },
+    {
+      "uri": "holo://capabilities",
+      "name": "Holospace capability card",
+      "mimeType": "application/ld+json"
     }
   ],
   "tools": [
     {
       "name": "verify_object",
-      "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5)."
+      "description": "Re-derive a UOR object's did from its content and report whether it self-verifies (Law L5).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "object"
+        ]
+      }
     },
     {
       "name": "resolve_object",
-      "description": "Resolve a did:holo / holo:// resource to its self-verifying UOR object."
+      "description": "Resolve a did:holo / holo:// resource to its self-verifying UOR object.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri"
+        ]
+      }
+    },
+    {
+      "name": "holo_describe",
+      "description": "The STANDARDIZED, application-agnostic capability card for THIS holospace — present identically on every Holo app's MCP server. One call returns a self-verifying W3C JSON-LD object (schema.org SoftwareApplication + a schema:Action per tool with its input schema + published resources + conformsTo + MCP protocol metadata): who the app is, what it can do, how to invoke it. Re-derive the card's id to verify it (Law L5). The uniform entry point for an agent to introspect ANY holospace. No args (also published as the resource holo://capabilities).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
     },
     {
       "name": "ask_model",
-      "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client."
+      "description": "Ask the connected agent's OWN model a question (MCP sampling — the INVERSE direction: a holospace borrows the agent's intelligence). Requires a sampling-capable client.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "maxTokens": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      }
     },
     {
       "name": "ask_user",
-      "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client."
+      "description": "Ask the human, via the agent host, for input (MCP elicitation). Requires an elicitation-capable client.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      }
     },
     {
       "name": "list_roots",
-      "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client."
+      "description": "List the file:// roots the agent host has granted access to (MCP roots). Requires a roots-capable client.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
     },
     {
       "name": "verify_batch",
-      "description": "Verify many UOR objects at once; reports progress and is cancellable."
+      "description": "Verify many UOR objects at once; reports progress and is cancellable.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "objects"
+        ]
+      }
     },
     {
       "name": "holo_rank",
-      "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents."
+      "description": "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rel": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "by": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "rel",
+                "from",
+                "to"
+              ]
+            }
+          },
+          "seed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "params": {
+            "type": "object",
+            "properties": {
+              "d": {
+                "type": "number"
+              },
+              "epsilon": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "edges",
+          "seed"
+        ]
+      }
     },
     {
       "name": "holo_recommend",
-      "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus."
+      "description": "One round-trip personal recommendations. Give the apps/did:holo you use ('usage'); the server fetches only YOUR neighbourhood by content address (bounded — taste-aligned reviewers + their picks, not the whole corpus) and ranks it, returning recs (each with a reason) plus a SELF-VERIFYING UOR result you re-derive (Law L5) and can recompute (deterministic). Requires the server to be wired to a review corpus.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "usage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "app ids / did:holo you already use"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "budget": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "usage"
+        ]
+      }
     },
     {
       "name": "render_qml",
-      "description": "Parse + EXECUTE a QML document with Holo QML (the from-spec engine that runs the real upstream SDDM greeter in the browser — Qt 6 QML Reference semantics, no Qt runtime) and return its live component tree + signal wiring as a SELF-VERIFYING UOR object: re-derive its did (verify_object, Law L5); deterministic, so an agent recomputes the same κ. Lets an agent introspect any QML UI's structure + the API it wires, without a browser. Input: { qml } (the QML source — e.g. resolve the greeter's source via resolve_object first). The display manager's own greeter is also published as the resource usr/share/sddm/greeter.uor.json."
+      "description": "Parse + EXECUTE a QML document with Holo QML (the from-spec engine that runs the real upstream SDDM greeter in the browser — Qt 6 QML Reference semantics, no Qt runtime) and return its live component tree + signal wiring as a SELF-VERIFYING UOR object: re-derive its did (verify_object, Law L5); deterministic, so an agent recomputes the same κ. Lets an agent introspect any QML UI's structure + the API it wires, without a browser. Input: { qml } (the QML source — e.g. resolve the greeter's source via resolve_object first). The display manager's own greeter is also published as the resource usr/share/sddm/greeter.uor.json.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "qml": {
+            "type": "string",
+            "description": "the QML document source"
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "optional base for Qt.resolvedUrl()"
+          }
+        },
+        "required": [
+          "qml"
+        ]
+      }
     },
     {
       "name": "holo_build",
-      "description": "BUILD a holospace app: compile source (Holo-C — a C subset: int functions, arithmetic, if/while, short-circuit logic, calls, mutual recursion) to spec-valid WebAssembly, persisted by its content address (κ). Deterministic + O(1) on repeat (identical source rebinds, not recompiles). Returns { ok, kappa (the artifact did:holo), sourceKappa, receipt (a self-verifying PROV-O build receipt κ), exports }. On a compile error returns { ok:false, error:{ message, line, col } } — FIX the source at that line and call holo_build again (the tight build loop). Serverless, self-verifying (Law L5)."
+      "description": "BUILD a holospace app: compile source (Holo-C — a C subset: int functions, arithmetic, if/while, short-circuit logic, calls, mutual recursion) to spec-valid WebAssembly, persisted by its content address (κ). Deterministic + O(1) on repeat (identical source rebinds, not recompiles). Returns { ok, kappa (the artifact did:holo), sourceKappa, receipt (a self-verifying PROV-O build receipt κ), exports }. On a compile error returns { ok:false, error:{ message, line, col } } — FIX the source at that line and call holo_build again (the tight build loop). COMPOSE by content address: declare `extern int f(int a) from \"did:holo:…\";` (or `str` params/results for strings) to import another component's export BY ITS κ — the response's `imports` lists the dependency κ's, holo_run links them automatically. Serverless, self-verifying (Law L5).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Holo-C source"
+          },
+          "lang": {
+            "type": "string",
+            "description": "default holo-c"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      }
     },
     {
       "name": "holo_run",
-      "description": "RUN a built app by content address. Pass { kappa } (an ARTIFACT κ runs directly; a SOURCE κ self-compiles then runs) OR { source } to build-then-run. Optionally { fn, args } to call an exported function with i32 args and get its result. Returns { ok, kappa, selfCompiled, exports:[names], result? }. The wasm is re-derived before running (Law L5). No server."
+      "description": "RUN a built app by content address. Pass { kappa } (an ARTIFACT κ runs directly; a SOURCE κ self-compiles then runs) OR { source } to build-then-run. Optionally { fn, args } to call an exported function with i32 args and get its result. Returns { ok, kappa, selfCompiled, exports:[names], result? }. The wasm is re-derived before running (Law L5). No server.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kappa": {
+            "type": "string",
+            "description": "artifact or source κ"
+          },
+          "source": {
+            "type": "string",
+            "description": "Holo-C source (if no kappa)"
+          },
+          "fn": {
+            "type": "string",
+            "description": "exported function to call"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "i32 args for fn"
+          }
+        }
+      }
     },
     {
       "name": "holo_share",
-      "description": "SHARE a built app: the κ IS the share. Returns { kappa, holo (holo://κ), url } — location-independent, self-verifying, self-compiling; the recipient resolves it from cache/peers/IPFS/origin, re-derives it (Law L5), and runs it, with no server. Agents collaborate by passing κ."
+      "description": "SHARE a built app: the κ IS the share. Returns { kappa, holo (holo://κ), url } — location-independent, self-verifying, self-compiling; the recipient resolves it from cache/peers/IPFS/origin, re-derives it (Law L5), and runs it, with no server. Agents collaborate by passing κ.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kappa": {
+            "type": "string",
+            "description": "the artifact or source κ to share"
+          }
+        },
+        "required": [
+          "kappa"
+        ]
+      }
+    },
+    {
+      "name": "holo_compile_model",
+      "description": "COMPILE a neural-network model into a content-addressed .holo κ-object. Pass an ONNX model as { onnxBase64 } (or { url } to fetch one); the REAL hologram-ai compiler (import → optimize → lower → compile, ADR-0017) runs in WebAssembly — in the browser or Node, no server, no toolchain. Compiling is a κ-transform (κ(onnx) ⊕ κ(compiler) → κ(holo)). Returns { ok, kappa (the compiled model's did:holo), sourceKappa (the ONNX κ), compilerKappa, bytes, ports ({inputs,outputs} each with dtype + shape), holoBase64 (the archive bytes — re-derive: sha256(decode)==kappa, Law L5), receipt (a self-verifying PROV-O compile receipt κ) }. Turns ANY ONNX model into a substrate-native, shareable, re-derivable object — the general model front-end that broadens the catalog beyond the hand-built ternary engine. Serverless (Law L1/L5).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "onnxBase64": {
+            "type": "string",
+            "description": "the ONNX model bytes, base64-encoded"
+          },
+          "url": {
+            "type": "string",
+            "description": "or a URL to fetch the ONNX model from (ingest boundary)"
+          }
+        }
+      }
+    },
+    {
+      "name": "holo_inspect",
+      "description": "INSPECT a UOR object — the agent side of the on-screen Inspect (identical to what a human sees right-clicking an object). Pass the object's bytes as `source`; returns { kappa (re-derived did:holo), type (bundle·module·svg·json·text), bytes, children (the composition DAG — child κ's, for a bundle), exports (for a module) }. Self-verifying: the κ is derived from the bytes you passed (Law L5). Use it to understand an object before remixing it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "the object's bytes as text (e.g. from holo_resolve)"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      }
+    },
+    {
+      "name": "holo_remix",
+      "description": "REMIX an object → a NEW self-verifying object (the agent side of on-screen Edit; identical to a human's). Pass the edited `source` (optionally the `parent` κ it was forked from). Returns { kappa (new did:holo = sha256 of the bytes), holo (holo://κ), parent, link }. `link` is a SELF-CONTAINED, cross-device, serverless share URL (`/apps/ui/render.html#k=<κ>&o=<gzipped bytes>`): the recipient — human in a browser, or another agent — decodes it, re-derives the κ (Law L5), and renders it on ANY device with no server. An edit is a FORK (a new κ), never a mutation (Law L1). The remix loop for agents: holo_resolve → holo_inspect → holo_remix → hand the link to a human/agent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "the edited object bytes as text"
+          },
+          "parent": {
+            "type": "string",
+            "description": "optional κ this was forked from"
+          }
+        },
+        "required": [
+          "source"
+        ]
+      }
     },
     {
       "name": "own_verify",
-      "description": "Verify a content-addressed OWNERSHIP chain (ADR-053 Titles): re-derive every Title κ, check each transfer's signature + authority (the current owner, or an attenuated UCAN delegation) + lineage (Law L5 / SEC-2), and report who owns it NOW. Returns { ok, owner (σ-axis κ), ownerDid (did:holo), head, errors, result } — `result` is a SELF-VERIFYING UOR object (re-derive its id, Law L5). An agent verifies ownership without trusting any server. An agent ACQUIRES ownership by signing a Title locally (its own holo-identity) and verifying the extended chain here."
+      "description": "Verify a content-addressed OWNERSHIP chain (ADR-053 Titles): re-derive every Title κ, check each transfer's signature + authority (the current owner, or an attenuated UCAN delegation) + lineage (Law L5 / SEC-2), and report who owns it NOW. Returns { ok, owner (σ-axis κ), ownerDid (did:holo), head, errors, result } — `result` is a SELF-VERIFYING UOR object (re-derive its id, Law L5). An agent verifies ownership without trusting any server. An agent ACQUIRES ownership by signing a Title locally (its own holo-identity) and verifying the extended chain here.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "titles": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "the Title chain, genesis→head"
+          },
+          "delegations": {
+            "type": "object",
+            "description": "optional { titleκ: delegation } proofs for delegated transfers"
+          }
+        },
+        "required": [
+          "titles"
+        ]
+      }
     },
     {
       "name": "own_settle",
-      "description": "Settle value against a PROVEN Title (ADR-053/048): releases a voucher ONLY if the ownership chain re-derives AND the payer's order commits to the proven head — pay against proven ownership, not claimed. Keyless + anyone-runs; a tampered/unproven Title releases nothing. Returns { released, voucher } (voucher κ = the idempotent txId)."
+      "description": "Settle value against a PROVEN Title (ADR-053/048): releases a voucher ONLY if the ownership chain re-derives AND the payer's order commits to the proven head — pay against proven ownership, not claimed. Keyless + anyone-runs; a tampered/unproven Title releases nothing. Returns { released, voucher } (voucher κ = the idempotent txId).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "object",
+            "properties": {
+              "subject": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "object"
+              },
+              "buyer": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "subject"
+            ]
+          },
+          "titles": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "delegations": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "order",
+          "titles"
+        ]
+      }
     },
     {
       "name": "own_passport",
-      "description": "An ownership passport for an object: verify its Title chain and summarise { owner, ownerDid, verified, history (number of transfers), head } as a SELF-VERIFYING UOR object (re-derive its id, Law L5). The agent-facing 'who owns this, provably' tool."
+      "description": "An ownership passport for an object: verify its Title chain and summarise { owner, ownerDid, verified, history (number of transfers), head } as a SELF-VERIFYING UOR object (re-derive its id, Law L5). The agent-facing 'who owns this, provably' tool.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "titles": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "titles"
+        ]
+      }
+    },
+    {
+      "name": "bittensor_snapshot",
+      "description": "Project a Bittensor subnet's metagraph at a block into the substrate's agent fabric (ADR-0071): returns a κ-rooted dcat:Catalog of neuron AgentFacts whose root did:holo PINS the block hash — a self-verifying UOR object you re-derive (verify_object, Law L5). A Bittensor subnet IS a NANDA registry. Reading the chain is an INGEST BOUNDARY (Subtensor public JSON-RPC); omit args for the deterministic sample subnet. Returns { root, catalog, netuid, block, blockHash, neurons:[{hotkey,did,factsId,consensus,stake}], records }.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "type": "object",
+            "description": "optional { netuid, block, blockHash, neurons:[…] }; omit for the sample subnet"
+          }
+        }
+      }
+    },
+    {
+      "name": "bittensor_agentfacts",
+      "description": "Project ONE Bittensor neuron to a dual-trust AgentFacts document (ADR-0071/034): on the same bytes a valid NANDA AgentFacts record · a self-verifying UOR object (re-derive its id) · a W3C VC signed by the neuron's hotkey · a did:pkh chain principal. Returns { agentFacts (self-verifying), did, dualTrust (the hotkey signature verifies) }.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "hotkey": {
+            "type": "string",
+            "description": "the neuron's ss58 hotkey (defaults to the sample subnet's first neuron)"
+          },
+          "neuron": {
+            "type": "object",
+            "description": "or a full neuron object"
+          }
+        }
+      }
+    },
+    {
+      "name": "bittensor_infer",
+      "description": "Query a Bittensor miner and seal the answer as a re-derivable PROV-O inference receipt (ADR-0071, Holo Q idiom ADR-0052) bound to the neuron/subnet/block + signed by the hotkey. A stochastic answer is RECEIPT-verifiable (re-derive its id; the response κ binds the text), not reproducible. Returns { answer, receipt (self-verifying), verified }.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "hotkey": {
+            "type": "string",
+            "description": "which neuron (defaults to the sample subnet's validator)"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      }
+    },
+    {
+      "name": "bittensor_settle",
+      "description": "Pay TAO ONLY against PROVEN work (ADR-0071, Orchestrate ADR-045 + Settle ADR-048): composes the inference receipts into a PROV-O work-receipt DAG and releases a TAO voucher per step only if the work re-derives AND the conscience gate accepts — tampered work pays nothing. TESTNET-GATED. Returns { workReceipt, released:[voucher…], withheld, network, verified }.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "the questions to settle (defaults to two sample prompts)"
+          },
+          "taoPerStep": {
+            "type": "number"
+          }
+        }
+      }
     }
   ],
   "prompts": [
@@ -86,6 +499,7 @@
   ],
   "transport": "streamable-http",
   "endpoint": "/mcp",
+  "servers": [],
   "launch": "npx hologram-mcp",
-  "note": "Static discovery document. Run `npx hologram-mcp` (stdio) or `--http` for a live MCP endpoint; resources are self-verifying UOR objects."
+  "note": "Static discovery document. The aggregate endpoint is /mcp; every app is ALSO its own MCP server at /~<app>/mcp (see `servers`). Run `npx hologram-mcp` (stdio) or `--http` for a live endpoint; resources are self-verifying UOR objects."
 }

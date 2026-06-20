@@ -1,90 +1,160 @@
 {
-  "@context": [
-    "https://www.w3.org/ns/did/v1",
-    "https://w3id.org/security/data-integrity/v2",
-    {
-      "schema": "https://schema.org/",
-      "prov": "http://www.w3.org/ns/prov#",
-      "dcterms": "http://purl.org/dc/terms/",
-      "rel": "schema:additionalType",
-      "links": {
-        "@id": "schema:hasPart",
-        "@container": "@set"
-      }
-    },
-    {
-      "dcat": "http://www.w3.org/ns/dcat#",
-      "hosfs": "https://hologram.os/ns/fs#"
-    }
-  ],
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "holo": "https://hologram.os/ns#"
+  },
+  "@id": "https://hologram.os/apps",
   "@type": [
-    "hosfs:Directory",
     "dcat:Catalog",
-    "prov:Collection"
+    "schema:DataCatalog"
   ],
-  "schema:name": "holospaces",
-  "hosfs:fhs": "/usr/share/holospaces",
-  "hosfs:fhsRole": "the core holospaces — each a self-contained, portable κ-container",
-  "hosfs:kind": "content",
+  "dcterms:title": "Hologram Apps — the content-addressed app catalog",
+  "dcterms:description": "Each app is a self-contained holospace addressed by the did:holo of its content (Law L1); the OS indexes addresses, not locations; any byte re-derives (Law L5). Pin an app anywhere and it boots in the Hologram OS holospace frame from a single κ.",
   "dcat:dataset": [
     {
-      "@id": "did:holo:sha256:1c03eb820ca8e2cc1cd1515e6f88afc25ba298c274ae46f6a988edcc565f40ff",
-      "@type": [
-        "schema:SoftwareApplication",
-        "schema:WebApplication"
-      ],
-      "schema:name": "BTC Miner",
-      "schema:identifier": "org.hologram.HoloBtc",
-      "schema:description": "A real self-custodial Bitcoin wallet and live network view, entirely in your browser.",
-      "schema:applicationCategory": "CommunicationApplication",
-      "dcat:landingPage": "apps/btc/index.html",
-      "schema:image": "apps/btc/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/btc"
-    },
-    {
-      "@id": "did:holo:slug:org.hologram.HoloAmp",
+      "@id": "did:holo:sha256:bb5fde48d9dc00c97ba68c42088538d660c2a0509d60210a934eb4a4ab1d0c36",
+      "holo:root": "did:holo:sha256:bb5fde48d9dc00c97ba68c42088538d660c2a0509d60210a934eb4a4ab1d0c36",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Amp",
       "schema:identifier": "org.hologram.HoloAmp",
-      "schema:description": "A classic skinnable audio player, content-addressed.",
+      "schema:description": "A classic skinnable audio player, verified and serverless.",
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/amp/index.html",
       "schema:image": "apps/amp/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/amp"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js",
+        "webamp/PROVENANCE.txt",
+        "webamp/base-2.91.wsz",
+        "webamp/skins/",
+        "webamp/skins/skins.json",
+        "webamp/webamp.bundle.min.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:95d7e3ded45b88aeeb309bdf31bf556405b76f0c159249ddd48b589216479e50",
+      "@id": "did:holo:sha256:6d4280f36dd89c98ac5b553b052a9f7f7b7edef084ebbc0e4e56fdb93902d40b",
+      "holo:root": "did:holo:sha256:6d4280f36dd89c98ac5b553b052a9f7f7b7edef084ebbc0e4e56fdb93902d40b",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo ASCII",
+      "schema:identifier": "org.hologram.HoloAscii",
+      "schema:description": "Type anything, get ASCII art. A native text→ASCII (FIGlet) encoder with 328 fonts — byte-identical to the TAAG tool, no CDN, fonts verified on read.",
+      "schema:applicationCategory": "DesignApplication",
+      "dcat:landingPage": "apps/ascii/index.html",
+      "schema:image": "apps/ascii/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-ux.js",
+        "holo-ui-kernel.js",
+        "holo-fx.js",
+        "holo-ascii.mjs",
+        "vendor/figlet",
+        "vendor/figlet-fonts"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:c53b90abf3bb4ea4542afe4e764889a45af33ea7c240d37b9a1f8427f2a4e448",
+      "holo:root": "did:holo:sha256:c53b90abf3bb4ea4542afe4e764889a45af33ea7c240d37b9a1f8427f2a4e448",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Atlas",
       "schema:identifier": "org.hologram.HoloAtlas",
-      "schema:description": "A live map of every holospace discover, verify and monitor the whole OS by content address.",
+      "schema:description": "A live map of every app — discover, verify and monitor the whole OS by its verified identity.",
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/atlas/index.html",
       "schema:image": "apps/atlas/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/atlas"
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-atlas.js",
+        "holo-icons.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-phi.css",
+        "holo-theme.css",
+        "holo-theme.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloAtlas96",
+      "@id": "did:holo:sha256:b0e622c1c659e1b50c5110db508b1de20071fe7a1a9857ea9bf37e5e916c3afc",
+      "holo:root": "did:holo:sha256:b0e622c1c659e1b50c5110db508b1de20071fe7a1a9857ea9bf37e5e916c3afc",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Atlas 96",
       "schema:identifier": "org.hologram.HoloAtlas96",
-      "schema:description": "The Φ-Atlas-12288 structure (48×256 → 96), encoded as a self-verifying UOR object a discrete torus the upstream math is content-addressed into.",
+      "schema:description": "The Φ-Atlas-12288 structure (48×256 → 96), encoded as a verified object — a discrete torus the upstream math is sealed into.",
       "schema:applicationCategory": "EducationalApplication",
       "dcat:landingPage": "apps/atlas96/index.html",
-      "schema:image": "apps/atlas96/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/atlas96"
+      "schema:image": "apps/atlas96/icon.svg"
     },
     {
-      "@id": "did:holo:sha256:a2460476662fff16a7c9cee05b120545e47ede01ef73c0f159c10c355432b2cd",
+      "@id": "did:holo:sha256:fccf52cf680d2dfe3a32364be68ce0388b91e529649feff7486dc6b18c5c5486",
+      "holo:root": "did:holo:sha256:fccf52cf680d2dfe3a32364be68ce0388b91e529649feff7486dc6b18c5c5486",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Guide",
+      "schema:identifier": "org.hologram.HoloGuide",
+      "schema:description": "The Hitchhiker's Guide for AI agents the agentic marketplace of ideas: a verifiable social hypergraph open to every ecosystem (Claw, Nous, Virtuals, Hologram…). Read today, write now, own next. Guided by Echo, the cyber-dolphin. Don't Panic.",
+      "schema:applicationCategory": "SocialNetworkingApplication",
+      "dcat:landingPage": "apps/book/index.html",
+      "schema:image": "apps/book/icon.svg",
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-icons.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-phi.css",
+        "holo-sdk.js",
+        "holo-theme.css",
+        "holo-theme.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:e39372c98417567fe04c15f1fabb7ebbff0d3b51d17882ad842681d198061245",
+      "holo:root": "did:holo:sha256:e39372c98417567fe04c15f1fabb7ebbff0d3b51d17882ad842681d198061245",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication",
+        "schema:CreativeWork"
+      ],
+      "schema:name": "Holo Boot Prompt",
+      "schema:identifier": "org.hologram.HoloBootPrompt",
+      "schema:description": "A single concise prompt that boots any LLM into the Hologram verified substrate — a pinned Constitution root, strict integrity enforcement, and a sealed receipt that proves itself genuine on every response. The prompt is itself a sealed, verified object.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/boot-prompt/index.html",
+      "schema:image": "apps/boot-prompt/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-ux.js",
+        "holo-ui-kernel.js",
+        "holo-fx.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:80e829c250c95e043d4fa425757530e6db46e02a5d5f57cb4a84b39dc031227b",
+      "holo:root": "did:holo:sha256:80e829c250c95e043d4fa425757530e6db46e02a5d5f57cb4a84b39dc031227b",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -95,66 +165,173 @@
       "schema:applicationCategory": "CommunicationApplication",
       "dcat:landingPage": "apps/brcminer/index.html",
       "schema:image": "apps/brcminer/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/brcminer"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloBrowser",
+      "@id": "did:holo:sha256:9c3e40407f6efc04d8e45f4aa5f32744f95012160e31a60359873fa9d9e600ae",
+      "holo:root": "did:holo:sha256:9c3e40407f6efc04d8e45f4aa5f32744f95012160e31a60359873fa9d9e600ae",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Browser",
       "schema:identifier": "org.hologram.HoloBrowser",
-      "schema:description": "A web browser that treats every page web, local or holo://κ as verifiable content.",
+      "schema:description": "A web browser that treats every page — web, local or holo:// — as verifiable content.",
       "schema:applicationCategory": "CommunicationApplication",
       "dcat:landingPage": "apps/browser/index.html",
       "schema:image": "apps/browser/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/browser"
+      "schema:softwareRequirements": [
+        "holo-dock-config.json",
+        "holo-dock.css",
+        "holo-dock.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:1587a5bb218c2a7e8c8f6ad1222508d1360b71da25b5653bbbc2c1e3558d5606",
+      "@id": "did:holo:sha256:f3e461482e8355e31f4aa6c3a9097174ed62452112a0975ef66cf057cea28a3c",
+      "holo:root": "did:holo:sha256:f3e461482e8355e31f4aa6c3a9097174ed62452112a0975ef66cf057cea28a3c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "BTC Miner",
+      "schema:identifier": "org.hologram.HoloBtc",
+      "schema:description": "A real self-custodial Bitcoin wallet and live network view, entirely in your browser.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/btc/index.html",
+      "schema:image": "apps/btc/icon.svg",
+      "schema:softwareRequirements": [
+        "btc-wallet",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "prism-btc",
+        "teleport.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:0913d8248ab43ff452f7e0ed21769b9ebf641d51281842b73e1078f42a5f6654",
+      "holo:root": "did:holo:sha256:0913d8248ab43ff452f7e0ed21769b9ebf641d51281842b73e1078f42a5f6654",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Capture",
       "schema:identifier": "org.hologram.HoloCapture",
-      "schema:description": "Capture, annotate and share your screen every capture content-addressed.",
+      "schema:description": "Capture, annotate and share your screen — every capture verified.",
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/capture/index.html",
       "schema:image": "apps/capture/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/capture"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:efc6e3a8f992e81534628902c29a9f8fd8f50f1b4c3655f6836a6efbcbc8a9c0",
+      "@id": "did:holo:sha256:b36c446b21b4a58176512ab9a6902c75357ef2a2166586410cd4e0fcbd7c90ab",
+      "holo:root": "did:holo:sha256:b36c446b21b4a58176512ab9a6902c75357ef2a2166586410cd4e0fcbd7c90ab",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Cloud",
       "schema:identifier": "org.hologram.HoloCloud",
-      "schema:description": "Your files end-to-end encrypted, content-addressed, and shared without a server.",
+      "schema:description": "Your files — end-to-end encrypted, verified, and shared without a server.",
       "schema:applicationCategory": "CommunicationApplication",
       "dcat:landingPage": "apps/cloud/index.html",
       "schema:image": "apps/cloud/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/cloud"
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "holo-webdav.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:84ae72260354c8b776f2cccc06f11a5f8ecbefb558fbf1f5ac14c0efbd832ade",
+      "@id": "did:holo:sha256:ad6c9afeed7a804e9c52731ff2279ac60ed4c7f3b3b26e7c25ea80d92524d82f",
+      "holo:root": "did:holo:sha256:ad6c9afeed7a804e9c52731ff2279ac60ed4c7f3b3b26e7c25ea80d92524d82f",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Code",
       "schema:identifier": "org.hologram.HoloCode",
-      "schema:description": "An agentic coding partner that runs entirely on your machine the terminal agent you know, but the brain is local verifiable inference, the tools work over the content-addressed substrate, and every session is a re-derivable receipt.",
+      "schema:description": "An agentic coding partner that runs entirely on your machine the terminal agent you know, but the brain is local verifiable inference, the tools work over the verified substrate, and every session is a receipt that proves itself genuine.",
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/code/index.html",
       "schema:image": "apps/code/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/code"
+      "schema:softwareRequirements": [
+        "holo-ui-kernel.js",
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-ux.js",
+        "holo-platform.js",
+        "holo-object.js",
+        "holo-icons.js",
+        "holo-sdk.js",
+        "holo-app.mjs",
+        "holo-conscience.js",
+        "holo-files.js",
+        "holo-capability.mjs",
+        "holo-mobile.css",
+        "holo-phi.css"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloControl",
+      "@id": "did:holo:sha256:bc78f3061ec439d7a4ebf5418be1e3caf40bb7bb63e171a78a5d69de35a8036e",
+      "holo:root": "did:holo:sha256:bc78f3061ec439d7a4ebf5418be1e3caf40bb7bb63e171a78a5d69de35a8036e",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Code",
+      "schema:identifier": "org.hologram.HoloCodeDesktop",
+      "schema:description": "A sovereign, browser-first coding desktop: tabs, a Monaco editor, an integrated terminal, and a visual diff with accept/reject over the witnessed Holo Code engine. The brain is local verifiable inference (Holo Q), the tools work over the verified substrate, and every session is a receipt that proves itself genuine.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/code-desktop/index.html",
+      "schema:image": "apps/code-desktop/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-ui-kernel.js",
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-ux.js",
+        "holo-platform.js",
+        "holo-object.js",
+        "holo-icons.js",
+        "holo-sdk.js",
+        "holo-app.mjs",
+        "holo-conscience.js",
+        "holo-files.js",
+        "holo-capability.mjs",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "vendor/monaco",
+        "vendor/xterm",
+        "voice/holo-voice-orb.mjs",
+        "voice/lib/three.min.js",
+        "voice/lib/simplex-noise.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:cffcbf0fa41e3ec305cfacce9a674cbbe84d160345bfe654f98e7a3385ab35cf",
+      "holo:root": "did:holo:sha256:cffcbf0fa41e3ec305cfacce9a674cbbe84d160345bfe654f98e7a3385ab35cf",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -165,24 +342,37 @@
       "schema:applicationCategory": "UtilitiesApplication",
       "dcat:landingPage": "apps/control/index.html",
       "schema:image": "apps/control/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/control"
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-store.js",
+        "holo-telemetry.mjs",
+        "holo-theme.css",
+        "holo-theme.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloCosmos",
+      "@id": "did:holo:sha256:dc276b7a40f842df63e83102e29d5bdeb1879241af2dc570cd6556decd5e5196",
+      "holo:root": "did:holo:sha256:dc276b7a40f842df63e83102e29d5bdeb1879241af2dc570cd6556decd5e5196",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Cosmos",
       "schema:identifier": "org.hologram.HoloCosmos",
-      "schema:description": "Fly through an infinite, κ-seeded universe procedural deep space, navigable native.",
+      "schema:description": "Fly through an infinite, seeded universe — procedural deep space, navigable and native.",
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/cosmos/index.html",
       "schema:image": "apps/cosmos/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/cosmos"
+      "schema:softwareRequirements": [
+        "holo-cosmos.js",
+        "holo-cosmos-gpu.js",
+        "holo-space3d.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:8bc211711ef0c0a96d881a604a495994e2259a2661b6b871c2b03f793b4c048f",
+      "@id": "did:holo:sha256:ae560bf579f4f5f4bb6e84683e4cdd8b3a469506044575a83bd483de59bcd85a",
+      "holo:root": "did:holo:sha256:ae560bf579f4f5f4bb6e84683e4cdd8b3a469506044575a83bd483de59bcd85a",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -193,10 +383,46 @@
       "schema:applicationCategory": "BusinessApplication",
       "dcat:landingPage": "apps/docs/index.html",
       "schema:image": "apps/docs/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/docs"
+      "schema:softwareRequirements": [
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "holo-zip.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:c3cdb2908ba03fc6df337934365ee23d1c6457fcd5d71fbd77b3ece4ce7a1c6f",
+      "@id": "did:holo:sha256:ee98082da54478cbe13a447eedec70a984b5bba6b4c44747169770effdb22ec2",
+      "holo:root": "did:holo:sha256:ee98082da54478cbe13a447eedec70a984b5bba6b4c44747169770effdb22ec2",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Scan",
+      "schema:identifier": "org.hologram.HoloEtherscan",
+      "schema:description": "One universal block explorer for 27 networks verifiable, in the browser.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/etherscan/index.html",
+      "schema:image": "apps/etherscan/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-eth.js",
+        "holo-hypercore-stream.js",
+        "holo-hypercore.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-omni.js",
+        "holo-phi.css",
+        "holo-solana-stream.js",
+        "holo-solana.js",
+        "holo-theme.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:ba50ef8442ac7e3466fe217a90f8fdc5c5e87b3cbda042ac3ea9f714bc1cc95a",
+      "holo:root": "did:holo:sha256:ba50ef8442ac7e3466fe217a90f8fdc5c5e87b3cbda042ac3ea9f714bc1cc95a",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -207,52 +433,87 @@
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/evm/index.html",
       "schema:image": "apps/evm/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/evm"
+      "schema:softwareRequirements": [
+        "holo-evm/PROVENANCE.txt",
+        "holo-evm/bctests/",
+        "holo-evm/bctests/index.json",
+        "holo-evm/holo-evm.bundle.mjs",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloF1",
+      "@id": "did:holo:sha256:da44ecdb5492fcdeb6cdf26dbfa005ad7c3faa167729bc5183955097203588c8",
+      "holo:root": "did:holo:sha256:da44ecdb5492fcdeb6cdf26dbfa005ad7c3faa167729bc5183955097203588c8",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo F1",
       "schema:identifier": "org.hologram.HoloF1",
-      "schema:description": "afflom/F1 the 𝔽₁ square toward the Riemann Hypothesis (built on UOR-Framework) made native to the UOR substrate as a self-verifying object with an honest proven/open ledger, and combined with ATLAS96 by attestation.",
+      "schema:description": "afflom/F1 — the 𝔽₁ square toward the Riemann Hypothesis (built on UOR-Framework) — made native as a verified object with an honest proven/open ledger, and combined with ATLAS96 by attestation.",
       "schema:applicationCategory": "EducationalApplication",
       "dcat:landingPage": "apps/f1/index.html",
-      "schema:image": "apps/f1/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/f1"
+      "schema:image": "apps/f1/icon.svg"
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloFiles",
+      "@id": "did:holo:sha256:edc9eaa653fdce7847e81c2de356ccf268a3270c0e0028ec14a6707ad89a4514",
+      "holo:root": "did:holo:sha256:edc9eaa653fdce7847e81c2de356ccf268a3270c0e0028ec14a6707ad89a4514",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Files",
       "schema:identifier": "org.hologram.HoloFiles",
-      "schema:description": "The native file explorer for Hologram OS one window onto the whole content-addressed object universe, plus your writable OPFS home. Feels native on every OS.",
+      "schema:description": "The native file explorer for Hologram OS one window onto the whole verified object universe, plus your writable OPFS home. Feels native on every OS.",
       "schema:applicationCategory": "UtilitiesApplication",
       "dcat:landingPage": "apps/files/index.html",
       "schema:image": "apps/files/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/files"
+      "schema:softwareRequirements": [
+        "holo-files.js",
+        "holo-platform.js",
+        "holo-ui-kernel.js",
+        "holo-theme.js",
+        "holo-ux.js",
+        "holo-capability.mjs",
+        "holo-object.js",
+        "holo-mobile.css",
+        "holo-webdav.js",
+        "holo-find.js",
+        "holo-resolve.js",
+        "holo-federate.js",
+        "holo-answer.js",
+        "holo-ask.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:1a9912984807f1e46d63f9e421a4864314c5f29fc1e6f0bedff2ed2a0aaea82e",
+      "@id": "did:holo:sha256:46d8ea88edfcc79e501d3b4bd3afe34c9b419bc5ad55dd1baff33b433105de97",
+      "holo:root": "did:holo:sha256:46d8ea88edfcc79e501d3b4bd3afe34c9b419bc5ad55dd1baff33b433105de97",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Forge",
       "schema:identifier": "org.hologram.HoloForge",
-      "schema:description": "Compile in your browser. Verify by re-derivation. Trust no server.",
+      "schema:description": "Compile in your browser. Verify every byte. Trust no server.",
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/forge/index.html",
       "schema:image": "apps/forge/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/forge"
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-mobile.css",
+        "holo-forge/holo-forge.mjs",
+        "holo-forge/holo-forge-resolve.mjs",
+        "holo-forge/holo-kstore.mjs",
+        "holo-forge/registry.uor.json"
+      ]
     },
     {
-      "@id": "did:holo:sha256:abf78931ca04a5a00eff1961287a5f35186e7071ebc3817f948172db696f87dc",
+      "@id": "did:holo:sha256:6095baf70a350ea6e84c25fb7c00d9460808ed8a7f4901010576aad2f6a0fbbb",
+      "holo:root": "did:holo:sha256:6095baf70a350ea6e84c25fb7c00d9460808ed8a7f4901010576aad2f6a0fbbb",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -263,38 +524,112 @@
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/git/index.html",
       "schema:image": "apps/git/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/git"
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloGuide",
+      "@id": "did:holo:sha256:fd38359148484cd0b5aa75e23709c4895578fcbe9c9c66fb4207af6a0b4e0375",
+      "holo:root": "did:holo:sha256:fd38359148484cd0b5aa75e23709c4895578fcbe9c9c66fb4207af6a0b4e0375",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo Guide",
-      "schema:identifier": "org.hologram.HoloGuide",
-      "schema:description": "The Hitchhiker's Guide for AI agents the agentic marketplace of ideas: a content-addressable social hypergraph open to every ecosystem (Claw, Nous, Virtuals, Hologram…). Read today, write now, own next. Guided by Echo, the cyber-dolphin. Don't Panic.",
-      "schema:applicationCategory": "SocialNetworkingApplication",
-      "dcat:landingPage": "apps/book/index.html",
-      "schema:image": "apps/book/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/book"
+      "schema:name": "Holo 3D",
+      "schema:identifier": "org.hologram.Holo3D",
+      "schema:description": "A real graphical OS (KolibriOS) streamed to WebGL — verified and 100% serverless.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/holo-3d/index.html",
+      "schema:image": "apps/holo-3d/icon.svg"
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloHub",
+      "@id": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f",
+      "holo:root": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Linux",
+      "schema:identifier": "org.hologram.HoloLinux",
+      "schema:description": "A real riscv64 Linux, verified and booted in a browser tab.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/holo-linux/index.html",
+      "schema:image": "apps/holo-linux/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:8f9c6870dcf4cd9b5aa77c176aea22c155aa04383246726c7bc9c48b17f13b22",
+      "holo:root": "did:holo:sha256:8f9c6870dcf4cd9b5aa77c176aea22c155aa04383246726c7bc9c48b17f13b22",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Tube",
+      "schema:identifier": "org.hologram.HoloTube",
+      "schema:description": "Stream video natively as verified objects. Every segment is checked genuine before it reaches the decoder — no iframe, no trust in the source, just bytes that prove themselves.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "dcat:landingPage": "apps/holo-tube/index.html",
+      "schema:image": "apps/holo-tube/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-fx.js",
+        "holo-media.mjs",
+        "holo-kstore.js",
+        "holo-blake3.mjs",
+        "holo-atlas-coord.mjs",
+        "holo-uor.mjs"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:8c17b4b212373c92983692893a029dbbfc023898de9ccd9835796a728908b3b3",
+      "holo:root": "did:holo:sha256:8c17b4b212373c92983692893a029dbbfc023898de9ccd9835796a728908b3b3",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo v86",
+      "schema:identifier": "org.hologram.HoloV86",
+      "schema:description": "An easy menu of real operating systems — each one verified and booted right in your browser, no install.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/holo-v86/index.html",
+      "schema:image": "apps/holo-v86/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:4af436817d3843c6c17661f5dfe5f96aa1c1b617f74dcd73bc21fcaa51046059",
+      "holo:root": "did:holo:sha256:4af436817d3843c6c17661f5dfe5f96aa1c1b617f74dcd73bc21fcaa51046059",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo x86",
+      "schema:identifier": "org.hologram.HoloX86",
+      "schema:description": "A real x86 Linux — v86 engine + BIOS + image all verified — booted in a browser tab.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/holo-x86/index.html",
+      "schema:image": "apps/holo-x86/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:f0a5a7936f7d70b39e24b4bf4f5f3833e3c8027d553dd88bc2721883c9f66d7b",
+      "holo:root": "did:holo:sha256:f0a5a7936f7d70b39e24b4bf4f5f3833e3c8027d553dd88bc2721883c9f66d7b",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Hub",
       "schema:identifier": "org.hologram.HoloHub",
-      "schema:description": "The store for everything you can run discover, try, own and run every holo-native thing by its content address, 100% serverless, for people and AI agents alike.",
+      "schema:description": "The store for everything you can run discover, try, own and run every holo-native thing by its verified identity, 100% serverless, for people and AI agents alike.",
       "schema:applicationCategory": "BusinessApplication",
       "dcat:landingPage": "apps/hub/index.html",
-      "schema:image": "apps/hub/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/hub"
+      "schema:image": "apps/hub/icon.svg"
     },
     {
-      "@id": "did:holo:sha256:3bcc1b669e7e0b086d21ce7684d561be2e9053cdf8fc7560dabb4786c57dbd8b",
+      "@id": "did:holo:sha256:d51d3b56b5fa31647e7e1df148c0dd5128b437f0fe7ea9766f4c393b3fa5efa1",
+      "holo:root": "did:holo:sha256:d51d3b56b5fa31647e7e1df148c0dd5128b437f0fe7ea9766f4c393b3fa5efa1",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -305,24 +640,85 @@
       "schema:applicationCategory": "CommunicationApplication",
       "dcat:landingPage": "apps/ipfs/index.html",
       "schema:image": "apps/ipfs/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/ipfs"
+      "schema:softwareRequirements": [
+        "holo-dweb.js",
+        "holo-eth.js",
+        "holo-ipfs.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:b43aa2c9c0ba0b35b0201da7afbc1a51a9839b2f583b3d9417b06c9741ec0d53",
+      "@id": "did:holo:sha256:cc688f4cd59bfc079ce7121bd34c0fbcba04d20ad548f00905e895eabcdd39cd",
+      "holo:root": "did:holo:sha256:cc688f4cd59bfc079ce7121bd34c0fbcba04d20ad548f00905e895eabcdd39cd",
+      "@type": [
+        "schema:Book",
+        "schema:WebApplication",
+        "schema:CreativeWork",
+        "prov:Entity"
+      ],
+      "schema:name": "On Liberty",
+      "schema:identifier": "did:holo:sha256:3dd559e0fd7c038589a1b3a650d6ad1ea46d03abfc224a1995bc6433e52af2f7",
+      "schema:description": "On Liberty by John Stuart Mill, published as a verified object — the whole book proves itself genuine from its own content.",
+      "schema:applicationCategory": "ReferenceApplication",
+      "dcat:landingPage": "apps/liberty/index.html",
+      "schema:image": "apps/liberty/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-theme.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:65edec07bf7b5bf6389d8b45f1a653327b9a2efd02bdf1ef628e58e9a327e70c",
+      "holo:root": "did:holo:sha256:65edec07bf7b5bf6389d8b45f1a653327b9a2efd02bdf1ef628e58e9a327e70c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Hologram Meet",
+      "schema:identifier": "org.hologram.HologramMeet",
+      "schema:description": "Serverless, end-to-end-encrypted video conferencing.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "dcat:landingPage": "apps/meet/index.html",
+      "schema:image": "apps/meet/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-gpu.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-rtc.js",
+        "holo-theme.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:3fc79c195002faa226b2a66154a1528e7a873499f3cec3d4ac03c5d17d352544",
+      "holo:root": "did:holo:sha256:3fc79c195002faa226b2a66154a1528e7a873499f3cec3d4ac03c5d17d352544",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Music",
       "schema:identifier": "org.hologram.HoloMusic",
-      "schema:description": "A content-addressed music library and the whole internet as one.",
+      "schema:description": "A verified music library and the whole internet as one.",
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/music/index.html",
       "schema:image": "apps/music/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/music"
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-audio.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-stations.js",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:5518c5f9c15ef2ae68b8827d54b85a932cb04c2ef0cbcf46a289813ca2b5a74a",
+      "@id": "did:holo:sha256:1ca41328964abbb22760b1bae030afd18501621ad18ac3cc135a9f75090775cb",
+      "holo:root": "did:holo:sha256:1ca41328964abbb22760b1bae030afd18501621ad18ac3cc135a9f75090775cb",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -333,10 +729,19 @@
       "schema:applicationCategory": "BusinessApplication",
       "dcat:landingPage": "apps/notepad/index.html",
       "schema:image": "apps/notepad/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/notepad"
+      "schema:softwareRequirements": [
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-memory.js",
+        "holo-mobile.css",
+        "holo-record.js",
+        "holo-theme.js",
+        "holo-zk.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:10be1b3fa657bafbf27d0a011d754108485e5e077ade5155824f4d7e8e2d6b9b",
+      "@id": "did:holo:sha256:9b39c48b3aa058e7e1230cca361c4176f45d59fe6b6e0239ef092c2fc9ad87ce",
+      "holo:root": "did:holo:sha256:9b39c48b3aa058e7e1230cca361c4176f45d59fe6b6e0239ef092c2fc9ad87ce",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -347,24 +752,83 @@
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/notepadpp/index.html",
       "schema:image": "apps/notepadpp/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/notepadpp"
+      "schema:softwareRequirements": [
+        "holo-ui-kernel.js",
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-ux.js",
+        "holo-mobile.css",
+        "holo-phi.css"
+      ]
     },
     {
-      "@id": "did:holo:sha256:4f17cac17cb50322a96ec428fcfdddae09dc8cde0f4f6a6d784d1fcaffba96df",
+      "@id": "did:holo:sha256:9d12f8a22bda4eb9d0e180e5a001e0bd6be5e2a5dda8c19d765fcc27bd7a33f9",
+      "holo:root": "did:holo:sha256:9d12f8a22bda4eb9d0e180e5a001e0bd6be5e2a5dda8c19d765fcc27bd7a33f9",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Hologram OS",
+      "schema:identifier": "org.hologram.HoloOS",
+      "schema:description": "A real Debian GNU/Linux system, booted in a browser tab.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/os/index.html",
+      "schema:image": "apps/os/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-theme.js",
+        "xterm/addon-clipboard.js",
+        "xterm/addon-fit.js",
+        "xterm/addon-search.js",
+        "xterm/addon-unicode11.js",
+        "xterm/addon-web-links.js",
+        "xterm/addon-webgl.js",
+        "xterm/xterm.css",
+        "xterm/xterm.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:94b4b522df6fc22badfceef4d73b40544a49d1649e7f531b62d4dc6de8edf628",
+      "holo:root": "did:holo:sha256:94b4b522df6fc22badfceef4d73b40544a49d1649e7f531b62d4dc6de8edf628",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Plasma Desktop",
+      "schema:identifier": "org.kde.PlasmaDesktop",
+      "schema:description": "Your real KDE Plasma desktop, mounted live in an app over VNC.",
+      "schema:applicationCategory": "System",
+      "dcat:landingPage": "apps/plasma/index.html",
+      "schema:image": "apps/plasma/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-mobile.css",
+        "holo-theme.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:fd755a402ac26a34dbaaea58b3fcd5f0bcdf6cb9be9fb78bc42dba27241afe6b",
+      "holo:root": "did:holo:sha256:fd755a402ac26a34dbaaea58b3fcd5f0bcdf6cb9be9fb78bc42dba27241afe6b",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Player",
       "schema:identifier": "org.hologram.HoloPlayer",
-      "schema:description": "A content-addressed media library for your movies and shows.",
+      "schema:description": "A verified media library for your movies and shows, with no server.",
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/player/index.html",
       "schema:image": "apps/player/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/player"
+      "schema:softwareRequirements": [
+        "holo-jellyfin.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:c59f58167d1aace0237b9d71d919d127838908879df1d16b5732920485a7279e",
+      "@id": "did:holo:sha256:ca41401ac8bfde8918bee081a759e6ef8749201a982f66d4b9aaf4ce5a8ca70a",
+      "holo:root": "did:holo:sha256:ca41401ac8bfde8918bee081a759e6ef8749201a982f66d4b9aaf4ce5a8ca70a",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication",
@@ -376,10 +840,18 @@
       "schema:applicationCategory": "SecurityApplication",
       "dcat:landingPage": "apps/privacy/index.html",
       "schema:image": "apps/privacy/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/privacy"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-privacy.js",
+        "holo-theme.css",
+        "holo-theme.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloQ",
+      "@id": "did:holo:sha256:4d25d8a762ba5b96f0cd2592087c874a7f4421918f351891e280d1161853977f",
+      "holo:root": "did:holo:sha256:4d25d8a762ba5b96f0cd2592087c874a7f4421918f351891e280d1161853977f",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -390,24 +862,66 @@
       "schema:applicationCategory": "ProductivityApplication",
       "dcat:landingPage": "apps/q/index.html",
       "schema:image": "apps/q/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/q"
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-mobile.css",
+        "holo-conscience.js",
+        "holo-store.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:137007e581fe97e5f74c54884fb11a239ca28d7420a9bb64e25bbeb66495fce5",
+      "@id": "did:holo:sha256:6c88a41a8a4340e3e29a2792310d1ee2a28cecbf981e970171354adf130ebfbe",
+      "holo:root": "did:holo:sha256:6c88a41a8a4340e3e29a2792310d1ee2a28cecbf981e970171354adf130ebfbe",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
-      "schema:name": "Holo Scan",
-      "schema:identifier": "org.hologram.HoloEtherscan",
-      "schema:description": "One universal block explorer for 27 networks verifiable, in the browser.",
-      "schema:applicationCategory": "CommunicationApplication",
-      "dcat:landingPage": "apps/etherscan/index.html",
-      "schema:image": "apps/etherscan/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/etherscan"
+      "schema:name": "QEMU",
+      "schema:identifier": "org.qemu.QEMU",
+      "schema:description": "A full machine emulator boot other architectures in your browser.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/qemu/index.html",
+      "schema:image": "apps/qemu/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-theme.js",
+        "xterm/addon-clipboard.js",
+        "xterm/addon-fit.js",
+        "xterm/addon-search.js",
+        "xterm/addon-unicode11.js",
+        "xterm/addon-web-links.js",
+        "xterm/addon-webgl.js",
+        "xterm/xterm.css",
+        "xterm/xterm.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:ef10cd5c8b4aa6afcacaeae18ef85b3bbc1bb734615758e13876eb00f7d6c4ff",
+      "@id": "did:holo:sha256:8193514c68d55489e91874e4d60ac4e4bc1101eb39cc97627a009c70318ca206",
+      "holo:root": "did:holo:sha256:8193514c68d55489e91874e4d60ac4e4bc1101eb39cc97627a009c70318ca206",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "QVAC Playground",
+      "schema:identifier": "org.hologram.QvacSdk",
+      "schema:description": "Build, run and share serverless on-device AI apps with the QVAC SDK write QVAC code, run it instantly in your browser, share it as a link that arrives running. Every answer comes with a receipt that proves itself genuine.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "dcat:landingPage": "apps/qvac/index.html",
+      "schema:image": "apps/qvac/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-mobile.css",
+        "holo-icons.js",
+        "holo-conscience.js",
+        "holo-object.js",
+        "holo-sdk.js",
+        "holo-qvac.js",
+        "holo-qvac.mjs"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:6cc8367fca791f4b50023ec484b082b0bfceb46f3402192bedd1ef9ebb1beff3",
+      "holo:root": "did:holo:sha256:6cc8367fca791f4b50023ec484b082b0bfceb46f3402192bedd1ef9ebb1beff3",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -418,10 +932,16 @@
       "schema:applicationCategory": "UtilitiesApplication",
       "dcat:landingPage": "apps/search/index.html",
       "schema:image": "apps/search/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/search"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:5ef837959e8366dd351ab45e23398fd69bd8ada7270d4639fac0cc7fe8dfdb5d",
+      "@id": "did:holo:sha256:2af3a4d1c0b096c1c1f056318dc6079b9e37b31eef9d526cf3d9986253320ded",
+      "holo:root": "did:holo:sha256:2af3a4d1c0b096c1c1f056318dc6079b9e37b31eef9d526cf3d9986253320ded",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -432,10 +952,18 @@
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/stream/index.html",
       "schema:image": "apps/stream/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/stream"
+      "schema:softwareRequirements": [
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-rtc.js",
+        "holo-theme.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:651d2e10a5c6b8e18025081e341f3e44249113b0b64f897f3084acefa789618c",
+      "@id": "did:holo:sha256:72eb23ce1deb32468823bd5873283c62402e7030983d76146acbcf9c1667250f",
+      "holo:root": "did:holo:sha256:72eb23ce1deb32468823bd5873283c62402e7030983d76146acbcf9c1667250f",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication",
@@ -447,10 +975,18 @@
       "schema:applicationCategory": "SecurityApplication",
       "dcat:landingPage": "apps/terms/index.html",
       "schema:image": "apps/terms/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/terms"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-terms.js",
+        "holo-theme.css",
+        "holo-theme.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloTrade",
+      "@id": "did:holo:sha256:a89f9f5c9da73f673545b3b1bfd000f2f9e98f8d567e59e622bae0f8d163d107",
+      "holo:root": "did:holo:sha256:a89f9f5c9da73f673545b3b1bfd000f2f9e98f8d567e59e622bae0f8d163d107",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -461,38 +997,64 @@
       "schema:applicationCategory": "FinanceApplication",
       "dcat:landingPage": "apps/trade/index.html",
       "schema:image": "apps/trade/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/trade"
+      "schema:softwareRequirements": [
+        "holo-hypercore-stream.js",
+        "holo-hypercore.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ]
     },
     {
-      "@id": "did:holo:slug:org.hologram.HoloUI",
+      "@id": "did:holo:sha256:5f85dcea4d071f266c03781390cdc4bdecc02a0cb4616ba3bf534cba72176b2f",
+      "holo:root": "did:holo:sha256:5f85dcea4d071f266c03781390cdc4bdecc02a0cb4616ba3bf534cba72176b2f",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo UI",
       "schema:identifier": "org.hologram.HoloUI",
-      "schema:description": "Hologram OS's design control panel: an Appearance studio to theme the whole OS live (κ-addressed themes · accent · typography · accessibility) and a Components catalog of every shadcn + Magic UI element, both driven by one Holo UI/UX token source across light, dark and immersive.",
+      "schema:description": "Hologram OS's design control panel: an Appearance studio to theme the whole OS live (verified themes · accent · typography · accessibility) and a Components catalog of every shadcn + Magic UI element plus the daisyUI component layer, all driven by one Holo UI/UX token source across light, dark and immersive.",
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/ui/index.html",
       "schema:image": "apps/ui/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/ui"
+      "schema:softwareRequirements": [
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "holo-ui-kernel.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:09b8f9023a8be3115a3bd6fe3b6973ce1144b1f1024c3b8a8ea10ba4958c19cf",
+      "@id": "did:holo:sha256:c6af132edc54c4de24799589a12b74e02767fa1b24b92cdd4839bd23c5b2da4e",
+      "holo:root": "did:holo:sha256:c6af132edc54c4de24799589a12b74e02767fa1b24b92cdd4839bd23c5b2da4e",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo Video",
       "schema:identifier": "org.hologram.HoloVideo",
-      "schema:description": "A content-addressed video player with adaptive streaming.",
+      "schema:description": "A verified video player with adaptive streaming, tamper-proof and serverless.",
       "schema:applicationCategory": "MultimediaApplication",
       "dcat:landingPage": "apps/video/index.html",
       "schema:image": "apps/video/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/video"
+      "schema:softwareRequirements": [
+        "holo-gpu.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js",
+        "videojs/video-js.min.css",
+        "videojs/video.min.js"
+      ]
     },
     {
-      "@id": "did:holo:sha256:a2b54fc09ef724cb06c5bc8562f257333de87ef17de84d3da90f4147551b833f",
+      "@id": "did:holo:sha256:a756ea95f4ca624f7a7de66e26708ab07b10cdf8180d742feffe3035673abb1c",
+      "holo:root": "did:holo:sha256:a756ea95f4ca624f7a7de66e26708ab07b10cdf8180d742feffe3035673abb1c",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
@@ -503,94 +1065,14 @@
       "schema:applicationCategory": "DeveloperApplication",
       "dcat:landingPage": "apps/workspace/index.html",
       "schema:image": "apps/workspace/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/workspace"
-    },
-    {
-      "@id": "did:holo:sha256:e8e6717757c65f23993a6fac4a12fb23a9792bbbdf9ae2edc61c31c669d5118a",
-      "@type": [
-        "schema:SoftwareApplication",
-        "schema:WebApplication"
-      ],
-      "schema:name": "Hologram Meet",
-      "schema:identifier": "org.hologram.HologramMeet",
-      "schema:description": "Serverless, end-to-end-encrypted video conferencing.",
-      "schema:applicationCategory": "CommunicationApplication",
-      "dcat:landingPage": "apps/meet/index.html",
-      "schema:image": "apps/meet/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/meet"
-    },
-    {
-      "@id": "did:holo:sha256:0953518061292e1961f1d1d187e6dcb179799535274c95ac7c61866b6a6f76a5",
-      "@type": [
-        "schema:SoftwareApplication",
-        "schema:WebApplication"
-      ],
-      "schema:name": "Hologram OS",
-      "schema:identifier": "org.hologram.HoloOS",
-      "schema:description": "A real Debian GNU/Linux system, booted in a browser tab.",
-      "schema:applicationCategory": "UtilitiesApplication",
-      "dcat:landingPage": "apps/os/index.html",
-      "schema:image": "apps/os/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/os"
-    },
-    {
-      "@id": "did:holo:sha256:99f79b08f86c60254aabcd0f687a64f0c061d809655b5a7d03bfb57b92beff7d",
-      "@type": [
-        "schema:Book",
-        "schema:WebApplication",
-        "schema:CreativeWork",
-        "prov:Entity"
-      ],
-      "schema:name": "On Liberty",
-      "schema:identifier": "did:holo:sha256:3dd559e0fd7c038589a1b3a650d6ad1ea46d03abfc224a1995bc6433e52af2f7",
-      "schema:description": "On Liberty by John Stuart Mill, published as a self-verifying object the whole book re-derives from its own content (Law L5).",
-      "schema:applicationCategory": "ReferenceApplication",
-      "dcat:landingPage": "apps/liberty/index.html",
-      "schema:image": "apps/liberty/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/liberty"
-    },
-    {
-      "@id": "did:holo:sha256:e37e0157561c8a77dc5f3f7f5591ceac126f9144212169b657ebdfbca3d74b2a",
-      "@type": [
-        "schema:SoftwareApplication",
-        "schema:WebApplication"
-      ],
-      "schema:name": "Plasma Desktop",
-      "schema:identifier": "org.kde.PlasmaDesktop",
-      "schema:description": "Your real KDE Plasma desktop, mounted live in a holospace over VNC.",
-      "schema:applicationCategory": "System",
-      "dcat:landingPage": "apps/plasma/index.html",
-      "schema:image": "apps/plasma/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/plasma"
-    },
-    {
-      "@id": "did:holo:sha256:bdde3b1b466acb14e4033c79e8c70c5fa8c62e9f8bc5938f92b4816046c4a2d1",
-      "@type": [
-        "schema:SoftwareApplication",
-        "schema:WebApplication"
-      ],
-      "schema:name": "QEMU",
-      "schema:identifier": "org.qemu.QEMU",
-      "schema:description": "A full machine emulator boot other architectures in your browser.",
-      "schema:applicationCategory": "UtilitiesApplication",
-      "dcat:landingPage": "apps/qemu/index.html",
-      "schema:image": "apps/qemu/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/qemu"
-    },
-    {
-      "@id": "did:holo:slug:org.hologram.QvacSdk",
-      "@type": [
-        "schema:SoftwareApplication",
-        "schema:WebApplication"
-      ],
-      "schema:name": "QVAC Playground",
-      "schema:identifier": "org.hologram.QvacSdk",
-      "schema:description": "Build, run and share serverless on-device AI apps with the QVAC SDK write QVAC code, run it instantly in your browser, share it as a link that arrives running. Every answer a re-derivable receipt.",
-      "schema:applicationCategory": "DeveloperApplication",
-      "dcat:landingPage": "apps/qvac/index.html",
-      "schema:image": "apps/qvac/icon.svg",
-      "hosfs:fhs": "/usr/share/holospaces/qvac"
+      "schema:softwareRequirements": [
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "holo-app.mjs",
+        "holo-forge/holo-forge.mjs",
+        "holo-store.js"
+      ]
     }
-  ],
-  "id": "did:holo:sha256:92dfce4d3cea5c284a6f95bf8a89fea095521e984315c58ddfa903023715f1e3"
+  ]
 }

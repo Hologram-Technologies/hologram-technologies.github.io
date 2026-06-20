@@ -33,8 +33,17 @@ async function restoreAny(ws, rootCid, source) {
 export async function resolveBootResume() {
   try {
     const hash = location.hash || "", query = location.search || "";
-    if (!/wks=/.test(hash) && !/wks=/.test(query)) return null;
+    const carM = (hash + "&" + query).match(/car=([A-Za-z0-9]+)/);   // a worldwide pinned link (#car=<cid> / ?car=<cid>)
+    if (!/wks=/.test(hash) && !/wks=/.test(query) && !carM) return null;
     const ws = await sealer();
+    if (carM) {   // pull the pinned CAR back from a public gateway, then re-derive every block (L5)
+      const got = await ws.openCarByCid(carM[1]);
+      if (got && got.roots[0]) {
+        const r = await restoreAny(ws, got.roots[0], ws.verifiedBlockSource(got.blocks));
+        history.replaceState(null, "", location.pathname);
+        return r ? r.manifest : null;
+      }
+    }
     if (/wks=/.test(hash)) {
       const got = ws.decodeResumeLink(hash);
       if (got && got.roots[0]) {

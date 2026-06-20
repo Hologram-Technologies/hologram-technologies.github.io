@@ -21,6 +21,7 @@
 
   var DOC = document, root = DOC.documentElement;
   var VINYL_ID = "holo.vinyl";                                    // a live tile: the Holo Vinyl disc (shared with holo-vinyl.js)
+  var VIDEO_ID = "holo.video";                                    // a live tile: the Holo Video player window (shared with holo-video.js)
 
   // ── resolve our own location → siblings (css · config · platform · catalog · logo) ──
   var SELF = (DOC.currentScript && DOC.currentScript.src) ||
@@ -62,7 +63,7 @@
   // one coherent monochrome glyph set for the native categories (uniform 24·stroke 2) — file explorer,
   // apps, tools, settings, etc. — so the navigator reads like a desktop OS sidebar.
   var G = {
-    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>',
     search: SEARCH_SVG,
     resources: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM8 7h8M8 11h8"/></svg>',
     files: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
@@ -147,6 +148,7 @@
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><text x="12" y="16.4" font-size="11" font-family="system-ui,sans-serif" font-weight="600" text-anchor="middle" fill="currentColor" stroke="none">' + ch + "</text></svg>";
   }
   function appGlyph(id) {
+    if (id === VIDEO_ID) return IG.video;                        // the Holo Video tile carries the clean play-in-frame glyph
     if (APP_GLYPHS[id]) return APP_GLYPHS[id];
     var name = (appInfo(id).name || "").toLowerCase();
     for (var i = 0; i < NAME_GLYPHS.length; i++) if (name.indexOf(NAME_GLYPHS[i][0]) >= 0) return NAME_GLYPHS[i][1];
@@ -219,7 +221,10 @@
       return map;
     }).catch(function () { return {}; });
   }
-  function appInfo(id) { return STATE.catalog[id] || { id: id, name: String(id).split(".").pop(), icon: null }; }
+  function appInfo(id) {
+    if (id === VIDEO_ID) return { id: id, name: "Video", icon: null };
+    return STATE.catalog[id] || { id: id, name: String(id).split(".").pop(), icon: null };
+  }
 
   // ── shell adaptation (World/SDK vs Platform Manager) ───────────────────────────────────────────
   function inSdk() { return !!(W.__world && W.__world.launchById); }
@@ -247,6 +252,9 @@
   }
   function launch(id) {
     closeFlyout();
+    // The Holo Video tile is a LIVE object: it opens its own beautiful floating glass player window
+    // (movable · resizable · immersive full screen) on the top shell plane — never a holospace tab.
+    if (id === VIDEO_ID && W.HoloVideo && W.HoloVideo.open) { try { W.HoloVideo.open(); return; } catch (e) {} }
     // The NAV opens every app as its OWN focused holospace tab (never hijacks the current surface).
     if (W.HoloShell && W.HoloShell.openTab) { try { W.HoloShell.openTab(id, appInfo(id).name); setTimeout(updateRunning, 60); return; } catch (e) {} }
     // Holo Browser is the universal navigator: a dock tap opens that object in a browser tab.
@@ -279,6 +287,15 @@
     var ov = STATE.holo || {};
     var holo = Object.assign({}, base0, ov);
     holo.pins = (ov.pins || base0.pins || []).slice();
+    // Holo Vinyl (music) + Holo Video — the live media tiles are ALWAYS present in the rail for EVERY user,
+    // even if a saved layout never had them or dropped them. Each renders as its live tile (item() →
+    // vinylTile / videoTile), so we pin each only once its provider is loaded — never a placeholder. Both
+    // load before the dock, so the first render already carries them; this just makes "always shown" true
+    // regardless of the persisted pins. Music first, then video (the media pair, in order).
+    try {
+      if (W.HoloVinyl && W.HoloVinyl.dockTile && indexOfKey(holo.pins, VINYL_ID) < 0) holo.pins.push(VINYL_ID);
+      if (W.HoloVideo && W.HoloVideo.dockTile && indexOfKey(holo.pins, VIDEO_ID) < 0) holo.pins.push(VIDEO_ID);
+    } catch (e) {}
     if (!ov.glass && base0.glassByPlatform && STATE.profile && base0.glassByPlatform[STATE.profile.os]) holo.glass = base0.glassByPlatform[STATE.profile.os];
     return holo;
   }
@@ -397,10 +414,17 @@
     // core categories ALWAYS render — a glyph stack in the icon rail, left-aligned labelled rows when
     // expanded. No section headers, no Recents: a tight, no-scroll list. Pinned apps follow a hairline.
     fixedNav(inner);
+    var horizontal = STATE.orient === "bottom" || STATE.orient === "top";
+    // A horizontal dock keeps New inline with the other categories (the vertical rail anchors it to the
+    // very bottom instead — see below).
+    if (horizontal) { var topNew = el("ol", { "class": "holo-dock-items holo-dock-nav-list" }); topNew.appendChild(navRow(NEW_ROW)); inner.appendChild(topNew); }
     if ((holo.pins || []).length) inner.appendChild(el("span", { "class": "holo-dock-rule" }));
     var list = el("ol", { "class": "holo-dock-items" });
     (holo.pins || []).forEach(function (entry) { list.appendChild(isGroup(entry) ? groupTile(entry) : item(entry)); });
     inner.appendChild(list);
+    // New (+) pinned to the VERY BOTTOM of the vertical rail — below the pinned apps and the live
+    // music/video tiles. (.holo-dock-nav-bottom { margin-top: auto } pushes it to the bottom edge.)
+    if (!horizontal) { var bottomNew = el("ol", { "class": "holo-dock-items holo-dock-nav-list holo-dock-nav-bottom" }); bottomNew.appendChild(navRow(NEW_ROW)); inner.appendChild(bottomNew); }
 
     // The left NAV stays a clean, scroll-free sidebar: NO bottom tray (Create · Share · Library ·
     // Keyboard · Add · clock). Those verbs belong to the floating / bottom dock, not the navigator.
@@ -452,9 +476,24 @@
     return li;
   }
 
+  // a live tile: the Holo Video glass play-orb — lights + breathes while a video plays, tap = open player
+  function videoTile(id) {
+    var li = el("li", { "class": "holo-dock-item holo-dock-video", "data-app": id, "data-key": id, draggable: "true" });
+    var orb = W.HoloVideo.dockTile();                             // the live glass orb, bound to the singleton player
+    var tile = el("button", { "class": "holo-dock-tile", title: "Video — tap to open the player", "aria-label": "Video — tap to open the player" }, [orb]);
+    tile.appendChild(el("span", { "class": "holo-dock-label", text: "Video" }));
+    tile.addEventListener("click", function (e) { if (ctrlMenu(e, function () { openItemMenu(e, id); })) return; launch(id); });
+    li.appendChild(tile);
+    li.appendChild(el("span", { "class": "holo-dock-dot" }));
+    li.addEventListener("contextmenu", function (e) { e.preventDefault(); openItemMenu(e, id); });
+    bindLongPress(li, function (e) { openItemMenu(e, id); });
+    return li;
+  }
+
   // single object tile
   function item(id) {
     if (id === VINYL_ID && W.HoloVinyl && W.HoloVinyl.dockTile) return vinylTile(id);
+    if (id === VIDEO_ID && W.HoloVideo && W.HoloVideo.dockTile) return videoTile(id);
     var info = appInfo(id);
     var li = el("li", { "class": "holo-dock-item", "data-app": id, "data-key": id, draggable: "true" });
     var icon = glyphIcon(id);
@@ -537,8 +576,6 @@
   function shellTab(appId, title) { var s = W.HoloShell; if (s && typeof s.openTab === "function") { try { s.openTab(appId, title); return true; } catch (e) {} } return false; }
   var NAV = [
     { h: null, rows: [
-      // New — a fresh empty holospace tab (omnibar focused). Off-shell, fall back to the dock start action.
-      { id: "new", t: "New", g: G.create, primary: true, act: function () { if (!shellCall("newTab")) startAction(); } },
       // Home — the permanent Home tab (a holospace singleton; a duplicate Home would just be "New").
       { id: "home", t: "Home", g: G.home, act: function () { shellCall("home"); } },
       // Search — a fresh tab ready to search (omnibar focused); falls back to focusing the current bar.
@@ -551,6 +588,10 @@
       { id: "settings", t: "Settings", g: G.settings, act: function () { shellTab("org.hologram.HoloControl", "Settings"); } },
     ] },
   ];
+  // New — a fresh empty holospace tab (omnibar focused). On the vertical rail it is pinned to the VERY
+  // BOTTOM (below the categories, pinned apps and the live music/video tiles); on a horizontal dock it
+  // stays inline with the other categories. Off-shell, falls back to the dock start action.
+  var NEW_ROW = { id: "new", t: "New", g: G.create, primary: true, act: function () { if (!shellCall("newTab")) startAction(); } };
   var activeNav = "home";
   function navGo(r) {
     if (r && r.act) { try { r.act(); } catch (e) {} return; }   // an action row (New) — fires, never latches active
@@ -798,6 +839,7 @@
       var vmenu = el("div", { "class": "holo-dock-menu", role: "menu" }, [el("div", { "class": "holo-dock-menu-head", text: "Music" })]);
       var playing = W.HoloVinyl.dockPlaying && W.HoloVinyl.dockPlaying();
       vmenu.appendChild(mbtn(playing ? "Pause" : "Play", function () { W.HoloVinyl.dockToggle(); }));
+      if (W.HoloVinyl.dockOpenWindow) vmenu.appendChild(mbtn("Pop out player", function () { W.HoloVinyl.dockOpenWindow(); }));
       vmenu.appendChild(mbtn("Quick preview", function () { W.HoloVinyl.dockPreview(); }));
       vmenu.appendChild(mbtn("Open full player", function () { W.HoloVinyl.dockOpenFull(); }));
       vmenu.appendChild(mbtn("Change set…", function () { W.HoloVinyl.dockEdit(); }));

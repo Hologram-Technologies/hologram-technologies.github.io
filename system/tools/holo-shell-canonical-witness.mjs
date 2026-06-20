@@ -29,9 +29,18 @@ const base = `http://127.0.0.1:${port}`;
 console.log(`OS2 serving at ${base}\n`);
 
 // ── 1 · "/" boots THE canonical shell (in OS2), and it is served ──
+// '/' is a "shell decider" (ADR-0111): it routes to the ONE shell EITHER by an HTTP redirect to
+// /shell.html OR by serving the gateway landing ("Power up") that boots into it (splash →
+// location.replace → shell.html). Both reach the same canonical shell; accept either.
 const root = await fetch(`${base}/`, { redirect: "manual" }).catch(() => null);
 const loc = root && root.headers.get("location");
-rec("the default boot ('/') routes to the ONE canonical shell", !!loc && /\/shell\.html/.test(loc), loc || "no redirect");
+let rootsToShell = !!loc && /\/shell\.html/.test(loc);
+let how = loc || "no redirect";
+if (!rootsToShell && root && root.status === 200) {
+  const body = await root.text().catch(() => "");
+  if (/shell\.html/.test(body) && /location\.replace\(/.test(body)) { rootsToShell = true; how = "gateway boots → shell.html"; }
+}
+rec("the default boot ('/') routes to the ONE canonical shell", rootsToShell, how);
 const shellRes = await fetch(`${base}/${SHELL}`).catch(() => null);
 const shellHtml = shellRes && shellRes.status === 200 ? await shellRes.text() : "";
 rec("the canonical shell is served from OS2 (os/usr/share/frame/shell.html)",

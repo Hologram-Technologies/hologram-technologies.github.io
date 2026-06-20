@@ -33,7 +33,7 @@
     try { v = localStorage.getItem("holo.gateway.mode") || localStorage.getItem("holo-splash:bg"); } catch (e) {}
     if (!v) return null;
     if (v === "light") return { palette: "light", immersive: false };
-    if (v === "immersive" || v === "full" || v === "theme") return { palette: "dark", immersive: true };
+    if (v === "immersive" || v === "full" || v === "theme") return { palette: "dark", immersive: true, wallpaper: "/usr/share/wallpapers/galaxy.jpg" };
     if (v === "dark") return { palette: "dark", immersive: false };
     return null;
   }
@@ -53,6 +53,17 @@
   if (!s) {
     var mig = fromLegacy();
     s = mig || FIRST_RUN;
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  } else if (s.wallpaper == null && !("immersive" in s)) {
+    // The gateway handoff pins only the palette into holo.theme.v1 ({palette:"dark"}), which leaves
+    // the key non-null but never decides the wallpaper/immersive axis — so a brand-new operator who
+    // came through the homepage would otherwise land on a blank backdrop. A real saved theme (written
+    // by holo-theme.js) always carries an `immersive` key, so its absence uniquely marks this
+    // palette-only seed: fill the wallpaper/immersive axis from the upstream gateway choice (or the
+    // first-run default) so every new user still lands on the curated galaxy backdrop.
+    var seed = fromLegacy() || FIRST_RUN;
+    s.wallpaper = seed.wallpaper;
+    s.immersive = seed.immersive;
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
   s = s || {};

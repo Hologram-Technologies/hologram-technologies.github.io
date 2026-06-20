@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Resolve (Fork 1, one front door for intent) — a single resolver every surface (omnibar · voice · '+') routes through, layering a navigation lane (URL / content-address / search → destination, never 'built') in front of the ONE Q.intent classifier, so intent is decided ONCE wherever expressed and every surface converges; source is carried but never decisive; unhandled kinds report (never throw) so a surface falls back; deterministic",
+  "authority": "the Q.intent deterministic classifier (holo-q.js, ADR-0091 unified door) · holospaces Laws L2/L5",
+  "witnessed": true,
+  "covers": [
+    "one-intent-front-door",
+    "navigation-lane",
+    "every-surface-converges",
+    "source-not-decisive",
+    "single-dispatch",
+    "deterministic",
+    "honest-fallback"
+  ],
+  "checks": {
+    "navigationStaysNavigation": true,
+    "languageUsesOneClassifier": true,
+    "everySurfaceConverges": true,
+    "dispatchesToHandler": true,
+    "sourceCarriedNotDecisive": true,
+    "unhandledReportedNotThrown": true,
+    "deterministic": true,
+    "honestFallback": true
+  },
+  "failed": []
+}

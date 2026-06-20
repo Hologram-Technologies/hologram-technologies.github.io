@@ -225,6 +225,11 @@
 #holo-dock[data-orient="free"] .holo-dock-tray, #holo-dock[data-orient="free"] .holo-dock-sep { display: none !important; }
 #holo-dock[data-orient="left"] .holo-dock-items { flex-direction: column; align-items: center; }
 #holo-dock[data-orient="left"] .holo-dock-sep { flex: 1 1 auto; }
+/* New (+) is pinned to the very bottom of the vertical rail — the auto top-margin eats all free space
+ * above it, so it sits on the bottom edge below the categories, pinned apps and live music/video tiles. */
+#holo-dock[data-orient="left"] .holo-dock-nav-bottom,
+#holo-dock[data-orient="right"] .holo-dock-nav-bottom,
+#holo-dock[data-orient="free"] .holo-dock-nav-bottom { margin-top: auto; }
 #holo-dock[data-orient="left"] .holo-dock-tray { flex-direction: column; margin-left: 0; margin-top: var(--hd-sp3); }
 #holo-dock[data-orient="left"] .holo-dock-actions { flex-direction: column; }
 #holo-dock[data-orient="left"] .holo-dock-clock { display: none; }
@@ -247,7 +252,7 @@
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-inner {
   width: clamp(208px, 16vw, 280px); align-items: stretch; overflow-y: auto; overflow-x: hidden; padding: var(--hd-sp2) var(--hd-sp2) var(--hd-sp3);
 }
-#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-items { flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-items { flex-direction: column; align-items: stretch; gap: var(--hd-sp2); width: 100%; }
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-item { width: 100%; flex-direction: row; }
 /* a row: icon (left) + full name, hover-highlit; flat (no glossy chip on the row itself) */
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile {
@@ -297,13 +302,13 @@
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-action:hover,
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-add:hover { background: var(--hd-hover); }
 /* fixed native-category rows: lists share the exact row grid (one scale, no drift); active row marked */
-#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav-list { flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav-list { flex-direction: column; align-items: stretch; gap: var(--hd-sp2); width: 100%; }
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav[data-active] .holo-dock-tile { background: var(--hd-hover); }
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav[data-active] .holo-dock-label,
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav[data-active] span.holo-dock-icon { color: var(--hd-ink); }
 /* the ⌘K / Ctrl K hint chip, right-aligned in the row */
 #holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-kbd {
-  margin-left: auto; flex: 0 0 auto; font: 600 calc(var(--hd-text-xs, 11px)) var(--hd-font, ui-monospace, monospace);
+  margin-left: auto; flex: 0 0 auto; font: 600 calc(var(--hd-text-xs, var(--holo-text-sm, 0.688rem))) var(--hd-font, ui-monospace, monospace);
   color: var(--hd-ink-dim); background: color-mix(in srgb, var(--hd-ink) 10%, transparent);
   border: 1px solid var(--hd-border); border-radius: var(--hd-radius-sm); padding: 1px 6px; letter-spacing: .02em;
 }
@@ -459,7 +464,7 @@
 .holo-dock-menu hr { border: 0; border-top: 1px solid var(--hd-border); margin: var(--hd-pad) 0; }
 .holo-dock-menu .holo-dock-menu-head { padding: var(--hd-sp2) var(--hd-sp3); color: var(--hd-ink-dim); font-size: var(--hd-text-sm); }
 .holo-dock-menu button img { flex: 0 0 auto; }
-.holo-dock-menu-glyph { flex: 0 0 auto; width: 18px; height: 18px; display: inline-block; color: var(--hd-ink-dim); }
+.holo-dock-menu-glyph { flex: 0 0 auto; width: calc(var(--hd-icon) * 0.82); height: calc(var(--hd-icon) * 0.82); display: inline-block; color: var(--hd-ink-dim); }
 .holo-dock-menu-glyph svg { width: 100%; height: 100%; display: block; }
 
 /* ── Smooth load — fade in once laid out, so no boot measure/reflow jerk is ever seen (holo-dock.js). */

@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Courier (S3, Q speaks with discipline) — the only path from an S2 proposal to an inbox message, gated so Q is high-signal not spam: PROVENANCE (the body is the proposal's own words, a handed note never generated), CHANGES-WHAT-YOU'D-DO (only raised proposals), NOT-ALREADY-SAID (dedupe + update-in-place; release then re-raise speaks again), and a NOISE BUDGET (caps per delivery, holds the rest, never drops). NO-NOISE and coherence-triggered (not timer-driven) inherited from S2. Composition proven from a real heal sweep through S1 + S2 to the inbox note.",
+  "authority": "the witnessed HoloNotify inbox (Q delivers a handed note, never generates) · the witnessed Holo Control DSP (salience ranking) · W3C PROV-O · UOR-ADDR · holospaces Laws L2/L5 · rests on #holo-observer + #holo-notify",
+  "witnessed": true,
+  "covers": [
+    "q-voice",
+    "send-discipline",
+    "handed-not-generated",
+    "no-noise",
+    "dedupe",
+    "noise-budget",
+    "provenanced",
+    "s0-s1-s2-s3-composition"
+  ],
+  "checks": {
+    "composesRealPipelineToHandedNote": true,
+    "silentWhenNothingRaised": true,
+    "handedNeverGenerated": true,
+    "dedupeNoResend": true,
+    "resendAfterReleaseThenReraise": true,
+    "noiseBudgetCapsAndDrains": true,
+    "budgetGoesToHighestSalience": true,
+    "provenanceOnEverySend": true
+  },
+  "failed": []
+}

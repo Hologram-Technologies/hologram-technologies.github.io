@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>holo-3d screen WebGPU↔WebGL2 parity witness</title>
+<style>
+  body { margin: 16px; background: #06070d; color: #cfe0ff; font: 13px/1.5 ui-monospace, monospace; }
+  h1 { font-size: 15px; color: #eaf2ff; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+  canvas { image-rendering: pixelated; border: 1px solid #ffffff22; background:#000; }
+  table { border-collapse: collapse; margin-top: 12px; } td, th { border: 1px solid #ffffff22; padding: 4px 10px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .ok { color: #6fd3a0; } .bad { color: #ff8e8e; } .warn { color: #ffcf6f; }
+  pre { background:#0009; border:1px solid #ffffff22; border-radius:8px; padding:10px; white-space:pre-wrap; }
+  .box { display:inline-block; margin-right:8px; } .box div { color:#93a7c6; }
+</style>
+</head>
+<body>
+<h1>holo-3d framebuffer screen — WebGPU vs WebGL2 (4-tap unsharp) parity (P4 witness)</h1>
+<div id="env"></div>
+<div id="out">Running…</div>
+<div id="frames" class="row"></div>
+<pre id="json"></pre>
+
+<script type="module">
+import HoloScreenGPU from "./holo-screen-gpu.js";
+
+const W = 256, H = 192;
+const TOL = { maxChannel: 4, meanChannel: 0.5, pctOver: 0.5 };   // tighter than cosmos: no transcendentals, just clamp/add/mul
+
+// Deterministic high-frequency source so the unsharp mask actually bites (text-like edges + checker + gradient).
+function makeSource() {
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  const img = ctx.createImageData(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    const checker = ((x >> 2) + (y >> 2)) & 1 ? 255 : 0;          // 4px checker — high frequency
+    const grad = (x * 255 / W) | 0;
+    const bar = (x % 16 < 2 || y % 12 < 2) ? 255 : 0;             // grid lines (sharp edges)
+    img.data[i]   = checker;
+    img.data[i+1] = grad;
+    img.data[i+2] = Math.max(bar, (y * 255 / H) | 0);
+    img.data[i+3] = 255;                                          // opaque → no premultiply ambiguity
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+// WebGL2 baseline: the VERBATIM holo-3d unsharp math (apps/holo-3d/index.html:151-157), same uv flip,
+// same quad/uv convention as the WGSL. Read back flipped to top-left to match copyTextureToBuffer.
+function renderGL(source, sharpen, filter) {
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const gl = cv.getContext("webgl2", { antialias: false, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) return null;
+  const VS = `#version 300 es
+    const vec2 P[6]=vec2[6](vec2(-1.,-1.),vec2(1.,-1.),vec2(-1.,1.),vec2(-1.,1.),vec2(1.,-1.),vec2(1.,1.));
+    out vec2 vUv; void main(){ vec2 xy=P[gl_VertexID]; vUv=(xy+1.0)*0.5; gl_Position=vec4(xy,0.0,1.0); }`;
+  const FS = `#version 300 es
+    precision highp float; in vec2 vUv; out vec4 o;
+    uniform sampler2D map; uniform vec2 texel; uniform float sharpen;
+    void main(){ vec2 uv=vec2(vUv.x, 1.0-vUv.y); vec3 c=texture(map,uv).rgb;
+      if(sharpen>0.001){ vec3 n=texture(map,uv+vec2(0.0,-texel.y)).rgb, s=texture(map,uv+vec2(0.0,texel.y)).rgb,
+        e=texture(map,uv+vec2(texel.x,0.0)).rgb, w=texture(map,uv+vec2(-texel.x,0.0)).rgb;
+        c=clamp(c*(1.0+4.0*sharpen)-(n+s+e+w)*sharpen, 0.0, 1.0); }
+      o=vec4(c,1.0); }`;
+  const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){console.warn(gl.getShaderInfoLog(o));return null;}return o;};
+  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,VS));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)){console.warn(gl.getProgramInfoLog(p));return null;}
+  gl.useProgram(p);
+  const tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
+  const f=filter==="nearest"?gl.NEAREST:gl.LINEAR;
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,f); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,f);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.uniform1i(gl.getUniformLocation(p,"map"),0); gl.uniform2f(gl.getUniformLocation(p,"texel"),1/W,1/H); gl.uniform1f(gl.getUniformLocation(p,"sharpen"),sharpen);
+  gl.bindVertexArray(gl.createVertexArray()); gl.viewport(0,0,W,H); gl.drawArrays(gl.TRIANGLES,0,6); gl.finish();
+  const rows=new Uint8Array(W*H*4), flip=new Uint8Array(W*H*4);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,rows);
+  for(let y=0;y<H;y++) flip.set(rows.subarray((H-1-y)*W*4,(H-y)*W*4), y*W*4);
+  try{gl.getExtension("WEBGL_lose_context")?.loseContext();}catch{}
+  return { w:W, h:H, rgba:flip };
+}
+
+function toImg(rgba){ const c=document.createElement("canvas");c.width=W;c.height=H;c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(rgba),W,H),0,0);return c; }
+function diff(a,b){ let max=0,sum=0,over=0; const n=W*H*4; const d=new Uint8Array(n);
+  for(let i=0;i<n;i++){ if(i%4===3){d[i]=255;continue;} const e=Math.abs(a[i]-b[i]); max=Math.max(max,e); sum+=e; if(e>TOL.maxChannel)over++; d[i]=Math.min(255,e*16);}
+  const ch=n-W*H; return { max, mean:sum/ch, pctOver:100*over/ch, img:d }; }
+
+const CASES = [
+  { name: "sharpen 0.35 linear", sharpen: 0.35, filter: "linear" },
+  { name: "sharpen 0.40 linear", sharpen: 0.40, filter: "linear" },
+  { name: "passthrough (s=0) nearest", sharpen: 0.0, filter: "nearest" },
+  { name: "sharpen 0.25 nearest", sharpen: 0.25, filter: "nearest" },
+];
+
+const ok = await HoloScreenGPU.ready;
+document.getElementById("env").innerHTML = `WebGPU device: <b class="${ok?'ok':'bad'}">${ok?"available":"UNAVAILABLE"}</b> · ${W}×${H} · 1:1 (isolates shader math from magnify-filter差)`;
+
+const source = makeSource();
+const frames = document.getElementById("frames");
+frames.append((()=>{const b=document.createElement("div");b.className="box";b.append(toImg(source.getContext("2d").getImageData(0,0,W,H).data));const d=document.createElement("div");d.textContent="source";b.append(d);return b;})());
+const results = [];
+if (ok) for (const cs of CASES) {
+  const gl = renderGL(source, cs.sharpen, cs.filter);
+  const gp = await HoloScreenGPU.renderOnce(document.createElement("canvas"), { source, sharpen: cs.sharpen, filter: cs.filter });
+  if (!gl || !gp) { results.push({ case: cs.name, error: "renderOnce null" }); continue; }
+  const dd = diff(gl.rgba, gp.rgba);
+  const pass = dd.max <= TOL.maxChannel && dd.mean <= TOL.meanChannel && dd.pctOver <= TOL.pctOver;
+  results.push({ case: cs.name, maxChannel: dd.max, meanChannel: +dd.mean.toFixed(4), pctOver: +dd.pctOver.toFixed(4), pass });
+  const fig = document.createElement("div");
+  const lab=(t,cv)=>{const b=document.createElement("div");b.className="box";b.append(cv);const d=document.createElement("div");d.textContent=t;b.append(d);return b;};
+  fig.append(lab("GL "+cs.name, toImg(gl.rgba)), lab("GPU", toImg(gp.rgba)), lab("diff ×16", toImg(dd.img)));
+  frames.append(fig);
+}
+
+const verdict = ok ? (results.every(r=>r.pass) ? "PASS — WebGPU unsharp matches WebGL2 within tolerance" : "FAIL — see table") : "INCONCLUSIVE — no WebGPU device";
+const cls = !ok?"warn":(results.every(r=>r.pass)?"ok":"bad");
+let html=`<b class="${cls}">${verdict}</b>`;
+if(results.length){ html+=`<table><tr><th>case</th><th>max Δ/255</th><th>mean Δ</th><th>% &gt; ${TOL.maxChannel}</th><th>verdict</th></tr>`;
+  for(const r of results) html+= r.error?`<tr><td>${r.case}</td><td colspan=3 class=bad>${r.error}</td><td class=bad>ERR</td></tr>`:`<tr><td>${r.case}</td><td>${r.maxChannel}</td><td>${r.meanChannel}</td><td>${r.pctOver}</td><td class="${r.pass?'ok':'bad'}">${r.pass?'pass':'FAIL'}</td></tr>`;
+  html+=`</table>`; }
+document.getElementById("out").innerHTML=html;
+const summary={ tolerance:TOL, dims:[W,H], webgpu:ok, verdict, results };
+document.getElementById("json").textContent=JSON.stringify(summary,null,2);
+window.__parity=summary;
+</script>
+</body>
+</html>

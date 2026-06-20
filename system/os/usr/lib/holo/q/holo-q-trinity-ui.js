@@ -25,8 +25,20 @@ g.Q = Q;
 
 // start the continuous, invisible self-improvement loop once the page is interactive. Gentle cadence;
 // the scene-κ short-circuit makes an unchanged tick cost ~nothing, so this stays cheap OS-wide.
+// ONE AMBIENT LOOP (S1): if window.HoloAmbient owns the heartbeat (the spine registers drift-heal as a
+// faculty there), trinity does NOT arm its own timer — no second loop. It still self-times when the ambient
+// layer is absent, so trinity stays standalone-safe. A short retry covers the ambient module loading late.
 function startAmbient() {
-  try { trinity.startImproving(2000); } catch (e) {}
+  try {
+    if (typeof window !== "undefined" && window.HoloAmbient) return;   // the one loop already drives drift-heal
+    let waited = 0;
+    const arm = () => {
+      if (typeof window !== "undefined" && window.HoloAmbient) return;  // ambient came up — stand down
+      if (waited >= 4000) { try { trinity.startImproving(2000); } catch (e) {} return; }   // no ambient after ~4s — self-time
+      waited += 500; setTimeout(arm, 500);
+    };
+    arm();
+  } catch (e) { try { trinity.startImproving(2000); } catch (x) {} }
 }
 if (typeof document !== "undefined" && document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", startAmbient, { once: true });

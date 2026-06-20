@@ -1,12 +1,15 @@
 {
   "note": "Ratchet baseline for the Holo UI readability floor across apps (ADR-0057). 'ceilings' is the max sub-16px font-size count allowed per app's authored index.html; the witness FAILS on any increase. Burn these down (route to var(--holo-text-sm)) and re-seal with --update-baseline. New apps default to a ceiling of 0.",
   "floor": 16,
-  "total": 45,
+  "total": 72,
   "ceilings": {
-    "cosmos": 2,
     "f1": 8,
     "files": 1,
+    "holo-3d": 6,
+    "holo-linux": 17,
+    "holo-x86": 5,
     "ipfs": 1,
+    "qemu": 1,
     "qvac": 2,
     "trade": 31
   }

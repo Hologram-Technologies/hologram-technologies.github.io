@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const NSR = join(here, "..", "_nsr");                 // neural inference module + κ-pinned model
 
-const APPS = "C:/Users/pavel/Desktop/Hologram Apps";
+const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");
 const sha256 = (buf) => "sha256:" + createHash("sha256").update(buf).digest("hex");
 const arg = (k, d) => { const i = process.argv.indexOf("--" + k); return i > 0 ? process.argv[i + 1] : d; };
 const flag = (k) => process.argv.includes("--" + k);

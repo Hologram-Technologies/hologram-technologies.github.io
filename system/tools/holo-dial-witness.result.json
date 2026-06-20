@@ -1,0 +1,22 @@
+{
+  "spec": "Holo Dial (ADR-0113) S0 — the existing WebRTC κ-transport (holo-mesh-blocks · holo-webrtc-link · holo-peers) composes into one dial-by-κ resolver source: a peer-only κ is fetched and accepted ONLY after re-derivation (Law L5), a tampered/absent block is refused with no laundering and no hang, the resolver is the final gate, and a resolved κ then serves locally (the device seeds) — a native iroh-blobs",
+  "authority": "holospaces Laws L1/L3/L5 · ADR-026 Sovereign Delivery (cache → peers → origin) · ADR-0113 Holo Dial · W3C WebRTC DataChannel · IPFS Trustless Gateways (κ = CIDv1 sha2-256)",
+  "witnessed": true,
+  "covers": [
+    "dial-compose",
+    "dial-by-kappa",
+    "peer-transport",
+    "datachannel-adapter",
+    "law-l5",
+    "no-launder",
+    "device-seeds"
+  ],
+  "checks": {
+    "composesInMemory": true,
+    "seedsThenServesLocal": true,
+    "composesDataChannel": true,
+    "refusesTampered": true,
+    "resolverIsFinalGate": true,
+    "declinesUnheld": true
+  }
+}

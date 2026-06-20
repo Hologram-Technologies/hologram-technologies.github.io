@@ -28,13 +28,21 @@
   var CFG = Object.assign({ engine: "auto", remote: false, lang: null, confirm: true, preferWebGPU: false, wakeWord: "Q", voice: "af_heart",
     bargeFloor: 0.05, bargeEcho: 0.4, bargeFrames: 9, silenceMs: 550,
     turnDetect: true, turnSilenceMs: 250, turnSilenceDone: 130, turnContinueMs: 600, turnModel: false, turnThreshold: 0.55,   // adaptive turn-taking: snap at turnSilenceDone when the thought reads COMPLETE, hold to turnSilenceMs when mid-thought
-    stream: true, streamPartialMs: 550,   // streaming ASR — recognize WHILE you talk (off → buffered)
+    stream: true, streamPartialMs: 300,   // streaming ASR — recognize WHILE you talk (off → buffered). Tight cadence so words paint in near-real-time; the serialised partialBusy guard self-throttles when a transcribe is still in flight.
     vad: true, vadThreshold: 0.35,   // sovereign pure-ONNX stage-1 wake gate (Silero VAD on the bundled ORT). ON by default — seamless: it warms when hands-free wake starts, fails closed to energy-VAD if the model isn't vendored. Threshold biased LOW so a real "Q" is never gated out (a false-positive just costs one Whisper run that WAKE.re then rejects; a missed wake is far worse)
     mind: true, mindSpeak: true, proactive: false, proactiveGoals: false,   // Holo Mind: orchestrate · speak-back · proactive
     backchannel: true, backchannelGain: 0.4, backchannelChance: 0.55, backchannelMinMs: 2600,   // soft "mm-hmm" while you talk
     confirmActions: true,   // converse first; PROPOSE every action and wait for your OK before doing it
     karaoke: true, clauseCache: true,   // karaoke caption + clause-grained κ-cache (higher hit-rate)
-    gpuBrain: false },   // OPT-IN: prefer the ternary qwen-coder-7b GPU brain (ADR-0096) when WebGPU works; WASM Coder-1.5B is the any-browser floor
+    gpuBrain: false,   // OPT-IN: prefer the ternary qwen-coder-7b GPU brain (ADR-0096) when WebGPU works; WASM Coder-1.5B is the any-browser floor
+    holoUpgrade: true,   // SILENT 0.5B→1.5B .holo upgrade: ON — the 1.5B is forged + κ-wired (ea732336…) + chunked-warm (body-async load, lm_head chunked); guarded WebGPU-only + non-metered + tier-2 background (0.5B stays bound until 1.5B is ready, never blocks a turn)
+    // κ-native Holo GGUF "ear": when WebGPU works, run Moonshine 100% on the κ-substrate — weights κ-streamed
+    // from the .holo (HTTP-Range + per-block L5 + OPFS), GPU encoder-decoder forward, no ONNX. Same cross-mount
+    // pattern as Q's .holo brain (/apps/q/forge/*). Self-gates on WebGPU and transparently falls back to the
+    // transformers/ONNX ear; set to null to force ONNX. κ = sha256 of the .holo (for the static/IPFS κ-route).
+    knativeEar: { module: "/apps/q/forge/gpu/holo-moonshine-ear.mjs",
+      holoUrl: "/apps/q/forge/.models/moonshine-tiny-int8.holo", kappa: "bbd89df22c86fc54455779be070395cc8dab0c3438cbe85974c9f02d2a291780", release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-int8.holo",
+      upgradeUrl: "/apps/q/forge/.models/moonshine-tiny-f16.holo", upgradeKappa: "ff7e1c8b3c9e360ab062ce96a297e6f2467608c634f2e4b171078180056a72d8", upgradeRelease: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-f16.holo" } },   // resolve: path(dev) → Release asset(prod) → κ-route(IPFS), all per-block L5-verified
     W.HOLO_VOICE_CONFIG || {});   // turn-taking + barge-in (tune on real HW)
   // persisted user toggles override config: the agent brain runs on WebGPU (1.5B, fast on a real GPU)
   // or the WASM floor (0.5B, any browser); and the wake word (its name) is whatever you choose.
@@ -73,11 +81,42 @@
   // live amplitude (ttsLevel) for its intonation. Every synthesised clip is memoised by its content
   // address (voice ⊕ text) — Q's fixed phrases (acks, confirmations, the welcome) become O(1) replays
   // with zero inference. (In-memory store now; a κ-disk/OPFS backend drops in behind the same key.)
-  var _ttsAC = null, _ttsAn = null, _ttsBuf = null, _ttsRaf = 0, _playCursor = 0, _queueSrcs = [], _activeSpeaker = null;
+  var _ttsAC = null, _ttsAn = null, _ttsBuf = null, _ttsRaf = 0, _playCursor = 0, _queueSrcs = [], _activeSpeaker = null, _voiceFx = null, _voiceLibP = null;
   function ensureAC() {
     var AC = W.AudioContext || W.webkitAudioContext;
-    if (!_ttsAC) { _ttsAC = new AC(); _ttsAn = _ttsAC.createAnalyser(); _ttsAn.fftSize = 512; _ttsAn.connect(_ttsAC.destination); _ttsBuf = new Uint8Array(_ttsAn.fftSize); }
+    if (!_ttsAC) {
+      _ttsAC = new AC(); _ttsAn = _ttsAC.createAnalyser(); _ttsAn.fftSize = 512; _ttsBuf = new Uint8Array(_ttsAn.fftSize);
+      // Route Q's voice through the Holo Audio engine so it sounds natural and PRESENT — as if a real
+      // persona in the room. The analyser still feeds the orb; the engine sits between it and the speakers.
+      _voiceFx = attachVoiceFx(_ttsAC, _ttsAn);
+      if (!_voiceFx) { _ttsAn.connect(_ttsAC.destination); loadHoloAudioLib(); }   // fallback direct + warm the lib for next time
+    }
     return _ttsAC;
+  }
+  // The engine lib is a tiny shared script (window.HoloAudio); pull it once so it's ready by first speech.
+  function loadHoloAudioLib() {
+    if (W.HoloAudio) return Promise.resolve(W.HoloAudio);
+    if (_voiceLibP) return _voiceLibP;
+    _voiceLibP = new Promise(function (resolve) {
+      try { var s = DOC.createElement("script"); s.src = "/_shared/holo-audio.js"; s.defer = true; s.setAttribute("data-holo-ephemeral", "");
+        s.onload = function () { resolve(W.HoloAudio || null); }; s.onerror = function () { resolve(null); }; (DOC.head || DOC.documentElement).appendChild(s); }
+      catch (e) { resolve(null); }
+    });
+    return _voiceLibP;
+  }
+  // The "in the room" voice profile: natural presence EQ + gentle leveling (Voice preset) + a touch of room.
+  // Centered (no HRTF panning — an assistant should speak to you, not from beside you). Honest: this shapes
+  // the synthesized voice for presence; true human realism comes from the voice model itself.
+  function attachVoiceFx(ac, an) {
+    try {
+      if (!W.HoloAudio || !W.HoloAudio.createForSource) return null;
+      var fx = W.HoloAudio.createForSource(ac, an);            // an → engine → ac.destination
+      if (!fx || !fx.ok) return null;
+      try { fx.setPreset("Voice"); } catch (e) {}
+      try { if (fx.setRoom) fx.setRoom(0.12); } catch (e) {}   // a touch of room — present, not reverby
+      try { if (fx.canSpatial) fx.setSpatial(false); } catch (e) {}
+      return fx;
+    } catch (e) { return null; }
   }
   function meter() {
     if (!_ttsAn) { _ttsRaf = 0; return; }
@@ -86,22 +125,178 @@
     if (_queueSrcs.length) { STATE.ttsLevel = m; _ttsRaf = requestAnimationFrame(meter); } else { STATE.ttsLevel = 0; _ttsRaf = 0; }
   }
   function startMeter() { if (!_ttsRaf) _ttsRaf = requestAnimationFrame(meter); }
-  // ── KARAOKE: reveal Q's caption IN SYNC with the audio, not when the LLM emits a token ─────────────
-  // The text-vs-audio desync is a rendering choice: text is free, audio costs synthesis. We drive capQ
-  // from the PLAYBACK clock — each clip's words appear across the clip's own duration, scheduled against
-  // the AudioContext time it's set to play — so text and speech move together. (deep-research RANK 1.)
-  var _karaTimers = [], _karaLine = "";
-  function karaReset() { _karaTimers.forEach(function (t) { clearTimeout(t); }); _karaTimers = []; _karaLine = ""; if (capQ) { capQ.style.opacity = "1"; capQ.textContent = ""; } }
-  function karaClear() { _karaTimers.forEach(function (t) { clearTimeout(t); }); _karaTimers = []; }   // stop pending reveals, keep what's shown
+  // The READING form of a spoken line: clean typography for the caption (the spoken string is NEVER
+  // touched — only what we show). A spaced dash is a pause, not a glyph to read, so it becomes a comma;
+  // we never display a dash as a separator. Word-internal compounds (on-device) keep their hyphen.
+  function captionText(s) {
+    return String(s == null ? "" : s)
+      .replace(/\s+[—–-]+\s+/g, ", ")   // " — " / " – " / " - " (dash used as a pause) → comma
+      .replace(/\s*,(\s*,)+/g, ",")     // collapse accidental double commas
+      .replace(/\s+,/g, ",")            // " ," → ","
+      .replace(/\s{2,}/g, " ")          // collapse runs of spaces
+      .trim();
+  }
+  // ── CAPTION: a single-row "karaoke ribbon" that the voice scrolls through ───────────────────────────
+  // One line, no wrapping. The word being spoken is held at a FIXED point — the centre of the strip — and
+  // the whole row glides left so each new word lands on that same playhead. Upcoming words wait to the right
+  // and fade in through a soft edge-mask; spoken words drift left and fade out. Motion is driven by the
+  // AudioContext clock (never ahead of the voice) and low-pass smoothed so it never snaps — calm, steady,
+  // easy to follow. captionText() cleaning + syllable-weighted word times are unchanged.
+  var _capReduce = !!(W.matchMedia && W.matchMedia("(prefers-reduced-motion: reduce)").matches);   // honor reduced-motion
+  var _karaWords = [], _karaRaf = 0, _capMaxAt = 0;                    // the scheduled words {w, at, el, c=centre}, in audio order
+  var _track = null, _capCur = null, _trackX = null;                 // the sliding row, the lit word, the current (smoothed) translateX in px
+  var _capSpeaker = null, _userWords = [];                          // who owns the ribbon now ('q'|'user'|null) ; the user's live words {w, el}
+  // CALM caption (welcome): when on, captions render ONE sentence at a time — centred, wrapped, still — with
+  // no scroll and no upcoming text, instead of the streaming ribbon. Easy + unhurried for a first impression.
+  var _calmCaption = false, _sentRaf = 0, _sentences = [], _sentIdx = -1, _sentEls = null, _sentClipEnd = 0;
+  function karaSyll(w) {                                                 // rough syllable estimate: count vowel groups
+    var m = String(w).toLowerCase().replace(/[^a-z]+/g, "").match(/[aeiouy]+/g);
+    return Math.max(1, m ? m.length : 1);
+  }
+  function karaStop() { if (_karaRaf) { cancelAnimationFrame(_karaRaf); _karaRaf = 0; } }   // halt the scroll loop
+  function ensureTrack() {
+    if (!capQ) return null;
+    if (_capReduce) capQ.classList.add("hl-reduce");                    // accessibility: no horizontal motion
+    if (!_track) { _track = DOC.createElement("div"); _track.className = "hl-track"; capQ.appendChild(_track); }
+    return _track;
+  }
+  // append one word to the row (calm + dim by default). No entrance animation — the mask + scroll reveal it.
+  function capAddWord(text, at) {
+    if (!ensureTrack()) return;
+    var sp = DOC.createElement("span"); sp.className = "hl-w"; sp.textContent = text;
+    _track.appendChild(sp); _karaWords.push({ w: text, at: at, el: sp, c: -1 }); if (at > _capMaxAt) _capMaxAt = at;
+  }
+  // light exactly the word under the playhead; everyone else stays calm and dim.
+  function capHighlight(el) {
+    if (el && el !== _capCur) { if (_capCur) _capCur.classList.remove("hl-cur"); el.classList.add("hl-cur"); _capCur = el; }
+  }
+  function karaReset() {                                                 // a new utterance → gently fade the old row out, reset the scroll
+    karaStop(); clearSentences(); _karaWords = []; _userWords = []; _capCur = null; _capMaxAt = 0; _trackX = null; _capSpeaker = null;
+    if (_track) { var old = _track; old.classList.add("hl-leave"); setTimeout(function () { if (old.parentNode) old.parentNode.removeChild(old); }, 360); }   // absolute + fade → it dissolves in place while the next row builds
+    _track = null; if (capQ) capQ.style.opacity = "1";
+  }
+  function karaClear() { karaStop(); }   // stop the scroll, leave the row where it is
+  // who owns the ribbon now — Q (warm) or the user (cool). A data-speaker attr restyles the row so it's
+  // obvious at a glance who's talking; they never speak at once, so they share the one centre-parked strip.
+  function capSpeakerAttr(who) { if (who !== _capSpeaker) { _capSpeaker = who; _userWords = []; if (capQ) capQ.setAttribute("data-speaker", who || ""); } }
+  // measure each word's centre once (relative to the track), so the maths stays stable as more append right
+  function karaMeasure(list) { for (var m = 0; m < list.length; m++) { var wd = list[m]; if (wd.c < 0 && wd.el.offsetParent !== null) wd.c = wd.el.offsetLeft + wd.el.offsetWidth / 2; } }
+  // where the row WANTS to be centred + which word to light. Q follows the audio clock (interpolated between
+  // the current word and the next for a continuous glide); the user's target is simply the newest heard word.
+  function karaTarget() {
+    if (_capSpeaker === "user") { if (!_userWords.length) return null; var u = _userWords[_userWords.length - 1]; return { c: u.c, el: u.el }; }
+    if (!_karaWords.length || !_ttsAC) return null;
+    var now = _ttsAC.currentTime, ai = 0, i;
+    for (i = 0; i < _karaWords.length; i++) { if (_karaWords[i].at <= now) ai = i; else break; }   // active = last word the voice has reached
+    var a = _karaWords[ai], b = _karaWords[ai + 1], tc = a.c;
+    if (b && b.c >= 0 && a.c >= 0) { var sp = b.at - a.at, f = sp > 0 ? Math.max(0, Math.min(1, (now - a.at) / sp)) : 0; tc = a.c + (b.c - a.c) * f; }
+    return { c: tc, el: a.el };
+  }
+  // THE SMOOTH RIDE: one continuous loop low-pass-smooths the row toward its target, so the live word GLIDES
+  // to the centre playhead instead of snapping — no jerk. It never runs ahead of its source (audio for Q, the
+  // recognised tail for the user); a late frame just catches up. Words fade in/out through the edge mask.
+  function karaPump() {
+    _karaRaf = 0; if (!capQ || !_track) return;
+    karaMeasure(_capSpeaker === "user" ? _userWords : _karaWords);
+    var t = karaTarget(); if (!t) return;
+    capHighlight(t.el);
+    var more = (_capSpeaker !== "user") && _ttsAC && _karaWords.length && (_ttsAC.currentTime < _capMaxAt + 0.05);   // Q keeps ticking while audio plays
+    if (_capReduce || !(t.c >= 0)) { if (more || !(t.c >= 0)) _karaRaf = requestAnimationFrame(karaPump); return; }
+    var target = capQ.clientWidth / 2 - t.c;
+    _trackX = (_trackX == null) ? target : _trackX + (target - _trackX) * 0.38;   // one-pole smoother → glides in ~0.18s then rests: smooth, not laggy, not a snap
+    _track.style.transform = "translate3d(" + _trackX.toFixed(2) + "px,0,0)";
+    if (more || Math.abs(target - _trackX) > 0.4) _karaRaf = requestAnimationFrame(karaPump);   // settle, then rest
+  }
+  function capStart() { if (!_karaRaf) _karaRaf = requestAnimationFrame(karaPump); }
+  // SCHEDULE a spoken clip's words: clean → syllable-weighted times → drop them on the row in audio order.
   function karaChunk(text, startAtSec, durSec) {
     if (CFG.karaoke === false || !capQ || !_ttsAC) return;
-    var words = String(text || "").trim().split(/\s+/).filter(Boolean); if (!words.length) return;
-    var per = (durSec > 0 ? durSec : words.length * 0.32) / words.length, base = _ttsAC.currentTime;
-    words.forEach(function (w, i) {
-      var delayMs = Math.max(0, (startAtSec + i * per - base) * 1000);
-      _karaTimers.push(setTimeout(function () { _karaLine = _karaLine ? _karaLine + " " + w : w; if (capQ) capQ.textContent = _karaLine; }, delayMs));
+    var words = captionText(text).split(/\s+/).filter(Boolean); if (!words.length) return;   // the CLEAN reading form
+    capSpeakerAttr("q");                                                 // Q taking the ribbon (warm)
+    var dur = durSec > 0 ? durSec : words.length * 0.32;
+    var weights = words.map(karaSyll), total = 0, i;
+    for (i = 0; i < weights.length; i++) total += weights[i];
+    if (!(total > 0)) { for (i = 0; i < weights.length; i++) weights[i] = 1; total = weights.length; }   // degenerate → uniform
+    var acc = 0;
+    for (i = 0; i < words.length; i++) { capAddWord(words[i], startAtSec + (acc / total) * dur); acc += weights[i]; }   // start of the word's slice → never ahead of the audio
+    capStart();
+  }
+  // ── CALM sentence-at-a-time caption (welcome only) ──────────────────────────────────────────────────
+  // Instead of the scrolling ribbon, show ONE sentence at a time: centred, wrapped, perfectly still, with the
+  // word under the voice gently lit. On a sentence boundary the line dissolves and the next fades up — no
+  // upcoming text, nothing streaming past. Same audio clock + syllable timing, just unhurried and delightful.
+  function clearSentences() { if (_sentRaf) { cancelAnimationFrame(_sentRaf); _sentRaf = 0; } _sentences = []; _sentIdx = -1; _sentEls = null; }
+  function splitSentences(text) {
+    var parts = String(text == null ? "" : text).match(/[^.!?]+[.!?]*/g);   // keep each sentence WITH its ender
+    return (parts || [String(text || "")]).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  function karaSentences(text, startAtSec, durSec) {
+    if (!capQ || !_ttsAC) return;
+    capSpeakerAttr("q"); capQ.style.opacity = "1";
+    var sents = splitSentences(captionText(text)); if (!sents.length) return;
+    var syl = function (s) { return s.split(/\s+/).filter(Boolean).reduce(function (a, w) { return a + karaSyll(w); }, 0); };
+    var sw = sents.map(syl), total = 0, i; for (i = 0; i < sw.length; i++) total += sw[i]; if (!(total > 0)) total = 1;
+    var dur = durSec > 0 ? durSec : sents.join(" ").split(/\s+/).filter(Boolean).length * 0.32;
+    _sentClipEnd = startAtSec + dur;
+    var acc = 0, list = [];
+    for (i = 0; i < sents.length; i++) {
+      var st = startAtSec + (acc / total) * dur; acc += sw[i]; var en = startAtSec + (acc / total) * dur;   // this sentence's audio window
+      var words = sents[i].split(/\s+/).filter(Boolean);
+      var ws = words.map(karaSyll), wt = 0, j; for (j = 0; j < ws.length; j++) wt += ws[j]; if (!(wt > 0)) wt = 1;
+      var wacc = 0, wtimes = []; for (j = 0; j < words.length; j++) { wtimes.push(st + (wacc / wt) * (en - st)); wacc += ws[j]; }   // per-word onset within the sentence
+      list.push({ start: st, words: words, wtimes: wtimes });
+    }
+    _sentences = list; _sentIdx = -1; sentPump();
+  }
+  function mountSentence(idx) {                                         // dissolve the current sentence, build + fade in the next (centred, wrapped, still)
+    if (_track) { var old = _track; old.style.animation = "none"; old.classList.add("hl-leave"); setTimeout(function () { if (old.parentNode) old.parentNode.removeChild(old); }, 360); }
+    _capCur = null;
+    var tr = DOC.createElement("div"); tr.className = "hl-track"; var words = _sentences[idx].words, els = [];
+    for (var i = 0; i < words.length; i++) { var sp = DOC.createElement("span"); sp.className = "hl-w"; sp.textContent = words[i]; tr.appendChild(sp); els.push(sp); }
+    capQ.appendChild(tr); _track = tr; _sentEls = els;
+  }
+  function sentPump() {
+    _sentRaf = 0; if (!capQ || !_sentences.length || !_ttsAC) return;
+    var now = _ttsAC.currentTime, idx = 0, i;
+    for (i = 0; i < _sentences.length; i++) { if (_sentences[i].start <= now) idx = i; else break; }   // the sentence the voice is in
+    if (idx !== _sentIdx) { mountSentence(idx); _sentIdx = idx; }
+    var s = _sentences[idx], wi = 0; for (i = 0; i < s.wtimes.length; i++) { if (s.wtimes[i] <= now) wi = i; else break; }   // light the word under the playhead
+    if (_sentEls && _sentEls[wi]) capHighlight(_sentEls[wi]);
+    if (_ttsAC.currentTime < _sentClipEnd + 0.05) _sentRaf = requestAnimationFrame(sentPump);   // keep ticking while this clip still plays
+  }
+  // STATIC render (no audio clock): the speechSynth floor + one-off captions lay the cleaned line on the row,
+  // centred as a whole, last word lit — same component, so every caption path looks identical.
+  function captionShow(text) {
+    if (!capQ) return; karaReset(); capSpeakerAttr("q"); capQ.style.opacity = "1";
+    var words = String(text == null ? "" : text).split(/\s+/).filter(Boolean);
+    for (var i = 0; i < words.length; i++) capAddWord(words[i], 0);
+    if (!_karaWords.length) return;
+    capHighlight(_karaWords[_karaWords.length - 1].el);
+    if (_capReduce || !_track) return;
+    requestAnimationFrame(function () {                                  // centre the whole line on the playhead once laid out (static, no clock)
+      if (!_track || !capQ) return;
+      _trackX = (capQ.clientWidth - _track.offsetWidth) / 2; _track.style.transform = "translate3d(" + _trackX.toFixed(2) + "px,0,0)";
     });
   }
+  // USER live transcription → the SAME ribbon. Partials arrive a few times a second and get REFINED, so we
+  // DIFF: keep the unchanged prefix, rewrite the diverged tail, append new words; the newest word parks on
+  // the centre playhead (the same fixed highlight Q uses), earlier words stream left. No audio clock here —
+  // the latest recognised word IS the "current" one. Crossing from Q wipes Q's row first.
+  function capUserText(text) {
+    if (!capQ) return;
+    if (_capSpeaker !== "user") karaReset();                            // came from Q (or empty) → fade that out first
+    capSpeakerAttr("user"); ensureTrack();
+    var words = String(text == null ? "" : text).split(/\s+/).filter(Boolean);
+    var i = 0; for (; i < _userWords.length && i < words.length; i++) { if (_userWords[i].w !== words[i]) break; }   // shared prefix
+    for (var j = _userWords.length - 1; j >= i; j--) { var rm = _userWords.pop(); if (rm.el.parentNode) rm.el.parentNode.removeChild(rm.el); }   // drop the revised tail
+    for (; i < words.length; i++) { var sp = DOC.createElement("span"); sp.className = "hl-w"; sp.textContent = words[i]; _track.appendChild(sp); _userWords.push({ w: words[i], el: sp, c: -1 }); }
+    if (!_userWords.length) return;
+    capHighlight(_userWords[_userWords.length - 1].el);   // light the live edge; the loop glides it to centre
+    capStart();
+  }
+  function capClear() { karaReset(); }   // empty the ribbon — the listening state (the orb, not text, says "I'm listening")
+  // BARGE-IN: Q yields. Its words shrink + fade deferentially; the orb's flip to the listening palette does the rest.
+  function capBargeAck() { if (_track) _track.classList.add("hl-yield"); }
   // schedule a clip to play immediately AFTER whatever is already queued (gapless). Resolves on its end.
   // `text` (optional) is revealed in capQ in sync with THIS clip's playback (karaoke).
   function enqueuePCM(float32, rate, text) {
@@ -111,7 +306,7 @@
       var s = ac.createBufferSource(); s.buffer = b; s.connect(_ttsAn);
       var startAt = Math.max(ac.currentTime + 0.01, _playCursor || 0);
       s.start(startAt); _playCursor = startAt + b.duration; _queueSrcs.push(s); startMeter(); tmark("firstAudio");
-      if (text) karaChunk(text, startAt, b.duration);                  // caption follows the audio, never races ahead
+      if (text) { if (_calmCaption) karaSentences(text, startAt, b.duration); else karaChunk(text, startAt, b.duration); }   // caption follows the audio, never races ahead (calm = one sentence at a time)
       return new Promise(function (res) { s.onended = function () { var i = _queueSrcs.indexOf(s); if (i >= 0) _queueSrcs.splice(i, 1); res(); }; });
     } catch (e) { return Promise.reject(e); }
   }
@@ -120,7 +315,7 @@
   function stopSpeaking() {
     if (_activeSpeaker) { try { _activeSpeaker.abort(); } catch (e) {} _activeSpeaker = null; }
     _queueSrcs.splice(0).forEach(function (s) { try { s.onended = null; s.stop(); } catch (e) {} });
-    _playCursor = 0; karaClear(); try { W.speechSynthesis && W.speechSynthesis.cancel(); } catch (e) {}
+    _playCursor = 0; karaClear(); if (_sentRaf) { cancelAnimationFrame(_sentRaf); _sentRaf = 0; } try { W.speechSynthesis && W.speechSynthesis.cancel(); } catch (e) {}
     cancelAnimationFrame(_ttsRaf); _ttsRaf = 0; STATE.ttsLevel = 0;
   }
   // create + resume the audio graph inside a user gesture so playback isn't blocked by autoplay policy.
@@ -162,7 +357,7 @@
             if (a && a.audio) { putPhrasePCM(text, voice, a.audio, a.sampling_rate || 24000); tail = enqueuePCM(a.audio, a.sampling_rate || 24000, text); return; }
           }
         } catch (e) {}
-        if (!aborted && CFG.karaoke !== false && capQ) { _karaLine = _karaLine ? _karaLine + " " + text : text; capQ.textContent = _karaLine; }   // speechSynth floor → no timing, show the text
+        if (!aborted && CFG.karaoke !== false && capQ) captionShow(captionText(text));   // speechSynth floor → no audio clock, show the cleaned line through the same component
         if (!aborted) tail = speakSynthPush(text);                    // floor: built-in voice
       })();
     }
@@ -183,7 +378,7 @@
         try {
           var m = await import(BASE + "voice/holo-voice-tts.mjs");
           var engine = (m.createTTS || m.default)({ voice: CFG.voice, preferWebGPU: CFG.preferWebGPU });
-          await engine.load(function () { hud("loading", "Finding Q’s voice…"); });
+          await engine.load(function () {});   // load SILENTLY — the baked welcome covers first run + the built-in voice covers any gap, so the model warms invisibly (the orb is the only cue; never a "loading" label)
           _tts = { engine }; return _tts;
         } catch (e) { console.warn("[HoloVoice] neural voice unavailable (run tools/vendor-voice-model.mjs) — using built-in voice:", e && e.message || e); return null; }
         finally { _ttsLoading = null; }
@@ -204,7 +399,7 @@
         if (a && a.audio) { putPhrasePCM(text, voice, a.audio, a.sampling_rate || 24000); await playPCM(a.audio, a.sampling_rate || 24000, kara ? text : null); return { ok: true, runtime: "kokoro-" + (t.engine.info().device || "wasm") }; }
       }
     } catch (e) { console.warn("[HoloVoice] neural TTS failed, falling back:", e && e.message || e); }
-    if (kara && CFG.karaoke !== false && capQ) capQ.textContent = text;   // speechSynth floor → no timing, show the text
+    if (kara && CFG.karaoke !== false && capQ) captionShow(captionText(text));   // speechSynth floor → no audio clock, show the cleaned line through the same component
     return speakSynth(text, o);
   }
   var speak = speakNatural;                                            // Q's default voice
@@ -249,10 +444,27 @@
     "Good question.", "Well,", "Hmm,", "Right,", "Right.", "Yes,", "Yeah,", "Sorry,", "Actually,",
     "On it.", "I think", "Let me think.", "Of course,", "Sure thing."];
   var PREWARM = ["Yeah?", "What's up?", "Showing the desktop.", "dark mode.", "light mode.", "Done.", "Talk soon.", "I'm here whenever you need me."].concat(BACKCHANNELS).concat(OPENERS);
+  // Prefetch the brain .holo into the OPFS κ-cache the moment we warm — overlaps boot/first-touch latency so
+  // by the time you open Q (or ask anything novel past the L0 seed answers) the 0.5B is already warm/warming,
+  // not starting cold at Q-open. Guarded: WebGPU + non-metered + once; deferred so it never competes with the
+  // ear/voice warm or boot paint; fire-and-forget (no GPU build — just streams bytes → OPFS, L5 on real load).
+  var _brainPrefetched = false;
+  function prefetchBrain() {
+    if (_brainPrefetched || metered() || CFG.holoBrain === false) return; _brainPrefetched = true;
+    hasWebGPUSafe().then(function (gpu) {
+      if (!gpu) return;
+      setTimeout(function () {
+        import(BASE + "voice/holo-voice-holo-brain.mjs").then(function (m) {
+          if (m.prefetchHoloBrain) m.prefetchHoloBrain(CFG.holoModel || "qwen2.5-0.5b").catch(function () {});
+        }).catch(function () {});
+      }, 1500);                                                       // after the ear (≈0ms) + voice (500ms) warm kick off
+    });
+  }
   function warm() {
     if (_warmed) return; _warmed = true;
-    try { ensureMode(); } catch (e) {}                                // load the recognizer
+    try { ensureMode(true); } catch (e) {}                            // load the recognizer QUIETLY — warm() is a background pre-load, it must never surface a "loading" toast
     setTimeout(function () { ensureTTS().then(function (t) { if (t && t.engine) prewarmPhrases(); }); }, 500);
+    try { prefetchBrain(); } catch (e) {}                             // start the brain .holo → OPFS warm in the background
   }
   async function prewarmPhrases() {
     for (var i = 0; i < PREWARM.length; i++) {
@@ -281,8 +493,20 @@
     STATE._loading = (async function () {
       if (CFG.engine !== "webspeech") {
         try {
+          // CANONICAL WIRING (ADR-0084): let the one settings picker route the "listen" faculty. Resolve the
+          // active model via the holo-q-mux bridge — honor a pinned/override choice, fail SAFE to the hardcoded
+          // knativeEar default (κ unchanged when unbound). Lazy + off the boot path (runs on first listen).
+          var ear = CFG.knativeEar;
+          try {
+            var fm = await import(BASE + "voice/holo-q-faculty-models.mjs");
+            var rf = fm.resolveFacultyModel && fm.resolveFacultyModel("listen");
+            if (rf && rf.instant && ear) {   // pinned default OR a user/steer override that resolves to OS-pinned bytes
+              ear = Object.assign({}, ear, { holoUrl: rf.instant.url, kappa: rf.instant.kappa, release: rf.instant.release });
+              if (rf.upgrade) { ear.upgradeUrl = rf.upgrade.url; ear.upgradeKappa = rf.upgrade.kappa; ear.upgradeRelease = rf.upgrade.release; }
+            }
+          } catch (e) {}
           var mod = await import(BASE + "voice/holo-voice-asr.mjs");
-          STATE.asr = (mod.createASR || mod.default)({ remote: CFG.remote, proxy: CFG.stream !== false });   // streaming → run ASR in a worker (off → proven main-thread path)
+          STATE.asr = (mod.createASR || mod.default)({ remote: CFG.remote, proxy: CFG.stream !== false, knativeEar: ear, lang: CFG.lang || "en" });   // κ-native Holo GGUF ear when WebGPU (falls back to ONNX); streaming → worker
           bindSeam();
           await STATE.asr.load(function () { if (!quiet) hud("loading", "Getting ready to listen…"); });
           STATE.mode = "serverless";
@@ -398,11 +622,11 @@
       try { src.connect(proc); proc.connect(zero); zero.connect(ctx.destination); } catch (e) { resolve(null); return; }
       function bufLen() { var n = 0; for (var i = 0; i < chunks.length; i++) n += chunks[i].length; return n; }
       function runPartial() {
-        if (partialBusy || bufLen() < 16000 * 0.4) return;               // need ≥0.4s; never overlap (one ORT session)
+        if (partialBusy || bufLen() < 16000 * 0.25) return;             // need ≥0.25s so the first word(s) surface fast; never overlap (one ORT session)
         partialBusy = true; var snap = concatF32(chunks), snapLen = snap.length;
         pending = STATE.asr.transcribe(snap, { language: CFG.lang }).then(function (d) {
           lastPartial = (d && d.text || "").trim(); lastPartialLen = snapLen;
-          if (lastPartial && STATE.liveOn && STATE.live === "listening" && capYou) capYou.textContent = "“" + lastPartial + "…”";   // LIVE transcription — see your words as you speak
+          if (lastPartial && STATE.liveOn && STATE.live === "listening") capUserText(lastPartial);   // LIVE transcription streams into the ribbon (user voice) as you speak
         }, function () {}).then(function () { partialBusy = false; });
       }
       var started = Date.now(), lastLoud = Date.now(), spoke = !!opts.seed, wasLoud = false, done = false;
@@ -512,7 +736,7 @@
     })();
     return Promise.race([Promise.resolve(activity).then(function () { return "done"; }), barged]).then(function (who) {
       stop = true; try { cancelAnimationFrame(raf); } catch (e) {}
-      if (who === "barge") { if (ctl) ctl.aborted = true; stopSpeaking(); }
+      if (who === "barge") { if (ctl) ctl.aborted = true; stopSpeaking(); capBargeAck(); STATE.live = "listening"; }   // Q yields: words recede + the orb flips to the listening palette
       return who;
     });
   }
@@ -854,7 +1078,7 @@
   // lazy-load the on-device LLM (the brain), bind it into the governed QVAC seam, and keep a direct
   // handle for when the SDK/conscience isn't loaded. First call downloads-from-disk + compiles (~once).
   var _brain = null, _brainTried = false, _brainLoading = null;
-  function ensureBrain() {
+  function ensureBrain(quiet) {   // quiet = a silent background load (the tier-2 upgrade) → no foreground HUD
     if (_brain) return Promise.resolve(_brain);
     if (_brainTried && !_brainLoading) return Promise.resolve(null);
     if (!_brainLoading) {
@@ -866,8 +1090,8 @@
           try {
             var gm = await import(BASE + "voice/holo-voice-gpu-brain.mjs");
             var gpuEng = (gm.createGpuBrain || gm.default)({});
-            hud("loading", "Loading Q's GPU coder — first time…");
-            await gpuEng.load(function () { hud("loading", "Loading Q's GPU coder — first time…"); });
+            if (!quiet) hud("loading", "Loading Q's GPU coder — first time…");
+            await gpuEng.load(function () { if (!quiet) hud("loading", "Loading Q's GPU coder — first time…"); });
             _brain = { engine: gpuEng, gpu: true };
             bindMind(gpuEng);
             bindSeamBrain(2, gpuEng);                                  // full brain → the QVAC completion seam (tier 2)
@@ -877,8 +1101,8 @@
         try {
           var m = await import(BASE + "voice/holo-voice-llm.mjs");
           var engine = (m.createLLM || m.default)({ preferWebGPU: CFG.preferWebGPU });
-          hud("loading", "Waking Q up — first time only…");
-          await engine.load(function () { hud("loading", "Waking Q up — first time only…"); });
+          if (!quiet) hud("loading", "Waking Q up — first time only…");
+          await engine.load(function () { if (!quiet) hud("loading", "Waking Q up — first time only…"); });
           _brain = { engine };
           bindMind(engine);                                            // give the OS orchestrator Q's mind (sampler)
           bindSeamBrain(2, engine);                                    // full brain → the QVAC completion seam (tier 2)
@@ -891,6 +1115,53 @@
   }
   // drop the loaded brain so the next ensureBrain() rebuilds with the current CFG (e.g. after a tier switch).
   function resetBrain() { _brain = null; _brainTried = false; _brainLoading = null; _boundTier = 0; try { var Q = W.HoloQVAC; if (Q && Q.useBrain) Q.useBrain(null); } catch (e) {} }
+
+  // ── Q's DEFAULT WebGPU brain: a PRECOMPILED .holo model run on the QVAC forge runtime (κ-loaded, per-block
+  //    WebCrypto L5, 100% serverless). engine.generate = a text-delta async-iterator → a drop-in for the QVAC
+  //    completion seam, bound exactly like the WASM/gpu brains. Loaded QUIETLY (like the starter), so warming
+  //    it at the welcome overlaps the spoken greeting and the first turn lands hot. ANY failure → null, and the
+  //    caller falls back to the ONNX SmolLM2-360M floor. Gated by CFG.holoBrain (default on) + WebGPU. ──
+  var _holoBrain = null, _holoBrainTried = false, _holoBrainLoading = null;
+  function ensureHoloBrain() {
+    if (_holoBrain) return Promise.resolve(_holoBrain);
+    if (_holoBrainTried && !_holoBrainLoading) return Promise.resolve(null);
+    if (!_holoBrainLoading) {
+      _holoBrainTried = true;
+      _holoBrainLoading = (async function () {
+        try {
+          var m = await import(BASE + "voice/holo-voice-holo-brain.mjs");
+          var engine = (m.createHoloModelBrain || m.default)({ model: CFG.holoModel || "qwen2.5-0.5b" });
+          await engine.load();                                     // quiet (no HUD) — overlaps the welcome
+          _holoBrain = { engine };
+          return _holoBrain;
+        } catch (e) { console.warn("[HoloVoice] .holo WebGPU brain unavailable — using the ONNX floor:", e && e.message || e); return null; }
+        finally { _holoBrainLoading = null; }
+      })();
+    }
+    return _holoBrainLoading;
+  }
+  // the SILENT 1.5B upgrade: the SAME .holo runtime, the bigger model, bound as tier-2 in the background.
+  // Gated by CFG.holoUpgrade (OFF until the 1.5B .holo is forged + pinned AND its GPU upload is chunked so it
+  // doesn't jank the tab — warming the heavy model un-chunked froze the renderer). Quiet; any failure leaves
+  // the 0.5B brain in place. Flip CFG.holoUpgrade=true once the artifact + non-janky warm land.
+  var _holoUp = null, _holoUpTried = false, _holoUpLoading = null;
+  function ensureHoloUpgrade() {
+    if (_holoUp) return Promise.resolve(_holoUp);
+    if (_holoUpTried && !_holoUpLoading) return Promise.resolve(null);
+    if (!_holoUpLoading) {
+      _holoUpTried = true;
+      _holoUpLoading = (async function () {
+        try {
+          var m = await import(BASE + "voice/holo-voice-holo-brain.mjs");
+          var engine = (m.createHoloModelBrain || m.default)({ model: CFG.holoUpgradeModel || "qwen2.5-1.5b" });
+          await engine.load();
+          _holoUp = { engine }; return _holoUp;
+        } catch (e) { console.warn("[HoloVoice] .holo 1.5B upgrade unavailable:", e && e.message || e); return null; }
+        finally { _holoUpLoading = null; }
+      })();
+    }
+    return _holoUpLoading;
+  }
 
   // ── PROGRESSIVE BRAIN (cold-start) — Q must feel alive the instant the desktop paints, not after a 1.7GB
   //    download. Conversation is served in TIERS: the lightweight STARTER (SmolLM2-360M, already vendored) is
@@ -913,17 +1184,33 @@
     try { return (navigator.gpu && navigator.gpu.requestAdapter) ? navigator.gpu.requestAdapter().then(function (a) { return !!a; }).catch(function () { return false; }) : Promise.resolve(false); }
     catch (e) { return Promise.resolve(false); }
   }
-  // warm the conversational STARTER (tier 1) and bind it — small, fast, runs in the ORT worker (never freezes).
-  function warmStarter() { return ensureQuick().then(function (q) { if (q && q.engine) bindSeamBrain(1, q.engine); return q || null; }); }
+  // warm the conversational brain (tier 1) and bind it. On WebGPU, Q's DEFAULT brain is the precompiled
+  // .holo model (κ-loaded, serverless); the ONNX SmolLM2-360M is the non-WebGPU floor AND the .holo fallback.
+  function warmStarter() {
+    return hasWebGPUSafe().then(function (gpu) {
+      if (gpu && CFG.holoBrain !== false) {
+        return ensureHoloBrain().then(function (b) {
+          if (b && b.engine) { bindSeamBrain(1, b.engine); return b; }
+          return ensureQuick().then(function (q) { if (q && q.engine) bindSeamBrain(1, q.engine); return q || null; });   // .holo failed → ONNX floor
+        });
+      }
+      return ensureQuick().then(function (q) { if (q && q.engine) bindSeamBrain(1, q.engine); return q || null; });        // no WebGPU → ONNX floor
+    });
+  }
   // upgrade to the FULL brain (tier 2) in the background, then rebind — only when the device can take it.
   var _upgrading = false;
   function upgradeBrain() {
     if (_upgrading || _brain || metered()) return;
     _upgrading = true;
     hasWebGPUSafe().then(function (gpu) {
+      if (gpu && CFG.holoBrain !== false) {              // .holo WebGPU brain active → its upgrade is the .holo 1.5B
+        if (!CFG.holoUpgrade) { _upgrading = false; return; }   // OFF until the 1.5B .holo is forged + pinned (Stage 4); the 0.5B stays the brain
+        ensureHoloUpgrade().then(function (b) { if (b && b.engine) bindSeamBrain(2, b.engine); }).catch(function () {}).finally(function () { _upgrading = false; });
+        return;
+      }
       if (!gpu) { _upgrading = false; return; }          // WASM-only device → stay on the starter (safe + plenty for chat)
-      CFG.preferWebGPU = true;                            // run the 1.5B on GPU memory, not the WASM heap that froze the tab
-      ensureBrain().then(function (b) { if (b && b.engine) bindSeamBrain(2, b.engine); }).catch(function () {}).finally(function () { _upgrading = false; });
+      CFG.preferWebGPU = true;                            // legacy path (holoBrain off): run the ONNX/ternary 1.5B on GPU
+      ensureBrain(true).then(function (b) { if (b && b.engine) bindSeamBrain(2, b.engine); }).catch(function () {}).finally(function () { _upgrading = false; });   // quiet: a silent upgrade never shows the "waking up" bubble
     });
   }
   // the conversational brain resolver — NON-BLOCKING on the heavy tier: serve with whatever's warm now (full
@@ -943,17 +1230,17 @@
   //    provenance. Novel phrasings simply miss and fall through to the live model — honest by design. ──
   var SEED_ENTRIES = [
     { keys: ["hi","hello","hey","yo","hiya","hey q","hi q","hello q","good morning","good afternoon","good evening","sup"],
-      a: "Hello — I'm Q. I'm yours, and I learn as you do. Ask me anything, or tell me what to do." },
+      a: "Hello. I'm Q. I'm yours, and I learn as you do. Ask me anything, or tell me what to do." },
     { keys: ["who are you","what are you","what is q","who is q","whats q","tell me about yourself","what r u"],
-      a: "I'm Q — the mind of this OS, running entirely on your device. Nothing you say to me leaves it unless you ask. I can answer you, and I can act across the whole OS." },
+      a: "I'm Q, the mind of this OS, running entirely on your device. Nothing you say to me leaves it unless you ask. I can answer you, and I can act across the whole OS." },
     { keys: ["what can you do","what can you help with","what do you do","help","capabilities","what can i ask you","what can i ask","how can you help","what are you capable of"],
-      a: "Two things: I answer you, and I act for you. Try “open files”, “change the theme”, or “take me to settings” — or just ask a question. I can see and act across your whole OS." },
+      a: "Two things: I answer you, and I act for you. Try “open files”, “change the theme”, or “take me to settings”, or just ask a question. I can see and act across your whole OS." },
     { keys: ["is this private","is it private","are you private","is my data safe","does anything leave my device","do you send my data","where does my data go","is my data private","do you store my data","do you collect my data"],
-      a: "Private by default. I run on your device — your words, files, and actions stay here. Nothing leaves unless you explicitly choose to send it." },
+      a: "Private by default. I run on your device. Your words, files, and actions stay here. Nothing leaves unless you explicitly choose to send it." },
     { keys: ["what is hologram","what is hologram os","what is this","what is this os","whats this","what is holo","what is this place"],
-      a: "This is Hologram — a sovereign OS that runs entirely on your device. Everything here is yours: your files, apps, and data, addressed by content and verifiable. I'm Q, your guide through it." },
+      a: "This is Hologram, a sovereign OS that runs entirely on your device. Everything here is yours: your files, apps, and data, addressed by content and verifiable. I'm Q, your guide through it." },
     { keys: ["how do i start","getting started","what should i do","where do i begin","how do i get started","what now","where do i start","how does this work"],
-      a: "Start anywhere — open Files to see what's yours, or just tell me what you want to make and I'll build it with you. Nothing here is permanent until you say so." },
+      a: "Start anywhere. Open Files to see what's yours, or just tell me what you want to make and I'll build it with you. Nothing here is permanent until you say so." },
     { keys: ["thanks","thank you","thx","ty","cheers","thank you q","much appreciated"],
       a: "Anytime." },
   ];
@@ -1088,15 +1375,15 @@
     var t0 = performance.now();
     var brain = await ensureBrain();
     var loadMs = Math.round(performance.now() - t0);                    // first-load time on WebGPU (the 1.16GB 1.5B)
-    if (!brain || !brain.engine || brain.engine.info().device !== "webgpu") { setEngine(false); hud("error", "Couldn’t use your graphics — staying on the reliable setup."); return { ok: false, reason: "no-webgpu-pipeline", loadMs: loadMs }; }
+    if (!brain || !brain.engine || brain.engine.info().device !== "webgpu") { setEngine(false); hud("error", "Couldn’t use your graphics. Staying on the reliable setup."); return { ok: false, reason: "no-webgpu-pipeline", loadMs: loadMs }; }
     var reply = "", genMs = 0;
     try { var g0 = performance.now(); reply = await brain.engine.chat([{ role: "user", content: "What is the capital of Japan? Answer in one short sentence." }], { maxTokens: 24 }); genMs = performance.now() - g0; } catch (e) { reply = ""; }
     // rough decode rate — answers the OTHER half of the ceiling question (coherent AND fast?). WASM 0.5B ≈ 7-8 tok/s.
     var toks = reply.trim().split(/\s+/).filter(Boolean).length * 1.3, tps = genMs > 0 ? Math.round(toks / (genMs / 1000)) : 0;
     var good = /tokyo/i.test(reply) && !GARBAGE.test(reply);
-    if (good) { hud("done", "Graphics boost on — Q’s sharper now (~" + tps + " tok/s)."); speakToast("Graphics boost on — ~" + tps + " tok/s, loaded in " + (loadMs / 1000).toFixed(1) + "s."); return { ok: true, device: "webgpu", model: brain.engine.info().model, reply: reply, loadMs: loadMs, tokensPerSec: tps }; }
+    if (good) { hud("done", "Graphics boost on. Q’s sharper now (~" + tps + " tok/s)."); speakToast("Graphics boost on. ~" + tps + " tok/s, loaded in " + (loadMs / 1000).toFixed(1) + "s."); return { ok: true, device: "webgpu", model: brain.engine.info().model, reply: reply, loadMs: loadMs, tokensPerSec: tps }; }
     setEngine(false); await ensureBrain();
-    hud("error", "That boost wasn’t stable — back to the reliable setup.");
+    hud("error", "That boost wasn’t stable. Back to the reliable setup.");
     speakToast("Staying on the reliable setup.");
     return { ok: false, reason: reply ? "garbage" : "no-output", reply: reply, loadMs: loadMs, tokensPerSec: tps };
   }
@@ -1227,7 +1514,7 @@
       if (M.tick) await M.tick(Date.now());                            // scheduled tasks → the gated loop
       if (CFG.proactiveGoals && M.runProposals) await M.runProposals();   // drives → gated proposals (opt-in)
       var says = _mindSays.slice(start).filter(Boolean);
-      if (says.length) speakMind(says.join(" "), { prefix: "Heads up —", source: "self" });
+      if (says.length) speakMind(says.join(" "), { prefix: "Heads up:", source: "self" });
     } catch (e) {}
   }
   var _proactiveT = 0;
@@ -1333,8 +1620,8 @@
     //    word-salad. DO still works (commands route without a model); only free-form chat waits for the brain.
     if (!reply) {
       reply = _boundTier === 0
-        ? "Still waking up — give me a moment, then ask again. You can already tell me what to do: “open files”, “change the theme”."
-        : "I couldn’t form an answer just now — try once more?";
+        ? "Still waking up. Give me a moment, then ask again. You can already tell me what to do: “open files”, “change the theme”."
+        : "I couldn’t form an answer just now. Try once more?";
     }
     _history.push({ role: "assistant", content: reply });
     _convoSink.qDone(reply, acted);                                   // finalize the Q bubble + action trail in the panel
@@ -1356,11 +1643,11 @@
     try {
       var text = await recognize();
       STATE.lastText = text || "";
-      if (!text) { hud("miss", "Didn’t catch that — try again?"); flashBtn(); return; }
+      if (!text) { hud("miss", "Didn’t catch that. Try again?"); flashBtn(); return; }
       await handleText(text);
     } catch (e) {
       var denied = /denied|not-allowed|permission/i.test(String(e));
-      hud("error", denied ? "I need your microphone to hear you." : "Something slipped — give it another go?");
+      hud("error", denied ? "I need your microphone to hear you." : "Something slipped. Give it another go?");
       if (denied) speak("Microphone access is needed for voice.");
     } finally { STATE.busy = false; setBtn(false); resumeWake(); setTimeout(function () { if (!STATE.busy) hide(); }, 2600); }
   }
@@ -1372,10 +1659,22 @@
     if (seedLookup(text)) { STATE.lastAction = "converse"; await converseAgent(text); return; }
     var res = route(text);   // explicit wake / push-to-talk → act now (route's exec thunk already ran)
     if (res && res.appCmd) { STATE.lastAction = "app:" + res.appCmd; _convoSink.user(text); _convoSink.qSay(res.say || "On it."); if (CFG.confirm && res.say && !_silentTurn) speak(res.say); W.dispatchEvent(new CustomEvent("holo-voice", { detail: { text: text, result: res } })); return; }
-    if (res && res.converse) { mindObserve(res.text || text); STATE.lastAction = "converse"; await converseAgent(res.text || text); return; }   // converseAgent renders the user line itself
+    if (res && res.converse) {
+      // ONE FRONT DOOR (Fork 1): a CLEAR navigation / open / close intent that voice's own router missed routes
+      // through the canonical resolver, so a spoken command converges with the typed one. Genuine conversation
+      // stays a conversation (Q's brain) — voice is converse-first, so the default "build" never hijacks chat.
+      try {
+        var _hr = W.HoloResolve;
+        if (_hr && typeof _hr.decide === "function") {
+          var _d = _hr.decide(res.text || text);
+          if (_d && (_d.lane === "nav" || _d.kind === "open" || _d.kind === "close")) { _hr.resolve(res.text || text, { source: "voice" }); STATE.lastAction = "resolve:" + _d.kind; return; }
+        }
+      } catch (e) {}
+      mindObserve(res.text || text); STATE.lastAction = "converse"; await converseAgent(res.text || text); return;   // converseAgent renders the user line itself
+    }
     STATE.lastAction = res.action || null;
-    _convoSink.user(text); _convoSink.qSay(res.ok ? (res.say || "Done.") : ("“" + text + "” — I’m not sure what to do with that.")); if (res.ok && res.action) _convoSink.act(res.action);
-    hud(res.ok ? "done" : "miss", res.ok ? (res.say || "Done.") : ("“" + text + "” — I’m not sure what to do with that."));
+    _convoSink.user(text); _convoSink.qSay(res.ok ? (res.say || "Done.") : ("“" + text + "”. I’m not sure what to do with that.")); if (res.ok && res.action) _convoSink.act(res.action);
+    hud(res.ok ? "done" : "miss", res.ok ? (res.say || "Done.") : ("“" + text + "”. I’m not sure what to do with that."));
     if (!_silentTurn && CFG.confirm && res.say && W.HoloQVAC && W.HoloQVAC.textToSpeech) {
       try { await W.HoloQVAC.textToSpeech({ text: res.say }); } catch (e) { speak(res.say); }
     } else if (!_silentTurn && CFG.confirm && res.say) { speak(res.say); }
@@ -1432,6 +1731,11 @@
   // matched if it's a start-anchored wake (greeting+homophone / strong) OR a lone homophone said by itself.
   function wakeMatches(n) { return !!n && (WAKE.re.test(n) || WAKE.loneRe.test(n)); }
   buildWake(CFG.wakeWord);
+  // The ADVERTISED wake is the 2-syllable phrase "Hey Q". A single letter is the worst case for any
+  // recognizer — Whisper mangles a lone "Q" ("you"/"Hugh"/"(music)") — whereas "Hey Q" transcribes
+  // reliably and the matcher already accepts it (greeting + word, incl. "hey you" ≈ "hey Q"). Bare "Q"
+  // still works as a bonus shortcut; it's just not what we prompt for. (Durable fix = a dedicated KWS.)
+  function wakePhrase() { return "Hey " + CFG.wakeWord; }
   function setWakeWord(word) {
     word = (word || "").trim() || "Q"; CFG.wakeWord = word;
     try { localStorage.setItem("holo.voice.wakeword", word); } catch (e) {}
@@ -1518,7 +1822,7 @@
     try { wakeStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }); }
     catch (e) { speakToast("Microphone access is needed for the wake word."); return false; }
     wakeOn = true; try { localStorage.setItem("holo.voice.wake", "1"); } catch (e) {}
-    if (btn) { btn.setAttribute("data-wake", "1"); btn.title = "Listening for “" + CFG.wakeWord + "” · click for Q Live · right-click for settings"; }
+    if (btn) { btn.setAttribute("data-wake", "1"); btn.title = "Listening for “" + wakePhrase() + "” · click for Q Live · right-click for settings"; }
     segmenter(wakeStream);                                               // mic + VAD armed now — no waiting
     ensureVAD();                                                         // warm the sovereign stage-1 gate (tiny; no-op when CFG.vad is off)
     ensureWakeAsr().then(function (asr) {                                // warm the dedicated BASE wake recognizer in the background, no frozen bubble
@@ -1547,7 +1851,7 @@
   async function toggleWake() {
     if (wakeOn) { stopWake(); hud("idle", "Stopped listening."); setTimeout(function () { if (!STATE.busy && !STATE.liveOn) hide(); }, 2000); return false; }
     var ok = await startWake();
-    if (ok) { flareWake(); hud("listening", "Listening — just say “" + CFG.wakeWord + "”."); setTimeout(function () { if (!STATE.busy && !STATE.liveOn) hide(); }, 3000); }
+    if (ok) { flareWake(); hud("listening", "Listening. Just say “" + wakePhrase() + "”."); setTimeout(function () { if (!STATE.busy && !STATE.liveOn) hide(); }, 3000); }
     return ok;
   }
   function segmenter(stream) {
@@ -1586,7 +1890,7 @@
         var vadProb = null;
         if (CFG.vad && VAD.engine) {
           try { var v = await VAD.engine.segmentHasSpeech(audio, CFG.vadThreshold); vadProb = v.maxProb;
-            if (!v.speech) { if (WAKE.debug) console.log("[wake] VAD blocked · prob " + (vadProb != null ? vadProb.toFixed(2) : "—") + " < " + CFG.vadThreshold + " · " + (durMs != null ? Math.round(durMs) : "—") + "ms (not heard as speech)"); return; } }
+            if (!v.speech) { try { (W.__wakeLog || (W.__wakeLog = [])).push({ blocked: "vad", vad: vadProb != null ? +vadProb.toFixed(2) : null, ms: durMs ? Math.round(durMs) : null }); } catch (e) {} if (WAKE.debug) console.log("[wake] VAD blocked · prob " + (vadProb != null ? vadProb.toFixed(2) : "—") + " < " + CFG.vadThreshold + " · " + (durMs != null ? Math.round(durMs) : "—") + "ms (not heard as speech)"); return; } }
           catch (e) {}                                                    // VAD glitch → fall through to Whisper (fail open)
         }
         // STAGE 2: the DEDICATED base recognizer confirms the wake (steadier than tiny on a lone "Q"); falls
@@ -1597,6 +1901,9 @@
         var r = await asr.transcribe(audio, { language: CFG.lang });
         var text = (r && r.text || "").trim();
         var n = norm(text), lone = !!n && !WAKE.re.test(n) && WAKE.loneRe.test(n), matched = wakeMatches(n);
+        // ALWAYS record what the wake recognizer heard into a ring buffer — read it with `__wakeLog` in the
+        // console (no filtering needed past the heal noise). The single source of truth for "why didn't it wake".
+        try { (W.__wakeLog || (W.__wakeLog = [])).push({ heard: text, norm: n, matched: matched, lone: lone, vad: vadProb != null ? +vadProb.toFixed(2) : null, ms: durMs ? Math.round(durMs) : null }); while (W.__wakeLog.length > 25) W.__wakeLog.shift(); } catch (e) {}
         if (WAKE.debug) { var mdl = (asr.info && asr.info().model || "?").split("/").pop(); console.log("[wake] heard " + JSON.stringify(text) + " → norm " + JSON.stringify(n) + " · " + mdl + " · vad " + (vadProb != null ? vadProb.toFixed(2) : "—") + " · " + (durMs != null ? Math.round(durMs) : "—") + "ms · " + (matched ? "✓ WAKE" + (lone ? " (lone)" : "") : "✗ no match")); }
         if (matched) {
           var rest = lone ? "" : n.replace(WAKE.strip, "").trim();
@@ -1633,7 +1940,11 @@
       "@keyframes hv-wakespot{0%{box-shadow:0 0 0 0 rgba(43,212,255,.8),0 2px 10px #0006}55%{box-shadow:0 0 0 9px rgba(43,212,255,0),0 2px 10px #0006}100%{box-shadow:0 0 0 0 rgba(43,212,255,0),0 2px 10px #0006}}" +
       "#holo-voice-btn[data-wake-spot=\"1\"]{animation:hv-wakespot .9s ease-out;border-color:#2bd4ff}" +   /* the moment a wake is confirmed — the teal "I heard you" cue when the orb is closed */
       "#holo-voice-btn .hv-btn-orb{position:absolute;inset:0;width:100%;height:100%;border-radius:inherit;pointer-events:none}" +
-      "#holo-voice-btn[data-orb=\"1\"]{font-size:0}" +   /* the 3D orb replaces the 🎙 glyph */
+      // resting form = the animated spectrum DISC (the orb's no-WebGL fallback) — Q is NEVER shown as a 🎙 mic glyph
+      "#holo-voice-btn .hv-btn-disc{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:conic-gradient(from 0deg,var(--holo-spectrum,#5b8cff,#7c5cff,#b14eff,#ff4ed0,#ff6b6b,#ffc440,#2bd4ff,#5b8cff));-webkit-mask:radial-gradient(circle,transparent 30%,#000 33%,#000 62%,transparent 66%);mask:radial-gradient(circle,transparent 30%,#000 33%,#000 62%,transparent 66%);animation:hv-spin 7s linear infinite;transition:opacity .3s}" +
+      "@keyframes hv-spin{to{transform:rotate(360deg)}}" +
+      "@media (prefers-reduced-motion:reduce){#holo-voice-btn .hv-btn-disc{animation:none}}" +
+      "#holo-voice-btn[data-orb=\"1\"] .hv-btn-disc{opacity:0}" +   /* the 3D orb mounted → fade the disc out beneath it */
       ".hw-q .hw-frame{display:none!important}" +                                   /* Q is frameless — just the orb, no card */
       ".hw-q .hw-tools .edit{display:none}" +                                       /* nothing to edit on the orb */
       ".hw-q .hw-body,.hw-q canvas{cursor:pointer}" +
@@ -1645,7 +1956,7 @@
       "background:color-mix(in srgb,var(--holo-surface,#12161f) 50%,transparent);-webkit-backdrop-filter:blur(26px) saturate(1.8);backdrop-filter:blur(26px) saturate(1.8);" +
       "border:1px solid color-mix(in srgb,var(--hv-tint,#5b8cff) 24%,rgba(255,255,255,.2));color:var(--holo-ink,#eef2f8);" +
       "box-shadow:0 10px 30px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14),0 0 22px -12px var(--hv-tint,#5b8cff);" +   // light glass: soft drop + inner sheen + faint tint glow
-      "font:500 14.5px/1.35 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);letter-spacing:.005em;" +
+      "font:500 var(--holo-text-sm, 0.906rem)/1.35 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);letter-spacing:.005em;" +
       "opacity:0;transform:translateY(8px) scale(.96);transform-origin:bottom center;pointer-events:none;" +
       "transition:opacity .3s cubic-bezier(.2,.8,.2,1),transform .34s cubic-bezier(.2,.85,.25,1)}" +
       "#holo-voice-hud[data-show=\"1\"]{opacity:1;transform:none}" +
@@ -1658,9 +1969,9 @@
       "#holo-voice-menu{position:fixed;right:14px;bottom:calc(120px + var(--holo-dock-h,0px));z-index:2147482401;width:min(300px,80vw);padding:.7rem .8rem;border-radius:14px;" +
       "background:var(--holo-glass-acrylic-bg,rgba(18,22,30,.92));-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);" +
       "border:1px solid var(--holo-glass-border,rgba(255,255,255,.18));box-shadow:0 .6rem 2.4rem rgba(0,0,0,.55);color:var(--holo-ink,#e9eef7);" +
-      "font:14px/1.4 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s,transform .18s}" +
+      "font:var(--holo-text-sm, 0.875rem)/1.4 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s,transform .18s}" +
       "#holo-voice-menu[data-show=\"1\"]{opacity:1;transform:none;pointer-events:auto}" +
-      "#holo-voice-menu h4{margin:0 0 .5rem;font-size:13px;opacity:.7;font-weight:600}" +
+      "#holo-voice-menu h4{margin:0 0 .5rem;font-size: var(--holo-text-sm, 0.813rem);opacity:.7;font-weight:600}" +
       "#holo-voice-menu .hv-eng{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:.35rem 0}" +
       "#holo-voice-menu .hv-sw{appearance:none;width:38px;height:22px;border-radius:999px;background:rgba(255,255,255,.18);position:relative;cursor:pointer;flex:0 0 auto;transition:background .2s}" +
       "#holo-voice-menu .hv-sw:checked{background:var(--holo-accent,#5b8cff)}" +
@@ -1672,23 +1983,23 @@
       "#holo-voice-menu button.hv-test{margin-top:.5rem;width:100%;padding:.5rem;border-radius:10px;border:1px solid var(--holo-glass-border,rgba(255,255,255,.2));" +
       "background:var(--holo-accent,#5b8cff);color:#fff;font:inherit;font-weight:600;cursor:pointer}" +
       "#holo-voice-menu button.hv-test[disabled]{opacity:.5;cursor:default}" +
-      "#holo-voice-menu .hv-note{margin-top:.5rem;font-size:12px;opacity:.6;line-height:1.35}" +
+      "#holo-voice-menu .hv-note{margin-top:.5rem;font-size: var(--holo-text-sm, 0.75rem);opacity:.6;line-height:1.35}" +
       // ── Q PANEL: a right-docked, non-modal carriage (reuses --holo-aside-w → the holospace glides left,
       // exactly like Wallet) so you SEE the OS and converse with Q at once. The Claude-extension layout. ──
       "#q-panel{position:fixed;top:0;right:0;bottom:0;width:var(--ha-gw,min(420px,92vw));z-index:9000;display:flex;flex-direction:column;" +
       "background:var(--holo-glass-acrylic-bg,rgba(15,19,27,.94));-webkit-backdrop-filter:blur(28px) saturate(1.6);backdrop-filter:blur(28px) saturate(1.6);" +
       "border-left:1px solid var(--holo-glass-border,rgba(255,255,255,.14));box-shadow:-14px 0 44px rgba(0,0,0,.46);color:var(--holo-ink,#e9eef7);" +
-      "font:14.5px/1.5 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);transform:translateX(100%);opacity:0;pointer-events:none;" +
+      "font:var(--holo-text-sm, 0.906rem)/1.5 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);transform:translateX(100%);opacity:0;pointer-events:none;" +
       "transition:transform .34s cubic-bezier(.2,.8,.2,1),opacity .3s}" +
       "#q-panel[data-show=\"1\"]{transform:none;opacity:1;pointer-events:auto}" +
       "#q-panel .qp-head{display:flex;align-items:center;gap:.6rem;padding:.7rem .55rem .7rem .8rem;border-bottom:1px solid var(--holo-glass-border,rgba(255,255,255,.1));flex:0 0 auto}" +
       "#q-panel .qp-orb{width:34px;height:34px;flex:0 0 auto;border-radius:50%}" +
       "#q-panel .qp-id{min-width:0}" +
-      "#q-panel .qp-title{font-weight:600;font-size:15px;letter-spacing:.01em}" +
-      "#q-panel .qp-sub{font-size:11px;opacity:.5;margin-top:1px}" +
-      "#q-panel .qp-scope{margin-left:auto;font-size:11.5px;opacity:.85;cursor:pointer;padding:.28rem .55rem;border-radius:999px;border:1px solid var(--holo-glass-border,rgba(255,255,255,.16));background:rgba(255,255,255,.05);white-space:nowrap}" +
+      "#q-panel .qp-title{font-weight:600;font-size: var(--holo-text-sm, 0.938rem);letter-spacing:.01em}" +
+      "#q-panel .qp-sub{font-size: var(--holo-text-sm, 0.688rem);opacity:.5;margin-top:1px}" +
+      "#q-panel .qp-scope{margin-left:auto;font-size: var(--holo-text-sm, 0.719rem);opacity:.85;cursor:pointer;padding:.28rem .55rem;border-radius:999px;border:1px solid var(--holo-glass-border,rgba(255,255,255,.16));background:rgba(255,255,255,.05);white-space:nowrap}" +
       "#q-panel .qp-scope:hover{background:rgba(255,255,255,.1)}" +
-      "#q-panel .qp-icon{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;opacity:.65;font-size:14px}" +
+      "#q-panel .qp-icon{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;opacity:.65;font-size: var(--holo-text-sm, 0.875rem)}" +
       "#q-panel .qp-icon:hover{opacity:1;background:rgba(255,255,255,.08)}" +
       "#q-panel .qp-close{font-size:18px;line-height:1;transition:transform .12s,opacity .12s,background .12s}" +
       "#q-panel .qp-close:hover{transform:translateX(2px)}" +
@@ -1697,13 +2008,13 @@
       "@keyframes qp-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}" +
       "#q-panel .qp-msg.you{align-self:flex-end;background:var(--holo-accent,#5b8cff);color:#fff;border-bottom-right-radius:5px}" +
       "#q-panel .qp-msg.q{align-self:flex-start;background:rgba(255,255,255,.07);border:1px solid var(--holo-glass-border,rgba(255,255,255,.1));border-bottom-left-radius:5px}" +
-      "#q-panel .qp-act{align-self:flex-start;font-size:12px;opacity:.72;display:flex;align-items:center;gap:.45rem;padding:0 .2rem}" +
+      "#q-panel .qp-act{align-self:flex-start;font-size: var(--holo-text-sm, 0.75rem);opacity:.72;display:flex;align-items:center;gap:.45rem;padding:0 .2rem}" +
       "#q-panel .qp-act::before{content:\"\";width:6px;height:6px;border-radius:50%;background:#46e08a;box-shadow:0 0 8px #46e08a;flex:0 0 auto}" +
-      "#q-panel .qp-empty{margin:auto;text-align:center;opacity:.5;font-size:13px;line-height:1.7;max-width:250px}" +
+      "#q-panel .qp-empty{margin:auto;text-align:center;opacity:.5;font-size: var(--holo-text-sm, 0.813rem);line-height:1.7;max-width:250px}" +
       "#q-panel .qp-compose{flex:0 0 auto;padding:.6rem .7rem;border-top:1px solid var(--holo-glass-border,rgba(255,255,255,.1));display:flex;align-items:flex-end;gap:.5rem}" +
       "#q-panel .qp-in{flex:1 1 auto;resize:none;max-height:120px;height:40px;padding:.6rem .7rem;border-radius:13px;border:1px solid var(--holo-glass-border,rgba(255,255,255,.18));background:rgba(255,255,255,.06);color:inherit;font:inherit;outline:none}" +
       "#q-panel .qp-in:focus{border-color:var(--holo-accent,#5b8cff)}" +
-      "#q-panel .qp-mic,#q-panel .qp-send{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--holo-glass-border,rgba(255,255,255,.18));background:rgba(255,255,255,.06);color:inherit;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}" +
+      "#q-panel .qp-mic,#q-panel .qp-send{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--holo-glass-border,rgba(255,255,255,.18));background:rgba(255,255,255,.06);color:inherit;cursor:pointer;font-size: var(--holo-text-sm, 0.938rem);display:flex;align-items:center;justify-content:center}" +
       "#q-panel .qp-send{background:var(--holo-accent,#5b8cff);color:#fff;border-color:transparent;font-size:17px}" +
       "#q-panel .qp-mic:hover,#q-panel .qp-send:hover{filter:brightness(1.12)}" +
       "#q-panel .qp-mic[data-on=\"1\"]{background:#2bd4ff;color:#06121a;border-color:transparent;animation:hv-hud-pulse 1.4s ease-in-out infinite}";
@@ -1712,7 +2023,8 @@
   function mount() {
     css();
     btn = DOC.createElement("button"); btn.id = "holo-voice-btn"; btn.type = "button";
-    btn.setAttribute("aria-label", "Talk to Q. Right-click or long-press for settings."); btn.title = "Talk to Q · right-click for settings"; btn.textContent = "🎙";
+    btn.setAttribute("aria-label", "Talk to Q. Right-click or long-press for settings."); btn.title = "Talk to Q · right-click for settings";
+    btn.innerHTML = '<span class="hv-btn-disc" aria-hidden="true"></span>'; btn.style.display = "none";   // resting form = the animated orb-disc, NEVER a 🎙 mic; stays hidden until withHW decides the surface
     btn.addEventListener("click", openQPanel);                        // tap → the docked Q panel (see the OS + converse together)
     // right-click / long-press → engine settings (WebGPU toggle + self-test)
     btn.addEventListener("contextmenu", function (e) { e.preventDefault(); toggleMenu(); });
@@ -1723,8 +2035,8 @@
     // Q is a holospace object: where the Widgets runtime exists, Q becomes a frameless, movable,
     // resizable, κ-addressed desktop orb (the fixed button hides); elsewhere the orb-button is the fallback.
     withHW(function (hasWidgets) {
-      if (hasWidgets) { btn.style.display = "none"; registerQWidget(); ensureQWidget(); }
-      else { mountBtnOrb(); }
+      if (hasWidgets) { btn.style.display = "none"; registerQWidget(); ensureQWidget(); }   // Q is the desktop widget orb → the floating button stays hidden (no mic, no flash)
+      else { mountBtnOrb(); btn.style.display = ""; }                                        // no widget host → the button IS the orb (WebGL orb, else the animated disc)
     });
     hudEl = DOC.createElement("div"); hudEl.id = "holo-voice-hud";
     hudEl.innerHTML = '<div class="hv-row"><span class="hv-dot"></span><span class="hv-txt"></span></div><div class="hv-meter"></div>';
@@ -1752,7 +2064,7 @@
       sw.checked = !!CFG.preferWebGPU; wsw.checked = !!wakeOn; if (DOC.activeElement !== nm) nm.value = CFG.wakeWord; vc.value = CFG.voice;
       var w = CFG.wakeWord;
       note.textContent = wakeOn
-        ? "Listening. Say “hey " + w + ", open browser” — or just “" + w + "” then your command."
+        ? "Listening. Just say “Hey " + w + "”, e.g. “Hey " + w + ", open the browser.”"
         : (CFG.preferWebGPU
           ? "WebGPU on. If replies look like gibberish, your GPU path is unsupported — run the test or turn this off."
           : "On the any-browser WASM model (0.5B). Turn on WebGPU for the larger 1.5B model, then test it.");
@@ -1822,35 +2134,70 @@
     var s = DOC.createElement("style"); s.id = "holo-live-css";
     s.textContent =
       "#holo-live{position:fixed;inset:0;z-index:2147483600;display:none;flex-direction:column;align-items:center;justify-content:center;" +
-      "background:radial-gradient(130% 120% at 50% 38%,color-mix(in srgb,var(--holo-accent,#5b8cff) 12%,rgba(8,10,16,.85)),rgba(5,7,11,.94) 72%);" +
-      "-webkit-backdrop-filter:blur(26px) saturate(1.3);backdrop-filter:blur(26px) saturate(1.3);opacity:0;transition:opacity .45s ease}" +
+      "background:radial-gradient(118% 118% at 50% 38.2%,color-mix(in srgb,var(--holo-accent,#5b8cff) 13%,rgba(8,10,16,.86)),rgba(5,7,11,.95) 72%);" +   /* glow centred on the golden line (38.2% = 100·(1−1/φ)) */
+      "-webkit-backdrop-filter:blur(28px) saturate(1.32);backdrop-filter:blur(28px) saturate(1.32);opacity:0;transition:opacity .5s ease}" +
       "#holo-live[data-show=\"1\"]{display:flex;opacity:1}" +
+      // welcome → desktop reveal: when Q finishes the greeting the whole glass blooms outward and clears,
+      // the blur melts to nothing and the desktop fades up underneath. One delightful, automatic farewell.
+      "#holo-live[data-show=\"1\"].hl-reveal{pointer-events:none;animation:hlReveal .82s cubic-bezier(.22,.61,.36,1) forwards}" +
+      "@keyframes hlReveal{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.06);-webkit-backdrop-filter:blur(0) saturate(1);backdrop-filter:blur(0) saturate(1)}}" +
+      "@media (prefers-reduced-motion: reduce){#holo-live[data-show=\"1\"].hl-reveal{animation-duration:.34s;transform:none}}" +
       "#holo-live canvas{width:min(61.8vmin,460px);height:min(61.8vmin,460px);cursor:pointer;touch-action:manipulation}" +   /* golden-ratio framing (61.8 = 100/φ) */
-      "#holo-live .hl-you{margin-top:1.6rem;min-height:1.4em;max-width:min(680px,86vw);text-align:center;color:var(--holo-ink,#cdd6e6);opacity:.5;font:400 clamp(14px,2.1vmin,17px)/1.35 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif)}" +
-      "#holo-live .hl-q{margin-top:.5rem;min-height:2.4em;max-width:min(720px,88vw);text-align:center;color:var(--holo-ink,#eef2fb);font:300 clamp(19px,3.3vmin,30px)/1.45 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);transition:opacity .3s}" +
-      "#holo-live .hl-hint{margin-top:1.4rem;color:var(--holo-ink,#9fb0c8);opacity:.5;font:600 12px/1 var(--holo-font-sans,system-ui);letter-spacing:.18em;text-transform:uppercase}" +
-      "#holo-live .hl-x{position:absolute;top:max(18px,env(safe-area-inset-top));right:18px;width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}" +
-      "#holo-live .hl-x:hover{background:rgba(255,255,255,.13)}" +
-      "#holo-live .hl-sub{margin-top:.55rem;color:var(--holo-ink,#aebbd2);opacity:.62;text-align:center;max-width:min(560px,84vw);font:400 clamp(13px,2vmin,16px)/1.45 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);display:none}" +
+      "#holo-live .hl-you{margin-top:1.6rem;min-height:1.4em;max-width:min(680px,86vw);text-align:center;color:var(--holo-ink,#cdd6e6);opacity:.5;font:400 clamp(var(--holo-text-sm, 0.875rem),2.1vmin,17px)/1.35 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif)}" +
+      // the ribbon viewport: one row, clipped, with both edges masked so words fade in (right) + out (left)
+      "#holo-live .hl-q{position:absolute;left:50%;bottom:9vh;transform:translateX(-50%);margin:0;height:2.1em;width:min(840px,92vw);display:flex;align-items:center;overflow:hidden;white-space:nowrap;color:var(--holo-ink,#eef2fb);font:300 clamp(19px,3.2vmin,29px)/1.4 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);transition:opacity .45s ease;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 26%,#000 74%,transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 26%,#000 74%,transparent 100%)}" +
+      // the sliding row of words — translated each frame so the spoken word sits on the fixed centre playhead
+      "#holo-live .hl-track{position:relative;flex:0 0 auto;white-space:nowrap;will-change:transform}" +
+      // a word: calm + dim by default, gently brightened (subtle scale, no blur) only when the voice is on it
+      "#holo-live .hl-w{display:inline-block;padding:0 .24em;opacity:.34;transform:scale(.97);transform-origin:center;will-change:opacity,transform;transition:opacity .42s ease,transform .42s ease,text-shadow .42s ease}" +
+      "#holo-live .hl-w.hl-cur{opacity:1;transform:scale(1);text-shadow:0 0 12px color-mix(in srgb,var(--holo-accent,#5b8cff) 30%,transparent)}" +
+      // the outgoing row dissolves in place (absolute → out of flow) while the next voice builds
+      "#holo-live .hl-track.hl-leave{position:absolute;opacity:0;transition:opacity .34s ease;pointer-events:none}" +
+      // barge-in: Q's words shrink + fade deferentially as it yields the floor
+      "#holo-live .hl-track.hl-yield .hl-w{opacity:0;transform:scale(.94);transition:opacity .26s ease,transform .26s ease}" +
+      // the USER voice on the shared ribbon — a cooler, calmer palette so it's never mistaken for Q
+      "#holo-live .hl-q[data-speaker=\"user\"] .hl-w{color:#a9c2e6}" +
+      "#holo-live .hl-q[data-speaker=\"user\"] .hl-w.hl-cur{opacity:1;color:#eaf3ff;text-shadow:0 0 12px rgba(150,190,255,.4)}" +
+      // reduced-motion: no horizontal scroll — wrap, centre, and let the highlight move by opacity alone
+      "#holo-live .hl-q.hl-reduce{height:auto;min-height:3em;display:block;overflow:visible;white-space:normal;text-align:center;-webkit-mask:none;mask:none}" +
+      "#holo-live .hl-q.hl-reduce .hl-track{position:static;display:inline;white-space:normal;transform:none!important}" +
+      "@media (prefers-reduced-motion: reduce){#holo-live .hl-w{transform:none!important;transition:opacity .28s ease,text-shadow .28s ease}}" +
+      "#holo-live .hl-hint{margin-top:1.4rem;color:var(--holo-ink,#9fb0c8);opacity:.5;font:600 var(--holo-text-sm, 0.75rem)/1 var(--holo-font-sans,system-ui);letter-spacing:.18em;text-transform:uppercase}" +
+      // the single skip affordance — top-right, the ✕ button paired with its keyboard twin (Esc). No second hint anywhere.
+      "#holo-live .hl-close{position:absolute;top:max(21px,env(safe-area-inset-top));right:21px;display:flex;align-items:center;gap:.7rem;z-index:3}" +   /* 21px ≈ φ rhythm */
+      "#holo-live .hl-skip{color:var(--holo-ink,#9fb0c8);opacity:.55;font:600 var(--holo-text-sm, 0.72rem)/1 var(--holo-font-sans,system-ui);letter-spacing:.16em;text-transform:uppercase;transition:opacity .3s ease}" +
+      "#holo-live .hl-close:hover .hl-skip{opacity:.8}" +
+      "#holo-live .hl-x{width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .2s ease,transform .15s ease}" +
+      "#holo-live .hl-x:hover{background:rgba(255,255,255,.13);transform:scale(1.06)}" +
+      "#holo-live .hl-sub{margin-top:1rem;color:var(--holo-ink,#aebbd2);opacity:.6;text-align:center;max-width:min(560px,84vw);font:400 clamp(var(--holo-text-sm, 0.813rem),2vmin,16px)/1.45 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);display:none}" +   /* greeting:tagline gap = 1.618rem : 1rem = φ */
+      // welcome invitation: the ribbon becomes a calm, centred greeting under the orb (golden spacing), then
+      // returns to its lower-third karaoke role the instant Q starts speaking (data-mode is cleared in runWelcome).
+      "#holo-live[data-mode=\"welcome\"] .hl-q{position:static;left:auto;bottom:auto;transform:none;margin:1.618rem 0 0;height:auto;min-height:1.2em;width:auto;max-width:min(720px,86vw);display:block;overflow:visible;white-space:normal;text-align:center;font-size:clamp(26px,4.2vmin,40px);-webkit-mask:none;mask:none}" +
+      "#holo-live[data-mode=\"welcome\"] .hl-track{position:static;display:inline;white-space:normal;transform:none!important}" +
+      // CALM caption (welcome speech): ONE sentence at a time — centred, wrapped, still; no scroll, no mask,
+      // no upcoming text. Each sentence fades up; the previous dissolves (hl-leave). Unhurried + delightful.
+      "#holo-live .hl-q.hl-calm{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);height:auto;min-height:2.4em;width:min(760px,86vw);display:block;overflow:visible;white-space:normal;text-align:center;font-weight:300;font-size:clamp(21px,3.4vmin,31px);line-height:1.5;-webkit-mask:none;mask:none}" +
+      "#holo-live .hl-q.hl-calm .hl-track{position:relative;display:block;white-space:normal;animation:hlSentIn .55s cubic-bezier(.22,.61,.36,1) both}" +
+      "#holo-live .hl-q.hl-calm .hl-track.hl-leave{position:absolute;left:0;right:0}" +
+      "@keyframes hlSentIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}" +
+      "@media (prefers-reduced-motion: reduce){#holo-live .hl-q.hl-calm .hl-track{animation-duration:.001s}}" +
       "#holo-live .hl-begin{margin-top:1.6rem;padding:.72rem 2.3rem;border-radius:999px;cursor:pointer;display:none;letter-spacing:.02em;" +
       "border:1px solid color-mix(in srgb,var(--holo-accent,#5b8cff) 60%,transparent);background:color-mix(in srgb,var(--holo-accent,#5b8cff) 22%,rgba(255,255,255,.04));color:var(--holo-ink,#eef2fb);" +
-      "font:600 15px/1 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .15s,background .2s,box-shadow .2s}" +
+      "font:600 var(--holo-text-sm, 0.938rem)/1 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .15s,background .2s,box-shadow .2s}" +
       "#holo-live .hl-begin:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--holo-accent,#5b8cff) 34%,rgba(255,255,255,.05));box-shadow:0 0 0 4px color-mix(in srgb,var(--holo-accent,#5b8cff) 20%,transparent),0 10px 28px rgba(0,0,0,.42)}";
     DOC.head.appendChild(s);
   }
   function buildLive() {
     liveCss();
     liveEl = DOC.createElement("div"); liveEl.id = "holo-live"; liveEl.setAttribute("role", "dialog"); liveEl.setAttribute("aria-label", "Voice conversation");
-    liveEl.innerHTML = '<button class="hl-x" type="button" aria-label="Close">✕</button><canvas></canvas><div class="hl-you"></div><div class="hl-q"></div><div class="hl-sub"></div><button class="hl-begin" type="button">Begin</button><div class="hl-hint"></div>';
+    liveEl.innerHTML = '<div class="hl-close"><span class="hl-skip">Esc to skip</span><button class="hl-x" type="button" aria-label="Close">✕</button></div><canvas></canvas><div class="hl-q"></div><div class="hl-sub"></div><div class="hl-hint"></div>';
     liveCanvas = liveEl.querySelector("canvas");   // 2D context is acquired lazily in drawOrb (a canvas can't be both 2D and WebGL)
-    capYou = liveEl.querySelector(".hl-you"); capQ = liveEl.querySelector(".hl-q"); capHint = liveEl.querySelector(".hl-hint");
-    liveSub = liveEl.querySelector(".hl-sub"); beginBtn = liveEl.querySelector(".hl-begin");
+    capYou = null; capQ = liveEl.querySelector(".hl-q"); capHint = liveEl.querySelector(".hl-hint");   // one ribbon for both voices — no separate .hl-you line
+    liveSub = liveEl.querySelector(".hl-sub"); beginBtn = null;   // no "begin" button — the welcome speaks automatically (autoBegin)
     liveEl.querySelector(".hl-x").addEventListener("click", closeLive);
-    liveEl.addEventListener("click", function (e) { if (e.target === liveEl) closeLive(); });          // tap backdrop to leave
-    beginBtn.addEventListener("click", function (e) { e.stopPropagation(); runWelcome(); });           // first-run: meet Q
+    liveEl.addEventListener("click", function (e) { if (e.target === liveEl && !STATE.welcoming) closeLive(); });   // tap backdrop to leave — NOT during the welcome ("tap anywhere" is the begin gesture, never a close)
     liveCanvas.addEventListener("click", function () {
-      if (STATE.welcoming && beginBtn.style.display !== "none") { runWelcome(); return; }               // tap the orb to begin
-      if (STATE.ttsLevel > 0) { stopSpeaking(); STATE.live = "listening"; }                             // or to interrupt Q
+      if (STATE.ttsLevel > 0) { stopSpeaking(); capBargeAck(); STATE.live = "listening"; }               // tap the orb to interrupt Q (Q yields visibly)
     });
     DOC.addEventListener("keydown", function (e) { if (STATE.liveOn && e.key === "Escape") closeLive(); });
     DOC.body.appendChild(liveEl);
@@ -2053,14 +2400,25 @@
     return { gold: Math.min(1, (STATE.mindPulse || 0) * 1.1), wake: Math.max(Math.min(1, wakePulseNow()), listen), stops: _orbStops, warm: c.warm, dim: c.dim };
   }
   // start/stop the LIVE overlay orb — WebGL when we can, the 2D drawOrb otherwise.
-  function orbTap() {   // tap the orb → begin the welcome, or interrupt Q (shared by the WebGL + WebGPU canvases)
-    if (STATE.welcoming && beginBtn && beginBtn.style.display !== "none") { runWelcome(); return; }
-    if (STATE.ttsLevel > 0) { stopSpeaking(); STATE.live = "listening"; }
+  function orbTap() {   // tap the orb → interrupt Q (the welcome starts automatically; shared by the WebGL + WebGPU canvases)
+    if (STATE.ttsLevel > 0) { stopSpeaking(); capBargeAck(); STATE.live = "listening"; }
+  }
+  // orb-ready signal: the welcome holds its first word until the orb has actually PAINTED at least one
+  // frame, so Q never speaks to a blank stage. armOrbReady() opens a fresh wait; orbPainted() releases it
+  // on the first frame after the orb starts; orbReadyOr(ms) awaits it but never dead-ends on a slow orb.
+  var _orbReadyP = null, _orbReadyRes = null;
+  function armOrbReady() { _orbReadyP = new Promise(function (r) { _orbReadyRes = r; }); }
+  function markOrbReady() { if (_orbReadyRes) { var r = _orbReadyRes; _orbReadyRes = null; try { r(); } catch (e) {} } }
+  function orbPainted() { var raf = W.requestAnimationFrame || function (f) { return setTimeout(f, 16); }; try { raf(markOrbReady); } catch (e) { markOrbReady(); } }
+  function orbReadyOr(ms) {
+    var p = _orbReadyP; if (!p) return Promise.resolve();
+    return new Promise(function (res) { var done = false; function fin() { if (!done) { done = true; res(); } } p.then(fin, fin); setTimeout(fin, ms); });
   }
   function startOrb() {
     cancelAnimationFrame(orbRaf);
+    armOrbReady();                                                      // each open waits for THIS orb to paint
     try { refreshPalette(); } catch (e) {}                             // adopt the desktop's palette when the orb opens
-    if (_rm) { orbMode = "2d"; if (liveGpuCanvas) liveGpuCanvas.style.display = "none"; if (liveCanvas) liveCanvas.style.display = ""; drawOrb(); return; }   // reduced motion → the calm 2D orb
+    if (_rm) { orbMode = "2d"; if (liveGpuCanvas) liveGpuCanvas.style.display = "none"; if (liveCanvas) liveCanvas.style.display = ""; drawOrb(); orbPainted(); return; }   // reduced motion → the calm 2D orb
     // 1) WebGPU raymarched orb (the hero) on a DEDICATED canvas — gated, with the WebGL/2D orb as the floor.
     if (W.navigator && navigator.gpu && _gpuOk !== false) {
       ensureGpuMod().then(function (gm) {
@@ -2071,10 +2429,10 @@
           liveGpuCanvas.addEventListener("click", orbTap);
           if (liveEl) liveEl.insertBefore(liveGpuCanvas, liveCanvas);
         }
-        if (liveGpuOrb) { liveGpuCanvas.style.display = ""; liveCanvas.style.display = "none"; orbMode = "webgpu"; try { liveGpuOrb.resize(); liveGpuOrb.start(); } catch (e) {} return; }
+        if (liveGpuOrb) { liveGpuCanvas.style.display = ""; liveCanvas.style.display = "none"; orbMode = "webgpu"; try { liveGpuOrb.resize(); liveGpuOrb.start(); } catch (e) {} orbPainted(); return; }
         gm.createGpuOrb(liveGpuCanvas, { descriptor: gm.ORB_GPU_DESCRIPTOR || null, level: orbLevel, color: orbColor }).then(function (g) {
           if (!STATE.liveOn) { try { g.dispose(); } catch (e) {} return; }
-          liveGpuOrb = g; _gpuOk = true; liveGpuCanvas.style.display = ""; liveCanvas.style.display = "none"; orbMode = "webgpu"; g.resize(); g.start();
+          liveGpuOrb = g; _gpuOk = true; liveGpuCanvas.style.display = ""; liveCanvas.style.display = "none"; orbMode = "webgpu"; g.resize(); g.start(); orbPainted();
         }, function (e) {
           _gpuOk = false; console.warn("[HoloVoice] WebGPU orb unavailable — using the WebGL orb:", e && e.message || e);
           if (liveGpuCanvas) liveGpuCanvas.style.display = "none"; startWebglOrb();
@@ -2092,11 +2450,11 @@
       if (m && m.orbSupported && m.orbSupported()) {
         try {
           if (!liveOrb) liveOrb = m.createOrb(liveCanvas, { detail: 8, level: orbLevel, color: orbColor });
-          orbMode = "webgl"; liveOrb.resize(); liveOrb.start(); return;
+          orbMode = "webgl"; liveOrb.resize(); liveOrb.start(); orbPainted(); return;
         } catch (e) { console.warn("[HoloVoice] 3D orb init failed — using the 2D orb:", e && e.message || e); liveOrb = null; }
       }
-      orbMode = "2d"; drawOrb();
-    });
+      orbMode = "2d"; drawOrb(); orbPainted();
+    }, function () { orbMode = "2d"; drawOrb(); orbPainted(); });
   }
   function stopOrb() { if (liveGpuOrb) { try { liveGpuOrb.stop(); } catch (e) {} } if (liveOrb) { try { liveOrb.stop(); } catch (e) {} } cancelAnimationFrame(orbRaf); }
   // the floating button becomes a tiny living orb too (its own WebGL instance; the 🎙 glyph is the fallback).
@@ -2130,8 +2488,10 @@
           if (m && m.orbSupported && m.orbSupported()) {
             try { inst = m.createOrb(canvas, { detail: 5, level: orbLevel, color: orbColor }); inst.start(); return; } catch (e) {}
           }
-          canvas.style.display = "none";                                  // no WebGL → a simple glyph fallback
-          var g = DOC.createElement("div"); g.textContent = "🎙"; g.style.cssText = "text-align:center;line-height:1.1;font-size:calc(var(--hw-w,120px)*.5)"; h.body.appendChild(g);
+          canvas.style.display = "none";                                  // no WebGL → the animated spectrum DISC (the orb's fallback form), NEVER a 🎙 mic glyph
+          var g = DOC.createElement("div"); g.setAttribute("aria-hidden", "true");
+          g.style.cssText = "position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,var(--holo-spectrum,#5b8cff,#7c5cff,#b14eff,#ff4ed0,#ff6b6b,#ffc440,#2bd4ff,#5b8cff));-webkit-mask:radial-gradient(circle,transparent 30%,#000 33%,#000 62%,transparent 66%);mask:radial-gradient(circle,transparent 30%,#000 33%,#000 62%,transparent 66%);animation:hv-spin 7s linear infinite";
+          h.body.appendChild(g);
         });
         h.cleanup(function () { gone = true; if (inst) { try { inst.dispose(); } catch (e) {} inst = null; } });
       },
@@ -2140,7 +2500,7 @@
       menuItems: function () { return [
         { label: "💬  Open Q", fn: function () { openQPanel(); } },
         { label: "🎙  Immersive voice", fn: function () { openLive(); } },
-        { label: wakeOn ? "👂  Always listening · on" : ("👂  Always listen for “" + CFG.wakeWord + "”"), fn: function () { toggleWake(); } },
+        { label: wakeOn ? "👂  Always listening · on" : ("👂  Always listen for “" + wakePhrase() + "”"), fn: function () { toggleWake(); } },
         { label: "⚙  Settings…", fn: function () { try { toggleMenu(); } catch (e) {} } },
       ]; },
     });
@@ -2186,7 +2546,7 @@
     if (DOC.getElementById("hv-whisper-css")) return;
     var s = DOC.createElement("style"); s.id = "hv-whisper-css";
     s.textContent = ".hv-whisper{position:fixed;z-index:2147483600;max-width:264px;padding:11px 15px;border-radius:15px;"
-      + "font:600 15px/1.42 var(--holo-font,system-ui,sans-serif);color:var(--holo-ink,#e8eef5);"
+      + "font:600 var(--holo-text-sm, 0.938rem)/1.42 var(--holo-font,system-ui,sans-serif);color:var(--holo-ink,#e8eef5);"
       + "background:color-mix(in srgb,var(--holo-bg,#0b0d12) 84%,transparent);"
       + "border:1px solid color-mix(in srgb,var(--holo-accent,#7b5cff) 42%,transparent);"
       + "box-shadow:0 12px 44px rgba(0,0,0,.5);backdrop-filter:blur(15px) saturate(1.3);-webkit-backdrop-filter:blur(15px) saturate(1.3);"
@@ -2199,6 +2559,7 @@
   }
   function qWhisper(text, opts) {
     opts = opts || {};
+    if (STATE.liveOn) return { dismiss: function () {} };   // the live overlay already greets/converses — never double up with a bubble
     try {
       injectWhisperCSS();
       var prev = DOC.getElementById("hv-whisper"); if (prev) prev.remove();
@@ -2232,7 +2593,7 @@
         var greet = function () {
           if (greeted) return; greeted = true;
           try { flareWake(); } catch (e) {}                             // the orb's "I'm awake" bloom
-          qWhisper("Hello — I'm Q. I'm yours, and I learn as you do. Ask me anything, anytime.",
+          qWhisper("Hello. I'm Q. I'm yours, and I learn as you do. Ask me anything, anytime.",
             { ms: 10000, onTap: function () { try { openQPanel(); } catch (e) {} } });
         };
         // Say hello promptly — do NOT warm the ~348MB starter just to TIME the greeting. That put the model
@@ -2263,11 +2624,11 @@
   function onJourney(d) {
     d = d || {};
     if (d.kind === "milestone") {
-      if (d.milestone === "first-space") journeyOffer("read", "Everything here is yours — nothing leaves unless you say so.");
-      else if (d.milestone === "first-creation") journeyOffer("own", "Don't take my word for it — check me yourself.", "verify");
+      if (d.milestone === "first-space") journeyOffer("read", "Everything here is yours. Nothing leaves unless you say so.");
+      else if (d.milestone === "first-creation") journeyOffer("own", "Don't take my word for it. Check me yourself.", "verify");
       else if (d.milestone === "first-verify") journeyOffer("explore", "Want to bring something in from the web? I'll make it yours.", "import");
     } else if (d.kind === "cue" && d.cue === "create-open") {
-      journeyOffer("write", "Describe what you want — I'll build it with you.");
+      journeyOffer("write", "Describe what you want. I'll build it with you.");
     }
   }
   try { W.addEventListener("holo-journey", function (e) { onJourney(e && e.detail); }); } catch (e) {}
@@ -2335,8 +2696,8 @@
     if (STATE.live === "thinking" && STATE.ttsLevel < 0.02) { ctx.strokeStyle = hsl(M.hue, M.sat, 82, 0.85); ctx.lineWidth = 3; var a0 = t * 3 % (Math.PI * 2); ctx.beginPath(); ctx.arc(cx, cy, R * 1.7, a0, a0 + 1.1); ctx.stroke(); }
     orbRaf = requestAnimationFrame(drawOrb);
   }
-  function setLive(s) { STATE.live = s; if (capHint) capHint.textContent = ({ listening: "Listening", thinking: "Thinking", speaking: "Speaking", waking: "Waking up…" })[s] || ""; }
-  function capSay(who, text) { if (who === "you") { capYou.textContent = text ? "“" + text + "”" : ""; } else { capQ.style.opacity = "0"; setTimeout(function () { capQ.textContent = text || ""; capQ.style.opacity = "1"; }, 120); } }
+  function setLive(s) { STATE.live = s; if (s === "listening") capClear(); }   // state is shown by the ORB, not a label; entering listening empties the ribbon (immersive, not frozen text)
+  function capSay(who, text) { if (who === "you") { if (text) capUserText(text); else capClear(); } else { captionShow(captionText(text || "")); } }
 
   var _liveGreets = ["I'm here.", "Go ahead.", "I'm listening.", "Where do we start?"];
   // ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -2422,7 +2783,7 @@
     if (!text) return; openQPanel();
     _silentTurn = true;
     try { await handleText(text); }
-    catch (e) { _convoSink.qSay("Sorry — that didn’t go through."); }
+    catch (e) { _convoSink.qSay("Sorry, that didn’t go through."); }
     finally { _silentTurn = false; }
   }
   // the panel mic: reuse the one-shot voice turn (it speaks, like a voice reply) and render it in the thread.
@@ -2435,41 +2796,79 @@
   async function openLive() {
     if (STATE.liveOn) return;
     if (!liveEl) buildLive();
-    var mode = await ensureMode();
-    if (mode !== "serverless") { return activate(); }                          // no on-device model → quick one-shot
-    STATE.liveOn = true; pauseWake(); STATE.live = "waking"; capSay("you", ""); capSay("q", ""); setLive("waking");
+    // SUPER-LOW-LATENCY OPEN: the orb shows + Q SPEAKS a pre-baked opener IMMEDIATELY (zero model wait),
+    // while the ear (ASR) and voice (Kokoro) warm in the BACKGROUND. Nothing on the speak path blocks on a
+    // cold model — the old `await ensureMode()` (loading Whisper before a single word) was the massive lag.
+    STATE.liveOn = true; pauseWake(); STATE.live = "speaking"; capSay("you", ""); capSay("q", "");
     liveEl.setAttribute("data-show", "1"); if (btn) btn.setAttribute("data-on", "1");
-    unlockAudio(); warm();                                                       // gesture → prime audio + warm the models
-    startOrb();
-    liveLoop();
+    unlockAudio(); startOrb(); warm();                                           // gesture → prime audio + warm ear/voice (does NOT block)
+    var greet = _liveGreets[Math.floor(Math.random() * _liveGreets.length)];
+    var greeted = speakBaked(greet);                                            // instant baked clip → first word in ~tens of ms
+    ensureMode().then(async function (mode) {                                    // resolve the recognizer in the BACKGROUND
+      try { await greeted; } catch (e) {}                                        // let the opener finish before we start listening
+      if (!STATE.liveOn) return;
+      if (mode === "serverless") liveLoop(true);                                 // ear ready → live conversation (skipGreet: opener already spoken)
+      else { setLive("idle"); capSay("q", "I'm always a tap away."); }           // no on-device ear → leave the orb inviting
+    });
   }
   function closeLive() {
     STATE.liveOn = false; STATE.welcoming = false; stopSpeaking(); micClose(); stopOrb();
-    if (liveEl) liveEl.setAttribute("data-show", "0"); if (btn) btn.setAttribute("data-on", "0");
+    _calmCaption = false; clearSentences(); if (capQ) capQ.classList.remove("hl-calm");   // back to the streaming ribbon for any later live conversation
+    if (liveEl) { liveEl.setAttribute("data-show", "0"); liveEl.removeAttribute("data-mode"); } if (btn) btn.setAttribute("data-on", "0");
     STATE.busy = false; STATE.micLevel = 0; STATE.ttsLevel = 0;
-    resumeWake();                                                       // re-arm the wake word if it was on before the call
+    // leave Q LISTENING: after any conversation, (re)arm the wake word so "…Q" always wakes it again — the
+    // mic permission is already granted from the call just ended, so this never prompts. Off only if the
+    // user explicitly disabled it (holo.voice.wake === "0").
+    try { if (localStorage.getItem("holo.voice.wake") !== "0") startWake(); else resumeWake(); } catch (e) { resumeWake(); }
   }
 
   // ── first-run welcome: Q greets a new visitor and tells the why / how / what of Hologram OS ────────
   // Autoplay needs one gesture, so we open with the orb gently breathing and a "Begin" invitation; the
   // first tap unlocks audio and Q speaks the welcome, then hands off to a live, hands-free conversation.
   var WELCOME = [
-    "Hi — I'm Q. Welcome to Hologram OS.",
-    "Most computers send your life off to someone else's servers. This one doesn't. It was built so the power stays with you.",
-    "It's a whole operating system living right here in your browser — a desktop, apps, your files — with nothing to install and no account to make.",
+    "Hi, I'm Q, and welcome to Hologram. Most computers send your life off to someone else's servers. This one doesn't. It was built so the power stays with you. It's a whole operating system living right here in your browser, a desktop, apps, your files, with nothing to install and no account to make.",
     "And I run entirely on your device. I hear you, think, and speak without a single word ever leaving this machine.",
-    "So just talk to me. Try 'open the browser', 'switch to dark mode', or ask me anything. I'm always one tap away."
+    "So just talk to me. Try 'open the browser', 'switch to dark mode', or ask me anything. I'm always one tap away. And from here, we learn, grow, and evolve together."
   ];
   async function welcome() {
     if (STATE.liveOn) return;
     if (!liveEl) buildLive();
-    try { localStorage.setItem("holo.voice.welcomed", "1"); } catch (e) {}   // show the invitation once
+    markWelcomed();   // mark this OPERATOR welcomed (per-κ) so the invitation shows once per signed-in identity
     STATE.liveOn = true; pauseWake(); STATE.welcoming = true; STATE.live = "welcome";
-    capSay("you", ""); capQ.style.opacity = "1"; capQ.textContent = "Hi, I'm Q";
+    liveEl.setAttribute("data-mode", "welcome");                    // calm greeting layout (orb → name → tagline); skip lives top-right
+    capSay("you", ""); captionShow(captionText("Hi, I'm Q"));
     liveSub.textContent = "Your private, on-device guide to Hologram OS"; liveSub.style.display = "block";
-    beginBtn.style.display = "inline-block"; capHint.textContent = "tap begin · ✕ to skip";
+    capHint.textContent = "";                                       // the only skip affordance is the top-right ✕ / Esc — no duplicate hint
     liveEl.setAttribute("data-show", "1"); if (btn) btn.setAttribute("data-on", "1");
+    // Q READY AT LOGIN: warm ONLY the light 360M starter the instant the desktop greets a new user, so it
+    // loads DURING the ~20s welcome (and the time the orb sits inviting a tap) — the first real question then
+    // lands on a hot model with no "waking up" wait. The starter runs in the ORT worker (never freezes the
+    // tab). The heavy 1.5B is deliberately NOT pre-warmed here: it would compile on the main thread and jank
+    // the welcome's orb + speech ([[shell-perf]] "the 1.7GB froze the tab"). It upgrades SILENTLY on the first
+    // real turn instead (resolveBrain), once the welcome's done. Fetch+compile need no gesture → honest pre-tap.
+    try { warmStarter(); } catch (e) {}
+    // WARM THE EAR TOO: load the streaming recognizer QUIETLY during the welcome, so the FIRST thing you say
+    // streams into the ribbon word-by-word with no cold-start gap. ensureMode(true) joins the single in-flight
+    // load (no double-warm), suppresses any "loading" toast, and — unlike the 1.5B brain — the tiny streaming
+    // ear runs in the ORT worker, so it never janks the welcome's orb/speech ([[shell-perf]]).
+    try { ensureMode(true); } catch (e) {}
+    try { loadWelcomeBaked(); } catch (e) {}                          // LOW LATENCY: prefetch the pre-rendered welcome audio DURING the invite/orb phase so the first word is instant on begin
     startOrb();
+    autoBegin();                                                      // speak automatically (autoplay) or on the first interaction — no button
+  }
+  // ── autoBegin: the welcome SPEAKS ITSELF. Browsers gate audio on a user gesture, so: if the AudioContext
+  //    can already play (a gesture carried from the boot/login flow, or a permissive autoplay policy), Q
+  //    speaks NOW; otherwise it speaks the instant the user first interacts (tap/key/touch) — armed once,
+  //    self-disarming. No "begin" button, and never a silent dead end. ──
+  function autoBegin() {
+    var ac = null; try { ac = ensureAC(); } catch (e) {}
+    var started = false;
+    var gestEvents = ["pointerdown", "keydown", "touchstart", "touchend", "click"];   // user-activation events (NOT move/wheel)
+    function offGest() { gestEvents.forEach(function (ev) { DOC.removeEventListener(ev, onGest, true); }); }
+    function begin() { if (started) return; started = true; offGest(); if (STATE.welcoming) runWelcome(); }
+    function onGest() { try { if (ac && ac.state === "suspended" && ac.resume) ac.resume(); } catch (e) {} begin(); }
+    gestEvents.forEach(function (ev) { DOC.addEventListener(ev, onGest, true); });     // first real interaction → speak
+    if (ac && ac.resume) { ac.resume().then(function () { if (ac.state === "running") begin(); }).catch(function () {}); }   // autoplay path (succeeds when a gesture already carried)
   }
   // ── INSTANT WELCOME for every new user (the fixed welcome script, PRE-RENDERED to content-addressed
   // audio and vendored). A brand-new user on a fresh device can't get instant neural speech while the
@@ -2477,10 +2876,29 @@
   // WELCOME lines to audio (voice/welcome.mjs), and the welcome plays it INSTANTLY (a tiny static asset,
   // no model), while Kokoro loads in the BACKGROUND for the conversation that follows. Magical + alive +
   // real-time for everyone; falls back to live synth (still works) if the audio isn't baked yet.
-  var _welcomeBaked;   // undefined=untried · null=absent · object=present
+  var _welcomeBaked, _welcomeBakedP;   // undefined=untried · null=absent · object=present; _welcomeBakedP dedupes the in-flight import (prefetch ⊕ runWelcome share one fetch)
   function loadWelcomeBaked() {
     if (_welcomeBaked !== undefined) return Promise.resolve(_welcomeBaked);
-    return import(BASE + "voice/welcome.mjs").then(function (m) { _welcomeBaked = (m && (m.WELCOME_AUDIO || m.default)) || null; return _welcomeBaked; }, function () { _welcomeBaked = null; return null; });
+    if (_welcomeBakedP) return _welcomeBakedP;
+    _welcomeBakedP = import(BASE + "voice/welcome.mjs").then(function (m) { _welcomeBaked = (m && (m.WELCOME_AUDIO || m.default)) || null; return _welcomeBaked; }, function () { _welcomeBaked = null; return null; });
+    return _welcomeBakedP;
+  }
+  // immersive-voice openers/closers, PRE-RENDERED (live-greets.mjs) → spoken INSTANTLY, zero model wait.
+  var _liveBaked;
+  function loadLiveBaked() {
+    if (_liveBaked !== undefined) return Promise.resolve(_liveBaked);
+    return import(BASE + "voice/live-greets.mjs").then(function (m) { _liveBaked = (m && (m.LIVE_GREETS || m.default)) || null; return _liveBaked; }, function () { _liveBaked = null; return null; });
+  }
+  // speak a FIXED line from its pre-baked clip (O(1), no model); fall back to live synth on a miss.
+  async function speakBaked(text) {
+    try {
+      var baked = await loadLiveBaked();
+      if (baked && baked.lines) {
+        var ln = null; for (var i = 0; i < baked.lines.length; i++) if (baked.lines[i].text === text) { ln = baked.lines[i]; break; }
+        if (ln) { try { if (W.speechSynthesis) W.speechSynthesis.cancel(); } catch (e) {} var dec = await decodeWavB64(ln.wav); karaReset(); await playPCM(dec.pcm, dec.rate, text); return { ok: true, runtime: "baked" }; }
+      }
+    } catch (e) {}
+    return speakNatural(text);
   }
   function b64ToBuf(b64) { var bin = atob(b64), bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return bytes.buffer; }
   function bufToB64(buf) { var bytes = new Uint8Array(buf), bin = ""; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); return btoa(bin); }
@@ -2511,12 +2929,19 @@
 
   async function runWelcome() {
     if (!STATE.liveOn) return;
-    beginBtn.style.display = "none"; liveSub.style.display = "none"; capHint.textContent = "waking up…";
-    unlockAudio();                                                   // we're inside the user's tap → audio is allowed
+    capHint.textContent = "waking up…";
+    unlockAudio();                                                   // autoBegin guarantees a gesture (or autoplay) → audio is allowed
     STATE.live = "speaking";
-    var baked = await loadWelcomeBaked();                            // pre-rendered welcome audio → INSTANT, no model wait
+    var baked = await loadWelcomeBaked();                            // pre-rendered welcome audio → INSTANT (prefetched during the invite)
     warm();                                                          // load ear + voice in the BACKGROUND for the conversation
+    // Q speaks ONLY once the orb has painted — never to a blank stage. Hold the centered greeting (orb ·
+    // name · tagline) until then; capped so a slow/failed orb can't dead-end the welcome.
+    await orbReadyOr(4000);
+    if (!STATE.liveOn) return;
+    liveEl.removeAttribute("data-mode");                            // greeting → conversation: ribbon drops to the lower third
+    liveSub.style.display = "none";
     capHint.textContent = "";
+    _calmCaption = true; if (capQ) capQ.classList.add("hl-calm");    // the welcome reads ONE calm sentence at a time (no streaming ribbon)
     if (baked && baked.lines && baked.lines.length) {
       for (var i = 0; i < baked.lines.length && STATE.liveOn; i++) {
         var ln = baked.lines[i];
@@ -2530,9 +2955,23 @@
     }
     if (!STATE.liveOn) return;
     STATE.welcoming = false;
-    var mode = STATE.mode || await ensureMode();
-    if (mode === "serverless") liveLoop(true);                       // ear is ready → drop into a live conversation
-    else { setLive("idle"); capSay("q", "I'm always a tap away."); }  // no on-device ear yet → leave the invitation
+    // Q has said its piece → the welcome bows out on its own. No live-conversation loop, no orb left
+    // hanging: the glass blooms open and the desktop is revealed underneath. Q stays one word away —
+    // revealDesktop()'s closeLive re-arms the wake word, so "…Q" summons it again any time.
+    await revealDesktop();
+  }
+  // ── revealDesktop: the welcome's automatic, magical exit. Let the last word settle, then dissolve the
+  //    overlay (the hl-reveal bloom) to uncover the desktop, and tear down (closeLive re-arms the wake word).
+  async function revealDesktop() {
+    capHint.textContent = "";
+    await new Promise(function (r) { setTimeout(r, 640); });          // a warm beat so the final line lands before the screen clears
+    if (!STATE.liveOn) return;                                        // the user already skipped (Esc / ✕) → nothing to dissolve
+    if (liveEl && !_capReduce) {
+      liveEl.classList.add("hl-reveal");                              // bloom + clear → the desktop fades up beneath
+      await new Promise(function (r) { setTimeout(r, 820); });        // matches the hlReveal animation
+    }
+    closeLive();                                                      // stop the orb, arm the wake word — Q listens on, invisibly
+    if (liveEl) liveEl.classList.remove("hl-reveal");                 // reset so a replay opens clean
   }
   var STOP_RE = /^(stop|exit|quit|cancel|never mind|nevermind|good ?bye|bye|that's all|thats all|thank you that's all|i'm done|im done|see you)\b/;
   // A turn where Q talks AND can be cut off. Speaks `say` (string) or runs `converse` (an agent turn),
@@ -2561,9 +3000,9 @@
         else { setLive("listening"); STATE.busy = true; turnStart(); text = await recognize(); tmark("transcript"); STATE.busy = false; }   // no persistent mic → one-shot
         if (!STATE.liveOn) break;
         if (!STATE.liveOn) break;
-        if (!text) { _turn = null; if (++empties >= 3) { setLive("speaking"); var idle = "I'm here whenever you need me."; capSay("q", idle); await speakNatural(idle); break; } continue; }
+        if (!text) { _turn = null; if (++empties >= 3) { setLive("speaking"); var idle = "I'm here whenever you need me."; capSay("q", idle); await speakBaked(idle); break; } continue; }
         empties = 0; capSay("you", text);
-        if (STOP_RE.test(norm(text))) { _turn = null; setLive("speaking"); var bye = "Talk soon."; capSay("q", bye); await speakNatural(bye); break; }
+        if (STOP_RE.test(norm(text))) { _turn = null; setLive("speaking"); var bye = "Talk soon."; capSay("q", bye); await speakBaked(bye); break; }
         setLive("thinking");
         // 1. resolve a pending PROPOSAL: is this turn your approval or refusal?
         if (STATE.pending) {
@@ -2600,11 +3039,25 @@
     DOC.addEventListener("keydown", function (e) { if (e.altKey && (e.key === "v" || e.key === "V") && !e.repeat) { e.preventDefault(); activate(); } });
   }
 
+  // First-run is PER-OPERATOR: the welcome is shown once per signed-in identity (keyed by the operator κ),
+  // never for a guest. A no-identity context (non-shell top-level) falls back to the legacy global flag.
+  function _welKey(op) { return "holo.voice.welcomed" + (op ? "." + op : ""); }
+  function hasWelcomed(op) {
+    try { return op ? localStorage.getItem(_welKey(op)) === "1" : localStorage.getItem("holo.voice.welcomed") === "1"; }
+    catch (e) { return false; }
+  }
+  function markWelcomed() {
+    try {
+      localStorage.setItem("holo.voice.welcomed", "1");                     // legacy/global flag (back-compat)
+      var id = W.HoloIdentity; if (id && !id.guest && id.operator) localStorage.setItem(_welKey(id.operator), "1");
+    } catch (e) {}
+  }
   function start() {
     if (!DOC.body) { setTimeout(start, 30); return; }
     mount(); wireHotkey(); bindSeam(); mountMCP(); wireMindOrb();   // expose Q's tools to Holo Mind + make its actions visible on the orb
-    // resume the wake word if the user left it on (will prompt for the mic, since they opted in).
-    try { if (localStorage.getItem("holo.voice.wake") === "1") setTimeout(startWake, 800); } catch (e) {}
+    // Wake-word arming + first-run welcome are decided TOGETHER, once the signed-in identity resolves (see
+    // the identity-gated block at the end of start()): a guest never gets the welcome; a returning operator
+    // arms the wake word immediately; a brand-new operator gets the wake word armed at the END of the welcome.
     // presence: any interaction keeps Q lively; it settles into a serene calm after a while idle.
     try { ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"].forEach(function (ev) { DOC.addEventListener(ev, markActive, { passive: true }); }); } catch (e) {}
     // pause the always-on orbs while the tab is hidden (no wasted GPU); resume on return.
@@ -2616,17 +3069,38 @@
       if (!hidden) try { refreshPalette(); } catch (e) {}                 // re-adapt to the wallpaper/accent on return
     });
     try { setTimeout(refreshPalette, 2200); } catch (e) {}                // adapt the orb to your desktop once it has settled
-    // first-run welcome: a new visitor is greeted by Q. Skipped on shared deep links (?app=/?open=/?run=)
-    // so a shared holospace runs instantly, and shown only once (the gesture sets the 'welcomed' flag).
+    // FIRST-RUN Q WELCOME — keyed to the SIGNED-IN identity, deterministically (we wait for HoloIdentity, the
+    // shell's verified operator), and NEVER for a guest. A returning operator arms the wake word instead.
+    // Skipped on shared deep links (?app=/?open=/?run=) so a shared holospace runs instantly. The welcomed
+    // flag is PER-OPERATOR (operator κ), so someone who first browsed as a guest still gets the welcome on
+    // their first real sign-in. (Cold-start stays lazy: Q warms its brain when opened; the L0 seed κ-memo
+    // answers common first questions with zero model. Pre-warm a kiosk with HoloVoice.warmStarter().)
     try {
-      var pq = new URLSearchParams(location.search), deep = pq.has("app") || pq.has("open") || pq.has("run");
-      if (!deep && !localStorage.getItem("holo.voice.welcomed")) setTimeout(welcome, 1400);
-      // COLD-START is now LAZY (perf: this shell hosts EVERY app — keep its boot path clean). The ~348MB
-      // starter LLM (+ transformers + tokenizer) used to warm here on every boot. It no longer does: Q warms
-      // its brain the moment you OPEN it — openQPanel() calls resolveBrain(), and a voice turn awaits
-      // resolveBrain() too — so the first turn still lands fast, while a user who never opens Q pays nothing.
-      // The L0 seed κ-memo still answers common first questions with zero model. To pre-warm anyway (e.g. a
-      // kiosk), call HoloVoice.warmStarter() explicitly.
+      var _pq = new URLSearchParams(location.search), _deep = _pq.has("app") || _pq.has("open") || _pq.has("run");
+      var _wokeOrWelcomed = false;
+      function _armWake() { if (_wokeOrWelcomed) return; _wokeOrWelcomed = true; if (localStorage.getItem("holo.voice.wake") !== "0") setTimeout(function () { try { startWake(); } catch (e) {} }, 800); }
+      // Decide ONLY from a RESOLVED identity. Welcome fires for a non-guest OPERATOR on their first run — never
+      // for a guest, never for a null/unresolved identity (so a slow shell boot can't accidentally greet anyone).
+      function onIdentity(id) {
+        if (_wokeOrWelcomed) return;
+        var op = (id && !id.guest && id.operator) ? id.operator : null;   // a guest / unresolved id → op is null → no welcome
+        if (!_deep && op && !hasWelcomed(op)) {   // a NEW signed-in operator → greet them
+          _wokeOrWelcomed = true;
+          // PREWARM the moment we KNOW we'll welcome (not waiting for the overlay): the ear (ensureMode,
+          // quiet) + the starter brain (warmStarter) load in their background workers through the SAME
+          // loaders the turn uses — so by the time the welcome finishes speaking the first reply is hot.
+          // Fires ONLY for the authenticated first-timer (never a guest), so the shell-perf budget is safe.
+          try { warmStarter(); } catch (e) {}
+          try { ensureMode(true); } catch (e) {}
+          setTimeout(function () { try { welcome(); } catch (e) {} }, 350);   // welcome arms the wake word at its end
+        }
+        else _armWake();                                                  // guest / returning / no-op → arm the wake word now
+      }
+      if (W.HoloIdentity) onIdentity(W.HoloIdentity);                     // identity already resolved
+      else {
+        W.addEventListener("holo-identity", function (e) { onIdentity((e && e.detail) || W.HoloIdentity || null); });   // stays armed for a SLOW identity (operator resolving late still gets welcomed)
+        setTimeout(function () { if (!W.HoloIdentity) _armWake(); }, 4000);   // safety: identity never came (non-shell) → arm wake, but NEVER welcome
+      }
     } catch (e) {}
   }
   try { registerQWidget(); } catch (e) {}   // register the "q" widget TYPE at eval — before the board restores, so a saved Q remounts (shell loads widgets first)
@@ -2658,6 +3132,22 @@
     levels: function () { return { mic: STATE.micLevel, tts: STATE.ttsLevel, live: STATE.live, liveOn: STATE.liveOn }; },   // live meters (for calibration)
     welcome: welcome,                      // first-run greeting: Q tells the why / how / what (replayable)
     live: openLive, endLive: closeLive,   // the magical voice-to-voice conversation overlay
+    // DEV: exercise the conversation VISUALS without a microphone (some sandboxes block getUserMedia).
+    // caption.* drives the ribbon primitives directly; demoUser streams a line in as the USER (growing
+    // partials, like live transcription), then optionally hands the floor to Q so you can see the crossover.
+    caption: { user: capUserText, q: function (t) { captionShow(captionText(t)); }, clear: capClear, barge: capBargeAck, speaker: function () { return _capSpeaker; } },
+    demoUser: function (text, opts) {
+      opts = opts || {}; if (!liveEl) buildLive();
+      if (!STATE.liveOn) { STATE.liveOn = true; liveEl.setAttribute("data-show", "1"); if (btn) btn.setAttribute("data-on", "1"); try { startOrb(); } catch (e) {} }
+      STATE.live = "listening"; capClear();
+      var words = String(text || "").split(/\s+/).filter(Boolean), acc = [], i = 0;
+      return new Promise(function (res) {
+        (function step() {
+          if (!STATE.liveOn || i >= words.length) { res(acc.join(" ")); return; }
+          acc.push(words[i++]); capUserText(acc.join(" ")); setTimeout(step, opts.wordMs || 200);
+        })();
+      });
+    },
     activate: activate,                    // quick one-shot push-to-talk (Alt+V)
     speak: function (t, o) { return (W.HoloQVAC && W.HoloQVAC.textToSpeech) ? W.HoloQVAC.textToSpeech({ text: t }).catch(function () { return speak(t, o); }) : speak(t, o); },
     converse: converseAgent,
@@ -2681,7 +3171,7 @@
     setGpuBrain: setGpuBrain,             // setGpuBrain(true|false) → opt into the ternary qwen-coder-7b GPU coder (ADR-0096); WASM Coder-1.5B floor on fallback (persisted)
     testWebGPU: testWebGPU,               // real-hardware self-check; auto-reverts on garbage output
     startWake: startWake, stopWake: stopWake, toggleWake: toggleWake,  // hands-free wake word, serverless + persisted; toggleWake = one-tap on/off w/ feedback
-    wakeDebug: function (on) { WAKE.debug = on !== false; if (WAKE.debug) speakToast("Wake debug on — open the console and say “" + CFG.wakeWord + "”."); return WAKE.debug; },   // log every segment: what Whisper heard + VAD + match
+    wakeDebug: function (on) { WAKE.debug = on !== false; if (WAKE.debug) speakToast("Wake debug on — open the console and say “" + wakePhrase() + "”."); return WAKE.debug; },   // log every segment: what Whisper heard + VAD + match
     openPanel: openQPanel, closePanel: closeQPanel, togglePanel: toggleQPanel, ask: qAsk,   // the docked Q panel — see the OS + converse/act together; ask(text) drives a turn
     context: function () { return qContext(qScope); }, osState: osSnapshot, scope: function (s) { if (s === "os" || s === "tab") { qScope = s; try { W.localStorage.setItem("holo.voice.scope", s); } catch (e) {} if (qScopeBtn) qScopeBtn.textContent = qScopeLabel(); } return qScope; },   // what Q can SEE of the κ-OS + its read/act scope
     embed: embedText, warmEmbed: ensureEmbed,   // semantic embeddings (EmbeddingGemma) → Q's semantic memory; lazy-loads + binds the QVAC embed seam

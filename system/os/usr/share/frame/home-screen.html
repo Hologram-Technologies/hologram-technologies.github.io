@@ -130,6 +130,16 @@
   @keyframes q-spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .q-fallback { animation: none; } }
 
+  /* Q orb right-click context MENU — a compact popup of quick actions (NOT the ask panel) */
+  .qmenu { position: fixed; z-index: 50; min-width: 172px; padding: 6px; border-radius: 12px;
+    background: rgba(16,18,28,.96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.10); box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    display: flex; flex-direction: column; gap: 2px; animation: qmenu-in .12s ease-out; }
+  @keyframes qmenu-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .qmenu button { all: unset; cursor: pointer; padding: .55rem .8rem; border-radius: 8px;
+    color: #e7e9ff; font: inherit; font-size: var(--holo-text-sm, 0.875rem); line-height: 1.2; }
+  .qmenu button:hover, .qmenu button:focus-visible { background: rgba(255,255,255,.08); }
+
   /* Q ask panel */
   .q-head { display: flex; align-items: center; gap: var(--u); margin-bottom: var(--g1); }
   .q-mini { position: relative; width: 38px; height: 38px; flex: 0 0 auto; }
@@ -339,7 +349,7 @@
     </div>
     <div class="grp">
       <label>About</label>
-      <div class="about">Hologram OS — one quiet, self-verifying home. Apps are content-addressed holospaces; nothing here phones home.</div>
+      <div class="about">Hologram OS — one quiet, self-checking home. Apps are verified apps; nothing here phones home.</div>
     </div>
   </div>
 </aside>
@@ -418,7 +428,7 @@
     { id: "lioness",       url: "/usr/share/wallpapers/lioness.jpg" },
     { id: "uor-native",    url: "/usr/share/wallpapers/uor-native.jpg" }
   ];
-  var DEFAULT_WALL = WALLPAPERS[0].url;   // a beautiful photo, pre-populated for immersive mode
+  var DEFAULT_WALL = "/usr/share/wallpapers/galaxy.jpg";   // the curated Milky Way — the OS default immersive backdrop
 
   // Default appearance is Dark (the clean reference look) until the operator chooses otherwise.
   function readTheme() { try { var s = JSON.parse(localStorage.getItem(TKEY) || "null"); return (s && typeof s === "object") ? s : { palette: "dark", immersive: false }; } catch (e) { return { palette: "dark", immersive: false }; } }
@@ -540,6 +550,30 @@
     CHIPS.forEach(function (t) { var b = document.createElement("button"); b.type = "button"; b.textContent = t;
       b.addEventListener("click", function () { $("q-input").value = t; ask(t); }); chips.appendChild(b); });
     $("qorb").addEventListener("click", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); });
+    // Right-click the orb → a compact context MENU of quick actions; it must NOT open the right-side ask
+    // panel and must suppress the browser's native menu. Left-click still opens the panel.
+    (function () {
+      var orb = $("qorb"); if (!orb) return; var menu = null;
+      function close() { if (!menu) return; menu.remove(); menu = null; document.removeEventListener("pointerdown", onDoc, true); document.removeEventListener("keydown", onKey, true); }
+      function onDoc(e) { if (menu && !menu.contains(e.target)) close(); }
+      function onKey(e) { if (e.key === "Escape") close(); }
+      var ITEMS = [
+        ["Ask Q", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); }],
+        ["Apps", function () { openSheet($("drawer")); }],
+        ["Focus timer", function () { openSheet($("timer")); }],
+        ["Settings", function () { openSheet($("settings")); }],
+      ];
+      orb.addEventListener("contextmenu", function (e) {
+        e.preventDefault(); e.stopPropagation(); close();
+        menu = document.createElement("div"); menu.className = "qmenu"; menu.setAttribute("role", "menu");
+        ITEMS.forEach(function (it) { var b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem"); b.textContent = it[0]; b.addEventListener("click", function () { close(); it[1](); }); menu.appendChild(b); });
+        document.body.appendChild(menu);
+        var r = orb.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;   // anchor above-left of the bottom-right orb, clamped to the viewport
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + "px";
+        menu.style.top = Math.max(8, r.top - mh - 8) + "px";
+        setTimeout(function () { document.addEventListener("pointerdown", onDoc, true); document.addEventListener("keydown", onKey, true); }, 0);
+      });
+    })();
     $("q-send").addEventListener("click", function () { ask($("q-input").value); });
     $("q-input").addEventListener("keydown", function (e) { if (e.key === "Enter") ask(this.value); });
     function ask(text) {
@@ -555,9 +589,9 @@
           window.parent.postMessage({ type: "holo-q-ask", text: text }, "*");
           reply.textContent = "Sent to Q.";
         } else {
-          reply.textContent = "Q comes online with the OS — your question is ready to send the moment it wakes.";
+          reply.textContent = "Q comes online with the OS. Your question is ready to send the moment it wakes.";
         }
-      } catch (e) { reply.textContent = "Q is waking up — try again in a moment."; }
+      } catch (e) { reply.textContent = "Q is waking up. Try again in a moment."; }
     }
   })();
 
@@ -702,5 +736,10 @@
   syncSettings();
 })();
 </script>
+<!-- Decentralized boot + autonomous self-heal (ADR-0076 · decentralized-boot delta A): the mobile home
+     is the persistent session, so it carries the same #<root-CID> cold-boot + IPFS/mesh recovery the
+     desktop shell does. Re-derives every recovered byte (Law L5); the sealed anchor is never auto-healed.
+     Guarded — can never break boot. -->
+<script type="module" src="./holo-heal-boot.mjs"></script>
 </body>
 </html>

@@ -23,11 +23,16 @@
     --line:#262629; --line-strong:#3a3a40; --panel:#0d0d0f; --panel-2:#1b1b1f; --panel-hover:#1a1a1d;
     --accent:#7dEFC9; --accent-2:#5b8cff; --accent-3:#c77bff;
     --phi:1.618;
-    --u: clamp(13px, 1.9vmin, 17px);
-    --u-phi: calc(var(--u) * var(--phi));
-    --u-phi2: calc(var(--u) * 2.618);
-    --u-phi3: calc(var(--u) * 4.236);
-    --read: clamp(16px, 0.5vw + 13px, 18.5px);
+    /* Base rhythm — HEIGHT-AWARE, so the whole window fits with no scroll at any landscape height.
+       Prose (--read) stays width-driven and legible. Every gap, pad and radius below is a φ step of --u. */
+    --u: clamp(9.5px, 1.28vh, 15px);
+    --u-g:    calc(var(--u) / var(--phi));     /* ÷φ  — the smallest step */
+    --u-phi:  calc(var(--u) * var(--phi));     /* ×φ  */
+    --u-phi2: calc(var(--u) * 2.618);          /* ×φ² */
+    --u-phi3: calc(var(--u) * 4.236);          /* ×φ³ */
+    --read: clamp(15px, 0.42vw + 11px, 18px);
+    --t-sm:  calc(var(--read) / var(--phi));   /* captions, tags  (÷φ) */
+    --t-lg:  calc(var(--read) * var(--phi));   /* sub-heads       (×φ) */
     --ease:cubic-bezier(.4,0,.2,1);
     --frame: clamp(7px, 0.95vmin, 14px);
     --frame-r: clamp(16px, 1.9vmin, 28px);
@@ -171,18 +176,18 @@
   .win-body{ flex:1; min-height:0; display:flex; }
   .win-body::-webkit-scrollbar, .pane::-webkit-scrollbar{ width:10px; }
   .pane::-webkit-scrollbar-thumb{ background:var(--line-strong); border:3px solid transparent; background-clip:padding-box; border-radius:999px; }
-  .pane{ overflow-y:auto; overscroll-behavior:contain; }
+  .pane{ overflow:hidden; overscroll-behavior:contain; }
 
   /* LEFT — the promise, set Why → How → What, in the Manifesto's voice. */
-  .pane-l{ flex:none; width:clamp(300px, 38%, 460px); border-right:1px solid var(--line);
-    display:flex; flex-direction:column; gap:calc(var(--u) * .8);
-    padding:clamp(15px,2.1vmin,28px) clamp(20px,2.8vw,40px); }
-  .pane-l h1{ margin:0; font-size:clamp(26px, 3vw, 40px); font-weight:800; letter-spacing:-.022em;
-    line-height:1.05; text-wrap:balance;
+  .pane-l{ flex:none; width:clamp(330px, 38.2%, 520px); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; gap:var(--u);
+    padding:var(--u-phi) clamp(22px,2.6vw,40px) var(--u); }
+  .pane-l h1{ margin:0; font-size:clamp(24px, 3.6vh, 40px); font-weight:800; letter-spacing:-.022em;
+    line-height:1.04; text-wrap:balance;
     background:linear-gradient(180deg,#fff, #cfd3e6); -webkit-background-clip:text; background-clip:text; color:transparent; }
   :root[data-theme="light"] .pane-l h1{ background:none; color:var(--fg); }
-  .pane-l .lede{ margin:0; font-size:var(--read); line-height:1.52; color:var(--fg-soft); text-wrap:pretty; max-width:34ch; }
-  .pane-l .lede b{ color:var(--fg); font-weight:700; }
+  .pane-l .lede{ margin:0; font-size:var(--read); line-height:1.5; color:var(--fg-soft); text-wrap:pretty; max-width:34ch; }
+  .pane-l .lede b{ color:var(--fg); font-weight:700; white-space:nowrap; }   /* "Fast, free, private." never splits across rows */
 
   /* the kicker: the first thing a download-clicker reads — native is coming to every platform. */
   .kicker{ display:inline-flex; align-items:center; gap:.6em; align-self:flex-start;
@@ -206,19 +211,19 @@
 
   /* the platforms, made obvious: every OS named, each clearly marked Soon, the visitor's own ringed. */
   .platforms{ margin-top:auto; }
-  .platforms .cap{ font-size:calc(var(--read) * .84); letter-spacing:.12em; text-transform:uppercase;
-    color:var(--muted); font-weight:600; margin:0 0 calc(var(--u) * .55); }
-  .plat-list{ display:flex; flex-direction:column; gap:calc(var(--u) * .42); }
-  .plat-row{ display:flex; align-items:center; gap:.85em; padding:calc(var(--u) * .46) calc(var(--u) * .8);
-    border-radius:calc(var(--u) * .72); background:color-mix(in srgb, var(--panel) 60%, transparent);
+  .platforms .cap{ font-size:var(--t-sm); letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin:0 0 var(--u-g); }
+  .plat-list{ display:flex; flex-direction:column; gap:var(--u-g); }
+  .plat-row{ display:flex; align-items:center; gap:.85em; padding:var(--u-g) var(--u);
+    border-radius:var(--u-g); background:color-mix(in srgb, var(--panel) 60%, transparent);
     border:1px solid var(--line); transition:border-color .25s, background .25s, transform .2s var(--ease); }
   .plat-row:hover{ transform:translateX(2px); border-color:var(--line-strong); background:color-mix(in srgb, var(--panel) 78%, transparent); }
-  .plat-row .lg{ width:calc(var(--u) * 1.95); height:calc(var(--u) * 1.95); border-radius:28%; flex:none;
+  .plat-row .lg{ width:calc(var(--u) * 1.75); height:calc(var(--u) * 1.75); border-radius:28%; flex:none;
     display:grid; place-items:center; color:var(--fg-soft); background:var(--panel-2); border:1px solid var(--line); }
   .plat-row .lg svg{ width:58%; height:58%; display:block; }
   .plat-row .pn{ flex:1; min-width:0; font-weight:600; color:var(--fg-soft); font-size:calc(var(--read) * .92);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .plat-row .tag{ flex:none; font-size:calc(var(--read) * .8); font-weight:600; letter-spacing:.02em;
+  .plat-row .tag{ flex:none; font-size:var(--t-sm); font-weight:600; letter-spacing:.02em;
     color:var(--muted); padding:.2em .6em; border-radius:999px; background:var(--panel-2); border:1px solid var(--line); }
   .plat-row.you{ border-color:color-mix(in srgb, var(--accent) 55%, var(--line-strong));
     background:color-mix(in srgb, var(--accent) 8%, transparent);
@@ -230,15 +235,15 @@
 
   /* RIGHT — THE MACHINE: your real hardware, read live and shown back, crisp. */
   .pane-r{ flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--u-phi);
-    padding:clamp(22px,3.4vmin,46px) clamp(22px,3.2vw,48px); }
-  .pane-r .label{ font-size:calc(var(--read) * .84); letter-spacing:.16em; text-transform:uppercase;
+    padding:var(--u-phi) clamp(24px,3vw,48px); }
+  .pane-r .label{ font-size:var(--t-sm); letter-spacing:.16em; text-transform:uppercase;
     color:var(--muted); font-weight:600; }
-  .pane-r .head{ margin:.35em 0 0; font-size:clamp(20px, 2.3vw, 30px); font-weight:700; letter-spacing:-.014em;
-    color:var(--fg); line-height:1.15; text-wrap:balance; }
+  .pane-r .head{ margin:.35em 0 0; font-size:clamp(19px, 2.9vh, 30px); font-weight:700; letter-spacing:-.014em;
+    color:var(--fg); line-height:1.12; text-wrap:balance; }
 
   .specs{ display:grid; grid-template-columns:repeat(2, 1fr); gap:var(--u); }
-  .spec{ position:relative; overflow:hidden; border-radius:calc(var(--u) * .95);
-    padding:calc(var(--u) * 1.15) calc(var(--u) * 1.25);
+  .spec{ position:relative; overflow:hidden; border-radius:var(--u);
+    padding:var(--u) var(--u-phi);
     background:color-mix(in srgb, var(--panel) 70%, transparent); border:1px solid var(--line);
     display:flex; flex-direction:column; gap:.45em; min-width:0;
     opacity:0; transform:translateY(8px); }
@@ -251,9 +256,9 @@
   .spec .row{ display:flex; align-items:center; gap:.55em; color:var(--muted); }
   .spec .row svg{ width:1.15em; height:1.15em; flex:none; color:var(--accent); }
   .spec .k{ font-size:calc(var(--read) * .82); letter-spacing:.09em; text-transform:uppercase; font-weight:600; }
-  .spec .v{ font-size:clamp(22px, 2.5vw, 34px); font-weight:800; letter-spacing:-.02em; color:var(--fg);
+  .spec .v{ font-size:clamp(20px, 3vh, 33px); font-weight:800; letter-spacing:-.02em; color:var(--fg);
     line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .spec .v.small{ font-size:clamp(16px, 1.5vw, 21px); white-space:normal; line-height:1.25; }
+  .spec .v.small{ font-size:clamp(15px, 2vh, 21px); white-space:normal; line-height:1.25; }
   .spec .s{ font-size:calc(var(--read) * .86); color:var(--muted); }
 
   /* ── LIVE: real-time compute, measured on this machine right now. One concise panel: a self-scaling
@@ -273,33 +278,20 @@
   .chip2 b{ color:var(--fg-soft); font-variant-numeric:tabular-nums; }
   .chip2.ok{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 35%, transparent); }
   .live-val{ flex:none; font-weight:800; letter-spacing:-.02em; line-height:1; color:var(--fg); }
-  .live-val b{ font-size:clamp(25px, 2.9vw, 38px); font-variant-numeric:tabular-nums; }
+  .live-val b{ font-size:clamp(22px, 3.2vh, 38px); font-variant-numeric:tabular-nums; }
   .live-val .u{ font-size:calc(var(--read) * .86); color:var(--muted); font-weight:600; margin-left:.35em; }
   .live-canvas{ flex:1; width:100%; min-height:calc(var(--u) * 3.5); display:block; }
 
   .pane-r .close-line{ margin-top:auto; }
   .pane-r .close-line .lead{ font-size:var(--read); color:var(--muted); line-height:1.55; margin:0 0 .5em; max-width:48ch; }
   .pane-r .close-line .lead b{ color:var(--fg-soft); font-weight:600; }
-  .pane-r .mine{ margin:0; font-size:clamp(24px, 2.9vw, 40px); font-weight:800; letter-spacing:-.02em; line-height:1.05;
+  .pane-r .mine{ margin:0; font-size:clamp(22px, 3.4vh, 40px); font-weight:800; letter-spacing:-.02em; line-height:1.05;
     color:#fff; text-shadow:0 0 30px rgba(125,239,201,.28), 0 0 60px rgba(91,140,255,.18); }
   :root[data-theme="light"] .pane-r .mine{ color:var(--fg); text-shadow:none; }
 
-  /* ── shorter landscape screens (laptops): compact the left pane so the whole story fits, no scroll. */
-  @media (min-width:841px) and (max-height:800px){
-    .pane-l{ gap:calc(var(--u) * .6); padding-top:clamp(12px,1.6vmin,20px); padding-bottom:clamp(12px,1.6vmin,20px); }
-    .pane-l .lede{ line-height:1.45; }
-    .platforms .cap{ margin-bottom:calc(var(--u) * .4); }
-    .plat-row{ padding:calc(var(--u) * .36) calc(var(--u) * .75); }
-    .plat-row .lg{ width:calc(var(--u) * 1.7); height:calc(var(--u) * 1.7); }
-    .pane-r{ gap:calc(var(--u) * .8); padding-top:clamp(12px,1.6vmin,20px); padding-bottom:clamp(12px,1.6vmin,20px); }
-    .spec{ padding:calc(var(--u) * .85) calc(var(--u) * 1.1); }
-    .specs{ gap:calc(var(--u) * .7); }
-    .live{ min-height:calc(var(--u) * 4); }
-  }
-
   /* ── responsive: stack the panes only on narrow / portrait screens. A short LANDSCAPE window keeps
-     the two panes side by side (stacking it would only make it taller) — the laptop-compaction query
-     above shrinks the rhythm so it still fits with no scroll. ──────────────────────────────────── */
+     the two panes side by side (stacking it would only make it taller); the height-aware --u rhythm
+     above shrinks every gap and pad in step with the height, so it still fits with no scroll. ────── */
   @media (max-width:840px){
     .win-body{ flex-direction:column; overflow-y:auto; }
     .pane{ overflow:visible; }

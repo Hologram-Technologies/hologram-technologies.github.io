@@ -14,6 +14,7 @@ export function fhsMap(rel) {
   rel = String(rel).replace(/^\/+/, "");
   let mm;
   if (rel === "apps/index.jsonld") return "usr/share/holospaces/index.jsonld";   // the apps catalog, vendored into the image (the dev serve still prefers the live Apps-repo copy via readRel)
+  if (rel === "apps/holospaces.jsonld") return "usr/share/holospaces/holospaces.jsonld";   // the holospace TEMPLATE catalog (First Light), vendored alongside the apps catalog
   // _shared and pkg are ALWAYS the OS runtime — wherever an app references them.
   if ((mm = rel.match(/^(?:apps\/[^/]+\/)?_shared\/(.+)$/))) return "usr/lib/holo/" + mm[1];
   if ((mm = rel.match(/^(?:apps\/[^/]+\/)?pkg\/(.+)$/))) return "usr/lib/pkg/" + mm[1];
@@ -22,12 +23,13 @@ export function fhsMap(rel) {
   if (rel.startsWith(".well-known/")) return ".well-known/" + rel.slice(12);
   if (rel.startsWith("terms/")) return "etc/terms/" + rel.slice(6);
   if ((mm = rel.match(/^\.holo\/(terms|privacy)\/(.+)$/))) return "etc/" + mm[1] + "/" + mm[2];
+  if (rel.startsWith("privacy/")) return "etc/privacy/" + rel.slice(8);   // _shared/holo-privacy.js resolves its roster as ../privacy/policies.json → /privacy/… (FHS-true under etc/)
   if ((mm = rel.match(/^(a2a|nanda|skills|atlas)\/(.+)$/))) return "srv/" + mm[1] + "/" + mm[2];
   if (rel === "apps-witness.result.json") return "srv/apps-witness.result.json";
   // The boot chain: rEFInd (boot.html at root) → Plymouth (splash.html) → SDDM (login.html)
   // → shell (home.html) → editor (workspace.html). All in /usr/share/frame.
   if (["shell.html", "holospace.html", "home.html", "home-screen.html", "homepage.html", "find.html", "splash.html", "login.html", "identity.html", "wallet.html", "workspace.html", "pair.html", "omni.html"].includes(rel)) return "usr/share/frame/" + rel;   // shell.html = the ONE canonical holospace shell (in OS2); identity.html + wallet.html = the unified Holo Identity surface (the sovereign vault) — core, always served; omni.html = the κ-resolve lab
-  if (rel === "boot.html") return "boot/index.html";                  // the bootloader, served at the root
+  if (rel === "boot.html") return "boot/boot.html";                   // the bootloader, served at the root (file named boot.html — no index.html clash with the OS-root gateway)
   // …the bootloader's OWN asset subdir is physically boot/boot/, so `boot/<x>` maps one level deeper.
   if (/^boot\/(refind\.conf|boot-manifest\.json|icons\/|themes\/|make-boot\.mjs)/.test(rel)) return "boot/boot/" + rel.slice(5);
   if (["holo-boot-sw.js", "coi-serviceworker.min.js"].includes(rel)) return "boot/" + rel;
@@ -38,8 +40,12 @@ export function fhsMap(rel) {
   if (["icon-192.png", "icon-512.png"].includes(rel)) return "usr/share/icons/" + rel;
   // The Plymouth theme catalog the splash fetches as `splash/themes/<id>/…` lives FHS-true.
   if ((mm = rel.match(/^splash\/themes\/(.+)$/))) return "usr/share/plymouth/themes/" + mm[1];
+  // Cross-repo: the GGUF forge (apps/q/forge/*) imports the OS's holo-uor via the sibling-repo layout
+  // "/holo-os/system/os/<path>". On this flat origin the OS lives at root, so resolve that prefix to the OS
+  // path (mirrors the dev-server alias in tools/holo-serve-fhs.mjs) — lets Q's .holo WebGPU brain load on Pages.
+  if (rel.startsWith("holo-os/system/os/")) return fhsMap(rel.slice("holo-os/system/os/".length));
   // FHS passthrough: the whole Linux root is addressable at its real path (identity map).
-  if (/^(usr|etc|var|boot|bin|sbin|lib|lib64|opt|srv|mnt|media|home|root|dev|proc|sys|run|tmp)\//.test(rel)) return rel;
+  if (/^(usr|etc|var|boot|bin|sbin|lib|lib64|opt|srv|mnt|media|home|root|dev|proc|sys|run|tmp|ui)\//.test(rel)) return rel;
   return null;
 }
 

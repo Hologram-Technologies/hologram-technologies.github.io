@@ -13,19 +13,19 @@
     "ratchet",
     "a11y"
   ],
-  "appsScanned": 46,
-  "baselinedTotal": 18,
+  "appsScanned": 153,
+  "baselinedTotal": 20,
   "regressions": [
     {
-      "app": "surfacedemo",
+      "app": "holo-v86",
       "was": 0,
-      "now": 1,
-      "added": 1,
+      "now": 3,
+      "added": 3,
       "sample": [
         {
-          "rule": "no-viewport-meta",
-          "n": 1,
-          "note": "add <meta viewport width=device-width> (renders desktop-zoomed without it)"
+          "rule": "100vh-not-dvh",
+          "n": 3,
+          "note": "use 100dvh (overflow when the URL bar toggles)"
         }
       ]
     }

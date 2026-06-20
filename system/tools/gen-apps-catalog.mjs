@@ -7,29 +7,48 @@
 //
 //   node tools/gen-apps-catalog.mjs
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const APPS = "C:/Users/pavel/Desktop/Hologram Apps";
-const OS2 = "C:/Users/pavel/Desktop/Hologram OS2/system/os";
+const here = dirname(fileURLToPath(import.meta.url));               // tools/
+const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");   // sibling apps repo
+const OS2 = process.env.HOLO_OS_DIR || join(here, "../os");                    // holo-os/system/os (the / root)
 
 // identifier → content-address κ, from the OS-wide closure.
 const kByIdent = {};
 try { for (const a of (JSON.parse(readFileSync(join(OS2, "etc/os-closure.json"), "utf8")).apps || [])) if (a.identifier && a.root) kByIdent[a.identifier] = a.root; } catch {}
 
+const KAPPA_RE = /^did:holo:sha256:[0-9a-f]{64}$/;
+// the app's TRUE root κ is the content address sealed in its own holospace.lock.json (Law L1) —
+// the authoritative source. os-closure is a secondary mirror; slug is the honest last resort.
+const lockRoot = (dir) => {
+  try { const r = JSON.parse(readFileSync(join(APPS, "apps", dir, "holospace.lock.json"), "utf8")).root;
+    return KAPPA_RE.test(r) ? r : null; } catch { return null; }
+};
+
+// Individual bootable OS images (FreeDOS, Windows 95, KolibriOS, …) are NOT top-level launcher apps —
+// they boot from inside the emulator MENU apps (Holo V86 / X86 / 3D / QEMU), each of which has its own
+// catalog.json. Listing all ~100 here would bury the real apps and flood search with near-duplicate OS
+// names. They stay fully κ-addressable by their own root (a κ link still opens them); they're just not
+// top-level icons. Discriminator: a `org.hologram.V86*` id or an "<OS> on (the) v86 —" summary.
+const isOsImage = (d) => /^org\.hologram\.V86/.test(d.id || "") || /\bon (?:the )?v86\b/i.test(d.summary || "");
+
 const dirs = readdirSync(join(APPS, "apps")).filter((d) => { try { return statSync(join(APPS, "apps", d)).isDirectory(); } catch { return false; } }).sort();
-const dataset = []; const slug = [];
+const dataset = []; const slug = []; let osImages = 0;
 for (const dir of dirs) {
   const defPath = join(APPS, "apps", dir, "holospace.json");
   if (!existsSync(defPath)) { console.log(`  ⚠ ${dir} has no holospace.json — skipped`); continue; }
   const d = JSON.parse(readFileSync(defPath, "utf8"));
-  const kappa = kByIdent[d.id] || `did:holo:slug:${d.id}`;
-  if (!kByIdent[d.id]) slug.push(dir);
+  if (isOsImage(d)) { osImages++; continue; }    // a sub-image of an emulator menu, not a launcher app
+  const kappa = lockRoot(dir) || kByIdent[d.id] || `did:holo:slug:${d.id}`;
+  if (!KAPPA_RE.test(kappa)) slug.push(dir);
   dataset.push({
-    "@id": kappa,
+    "@id": kappa,                                 // identity = the app's content root κ (Law L1)
+    "holo:root": kappa,                           // the standard's named single-address discovery key (SEC-6)
     "@type": d.type || ["schema:SoftwareApplication", "schema:WebApplication"],
     "schema:name": d.name,
-    "schema:identifier": d.id,
+    "schema:identifier": d.id,                    // the human slug — a label, never the identity
     "schema:description": d.summary || "",
     "schema:applicationCategory": d.applicationCategory || "Utility",
     "dcat:landingPage": `apps/${dir}/${d.entry || "index.html"}`,
@@ -39,13 +58,82 @@ for (const dir of dirs) {
 }
 
 const catalog = {
-  "@context": { schema: "https://schema.org/", dcat: "http://www.w3.org/ns/dcat#", dcterms: "http://purl.org/dc/terms/" },
+  "@context": { schema: "https://schema.org/", dcat: "http://www.w3.org/ns/dcat#", dcterms: "http://purl.org/dc/terms/", holo: "https://hologram.os/ns#" },
   "@id": "https://hologram.os/apps",
   "@type": ["dcat:Catalog", "schema:DataCatalog"],
   "dcterms:title": "Hologram Apps — the content-addressed app catalog",
   "dcterms:description": "Each app is a self-contained holospace addressed by the did:holo of its content (Law L1); the OS indexes addresses, not locations; any byte re-derives (Law L5). Pin an app anywhere and it boots in the Hologram OS holospace frame from a single κ.",
   "dcat:dataset": dataset,
 };
-writeFileSync(join(APPS, "apps", "index.jsonld"), JSON.stringify(catalog, null, 2) + "\n");
-console.log(`✓ wrote Hologram Apps/apps/index.jsonld — ${dataset.length} apps, each with did:holo + dcat:landingPage`);
+const body = JSON.stringify(catalog, null, 2) + "\n";
+writeFileSync(join(APPS, "apps", "index.jsonld"), body);
+console.log(`✓ wrote Hologram Apps/apps/index.jsonld — ${dataset.length} apps, each with did:holo + dcat:landingPage (${osImages} emulator OS images excluded — they boot from the menu apps)`);
+// VENDOR the served copy into the OS image. fhsMap aliases the launcher's `apps/index.jsonld` to
+// `usr/share/holospaces/index.jsonld`, so this is the file the Service Worker (and any static prod host)
+// actually serves — the dev server prefers the live Apps-repo copy via readRel, but the SW does not.
+// Without this, the SW serves a stale 9-app FHS dir manifest and every app icon opens an empty tab.
+const served = join(OS2, "usr/share/holospaces/index.jsonld");
+writeFileSync(served, body);
+console.log(`✓ vendored served catalog → os/usr/share/holospaces/index.jsonld (what the SW/prod serves)`);
 if (slug.length) console.log(`  slug-addressed (not yet κ-pinned in os-closure): ${slug.join(", ")}`);
+
+// ── VENDOR EACH APP'S LOCK CLOSURE (so apps STREAM by κ on the SW/static-prod path) ───────────────
+// A launcher app's BODY is never copied into the OS image — at 16 GB+ across the 49 apps (OS images,
+// model weights) that's impossible, and it would defeat content addressing. Instead each app streams
+// by κ: the Service Worker re-derives every app byte against the κ pinned in that app's
+// holospace.lock.json, recovering it from any source (the apps-holo CDN, IPFS, a mesh peer) and
+// refusing a mismatch (Law L5). For that the SW needs the PINS, so it folds `apps/<id>/holospace.lock.json`
+// (ensureAppLock) — which fhsMap routes to `usr/share/holospaces/<id>/holospace.lock.json`. The dev
+// server masks the gap (it serves app bytes live from the Apps repo), but on the SW/static host an app
+// with NO vendored lock has NO κ pins: its bytes can't stream, can't verify, and coherence reports them
+// as "unresolved pins" — the broken-pane symptom. holo-linux already ships its lock here and boots
+// serverlessly; this vendors the SAME artifact for every launcher app so they all stream identically.
+let vendoredLocks = 0; const noLock = []; const lockMismatch = [];
+for (const a of dataset) {
+  const dir = String(a["dcat:landingPage"]).split("/")[1];                 // apps/<dir>/index.html → <dir>
+  const src = join(APPS, "apps", dir, "holospace.lock.json");
+  if (!existsSync(src)) { noLock.push(dir); continue; }                    // unpinned app → can't stream by κ (built but not sealed)
+  const lock = JSON.parse(readFileSync(src, "utf8"));
+  // the vendored lock MUST pin the same root the catalog advertises, or the SW would fold pins for a
+  // different build than the icon/launch entry — refuse the divergence rather than ship a split identity.
+  if (KAPPA_RE.test(a["@id"]) && lock.root && lock.root !== a["@id"]) { lockMismatch.push(`${dir} (catalog ${a["@id"].slice(-12)} ≠ lock ${String(lock.root).slice(-12)})`); }
+  const outDir = join(OS2, "usr/share/holospaces", dir);
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, "holospace.lock.json"), JSON.stringify(lock, null, 2) + "\n");
+  vendoredLocks++;
+}
+if (lockMismatch.length) throw new Error(`gen-apps-catalog: vendored lock root ≠ catalog root for: ${lockMismatch.join("; ")} — re-run relock-app + gen so the κ pins agree.`);
+console.log(`✓ vendored ${vendoredLocks} app lock(s) → os/usr/share/holospaces/<id>/holospace.lock.json (the κ pins that let each app STREAM by content address)`);
+if (noLock.length) console.log(`  ⚠ no holospace.lock.json (can't stream by κ until sealed): ${noLock.join(", ")}`);
+
+// ── HOLOSPACE TEMPLATES (First Light) ────────────────────────────────────────────────────────────
+// A holospace template is a curated COMPOSITION: one κ that opens a single tab nesting several apps.
+// Members are referenced by the app's own identifier; here we STAMP each member's root κ (holo:appRoot)
+// from the app set we just built (compose by reference — never copy bytes) and REFUSE any member that
+// is not a real app, so a template can never point at a phantom. Same generate→vendor discipline as the
+// app catalog: the served copy under usr/share/holospaces/ is what the SW/prod actually serves.
+const idToRoot = {};                                  // schema:identifier → root κ (or slug), from the apps above
+for (const a of dataset) if (a["schema:identifier"]) idToRoot[a["schema:identifier"]] = a["@id"];
+const tplSrc = join(APPS, "apps", "holospaces.jsonld");
+if (existsSync(tplSrc)) {
+  const tpl = JSON.parse(readFileSync(tplSrc, "utf8"));
+  const LAYOUTS = new Set(["split-h", "split-v", "primary-rail", "grid-2x2", "stack", "single"]);
+  let missing = 0, stamped = 0;
+  for (const t of (tpl["dcat:dataset"] || [])) {
+    if (!LAYOUTS.has(t["holo:layout"])) { console.log(`  ⚠ holospace "${t["schema:name"]}" has unknown layout "${t["holo:layout"]}"`); }
+    for (const m of (t["holo:members"] || [])) {
+      const ref = m["holo:app"];
+      const root = idToRoot[ref];
+      if (!root) { console.log(`  ✗ holospace "${t["schema:name"]}" references unknown app "${ref}"`); missing++; continue; }
+      m["holo:appRoot"] = root;                       // stamp the content address (Law L1) — the member is now κ-pinned to a real app
+      stamped++;
+    }
+  }
+  if (missing) throw new Error(`gen-apps-catalog: ${missing} holospace member(s) reference an app that does not exist — refusing to write a broken composition.`);
+  const tplBody = JSON.stringify(tpl, null, 2) + "\n";
+  writeFileSync(tplSrc, tplBody);                                                   // source, with member κs stamped
+  writeFileSync(join(OS2, "usr/share/holospaces/holospaces.jsonld"), tplBody);      // vendored served copy (SW/prod)
+  console.log(`✓ wrote Hologram Holospaces/apps/holospaces.jsonld + vendored served copy — ${(tpl["dcat:dataset"] || []).length} templates, ${stamped} members κ-stamped`);
+} else {
+  console.log("  (no apps/holospaces.jsonld — skipping holospace templates)");
+}

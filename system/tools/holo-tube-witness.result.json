@@ -1,0 +1,33 @@
+{
+  "spec": "Holo Tube streams video as κ-addressed objects with Law L5 on the media path: a MediaGraph seals a stream as a content-addressed DAG of fMP4 segments; every segment re-derives to its κ before decode (R1), the graph replays byte-identically offline from a κ-store (R2), the playlist/radio is gapless (R3), and segments are bit-exact while the segment-closure κ re-derives from the segments alone (R4).",
+  "authority": "W3C Media Source Extensions · ISO/IEC 14496-12 (BMFF/fMP4) · holospaces Laws L1·L2·L3·L5 · the OS κ-store contract (holo-kstore/holo-store) · holo-uor (content-addressing) — tools/holo-tube-witness.mjs",
+  "witnessed": true,
+  "covers": [
+    "holo-tube",
+    "media-source-extensions",
+    "iso-bmff",
+    "kappa-media",
+    "law-l1",
+    "law-l2",
+    "law-l3",
+    "law-l5"
+  ],
+  "checks": {
+    "MediaGraph is a holo:MediaGraph with ≥1 video": true,
+    "every video has an MSE-feedable representation (init + ordered media segments)": true,
+    "every representation declares an ISO-BMFF / WebM mime (codecs present)": true,
+    "R1 · every segment re-derives to its κ (L5 holds for all 15 segments)": true,
+    "R1 · a tampered segment FAILS verification (refused before decode)": true,
+    "R2 · replays byte-identically from the κ-store by κ alone (no origin)": true,
+    "R2 · a corrupted stored segment is refused on read (L5)": true,
+    "R2 · an unstored κ resolves to null": true,
+    "R3 · every video resolves a feedable successor (gapless walk over the queue)": true,
+    "R3 · the walk reaches every video in the queue": true,
+    "R4 · on-disk segment κ === graph κ (bit-exact, no transcode drift)": true,
+    "R4 · holo:segmentClosure re-derives from the segment closure": true,
+    "R4 · the closure covers exactly the played segment set": true,
+    "segment pages losslessly by byte range (κ-store 206 path applies to media)": true
+  },
+  "passed": 14,
+  "failed": 0
+}

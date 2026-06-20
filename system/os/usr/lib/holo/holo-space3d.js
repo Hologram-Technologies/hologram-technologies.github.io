@@ -13,6 +13,20 @@
 // Pure browser APIs, no CDN (Law L4); degrades cleanly (mount returns null where WebGL2 is absent).
 
 import HoloCosmos from "./holo-cosmos.js";
+import HoloCosmosGPU from "./holo-cosmos-gpu.js";   // WebGPU backend (same start() contract); selected when a device is confirmed
+
+// ── backend selector (Law L4: pure browser APIs, degrade cleanly) ─────────────────────────────────
+// Capability-ordered: WebGPU (only once a device is CONFIRMED, so start() stays synchronous) → WebGL2 →
+// null. ?forceGL / ?forceGPU override for witnessing. The async probe lives in holo-cosmos-gpu.js;
+// until it resolves, gpuAvailable() is false and we use WebGL2 — never a black screen.
+function pickBackend() {
+  try {
+    const q = (typeof location !== "undefined" && location.search) || "";
+    if (/[?&]forceGL\b/i.test(q)) return HoloCosmos;
+    if (/[?&]forceGPU\b/i.test(q)) return HoloCosmosGPU;
+  } catch {}
+  return (HoloCosmosGPU.gpuAvailable && HoloCosmosGPU.gpuAvailable()) ? HoloCosmosGPU : HoloCosmos;
+}
 
 // ── content addressing (Law L5): re-derive sha256 and compare ────────────────────────────────────
 async function sha256hex(bytes) {
@@ -68,16 +82,23 @@ export function mount(target, scene, opts = {}) {
   const el = typeof target === "string" ? document.querySelector(target) : target;
   if (!el) return null;
   const desc = (scene && typeof scene === "object") ? scene : { type: "space", seed: String(scene || "") };
-  const canvas = document.createElement("canvas");
-  Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%", display: "block" });
   try { if (getComputedStyle(el).position === "static") el.style.position = "relative"; } catch {}
-  el.appendChild(canvas);
+  // a fresh canvas per attempt: a canvas's context type is one-shot, so the WebGL2 fallback can't reuse
+  // a canvas already bound to "webgpu" — give it a clean one.
+  const makeCanvas = () => { const c = document.createElement("canvas");
+    Object.assign(c.style, { position: "absolute", inset: "0", width: "100%", height: "100%", display: "block" }); el.appendChild(c); return c; };
 
-  let renderer = null;
+  let canvas = null, renderer = null;
   if ((desc.type || "space") === "space") {
-    renderer = HoloCosmos.start(canvas, { seed: desc.seed || desc.k || "", reduced: opts.reduced });
-    if (!renderer) { canvas.remove(); return null; }   // no WebGL2 → caller falls back
-  } else { canvas.remove(); return null; }
+    const sopts = { seed: desc.seed || desc.k || "", reduced: opts.reduced };
+    const backend = pickBackend();
+    canvas = makeCanvas();
+    renderer = backend.start(canvas, sopts);
+    if (!renderer && backend !== HoloCosmos) {        // GPU was chosen but failed → fall back to WebGL2 on a clean canvas
+      canvas.remove(); canvas = makeCanvas(); renderer = HoloCosmos.start(canvas, sopts);
+    }
+    if (!renderer) { canvas.remove(); return null; }  // no usable backend → caller falls back (no-gl)
+  } else { return null; }
 
   let streamer = null, timer = 0, running = true;
   if (desc.chunks && desc.chunks.length) {
@@ -102,6 +123,6 @@ if (typeof customElements !== "undefined" && typeof HTMLElement !== "undefined" 
   });
 }
 
-const HoloSpace = { mount, ChunkStreamer, sha256hex, version: "0.1" };
+const HoloSpace = { mount, ChunkStreamer, sha256hex, pickBackend, gpuReady: HoloCosmosGPU.ready, gpuAvailable: HoloCosmosGPU.gpuAvailable, version: "0.2" };
 if (typeof window !== "undefined") window.HoloSpace = window.HoloSpace || HoloSpace;
 export default HoloSpace;

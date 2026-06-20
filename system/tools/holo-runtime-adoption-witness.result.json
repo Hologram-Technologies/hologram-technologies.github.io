@@ -1,12 +1,12 @@
 {
   "witnessed": false,
-  "passed": 7,
-  "failed": 1,
-  "apps": 40,
+  "passed": 5,
+  "failed": 3,
+  "apps": 48,
   "sample": [
     "files",
     "notepad",
-    "wallet",
+    "btc",
     "search",
     "git",
     "forge"
@@ -14,27 +14,25 @@
   "covers": [
     "EVERY app has a single content-derived ROOT κ — the whole ap",
     "EVERY closure entry of EVERY app carries its κ — no app byte",
+    "a sampled leaf of EVERY app RE-DERIVES to its pinned κ — app",
     "the ONE Holo Runtime Service Worker controls the page — ever",
-    "each sampled app's 1st open verifies + fills the κ-cache (ca",
-    "each sampled app's 2nd open is NETWORK-FREE from the κ-keyed",
-    "each sampled app SELF-RESOLVES by its content address — its ",
     "a wrong κ is REFUSED for every sampled app — the origin is o"
   ],
   "results": [
     {
       "name": "EVERY app has a single content-derived ROOT κ — the whole app collapses to one address you can share",
       "ok": true,
-      "detail": "40/40 apps"
+      "detail": "48/48 apps"
     },
     {
       "name": "EVERY closure entry of EVERY app carries its κ — no app byte is trusted by location (Law L1)",
       "ok": true,
-      "detail": "40/40 apps fully κ-pinned"
+      "detail": "48/48 apps fully κ-pinned"
     },
     {
       "name": "a sampled leaf of EVERY app RE-DERIVES to its pinned κ — apps self-resolve from content, not path (Law L5)",
-      "ok": false,
-      "detail": "39/40 re-derive · browser:03f53d9f≠f0ba7cdf"
+      "ok": true,
+      "detail": "48/48 re-derive"
     },
     {
       "name": "the ONE Holo Runtime Service Worker controls the page — every app is delivered through it (no per-app opt-in)",
@@ -43,18 +41,18 @@
     },
     {
       "name": "each sampled app's 1st open verifies + fills the κ-cache (cache MISS, Law L5)",
-      "ok": true,
-      "detail": "files:miss notepad:miss wallet:miss search:miss git:miss forge:miss"
+      "ok": false,
+      "detail": "files:null notepad:null btc:null search:null git:null forge:null"
     },
     {
       "name": "each sampled app's 2nd open is NETWORK-FREE from the κ-keyed content cache (x-holo-cache: hit) — the runtime advantage",
-      "ok": true,
-      "detail": "files:hit notepad:hit wallet:hit search:hit git:hit forge:hit"
+      "ok": false,
+      "detail": "files:null notepad:null btc:null search:null git:null forge:null"
     },
     {
       "name": "each sampled app SELF-RESOLVES by its content address — its index returns from the κ-route and the bytes match its κ",
-      "ok": true,
-      "detail": "files:✓ notepad:✓ wallet:✓ search:✓ git:✓ forge:✓"
+      "ok": false,
+      "detail": "files:✗ notepad:✗ btc:✗ search:✗ git:✗ forge:✗"
     },
     {
       "name": "a wrong κ is REFUSED for every sampled app — the origin is one untrusted CDN (Law L5)",

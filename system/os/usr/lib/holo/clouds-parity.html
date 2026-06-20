@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CLOUDS2 WebGPU↔WebGL2 parity witness</title>
+<style>
+  body { margin:16px; background:#06070d; color:#cfe0ff; font:13px/1.5 ui-monospace,monospace; }
+  h1 { font-size:15px; color:#eaf2ff; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; margin:12px 0; }
+  canvas { image-rendering:pixelated; border:1px solid #ffffff22; background:#000; }
+  table { border-collapse:collapse; margin-top:12px; } td,th { border:1px solid #ffffff22; padding:4px 10px; text-align:right; }
+  th:first-child,td:first-child { text-align:left; }
+  .ok{color:#6fd3a0;} .bad{color:#ff8e8e;} .warn{color:#ffcf6f;}
+  .box{display:inline-block;margin-right:8px;} .box div{color:#93a7c6;}
+  pre { background:#0009; border:1px solid #ffffff22; border-radius:8px; padding:10px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Boot-screen clouds — WebGPU (holo-clouds-gpu) vs WebGL2 (verbatim Vanta CLOUDS2 GLSL) (P7 witness)</h1>
+<div id="env"></div><div id="out">Running…</div><div id="frames" class="row"></div><pre id="json"></pre>
+
+<script type="module">
+import HoloCloudsGPU from "./holo-clouds-gpu.js";
+const D = HoloCloudsGPU.DEFAULTS;
+const W = 320, H = 200;
+const TOL = { maxChannel: 12, meanChannel: 2.0, pctOver: 3.0 };   // raymarch + sin + texture → small driver delta (cf. cosmos)
+
+// verbatim CLOUDS2 fragment (macro expanded; horizon as a uniform), run in raw WebGL2 as the baseline.
+const FS = `#version 300 es
+precision highp float;
+uniform vec2 iResolution; uniform float iTime; uniform float speed; uniform float horizon;
+uniform sampler2D iTex; uniform vec3 skyColor; uniform vec3 cloudColor; uniform vec3 lightColor;
+out vec4 fragColor;
+void main(){
+  vec2 coord = gl_FragCoord.xy;
+  vec4 p, d = vec4(0.8, 0.0, coord / iResolution.y - horizon);
+  vec3 out1 = skyColor - d.w;
+  float s, f, t = 200.0 + sin(dot(coord,coord));
+  for (float i=1.0;i<=100.0;i+=1.0){
+    t -= 2.0; if (t<0.0) break;
+    p = 0.05*t*d; p.xz += iTime*0.5*speed; p.x += sin(iTime*0.25*speed)*0.25;
+    s = 2.0;
+    f = p.w + 1.0
+      - texture(iTex, fract((s*p.zw + ceil(s*p.x))/200.0)).y/(s+=s)*4.0
+      - texture(iTex, fract((s*p.zw + ceil(s*p.x))/200.0)).y/(s+=s)*4.0
+      - texture(iTex, fract((s*p.zw + ceil(s*p.x))/200.0)).y/(s+=s)*4.0
+      - texture(iTex, fract((s*p.zw + ceil(s*p.x))/200.0)).y/(s+=s)*4.0;
+    if (f<0.0){ vec3 sh = mix(lightColor, cloudColor, -f); out1 = mix(out1, sh, -f*0.4); }
+  }
+  fragColor = vec4(out1, 1.0);
+}`;
+const VS = `#version 300 es
+void main(){ vec2 p=vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position=vec4(p*2.0-1.0,0.0,1.0); }`;
+
+function renderGL(noise, iTime){
+  const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+  const gl=cv.getContext("webgl2",{antialias:false,alpha:false,preserveDrawingBuffer:true}); if(!gl) return null;
+  const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){console.warn(gl.getShaderInfoLog(o));return null;}return o;};
+  const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){console.warn(gl.getProgramInfoLog(pr));return null;}
+  gl.useProgram(pr);
+  const tx=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tx);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,noise.width,noise.height,0,gl.RGBA,gl.UNSIGNED_BYTE,noise.data);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+  const U=(n)=>gl.getUniformLocation(pr,n);
+  gl.uniform2f(U("iResolution"),W,H); gl.uniform1f(U("iTime"),iTime); gl.uniform1f(U("speed"),D.speed); gl.uniform1f(U("horizon"),D.horizon);
+  gl.uniform1i(U("iTex"),0); gl.uniform3fv(U("skyColor"),D.sky); gl.uniform3fv(U("cloudColor"),D.cloud); gl.uniform3fv(U("lightColor"),D.light);
+  gl.viewport(0,0,W,H); gl.drawArrays(gl.TRIANGLES,0,3); gl.finish();
+  const rows=new Uint8Array(W*H*4), flip=new Uint8Array(W*H*4);
+  gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,rows);
+  for(let y=0;y<H;y++) flip.set(rows.subarray((H-1-y)*W*4,(H-y)*W*4), y*W*4);
+  try{gl.getExtension("WEBGL_lose_context")?.loseContext();}catch{}
+  return { w:W, h:H, rgba:flip };
+}
+function toImg(rgba){const c=document.createElement("canvas");c.width=W;c.height=H;c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(rgba),W,H),0,0);return c;}
+function diff(a,b){let max=0,sum=0,over=0;const n=W*H*4;const d=new Uint8Array(n);
+  for(let i=0;i<n;i++){if(i%4===3){d[i]=255;continue;}const e=Math.abs(a[i]-b[i]);max=Math.max(max,e);sum+=e;if(e>TOL.maxChannel)over++;d[i]=Math.min(255,e*12);}
+  const ch=n-W*H;return{max,mean:sum/ch,pctOver:100*over/ch,img:d};}
+
+const env=document.getElementById("env");
+const ok=await HoloCloudsGPU.ready;
+// load the SAME noise.png as RAW RGBA BYTES so both backends sample byte-identical data
+// (eliminates texImage2D vs copyExternalImageToTexture colorspace/premultiply differences).
+let noise=null;
+for (const u of ["/system/vendor/vanta/noise.png","system/vendor/vanta/noise.png","/_shared/noise.png"]) {
+  try { const r=await fetch(u); if(r.ok){ const bmp=await createImageBitmap(await r.blob());
+    const nc=document.createElement("canvas"); nc.width=bmp.width; nc.height=bmp.height;
+    const nx=nc.getContext("2d",{willReadFrequently:true}); nx.drawImage(bmp,0,0);
+    const id=nx.getImageData(0,0,bmp.width,bmp.height);
+    noise={ data:new Uint8Array(id.data.buffer.slice(0)), width:bmp.width, height:bmp.height }; break; } } catch(e){}
+}
+env.innerHTML = `WebGPU device: <b class="${ok?'ok':'bad'}">${ok?"available":"UNAVAILABLE"}</b> · noise.png: <b class="${noise?'ok':'bad'}">${noise?noise.width+"×"+noise.height:"NOT FOUND"}</b> · ${W}×${H}`;
+
+const CASES=[{name:"t=0",iTime:0},{name:"t=3.7",iTime:3.7},{name:"t=12.0",iTime:12.0}];
+const frames=document.getElementById("frames"); const results=[];
+if(ok && noise){
+  for(const cs of CASES){
+    const gl=renderGL(noise, cs.iTime);
+    const gp=await HoloCloudsGPU.renderOnce(document.createElement("canvas"), { width:W, height:H, iTime:cs.iTime, noise });
+    if(!gl||!gp){ results.push({case:cs.name,error:"render null"}); continue; }
+    const dd=diff(gl.rgba,gp.rgba);
+    // DIAGNOSTIC: is WGSL a vertical mirror of GL? (build a V-flipped copy of gp and diff)
+    const gpFlip=new Uint8Array(W*H*4); for(let y=0;y<H;y++) gpFlip.set(gp.rgba.subarray((H-1-y)*W*4,(H-y)*W*4), y*W*4);
+    const ddFlip=diff(gl.rgba,gpFlip);
+    const pass=dd.max<=TOL.maxChannel && dd.mean<=TOL.meanChannel && dd.pctOver<=TOL.pctOver;
+    results.push({case:cs.name,maxChannel:dd.max,meanChannel:+dd.mean.toFixed(3),pctOver:+dd.pctOver.toFixed(3),pass,
+      vflip_maxΔ:ddFlip.max, vflip_meanΔ:+ddFlip.mean.toFixed(3)});
+    const fig=document.createElement("div");
+    const lab=(t,cv)=>{const b=document.createElement("div");b.className="box";b.append(cv);const x=document.createElement("div");x.textContent=t;b.append(x);return b;};
+    fig.append(lab("WebGL "+cs.name,toImg(gl.rgba)),lab("WebGPU",toImg(gp.rgba)),lab("diff ×12",toImg(dd.img)));
+    frames.append(fig);
+  }
+}
+const verdict = (!ok)?"INCONCLUSIVE — no WebGPU device" : (!noise)?"INCONCLUSIVE — noise.png not served" : (results.every(r=>r.pass)?"PASS — WebGPU clouds match Vanta CLOUDS2 GLSL within tolerance":"FAIL — see table");
+const cls=(!ok||!noise)?"warn":(results.every(r=>r.pass)?"ok":"bad");
+let html=`<b class="${cls}">${verdict}</b>`;
+if(results.length){html+=`<table><tr><th>case</th><th>max Δ/255</th><th>mean Δ</th><th>% &gt; ${TOL.maxChannel}</th><th>verdict</th></tr>`;
+  for(const r of results) html+= r.error?`<tr><td>${r.case}</td><td colspan=3 class=bad>${r.error}</td><td class=bad>ERR</td></tr>`:`<tr><td>${r.case}</td><td>${r.maxChannel}</td><td>${r.meanChannel}</td><td>${r.pctOver}</td><td class="${r.pass?'ok':'bad'}">${r.pass?'pass':'FAIL'}</td></tr>`;
+  html+=`</table>`;}
+document.getElementById("out").innerHTML=html;
+const summary={tolerance:TOL,dims:[W,H],webgpu:ok,noise:!!noise,verdict,results};
+document.getElementById("json").textContent=JSON.stringify(summary,null,2);
+window.__parity=summary;
+</script>
+</body>
+</html>

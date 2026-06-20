@@ -1,0 +1,35 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "The + Everywhere — A6 RESULT ROUTING: omni → proactive answer card (A5); ordinary text input → lightweight context chip with 'see full brief'; voice 'add this' → Q grounding (A4). Routing NEVER reads or writes the input's value — the chip is additive and the user's typing is never disturbed (the feel-native invariant). Intent-routed; the chip carries the brief κ + investigation root so the full thing can be opened",
+  "authority": "holospaces Law L2 · rests on #holo-plus + #holo-plus-answer + #holo-plus-q",
+  "witnessed": true,
+  "covers": [
+    "result-routing",
+    "omni-answer",
+    "input-chip",
+    "voice-ground",
+    "never-mutates-input",
+    "correct-sink",
+    "chip-opens-brief"
+  ],
+  "sample": {
+    "chipLabel": "+ 2 insights ready",
+    "chipTop": "This data looks organizational / CRM-like (1 Organization, 1 Place).",
+    "modes": {
+      "omni": "answer",
+      "input": "chip",
+      "voice": "ground"
+    }
+  },
+  "checks": {
+    "omniRoutesToAnswer": true,
+    "inputRoutesToChip": true,
+    "voiceIntentRoutesGround": true,
+    "chipModelShape": true,
+    "chipLabelConcise": true,
+    "neverMutatesInput": true,
+    "routesToCorrectSink": true,
+    "chipCarriesBriefToOpen": true
+  },
+  "failed": []
+}

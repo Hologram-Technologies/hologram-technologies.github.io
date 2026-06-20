@@ -38,10 +38,10 @@
   @keyframes pp{ 0%{ box-shadow:0 0 0 0 #22d3ee88; } 70%{ box-shadow:0 0 0 7px transparent; } 100%{ box-shadow:0 0 0 0 transparent; } }
   @media (max-width:1180px){ .grid{ grid-template-columns:minmax(0,1fr) minmax(0,2.618fr); } .right{ display:none; } .left{ position:static; } }
   @media (max-width:820px){ .grid{ grid-template-columns:1fr; } .left{ display:none; } }
-  #boot{ position:fixed; inset:0; display:grid; place-items:center; color:var(--muted-foreground); font:14px ui-monospace; z-index:50; transition:opacity .4s; }
+  #boot{ position:fixed; inset:0; display:grid; place-items:center; color:var(--muted-foreground); font:var(--holo-text-sm, 0.875rem) ui-monospace; z-index:50; transition:opacity .4s; }
 </style>
 </head><body>
-  <div id="boot">composing κ-components…</div>
+  <div id="boot">composing components…</div>
   <header class="bar"><div class="wrap"><div class="barIn" id="bar"></div><div class="ribbon" id="ribbon"></div></div></header>
   <div class="tape"><div class="wrap"><div class="tapeRow" id="tape"></div></div></div>
   <main class="wrap"><div class="grid">

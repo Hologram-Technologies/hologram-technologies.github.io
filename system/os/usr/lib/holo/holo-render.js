@@ -18,6 +18,17 @@ const MODS = new Map();      // κ → ESM module        (parsed once, then O(1)
 const ELS = new Map();       // κ → resolved kind     (sniff once)
 const stats = { resolved: 0, refused: 0, hits: 0, arena: () => ARENA.size, mods: () => MODS.size };
 
+// ── renderer registry: kind/@type → how to mount it ──────────────────────────────────────────────
+// Generalizes the additive holo:Surface / holo:Bundle @type seam below into an OPEN registry, so every
+// media kind dispatches through ONE table — no format-specific path bypasses the substrate (Law L4). A
+// handler is either an inline fn (el, bytes, ctx) → result, or { kappa } whose module exports mount/default.
+// A renderer registered BY κ is resolved through the SAME resolve() spine, so its code is re-derived and
+// L5-verified before it runs (verify-before-render). Builtins are seeded at the bottom (after their fns).
+const RENDERERS = new Map();
+export function register(type, handler) { RENDERERS.set(type, typeof handler === "string" ? { kappa: handler } : handler); return RENDERERS; }
+export function registerKappa(type, kappa) { RENDERERS.set(type, { kappa: String(kappa) }); return RENDERERS; }
+export function renderers() { return RENDERERS; }
+
 let IMPORTMAP = null;        // { imports:{ "holo://sha256:κ": path }, integrity:{ path: sri } }
 let BASE = "/ui/";           // where the registry/vendor tree is served
 let REACT = null;            // lazily-imported shared runtime
@@ -42,7 +53,7 @@ export const kappaOfBytes = async (b) => "did:holo:sha256:" + await sha256hex(b 
 export const kappaOfObject = async (o) => kappaOfBytes(te.encode(canonicalize(o)));
 
 // ── config / resolution surface ───────────────────────────────────────────────────────────────
-export async function configure({ importmap, base, resolver, route, bare, stream } = {}) {
+export async function configure({ importmap, base, resolver, route, bare, stream, media } = {}) {
   if (base) BASE = base.endsWith("/") ? base : base + "/";
   if (resolver) RESOLVER = resolver;          // hand in holo-resolver.mjs's resolveByKappa to unify
   if (route) ROUTE = route;                   // hand in the substrate κ-route (e.g. /.holo/sha256/<hex>)
@@ -50,7 +61,11 @@ export async function configure({ importmap, base, resolver, route, bare, stream
   // an importmap is OPTIONAL — most apps have none; resolution rides ROUTE/RESOLVER. Never throw on a
   // missing/non-JSON map (a 404 resolves with a text body, so guard r.ok AND the parse).
   if (importmap) IMPORTMAP = importmap;
-  else if (!IMPORTMAP) { try { const r = await fetch(BASE + "vendor/importmap.json"); IMPORTMAP = r.ok ? await r.json() : { imports: {}, integrity: {} }; } catch { IMPORTMAP = { imports: {}, integrity: {} }; } }
+  // the importmap is the OS shared-runtime vendor registry — ALWAYS at the OS ui root (/ui/vendor/),
+  // never the app's BASE (an app mounts with base="/" or its own root, which would drop the /ui/ prefix
+  // and 404). Fixed absolute path resolves identically in dev, the SW, and a dumb static host.
+  else if (!IMPORTMAP) { try { const r = await fetch("/ui/vendor/importmap.json"); IMPORTMAP = r.ok ? await r.json() : { imports: {}, integrity: {} }; } catch { IMPORTMAP = { imports: {}, integrity: {} }; } }
+  if (media !== false) { try { const m = await import(/* @vite-ignore */ "./holo-render-media.mjs"); (m.default || m).register({ register }); } catch (e) {} }   // register the builtin media kinds (holo:Video/Audio/Image) onto the registry (lazy, opt-out via media:false)
   if (stream !== false) { try { autoStream(); } catch (e) {} }   // every configured surface streams the scene ahead (idle-time, deduped)
   return IMPORTMAP;
 }
@@ -131,7 +146,7 @@ export async function module(k) {
 async function react() { return REACT || (REACT = await import(/* @vite-ignore */ await linkBlob(BARE["react"]))); }
 
 // ── kind detection (sniff once) ─────────────────────────────────────────────────────────────────
-async function kindOf(k) {
+export async function kindOf(k) {
   const id = norm(k);
   if (ELS.has(id)) return ELS.get(id);
   let kind;
@@ -148,7 +163,7 @@ async function kindOf(k) {
       const text = new TextDecoder().decode(b.length > 65536 ? b.slice(0, 65536) : b);
       const head = text.trimStart();
       if (head.startsWith("<svg") || head.startsWith("<?xml")) kind = "svg";
-      else if (head[0] === "{" || head[0] === "[") { try { const j = JSON.parse(new TextDecoder().decode(b)); kind = (j && j["@type"] === "holo:Bundle") ? "bundle" : (j && j["@type"] === "holo:Surface") ? "surface" : "json"; } catch { kind = isEsm(text) ? "module" : "text"; } }
+      else if (head[0] === "{" || head[0] === "[") { try { const j = JSON.parse(new TextDecoder().decode(b)); const ty = j && j["@type"]; kind = (ty === "holo:Bundle") ? "bundle" : (ty === "holo:Surface") ? "surface" : (ty && RENDERERS.has(ty)) ? ty : "json"; } catch { kind = isEsm(text) ? "module" : "text"; } }
       else if (isEsm(text)) kind = "module";
       else kind = "text";
     }
@@ -191,8 +206,14 @@ export async function render(target, kOrSpec, ctx = {}) {
     kind = await kindOf(spec);
     if (kind === "module") node = await element({ kappa: spec, export: ctx.export, props: ctx.props, children: ctx.children });
     else if (kind === "bundle") node = await bundleElement(spec);
-    else if (kind === "surface") { await mountSurface(el, await resolve(spec), ctx); return done(el, kind, t0); }
-    else { mountRaw(el, kind, await resolve(spec)); return done(el, kind, t0); }
+    else {                                                          // every other kind dispatches through the registry — one table, no bypass
+      const bytes = await resolve(spec);                            // L5-verified bytes (verify-before-render)
+      const h = RENDERERS.get(kind);
+      if (h && h.kappa) { const rmod = await module(h.kappa); const mount = rmod.mount || rmod.default; await mount(el, bytes, ctx || {}); }   // renderer is itself a κ-object (re-derived via the L5 spine)
+      else if (typeof h === "function") await h(el, bytes, ctx || {});
+      else mountRaw(el, kind, bytes);                               // json/text/unknown → graceful default
+      return done(el, kind, t0);
+    }
   } else { kind = "spec"; node = await element(spec); }            // an inline composition spec
   const { createRoot } = await react();
   const root = el.__holoRoot || (el.__holoRoot = createRoot(el));
@@ -273,7 +294,10 @@ export async function warm(ks, opts = {}) {
 // its child κ's. Deduped by the arena (resident ⇒ no-op), drained on requestIdleCallback. Like a video
 // player buffering ahead, but the unit is a self-verifying object — so prefetch never trusts, it verifies.
 const _q = new Set(); let _io = null, _draining = false; const idle = (typeof globalThis !== "undefined" && globalThis.requestIdleCallback) || ((f) => setTimeout(f, 1));
-function _enqueue(k) { const id = norm(k); if (!id || ARENA.has(id) || _q.has(id)) return; _q.add(id); _drain(); }
+// Law 2 (canonical forms only): a warm hint must be a canonical κ (64-hex) before it can be an address.
+// A display-shortened κ (e.g. a "sha256:d5cd…" UI label leaked into data-holo-kappa) is NOT addressable —
+// silently skip it rather than issue an un-resolvable /.holo/sha256/<short> fetch that always 404s.
+function _enqueue(k) { const id = norm(k); if (!id || !/^[0-9a-f]{64}$/.test(id) || ARENA.has(id) || _q.has(id)) return; _q.add(id); _drain(); }
 function _drain() {
   if (_draining || !_q.size) return; _draining = true;
   const step = () => { const it = _q.values().next(); if (it.done) { _draining = false; return; } const id = it.value; _q.delete(id);
@@ -290,5 +314,16 @@ export function autoStream(opts = {}) {
   return _io;
 }
 
-export const HoloRender = { configure, resolve, module, element, render, bundle, unbundle, source, stash, warm, prefetch, autoStream, kappaOfBytes, kappaOfObject, canonicalize, stats };
+// ── seed the builtins ONTO the registry (after their handlers are defined; declarations are hoisted) ──
+// Every existing kind now lives on the one table, so no format-specific path bypasses the substrate (L4).
+// module/bundle keep their React-element branch in render(); they are registered here for inspectability.
+register("png", (el, b) => mountRaw(el, "png", b));
+register("jpeg", (el, b) => mountRaw(el, "jpeg", b));
+register("svg", (el, b) => mountRaw(el, "svg", b));
+register("text", (el, b) => mountRaw(el, "text", b));
+register("surface", (el, b, ctx) => mountSurface(el, b, ctx));   // generalized: holo:Surface was the first registry entry
+register("bundle", { builtin: "react" });
+register("module", { builtin: "react" });
+
+export const HoloRender = { configure, resolve, module, element, render, kindOf, register, registerKappa, renderers, bundle, unbundle, source, stash, warm, prefetch, autoStream, kappaOfBytes, kappaOfObject, canonicalize, stats };
 export default HoloRender;

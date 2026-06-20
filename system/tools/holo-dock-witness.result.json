@@ -1,7 +1,7 @@
 {
   "spec": "Holo Dock (ADR-0059) is the native-feel bottom dock/taskbar: it ADOPTS the zebar widget-pack schema (holo-zpack-schema.json) and the TranslucentTB accent-state model (holo-translucenttb-accents.json) as byte-pinned, content-addressed κ-objects and renders natively — no foreign runtime (ADR-0029). It is golden-ratio-proportioned (holo-phi), OS-adaptive (HoloPlatform → data-holo-platform), glass-translucent (--holo-glass-* tokens), linked to Holo UI/UX, and editable like every other substrate object; the dock config validates against the adopted schema.",
   "authority": "zebar (github.com/glzr-io/zebar — resources/zpack-schema.json) · TranslucentTB (github.com/TranslucentTB/TranslucentTB — settings.schema.json) · ADR-0029 (adopt OSS desktop standards as κ-objects, never run a foreign runtime) · ADR-0030 (Holo UI) · ADR-0057 (readability floor) · W3C CSS backdrop-filter / Color 4 light-dark() / Custom Properties · golden ratio (φ) · verify by static analysis of the served chrome",
-  "witnessed": false,
+  "witnessed": true,
   "covers": [
     "holo-dock",
     "glass",
@@ -27,7 +27,7 @@
     "holo-theme.css declares the glass token --holo-glass-clear-bg": true,
     "holo-theme.css declares the glass token --holo-glass-tint": true,
     "holo-dock.css sizes off holo-phi tokens (--holo-size-* / --holo-phi)": true,
-    "holo-dock.css uses no raw px for height/gap (φ tokens only; ≤2px hairlines/indicators ok)": false,
+    "holo-dock.css uses no raw px for height/gap (φ tokens only; ≤2px hairlines/indicators ok)": true,
     "dock styles the windows variant ([data-holo-platform=\"windows\"])": true,
     "dock styles the macos variant ([data-holo-platform=\"macos\"])": true,
     "dock styles the ios variant ([data-holo-platform=\"ios\"])": true,
@@ -44,11 +44,7 @@
     "no sub-16px font-size in the dock CSS/JS": true,
     "translucenttb accent model is faithfully adopted (5 states + blur_radius 0–750 /3 + token map)": true
   },
-  "rawPx": [
-    "250: gap:6px",
-    "300: gap:6px",
-    "462: height:18px"
-  ],
+  "rawPx": [],
   "subFloor": [],
   "zErrs": []
 }

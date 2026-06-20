@@ -16,13 +16,34 @@ import { ipfsPeer, bridgePeer } from "/sbin/holo-peers.mjs";
 import { webSource, importObject } from "/sbin/holo-web.mjs";                      // the OPEN-WEB κ transport: follow any HTTPS edge in the internet hypergraph, re-derived (Law L5)
 import * as ipfs from "/usr/lib/holo/holo-ipfs.js";
 import { kget, kput, kverify } from "/usr/lib/holo/holo-forge/holo-kstore.mjs";   // the durable, persistent on-device κ-store (IndexedDB) — the device's own copy
+import { rootKappaFromHash, coldBootRoot } from "/lib/holo-cid-boot.mjs";          // SINGLE-LINK: the share link is https://<host>/#<root-CID>
 
 const hexOf = (k) => String(k && (k.kappa || k.did || k["@id"] || k)).split(":").pop().toLowerCase();
+const sha256hex = async (b) => [...new Uint8Array(await self.crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join("");
 
 (async () => {
   try {
     if (!self.crypto || !self.crypto.subtle) return;                          // no Web Crypto → cannot re-derive; stay out of the way
-    const lock = await fetch("/etc/os-closure.json", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+
+    // SINGLE-LINK ACTIVATION (decentralized-boot delta A). The shareable link …/#<root-CID> carries the
+    // boot-root content address in the fragment (the SW can't read it — its self.location is the worker
+    // URL; this page module can). Fetch the boot root as RAW bytes (so we can re-derive it), and if the
+    // origin can't serve it, recover it BY κ from the NON-ORIGIN chain (device store · IPFS Trustless
+    // Gateways). Then self-verify: does the booted root match the link's content-address? Surfaced on
+    // self.__holoRoot for the "verified ✓" badge. All guarded — never breaks boot (falls back to the
+    // origin path exactly as before).
+    const rootK = (() => { try { return rootKappaFromHash(globalThis.location && globalThis.location.hash); } catch { return null; } })();
+    let raw = null;
+    try { const r = await fetch("/etc/os-closure.json", { cache: "no-store" }); if (r.ok) raw = new Uint8Array(await r.arrayBuffer()); } catch {}
+    if (!raw && rootK) {                                                        // origin couldn't serve the root → the cold-device, dead-origin path
+      try {
+        const sources = [{ name: "store", get: async (h) => { try { return await kget("sha256:" + h); } catch { return null; } } }, { name: "ipfs", get: ipfsPeer({ ipfs }) }];
+        const got = await coldBootRoot({ hash: globalThis.location.hash, sources });
+        if (got) raw = got.bytes;
+      } catch {}
+    }
+    let lock = null; try { lock = raw ? JSON.parse(new TextDecoder().decode(raw)) : null; } catch {}
+    try { const verified = (rootK && raw) ? ((await sha256hex(raw)) === rootK) : null; self.__holoRoot = { cid: rootK, verified, at: Date.now() }; } catch {}
     if (!lock || !lock.closure) return;
 
     // path → κ — the whole OS, as content addresses (what we keep whole). Also collect each object's
@@ -72,7 +93,8 @@ const hexOf = (k) => String(k && (k.kappa || k.did || k["@id"] || k)).split(":")
       now: () => new Date().toISOString(),
       log: (m, s) => { try { self.__holoHeal = { ...s, at: Date.now() }; } catch {} },
     });
-    self.__holoHealTick = () => sup.tick("manual");                            // a debug/observe affordance: drive one pass on demand
+    // a debug/observe affordance: drive one pass on demand — also drives the autonomy spine (page context only).
+    self.__holoHealTick = () => sup.tick("manual").then((r) => { try { (typeof window !== "undefined" && window.HoloSpine)?.runOnce(r); } catch (e) {} return r; });
     // ACCESS + IMPORT ANY OBJECT on the open-internet hypergraph, self-verifying. Agents and humans call
     // __holoImport(κ | https-URL) → { kappa, bytes }: resolve a κ from any edge (web · IPFS · gateways) and
     // re-derive it, OR fetch an arbitrary URL and content-address it so it can join the substrate. Either
@@ -89,8 +111,22 @@ const hexOf = (k) => String(k && (k.kappa || k.did || k["@id"] || k)).split(":")
     // conscience gate reports the constitution is broken (sealed() === false), the whole OS is already
     // fail-closed, so the loop holds too and surfaces it — it resumes the moment the law re-verifies.
     const lawOk = () => { try { const c = self.HoloConscience; return !c || typeof c.sealed !== "function" || c.sealed() !== false; } catch { return true; } };
-    const schedule = (fn) => (self.requestIdleCallback ? self.requestIdleCallback(fn, { timeout: 60000 }) : setTimeout(fn, 60000));
-    const loop = () => (lawOk() ? sup.tick("auto").then((r) => { try { console.log("[holo-heal]", r && r.summary); } catch {} }) : Promise.resolve())
+    // Pace the sweep: a background janitor, NOT a hot loop. Re-arm with a MIN gap (then wait for idle), so it
+    // never ticks back-to-back on every idle callback. The supervisor's per-κ backoff stops it retrying
+    // unreachable objects; this stops it re-sweeping the whole closure constantly.
+    const MIN_GAP_MS = 15000;
+    const schedule = (fn) => setTimeout(() => (self.requestIdleCallback ? self.requestIdleCallback(fn, { timeout: 60000 }) : fn()), MIN_GAP_MS);
+    let _prev = -1;   // last logged open count (unresolved + cooling) — log only when actionable or CHANGED
+    const loop = () => (lawOk() ? sup.tick("auto").then((r) => {
+        const s = r && r.summary;
+        // AUTONOMY SPINE (page only; SW no-ops): publish the fresh heal state, then drive the ONE ambient loop
+        // (reflect + drift-heal). Falls back to a direct spine tick if the ambient layer isn't present.
+        try { if (typeof window !== "undefined" && s) window.__holoHeal = { ...s, flaky: r.flaky, at: Date.now() }; } catch (e) {}
+        try { if (typeof window !== "undefined") { if (window.HoloAmbient) window.HoloAmbient.tick(); else window.HoloSpine?.runOnce(r); } } catch (e) {}
+        if (!s) return;
+        const open = (s.unresolved || 0) + (s.cooling || 0);
+        if (s.healed > 0 || open !== _prev) { try { console.log("[holo-heal]", s); } catch {} _prev = open; }   // quiet in steady state
+      }) : Promise.resolve())
       .catch(() => {}).finally(() => schedule(loop));        // re-arm forever, idle-paced — fully autonomous
     schedule(loop);
   } catch (e) { try { console.warn("[holo-heal] boot skipped:", (e && e.message) || e); } catch {} }

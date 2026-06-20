@@ -177,6 +177,47 @@
     } catch (e) { console.warn("HoloTerms.gate", e); return {}; }      // fail closed (default-deny)
   }
 
+  // ── batched GATE — one consent for a whole holospace (First Light) ────────────────────────────
+  // gateAll(defs) gates several apps at once for a templated open: apps already agreed (or that ask
+  // nothing) resolve silently; the rest are folded into ONE "Agree to all" card instead of a stack of
+  // them. The records written are byte-identical to gate()'s — same term, same grants, same Law-L5
+  // verification — so governance is UNCHANGED, only the surface is consolidated. Returns appId → caps.
+  async function gateAll(defs) {
+    const out = {};
+    try {
+      const term = await standingAgreement();
+      const pending = [];
+      for (const def of (defs || [])) {
+        const declared = (def && def.capabilities) || {};
+        const appId = idOf(def);
+        if (capRefs(declared).length === 0) { out[appId] = {}; continue; }     // asks nothing → bare sandbox
+        let record = await agreementFor(appId);
+        if (record && record.credentialSubject.term === term.id) {              // already agreed under this term → silent
+          out[appId] = (await verifyRecord(record)) ? effective(declared, record.credentialSubject.grants) : {};
+          continue;
+        }
+        const cls = classify(term, declared, appId, { heldPurposes: heldPurposesFor(appId) });
+        if (!cls.prompt.length && !cls.deny.length) {                           // only the basics → record + grant silently
+          record = await makeRecord([...cls.auto], appId, term.id);
+          const m = loadRecords(); m[appId] = record; saveRecords(m);
+          out[appId] = effective(declared, record.credentialSubject.grants);
+        } else {
+          pending.push({ def, appId, declared, cls });                          // needs a human decision → batch it
+        }
+      }
+      if (pending.length) {
+        const decision = await showConsentAll(pending, term);
+        for (const p of pending) {
+          const approved = (decision && decision.approvedByApp && decision.approvedByApp[p.appId]) || [];
+          const record = await makeRecord([...p.cls.auto, ...approved], p.appId, term.id);
+          const m = loadRecords(); m[p.appId] = record; saveRecords(m);
+          out[p.appId] = (await verifyRecord(record)) ? effective(p.declared, record.credentialSubject.grants) : {};
+        }
+      }
+    } catch (e) { console.warn("HoloTerms.gateAll", e); }
+    return out;
+  }
+
   // ── consent dialog (first party proposes) ────────────────────────────────────────────────────
   const PERM_LABEL = { "display-capture": "see your screen", camera: "use your camera", microphone: "use your microphone",
     geolocation: "read your location", "clipboard-read": "read your clipboard", "clipboard-write": "write to your clipboard",
@@ -215,6 +256,48 @@
         close(approved);
       };
       back.addEventListener("click", (e) => { if (e.target === back) close([]); });
+    });
+  }
+
+  // showConsentAll(pending, term) — ONE card covering every app in a holospace that needs a decision.
+  // Each app gets its own labelled section (name + the extras it requests as checkboxes + any refusals);
+  // "Agree to all" approves every checked row across all apps in a single action. Returns the approvals
+  // grouped by appId, so gateAll writes one record per app — identical to agreeing to each individually.
+  function showConsentAll(pending, term) {
+    return new Promise((resolve) => {
+      ensureCss();
+      const back = el("div", "holo-terms-back on");
+      const card = el("div", "holo-terms-card");
+      const n = pending.length;
+      const sections = pending.map((p, pi) => {
+        const name = (p.def && p.def.name) || p.appId;
+        const prompts = p.cls.prompt.map((r, i) => `<label class="ht-row"><input type="checkbox" data-p="${pi}" data-i="${i}" checked><span class="ht-rl"><b>${esc(name)}</b> wants to ${esc(refLabel(r))}</span></label>`).join("");
+        const denies = p.cls.deny.length ? `<div class="ht-deny"><div class="ht-dh">Refused by your terms</div>${p.cls.deny.map((r) => `<div class="ht-drow">${esc(name)} asked to ${esc(refLabel(r))} — your <b>${esc(term.code)}</b> terms don’t allow this.</div>`).join("")}</div>` : "";
+        return `<div class="ht-appsec"><div class="ht-appname">${esc(name)}</div>${prompts || '<p class="ht-none">nothing beyond the basics.</p>'}${denies}</div>`;
+      }).join("");
+      card.innerHTML = `
+        <div class="ht-hd"><span class="ht-shield">${SHIELD}</span><div><div class="ht-t">Your terms for this holospace</div>
+          <div class="ht-sub">You propose <b title="${esc(term["schema:description"] || "")}">${esc(term.code)} · ${esc(term["schema:name"] || "")}</b> for ${n} app${n === 1 ? "" : "s"} opening together. Each is the second party.</div></div></div>
+        <div class="ht-bd">
+          <p class="ht-lead">Granted automatically: each app’s own storage and basic display. They additionally request:</p>
+          ${sections}
+        </div>
+        <div class="ht-ft">
+          <a class="ht-link" href="${TERMS_APP_URL}" target="_top">Holo Terms ↗</a>
+          <span class="ht-sp"></span>
+          <button class="ht-btn" data-act="deny">Deny extras</button>
+          <button class="ht-btn cta" data-act="allow">Agree to all</button>
+        </div>`;
+      back.appendChild(card); document.body.appendChild(back);
+      const close = (approvedByApp) => { back.remove(); resolve({ approvedByApp }); };
+      const denyAll = () => { const by = {}; pending.forEach((p) => { by[p.appId] = []; }); close(by); };
+      card.querySelector('[data-act="deny"]').onclick = denyAll;
+      card.querySelector('[data-act="allow"]').onclick = () => {
+        const by = {}; pending.forEach((p) => { by[p.appId] = []; });
+        card.querySelectorAll(".ht-row input:checked").forEach((c) => { const p = pending[+c.dataset.p]; if (p) by[p.appId].push(p.cls.prompt[+c.dataset.i]); });
+        close(by);
+      };
+      back.addEventListener("click", (e) => { if (e.target === back) denyAll(); });
     });
   }
 
@@ -298,12 +381,14 @@
   .ht-deny{margin-top:10px;border-top:1px dashed #2a323c;padding-top:9px}
   .ht-dh{color:#f0a05a;font-size:var(--holo-text-sm,1rem);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
   .ht-drow{color:#9aa6b2;font-size:var(--holo-text-sm,1rem);margin:3px 0}
+  .ht-appsec{padding:9px 0;border-top:1px solid #1c2530}.ht-appsec:first-of-type{border-top:0}
+  .ht-appname{font-weight:600;color:#e6edf3;margin:0 0 5px;font-size:var(--holo-text-sm,1rem)}
   @media (max-width:520px){#holo-terms-btn{left:8px;bottom:8px}.holo-terms-panel{left:8px;right:8px;width:auto}}
   @media print{#holo-terms-btn,.holo-terms-panel,.holo-terms-back{display:none!important}}`;
 
   // ── public API ────────────────────────────────────────────────────────────────────────────────
   W.HoloTerms = {
-    gate, effective, classify, capRefs, setActiveApp,
+    gate, gateAll, effective, classify, capRefs, setActiveApp,
     roster, standingTerm: standingCode, setStandingTerm, standingAgreement,
     agreementFor, records: loadRecords, revoke, firstParty: async () => (await signer()).did,
     makeRecord, verifyRecord, openControlCenter: () => { try { (W.top || W).location.href = TERMS_APP_URL; } catch { location.href = TERMS_APP_URL; } },

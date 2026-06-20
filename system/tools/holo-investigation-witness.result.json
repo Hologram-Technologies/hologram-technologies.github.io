@@ -1,0 +1,34 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S8 INVESTIGATION κ-DAG: the whole reflex (ingest → map → insight → brief) composes into one content-addressed root that re-derives from its members (sources + graph closure + insights + brief). Tamper any member and the root breaks; given only the member κs the root re-derives (location-agnostic, pinnable); verifyInvestigation gates root integrity AND every insight's provenance (S5); pinSet names the full byte-closure to replay offline. holo:pinned stays null — the live IPFS pin + relock reseal is the declared out-of-band deploy step, not faked",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · W3C PROV-O (prov:Bundle) · IETF RFC 8785 (JCS) · holospaces L2/L5 · rests on #holo-ingest + #holo-map + #holo-insight + #holo-brief",
+  "witnessed": true,
+  "covers": [
+    "investigation-dag",
+    "one-root",
+    "root-re-derives",
+    "tamper-breaks-root",
+    "portable",
+    "full-chain-verify",
+    "pin-set-closure",
+    "honest-pin"
+  ],
+  "sample": {
+    "root": "did:holo:sha256:944cd1077895ed777d2aad1b117ca93ed65ad797e6b465fdb6df19d1e29b2b57",
+    "members": 10,
+    "pins": 20,
+    "sources": 2,
+    "insights": 6
+  },
+  "checks": {
+    "composesOneRoot": true,
+    "rootCoversAllMembers": true,
+    "rootReDerives": true,
+    "tamperAnyMemberBreaksRoot": true,
+    "portableReDeriveFromMembers": true,
+    "fullChainVerifies": true,
+    "pinSetIsByteClosure": true,
+    "honestPinIsOutOfBand": true
+  },
+  "failed": []
+}

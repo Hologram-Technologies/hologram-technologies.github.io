@@ -336,16 +336,48 @@
          SYNCHRONOUSLY — before #bar paints — so the dev chrome never flickers and the stage is black
          from the very first frame. The module re-asserts this and forces the Dark field. -->
     <script>try{if(new URLSearchParams(location.search).get("next"))document.body.classList.add("handoff");}catch(e){}</script>
+    <!-- Q WELCOME PREWARM: the instant Power-up hands off to the splash, start streaming the Q welcome
+         screen's components — the pre-rendered spoken greeting + Q's voice subsystem — into the HTTP/SW
+         cache. Each boot step (splash → login → shell) is a SEPARATE document, so a compiled model can't
+         carry over, but cached BYTES do: by the time login clears, the desktop's welcome plays its first
+         word with no cold fetch behind the orb. Boot-handoff only (?next), skipped on data-saver / 2g so it
+         never burns metered bytes. Bytes only — nothing executes here, no model is built (that stays in the
+         shell, post-navigation). See [[q-first-run-voice-greeting]]. -->
+    <script>try{(function(){
+      var p=new URLSearchParams(location.search); if(!p.get("next"))return;          // real power-on only, not the standalone splash studio
+      var c=navigator.connection; if(c&&(c.saveData||/(^|-)2g$/.test(c.effectiveType||"")))return;   // honor data-saver / 2g
+      function pre(href,rel,as){try{var l=document.createElement("link");l.rel=rel;l.href=href;if(as)l.as=as;document.head.appendChild(l);}catch(e){}}
+      pre("/_shared/voice/welcome.mjs","modulepreload");        // the baked first-run greeting (~2.3MB) → first spoken word is instant in the shell
+      pre("/_shared/holo-voice.js","prefetch","script");        // Q's voice subsystem → parses warm in the shell instead of cold on the welcome
+      // Q's STARTER BRAIN (the heaviest core component, ~0.5GB) → a head start into the OPFS κ-cache during the
+      // splash dwell. WebGPU-only (the .holo brain runs on WebGPU; non-GPU devices use the ONNX floor + its own
+      // cache). OPFS is per-block + resumable, so whatever doesn't finish before the nav to login is picked up
+      // by the shell's warmStarter — this just front-loads it. The breadcrumb is set only on FULL completion, so
+      // a device keeps resuming across boots until the brain is warm, then never re-streams. Deferred 1200ms so
+      // it never competes with the splash's first paint. (Outer guard already skipped data-saver / 2g.)
+      try {
+        if (navigator.gpu && navigator.gpu.requestAdapter && !localStorage.getItem("holo.q.brain.prewarmed.v1")) {
+          navigator.gpu.requestAdapter().then(function(a){
+            if(!a) return;
+            setTimeout(function(){
+              import("/_shared/voice/holo-voice-holo-brain.mjs").then(function(m){
+                if(m.prefetchHoloBrain) m.prefetchHoloBrain("qwen2.5-0.5b").then(function(){ try{localStorage.setItem("holo.q.brain.prewarmed.v1","1");}catch(e){} }).catch(function(){});
+              }).catch(function(){});
+            }, 1200);
+          }).catch(function(){});
+        }
+      } catch(e){}
+    }())}catch(e){}</script>
     <div id="bar">
       <span class="name">Holo Splash</span>
-      <span class="tag">· holospace</span>
-      <span class="k" id="kaddr" title="content address of the active Plymouth theme">holo://local</span>
-      <span class="ver" id="ver" title="Law L5: every theme byte (the .plymouth, the .script, every PNG) re-derives to its κ"></span>
+      <span class="tag">· app</span>
+      <span class="k" id="kaddr" title="fingerprint of the active Plymouth theme">holo://local</span>
+      <span class="ver" id="ver" title="Every theme byte checks itself — the .plymouth, the .script, every PNG"></span>
       <span class="sp"></span>
       <span class="stat" id="now" title="boot status"></span>
       <span class="dot" id="dot">●</span>
       <span class="tag" id="state">idle</span>
-      <select id="themeSel" title="Plymouth theme the original .plymouth format; κ-verified on load"></select>
+      <select id="themeSel" title="Plymouth theme — the original .plymouth format; verified on load"></select>
       <button id="impBtn" title="import a community theme from adi1090x/plymouth-themes">✦ Import</button>
       <button id="replayBtn" title="replay boot (r)">⟳ replay</button>
       <button id="fsBtn" title="fullscreen (f)">⛶ fullscreen</button>
@@ -418,8 +450,8 @@
         <div class="a-top">
           <div class="a-info">
             <span class="a-nm" id="aName"></span>
-            <span class="a-k" id="aK" title="content address of this theme"></span>
-            <span class="a-v" id="aVer" title="Law L5 every theme byte re-derives to its κ"></span>
+            <span class="a-k" id="aK" title="fingerprint of this theme"></span>
+            <span class="a-v" id="aVer" title="Every theme byte checks itself"></span>
           </div>
           <div class="a-acts">
             <button class="keep" id="aKeep">Keep</button>
@@ -696,10 +728,12 @@
       // A real power-on hands off on a clean BLACK field (not the theme's own backdrop): force Dark so
       // the canvas behind the mark is pure #000, matching the gateway and login. Studio mode is untouched.
       if (NEXT) { document.body.classList.add("handoff"); bgMode = "dark"; }
-      // Boot Menu (rEFInd) reachable via F2 during a handoff — like real firmware (F2 is page-preventable).
-      const MENU = params.get("menu") || "";
+      // Boot Menu (Holo Boot) reachable via F2 during the boot splash — like real firmware (F2 is
+      // page-preventable). Defaults to the Holo Boot screen at the origin root, so the easter egg works
+      // on a normal power-on with no ?menu= passed; an explicit ?menu= still overrides. NO on-screen
+      // hint — a sovereign boot just powers on, and F2 is a silent escape hatch (like a vendor splash).
+      const MENU = params.get("menu") || "/boot.html";
       function gotoMenu() { if (navigated || !MENU) return; navigated = true; cancelAnimationFrame(rafId); location.href = MENU; }
-      if (NEXT && MENU) { const s = document.getElementById("skip"); if (s) s.innerHTML = 'Press <kbd>F2</kbd> for Boot Menu · or any key to continue'; }
 
       // ── hardware-adaptive resolution (the "dynamically adjust for the device" layer) ──
       // Modelled on holo-rtc.js deviceProfile(): cores × memory × mobile × dpr × screen pick a
@@ -883,7 +917,7 @@
         be.dirty(); be.paint();
         loop();
         try { parent !== window && parent.postMessage({ type: "holo-splash-ready", theme: id, module: conf.moduleName }, "*"); } catch {}
-        toast(`theme · ${conf.name || id} · ${conf.moduleName} · ${ver.ok ? "κ ✓" : "κ ✗"}`);
+        toast(`theme · ${conf.name || id} · ${conf.moduleName} · ${ver.ok ? "verified ✓" : "verified ✗"}`);
         postStatus();
       }
 
@@ -1028,8 +1062,10 @@
           return;
         }
         if (asking || (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) return;
-        // during a boot handoff: F2 opens the boot menu (rEFInd); any other key continues to the OS
-        if (NEXT && e.key === "F2" && MENU) { e.preventDefault(); gotoMenu(); return; }
+        // F2 drops into Holo Boot (the firmware/boot menu) from the splash — a silent easter egg,
+        // exactly like F2 during a vendor power-on splash enters BIOS. Works whether or not this is a
+        // real handoff. Other keys (during a handoff) continue to the OS.
+        if (e.key === "F2" && MENU) { e.preventDefault(); gotoMenu(); return; }
         if (NEXT && (e.key === "Enter" || e.key === "Escape" || e.key === " ")) { e.preventDefault(); gotoNext(); return; }
         if (e.key === "f") $("fsBtn").click();
         else if (e.key === "r") client.replay();

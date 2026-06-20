@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Brain Floor (S3, guarantee a brain) — a deterministic zero-download floor specialist is bound to every core task so the mux ALWAYS resolves to something usable (Q.create/Q.ask never throw 'no specialist bound'); a real brain silently upgrades over the floor; a governed self-acquire fills a gap when possible and keeps the floor when refused; the floor never downloads, never hallucinates (honest 'no model loaded'), never throws, and is deterministic (Law L5)",
+  "authority": "the holo-q-mux bind/route routing contract (ADR-0084/0085) · the skill-acquire path (discover → authorize → forge → bind) · holospaces Laws L2/L5",
+  "witnessed": true,
+  "covers": [
+    "brain-floor",
+    "never-no-specialist-throw",
+    "always-usable-route",
+    "silent-upgrade",
+    "governed-acquire",
+    "honest-floor",
+    "deterministic"
+  ],
+  "checks": {
+    "floorGeneratesNeverThrows": true,
+    "ensureFillsUncoveredTasks": true,
+    "routeAlwaysUsableAfter": true,
+    "neverClobbersARealBrain": true,
+    "silentUpgradeOverFloor": true,
+    "acquireOnlyWhenOnFloor": true,
+    "floorIsDeterministic": true,
+    "floorIsHonest": true
+  },
+  "failed": []
+}

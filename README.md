@@ -134,7 +134,27 @@ A few words this README uses, kept short:
 
 ## For AI agents
 
-Hologram OS is built to be acted on by software, not only by people. Every object describes itself in open, linked data and carries a verifiable name, so an agent can fetch it, understand it, and confirm it, all with no trusted server. Agents reach the system through a standard tool interface (the Model Context Protocol) that uniquely offers a tool to verify any object, and the same tools project cleanly into the common AI tool formats. Start at [AGENTS.md](AGENTS.md).
+Hologram OS is built to be acted on by software, not only by people. Every object describes itself in open, linked data and carries a verifiable name, so an agent can fetch it, understand it, and re-derive it, all with no trusted server.
+
+Agents connect over the Model Context Protocol:
+
+```bash
+npx hologram-mcp            # stdio  (Claude Desktop, agent SDKs)
+npx hologram-mcp --http     # Streamable HTTP + discovery
+```
+
+The live tool list is the source of truth — read it with `tools/list`, or start from [`agents.json`](system/os/.well-known/agents.json), the self-verifying discovery document that maps every door (MCP · NANDA · A2A · Agent Skills). What no ordinary MCP server offers: a `verify_object` tool that re-derives any result's `did:holo` from its bytes, so an agent verifies what it is handed instead of trusting it (Law L5).
+
+On top of self-verifying objects, the substrate gives agents a verifiable stack:
+
+| Capability | Tools | What it proves |
+|---|---|---|
+| **Verify & resolve** | `verify_object`, `resolve_object` | every result re-derives to its content address |
+| **Authorization** | UCAN capability chains | a scoped, revocable grant; privilege escalation is caught by re-derivation (ADR-042) |
+| **Provable ownership & settlement** | `own_verify`, `own_settle`, `own_passport` | pay against a *proven* title, not a claimed one — a forged title releases nothing (ADR-053) |
+| **Work receipts** | multi-agent orchestration | one content-addressed PROV-O DAG whose root proves every step passed the conscience gate (ADR-045) |
+
+Start at [AGENTS.md](AGENTS.md).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -149,7 +169,7 @@ git submodule update --init --recursive   # brings in the engine, used unchanged
 
 cd system
 npm run serve                             # run the OS locally
-npm run gate                              # prove the build: every required check must pass
+npm run gate                              # the conformance gate: re-runs every required witness, fails closed on any gap
 ```
 
 The browser native peer and the OS image build from their own scripts inside the `system` folder. The engine lives in a separate, open project and is included here without modification, so improvements to the engine belong upstream where everyone benefits.

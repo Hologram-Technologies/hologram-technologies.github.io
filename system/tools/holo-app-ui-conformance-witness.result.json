@@ -11,98 +11,2411 @@
     "ratchet"
   ],
   "floor": 16,
-  "appsScanned": 46,
-  "baselinedTotal": 69,
+  "appsScanned": 153,
+  "baselinedTotal": 801,
   "regressions": [
     {
-      "app": "holo-3d",
+      "app": "86dos",
       "was": 0,
-      "now": 5,
-      "added": 5,
+      "now": 7,
+      "added": 7,
       "sample": [
         {
-          "line": 42,
-          "px": 14,
-          "snippet": "#screen > div { white-space:pre; font:14px monospace; color:#fff; }"
-        },
-        {
-          "line": 53,
+          "line": 52,
           "px": 12,
-          "snippet": "#panel .hint{ margin-top:.7rem; color:var(--dim); white-space:pre-wrap; font-size:12px;}"
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
         },
         {
-          "line": 56,
-          "px": 12,
-          "snippet": "background:rgba(13,17,23,.7); border:1px solid var(--line); border-radius:999px; padding:."
-        }
-      ]
-    },
-    {
-      "app": "holo-linux",
-      "was": 0,
-      "now": 11,
-      "added": 11,
-      "sample": [
-        {
-          "line": 134,
-          "px": 12,
-          "snippet": "border-radius: 5px; padding: 0.24rem 0.55rem; cursor: pointer; font: inherit; font-size: 1"
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
         },
         {
-          "line": 142,
-          "px": 12.5,
-          "snippet": "color: var(--fg); border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 12.5px; opacity:"
-        },
-        {
-          "line": 153,
-          "px": 12,
-          "snippet": "#find .fc { color: var(--faint); font-size: 12px; min-width: 2.6rem; text-align: right; fo"
-        }
-      ]
-    },
-    {
-      "app": "holo-x86",
-      "was": 0,
-      "now": 4,
-      "added": 4,
-      "sample": [
-        {
-          "line": 26,
-          "px": 12,
-          "snippet": "padding: 0.35rem 0.85rem; background: #0b0e13; border-bottom: 1px solid var(--line); font-"
-        },
-        {
-          "line": 40,
-          "px": 14,
-          "snippet": "#screen > div { white-space: pre; font: 14px/1.06 \"Cascadia Mono\", Menlo, Consolas, monosp"
-        },
-        {
-          "line": 53,
+          "line": 63,
           "px": 12,
           "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
         }
       ]
     },
     {
-      "app": "surfacedemo",
+      "app": "9front-boot",
       "was": 0,
-      "now": 4,
-      "added": 4,
+      "now": 7,
+      "added": 7,
       "sample": [
         {
-          "line": 5,
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
           "px": 13,
-          "snippet": "h3 { margin: 0 0 4px; } #status { font-size: 13px; opacity: .85; margin-bottom: 16px; }"
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
         },
         {
-          "line": 8,
+          "line": 63,
           "px": 12,
-          "snippet": ".lbl { font-size: 12px; opacity: .65; }"
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "9legacy",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
         },
         {
-          "line": 10,
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
           "px": 12,
-          "snippet": "pre { background: #111418; padding: 12px; border-radius: 8px; white-space: pre-wrap; margi"
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "android",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "android4",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "archlinux-boot",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "asuro",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "basiclinux",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "beos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bleskos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bluejay",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "boneos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bootbasic",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bootchess",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bootlogo",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bootos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "bootrogue",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "buildroot",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "buildroot6",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "catk",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "chimaeraos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "chip4504",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "curios",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "dancy",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "dino",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "doof",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "dsl",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "duskos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "elks",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "floppybird",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "forthos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "freedos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "freegem",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "freenos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "helenos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "hello-v86",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "holo-v86",
+      "was": 0,
+      "now": 1,
+      "added": 1,
+      "sample": [
+        {
+          "line": 13,
+          "px": 15,
+          "snippet": "font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif; }"
+        }
+      ]
+    },
+    {
+      "app": "house",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "ibm-exploring",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "invaders",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "ipxe",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "jx",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "kolibri",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "kolibrios",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "kolibrios-fallback",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "leetos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "linux26",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "linux3",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "linux4",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "mcp",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "mikeos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "mobius",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "mojo",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "msdos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "msdos4",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "msdos622",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "mu",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "nanoshell",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "netboot.xyz",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "netbsd",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "newos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "newos-notion",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "nodeos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "nopeos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "oberon",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "openwrt",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "os64",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "pcmos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "pillman",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "prettyos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "qnx",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "quantixos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "sanos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "sectorforth",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "sectorlisp",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "skift",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "slitaz",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "snowdrop",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "solos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "sortix",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "soso",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "squeaknos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "stillalive",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "syllable",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "t3xforth",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "tetros",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "tilck",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "tinyaros",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "tinycore",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "toaruos",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "unix-v7",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "vanadium",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windows1",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windows2",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windows30-old",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windows31",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windows95-boot",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windows98-boot",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windowsnt3",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windowsnt35",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "windowsnt4",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "xcom",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "xenus",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "xpud",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
+        }
+      ]
+    },
+    {
+      "app": "xwoaf",
+      "was": 0,
+      "now": 7,
+      "added": 7,
+      "sample": [
+        {
+          "line": 52,
+          "px": 12,
+          "snippet": "padding: 0.25rem 0.6rem; font-size: 12px; color: var(--dim); pointer-events: none; transit"
+        },
+        {
+          "line": 61,
+          "px": 13,
+          "snippet": "#panel .spin { color: var(--acc); font: 700 13px/1 ui-monospace, Menlo, Consolas, monospac"
+        },
+        {
+          "line": 63,
+          "px": 12,
+          "snippet": "#panel .hint { margin-top: 0.8rem; color: var(--dim); white-space: pre-wrap; font-size: 12"
         }
       ]
     }

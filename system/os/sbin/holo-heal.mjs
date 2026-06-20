@@ -32,7 +32,11 @@ import { reDerive, hexOf } from "./holo-resolver.mjs";
 //   isAnchor   : (hex) → boolean                     the sealed-anchor denylist — NEVER auto-healed.
 //   now        : () → string                         ISO timestamp for receipts (injected; no clock here).
 //   log        : (msg, info) → void                  progress sink (default no-op) — invisible when healthy.
-export function makeHealer({ sources = [], store = new Map(), persist = null, sealReceipt = null, isAnchor = () => false, now = () => "1970-01-01T00:00:00Z", log = () => {} } = {}) {
+//   erasure    : { reconstruct }                     fractal recovery (holo-erasure.mjs) — optional; when a
+//                                                     whole-object copy is gone from every source, rebuild it
+//                                                     from k-of-(k+m) surviving SHARDS (each itself a κ-object).
+//   manifestFor: async (hex) → manifest | null        lookup an object's erasure manifest (shard κs + params).
+export function makeHealer({ sources = [], store = new Map(), persist = null, sealReceipt = null, isAnchor = () => false, now = () => "1970-01-01T00:00:00Z", log = () => {}, erasure = null, manifestFor = null } = {}) {
   const receipts = [];
 
   // recover(κ) → { bytes, from } | null — the location-independent core. Try the store, then each
@@ -49,6 +53,29 @@ export function makeHealer({ sources = [], store = new Map(), persist = null, se
       if ((await reDerive(u)) !== hex) continue;            // a wrong/tampered byte from any source is refused
       store.set(hex, u);                                    // verified once → served from anywhere thereafter
       return { bytes: u, from: src.peer || src.label || "source" };
+    }
+    // FRACTAL heal — no whole-object copy survives anywhere; rebuild it from k of (k+m) surviving SHARDS.
+    // Each shard is itself a κ-object fetched from the same mesh; erasure.reconstruct() blake3-verifies every
+    // shard (L5) and Reed–Solomon-rebuilds the whole, which we then re-derive to its OWN κ before trusting it
+    // (L5 again — a reconstruction that does not re-derive to the address is refused, never served).
+    if (erasure && manifestFor) {
+      try {
+        const manifest = await manifestFor(hex);
+        if (manifest && Array.isArray(manifest.shards) && manifest.data) {
+          const got = [];
+          for (const s of manifest.shards) {
+            if (got.length >= manifest.data) break;
+            const shex = hexOf(s.kappa);
+            let bytes = store.has(shex) ? store.get(shex) : null;
+            if (!bytes) for (const src of sources) { try { const b = await src(s.kappa); if (b) { bytes = b instanceof Uint8Array ? b : new Uint8Array(b); break; } } catch {} }
+            if (bytes) got.push({ index: s.index, role: s.role, kappa: s.kappa, bytes });
+          }
+          if (got.length >= manifest.data) {
+            const bytes = await erasure.reconstruct(manifest, got);   // blake3-verifies each shard, RS-rebuilds
+            if ((await reDerive(bytes)) === hex) { store.set(hex, bytes); return { bytes, from: "erasure" }; }
+          }
+        }
+      } catch { /* fractal recovery is best-effort; fall through to honest unresolved */ }
     }
     return null;                                            // no source served a κ-verified copy
   }

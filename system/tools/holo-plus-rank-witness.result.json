@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "The + Everywhere — A3 CONTEXT-AWARE RANKING: the same source ranked under two different local-surface contexts surfaces a different top insight (the ambient magic), via a deterministic term-overlap baseline scorer (Q in production, a swappable seam). Relevance is presentation metadata (holo:relevance) — it never changes an insight's κ identity and never breaks provenance (S5). No context → confidence order preserved (backward compatible). Proven end-to-end through runPlus + composeBrief",
+  "authority": "holospaces Laws L2/L5 · rests on #holo-plus + #holo-insight + #holo-plus-context",
+  "witnessed": true,
+  "covers": [
+    "context-ranking",
+    "two-contexts-differ",
+    "relevance-annotated",
+    "kappa-stable",
+    "provenance-survives",
+    "backward-compatible",
+    "term-overlap",
+    "q-scorer-seam"
+  ],
+  "sample": {
+    "locTop": "\"Acme Corp schema:location Berlin\" rests on a single source — corroborate before relying on it.",
+    "ceoTop": "\"Acme Corp holo:hasRole/CEO Dana Lee\" rests on a single source — corroborate before relying on it.",
+    "runPlusTopA": "\"Acme Corp schema:location Berlin\" rests on a single source — corroborate before relying on it.",
+    "runPlusTopB": "\"Acme Corp holo:hasRole/CEO Dana Lee\" rests on a single source — corroborate before relying on it."
+  },
+  "checks": {
+    "sameSourceTwoContextsDifferTop": true,
+    "relevanceAnnotated": true,
+    "kappaUnchangedByRanking": true,
+    "provenanceSurvivesRank": true,
+    "noContextPreservesOrder": true,
+    "baselineTermOverlap": true,
+    "runPlusEndToEnd": true,
+    "qScorerSeam": true
+  },
+  "failed": []
+}

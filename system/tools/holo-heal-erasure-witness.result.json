@@ -1,0 +1,21 @@
+{
+  "spec": "Fractal-heal integration: holo-heal recover() rebuilds a whole object from k of (k+m) surviving shards via holo-erasure when no whole copy survives, re-derives it to its κ (L5), prefers a whole copy when present, fails closed below k, and is a no-op when erasure deps are absent (additive).",
+  "authority": "holo-heal.mjs recover() (production healer) · holo-erasure.mjs (RS, exhaustively witnessed) · UOR-ADDR re-derivation (Law L5) · holospaces Laws L1·L3·L5",
+  "witnessed": true,
+  "covers": [
+    "fractal-heal",
+    "erasure-recovery",
+    "reconstruct-from-shards",
+    "fail-closed",
+    "whole-preferred",
+    "no-regression"
+  ],
+  "checks": {
+    "rebuilds the whole from k surviving shards when no whole copy exists (fractal heal)": true,
+    "fewer than k shards ⇒ unresolved (fail-closed, never fabricates)": true,
+    "a surviving whole copy is preferred over reconstruction (erasure is the fallback)": true,
+    "without erasure deps the healer is unchanged (additive, no regression)": true
+  },
+  "passed": 4,
+  "failed": 0
+}

@@ -23,9 +23,72 @@
     {
       "@id": "https://hologram.os/conformance/os2#w1-origin-blocked-boot",
       "@type": "hosc:ConformanceAssertion",
-      "name": "W1 — Hologram OS boots with the ORIGIN BLOCKED, serving its boot closure network-free from the κ-keyed content cache (the keystone serverless proof: L3 the store is the memory · L5 verify-at-boundary · no server). Witnessed LIVE in real Chromium against the production deploy (prod cache-first mode): a full online boot under Service-Worker control caches the boot closure, then ALL origin network is cut (setOffline) and the OS is reloaded — it must still boot and render, with every boot-critical path served from the κ cache (x-holo-cache:hit) and zero network. The localhost dev server cannot witness this (the SW runs DEV / cache-first-off on 127.0.0.1, holo-fhs-sw.js:29,470,508); the NECESSARY condition (closure complete + κ-route content-serviceable + bogus κ refused) is witnessed live in pure Node by tools/holo-w1-origin-blocked-boot-witness.mjs.",
-      "hosc:authority": "holospaces Laws L1 (content not location) · L3 (the store is the memory) · L5 (verify by re-derivation) · serverless / CROSS-1 (dumb static host) · W3C Service Workers · WHATWG Fetch · verify by real-browser offline boot against the live deploy (Playwright) — tools/holo-w1-deploy-witness.mjs",
-      "hosc:witness": "tools/holo-w1-deploy-witness.mjs",
+      "name": "W1 — Hologram OS boots with the ORIGIN BLOCKED, serving its boot closure network-free from the κ-keyed content cache (the keystone serverless proof: L3 the store is the memory · L5 verify-at-boundary · no server). Witnessed LIVE in real Chromium against the production deploy (prod cache-first mode): a full online boot under Service-Worker control caches the boot closure, then ALL origin network is cut (setOffline) and the OS is reloaded — it must still boot and render, with every boot-critical path served from the κ cache (x-holo-cache:hit) and zero network. Witnessed LIVE on localhost by serving the Service Worker VERBATIM (prod-mode, HOLO_PROD_SW: sealed ALLOW_DEV_FRESH=false → DEV=false → cache-first), so the sufficient real-browser offline-boot proof reproduces with NO remote host (the necessary condition — closure complete + κ-route content-serviceable + bogus κ refused — is proven in the same run); the deploy variant tools/holo-w1-deploy-witness.mjs runs the identical proof against a live HTTPS deploy.",
+      "hosc:authority": "holospaces Laws L1 (content not location) · L3 (the store is the memory) · L5 (verify by re-derivation) · serverless / CROSS-1 (dumb static host) · W3C Service Workers · WHATWG Fetch · verify by real-browser offline boot in prod-mode SW (Playwright, HOLO_PROD_SW) — tools/holo-w1-origin-blocked-boot-witness.mjs; remote-deploy variant — tools/holo-w1-deploy-witness.mjs",
+      "hosc:witness": "tools/holo-w1-origin-blocked-boot-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode).",
+      "hosc:authority": "W3C Media Source Extensions · ISO/IEC 14496-12 (BMFF/fMP4) · holospaces Law L5 (verify by re-derivation) · the OS κ-store contract (holo-kstore/holo-store) · holo-uor (content-addressing) — tools/holo-tube-witness.mjs",
+      "hosc:witness": "tools/holo-tube-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-tube-offline-replay",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "R2 — a sealed VOD MediaGraph replays BYTE-IDENTICALLY OFFLINE from the κ-store with the origin dead (the store is the memory). Every segment, once verified and stored by its κ, is served on all future reads by κ alone — no path, no origin (Laws L1·L3). Witnessed offline with a κ-store keyed by κ: every segment round-trips byte-identical, a corrupted stored object is refused on read (L5), and an unstored κ resolves to null (never bad bytes).",
+      "hosc:authority": "holospaces Laws L1 (content not location) · L3 (the store is the memory) · L5 (verify by re-derivation) · the OS κ-store contract (holo-kstore/holo-store, OPFS-durable) — tools/holo-tube-witness.mjs",
+      "hosc:witness": "tools/holo-tube-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-tube-gapless-radio",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "R3 — the playlist/radio plays GAPLESS: the next video's κ is resolvable (and MSE-feedable) before the current one ends. A MediaGraph is an open DAG walked through 'next' (radio/autoplay) or playlist order; each successor is a content-addressed node whose init segment is prefetchable while the current video is still playing. Witnessed offline: every video resolves a feedable successor over the whole queue, and the walk reaches every video (the radio loop closes).",
+      "hosc:authority": "holospaces Law L1 (content not location — 'next' is a κ link) · W3C Media Source Extensions (buffered-ahead prefetch) — tools/holo-tube-witness.mjs",
+      "hosc:witness": "tools/holo-tube-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-tube-bit-exact-closure",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "R4 — segment bytes are BIT-EXACT to source (no transcode on the identity path) and the MediaGraph SEGMENT-CLOSURE κ re-derives from the segments alone. The closure κ is a non-circular root over the sorted set of every segment κ — prove it and you've pinned every byte the stream can ever play (Laws L2·L5). Witnessed offline: each segment's on-disk κ equals its graph κ (no transcode drift after sealing), the embedded holo:segmentClosure re-derives from the segment set, and the closure covers exactly the played segments.",
+      "hosc:authority": "holospaces Law L2 (canonical forms — bit-exact, no transcode) · L5 (verify by re-derivation) · IETF RFC 8785 (JCS over the κ set) · the GGUF/quant 'preserve original bytes' rule — tools/holo-tube-witness.mjs",
+      "hosc:witness": "tools/holo-tube-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#bitcoin-anchored",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The canonical os-closure root is BITCOIN-ANCHORED — the chain commits a 32-byte commitment binding (a) the OS image root κ, (b) the prior anchored commitment (an append-only hash-linked release chain), and (c) the authorized M-of-N release-signing keyset; it never stores the OS. Verification is CLIENT-SIDE and header-only (no node, no API, Law L4): re-derive the commitment (L5), check ≥ threshold valid signatures from PINNED keys over it, fold the OpenTimestamps Merkle path to the confirming block's merkle root, and PoW-validate that header against a bundled checkpoint. Witnessed offline with REAL secp256k1 (the vetted btc-wallet noble bundle) for M-of-N authority and the REAL Bitcoin genesis block header for Proof-of-Work; refuses a tampered commitment, a forged OS root, under-threshold authority, a broken chain link, a tampered Merkle path, and a bad-PoW header. (Binding the live current root to a CONFIRMED mainnet tx is a deploy-time action — the verifier is complete and proven here.)",
+      "hosc:authority": "holospaces Laws L1 (content not location) · L2 (canonical forms) · L4 (no parallel network — header-only verify) · L5 (verify by re-derivation) · Bitcoin Proof-of-Work (real genesis block header, an imported external artifact) · secp256k1 ECDSA · OpenTimestamps Merkle-aggregation — tools/holo-anchor-witness.mjs",
+      "hosc:witness": "tools/holo-anchor-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#cid-cold-boot",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "A single shareable link …/#<root-CID> COLD-BOOTS a fresh device with the ORIGIN DEAD. The fragment carries the boot-root κ (os-closure.json) as a CIDv1 (a sha-256 κ IS a CIDv1 sha2-256); the page-level loader (lib/holo-cid-boot.mjs — the SW cannot read the page fragment) decodes it to a κ and resolves the root BY THAT κ from the NON-ORIGIN recovery chain (the device's own κ-store · IPFS Trustless Gateways · mesh peers), RE-DERIVING every candidate before acceptance (Law L5 — sha-256(bytes) === κ, the source is a latency choice never a trust one). This closes the cold-bootstrap gap: GitHub Pages (or any one host) can die and the same link still boots from the content-addressed swarm. Witnessed offline with the REAL os-closure root bytes + a simulated swarm source: every fragment form decodes, a dead origin falls through to a non-origin source, a tampered/liar source is refused, and an unservable root fails honestly. (The live IPFS-gateway fetch needs network; the fragment→κ decode + L5 resolution gate are proven here.)",
+      "hosc:authority": "holospaces Laws L1 (content not location — the link is a CID, not a host) · L3 (the store is the memory) · L5 (verify by re-derivation) · IPFS CIDv1 / multiformats (sha2-256 multihash) — tools/holo-cid-boot-witness.mjs",
+      "hosc:witness": "tools/holo-cid-boot-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#single-link-verified",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "The single shareable link …/#<root-CID> SELF-VERIFIES the booted OS against its content-address, LIVE in a real browser (decentralized-boot delta A, activated). The page-level loader (lib/holo-cid-boot via lib/holo-heal-boot, loaded by holospace.html) reads the fragment CID, fetches the boot root as raw bytes (recovering it by κ from the non-origin chain if the origin can't serve it), re-derives it (Law L5), and exposes self.__holoRoot = { cid, verified }. Witnessed in Chromium: the correct CID verifies TRUE, a wrong CID verifies FALSE (the 'verified ✓' badge is honest, not cosmetic), and no fragment makes no claim while booting normally. The magical link made trustworthy: the host is disposable, the URL is the fingerprint.",
+      "hosc:authority": "holospaces Laws L1 (content not location — the link IS the address) · L5 (verify by re-derivation) · IPFS CIDv1 · verify by real-browser self-verification (Playwright) — tools/holo-cid-activation-witness.mjs",
+      "hosc:witness": "tools/holo-cid-activation-witness.mjs",
       "hosc:required": true,
       "hosc:category": "Runtime"
     },
@@ -422,6 +485,123 @@
       "name": "OBSERVABILITY PLANE — system-wide telemetry native to the UOR substrate (Holo Telemetry, ADR-0073): adopts the OpenTelemetry data model (Span · Metric · LogRecord · Resource · Scope) and W3C Trace Context as content-addressed UOR objects, and REJECTS the Prometheus central scraper (a long-running server that trusts the emitter — a foreign runtime the substrate forbids). A span IS a PROV-O Activity whose W3C trace-id / span-id are DERIVED from the operation's content, so holding only a signal's κ re-derives its identity (Law L5) and a tampered structural field breaks the id; a trace is a self-verifying PROV-O DAG (each child prov:wasInformedBy its parent under one trace-id); `traceparent` injects in exact W3C form and round-trips (all-zero / malformed ids refused). The HONEST SPLIT: wall-clock measurements (start/end/duration, a measured value) are marked hostel:rederivable=false and host-attested — never claimed as re-derived. No new infrastructure: the κ-store is the collector, graph traversal is the query, Pin/Own is the exporter, the conscience gate is the privacy boundary. Telemetry is LOCAL-ONLY by default; egress requires explicit consent AND passes the conscience gate (Law L1, private-first, fail-closed), then emits genuine OTLP/JSON (OpenTelemetry interop). Auto-wired system-wide by the theme runtime (Law L2, one canonical wire); mint nothing",
       "hosc:authority": "OpenTelemetry data model + OTLP · W3C Trace Context (traceparent) · W3C PROV-O + DID Core · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · the Holo Constitution (ADR-0033, the egress conscience gate) · holospaces Laws L1/L2/L5",
       "hosc:witness": "tools/holo-telemetry-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-telemetry-tap",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "PERCEPTION ADOPTION — the OS's live signal seams actually FLOW THROUGH the observability plane (Holo Telemetry Tap, S0 of the autonomy spine sense → reason → speak). The runtime (#holo-telemetry) was proven in isolation; this proves it is FED: three already-live seams are re-expressed as content-addressed PROV-O signals whose W3C ids re-derive from content (Law L5) — (1) the AUTONOMOUS heal loop (a real makeSupervisor().tick() sweep) becomes a heal.sweep span plus healthy/healed/unresolved/flaky gauges and one log per repair receipt; (2) an app lifecycle event (open/close/focus) becomes a counter plus a correlated log; (3) the conformance gate's verdict becomes passing/failing/failing_required gauges plus one WARN per red required row. The heal seam is driven LIVE so the tapped span carries the REAL sweep counts — adoption, not a mock. A tampered tapped signal breaks its id; the honest split survives (wall-clock stays hostel:rederivable=false, host-attested); the tap never bypasses the privacy boundary (egress without consent is refused, Law L1). Mints no new measurement and trusts no emitter — it re-expresses facts the seams already produce. Perception with no new trust",
+      "hosc:authority": "OpenTelemetry data model + W3C Trace Context · W3C PROV-O · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1 (private-first) / L2 (one canonical wire) / L5 (verify by re-derivation) · rests on #holo-telemetry (the runtime) + #heal (the seam adopted) — driven live in pure Node",
+      "hosc:witness": "tools/holo-telemetry-tap-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-coherence",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "REFLECTION — the OS folds its own perception into one self-verifying snapshot κ (Holo Coherence, S1 of the autonomy spine sense → reason → speak). S0 (#holo-telemetry-tap) made the OS observable; this proves it can know what's true now: the perception stream (a REAL heal-supervisor tick + the conformance gate's verdict + app activity) folds into a single content-addressed PROV-O 'Snapshot' object. The keystone: a snapshot's IDENTITY is its STATE, not the clock — two folds of the same state under different clocks re-derive to the SAME κ (content-addressed reflection, comparable + dedup-able, Law L5; wall-clock time rides beside the sealed object as metadata, never inside its identity — the same honest split Holo Telemetry draws). COHERENCE is an honest, re-derivable scalar ∈ [0,1] (health and conformance weigh equally; a whole+green system scores 1.0 and any unresolved heal / red required row necessarily pulls it below) — the north star as a number, a pure function of structure, never a measurement. ATTENTION is exactly the union of what is NOT coherent (red rows + flaky + unresolved), the basis S2 turns into proposals, never fabricated. The diff is NO-NOISE: identical state ⇒ changed:false (the property the inbox depends on — nothing changed, nothing to say). A changed state yields a different κ; a tampered snapshot fails to re-derive. Reflection is PRIVATE-FIRST: the snapshot lives in the local κ-store and share() is default-deny + conscience-gated (Law L1). Composition is proven end to end: the same live heal seam S0 taps flows into the fold — reflection of real state, not a mock",
+      "hosc:authority": "W3C PROV-O · W3C DID Core (did:holo) · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical content), id excluded from the hash) · holospaces Laws L1 (private-first) / L2 (one canonical wire) / L5 (verify by re-derivation) · rests on #holo-telemetry-tap (S0) + #heal (the live seam) — driven live in pure Node",
+      "hosc:witness": "tools/holo-coherence-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-observer",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Q'S AMBIENT OBSERVER — the reactive→copilot pivot (Holo Observer, S2 of the autonomy spine sense → reason → speak). S1 (#holo-coherence) folded the OS into a snapshot of what's true now; this proves Q can READ that snapshot and decide what is worth RAISING — emitting ranked PROPOSALS, never actions. Q proposes; it does not act (acting is gated at S4 behind the trust boundary). A proposal is inert data (subject · rationale · suggested action · salience); nothing in the observer executes anything. The discipline reuses the WITNESSED Holo Control DSP core (#holo-control): SALIENCE = magnitude × novelty × governance-risk ranks what deserves the user's eyes (an unrecoverable object outranks a red row outranks a flaky κ), and HYSTERESIS (raise at hi, release below lo) stops a borderline concern from flapping. Two properties the inbox depends on are proven: NO-NOISE — a whole + coherent snapshot raises nothing (nothing changed, nothing to say); ANTI-NAG — novelty decays as a concern persists, so a fresh break is raised prominently and a CHRONIC known one fades out of the raised set (Q flags the new, it does not nag about the old), and a fixed concern is released with no resurrection. Every proposal set re-derives (Law L5) and prov:wasDerivedFrom the snapshot it came from; the observer is stateful across ticks yet deterministic (no clock, no randomness), so a witness replays a snapshot sequence to byte-identical proposals. Composition is proven end to end: a real heal sweep → S1 → S2",
+      "hosc:authority": "the witnessed Holo Control DSP (robust median/MAD salience + hysteresis) · W3C PROV-O · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical content)) · holospaces Laws L2 (one canonical wire) / L5 (verify by re-derivation) · rests on #holo-coherence (S1) + #holo-control (the DSP) — driven live in pure Node",
+      "hosc:witness": "tools/holo-observer-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-courier",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Q'S VOICE, WITH DISCIPLINE — the only path from a proposal to a message in the user's inbox (Holo Courier, S3 of the autonomy spine sense → reason → SPEAK). S2 (#holo-observer) raised ranked proposals; this proves the courier turns a proposal into a HoloNotify message (#holo-notify) only through a send filter that keeps Q high-signal, never spam. The send seam is tiny; the value is the filter. A proposal becomes a message only if ALL hold: PROVENANCE — it derives from a real S2 proposal and the body is the proposal's OWN suggestedAction, a HANDED note never generated (the witnessed HoloNotify property: Q delivers, it does not author — the courier calls no model); IT CHANGES WHAT YOU'D DO — only a RAISED proposal (already past S2's salience hi-gate) is eligible, pure status is never sent; NOT ALREADY SAID — a subject spoken once stays quiet until it is RELEASED (fixed / faded) and later RE-RAISED, and a stable per-subject note id updates its one note in place (never a growing pile, never a re-nag); WITHIN THE NOISE BUDGET — at most `budget` messages per delivery, the highest-salience win the budget and the rest are HELD (not dropped) and sent on a later delivery once it frees. NO-NOISE (nothing raised ⇒ nothing sent) and COHERENCE-TRIGGERED (Q speaks because state changed, never because a clock ticked) are inherited from S2. The courier is stateful across deliveries yet deterministic. Composition is proven end to end: a real heal sweep → S1 → S2 → an inbox note carrying its provenance (the proposal-set κ)",
+      "hosc:authority": "the witnessed HoloNotify inbox (Q delivers a handed note, never generates) · the witnessed Holo Control DSP (salience ranking) · W3C PROV-O · UOR-ADDR (κ = H(canonical content)) · holospaces Laws L2 (one canonical wire) / L5 (verify by re-derivation) · rests on #holo-observer (S2) + #holo-notify (the inbox) — driven live in pure Node",
+      "hosc:witness": "tools/holo-courier-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-trust",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "THE TRUST BOUNDARY — the contract that lets Q ACT while the user stays in the driving seat (Holo Trust, S4 of the autonomy spine). S3 let Q speak; this resolves every proposed action to ONE disposition through a pure, auditable lattice: disposition = min(user-trust(topic), risk-cap(action)) under the constitutional conscience floor. Four dispositions, least→most autonomous: never < propose < ask < silent — propose is THE DEFAULT for any unconfigured topic (default-deny: Q never acts autonomously until the user explicitly grants it). THREE HARD GUARANTEES the user's trust level can never override are enforced in code, not policy: (1) RISK CAP — value-moving (wallet-out), irreversible, egress, or authority-granting actions are capped at `ask`, so money and the irreversible always require an explicit per-instance YES and can never be silent; (2) NO BLIND SILENT ACT — a silent act with no undo is refused and downgraded to ask, so no autonomous act is irreversible (reversibility is the price of autonomy); (3) CONSCIENCE FLOOR — every disposition sits under the ADR-0033 conscience gate, so a block (or unsealed conscience) ⇒ deny, fail-closed, regardless of trust. ONE-MOVE control: pause() caps everything at propose (Q goes fully hands-off in one call), resume() restores, and setTrust is the ONLY mutator of trust — decide()/act() never widen Q's own latitude. Every autonomous (silent) or explicitly-approved act seals a re-derivable PROV-O receipt (Law L5) recording the action, disposition, conscience verdict, approver, and that it is undoable — an act you can prove and reverse, not merely trust",
+      "hosc:authority": "the Holo Constitution conscience gate (ADR-0033, the fail-closed floor) · the Holo Wallet default-deny human-approval model (ADR-0053) · W3C PROV-O (the act receipt) · UOR-ADDR (κ = H(canonical content)) · holospaces Laws L1 (private-first) / L5 (verify by re-derivation) — driven live in pure Node",
+      "hosc:witness": "tools/holo-trust-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-evolve",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "THE CLOSED SELF-IMPROVING LOOP — Q improves itself, gated and reversible (Holo Evolve, S0 of the Q-unification: perceive → reason → speak → ACT → re-perceive). The faculties of a self-evolving Q were all built but disconnected: the spine OBSERVES (#holo-observer proposals), the factory CAN fix (ADR-0097), and the trust boundary CAN govern (#holo-trust) — but nothing wired observe → propose-fix → decide → ship → re-observe, and Q.trust was attached to the one door yet called by nobody. This is the connective tissue, and it makes Q.trust LOAD-BEARING: every autonomous fix ships ONLY through trust.act, so the boundary that keeps the user in the seat is the real gate, not decoration. For the most salient proposal, Q asks the factory for a SHIPPABLE, REVERSIBLE fix plan, then puts shipping it through trust.act — which performs it ONLY if the disposition resolves to silent (topic granted + reversible + an undo), sealing a re-derivable PROV-O receipt; otherwise the fix is SURFACED (propose/ask) and Q acts only after the user says so. PROPOSE-ONLY by default (Q earns autonomy per topic, never assumes it); a value-moving or irreversible fix can never ship silently (trust's risk cap); a topic the user set to never is never acted on; the factory stops honestly when it can't fix (only the heads-up stands); and after a fix ships the loop re-observes so the concern provably clears (or Q tries again). Human commands stay sovereign — this governs only Q's UNPROMPTED acts. Self-improvement you can prove and reverse, not a claim",
+      "hosc:authority": "the Holo Trust boundary (ADR-0033 conscience floor · wallet default-deny human-approval model) · the Factory self-observing SDLC loop (ADR-0097, propose→ship) · W3C PROV-O (the act receipt) · UOR-ADDR (κ = H(canonical content)) · holospaces Laws L1 (private-first) / L5 (verify by re-derivation) · rests on #holo-observer + #holo-trust — driven live in pure Node",
+      "hosc:witness": "tools/holo-evolve-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-ambient",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "ONE AMBIENT LOOP — a single scheduler owns Q's heartbeat (Holo Ambient, S1 of the Q-unification). Self-improvement ran on TWO uncoordinated timers (the spine's idle loop and trinity's setInterval drift-heal), a standing cost with no coordination; this is the single ambient AUTHORITY that dispatches to registered FACULTIES (reflect · drift-heal · evolve) at their own cadence, so no module owns a timer anymore. One tick runs every DUE faculty in registration order; cadence is per-faculty (everyTicks); a faculty that throws is FAULT-ISOLATED (reported, never stalls the heartbeat or its siblings); dispatch is DETERMINISTIC (integer tick count, no clock in the core — a witness replays to identical order); pause()/resume() halts the whole ambient layer in one move; register is idempotent (same name replaces, never duplicates) and returns an unregister handle; and start() arms exactly ONE loop via an injected pump (requestIdleCallback / setInterval), the core holding no timer (the holo-heal-supervisor idiom). One heartbeat, many organs",
+      "hosc:authority": "the holo-heal-supervisor injected-pump idiom (no clock/timer in the core) · holospaces Law L2 (one canonical wire) · deterministic dispatch (re-runnable) — driven live in pure Node",
+      "hosc:witness": "tools/holo-ambient-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-memory",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Q'S PERSISTENT USER MODEL — Q remembers you across reloads (Holo Memory, S2 of the Q-unification). The audit found Q forgets the user every reload: ctx (recent intents + 👍/👎) was session-only with no persistence, the corpus host-must-index, the stores disconnected. This is the one coherent, DURABLE, content-addressed memory of the user's world — what you asked, what you built, what you liked — so Q.briefing / Q.recall become genuinely personal and survive a reload. Each remembered signal is a self-verifying UOR record (hold its κ, re-derive it; tamper it, the id breaks — the user model can't be silently forged, Law L5). It LEARNS preference affinity ∈ [-1,1] from your votes on similar things (so Q leans your way, with zero model — deterministic, yours); it is BOUNDED (a cap trims the oldest, never an unbounded log); YOU can forget anything on request (delete by kind / before a time, persisted); and it is PRIVATE-FIRST — it lives in your local store and export() is default-deny AND conscience-gated (Law L1), it does not phone home. Usage SHAPE (intents · votes · artifacts), never surveillance. The durable backend is injected (a witness proves a fresh instance over the same store recovers the memory; the browser uses localStorage / IndexedDB)",
+      "hosc:authority": "W3C PROV-O · W3C DID Core (did:holo) · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical content)) · holospaces Laws L1 (private-first) / L5 (verify by re-derivation) — driven live in pure Node",
+      "hosc:witness": "tools/holo-memory-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-brain-floor",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Q ALWAYS HAS A BRAIN — guarantee a usable brain on the one door (Holo Brain Floor, S3 of the Q-unification). The audit found Q's brains are bind-or-die: the on-device CPU .holo floor is never bound, the WebGPU brain lives inside the Q app, and the mux falls through to a 'main' specialist that may not exist — so Q.create / Q.ask can fatally throw 'no specialist bound for task'. This removes the cliff: a deterministic, ZERO-DOWNLOAD floor specialist is bound to every core task at boot, so routing ALWAYS resolves to something usable. A real brain (the WebGPU engine, a boost model, a self-acquired specialist) silently UPGRADES over the floor where the shell binds it; the floor is the safety net underneath, never the ceiling, and ensure NEVER clobbers a real brain already bound. A governed self-acquire (the dormant discover → AUTHORIZE → forge → bind path) fills a gap when a real specialist can be acquired, and KEEPS the floor when refused or unavailable. THE FLOOR IS HONEST: it does not fabricate a model answer — for `ask` it states plainly that no language model is loaded and what it can still do; for `create` it emits a minimal valid scaffold from the prompt — deterministic and re-derivable (Law L5), no hallucination, no download, no throw. Q always answers: gracefully degraded, never broken",
+      "hosc:authority": "the holo-q-mux bind/route routing contract (ADR-0084/0085 Mixture-of-Specialists) · the skill-acquire path (discover → authorize → forge → bind) · holospaces Laws L2 (one canonical wire) / L5 (deterministic re-derivation) — driven live in pure Node",
+      "hosc:witness": "tools/holo-brain-floor-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-intent",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "ONE INTENT CLASSIFIER — every input surface decides through the one Q (Holo Intent, S4 of the Q-unification, the last seam). The audit found input is decided TWICE: typed text goes through Q.intent (deterministic), but voice runs its own route() heuristic — so the same words can be classified differently by source, and only voice's 'unhandled' lines fall through to Q. This is the single canonical router every surface funnels through: the typed omnibar, voice, and an app's cross-frame call all classify with the ONE Q.intent and dispatch through ONE table, so a request is decided ONCE by the orchestrator and spoken/typed CONVERGE — across a batch of varied utterances, voice-sourced and typed-sourced decisions match every time. Source is carried (for telemetry / provenance) but is NEVER an input to the decision (decide() sees only the text). An unhandled kind is reported (handled:false), never thrown, so a caller can fall back gracefully; a blank or unclassifiable input resolves to an honest fallback kind; the classifier is deterministic (Law L5). Pure + dependency-injected — the browser passes window.Q.intent and the shell's real executors (open · close · ask → Q.ask · build → Q.create); voice routes its transcript here instead of re-classifying",
+      "hosc:authority": "the Q.intent deterministic classifier contract (holo-q.js, ADR-0091 unified door) · holospaces Laws L2 (one canonical wire) / L5 (deterministic re-derivation) — driven live in pure Node",
+      "hosc:witness": "tools/holo-intent-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-resolve",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "ONE FRONT DOOR FOR INTENT — every input surface decides through one resolver (Holo Resolve, Fork 1 of the intent-unification). The audit found the user's intent is classified by a DIFFERENT engine per surface: the omnibar runs its own classify(), voice runs its own route(), the '+' runs decideRoute() — so the same words get decided three ways. Q.intent is the canonical classifier but the surfaces don't call it. This is the single resolver every surface routes through, so intent is decided ONCE wherever it is expressed. The subtlety the audit surfaced is handled correctly: the omnibar legitimately handles NAVIGATION (a URL, a content-address κ, an onion, an explicit search) which is NOT a Q-intent and must never be 'built' — so the resolver LAYERS two lanes in order, a NAVIGATION lane (→ the nav handler) and an INTENT lane (→ the one Q.intent classifier → ask · build · open · close). Navigation stays navigation; natural language is decided once. Every surface — typed omnibar, spoken voice, dropped '+', an app's call — calls resolve() and gets the SAME {lane,kind,target}; source is carried for the record but is NEVER an input to the decision; an unhandled kind is reported (handled:false), never thrown, so a surface can fall back; blank input resolves to an honest fallback; the decision is deterministic (Law L5). Pure + dependency-injected — the browser passes window.Q.intent + the omnibar's navigation detectors + the real executors",
+      "hosc:authority": "the Q.intent deterministic classifier (holo-q.js, ADR-0091 unified door) · holospaces Laws L2 (one canonical wire) / L5 (deterministic re-derivation) — driven live in pure Node",
+      "hosc:witness": "tools/holo-resolve-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-q-faculty",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "THE FACULTY BRIDGE — an intent inside an app reaches the SAME Q, governed (Holo Q Faculty, Fork 2 of the intent-unification). The audit found that inside an app frame window.Q is a thin proxy {summon,ask,create,act}: an intent raised in an app reaches the shell's Q but NOT its faculties (coherence · briefing · notices · memory), so an app's create runs against nothing it knows about the user while the shell's runs against the full user model. This extends the governed cross-frame serve so an app reaches the same Q — but GOVERNED, because an app is a separate principal: it READS the OS reflection (q.coherence · q.briefing · q.notices, read-only — system state, not personal); its create/ask is GROUNDED in the user model by the SHELL (affinity for the request + relevant recent intents) so the app receives a context-aware RESULT and NEVER the raw model (Law L1, private-first — the model stays the shell's, the benefit crosses); q.remember WRITES THROUGH attributed to the app (provenance) so the model adapts across the whole experience; and it is REFUSED fail-closed the user's private and privileged surfaces — q.trust.* (an app can never change the user's grants or act AS the user) and raw memory (q.memory.recent / export / forget). Non-faculty methods fall through to the base governed serve (q.create → Q.agent, fail-closed + receipted) unchanged; an unknown method is refused, never thrown; a thin Q degrades to honest empties, never a throw",
+      "hosc:authority": "the holo-gov cross-frame governed RPC channel (holo-privacy:rpc) · the app-as-separate-principal model (holo-q-app.js, fail-closed + receipted, ADR-0090/0094) · holospaces Laws L1 (private-first — the raw model never leaves the shell) / L5 — driven live in pure Node",
+      "hosc:witness": "tools/holo-q-faculty-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Compute & verifiable builds"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-fix-proposer",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Q ACTUALLY FIXES, WITHIN TRUST — a real fix proposer feeds the evolve loop (Holo Fix Proposer, C5 of the autonomy spine). The evolve loop (#holo-evolve) ships a fix ONLY through trust.act; until now no proposer was bound, so Q could only SURFACE concerns. This is the real adapter: for the concerns Q raises it produces SAFE, REVERSIBLE fixes the OS already knows how to do — with NO code-generating brain required — and honestly STOPS on the ones that need one. An app that hit an error → RELOAD the crashed app frame (reversible: it reopens, nothing destroyed), capped per app so a persistently-crashing app is surfaced not reload-looped; an unrecoverable/flaky object → RE-ATTEMPT recovery (the heal sweep re-derives from every source incl. mesh/IPFS; reversible — heal only admits L5-verified bytes, never destroys — so it recovers if a source has since become reachable and simply no-ops on a true dead-end); a red conformance row → null, an HONEST STOP (repairing it needs the code-gen factory brain, so Q surfaces it instead of faking a fix). Every plan is reversible with an undo, so trust.act ships it silently ONLY where the user granted the topic and the risk cap allows; default-deny keeps it propose-only until granted; a missing seam degrades to null (evolve stays propose-only, safe). Composed with the witnessed evolve + trust + observer, Q goes from propose-only to actually fixing — reversibly, gated, receipted",
+      "hosc:authority": "the Holo Trust boundary (ADR-0033, the conscience floor) · the heal supervisor recovery (Law L5, additive-only) · holospaces Laws L1 (private-first) / L5 (verify by re-derivation) · rests on #holo-evolve + #holo-trust + #holo-observer — driven live in pure Node",
+      "hosc:witness": "tools/holo-fix-proposer-witness.mjs",
       "hosc:required": true,
       "hosc:category": "Compute & verifiable builds"
     },
@@ -1063,6 +1243,177 @@
       "hosc:witness": "tools/holo-mobile-appearance-witness.mjs",
       "hosc:required": true,
       "hosc:category": "Display manager & UI"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-l5-manifest-pin",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "L5: a q model manifest κ is verified before its block κs are trusted (tampered manifest refused).",
+      "hosc:authority": "holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · conformance-audit M5",
+      "hosc:witness": "tools/holo-q-manifest-pin-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-l5-dev-fresh",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "L5: dev-fresh requires an explicit opt-in, never hostname alone (prod re-derives + refuses even on localhost).",
+      "hosc:authority": "holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · conformance-audit M1",
+      "hosc:witness": "tools/holo-dev-fresh-gate-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-memo",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "O(1) HoloMemo: compute-once → L1/L2 replay; two-layer key (L2 source bytes / L1 live GPU handle); canonical BLAKE3 keys.",
+      "hosc:authority": "holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · the σ-axis memo spine",
+      "hosc:witness": "tools/holo-memo-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-surface",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "κ-surface render substrate: WebGPU SDF card + scene composition (L3 dedup) + DOM reference + L5-before-GPU + ray hit-test.",
+      "hosc:authority": "holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · W3C WebGPU · DOM reference",
+      "hosc:witness": "tools/holo-surface-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#surface-input",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CC-surface-input: the interactive `button` + text-`input` kinds — GPU visual + real <button>/<input>/<textarea> DOM-mirror semantics (native click, text entry, IME, caret, clipboard), declarative content-addressed κ-actions (no inline code), states/a11y, and pointer/ray + click + input/Enter dispatch through the conscience gate.",
+      "hosc:authority": "W3C UI Events · W3C Pointer Events · WAI-ARIA 1.2 (button role · aria-pressed/-disabled/-label) · holospaces Laws L4·L5 (action is a κ-id, the substrate runs no inline code) · conscience P7 (gate veto, fail-closed) · P5 (no telemetry on the input path)",
+      "hosc:witness": "tools/holo-surface-input-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-surface-layout",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CC-surface-layout: container stack/grid geometry matches the W3C CSS box model (flexbox-column + grid).",
+      "hosc:authority": "W3C CSS Flexbox + Grid box model · holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · ",
+      "hosc:witness": "tools/holo-cc-surface-layout-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-registry",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "κ-pluggable renderer registry: render(κ) dispatches every kind through ONE table (builtins moved on, no format-specific bypass); new media @types register (renderer itself a κ-object, resolved L5); unknown @types fall back gracefully.",
+      "hosc:authority": "the existing holo-render.js surface/bundle @type dispatch seam (generalized) · holospaces Laws L1·L4·L5 (verify-by-re-derivation, fail-closed) · holo-render-witness.mjs (no regression)",
+      "hosc:witness": "tools/holo-render-registry-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-mount",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Browser proof: a holo:Video κ mounts a real <video> through the κ-render registry (content-addressed src via the κ-route); a tampered κ is refused on the render path (L5 verify-before-render).",
+      "hosc:authority": "Chromium (Playwright) real DOM · served _shared/holo-render.js + holo-render-media.mjs · holospaces Laws L4·L5 (verify-by-re-derivation, fail-closed)",
+      "hosc:witness": "tools/holo-render-mount-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#erasure-fractal",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Fractal/erasure redundancy: Reed–Solomon parity over content-addressed shards — ANY k of (k+m) reconstruct the whole BYTE-EXACT (exhaustively verified over all ≤m-loss patterns); whole-object κ unchanged (L1-preserving); shards are κ-objects; fail-closed below k.",
+      "hosc:authority": "Reed–Solomon MDS property (RS spec, not self-reference) verified exhaustively · GF(256) field · holospaces Laws L1·L2·L5 (verify-by-re-derivation, fail-closed) · extends hologram-store-native shard manifest",
+      "hosc:witness": "tools/holo-erasure-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#fractal-heal",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Fractal self-healing: when no whole-object copy survives any source, the healer rebuilds the whole from k of (k+m) surviving shards (holo-erasure) and re-derives it to its κ (L5); prefers a whole copy when present; fails closed below k.",
+      "hosc:authority": "holo-heal.mjs recover() (production healer) · holo-erasure.mjs (RS, exhaustively witnessed) · UOR-ADDR re-derivation · holospaces Laws L1·L3·L5 (verify-by-re-derivation, fail-closed)",
+      "hosc:witness": "tools/holo-heal-erasure-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#frame-tiling",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Streaming substrate: framebuffer tiling + delta — content-addressed tiles (tile→κ); a frame is a manifest of tile κs; only CHANGED tiles stream (unchanged = same κ = cache hit); reconstruct is byte-exact; bytes-on-wire ∝ what changed (the high-FPS win).",
+      "hosc:authority": "lossless tiling (reconstruct ≡ original) · content-addressing (κ = blake3 of tile bytes) · holospaces Laws L1·L2·L3 · couples to holo-erasure shard ordering",
+      "hosc:witness": "tools/holo-tile-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#frame-tiling-fps",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Browser proof: a holo:FrameManifest mounts a <canvas> byte-exact through the κ-render registry; streaming redraws ONLY changed tiles (holo-tile.diff); a delta frame draws far inside the 60fps budget (≈0.01–0.03 ms/frame).",
+      "hosc:authority": "Chromium (Playwright) real canvas · served _shared/holo-tile.mjs + holo-render-tile.mjs · holospaces Laws L1·L2·L3",
+      "hosc:witness": "tools/holo-tile-fps-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#holo-terms",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "One-term-one-meaning terminology: a canonical vocabulary enforced in first-party concept prose; banned synonyms (render substrate, k-object, k-address, k-store…) fail CI; the κ-substrate primitives (κ-object, did:holo, κ-store) are the canonical allowed forms. Anti-drift ratchet; lint is provably non-vacuous (planted-detection self-test).",
+      "hosc:authority": "Deliverable D terminology system · word-boundary scan of first-party .md/.mdx prose · self-test (planted detection + canonical-allowed)",
+      "hosc:witness": "tools/holo-terms-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Substrate"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#catalog-terms",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "User-facing clarity: every app's name + description in the launcher reads clearly, concisely and on-theme — substrate jargon (κ, content-addressed, re-derivation, holospace, L5, self-verifying) is banned in favour of the plain vocabulary (verified · checked genuine · self-checking · tamper-proof · no server). Provably non-vacuous.",
+      "hosc:authority": "Deliverable D user-facing vocabulary · scan of the served catalog's schema:name/schema:description · self-test (planted detection + plain-copy-allowed)",
+      "hosc:witness": "tools/holo-catalog-terms-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "UX"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#ui-terms",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Shell-chrome clarity: tooltips, labels and input hints (title/aria-label/placeholder/alt) across the frame UI read clearly and on-theme — explanatory substrate jargon (Law L5, re-derivation, content-addressed, holospace, verifyDeep, UOR object) banned, raw κ/did:holo banned in labels, input-format placeholders allowed, code-built attributes skipped. Provably non-vacuous.",
+      "hosc:authority": "Deliverable D user-facing vocabulary · scan of user-visible attributes in os/usr/share/frame · self-test (planted + plain-allowed + input-format-allowed + code-skipped)",
+      "hosc:witness": "tools/holo-ui-terms-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "UX"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#spatial-projector",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "κ-surface scene → 3D (three-mesh-ui projector) + ray-pick→κ + device-gated WebXR session. Capability proven; not yet app-adopted.",
+      "hosc:authority": "W3C WebXR · holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · ",
+      "hosc:witness": "tools/holo-xr-witness.mjs",
+      "hosc:required": false,
+      "hosc:category": "Spatial"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#spatial-three-mesh-ui",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "three-mesh-ui vendored verbatim + 100% κ-addressable (dual-axis, L5). Capability proven; not yet app-adopted.",
+      "hosc:authority": "felixmariotto/three-mesh-ui (MIT) · holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · ",
+      "hosc:witness": "tools/holo-three-mesh-ui-witness.mjs",
+      "hosc:required": false,
+      "hosc:category": "Spatial"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#world-aframe",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "A-Frame world/navigation layer vendored verbatim + κ-addressable (dual-axis, L5). Capability proven; not yet app-adopted.",
+      "hosc:authority": "aframevr/aframe (MIT) · W3C WebXR · holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · ",
+      "hosc:witness": "tools/holo-aframe-witness.mjs",
+      "hosc:required": false,
+      "hosc:category": "World"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#render-hub",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "Holo Hub is delivered THROUGH the κ-render substrate (Phase 3): every card cover is a declarative holo:Surface, content-addressed (κ) and L5-verified, drawn by the render() spine (WebGPU, DOM fallback) — default-on, no unverified external code, app sealed dual-axis. The first real app migrated; the repeatable template.",
+      "hosc:authority": "holospaces Laws L1·L2·L3·L4·L5 (verify-by-re-derivation, fail-closed) · W3C WebGPU · per-app render conformance checklist",
+      "hosc:witness": "tools/holo-render-hub-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Render"
     }
   ]
 }

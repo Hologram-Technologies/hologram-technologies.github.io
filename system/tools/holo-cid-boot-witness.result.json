@@ -1,0 +1,80 @@
+{
+  "witnessed": true,
+  "passed": 11,
+  "failed": 0,
+  "rootKappa": "360f1321f4b7732c926046c261ad02aec78441df808da05e0d1d97cf53ae2095",
+  "cid": "bafkreibwb4jsd5fxomwjeycgyjq22avoy6cedx4arwqf4di5s7hvhlrasu",
+  "shareLink": "https://anyhost.example/#bafkreibwb4jsd5fxomwjeycgyjq22avoy6cedx4arwqf4di5s7hvhlrasu",
+  "covers": [
+    "a #<CID> fragment decodes to the root κ (CIDv1 sha2-256 ",
+    "a #root=<CID> fragment decodes to the root κ",
+    "a #k=did:holo:sha256:<κ> fragment decodes to the root κ",
+    "a bare #<κ> hex fragment decodes to the root κ",
+    "an empty / missing fragment yields null",
+    "a non-sha2-256 / garbage fragment yields null (not a κ)",
+    "DEAD ORIGIN — the root resolves from a NON-ORIGIN source",
+    "a TAMPERED root (bytes ≠ κ) from any source is refused (",
+    "a liar source is skipped; the verified copy from a later",
+    "no root CID in the fragment + requireFragment → throws (",
+    "no source can serve the root → null (honest, no fabricat"
+  ],
+  "results": [
+    {
+      "name": "a #<CID> fragment decodes to the root κ (CIDv1 sha2-256 → κ)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a #root=<CID> fragment decodes to the root κ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a #k=did:holo:sha256:<κ> fragment decodes to the root κ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a bare #<κ> hex fragment decodes to the root κ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "an empty / missing fragment yields null",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a non-sha2-256 / garbage fragment yields null (not a κ)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "DEAD ORIGIN — the root resolves from a NON-ORIGIN source by κ and re-derives (Law L5)",
+      "ok": true,
+      "detail": "served by ipfs-sim"
+    },
+    {
+      "name": "a TAMPERED root (bytes ≠ κ) from any source is refused (Law L5)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a liar source is skipped; the verified copy from a later source is accepted",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no root CID in the fragment + requireFragment → throws (no silent boot)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no source can serve the root → null (honest, no fabricated boot)",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "pending": "The production recovery source is IPFS Trustless Gateways / mesh peers (holo-peers.mjs ipfsPeer), which need network. This witness simulates the swarm with a local source serving the REAL root bytes by κ — proving the fragment→κ decode, the non-origin resolution control flow, and the L5 re-derivation gate offline. Exercising a live gateway needs internet.",
+  "spec": "delta A — a single link …/#<root-CID> cold-boots a fresh device with the origin dead: the fragment CID decodes to the boot-root κ (CIDv1 sha2-256 → κ), the root resolves by κ from a NON-ORIGIN source (IPFS/mesh/store), and is re-derived before acceptance (Law L5). Refuses tampered bytes, skips liar sources, and fails honestly when no source serves a verified root."
+}

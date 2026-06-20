@@ -13,10 +13,64 @@
   "usageInfo": { "@type": "CreativeWork", "name": "Constitution — the fail-closed conscience every action is checked against (ADR-033)", "url": "etc/constitution/CONSTITUTION.md" },
   "hasPart": [{ "@type": "CreativeWork", "name": "Constitution — machine-readable, self-verifying", "url": ".well-known/constitution.json" }] }
 </script>
-<style>html,body{margin:0;height:100%;background:#0b071e;color:#e8e6f0;font:15px/1.6 system-ui,sans-serif;display:grid;place-items:center}a{color:#2dd4bf}</style>
+<style>
+  /* Boot splash — the same visual language as the app "streaming" splash (holo-splash.js):
+     breathing Hologram mark, aurora wash, golden-ratio composition. Fully self-contained and
+     inline (no fetch, no module, no web font) so it paints INSTANTLY, offline, before the worker
+     maps any path — exactly like its sibling "Boot refused" screen. φ = 1.618 governs sizes. */
+  :root{
+    --phi:1.618;
+    --u:clamp(15px,1.7vmin,21px);            /* the ONE type size, short-axis-bounded */
+    --g1:calc(var(--u)*1.618);               /* φ¹ */
+    --g2:calc(var(--u)*2.618);               /* φ² */
+    --g3:calc(var(--u)*4.236);               /* φ³ */
+    --teal:#7defc9;
+  }
+  html,body{margin:0;height:100%;overflow:hidden;
+    color:#fff;font:var(--u)/1.6 "Segoe UI",system-ui,-apple-system,"Oxygen",sans-serif;
+    background:radial-gradient(120% 120% at 20% 0%,#1b2a4a 0%,#0d1117 60%,#05070c 100%);}
+  a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}
+  /* aurora — same wash the OS greeter and app splash wear, screen-blended over the deep base */
+  .aurora{position:fixed;inset:0;mix-blend-mode:screen;pointer-events:none}
+  .aurora i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;
+    animation:drift 12s ease-in-out infinite}
+  .aurora .a{left:8%;top:12%;width:42vw;height:42vw;background:radial-gradient(circle,rgba(52,211,166,.5),transparent 62%)}
+  .aurora .b{right:6%;bottom:4%;width:46vw;height:46vw;background:radial-gradient(circle,rgba(64,99,214,.45),transparent 62%);animation-delay:-4s}
+  .aurora .c{left:44%;top:48%;width:30vw;height:30vw;background:radial-gradient(circle,rgba(125,239,201,.26),transparent 62%);animation-delay:-8s}
+  @keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(2.5%,-2.5%) scale(1.06)}}
+  /* the centred stack rides the upper golden line (38.2%): it fills the top band (bottom:23.6%) */
+  .stage{position:fixed;left:0;right:0;top:0;bottom:23.6%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:var(--g2) var(--g3);box-sizing:border-box;text-align:center}
+  .mark{width:min(34vmin,18rem);aspect-ratio:1;color:var(--teal);
+    filter:drop-shadow(0 0 18px rgba(125,239,201,.45)) drop-shadow(0 0 48px rgba(125,239,201,.22));
+    animation:breathe 2.618s ease-in-out infinite}             /* φ²-second cadence */
+  .mark svg{width:100%;height:100%;display:block}
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.04);opacity:1}}
+  .label{margin:var(--g2) 0 var(--g1);font-size:var(--u);font-weight:400;line-height:1;
+    letter-spacing:.06em;white-space:nowrap;color:rgba(255,255,255,.82)}
+  .label b{font-weight:600;color:#fff;letter-spacing:.12em}
+  /* indeterminate bar — this page hands off (location.replace) before real boot work runs, so the
+     bar sweeps rather than fills: an honest "working…", same metal as the app splash's fill. */
+  .bar{width:min(38.2vw,30rem);height:2px;border-radius:2px;background:rgba(255,255,255,.13);overflow:hidden}
+  .bar i{display:block;height:100%;width:38%;border-radius:2px;background:rgba(255,255,255,.92);
+    box-shadow:0 0 10px rgba(255,255,255,.45);animation:sweep 1.4s cubic-bezier(.4,0,.2,1) infinite}
+  @keyframes sweep{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}
+  /* governance line — in the lower golden band, φ² inset from the bottom */
+  .foot{position:fixed;left:50%;bottom:var(--g2);transform:translateX(-50%);
+    max-width:min(86vw,40rem);font-size:var(--u);line-height:1.5;letter-spacing:.02em;text-align:center;
+    color:rgba(231,237,250,.55)}
+  @media (prefers-reduced-motion:reduce){.mark,.aurora i,.bar i{animation:none}.bar i{width:100%}}
+</style>
 </head>
 <body>
-<div style="text-align:center">Booting Hologram OS…<div style="opacity:.6;font-size:.85em;margin-top:.6rem">Governed by its <a href="etc/constitution/CONSTITUTION.md">Constitution</a>, verified before boot (<a href=".well-known/constitution.json">ADR-033</a>).</div></div>
+<div class="aurora" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+<div class="stage">
+  <div class="mark" aria-hidden="true"><svg viewBox="-104 -104 208 208" fill="currentColor" role="img" aria-label="Hologram"><g><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></div>
+  <div class="label">Booting <b>Hologram OS</b></div>
+  <div class="bar"><i></i></div>
+</div>
+<div class="foot">Governed by its <a href="etc/constitution/CONSTITUTION.md">Constitution</a>, verified before boot (<a href=".well-known/constitution.json">ADR-033</a>).</div>
 <!-- The Pages boot entry. On a dumb static host (GitHub Pages) only real FHS paths exist, so we
      bring up holo-fhs-sw.js — the in-browser twin of tools/holo-serve-fhs.mjs — which maps the flat
      URL space (/home.html, /_shared/…, /boot.html) onto the FHS tree and stamps cross-origin-

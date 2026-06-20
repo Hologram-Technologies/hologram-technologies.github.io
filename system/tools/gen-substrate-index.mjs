@@ -13,16 +13,16 @@
 //
 //   node tools/gen-substrate-index.mjs
 
-import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, createReadStream } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, relative, extname } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OS2 = "C:/Users/pavel/Desktop/Hologram OS2";
-const APPS = "C:/Users/pavel/Desktop/Hologram Apps";
+const OS2 = process.env.HOLO_OS_REPO || join(here, "../..");                   // holo-os repo root (was "Hologram OS2")
+const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");   // sibling apps repo (was "Hologram Apps")
 const OUT = join(here, "../os/etc/substrate-index.json");
-const { blake3hex } = await import(pathToFileURL(join(here, "../os/usr/lib/holo/holo-blake3.mjs")));
+const { blake3hex, createBlake3 } = await import(pathToFileURL(join(here, "../os/usr/lib/holo/holo-blake3.mjs")));
 
 const EXCLUDE = /(^|[\\/])(\.git|node_modules|target|holospaces|\.vscode|\.idea|__pycache__|\.pytest_cache)([\\/]|$)/;
 // transient runtime artifacts are NOT canonical forms (deterministic content) — a log/progress/witness
@@ -37,6 +37,15 @@ const TYPE = { ".html": "schema:WebPage", ".js": "schema:SoftwareSourceCode", ".
 const typeOf = (p) => TYPE[extname(p).toLowerCase()] || "schema:MediaObject";
 
 const sha256hex = (b) => createHash("sha256").update(b).digest("hex");
+
+// Node's readFileSync refuses files >2 GiB (ERR_FS_FILE_TOO_LARGE). Large vendored objects (e.g. a
+// multi-GB model κ) are hashed by STREAMING the bytes through both axes — same content address, no
+// 2 GiB buffer. Dual-axis (sha256 ⊕ blake3) computed in one pass.
+const TWO_GIB = 2 * 1024 * 1024 * 1024;
+const hashFileStream = (abs) => new Promise((res, rej) => {
+  const sh = createHash("sha256"); const b3 = createBlake3();
+  createReadStream(abs).on("data", (c) => { sh.update(c); b3.update(c); }).on("end", () => res({ sha256: sh.digest("hex"), blake3: b3.hex() })).on("error", rej);
+});
 
 // reuse already-computed κ from every app's lock (keyed by ABSOLUTE app-file path) → avoid re-hashing
 const reuse = new Map();
@@ -68,7 +77,12 @@ for (const [prefix, root] of [["os2", OS2], ["apps", APPS]]) {
     let sha, bl, sz;
     const hit = reuse.get(abs);
     if (hit) { sha = hit.sha256; bl = hit.blake3; sz = statSync(abs).size; reused++; }
-    else { const buf = readFileSync(abs); sha = sha256hex(buf); bl = blake3hex(buf); sz = buf.length; computed++; }
+    else {
+      sz = statSync(abs).size;
+      if (sz > TWO_GIB) { const h = await hashFileStream(abs); sha = h.sha256; bl = h.blake3; }
+      else { const buf = readFileSync(abs); sha = sha256hex(buf); bl = blake3hex(buf); }
+      computed++;
+    }
     objects[rel] = { sha256: `did:holo:sha256:${sha}`, blake3: `did:holo:blake3:${bl}`, bytes: sz, type: typeOf(abs) };
     n++; bytes += sz;
   }

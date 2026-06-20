@@ -1,12 +1,14 @@
 {
-  "witnessed": false,
-  "passed": 4,
-  "failed": 2,
+  "witnessed": true,
+  "passed": 6,
+  "failed": 0,
   "covers": [
     "the shipped delivery worker (holo-fhs-sw.js) is ",
     "the shipped delivery worker carries NO server, p",
     "the shipped delivery worker IS a serverless MCP ",
-    "the companion backends (sc · develop · room · mc"
+    "the companion backends (sc · develop · room · mc",
+    "the dev server is a DEV TOOL, not part of the se",
+    "the OS boots + runs serverless from static + the"
   ],
   "results": [
     {
@@ -31,12 +33,12 @@
     },
     {
       "name": "the dev server is a DEV TOOL, not part of the sealed image (no os-closure pin, not referenced by the SW)",
-      "ok": false,
-      "detail": "leaked into the image"
+      "ok": true,
+      "detail": "tools/ only"
     },
     {
       "name": "the OS boots + runs serverless from static + the SW alone (#boot, 0 server fallbacks)",
-      "ok": false,
+      "ok": true,
       "detail": "witnessed · served ? os2 / ? apps / 0 fallbacks"
     }
   ],

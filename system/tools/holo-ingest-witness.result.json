@@ -1,0 +1,35 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S0 PORT (holo-ingest): the single universal intake seals ANY source into κ-objects — never a silent drop (binary sealed raw, honestly marked), content-addressed (same bytes → same κ, the basis of S2 dedup and S5 provenance), with a decoded UTF-8 text view for text-like sources (ANIMA's UTF-8 fallback) and a non-circular ingestClosure κ that pins the whole ingest. Source κs re-derive from content via the independent resolver (Law L5) and are deterministic under any clock (Law L2)",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · FIPS 180-4 (SHA-256) · holospaces Laws L2/L5 · rests on #holo-uor + #holo-resolver",
+  "witnessed": true,
+  "covers": [
+    "ingest-port",
+    "never-silent-drop",
+    "content-addressed",
+    "text-view",
+    "utf8-fallback",
+    "ingest-closure",
+    "law-l5",
+    "law-l2",
+    "dedup-foundation"
+  ],
+  "sample": {
+    "source": "did:holo:sha256:06e570f635b170c4fc161c51b9641d3833d9ab8fa902a43d32e34416d7128b4c",
+    "view": "did:holo:sha256:06e570f635b170c4fc161c51b9641d3833d9ab8fa902a43d32e34416d7128b4c",
+    "closure": "did:holo:sha256:be7cfc669b6118255e731ef9f8db218ecc1d0a5130894d33d3e15c59e50182f0",
+    "binaryStillSealed": "did:holo:sha256:69ab87b3a9a63d02ea99378ae6634e96dc79888a90afda45216aff151a2ef477"
+  },
+  "checks": {
+    "textSourceSealsAndReDerives": true,
+    "textViewDecodedAndReDerives": true,
+    "neverSilentDrop": true,
+    "contentAddressedDedup": true,
+    "distinctBytesDistinctKappa": true,
+    "tamperRefused": true,
+    "closureCoversChildren": true,
+    "deterministicIdNotClock": true,
+    "sniffFallbackDecodesText": true
+  },
+  "failed": []
+}

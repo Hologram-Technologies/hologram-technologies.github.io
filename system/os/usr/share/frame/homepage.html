@@ -8,7 +8,7 @@
   body{ background:radial-gradient(1100px 560px at 82% -8%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 60%),
         radial-gradient(900px 460px at 10% -6%, oklch(0.55 0.18 264 / .12), transparent 55%), var(--background);
         color:var(--foreground); font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
-  #boot{ position:fixed; inset:0; display:grid; place-items:center; color:var(--muted-foreground); font:14px ui-monospace; transition:opacity .4s; }
+  #boot{ position:fixed; inset:0; display:grid; place-items:center; color:var(--muted-foreground); font:var(--holo-text-sm, 0.9rem) ui-monospace; transition:opacity .4s; }
   /* fidelity-adaptive: honor the device's motion budget (holo-fidelity sets data-holo-motion) */
   [data-holo-motion="reduced"] *, [data-holo-motion="reduced"] *::before, [data-holo-motion="reduced"] *::after{ animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; }
 </style>

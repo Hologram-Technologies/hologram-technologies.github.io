@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cosmos WebGPU↔WebGL2 parity witness</title>
+<style>
+  body { margin: 16px; background: #06070d; color: #cfe0ff; font: 13px/1.5 ui-monospace, monospace; }
+  h1 { font-size: 15px; color: #eaf2ff; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+  figure { margin: 0; } figcaption { color: #93a7c6; margin-top: 4px; }
+  canvas, img { image-rendering: pixelated; border: 1px solid #ffffff22; background:#000; }
+  table { border-collapse: collapse; margin-top: 12px; } td, th { border: 1px solid #ffffff22; padding: 4px 10px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .ok { color: #6fd3a0; } .bad { color: #ff8e8e; } .warn { color: #ffcf6f; }
+  pre { background:#0009; border:1px solid #ffffff22; border-radius:8px; padding:10px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Holo Cosmos — WebGPU vs WebGL2 pixel parity (P2 witness)</h1>
+<div id="env"></div>
+<div id="out">Running…</div>
+<div id="frames" class="row"></div>
+<pre id="json"></pre>
+
+<script type="module">
+import HoloCosmos from "./holo-cosmos.js";
+import HoloCosmosGPU from "./holo-cosmos-gpu.js";
+
+// Fixed, deterministic cases: same seed+cam+look+time on both backends must match within tolerance.
+const CASES = [
+  { name: "origin/default", seed: "org.hologram.HoloCosmos", cam: [0,0,0],     look: [0,0],       time: 0 },
+  { name: "flown/looking",  seed: "org.hologram.HoloCosmos", cam: [3,-1,12],   look: [0.6,-0.2],  time: 2.5 },
+  { name: "alt-seed",       seed: "parity-test-seed-42",     cam: [-5,2,-8],   look: [-0.9,0.3],  time: 1.0 },
+];
+const W = 320, H = 200;
+const TOL = { maxChannel: 8, meanChannel: 1.5, pctOver: 2.0 };   // P0 tolerance (per-channel /255); see PARITY-REPORT.md
+
+const envEl = document.getElementById("env");
+const ok = await HoloCosmosGPU.ready;
+envEl.innerHTML = `WebGPU device: <b class="${ok?'ok':'bad'}">${ok ? "available" : "UNAVAILABLE — cannot run parity here"}</b> · target ${W}×${H}`;
+
+function toImg(rgba, w, h) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  c.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
+  return c;
+}
+function diff(a, b, w, h) {
+  let max = 0, sum = 0; const n = w * h * 4; let over = 0; const d = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    if (i % 4 === 3) { d[i] = 255; continue; }   // keep alpha opaque in the diff image
+    const e = Math.abs(a[i] - b[i]); max = Math.max(max, e); sum += e; if (e > TOL.maxChannel) over++;
+    d[i] = Math.min(255, e * 8);   // amplify ×8 so small deltas are visible
+  }
+  const channels = n - w * h;   // exclude alpha
+  return { max, mean: sum / channels, pctOver: 100 * over / channels, img: d };
+}
+
+const frames = document.getElementById("frames");
+const results = [];
+if (ok) {
+  for (const cs of CASES) {
+    const glCanvas = document.createElement("canvas");
+    const gl = HoloCosmos.renderOnce(glCanvas, { ...cs, width: W, height: H });
+    const gp = await HoloCosmosGPU.renderOnce(document.createElement("canvas"), { ...cs, width: W, height: H });
+    if (!gl || !gp) { results.push({ case: cs.name, error: "renderOnce returned null" }); continue; }
+    const dd = diff(gl.rgba, gp.rgba, W, H);
+    const pass = dd.max <= TOL.maxChannel && dd.mean <= TOL.meanChannel && dd.pctOver <= TOL.pctOver;
+    results.push({ case: cs.name, maxChannel: dd.max, meanChannel: +dd.mean.toFixed(3), pctOver: +dd.pctOver.toFixed(3), pass });
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<figcaption>${cs.name}</figcaption>`;
+    const lab = (t, cv) => { const w = document.createElement("span"); w.append(cv); const cap = document.createElement("div"); cap.textContent = t; cap.style.color = "#93a7c6"; const box = document.createElement("div"); box.style.display="inline-block"; box.style.marginRight="8px"; box.append(cv, cap); return box; };
+    fig.append(lab("WebGL2", toImg(gl.rgba, W, H)), lab("WebGPU", toImg(gp.rgba, W, H)), lab("diff ×8", toImg(dd.img, W, H)));
+    frames.append(fig);
+  }
+}
+
+const verdict = ok
+  ? (results.every(r => r.pass) ? "PASS — WebGPU matches WebGL2 within tolerance" : "FAIL — out-of-tolerance cases; see table")
+  : "INCONCLUSIVE — no WebGPU device in this browser; cannot witness parity here";
+const outEl = document.getElementById("out");
+const cls = !ok ? "warn" : (results.every(r => r.pass) ? "ok" : "bad");
+let html = `<b class="${cls}">${verdict}</b>`;
+if (results.length) {
+  html += `<table><tr><th>case</th><th>max Δ/255</th><th>mean Δ</th><th>% &gt; ${TOL.maxChannel}</th><th>verdict</th></tr>`;
+  for (const r of results) html += r.error
+    ? `<tr><td>${r.case}</td><td colspan="3" class="bad">${r.error}</td><td class="bad">ERR</td></tr>`
+    : `<tr><td>${r.case}</td><td>${r.maxChannel}</td><td>${r.meanChannel}</td><td>${r.pctOver}</td><td class="${r.pass?'ok':'bad'}">${r.pass?'pass':'FAIL'}</td></tr>`;
+  html += `</table>`;
+}
+outEl.innerHTML = html;
+const summary = { tolerance: TOL, dims: [W, H], webgpu: ok, verdict, results };
+document.getElementById("json").textContent = JSON.stringify(summary, null, 2);
+window.__parity = summary;   // for headless scraping
+</script>
+</body>
+</html>

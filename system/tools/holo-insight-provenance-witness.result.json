@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S5 PROVENANCE ENFORCED: verifyInsight re-derives the whole chain (insight κ ← evidence κs in graph ← source κs from original bytes). Tampering one source's bytes makes insights citing it refuse to render (ok:false) while insights resting on other evidence stand; restoring the bytes re-verifies; a dropped source, a forged insight id, or dangling evidence each refuse; and the refusal names which link broke. Provenance is structural and enforced (Law L5), the ADR done-check made literal",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · W3C PROV-O · IETF RFC 8785 (JCS) · holospaces Law L5 · rests on #holo-ingest + #holo-map + #holo-insight",
+  "witnessed": true,
+  "covers": [
+    "provenance-enforced",
+    "verify-before-render",
+    "tamper-refuse",
+    "selective-refusal",
+    "forged-id-refused",
+    "dangling-refused",
+    "auditable-refusal",
+    "law-l5"
+  ],
+  "sample": {
+    "insightsVerified": 6,
+    "tamperedSource": "did:holo:sha256:8c18fcb8c5824811b0da957a387aca521485564ac6d240eed40b403b27dbde10",
+    "dependsOnA": 5,
+    "independentOfA": 1
+  },
+  "checks": {
+    "cleanChainVerifies": true,
+    "tamperSourceRefusesInsight": true,
+    "untouchedInsightsStand": true,
+    "restoreReVerifies": true,
+    "missingSourceRefuses": true,
+    "forgedInsightIdRefused": true,
+    "danglingEvidenceRefused": true,
+    "brokenReportIsSpecific": true
+  },
+  "failed": []
+}

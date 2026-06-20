@@ -4,6 +4,7 @@
 // (gunnargray-dev, MIT, v1.0.3 — vendored at vendor/unicode-animations/, the byte source
 // of truth this engine reproduces). All 18 spinners + gridToBraille/makeGrid, exact frames.
 //
+//   <span data-holo-spin="scan"> → declarative spinner, auto-driven, zero script (Law L2)
 //   HoloFX.spin(el, "scan")      → a running loader; .stop("✓") to resolve it
 //   HoloFX.loader(el, {name,label}) → a labelled chip loader; .stop("✓") to resolve it
 //   HoloFX.spinners              → the full {name → {frames, interval}} spec table
@@ -577,6 +578,7 @@
   function bootKappa() {
     if (!document.body) { requestAnimationFrame(bootKappa); return; }
     kappaScan(document.body);
+    try { spinScan(document.body); } catch (e) {}
     try {
       // childList only (NOT characterData): stream updates write node.nodeValue, invisible here.
       const obs = new MutationObserver((muts) => {
@@ -588,7 +590,7 @@
             else if (node.nodeType === 3 && node.parentNode && !kSkippable(node)) roots.add(node.parentNode);
           });
         }
-        if (roots.size) requestAnimationFrame(() => roots.forEach((r) => { try { kappaScan(r); } catch (e) {} }));
+        if (roots.size) requestAnimationFrame(() => roots.forEach((r) => { try { kappaScan(r); } catch (e) {} try { spinScan(r); } catch (e) {} }));
       });
       obs.observe(document.body, { childList: true, subtree: true });
     } catch (e) {}
@@ -640,6 +642,26 @@
     SOVEREIGN: "SOVEREIGN OS",
   };
 
+  // ── declarative spinners — the canonical wire (Law L2) ────────────────────────────────────
+  // Any surface gets a HoloFX spinner with ZERO script, just markup:
+  //   <span data-holo-spin="scan"></span>                  (name from the 18-spinner vocabulary)
+  //   <span data-holo-spin="dna" data-holo-spin-speed="60"></span>
+  // Auto-driven at boot and on DOM mutation (same observer as κ). Honours reduced-motion via
+  // spin(). For loaders that must resolve, drive them explicitly with HoloFX.spin/loader instead.
+  const SPUN = new WeakSet();
+  function spinScan(root) {
+    root = root || document.body; if (!root) return;
+    const list = [];
+    if (root.nodeType === 1 && root.matches && root.matches("[data-holo-spin]")) list.push(root);
+    if (root.querySelectorAll) root.querySelectorAll("[data-holo-spin]").forEach((e) => list.push(e));
+    for (const el of list) {
+      if (SPUN.has(el)) continue; SPUN.add(el);
+      const name = el.getAttribute("data-holo-spin") || "braille";
+      const speed = parseInt(el.getAttribute("data-holo-spin-speed"), 10);
+      spin(el, name, Number.isFinite(speed) ? speed : undefined);
+    }
+  }
+
   // Universal loading indicator: a subtle braille spinner while the page loads,
   // faded out on window.load. Zero per-page wiring. Skipped on the dashboard
   // (it has the full boot splash) and on any page with data-holo-boot="off".
@@ -671,5 +693,5 @@
   ascii.fonts = asciiFonts;
   ascii.module = asciiMod;
 
-  window.HoloFX = { FRAMES, spinners: SPINNERS, spin, loader, gridToBraille, makeGrid, bar, scramble, type, BANNER, ascii, asciiFonts, kappa, kappaScan, hexToBraille, meter, progress, graph, scope, audioScope };
+  window.HoloFX = { FRAMES, spinners: SPINNERS, spin, spinScan, loader, gridToBraille, makeGrid, bar, scramble, type, BANNER, ascii, asciiFonts, kappa, kappaScan, hexToBraille, meter, progress, graph, scope, audioScope };
 })();

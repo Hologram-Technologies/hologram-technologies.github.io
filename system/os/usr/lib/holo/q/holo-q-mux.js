@@ -13,10 +13,21 @@
 // never fakes (Law L5 voice). DOM-free, dependency-free; sealing/loading is the caller's job, exactly
 // like holo-q-ai.js and holo-q-diffusion.js. The ranking + routing are re-derivable (Node witness).
 
-// ── the helper tasks (the OS surface) → a discovery spec each ───────────────────────────────────────
+// ── the faculty surface (the OS surface) → a discovery spec each ────────────────────────────────────
 // `pipeline` is the Hugging Face pipeline_tag the job maps to; `need` the engine capability that runs
-// it; `maxParams` the size ceiling that keeps it browser-fast. These nine are the helper-task router.
+// it; `maxParams` the size ceiling that keeps it browser-fast. Two classes share ONE registry + UI:
+//   • CORE I/O faculties (pinned:true) — Q's own senses: respond/listen/speak/code. Their specialist is
+//     NOT HF-discovered; it is a precompiled, κ-pinned .holo that ships WITH the OS (see PINNED below,
+//     sourced from apps/q/forge/.models/holo-ipfs-pins.json). "auto" for these = the OS's own brain.
+//   • HELPER tasks (the rest) — each quietly binds the best small specialist the open web offers, by a
+//     cheap HF discovery call. "auto" for these = the right tiny mind, else a fall-back to the main brain.
 export const TASKS = [
+  // ── CORE I/O — Q's senses (pinned κ .holo, precompiled, content-addressed; not HF-discovered) ──
+  { id: "respond",        label: "Respond",       job: "Main chat / reasoning", pipeline: "text-generation",  need: "generative", maxParams: "1.5B", pinned: true },
+  { id: "listen",         label: "Listen",        job: "Speech → text (ASR)",  pipeline: "automatic-speech-recognition", need: "asr", maxParams: "200M", pinned: true },
+  { id: "speak",          label: "Speak",         job: "Text → speech (TTS)",  pipeline: "text-to-speech",    need: "tts",        maxParams: "100M", pinned: true },
+  { id: "code",           label: "Code",          job: "Agentic coding",       pipeline: "text-generation",   need: "generative", maxParams: "3B",   pinned: true },
+  // ── HELPER tasks — each discovers + binds the best browser-runnable small specialist (or main) ──
   { id: "create",         label: "Create",        job: "Build a holospace",    pipeline: "text-generation",   need: "generative", maxParams: "8B" },
   { id: "ask",            label: "Ask",           job: "Answer about a holospace", pipeline: "text-generation", need: "generative", maxParams: "8B" },
   { id: "vision",         label: "Vision",        job: "Image analysis",       pipeline: "image-to-text",     need: "vlm",        maxParams: "2B" },
@@ -33,6 +44,18 @@ export const TASKS = [
   // they ride the same per-task registry + κ-memo spine without ever pretending to pick a model (honest).
   { id: "import",         label: "Import",        job: "Encode a GitHub repo as a Holo app", deterministic: true },
 ];
+
+// ── PINNED — the OS's own precompiled κ .holo specialists for the core I/O faculties ────────────────
+// Sourced from apps/q/forge/.models/holo-ipfs-pins.json (archiveKappa = the .holo footer = did:holo).
+// `instant` is the always-loads core; `upgrade` (optional) is the silent better tier on capable hardware.
+// These are NOT discovered — the κ IS the identity (Law L1); the loader resolves path → Release → κ-route
+// (IPFS heal) and L5-verifies every block, so no host is trusted. This is "auto = Q's own brain", honestly.
+export const PINNED = {
+  respond: { faculty: "respond", instant: { id: "qwen2.5-0.5b",      kappa: "41a930c07450623751f84af6a55bbecd54fe608ad6e94adf17f83c712aaf1b91", bytesMB: 491.4 },  upgrade: { id: "qwen2.5-1.5b", kappa: "ea7323369bfeebb344c9d0b6252de485e2b9833784405678f910a16cd7746202", bytesMB: 1117.4 } },
+  code:    { faculty: "code",    instant: { id: "qwen-coder-3b",     kappa: "33ca24ae50bf5649b4c431817ebf15924b8aa929ab87868c33abeeeb8f695a17", bytesMB: 2105.0 } },
+  listen:  { faculty: "listen",  instant: { id: "moonshine-tiny-int8", kappa: "bbd89df22c86fc54455779be070395cc8dab0c3438cbe85974c9f02d2a291780", bytesMB: 29.5 }, upgrade: { id: "moonshine-tiny-f16", kappa: "ff7e1c8b3c9e360ab062ce96a297e6f2467608c634f2e4b171078180056a72d8", bytesMB: 56.2 } },
+  speak:   { faculty: "speak",   instant: { id: "kokoro-82m",        kappa: "a528332cbe262333c3eef76f581add5de8cd2d54b81c7685914353ad016ff1e5", bytesMB: 96.5 } },
+};
 
 // markers (in a model's tags/library) that say "this can run IN A TAB" — the hard gate on selection.
 export const BROWSER_LIBS = ["onnx", "transformers.js", "transformers.js", "gguf"];
@@ -105,6 +128,11 @@ export async function pickSpecialist(taskId, opts = {}) {
   if (!task) throw new Error(`holo-q-mux: unknown task "${taskId}"`);
   // deterministic tasks (e.g. import) have NO model to discover — return an honest plan, never an HF call.
   if (task.deterministic) return { task: taskId, specialist: null, deterministic: true, fallback: null, reason: "deterministic task — a pure encoder is bound, no model is discovered" };
+  // pinned core I/O faculties (respond/listen/speak/code) — the OS's OWN precompiled κ .holo, never HF-discovered.
+  if (task.pinned) {
+    const p = PINNED[task.id];
+    return { task: taskId, pinned: true, specialist: p ? { ...p.instant, faculty: p.faculty } : null, upgrade: (p && p.upgrade) || null, fallback: null, reason: "pinned faculty — a precompiled, κ-addressed .holo ships with the OS (content-addressed, L5-verified); not HF-discovered" };
+  }
   const ranked = await discover(task, opts);
   if (!ranked.length) return { task: taskId, specialist: null, fallback: "main", reason: "no browser-runnable specialist found — using the main model" };
   return { task: taskId, specialist: ranked[0], alternatives: ranked.slice(1, 4), fallback: null };
@@ -129,14 +157,31 @@ export function bindSpecialist(taskId, provider) {
   return { task: taskId, provider: provider.id || "specialist" };
 }
 export function routeTask(taskId) { return _bound.get(taskId) || { id: "main", fallback: true }; }
+
+// resolveModel(taskId) — THE single front door every consumer reads to learn which LLM runs a faculty
+// RIGHT NOW. One precedence, everywhere (the "one place to select the active model" — ADR-0084):
+//   1. an explicit OVERRIDE  — a provider bound via bindSpecialist (the settings picker / admin choice)
+//   2. a PINNED κ .holo      — the OS's own precompiled brain for a core I/O faculty (respond/listen/speak/code)
+//   3. the MAIN brain        — helper tasks with no bound specialist fall back to the main model (never blocks)
+// Pure + re-derivable: it READS the registry, it does not load. The caller loads the κ / builds the provider.
+export function resolveModel(taskId) {
+  const task = TASKS.find((t) => t.id === taskId);
+  if (!task) throw new Error(`holo-q-mux: unknown task "${taskId}"`);
+  const bound = _bound.get(taskId);
+  if (bound) return { task: taskId, source: "override", provider: bound, id: bound.id || "specialist" };
+  if (task.pinned && PINNED[taskId]) return { task: taskId, source: "pinned", spec: PINNED[taskId], id: PINNED[taskId].instant.id };
+  if (task.deterministic) return { task: taskId, source: "deterministic", id: "encoder" };
+  return { task: taskId, source: "main", main: true, id: "main" };
+}
 export function boundSpecialists() { return [..._bound.entries()].map(([task, p]) => ({ task, provider: p.id || "specialist" })); }
 export function unbindAll() { _bound.clear(); }
 
 // describeMux() — the seam's honest state: what it routes, how it selects, what is proven vs pending.
 export function describeMux() {
   return {
-    tasks: TASKS.map((t) => ({ id: t.id, job: t.job, pipeline: t.pipeline, need: t.need, maxParams: t.maxParams })),
-    discovery: "Hugging Face Hub API (one cheap call per task, serverless — a browser fetch)",
+    tasks: TASKS.map((t) => ({ id: t.id, job: t.job, pipeline: t.pipeline, need: t.need, maxParams: t.maxParams, pinned: !!t.pinned, deterministic: !!t.deterministic })),
+    pinned: Object.fromEntries(Object.entries(PINNED).map(([k, v]) => [k, { faculty: v.faculty, instant: v.instant.id, upgrade: v.upgrade ? v.upgrade.id : null, kappa: v.instant.kappa }])),
+    discovery: "Hugging Face Hub API (one cheap call per HELPER task, serverless — a browser fetch); core I/O faculties are κ-pinned (precompiled .holo, not discovered)",
     selection: "pure deterministic ranking over metadata; no candidate downloaded to be judged",
     execution: "chosen specialist streams as a content-addressed κ-disk (ADR-0052), bound per-task",
     fallback: "no browser-runnable specialist (or no WebGPU) → the main model; never blocks, never fakes (Law L5)",
@@ -146,6 +191,6 @@ export function describeMux() {
 }
 
 export default {
-  TASKS, BROWSER_LIBS, runnable, paramsEstimate, maxParamsToNum, scoreCandidate, rankCandidates,
-  discoverURL, discover, pickSpecialist, autoAssign, bindSpecialist, routeTask, boundSpecialists, unbindAll, describeMux,
+  TASKS, PINNED, BROWSER_LIBS, runnable, paramsEstimate, maxParamsToNum, scoreCandidate, rankCandidates,
+  discoverURL, discover, pickSpecialist, autoAssign, bindSpecialist, routeTask, resolveModel, boundSpecialists, unbindAll, describeMux,
 };

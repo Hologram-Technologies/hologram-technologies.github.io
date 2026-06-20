@@ -1,0 +1,15 @@
+{
+  "note": "This older holo-os/system/os/ui set is SUPERSEDED by the single consolidated Hologram UI library. It is kept only because the κ-page homepage pipeline still imports its bare-linked bundles; new consumers should use the one library below. The 56 shadcn names here encode to DIFFERENT κ than the canonical set (bare-linked Radix runtime), so each is recorded as a legacy→canonical alias in the catalog's `aliases`.",
+  "canonicalLibrary": {
+    "name": "Hologram UI",
+    "source": "holo-apps/apps/ui",
+    "catalog": "holo-apps/apps/ui/ui-library.json",
+    "address": "did:holo:sha256:3733285a73c46207a2c988f7562e5683a252f60700c07f72a7a985c4154066dd",
+    "route": "/.holo/sha256/3733285a73c46207a2c988f7562e5683a252f60700c07f72a7a985c4154066dd",
+    "importmap": "holo-apps/apps/ui/vendor/ui-importmap.json",
+    "loader": "holo-apps/apps/ui/vendor/runtime/holo-ui-library.mjs",
+    "specifier": "holo://ui/<name>",
+    "count": 526
+  },
+  "migrate": "Resolve any legacy κ here to the canonical one with the catalog's `aliases` map (or holo-ui-library.mjs canonicalOf(legacyKappa)); then import via holo://ui/<name> and stream by κ from /.holo/sha256/<hex>."
+}

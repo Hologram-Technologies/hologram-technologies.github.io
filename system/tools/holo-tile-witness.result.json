@@ -1,0 +1,31 @@
+{
+  "spec": "Framebuffer tiling + delta codec: content-addressed tiles (tile→κ); a frame is a manifest of tile κs; only CHANGED tiles stream (unchanged = same κ = cache hit); reconstruct is byte-exact. The streaming-substrate core: bytes-on-wire ∝ what changed.",
+  "authority": "lossless tiling (reconstruct ≡ original) · content-addressing (κ = blake3 of tile bytes) · holospaces Laws L1·L2·L3 · couples to holo-erasure shard ordering",
+  "status": "live",
+  "witnessed": true,
+  "params": {
+    "width": 64,
+    "height": 64,
+    "tile": 16
+  },
+  "covers": [
+    "framebuffer-tiling",
+    "delta-stream",
+    "content-addressed-tiles",
+    "cross-frame-dedup",
+    "byte-exact",
+    "streaming-substrate"
+  ],
+  "checks": {
+    "holo-tile.mjs exports tileFrame() + reconstruct() + diff()": true,
+    "every tile is a κ-object that re-derives (blake3)": true,
+    "full roundtrip is byte-exact (lossless tiling)": true,
+    "frame κ is the content hash (identity is the pixels, L1)": true,
+    "diff returns EXACTLY the changed tiles": true,
+    "delta reconstruct is byte-exact (f1 cache + changed tiles → f2)": true,
+    "an unchanged tile has the same κ across frames (cache hit, not re-sent)": true,
+    "delta bytes ≪ full frame (streaming win)": true
+  },
+  "passed": 8,
+  "failed": 0
+}

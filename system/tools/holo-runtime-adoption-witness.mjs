@@ -19,8 +19,8 @@ import { dirname, join } from "node:path";
 import { startServer, ORIG } from "./holo-serve-fhs.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const APPS = "C:/Users/pavel/Desktop/Hologram Apps/apps";
-const SAMPLE = ["files", "notepad", "wallet", "search", "git", "forge"];
+const APPS = process.env.HOLO_APPS_DIR || join(here, "../../../holo-apps/apps");
+const SAMPLE = ["files", "notepad", "btc", "search", "git", "forge"];   // representative sealed apps (wallet was retired — replaced with btc)
 const results = []; let passed = 0, failed = 0;
 const rec = (n, ok, d = "") => { results.push({ name: n, ok, detail: d }); ok ? passed++ : failed++; console.log(`${ok ? "PASS" : "FAIL"} — ${n}${d ? "  (" + d + ")" : ""}`); };
 const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");

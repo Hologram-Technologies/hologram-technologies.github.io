@@ -1,0 +1,21 @@
+{
+  "spec": "Shell chrome is jargon-free: tooltips, labels and input hints (title/aria-label/placeholder/alt) read clearly and on-theme — explanatory substrate jargon banned, raw κ/did:holo banned in labels, input-format placeholders allowed, code-built attributes skipped.",
+  "authority": "Deliverable D user-facing vocabulary · scan of user-visible attributes in os/usr/share/frame · self-test (planted + plain-allowed + input-format-allowed + code-skipped)",
+  "witnessed": true,
+  "covers": [
+    "shell-chrome",
+    "tooltips",
+    "labels",
+    "jargon-free",
+    "on-theme"
+  ],
+  "checks": {
+    "detects planted label + toast + text-node jargon (not vacuous)": true,
+    "plain on-theme labels pass (verified · fingerprint · app · checks itself)": true,
+    "input-format placeholders allowed (did:holo:… · holo:// · ipfs://)": true,
+    "code-fragment attributes are skipped (no false positive)": true,
+    "the shell chrome's labels + hints are clear, on-theme, jargon-free": true
+  },
+  "passed": 5,
+  "failed": 0
+}

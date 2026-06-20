@@ -1,0 +1,74 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S4 REFLEX (holo-insight): with ZERO user input, ingesting fires a signal (S3) that wakes the investigator, which produces content-addressed insight κs over the κ-hypergraph. Each insight cites its evidence (claim/entity κs) and traces to the source κs (S5 foundation). The headline insight — 'corroborated by N independent sources' — emerges unbidden and is computable ONLY because the substrate gave multi-source provenance for free (S2). The investigator is a swappable seam: deterministic baseline witnessed here, Q's zero-shot brain in production. Insight κs re-derive (Law L5) and dedup (content-addressed)",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · W3C PROV-O · IETF RFC 8785 (JCS) · holospaces Laws L2/L5 · rests on #holo-ingest + #holo-map + #holo-telemetry-tap",
+  "witnessed": true,
+  "covers": [
+    "reason-reflex",
+    "zero-user-input",
+    "corroboration-insight",
+    "cites-evidence",
+    "traces-to-sources",
+    "law-l5",
+    "insight-dedup",
+    "investigator-seam",
+    "honest-risk"
+  ],
+  "sample": {
+    "insights": [
+      {
+        "kind": "corroboration",
+        "text": "Acme Corp is corroborated by 2 independent sources.",
+        "conf": 0.8999999999999999,
+        "evidence": 4,
+        "sources": 2
+      },
+      {
+        "kind": "corroboration",
+        "text": "Berlin is corroborated by 2 independent sources.",
+        "conf": 0.8999999999999999,
+        "evidence": 2,
+        "sources": 2
+      },
+      {
+        "kind": "centrality",
+        "text": "Acme Corp is the most connected entity (3 relationships) — the natural focal point.",
+        "conf": 0.7,
+        "evidence": 4,
+        "sources": 2
+      },
+      {
+        "kind": "single-source-risk",
+        "text": "\"Acme Corp holo:year 2023\" rests on a single source — corroborate before relying on it.",
+        "conf": 0.5,
+        "evidence": 1,
+        "sources": 1
+      },
+      {
+        "kind": "single-source-risk",
+        "text": "\"Acme Corp holo:hasRole/CEO Dana Lee\" rests on a single source — corroborate before relying on it.",
+        "conf": 0.5,
+        "evidence": 1,
+        "sources": 1
+      },
+      {
+        "kind": "shape",
+        "text": "This data looks organizational / CRM-like (1 Organization, 1 Place, 1 Person).",
+        "conf": 0.65,
+        "evidence": 3,
+        "sources": 2
+      }
+    ]
+  },
+  "checks": {
+    "reflexFiresWithNoUserInput": true,
+    "corroborationInsightEmerges": true,
+    "everyInsightCitesEvidence": true,
+    "insightTracesToSources": true,
+    "insightKappaReDerives": true,
+    "findingsAreDeduped": true,
+    "investigatorSeamIsSwappable": true,
+    "singleSourceRiskHonest": true
+  },
+  "failed": []
+}

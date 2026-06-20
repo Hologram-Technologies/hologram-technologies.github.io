@@ -1,0 +1,29 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Observer (S2, the reactive→copilot pivot) — Q reads the S1 coherence snapshot and emits ranked PROPOSALS, never actions: NO-NOISE (a coherent state raises nothing), ANTI-NAG (novelty decays so a fresh break is raised and a chronic one fades, never flapping), salience ranked by governance-risk via the witnessed Holo Control DSP, every proposal inert + traceable to its snapshot (prov:wasDerivedFrom) + self-verifying (Law L5) + deterministic; composition proven from a real heal sweep through S1 to S2",
+  "authority": "the witnessed Holo Control DSP (robust salience + hysteresis) · W3C PROV-O · IETF RFC 8785 (JCS) · UOR-ADDR · holospaces Laws L2/L5 · rests on #holo-coherence + #holo-control",
+  "witnessed": true,
+  "covers": [
+    "ambient-observer",
+    "proposals-not-actions",
+    "no-noise",
+    "anti-nag",
+    "no-flap",
+    "salience-ranked",
+    "provenanced",
+    "deterministic",
+    "s0-s1-s2-composition"
+  ],
+  "checks": {
+    "composesRealSnapshotToProposals": true,
+    "quietOnCoherentState": true,
+    "rankedByGovernanceRiskSalience": true,
+    "raisesThenReleasesOnFix": true,
+    "antiNagChronicConcernFades": true,
+    "noFlapInTheBand": true,
+    "proposalsInertAndProvenanced": true,
+    "deterministicReplay": true,
+    "appErrorRaisesPersonalProposal": true
+  },
+  "failed": []
+}

@@ -20,7 +20,7 @@
   try { if (W.top !== W.self) return; } catch (e) { return; }     // top shell only — so audio survives app frames
 
   var LS = "holo-vinyl.v1";                                        // legacy floating store (migrated to HoloWidgets, then dropped)
-  var DOCK_LS = "holo-vinyl.dock.v1";
+  var DOCK_LS = "holo-vinyl.dock.v3";                             // v3: first-boot default is the Ben Böhmer “Begin Again” SoundCloud set
   var MIGRATED_LS = "holo-vinyl.migrated.v1";
   var VINYL_ID = "holo.vinyl";                                     // the dock pin id (shared with holo-dock.js)
   var SHOWCASE = "/apps/music/feed/showcase.json";
@@ -50,6 +50,23 @@
       { title: "Begin Again",     artist: "Ben Böhmer", url: "https://soundcloud.com/ben-bohmer/begin-again" },
       { title: "Beyond Beliefs",  artist: "Ben Böhmer", url: "https://soundcloud.com/ben-bohmer/beyond-beliefs" },
       { title: "Home feat. JONAH", artist: "Ben Böhmer", url: "https://soundcloud.com/ben-bohmer/ben-bohmer-feat-jonah-home" }
+    ]
+  };
+
+  // The DEFAULT set — the OS's own LOSSLESS album, delivered as κ-audio: each track is a content-addressed
+  // chunk-DAG, every chunk re-derived against its κ (Law L5) BEFORE it decodes, cached in the κ-store
+  // (dedup + serverless). A track carries `kappa` (its manifest) instead of a `url`; the player streams the
+  // verified bit-exact bytes through the same Hi-Fi chain. No `resolve` → no network enrichment.
+  var KAPPA_BASE = "/apps/music/feed/kappa/kappa-sessions/";
+  var KAPPA_COVER = "/apps/music/music/Hologram%20Collective/Kappa%20Sessions/cover.svg";
+  var KAPPA_SESSIONS = {
+    artist: "Hologram Collective", title: "Kappa Sessions", album: "Kappa Sessions",
+    cover: KAPPA_COVER, accent: "#5b8cff", lossless: true,
+    tracks: [
+      { title: "Boot Chime",      artist: "Hologram Collective", art: KAPPA_COVER, kappa: KAPPA_BASE + "01/manifest.json" },
+      { title: "Kappa Groove",    artist: "Hologram Collective", art: KAPPA_COVER, kappa: KAPPA_BASE + "02/manifest.json" },
+      { title: "Content Address", artist: "Hologram Collective", art: KAPPA_COVER, kappa: KAPPA_BASE + "03/manifest.json" },
+      { title: "Merkle Dance",    artist: "Hologram Collective", art: KAPPA_COVER, kappa: KAPPA_BASE + "04/manifest.json" }
     ]
   };
 
@@ -150,6 +167,59 @@
       ".np-eq i:nth-child(2){animation-delay:.15s} .np-eq i:nth-child(3){animation-delay:.3s} .np-eq i:nth-child(4){animation-delay:.45s}",
       "@keyframes np-bounce{0%,100%{height:28%}50%{height:100%}}",
       "@media (prefers-reduced-motion: reduce){.np-eq i{animation:none;height:60%}}",
+      // ── the MUSIC PLAYER PILL: the persistent, draggable pop-out player (the now-playing card grown up) ──
+      // Proportioned on the golden ratio: artwork is a φ-square (55px ≈ 34×φ), the inner scale is the
+      // Fibonacci sequence (8·13·21·34·55), title:subtitle font sizes are 16:10 ≈ φ, and the overall pill
+      // is a long golden bar. It shows artwork · song · artist · a Lossless badge, the minimum transport
+      // (prev · play/pause · next), and a button to open the full Holo Music app in a new tab.
+      ".hv-pill{--phi:1.618;position:fixed;z-index:64;display:flex;align-items:center;gap:13px;",
+        "width:max-content;max-width:min(360px,calc(100vw - 28px));padding:13px;border-radius:21px;",
+        "cursor:grab;touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;",
+        "background:var(--holo-surface,#141417);",
+        "border:1px solid color-mix(in srgb,var(--holo-accent,#5b8cff) 38%, var(--holo-border,#26262c));",
+        "box-shadow:0 22px 60px rgba(0,0,0,.5), 0 0 30px -10px color-mix(in srgb,var(--holo-accent,#5b8cff) 60%, transparent);",
+        "color:var(--holo-ink,#e7e7ea);font:var(--holo-text-sm,14px)/1.35 var(--holo-font-sans,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif);",
+        "opacity:0;transform:translateY(10px) scale(.98);transition:opacity .26s cubic-bezier(.22,1,.36,1),transform .26s cubic-bezier(.22,1,.36,1)}",
+      ".hv-pill.in{opacity:1;transform:none}",
+      ".hv-pill.out{opacity:0;transform:translateY(8px) scale(.98);pointer-events:none}",
+      ".hv-pill.dragging{cursor:grabbing;transition:none}",
+      // artwork — a golden square; a soft accent ring; it breathes while playing (delight, not motion-sick spin)
+      ".hv-pill-art{position:relative;flex:0 0 auto;width:55px;height:55px;border-radius:13px;overflow:hidden;",
+        "box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 0 0 1px color-mix(in srgb,var(--holo-accent,#5b8cff) 50%, rgba(255,255,255,.16));transition:box-shadow .4s}",
+      ".hv-pill-art img{width:100%;height:100%;object-fit:cover;display:block}",
+      ".hv-pill.playing .hv-pill-art{box-shadow:0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px var(--holo-accent,#5b8cff), 0 0 18px -3px color-mix(in srgb,var(--holo-accent,#5b8cff) 75%, transparent);animation:hv-pill-breathe 3.2s ease-in-out infinite}",
+      "@keyframes hv-pill-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}",
+      // text column
+      ".hv-pill-tx{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:1px}",
+      ".hv-pill-kicker{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;",
+        "color:color-mix(in srgb,var(--holo-accent,#5b8cff) 78%, var(--holo-ink,#e7e7ea));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      ".hv-pill-eq{display:inline-flex;gap:2px;align-items:flex-end;height:9px;color:var(--holo-accent,#5b8cff);flex:0 0 auto}",
+      ".hv-pill-eq i{width:2px;background:currentColor;border-radius:1px;height:40%;animation:np-bounce .9s ease-in-out infinite;animation-play-state:paused}",
+      ".hv-pill.playing .hv-pill-eq i{animation-play-state:running}",
+      ".hv-pill-eq i:nth-child(2){animation-delay:.15s}.hv-pill-eq i:nth-child(3){animation-delay:.3s}.hv-pill-eq i:nth-child(4){animation-delay:.45s}",
+      ".hv-pill-ttl{font-weight:700;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",   // 16 : 10 ≈ φ
+      ".hv-pill-sub{color:var(--holo-ink-dim,#c8c8cf);font-size:10px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      // transport — the minimum controls; the play CTA is an accent disc (34 = 21×φ); + open-full
+      ".hv-pill-ctl{display:flex;align-items:center;gap:1px;flex:0 0 auto}",
+      ".hv-pill-btn{appearance:none;border:0;background:transparent;color:var(--holo-ink,#e7e7ea);cursor:pointer;width:30px;height:30px;",
+        "border-radius:50%;display:grid;place-items:center;flex:0 0 auto;transition:background .14s,transform .12s}",
+      ".hv-pill-btn:hover{background:color-mix(in srgb,var(--holo-ink,#e7e7ea) 13%, transparent)}",
+      ".hv-pill-btn:active{transform:scale(.88)}",
+      ".hv-pill-btn svg{width:16px;height:16px}",
+      ".hv-pill-play{width:34px;height:34px;background:var(--holo-accent,#5b8cff);color:#06121f;margin:0 1px}",
+      ".hv-pill-play:hover{background:var(--holo-accent,#5b8cff);filter:brightness(1.1)}",
+      ".hv-pill-play svg{width:18px;height:18px}",
+      ".hv-pill-full svg{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}",
+      // a thin progress + scrub line along the bottom edge (minimum scrub, max calm)
+      ".hv-pill-seek{position:absolute;left:0;right:0;bottom:0;height:4px;cursor:pointer;background:color-mix(in srgb,var(--holo-ink,#e7e7ea) 14%, transparent)}",
+      ".hv-pill-seek:hover{height:6px}",
+      ".hv-pill-prog{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--holo-accent,#5b8cff)}",
+      // close — a tiny corner dot, on hover only
+      ".hv-pill-x{position:absolute;top:5px;right:6px;width:18px;height:18px;border-radius:50%;background:rgba(7,9,12,.45);color:#fff;",
+        "border:0;cursor:pointer;display:grid;place-items:center;font-size:13px;line-height:1;opacity:0;transition:opacity .15s,background .14s;z-index:2}",
+      ".hv-pill:hover .hv-pill-x,.hv-pill:focus-within .hv-pill-x{opacity:.9}",
+      ".hv-pill-x:hover{background:rgba(7,9,12,.8)}",
+      "@media (prefers-reduced-motion: reduce){.hv-pill{transition:opacity .14s}.hv-pill.in{transform:none}.hv-pill.playing .hv-pill-art{animation:none}.hv-pill-eq i{animation:none;height:60%}}",
     ].join("");
     (DOC.head || DOC.documentElement).appendChild(s);
   }
@@ -176,18 +246,57 @@
     el.style.left = left + "px"; el.style.top = top + "px"; return { left: left, top: top };
   }
 
-  // default set — Ben Böhmer “Begin Again”. (An optional curated showcase.json may override it.)
-  function getDefaults() {
-    if (defaults) return Promise.resolve(defaults);
-    if (defaultsP) return defaultsP;
-    defaultsP = fetch(SHOWCASE, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-      var sets = (j && j.sets) || [], set = null;
-      for (var i = 0; i < sets.length; i++) { if (sets[i] && !sets[i].drm && sets[i].tracks && sets[i].tracks.length) { set = sets[i]; break; } }
-      defaults = set ? configFromSet(set) : JSON.parse(JSON.stringify(BENBOHMER));
-      if (/begin again/i.test(defaults.title || "")) defaults.cover = COVER_LOCAL;   // preload the bundled art — instant, offline
-      return defaults;
-    }).catch(function () { defaults = JSON.parse(JSON.stringify(BENBOHMER)); return defaults; });
-    return defaultsP;
+  // ── one shared MEDIA STAGE ────────────────────────────────────────────────────────────────
+  // Music and Video are two CONTENTS of a SINGLE on-screen window slot: opening one suspends the
+  // other (pausing its audio → never a clash) and reuses its geometry so they swap in place. The
+  // first of holo-vinyl / holo-video to load creates it; both share it. (Mirrored in holo-video.js.)
+  function mediaStage() {
+    if (W.HoloMediaStage) return W.HoloMediaStage;
+    var S = { active: null, geom: null, _h: {} };
+    S.register = function (kind, suspendFn) { S._h[kind] = suspendFn; };
+    S.getGeom = function () { return S.geom; };
+    S.setGeom = function (g) { if (g && g.width > 0 && g.height > 0) S.geom = { left: g.left, top: g.top, width: g.width, height: g.height }; };
+    S.claim = function (kind) {
+      for (var k in S._h) { if (k !== kind && typeof S._h[k] === "function") { try { S._h[k](); } catch (e) {} } }
+      S.active = kind;
+    };
+    return (W.HoloMediaStage = S);
+  }
+  // The play area for the music WINDOW = the live holospace canvas (#world), carved clear of the dock
+  // rail — IDENTICAL geometry to the video player, so the two windows open in exactly the same place.
+  var MEDGE = 8;
+  function mediaBounds() {
+    var b, world = DOC.getElementById("world");
+    if (world) { var r = world.getBoundingClientRect(); if (r.width > 200 && r.height > 200) b = { minX: r.left + MEDGE, minY: r.top + MEDGE, maxX: r.right - MEDGE, maxY: r.bottom - MEDGE }; }
+    if (!b) {
+      var gs = getComputedStyle(DOC.documentElement);
+      var dW = parseFloat(gs.getPropertyValue("--holo-dock-w")) || 0;
+      var dH = parseFloat(gs.getPropertyValue("--holo-dock-h")) || 0;
+      b = { minX: MEDGE + dW, minY: MEDGE, maxX: innerWidth - MEDGE, maxY: innerHeight - MEDGE - dH };
+    }
+    var dock = DOC.getElementById("holo-dock");
+    if (dock) {
+      var o = dock.getAttribute("data-orient"), dr = dock.getBoundingClientRect();
+      if (dr.width && dr.height) {
+        if (o === "left") b.minX = Math.max(b.minX, dr.right + MEDGE);
+        else if (o === "right") b.maxX = Math.min(b.maxX, dr.left - MEDGE);
+        else if (o === "bottom") b.maxY = Math.min(b.maxY, dr.top - MEDGE);
+        else if (o === "top") b.minY = Math.max(b.minY, dr.bottom + MEDGE);
+      }
+    }
+    return b;
+  }
+  function mClamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  var MWIN_GAP = Math.round(13 * 1.618);                            // ~21px — a golden margin off the canvas edge
+
+  // default set — on first boot the disc opens on Ben Böhmer's “Begin Again” set, streamed from SoundCloud
+  // (the opener is the title track “Begin Again”). It plays at the highest bitrate SoundCloud serves and is
+  // shaped by the OS-wide Hi-Fi chain; the opener is pre-buffered at boot for a low-latency first tap. The
+  // native LOSSLESS κ-album (KAPPA_SESSIONS) stays one paste away by editing the disc.
+  function getDefaults() { return Promise.resolve(defaults || (defaults = JSON.parse(JSON.stringify(BENBOHMER)))); }
+  function configFromSet(set) {
+    return { artist: set.artist || set.title || "", title: set.title || "", cover: set.cover || (set.tracks[0] && set.tracks[0].art) || "", resolve: set.resolve || "",
+      tracks: (set.tracks || []).map(function (t) { return { title: t.title, artist: t.artist || set.artist, art: t.art, url: t.url, kappa: t.kappa }; }) };
   }
   function configFromSet(set) {
     return { artist: set.artist || set.title || "", title: set.title || "", cover: set.cover || (set.tracks[0] && set.tracks[0].art) || "", resolve: set.resolve || "",
@@ -235,22 +344,101 @@
   function npEmit() { var s = npState(); for (var i = 0; i < npSubs.length; i++) { try { npSubs[i](s); } catch (e) {} } }
   function npToggle() { var w = npCurrent || DOCKP; if (w) toggle(w); }
 
+  // ── high-fidelity output ────────────────────────────────────────────────────────────────
+  // Route the disc's SAME-ORIGIN stream (/sc/stream) through the OS-wide Holo Audio engine — a
+  // device-native, transparent DSP chain (5-band EQ + air + loudness-safe limiter), "Hi-Fi" preset.
+  // One MediaElementSource per element: we claim it on first play, BEFORE the preview scope ever taps
+  // it (the scope then reads our analyser instead — see updateScope). Honest: this can't add detail the
+  // bytes never had; it plays at full device fidelity and shapes for clarity without ever clipping.
+  // The Holo Audio engine is a tiny shared lib the shell doesn't load at boot (perf). Pull it once,
+  // lazily — preloaded on vinyl boot so it's ready before the first tap; engaged within the gesture.
+  var _audioLibP = null;
+  function loadAudioLib() {
+    if (W.HoloAudio) return Promise.resolve(W.HoloAudio);
+    if (_audioLibP) return _audioLibP;
+    _audioLibP = new Promise(function (resolve) {
+      try {
+        var s = DOC.createElement("script"); s.src = BASE + "holo-audio.js"; s.defer = true;
+        s.onload = function () { resolve(W.HoloAudio || null); };
+        s.onerror = function () { resolve(null); };
+        (DOC.head || DOC.documentElement).appendChild(s);
+      } catch (e) { resolve(null); }
+    });
+    return _audioLibP;
+  }
+  function ensureFx(w) {
+    if (w.fx) return w.fx;                                              // already engaged — the Hi-Fi chain is live
+    if (w._fxGaveUp) return null;                                       // create() threw (may have tapped) → never double-tap
+    if (!w.audio || !W.HoloAudio || !W.HoloAudio.create) return null;   // lib not ready — element NOT tapped, retry on a later play
+    if (w.audio.__holoSrc) { w._fxGaveUp = true; return null; }         // Holo Sound owns this element — don't fight for the node
+    var fx;
+    // create() returns {ok:false} WITHOUT tapping (it closes the ctx) when the context or the MediaElementSource
+    // can't be made — so {ok:false} is safe to retry next play. Only a THROW might have tapped first → give up then.
+    try { fx = W.HoloAudio.create(w.audio); }
+    catch (e) { w._fxGaveUp = true; return null; }
+    if (fx && fx.ok) { try { fx.setPreset("Hi-Fi"); } catch (e) {} try { if (fx.canSpatial) fx.setSpatial(spatialPref()); } catch (e) {} try { if (fx.setNormalize) fx.setNormalize(w._normalizeDb || 0); } catch (e) {} w.fx = fx; return fx; }
+    return null;                                                        // {ok:false} → not tapped → retry on the next play
+  }
+  // spatial audio (HRTF virtual speakers) — a persisted, shell-wide disc preference (headphones); default on
+  var SPATIAL_LS = "holo.sound.spatial.v1";                       // shared with Holo Sound — one spatial toggle for the whole OS
+  function spatialPref() { try { var v = W.localStorage.getItem(SPATIAL_LS); return v === null ? true : v === "1"; } catch (e) { return true; } }
+  function setSpatialPref(on) { on = !!on; try { W.localStorage.setItem(SPATIAL_LS, on ? "1" : "0"); } catch (e) {} allPlayers().forEach(function (w) { if (w.fx && w.fx.canSpatial) { try { w.fx.setSpatial(on); } catch (e) {} } }); toast(on ? "Spatial audio on — best on headphones" : "Spatial audio off"); }
+  // EBU-R128: apply the track's pre-measured normalization gain (carried in its manifest) to the engine.
+  function applyNormalize(w) { if (w && w.fx && w.fx.setNormalize) { try { w.fx.setNormalize(w._normalizeDb || 0); } catch (e) {} } }
+  function fxResume(w) {
+    if (W.HoloAudio) { var fx = ensureFx(w); if (fx) { try { fx.resume(); } catch (e) {} } return; }
+    loadAudioLib().then(function () { var fx = ensureFx(w); if (fx && w.playing) { try { fx.resume(); } catch (e) {} } });
+  }
+
+  // (The transient "now playing" call-out was removed — the persistent player pill IS the now-playing
+  //  surface now, so there is exactly one music object on screen, never a duplicate notification.)
+
   // ── playback ────────────────────────────────────────────────────────────────────────────
   function playTrack(w, i) {
     var tracks = (w.config && w.config.tracks) || []; if (!tracks.length) { editArtist(w); return; }
     w.idx = ((i % tracks.length) + tracks.length) % tracks.length;
-    var t = tracks[w.idx]; if (!t || !t.url) return;
-    w.audio.src = streamSrc(t.url);
-    w.audio.play().then(function () { setPlaying(w, true); }).catch(function () { setPlaying(w, true); });
+    var t = tracks[w.idx]; if (!t || (!t.url && !t.kappa)) return;
+    fxResume(w);                                                  // claim the element for Hi-Fi + wake the audio graph
     if (w.art && t.art) { w.art.src = t.art; w.art.style.display = ""; }
-    refreshMini(w); npEmit();
+    if (t.kappa) playKappa(w, t);                                 // native LOSSLESS κ-audio (verify-before-decode)
+    else { w._verified = null; w._normalizeDb = 0; applyNormalize(w); w.audio.src = streamSrc(t.url); w.audio.play().then(function () { setPlaying(w, true); }).catch(function () { setPlaying(w, true); }); }
+    refreshMini(w); refreshWindow(w); npEmit();
+  }
+  // κ-audio playback: load + L5-verify the chunk-DAG, then feed the SAME element a Blob of the verified
+  // lossless bytes — so the whole transport (pause/seek/next/ended) and the Hi-Fi chain work unchanged,
+  // and the decoder only ever sees content-verified bytes. SoundCloud `url`, if present, is the fallback.
+  var _kmodP = null;
+  function loadKappaModule() {
+    if (W.HoloKappaAudio) return Promise.resolve(W.HoloKappaAudio);
+    if (_kmodP) return _kmodP;
+    _kmodP = import(BASE + "holo-kappa-audio.mjs").then(function (m) { return W.HoloKappaAudio || m; }).catch(function () { return null; });
+    return _kmodP;
+  }
+  function fallbackSC(w, t) { if (!t.url) { stop(w); return; } w._verified = null; w.audio.src = streamSrc(t.url); w.audio.play().then(function () { setPlaying(w, true); }).catch(function () { setPlaying(w, true); }); }
+  function playKappa(w, t) {
+    var token = (w._ktoken = (w._ktoken || 0) + 1);              // guard overlapping resolves (rapid next/prev/ended)
+    loadKappaModule().then(function (mod) {
+      if (token !== w._ktoken) return;
+      if (!mod || !mod.resolveKappaTrack) { fallbackSC(w, t); return; }
+      mod.resolveKappaTrack(t.kappa).then(function (res) {
+        if (token !== w._ktoken) { try { res.dispose && res.dispose(); } catch (e) {} return; }
+        if (w._kdispose) { try { w._kdispose(); } catch (e) {} }
+        w._kdispose = res.dispose; w._verified = { lossless: true, total: res.total, fromStore: res.fromStore };
+        w._normalizeDb = (res.meta && res.meta.normalizeDb) || 0; applyNormalize(w);   // EBU-R128 loudness (measured at ingest)
+        w.audio.src = res.blobUrl;
+        w.audio.play().then(function () { setPlaying(w, true); }).catch(function () { setPlaying(w, true); });
+        refreshMini(w); npEmit();
+      }).catch(function () { if (token !== w._ktoken) return; toast(t.url ? "Couldn’t verify — using stream" : "Couldn’t verify that track"); fallbackSC(w, t); });
+    });
   }
   function setPlaying(w, on) {
+    var was = w.playing;
     w.playing = on; if (w.el) { w.el.classList.toggle("playing", on); if (w.disc) w.disc.classList.toggle("spin", on); }
-    if (on) npCurrent = w;                                        // this is now the "now playing" source
+    if (on && !w.fx) fxResume(w);                                  // guarantee the Hi-Fi chain is engaged once playback confirms
+    if (on) { npCurrent = w; }                                    // this is now the "now playing" source (the pill reflects it)
     if (w === DOCKP) { var li = w.el && w.el.closest && w.el.closest(".holo-dock-item"); if (li) { if (on) li.setAttribute("data-running", ""); else li.removeAttribute("data-running"); } saveDock(); }
     else persist(w);
-    refreshMini(w); updateScope(w); npEmit();
+    refreshMini(w); refreshWindow(w); updateScope(w); npEmit();
   }
   // Live audio EQ as braille (Holo FX micro-display): a real Web Audio analyser → a streaming
   // braille spectrum in the preview footer while a track plays. The signal IS the sound.
@@ -258,26 +446,41 @@
   function updateScope(w) {
     if (_vscope) { try { _vscope.stop(); } catch (e) {} _vscope = null; }
     var m = w && w._mini; if (!m || !DOC.body.contains(m) || !w.playing) return;
-    if (!W.HoloFX || !W.HoloFX.audioScope || !w.audio) return;
-    var sp = m.querySelector(".sp"); if (sp) _vscope = W.HoloFX.audioScope(sp, w.audio, { kind: "bars", width: 9 });
+    if (!W.HoloFX) return;
+    var sp = m.querySelector(".sp"); if (!sp) return;
+    // when the Hi-Fi engine owns the element, read ITS analyser (one tap per element) — never re-source.
+    if (w.fx && w.fx.analyser && W.HoloFX.scope) {
+      var an = w.fx.analyser, fd = new Uint8Array(an.frequencyBinCount), width = 9, n = width * 2;
+      _vscope = W.HoloFX.scope(sp, function () {
+        try { if (w.fx.resume) w.fx.resume(); } catch (e) {}
+        an.getByteFrequencyData(fd); var a = []; for (var c = 0; c < n; c++) a.push(fd[Math.floor(c * fd.length / n)] / 255); return a;
+      }, { kind: "bars", width: width, fill: true, min: 0, max: 1, fps: 30 });
+    } else if (W.HoloFX.audioScope && w.audio) {
+      _vscope = W.HoloFX.audioScope(sp, w.audio, { kind: "bars", width: 9 });
+    }
   }
-  function play(w) { if (!w.audio.src) playTrack(w, w.idx || 0); else { w.audio.play().catch(function () {}); setPlaying(w, true); } }
+  function play(w) { fxResume(w); if (!w.audio.src) playTrack(w, w.idx || 0); else { w.audio.play().catch(function () {}); setPlaying(w, true); } }
   function stop(w) { try { w.audio.pause(); } catch (e) {} setPlaying(w, false); }       // pause — keeps position
   function toggle(w) { w.playing ? stop(w) : play(w); }
   function next(w) { playTrack(w, (w.idx || 0) + 1); }
   function prev(w) { if (w.audio.currentTime > 3) { w.audio.currentTime = 0; return; } playTrack(w, (w.idx || 0) - 1); }
 
-  // lazily resolve the album set → full tracklist + crisp cover (keeps “Begin Again” first)
+  // lazily resolve the album set → full tracklist + crisp cover (keeps the seeded opener, e.g. “Begin Again”, first)
   function enrich(w) {
     var url = w.config && w.config.resolve; if (!url || w._enriched) return; w._enriched = true;
+    var openerTitle = (((w.config.tracks || [])[0]) || {}).title || "";   // the seeded opener (the title track)
+    var seedTitles = {}; (w.config.tracks || []).forEach(function (t) { if (t.url && t.title) seedTitles[t.url] = t.title; });   // hand-curated names by url
     resolveSet(url).then(function (cfg) {
       if (!cfg || !cfg.tracks.length) return;
       var wasPlaying = w.playing, curUrl = (w.config.tracks[w.idx] || {}).url;
+      cfg.tracks.forEach(function (t) { if (seedTitles[t.url]) t.title = seedTitles[t.url]; });   // keep the exact seeded titles (e.g. “Home feat. JONAH”)
+      // pin the seeded opener to the front, so the boot playlist always starts on the title track
+      if (openerTitle) { for (var o = 1; o < cfg.tracks.length; o++) { if ((cfg.tracks[o].title || "").toLowerCase() === openerTitle.toLowerCase()) { cfg.tracks.unshift(cfg.tracks.splice(o, 1)[0]); break; } } }
       if (cfg.cover && !w.config.cover) { w.config.cover = cfg.cover; if (w.art) { w.art.src = cfg.cover; w.art.style.display = ""; } }   // keep the bundled cover → no boot flash
       w.config.artist = cfg.artist || w.config.artist; w.config.tracks = cfg.tracks;
       var j = -1; for (var k = 0; k < cfg.tracks.length; k++) if (cfg.tracks[k].url === curUrl) { j = k; break; }
       w.idx = j >= 0 ? j : (wasPlaying ? w.idx : 0);
-      refreshMini(w); persist(w);
+      refreshMini(w); refreshWindow(w); persist(w);
     }).catch(function () {});
   }
   function resolveSet(url) {
@@ -285,13 +488,22 @@
       if (!j || j.error) throw new Error(j && j.error || "resolve failed");
       var entries = (j.entries || []).filter(function (e) { return e && (e.webpage_url || e.url); });
       var list = entries.length ? entries : [j];
-      var tracks = list.map(function (e) { return { title: e.title || "(track)", artist: (e.artists && e.artists[0]) || e.uploader || j.uploader || "", art: artOf(e), url: e.webpage_url || e.url }; }).filter(function (t) { return t.url; });
+      var tracks = list.map(function (e) { var u = e.webpage_url || e.url; return { title: e.title || slugTitle(u) || "(track)", artist: (e.artists && e.artists[0]) || e.uploader || j.uploader || "", art: artOf(e), url: u }; }).filter(function (t) { return t.url; });
       if (!tracks.length) throw new Error("no tracks");
       var cover = (tracks.find(function (t) { return t.art; }) || {}).art || "";
       return { artist: j.uploader || (tracks[0] && tracks[0].artist) || "SoundCloud", title: j.title || "", cover: cover, resolve: url, tracks: tracks };
     });
   }
   function artOf(e) { var ts = (e && e.thumbnails) || [], best = (e && e.thumbnail) || "", w = -1; for (var i = 0; i < ts.length; i++) if ((ts[i].width || 0) >= w) { w = ts[i].width || 0; best = ts[i].url; } return best || ""; }
+  // a flat-playlist resolve gives URLs but no titles — derive a readable title from the SoundCloud slug
+  // (".../begin-again" → "Begin Again"); numeric/api URLs have no slug, so the seed title or "(track)" stands.
+  function slugTitle(url) {
+    try {
+      var seg = String(url || "").split("?")[0].replace(/\/+$/, "").split("/").pop() || "";
+      if (!seg || /^\d+$/.test(seg) || /api-v2|api\.soundcloud/.test(url)) return "";
+      return seg.replace(/[-_]+/g, " ").trim().replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    } catch (e) { return ""; }
+  }
 
   // ── quick-access preview ──────────────────────────────────────────────────────────────────
   function openMini(w) {
@@ -339,6 +551,145 @@
   function allPlayers() { var a = []; for (var k in players) a.push(players[k]); if (DOCKP) a.push(DOCKP); return a; }
   function insideAnyWidget(node) { var a = allPlayers(); for (var i = 0; i < a.length; i++) if (a[i].el && a[i].el.contains(node)) return true; return false; }
   function closeMini() { if (_vscope) { try { _vscope.stop(); } catch (e) {} _vscope = null; } var m = DOC.getElementById("hv-mini"); if (m) m.remove(); DOC.removeEventListener("pointerdown", outsideMini, true); allPlayers().forEach(function (w) { w._mini = null; }); }
+
+  // ── the MUSIC PLAYER PILL: the persistent, draggable pop-out player ──────────────────────────
+  // The now-playing card grown into the player itself — one object, no duplicate notification. Shows
+  // artwork · song · artist · a Lossless badge, the minimum transport (prev · play/pause · next), and a
+  // button that opens the full Holo Music app in a new tab. Opening it suspends the video (and vice
+  // versa) so the two never sound at once. Proportions are golden (see the CSS). Drives the dock player.
+  var MWIN = null;                                                  // the pill: { el, els, w, _audio, _onTime, suspended }
+  var MGLY = {
+    play:  '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/></svg>',
+    pause: '<svg viewBox="0 0 24 24"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none"/></svg>',
+    prev:  '<svg viewBox="0 0 24 24"><path d="M7 6v12M19 6l-9 6 9 6z" fill="currentColor" stroke="none"/></svg>',
+    next:  '<svg viewBox="0 0 24 24"><path d="M17 6v12M5 6l9 6-9 6z" fill="currentColor" stroke="none"/></svg>',
+    full:  '<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8M10 20H4v-6M4 20l8-8"/></svg>'   // open full app (↗ in a new tab)
+  };
+
+  function buildPill() {
+    injectCss();
+    var el = DOC.createElement("div"); el.className = "hv-pill"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Music player");
+    el.innerHTML =
+      '<div class="hv-pill-art"><img alt=""></div>' +
+      '<div class="hv-pill-tx">' +
+        '<div class="hv-pill-kicker"><span class="hv-pill-eq"><i></i><i></i><i></i><i></i></span><span class="hv-pill-badge">Now playing</span></div>' +
+        '<div class="hv-pill-ttl">—</div>' +
+        '<div class="hv-pill-sub"></div>' +
+      '</div>' +
+      '<div class="hv-pill-ctl">' +
+        '<button class="hv-pill-btn hv-pill-prev" aria-label="Previous">' + MGLY.prev + '</button>' +
+        '<button class="hv-pill-btn hv-pill-play" aria-label="Play">' + MGLY.play + '</button>' +
+        '<button class="hv-pill-btn hv-pill-next" aria-label="Next">' + MGLY.next + '</button>' +
+        '<button class="hv-pill-btn hv-pill-full" aria-label="Open full Holo Music" title="Open Holo Music in a new tab">' + MGLY.full + '</button>' +
+      '</div>' +
+      '<div class="hv-pill-seek"><div class="hv-pill-prog"></div></div>' +
+      '<button class="hv-pill-x" aria-label="Close">×</button>';
+    DOC.body.appendChild(el);
+    var q = function (s) { return el.querySelector(s); };
+    var els = {
+      el: el, art: q(".hv-pill-art img"), badge: q(".hv-pill-badge"), ttl: q(".hv-pill-ttl"), sub: q(".hv-pill-sub"),
+      prev: q(".hv-pill-prev"), play: q(".hv-pill-play"), next: q(".hv-pill-next"), full: q(".hv-pill-full"),
+      x: q(".hv-pill-x"), seek: q(".hv-pill-seek"), prog: q(".hv-pill-prog")
+    };
+    MWIN = { el: el, els: els, w: null, suspended: false };
+    artFallback(els.art);
+    placePill();
+
+    var stop2 = function (e) { e.stopPropagation(); };
+    els.play.addEventListener("click", function (e) { stop2(e); if (MWIN.w) toggle(MWIN.w); });
+    els.prev.addEventListener("click", function (e) { stop2(e); if (MWIN.w) prev(MWIN.w); });
+    els.next.addEventListener("click", function (e) { stop2(e); if (MWIN.w) next(MWIN.w); });
+    els.full.addEventListener("click", function (e) { stop2(e); openFull(MWIN.w || DOCKP); });   // → full Holo Music, new tab
+    els.x.addEventListener("click", function (e) { stop2(e); closeWindow(); });
+    wirePillSeek(els); wirePillDrag(el, els);
+    return MWIN;
+  }
+  // bottom-LEFT of the canvas, vertically aligned with the Q orb on the right (a balanced pair of corners)
+  function placePill() {
+    var el = MWIN.el, b = mediaBounds();
+    var w = el.offsetWidth || 320, h = el.offsetHeight || 84;
+    var left = b.minX + MWIN_GAP, top = b.maxY - h - MWIN_GAP;
+    try { var orb = DOC.querySelector(".hw-q"); if (orb) { var r = orb.getBoundingClientRect(); if (r.height) top = Math.round(r.top + r.height / 2 - h / 2); } } catch (e) {}   // match the orb's vertical centre
+    el.style.left = mClamp(Math.round(left), b.minX, Math.max(b.minX, b.maxX - w)) + "px";
+    el.style.top = mClamp(Math.round(top), b.minY, Math.max(b.minY, b.maxY - h)) + "px";
+  }
+  function wirePillSeek(els) {
+    var seek = els.seek, dragging = false;
+    function at(clientX) { var w = MWIN && MWIN.w; if (!w || !w.audio || !w.audio.duration) return; var r = seek.getBoundingClientRect(); w.audio.currentTime = mClamp((clientX - r.left) / r.width, 0, 1) * w.audio.duration; paintWindow(); }
+    seek.addEventListener("pointerdown", function (e) { dragging = true; try { seek.setPointerCapture(e.pointerId); } catch (x) {} at(e.clientX); e.stopPropagation(); });
+    seek.addEventListener("pointermove", function (e) { if (dragging) { at(e.clientX); e.stopPropagation(); } });
+    seek.addEventListener("pointerup", function (e) { dragging = false; try { seek.releasePointerCapture(e.pointerId); } catch (x) {} });
+  }
+  // drag the whole pill (anywhere but a button or the seek line) — a real pop-out object, clamped in
+  function wirePillDrag(el, els) {
+    var sx = 0, sy = 0, ox = 0, oy = 0, on = false, moved = false;
+    el.addEventListener("pointerdown", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      if (e.target.closest(".hv-pill-btn,.hv-pill-x,.hv-pill-seek")) return;
+      on = true; moved = false; sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop;
+      try { el.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault();
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (!on) return; if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 3) { moved = true; el.classList.add("dragging"); }
+      var b = mediaBounds();
+      el.style.left = mClamp(ox + (e.clientX - sx), b.minX, Math.max(b.minX, b.maxX - el.offsetWidth)) + "px";
+      el.style.top = mClamp(oy + (e.clientY - sy), b.minY, Math.max(b.minY, b.maxY - el.offsetHeight)) + "px";
+    });
+    el.addEventListener("pointerup", function (e) { if (!on) return; on = false; el.classList.remove("dragging"); try { el.releasePointerCapture(e.pointerId); } catch (x) {} });
+  }
+  function bindWindowAudio(w) {
+    if (!MWIN || !w || !w.audio) return;
+    if (MWIN._audio === w.audio) return;
+    if (MWIN._audio && MWIN._onTime) { MWIN._audio.removeEventListener("timeupdate", MWIN._onTime); MWIN._audio.removeEventListener("durationchange", MWIN._onTime); }
+    MWIN._audio = w.audio; MWIN._onTime = function () { paintWindow(); };
+    w.audio.addEventListener("timeupdate", MWIN._onTime); w.audio.addEventListener("durationchange", MWIN._onTime);
+  }
+  function paintWindow() {
+    var m = MWIN, w = m && m.w; if (!m || !w || !w.audio || m.suspended) return;
+    var d = w.audio.duration || 0, c = w.audio.currentTime || 0;
+    m.els.prog.style.width = (d ? (c / d * 100) : 0) + "%";
+  }
+  // keep the pill in sync with the active track + play state (called wherever refreshMini is)
+  function refreshWindow(w) {
+    var m = MWIN; if (!m || !w || m.w !== w || !DOC.body.contains(m.el) || m.suspended) return;
+    var c = (w.config) || {}, t = (c.tracks && c.tracks[w.idx]) || {};
+    var cover = t.art || c.cover || "";
+    if (cover && m.els.art.getAttribute("src") !== cover) { m.els.art.src = cover; m.els.art.style.display = ""; }
+    m.els.ttl.textContent = t.title || c.title || c.album || "—";
+    m.els.sub.textContent = t.artist || c.artist || "";
+    var lossless = !!(t.kappa || (w._verified && w._verified.lossless));      // a κ-track plays bit-exact, verified
+    m.els.badge.textContent = lossless ? "Lossless · L5 ✓" : (w.playing ? "Now playing" : "Paused");
+    m.el.classList.toggle("playing", !!w.playing);
+    m.els.play.innerHTML = w.playing ? MGLY.pause : MGLY.play;
+    m.els.play.setAttribute("aria-label", w.playing ? "Pause" : "Play");
+    paintWindow();
+  }
+  // OPEN the pill player: claim the slot (suspends the video → no clash), show it, and play.
+  function openWindow(w) {
+    if (!w) w = DOCKP; if (!w) return;
+    closeMini();
+    var S = mediaStage();
+    if (!MWIN || !DOC.body.contains(MWIN.el)) buildPill();
+    MWIN.el.style.display = ""; MWIN.suspended = false; MWIN.w = w;
+    S.register("music", suspendMusic);
+    S.claim("music");                                              // take the audio → the video player suspends
+    bindWindowAudio(w);
+    if (!w.playing) play(w);                                       // a dock tap means "play + pop out the player"
+    refreshWindow(w);
+    void MWIN.el.offsetWidth; MWIN.el.classList.add("in");         // reflow → bloom in
+  }
+  // suspend = the video player took over the audio: pause the music + fold the pill away (keep state).
+  function suspendMusic() {
+    if (DOCKP && DOCKP.playing) stop(DOCKP);
+    if (npCurrent && npCurrent !== DOCKP && npCurrent.playing) stop(npCurrent);   // silence any floating disc too
+    if (MWIN && MWIN.el) { MWIN.el.classList.remove("in"); MWIN.el.style.display = "none"; MWIN.suspended = true; }
+  }
+  function closeWindow() {
+    if (!MWIN) return;
+    if (MWIN._audio && MWIN._onTime) { MWIN._audio.removeEventListener("timeupdate", MWIN._onTime); MWIN._audio.removeEventListener("durationchange", MWIN._onTime); MWIN._audio = null; }
+    var el = MWIN.el; MWIN = null;
+    if (el) { el.classList.add("out"); setTimeout(function () { if (el.parentNode) el.remove(); }, 260); }
+  }
 
   // open the full Holo Music player (the “music” holospace) — dock launch, else the shell app frame
   function openFull(w) {
@@ -389,6 +740,7 @@
         return [
           { label: p.playing ? "❚❚  Pause" : "▶  Play", fn: function () { toggle(p); } },
           { label: "≡  Quick preview", fn: function () { openMini(p); } },
+          { label: (spatialPref() ? "✓ " : "") + "⊹  Spatial audio", fn: function () { setSpatialPref(!spatialPref()); } },
           { label: "⤢  Open full player", fn: function () { openFull(p); } },
         ];
       },
@@ -436,6 +788,15 @@
   function loadDock() { try { return JSON.parse(W.localStorage.getItem(DOCK_LS) || "null"); } catch (e) { return null; } }
   function saveDock() { try { if (DOCKP) W.localStorage.setItem(DOCK_LS, JSON.stringify({ config: DOCKP.config, idx: DOCKP.idx })); } catch (e) {} }
   function syncDisc(w) { if (w.art) { var c = (w.config && w.config.cover) || ""; if (c) { w.art.src = c; w.art.style.display = ""; } } }
+  // low-latency boot: pre-buffer the opening track's stream so the very first tap plays instantly.
+  // Only direct (SoundCloud) tracks preload as raw audio — κ-tracks resolve+verify on play instead.
+  function prefetchOpener(w) {
+    try {
+      var t = (w.config && w.config.tracks && w.config.tracks[w.idx || 0]) || null;
+      if (!t || !t.url || t.kappa || w.audio.src) return;
+      w.audio.preload = "auto"; w.audio.src = streamSrc(t.url); try { w.audio.load(); } catch (e) {}
+    } catch (e) {}
+  }
 
   function dockTile() {
     injectCss();
@@ -443,11 +804,11 @@
       var saved = loadDock();
       DOCKP = { id: "dock", idx: (saved && saved.idx) || 0, playing: false, config: (saved && saved.config) || JSON.parse(JSON.stringify(BENBOHMER)) };
       DOCKP._touched = !!saved;
-      DOCKP.audio = new Audio(); DOCKP.audio.preload = "none";
+      DOCKP.audio = new Audio(); DOCKP.audio.preload = "auto";       // warm-buffer the stream → low-latency first play
       DOCKP.audio.addEventListener("ended", function () { next(DOCKP); });
       DOCKP.audio.addEventListener("error", function () { if (DOCKP.playing) { toast("Couldn’t stream that track"); stop(DOCKP); } });
-      if (!DOCKP._touched) getDefaults().then(function (d) { if (DOCKP && !DOCKP._touched) { DOCKP.config = JSON.parse(JSON.stringify(d)); DOCKP.idx = 0; syncDisc(DOCKP); refreshMini(DOCKP); } enrich(DOCKP); });
-      else enrich(DOCKP);
+      if (!DOCKP._touched) getDefaults().then(function (d) { if (DOCKP && !DOCKP._touched) { DOCKP.config = JSON.parse(JSON.stringify(d)); DOCKP.idx = 0; syncDisc(DOCKP); refreshMini(DOCKP); prefetchOpener(DOCKP); } enrich(DOCKP); });
+      else { prefetchOpener(DOCKP); enrich(DOCKP); }
     }
     var box = DOC.createElement("div"); box.className = "hv-widget hv-dock";
     if (DOCKP.config && DOCKP.config.accent) box.style.setProperty("--holo-accent", DOCKP.config.accent);
@@ -469,12 +830,19 @@
     w.el.addEventListener("click", function (e) {
       e.preventDefault(); e.stopPropagation();
       var now = Date.now();
-      if (now - lastTap < 300) { lastTap = 0; if (tapTimer) { clearTimeout(tapTimer); tapTimer = 0; } openMini(w); return; }   // double → preview
-      lastTap = now; tapTimer = setTimeout(function () { tapTimer = 0; toggle(w); }, 230);                                     // single → play/pause
+      if (now - lastTap < 300) { lastTap = 0; if (tapTimer) { clearTimeout(tapTimer); tapTimer = 0; } openMini(w); return; }   // double → quick preview
+      // Start the SOUND on this very tap — synchronously, inside the gesture (the opener is pre-buffered at
+      // boot, so audio begins with no wait and no autoplay block). The window decision still waits the
+      // double-tap window: openWindow's play() is idempotent (src is already set → just resumes), so a
+      // not-yet-playing disc sounds instantly while the pill blooms in ~230ms later.
+      if (!w.playing) play(w);
+      // single → open the movable music player. If it is already up, toggle play/pause.
+      lastTap = now; tapTimer = setTimeout(function () { tapTimer = 0; if (MWIN && !MWIN.suspended && DOC.body.contains(MWIN.win) && MWIN.w === w) toggle(w); else openWindow(w); }, 230);
     });
   }
   // scriptable controls for the dock tile (used by the dock's right-click menu)
   function dockToggle() { if (DOCKP) toggle(DOCKP); }
+  function dockOpenWindow() { openWindow(DOCKP); }
   function dockPreview() { if (DOCKP) openMini(DOCKP); }
   function dockOpenFull() { if (DOCKP) openFull(DOCKP); else openFull({}); }
   function dockEdit() { if (DOCKP) editArtist(DOCKP); }
@@ -504,6 +872,7 @@
   function boot() {
     ensureDockPin();                                             // put the live disc into the left nav rail (once)
     migrateLegacy();                                            // lift legacy floating discs onto the widget board
+    try { loadAudioLib(); } catch (e) {}                         // warm the tiny Hi-Fi engine so it's ready on first tap
   }
   // Pin the disc into the Holo Dock's left rail — once. Guarded so a user who later removes it keeps it
   // removed. Retries briefly because the dock loads asynchronously alongside this script.
@@ -533,8 +902,12 @@
     count: function () { try { return W.HoloVinyl.list().length; } catch (e) { return 0; } },
     // "now playing" — the live shell-wide playback snapshot (consumed by the Now Playing widget)
     nowPlaying: npState, npToggle: npToggle,
+    // spatial audio (HRTF virtual speakers) — read or set the shell-wide disc preference
+    spatial: function (on) { if (on === undefined) return spatialPref(); setSpatialPref(!!on); return !!on; },
+    // the movable · resizable music player window (shares one on-screen slot with Holo Video)
+    openWindow: function () { openWindow(DOCKP); }, closeWindow: closeWindow,
     // dock tile — the live enclosed disc for the left nav rail (built/owned by holo-dock.js)
-    dockTile: dockTile, dockToggle: dockToggle, dockPreview: dockPreview, dockOpenFull: dockOpenFull, dockEdit: dockEdit, dockPlaying: dockPlaying, dockId: VINYL_ID
+    dockTile: dockTile, dockToggle: dockToggle, dockOpenWindow: dockOpenWindow, dockPreview: dockPreview, dockOpenFull: dockOpenFull, dockEdit: dockEdit, dockPlaying: dockPlaying, dockId: VINYL_ID
   };
 
   defineType();                                                  // register the type at eval time, BEFORE HoloWidgets.boot restores saved discs

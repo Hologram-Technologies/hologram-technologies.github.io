@@ -357,7 +357,7 @@
   const CSS = `
   #holo-privacy-btn{position:fixed;right:10px;bottom:10px;z-index:2147482300;display:inline-flex;align-items:center;gap:6px;
     height:30px;padding:0 10px 0 8px;border-radius:999px;border:1px solid #233040;background:#0d1117e6;color:#9fb0bd;
-    cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 4px 14px rgba(0,0,0,.4);font:600 11px ui-monospace,monospace}
+    cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 4px 14px rgba(0,0,0,.4);font:600 var(--holo-text-sm, 0.688rem) ui-monospace,monospace}
   #holo-privacy-btn:hover{color:#e6edf3;border-color:#3a4452}
   #holo-privacy-btn svg{width:14px;height:14px;flex:0 0 auto}
   #holo-privacy-btn .hp-code{letter-spacing:.02em}

@@ -1,0 +1,44 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S1 MAP (holo-map): a source's decoded text view becomes the κ-hypergraph — entities, attributes, relationships — each a content-addressed, schema.org-typed, PROV-O-bearing node/edge. Identity is separated from assertion so the same entity collapses to one κ (S2 dedup foundation) and every claim carries a provenance κ to the ingest source κ (S5 structural provenance). The extractor is a swappable seam (heuristic baseline witnessed here; Q's zero-shot .holo brain is the production extractor). All κs re-derive via the independent resolver (Law L5); the graphClosure is membership-sensitive (Law L2)",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · W3C PROV-O · schema.org · IETF RFC 8785 (JCS) · holospaces Laws L2/L5 · rests on #holo-uor + #holo-resolver + #holo-ingest (S0)",
+  "witnessed": true,
+  "covers": [
+    "hypergraph",
+    "entity-nodes",
+    "claim-edges",
+    "identity-dedup",
+    "structural-provenance",
+    "extractor-seam",
+    "law-l5",
+    "law-l2",
+    "w3c-legible"
+  ],
+  "sample": {
+    "source": "did:holo:sha256:6f9bd2a170ebc9433d7b8eb54be60abde9129f65eafe17d28de96081550a009d",
+    "graphClosure": "did:holo:sha256:65119c186cf029d255db08bf3234e0c68fa2658664ec0a7578544e23938ba83c",
+    "stats": {
+      "entities": 4,
+      "claims": 3,
+      "provenance": 3
+    },
+    "entities": [
+      "Organization:Acme Corp",
+      "Money:€4,200,000",
+      "Person:Dana Lee",
+      "Place:Berlin"
+    ]
+  },
+  "checks": {
+    "extractBuildsKappaGraph": true,
+    "entityIdentityDedup": true,
+    "claimCarriesProvenance": true,
+    "relationshipLinksEntityKappas": true,
+    "nodesAndEdgesReDerive": true,
+    "graphClosureCoversMembers": true,
+    "extractorSeamIsSwappable": true,
+    "tamperRefused": true,
+    "schemaLegibleNodes": true
+  },
+  "failed": []
+}

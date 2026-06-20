@@ -33,8 +33,11 @@ const TYPE = { ".html": "schema:WebPage", ".js": "schema:SoftwareSourceCode", ".
   ".css": "schema:SoftwareSourceCode", ".json": "schema:Dataset", ".jsonld": "schema:Dataset", ".hc": "schema:SoftwareSourceCode",
   ".svg": "schema:ImageObject", ".png": "schema:ImageObject", ".wasm": "schema:SoftwareApplication" };
 const typeOf = (p) => TYPE[extname(p).toLowerCase()] || "schema:MediaObject";
+// Skip DOT-DIRECTORIES: local dev caches (forge/.models model blobs, .kvxproc KV cache, .git) that are
+// not app content — they exceed static-host file limits and the app loads models at runtime via the
+// IndexedDB κ-store, not the holospace closure. Dotfiles are still included; only dot-dirs are pruned.
 const walk = (dir, out = []) => { for (const n of readdirSync(dir).sort()) { const p = join(dir, n);
-  statSync(p).isDirectory() ? walk(p, out) : out.push(p); } return out; };
+  if (statSync(p).isDirectory()) { if (n.startsWith(".")) continue; walk(p, out); } else out.push(p); } return out; };
 
 const def = JSON.parse(readFileSync(join(APP_DIR, "holospace.json"), "utf8"));
 const prev = existsSync(join(APP_DIR, "holospace.lock.json")) ? JSON.parse(readFileSync(join(APP_DIR, "holospace.lock.json"), "utf8")) : { closure: {} };

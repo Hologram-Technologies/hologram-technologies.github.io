@@ -1,0 +1,21 @@
+{
+  "spec": "Holo Dial (ADR-0113) S2 — the SW↔page bridge lets the Service-Worker resolver fetch a κ from the page's live dial mesh, re-derives every byte it carries (a tampered reply is refused), and resolves null without blocking when there is no client / a silent page / an empty reply — a safe, behaviour-preserving SW source",
+  "authority": "holospaces Laws L1/L3/L5 · ADR-026 Sovereign Delivery · ADR-0113 Holo Dial · W3C Service Workers (Client.postMessage + MessageChannel)",
+  "witnessed": true,
+  "covers": [
+    "sw-bridge",
+    "cross-realm-mesh",
+    "resolver-final-gate",
+    "no-block-on-absent-page",
+    "timeout-bounded",
+    "law-l5"
+  ],
+  "checks": {
+    "bridgesPageToSW": true,
+    "refusesTamperedReply": true,
+    "noClientReturnsNull": true,
+    "silentPageTimesOut": true,
+    "emptyReplyNull": true,
+    "ignoresForeignMsgs": true
+  }
+}

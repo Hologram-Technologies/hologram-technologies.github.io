@@ -1,0 +1,26 @@
+{
+  "spec": "κ-pluggable renderer registry: render(κ) dispatches every kind through ONE inspectable registry; the existing builtins (module/bundle/surface/image/text) live ON it (no bypass); new media @types register (renderer itself a κ-object, resolved L5); unknown @types fall back gracefully.",
+  "authority": "the existing holo-render.js surface/bundle @type dispatch seam (generalized) · holospaces Laws L1/L4/L5 · holo-render-witness.mjs (must stay green)",
+  "status": "live",
+  "witnessed": true,
+  "covers": [
+    "render-registry",
+    "kappa-pluggable-renderer",
+    "no-bypass",
+    "verify-before-render",
+    "law-l4",
+    "law-l5"
+  ],
+  "checks": {
+    "HoloRender.register(typeOrKind, handler) exists": true,
+    "HoloRender.renderers() exposes the registry with the builtins moved onto it (no format-specific bypass)": true,
+    "a registered custom @type dispatches via kindOf (open extension, like surface/bundle)": true,
+    "renderer-by-κ is resolved through the L5 spine (verify-before-render)": true,
+    "an unregistered @type falls back to json/text (additive, zero regression)": true,
+    "a separate media renderer module registers video/audio/image onto the ONE table": true,
+    "a holo:Video object dispatches to the registered media kind via kindOf (content-addressed source)": true,
+    "HoloRender.configure() auto-registers the builtin media kinds (shell wiring, opt-out via media:false)": true
+  },
+  "passed": 8,
+  "failed": 0
+}

@@ -1,0 +1,102 @@
+{
+  "witnessed": true,
+  "passed": 15,
+  "failed": 0,
+  "root": "did:holo:sha256:8d285623c33b039ce5661e0aaccd7eb23f2f9cab2f444f162d5003b9b338f7ad",
+  "covers": [
+    "the anchor commitment RE-DERIVES from its statement (Law",
+    "a TAMPERED commitment is refused",
+    "2-of-3 pinned-key authority over the commitment is ACCEP",
+    "an UNDER-THRESHOLD (1-of-3) anchor is refused",
+    "a signature from a KEY NOT in the pinned set does not co",
+    "the anchor BINDS the live os-closure root",
+    "a FORGED OS root (≠ anchored root) is refused (S7)",
+    "a child anchor REFERENCES the prior commitment (append-o",
+    "a BROKEN chain link is refused",
+    "an OTS Merkle path FOLDS the commitment to the confirmin",
+    "a TAMPERED Merkle path is refused",
+    "the REAL Bitcoin genesis block header PoW-VALIDATES (sha",
+    "a 1-byte-MUTATED header fails PoW",
+    "a fully-anchored root verifies end-to-end (commitment + ",
+    "an un-anchored root is honestly PENDING under requireBit"
+  ],
+  "results": [
+    {
+      "name": "the anchor commitment RE-DERIVES from its statement (Law L5)",
+      "ok": true,
+      "detail": "00a0cf1147e1e216…"
+    },
+    {
+      "name": "a TAMPERED commitment is refused",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "2-of-3 pinned-key authority over the commitment is ACCEPTED (real secp256k1)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "an UNDER-THRESHOLD (1-of-3) anchor is refused",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a signature from a KEY NOT in the pinned set does not count toward threshold",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the anchor BINDS the live os-closure root",
+      "ok": true,
+      "detail": "did:holo:sha256:8d285623…"
+    },
+    {
+      "name": "a FORGED OS root (≠ anchored root) is refused (S7)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a child anchor REFERENCES the prior commitment (append-only chain)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a BROKEN chain link is refused",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "an OTS Merkle path FOLDS the commitment to the confirming merkle root",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a TAMPERED Merkle path is refused",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the REAL Bitcoin genesis block header PoW-VALIDATES (sha256d ≤ target(bits))",
+      "ok": true,
+      "detail": "block 000000000019d6…"
+    },
+    {
+      "name": "a 1-byte-MUTATED header fails PoW",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a fully-anchored root verifies end-to-end (commitment + authority + OTS inclusion + PoW)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "an un-anchored root is honestly PENDING under requireBitcoin (not a fabricated green)",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "pending": "Binding the CURRENT os-closure root to a CONFIRMED Bitcoin tx (OpenTimestamps calendar submit / direct OP_RETURN + confirmation) needs network — an operational deploy step, not a code gap. The verifier + every crypto leg is proven offline here.",
+  "spec": "S5–S7 — the client-side, header-only Bitcoin-anchor verifier: commitment re-derivation (L5), M-of-N pinned-key authority (real secp256k1), hash-linked release chain, OTS Merkle inclusion, and Bitcoin PoW (witnessed against the REAL genesis header), all offline. Refuses tampered commitment / forged root / under-threshold authority / broken chain / tampered path / bad PoW."
+}

@@ -13,7 +13,168 @@
       },
       "earl:test": {
         "@id": "https://hologram.os/conformance/os2#w1-origin-blocked-boot",
-        "dcterms:title": "W1 — Hologram OS boots with the ORIGIN BLOCKED, serving its boot closure network-free from the κ-keyed content cache (the keystone serverless proof: L3 the store is the memory · L5 verify-at-boundary · no server). Witnessed LIVE in real Chromium against the production deploy (prod cache-first mode): a full online boot under Service-Worker control caches the boot closure, then ALL origin network is cut (setOffline) and the OS is reloaded — it must still boot and render, with every boot-critical path served from the κ cache (x-holo-cache:hit) and zero network. The localhost dev server cannot witness this (the SW runs DEV / cache-first-off on 127.0.0.1, holo-fhs-sw.js:29,470,508); the NECESSARY condition (closure complete + κ-route content-serviceable + bogus κ refused) is witnessed live in pure Node by tools/holo-w1-origin-blocked-boot-witness.mjs."
+        "dcterms:title": "W1 — Hologram OS boots with the ORIGIN BLOCKED, serving its boot closure network-free from the κ-keyed content cache (the keystone serverless proof: L3 the store is the memory · L5 verify-at-boundary · no server). Witnessed LIVE in real Chromium against the production deploy (prod cache-first mode): a full online boot under Service-Worker control caches the boot closure, then ALL origin network is cut (setOffline) and the OS is reloaded — it must still boot and render, with every boot-critical path served from the κ cache (x-holo-cache:hit) and zero network. Witnessed LIVE on localhost by serving the Service Worker VERBATIM (prod-mode, HOLO_PROD_SW: sealed ALLOW_DEV_FRESH=false → DEV=false → cache-first), so the sufficient real-browser offline-boot proof reproduces with NO remote host (the necessary condition — closure complete + κ-route content-serviceable + bogus κ refused — is proven in the same run); the deploy variant tools/holo-w1-deploy-witness.mjs runs the identical proof against a live HTTPS deploy."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
+        "dcterms:title": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-tube-offline-replay",
+        "dcterms:title": "R2 — a sealed VOD MediaGraph replays BYTE-IDENTICALLY OFFLINE from the κ-store with the origin dead (the store is the memory). Every segment, once verified and stored by its κ, is served on all future reads by κ alone — no path, no origin (Laws L1·L3). Witnessed offline with a κ-store keyed by κ: every segment round-trips byte-identical, a corrupted stored object is refused on read (L5), and an unstored κ resolves to null (never bad bytes)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-tube-gapless-radio",
+        "dcterms:title": "R3 — the playlist/radio plays GAPLESS: the next video's κ is resolvable (and MSE-feedable) before the current one ends. A MediaGraph is an open DAG walked through 'next' (radio/autoplay) or playlist order; each successor is a content-addressed node whose init segment is prefetchable while the current video is still playing. Witnessed offline: every video resolves a feedable successor over the whole queue, and the walk reaches every video (the radio loop closes)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-tube-bit-exact-closure",
+        "dcterms:title": "R4 — segment bytes are BIT-EXACT to source (no transcode on the identity path) and the MediaGraph SEGMENT-CLOSURE κ re-derives from the segments alone. The closure κ is a non-circular root over the sorted set of every segment κ — prove it and you've pinned every byte the stream can ever play (Laws L2·L5). Witnessed offline: each segment's on-disk κ equals its graph κ (no transcode drift after sealing), the embedded holo:segmentClosure re-derives from the segment set, and the closure covers exactly the played segments."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#bitcoin-anchored",
+        "dcterms:title": "The canonical os-closure root is BITCOIN-ANCHORED — the chain commits a 32-byte commitment binding (a) the OS image root κ, (b) the prior anchored commitment (an append-only hash-linked release chain), and (c) the authorized M-of-N release-signing keyset; it never stores the OS. Verification is CLIENT-SIDE and header-only (no node, no API, Law L4): re-derive the commitment (L5), check ≥ threshold valid signatures from PINNED keys over it, fold the OpenTimestamps Merkle path to the confirming block's merkle root, and PoW-validate that header against a bundled checkpoint. Witnessed offline with REAL secp256k1 (the vetted btc-wallet noble bundle) for M-of-N authority and the REAL Bitcoin genesis block header for Proof-of-Work; refuses a tampered commitment, a forged OS root, under-threshold authority, a broken chain link, a tampered Merkle path, and a bad-PoW header. (Binding the live current root to a CONFIRMED mainnet tx is a deploy-time action — the verifier is complete and proven here.)"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#cid-cold-boot",
+        "dcterms:title": "A single shareable link …/#<root-CID> COLD-BOOTS a fresh device with the ORIGIN DEAD. The fragment carries the boot-root κ (os-closure.json) as a CIDv1 (a sha-256 κ IS a CIDv1 sha2-256); the page-level loader (lib/holo-cid-boot.mjs — the SW cannot read the page fragment) decodes it to a κ and resolves the root BY THAT κ from the NON-ORIGIN recovery chain (the device's own κ-store · IPFS Trustless Gateways · mesh peers), RE-DERIVING every candidate before acceptance (Law L5 — sha-256(bytes) === κ, the source is a latency choice never a trust one). This closes the cold-bootstrap gap: GitHub Pages (or any one host) can die and the same link still boots from the content-addressed swarm. Witnessed offline with the REAL os-closure root bytes + a simulated swarm source: every fragment form decodes, a dead origin falls through to a non-origin source, a tampered/liar source is refused, and an unservable root fails honestly. (The live IPFS-gateway fetch needs network; the fragment→κ decode + L5 resolution gate are proven here.)"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#single-link-verified",
+        "dcterms:title": "The single shareable link …/#<root-CID> SELF-VERIFIES the booted OS against its content-address, LIVE in a real browser (decentralized-boot delta A, activated). The page-level loader (lib/holo-cid-boot via lib/holo-heal-boot, loaded by holospace.html) reads the fragment CID, fetches the boot root as raw bytes (recovering it by κ from the non-origin chain if the origin can't serve it), re-derives it (Law L5), and exposes self.__holoRoot = { cid, verified }. Witnessed in Chromium: the correct CID verifies TRUE, a wrong CID verifies FALSE (the 'verified ✓' badge is honest, not cosmetic), and no fragment makes no claim while booting normally. The magical link made trustworthy: the host is disposable, the URL is the fingerprint."
       },
       "earl:result": {
         "@type": "earl:TestResult",
@@ -133,7 +294,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -156,7 +317,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -179,7 +340,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -202,7 +363,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
@@ -317,7 +478,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -984,7 +1145,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:passed"
+          "@id": "earl:failed"
         }
       },
       "earl:mode": {
@@ -1030,7 +1191,76 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-telemetry-tap",
+        "dcterms:title": "PERCEPTION ADOPTION — the OS's live signal seams actually FLOW THROUGH the observability plane (Holo Telemetry Tap, S0 of the autonomy spine sense → reason → speak). The runtime (#holo-telemetry) was proven in isolation; this proves it is FED: three already-live seams are re-expressed as content-addressed PROV-O signals whose W3C ids re-derive from content (Law L5) — (1) the AUTONOMOUS heal loop (a real makeSupervisor().tick() sweep) becomes a heal.sweep span plus healthy/healed/unresolved/flaky gauges and one log per repair receipt; (2) an app lifecycle event (open/close/focus) becomes a counter plus a correlated log; (3) the conformance gate's verdict becomes passing/failing/failing_required gauges plus one WARN per red required row. The heal seam is driven LIVE so the tapped span carries the REAL sweep counts — adoption, not a mock. A tampered tapped signal breaks its id; the honest split survives (wall-clock stays hostel:rederivable=false, host-attested); the tap never bypasses the privacy boundary (egress without consent is refused, Law L1). Mints no new measurement and trusts no emitter — it re-expresses facts the seams already produce. Perception with no new trust"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-coherence",
+        "dcterms:title": "REFLECTION — the OS folds its own perception into one self-verifying snapshot κ (Holo Coherence, S1 of the autonomy spine sense → reason → speak). S0 (#holo-telemetry-tap) made the OS observable; this proves it can know what's true now: the perception stream (a REAL heal-supervisor tick + the conformance gate's verdict + app activity) folds into a single content-addressed PROV-O 'Snapshot' object. The keystone: a snapshot's IDENTITY is its STATE, not the clock — two folds of the same state under different clocks re-derive to the SAME κ (content-addressed reflection, comparable + dedup-able, Law L5; wall-clock time rides beside the sealed object as metadata, never inside its identity — the same honest split Holo Telemetry draws). COHERENCE is an honest, re-derivable scalar ∈ [0,1] (health and conformance weigh equally; a whole+green system scores 1.0 and any unresolved heal / red required row necessarily pulls it below) — the north star as a number, a pure function of structure, never a measurement. ATTENTION is exactly the union of what is NOT coherent (red rows + flaky + unresolved), the basis S2 turns into proposals, never fabricated. The diff is NO-NOISE: identical state ⇒ changed:false (the property the inbox depends on — nothing changed, nothing to say). A changed state yields a different κ; a tampered snapshot fails to re-derive. Reflection is PRIVATE-FIRST: the snapshot lives in the local κ-store and share() is default-deny + conscience-gated (Law L1). Composition is proven end to end: the same live heal seam S0 taps flows into the fold — reflection of real state, not a mock"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-observer",
+        "dcterms:title": "Q'S AMBIENT OBSERVER — the reactive→copilot pivot (Holo Observer, S2 of the autonomy spine sense → reason → speak). S1 (#holo-coherence) folded the OS into a snapshot of what's true now; this proves Q can READ that snapshot and decide what is worth RAISING — emitting ranked PROPOSALS, never actions. Q proposes; it does not act (acting is gated at S4 behind the trust boundary). A proposal is inert data (subject · rationale · suggested action · salience); nothing in the observer executes anything. The discipline reuses the WITNESSED Holo Control DSP core (#holo-control): SALIENCE = magnitude × novelty × governance-risk ranks what deserves the user's eyes (an unrecoverable object outranks a red row outranks a flaky κ), and HYSTERESIS (raise at hi, release below lo) stops a borderline concern from flapping. Two properties the inbox depends on are proven: NO-NOISE — a whole + coherent snapshot raises nothing (nothing changed, nothing to say); ANTI-NAG — novelty decays as a concern persists, so a fresh break is raised prominently and a CHRONIC known one fades out of the raised set (Q flags the new, it does not nag about the old), and a fixed concern is released with no resurrection. Every proposal set re-derives (Law L5) and prov:wasDerivedFrom the snapshot it came from; the observer is stateful across ticks yet deterministic (no clock, no randomness), so a witness replays a snapshot sequence to byte-identical proposals. Composition is proven end to end: a real heal sweep → S1 → S2"
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -1513,7 +1743,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -1697,7 +1927,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -1720,7 +1950,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -2065,7 +2295,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -2640,7 +2870,7 @@
       "earl:result": {
         "@type": "earl:TestResult",
         "earl:outcome": {
-          "@id": "earl:failed"
+          "@id": "earl:passed"
         }
       },
       "earl:mode": {
@@ -2659,6 +2889,443 @@
       "earl:test": {
         "@id": "https://hologram.os/conformance/os2#mobile-appearance",
         "dcterms:title": "Mobile appearance (Dark · Light · Immersive) is ONE canonical axis on the Holo UI engine (holo-theme.js / holo.theme.v1) — palette light/dark plus an orthogonal immersive backdrop (a κ-sealed wallpaper resolved to the serverless /.holo store, re-derived per Law L5) — applied BEFORE first paint by a synchronous bootstrap (holo-appearance-boot.js) that the boot screens which hand off into the desktop (splash.html, shell.html) load as a plain script, so the OS opens already wearing the chosen theme with no flash. The homepage (index.html) is never edited; its legacy choice is migrated once so it flows down the boot chain. Every OS popup routes through ONE launcher-clean modal primitive (window.HoloSheet) built on the native <dialog>, token-driven, honoring the 48px tap floor (WCAG 2.5.8) and the 16px readability floor. Both new served modules are content-addressed in os-closure (Law L5)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-l5-manifest-pin",
+        "dcterms:title": "L5: a q model manifest κ is verified before its block κs are trusted (tampered manifest refused)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-l5-dev-fresh",
+        "dcterms:title": "L5: dev-fresh requires an explicit opt-in, never hostname alone (prod re-derives + refuses even on localhost)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-memo",
+        "dcterms:title": "O(1) HoloMemo: compute-once → L1/L2 replay; two-layer key (L2 source bytes / L1 live GPU handle); canonical BLAKE3 keys."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-surface",
+        "dcterms:title": "κ-surface render substrate: WebGPU SDF card + scene composition (L3 dedup) + DOM reference + L5-before-GPU + ray hit-test."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#surface-input",
+        "dcterms:title": "CC-surface-input: the interactive `button` + text-`input` kinds — GPU visual + real <button>/<input>/<textarea> DOM-mirror semantics (native click, text entry, IME, caret, clipboard), declarative content-addressed κ-actions (no inline code), states/a11y, and pointer/ray + click + input/Enter dispatch through the conscience gate."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-surface-layout",
+        "dcterms:title": "CC-surface-layout: container stack/grid geometry matches the W3C CSS box model (flexbox-column + grid)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-registry",
+        "dcterms:title": "κ-pluggable renderer registry: render(κ) dispatches every kind through ONE table (builtins moved on, no format-specific bypass); new media @types register (renderer itself a κ-object, resolved L5); unknown @types fall back gracefully."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-mount",
+        "dcterms:title": "Browser proof: a holo:Video κ mounts a real <video> through the κ-render registry (content-addressed src via the κ-route); a tampered κ is refused on the render path (L5 verify-before-render)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#erasure-fractal",
+        "dcterms:title": "Fractal/erasure redundancy: Reed–Solomon parity over content-addressed shards — ANY k of (k+m) reconstruct the whole BYTE-EXACT (exhaustively verified over all ≤m-loss patterns); whole-object κ unchanged (L1-preserving); shards are κ-objects; fail-closed below k."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#fractal-heal",
+        "dcterms:title": "Fractal self-healing: when no whole-object copy survives any source, the healer rebuilds the whole from k of (k+m) surviving shards (holo-erasure) and re-derives it to its κ (L5); prefers a whole copy when present; fails closed below k."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#frame-tiling",
+        "dcterms:title": "Streaming substrate: framebuffer tiling + delta — content-addressed tiles (tile→κ); a frame is a manifest of tile κs; only CHANGED tiles stream (unchanged = same κ = cache hit); reconstruct is byte-exact; bytes-on-wire ∝ what changed (the high-FPS win)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#frame-tiling-fps",
+        "dcterms:title": "Browser proof: a holo:FrameManifest mounts a <canvas> byte-exact through the κ-render registry; streaming redraws ONLY changed tiles (holo-tile.diff); a delta frame draws far inside the 60fps budget (≈0.01–0.03 ms/frame)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#holo-terms",
+        "dcterms:title": "One-term-one-meaning terminology: a canonical vocabulary enforced in first-party concept prose; banned synonyms (render substrate, k-object, k-address, k-store…) fail CI; the κ-substrate primitives (κ-object, did:holo, κ-store) are the canonical allowed forms. Anti-drift ratchet; lint is provably non-vacuous (planted-detection self-test)."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#catalog-terms",
+        "dcterms:title": "User-facing clarity: every app's name + description in the launcher reads clearly, concisely and on-theme — substrate jargon (κ, content-addressed, re-derivation, holospace, L5, self-verifying) is banned in favour of the plain vocabulary (verified · checked genuine · self-checking · tamper-proof · no server). Provably non-vacuous."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:failed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#ui-terms",
+        "dcterms:title": "Shell-chrome clarity: tooltips, labels and input hints (title/aria-label/placeholder/alt) across the frame UI read clearly and on-theme — explanatory substrate jargon (Law L5, re-derivation, content-addressed, holospace, verifyDeep, UOR object) banned, raw κ/did:holo banned in labels, input-format placeholders allowed, code-built attributes skipped. Provably non-vacuous."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#spatial-projector",
+        "dcterms:title": "κ-surface scene → 3D (three-mesh-ui projector) + ray-pick→κ + device-gated WebXR session. Capability proven; not yet app-adopted."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#spatial-three-mesh-ui",
+        "dcterms:title": "three-mesh-ui vendored verbatim + 100% κ-addressable (dual-axis, L5). Capability proven; not yet app-adopted."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#world-aframe",
+        "dcterms:title": "A-Frame world/navigation layer vendored verbatim + κ-addressable (dual-axis, L5). Capability proven; not yet app-adopted."
+      },
+      "earl:result": {
+        "@type": "earl:TestResult",
+        "earl:outcome": {
+          "@id": "earl:passed"
+        }
+      },
+      "earl:mode": {
+        "@id": "earl:automatic"
+      }
+    },
+    {
+      "@type": "earl:Assertion",
+      "earl:assertedBy": {
+        "@id": "https://hologram.os/tools/gate"
+      },
+      "earl:subject": {
+        "@id": "https://hologram.os",
+        "dcterms:title": "Hologram OS"
+      },
+      "earl:test": {
+        "@id": "https://hologram.os/conformance/os2#render-hub",
+        "dcterms:title": "Holo Hub is delivered THROUGH the κ-render substrate (Phase 3): every card cover is a declarative holo:Surface, content-addressed (κ) and L5-verified, drawn by the render() spine (WebGPU, DOM fallback) — default-on, no unverified external code, app sealed dual-axis. The first real app migrated; the repeatable template."
       },
       "earl:result": {
         "@type": "earl:TestResult",

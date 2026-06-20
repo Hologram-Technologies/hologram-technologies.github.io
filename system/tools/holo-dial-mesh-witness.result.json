@@ -1,0 +1,22 @@
+{
+  "spec": "Holo Dial (ADR-0113) S1 — the dial-by-κ orchestrator (holo-dial.mjs) fans want across peers and returns the first re-derived block, lets honest beat liar, serves the device's κ-store to peers, integrates as a resolver source, and returns null with zero peers (byte-for-byte the old stub → safe to wire into the pinned heal/boot loop)",
+  "authority": "holospaces Laws L1/L3/L5 · ADR-026 Sovereign Delivery · ADR-0113 Holo Dial · W3C WebRTC DataChannel · IPFS Trustless Gateways (κ = CIDv1 sha2-256)",
+  "witnessed": true,
+  "covers": [
+    "dial-orchestrator",
+    "multi-peer-fanout",
+    "honest-among-liars",
+    "device-seeds",
+    "resolver-source",
+    "behaviour-preserving-stub",
+    "law-l5"
+  ],
+  "checks": {
+    "fansAcrossPeers": true,
+    "honestAmongLiars": true,
+    "noPeersReturnsNull": true,
+    "servesLocalToPeers": true,
+    "integratesResolver": true,
+    "detachStopsServing": true
+  }
+}

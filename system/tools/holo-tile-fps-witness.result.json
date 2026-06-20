@@ -1,0 +1,19 @@
+{
+  "spec": "Browser proof: a holo:FrameManifest mounts a <canvas> byte-exact through the κ-render registry; streaming redraws ONLY changed tiles (holo-tile.diff); a delta frame draws inside the 60fps budget (per-frame draw time ≪ 16.67ms).",
+  "authority": "Chromium (Playwright) real canvas · served _shared/holo-tile.mjs + holo-render-tile.mjs · holospaces Laws L1·L2·L3",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "frames": 60,
+    "redraws": 60,
+    "msPerFrame": 0.015,
+    "impliedFps": 66667
+  },
+  "checks": {
+    "registered": true,
+    "frame0Exact": true,
+    "deltaOnly": true,
+    "finalExact": true,
+    "fpsHeadroom": true
+  }
+}

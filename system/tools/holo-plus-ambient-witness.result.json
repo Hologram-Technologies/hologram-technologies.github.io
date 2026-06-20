@@ -1,0 +1,42 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "The + Everywhere — A0 AMBIENT INJECTOR: a near-invisible '+' is attached to the omni bar (left) and every eligible text input (right) — textarea / text-like input / contenteditable — and never to password/hidden/file/checkbox/opted-out elements. It attaches only AFTER a user gesture (invisible until wanted), exactly once per input (idempotent), additively (never changes the input's value/focus/tab order — it is an overlay), works across a mixed multi-app DOM and on late-mounted inputs, and activation emits the holo-plus-invoke signal the A1 popover listens for. Zero per-app edits; mirrors the holo-sound universal per-document router",
+  "authority": "holospaces Law L2 (one canonical wire) · mirrors #holo-sound (universal per-document router)",
+  "witnessed": true,
+  "covers": [
+    "ambient-injector",
+    "eligibility",
+    "omni-left",
+    "post-gesture-guard",
+    "idempotent",
+    "mixed-apps",
+    "additive",
+    "invoke-signal",
+    "late-mount"
+  ],
+  "sample": {
+    "eligibleKinds": [
+      "textarea",
+      "input[text/search/url/…]",
+      "[contenteditable]"
+    ],
+    "skipped": [
+      "password",
+      "hidden",
+      "file",
+      "checkbox",
+      "[data-holo-plus-skip]"
+    ]
+  },
+  "checks": {
+    "eligibilityIsCorrect": true,
+    "omniGetsLeftOthersRight": true,
+    "guardBlocksBeforeGesture": true,
+    "onePlusPerInputIdempotent": true,
+    "scanCoversMixedApps": true,
+    "additiveNeverDisturbs": true,
+    "invokeEmitsEvent": true,
+    "lateMountedGetAdorned": true
+  },
+  "failed": []
+}

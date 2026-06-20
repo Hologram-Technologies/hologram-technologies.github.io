@@ -1,14 +1,25 @@
 {
   "@type": "earl:TestResult",
-  "witnessed": true,
+  "witnessed": false,
   "subject": "holo shared-ref integrity (every app's /.holo/sha256 data-holo-shared pin == current lib κ — no silent 404 drift)",
-  "passed": 295,
-  "failed": 0,
+  "passed": 293,
+  "failed": 2,
   "appsPresent": true,
   "refs": 311,
   "skipped": 16,
-  "stale": [],
-  "covers": [
-    "app shared-ref pins current (no κ drift)"
-  ]
+  "stale": [
+    {
+      "file": "apps/music\\index.html",
+      "name": "holo-audio.js",
+      "pinned": "712ae4a08fa2…",
+      "current": "3c080772241d…"
+    },
+    {
+      "file": "apps/music\\index.html",
+      "name": "holo-audio.js",
+      "pinned": "712ae4a08fa2…",
+      "current": "3c080772241d…"
+    }
+  ],
+  "covers": []
 }

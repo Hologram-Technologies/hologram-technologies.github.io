@@ -40,6 +40,12 @@ export function createQClient({ target, source } = {}) {
     ask: (text, context, onDelta) => call("q.ask", { text, context: context || null }, onDelta),
     create: (text, context) => call("q.create", { text, context: context || null }),
     act: (text, context) => call("q.act", { text, context: context || null }),               // governed OS action
+    // FACULTY BRIDGE (Fork 2): the app reaches the SAME Q's faculties — read the OS reflection + contribute to
+    // the user model. The raw model never crosses the frame; trust/privileged surfaces are refused host-side.
+    coherence: () => call("q.coherence", {}),
+    briefing: () => call("q.briefing", {}),
+    notices: () => call("q.notices", {}),
+    remember: (signal) => call("q.remember", { signal: signal || {} }),
   };
 }
 
@@ -56,6 +62,11 @@ export function installQApp(opts = {}) {
     ask: (text, onDelta) => client.ask(text, appContext(), onDelta),
     create: (text) => client.create(text, appContext()),
     act: (text) => client.act(text, appContext()),
+    // same faculty names as the shell Q, so an app reads the one Q's reflection + contributes to the user model.
+    coherence: () => client.coherence(),
+    briefing: () => client.briefing(),
+    notices: () => client.notices(),
+    remember: (signal) => client.remember(signal),
     _client: client,
   };
   if (!window.Q) window.Q = Q;
@@ -75,9 +86,17 @@ export function createQServe({ Q, summon } = {}) {
   return async function serve({ app, method, args = {}, onDelta } = {}) {
     const caller = app || "app";
     try {
+      // FACULTY BRIDGE (Fork 2): an app reaches the SAME Q's faculties, governed — reads the OS reflection
+      // (q.coherence/briefing/notices), writes through to memory (q.remember, attributed), is REFUSED the
+      // user's private/privileged surfaces (q.trust.* / raw memory). Returns null for non-faculty methods, so
+      // the base governed serve below handles q.summon/ask/create/act unchanged. The raw user model never
+      // crosses the frame (Law L1); only the GROUNDING (affinity + relevant recents) feeds generation.
+      const fac = (typeof window !== "undefined" && window.HoloQFaculty) || null;
+      if (fac) { const f = await fac.serve({ method, args, caller }); if (f) return f; }
+      const ground = (text) => { try { return fac ? fac.ground(caller, text) : null; } catch (e) { return null; } };
       if (method === "q.summon") { if (summon) summon(args.text || null, ctxFrom(args.context, caller)); return { result: { ok: true, app: caller } }; }
-      if (method === "q.ask") { const ans = await Q.ask(String(args.text || ""), { context: ctxFrom(args.context, caller) }); return { result: ans != null ? ans : "" }; }
-      if (method === "q.create") { const r = await Q.agent(String(args.text || ""), { caller: caller, params: { current: (args.context && args.context.source) || null } }); return { result: r }; }
+      if (method === "q.ask") { const ans = await Q.ask(String(args.text || ""), { context: ctxFrom(args.context, caller), grounding: ground(String(args.text || "")) }); return { result: ans != null ? ans : "" }; }
+      if (method === "q.create") { const r = await Q.agent(String(args.text || ""), { caller: caller, params: { current: (args.context && args.context.source) || null, grounding: ground(String(args.text || "")) } }); return { result: r }; }
       if (method === "q.act") { const r = await Q.act(String(args.text || ""), { caller: caller, context: args.context || null }); return { result: r }; }   // GOVERNED OS action from an app/agent
       return { error: "unsupported q method: " + method };
     } catch (e) { return { error: String((e && e.message) || e) }; }

@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Holo Boot — Hologram OS</title>
+    <meta name="description" content="Holo Boot — the hologram-native rEFInd: a content-addressed, serverless UEFI-style boot manager that scans the κ-store and boots holospaces from a faithful rEFInd graphical menu. κ re-derivation is its Secure Boot (Law L5). No server, no install." />
+    <!-- Cross-origin isolation shim for static hosts (no-ops when already isolated). -->
+    <script src="coi-serviceworker.min.js"></script>
+    <!-- The shared mobile-conformance layer every shipped holospace adopts. -->
+    <link rel="stylesheet" href=".holo/sha256/590dedd73cbdd94a82bf83b0bb2a4b2d3cb062cd7b7ef5ed6039e8460c8568a8.css" data-holo-shared="holo-mobile.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: var(--holo-bg); --fg: var(--holo-ink); --accent: var(--holo-accent); --dim: var(--holo-ink-dim);
+        --sel-big: url("boot/icons/selection_big.svg");
+        --sel-small: url("boot/icons/selection_small.svg");
+        /* The theme sets --big-cfg / --small-cfg (big_icon_size / small_icon_size);
+           the mobile media query caps the USED --big / --small so phones shrink. */
+        --big-cfg: 128px; --small-cfg: 48px; --big: var(--big-cfg); --small: var(--small-cfg);
+        /* Golden-ratio (φ = 1.618) type scale. Base 16px; steps ×/÷ φ; hard 14px floor. */
+        --phi: 1.618;
+        --f-sm: 14px;            /* floor — nothing renders smaller */
+        --f-base: 16px;
+        --f-md: 20px;
+        --f-lg: 26px;            /* 16·φ  */
+        --f-xl: 42px;            /* 16·φ² */
+        --gap-sm: 0.618rem; --gap: 1rem; --gap-lg: 1.618rem;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: var(--fg); overflow: hidden;
+        font: var(--f-base)/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; user-select: none; }
+
+      /* Thin holospace chrome — identity · κ-address · Law-L5 · theme · config — the
+         same vocabulary as os.html / winamp.html so Holo Boot reads like any other
+         holospace (ADR-026). rEFInd itself is chromeless; the menu fills the rest. */
+      #bar { flex: 0 0 auto; display: flex; align-items: center; gap: 0.7rem; z-index: 30;
+        padding: 0.4rem 0.9rem; background: var(--holo-surface); border-bottom: 1px solid var(--holo-border);
+        font: var(--f-sm) ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; }
+      #bar .name { color: var(--fg); font-weight: 700; letter-spacing: 0.03em; }
+      #bar .tag { color: var(--dim); }
+      #bar .k { color: var(--accent); max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #bar .ver { color: var(--dim); } #bar .ver.ok { color: var(--holo-ok); } #bar .ver.bad { color: var(--holo-danger); }
+      #bar .sp { margin-left: auto; }
+      #bar button, #bar select { font: inherit; color: var(--dim); background: var(--holo-surface);
+        border: 1px solid var(--holo-border); border-radius: 5px; padding: 0.15rem 0.5rem; cursor: pointer; }
+      #bar button:hover, #bar select:hover { color: var(--fg); border-color: var(--holo-border); }
+
+      /* ── The boot screen — the faithful rEFInd graphical menu ───────────────────── */
+      #screen { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: flex-start; padding: 1.2rem 1rem 0.6rem;
+        background: radial-gradient(130% 120% at 50% 8%, #0c1118 0%, var(--bg) 62%, var(--holo-bg) 100%); overflow: hidden; }
+      #banner { flex: 0 0 auto; margin: 0.4rem 0 0.2rem; height: clamp(48px, 9vh, 92px); pointer-events: none; }
+      #banner img { height: 100%; width: auto; display: block; }
+      /* φ region balance: top:bottom = 0.382:0.618 → the menu cluster sits on the upper
+         golden line (~38.2% from top), not dead-centre. */
+      .grow { flex: 1 1 auto; min-height: 0.4rem; }
+      #growTop { flex: 0.382 1 auto; } #growBot { flex: 0.618 1 auto; }
+
+      /* The big-icon OS row — a centered, horizontally scrolling strip. */
+      #oswrap { position: relative; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
+      .scrollarrow { flex: 0 0 auto; color: var(--dim); font-size: 1.4rem; width: 1.4rem; text-align: center;
+        cursor: pointer; visibility: hidden; }
+      .scrollarrow.on { visibility: visible; } .scrollarrow:hover { color: var(--fg); }
+      #osrow { display: flex; gap: clamp(0.5rem, 2.4vw, 1.6rem); padding: 0.6rem 0.4rem; overflow-x: auto;
+        scrollbar-width: none; scroll-behavior: smooth; max-width: 100%; }
+      #osrow::-webkit-scrollbar { display: none; }
+      #toolrow { display: flex; gap: clamp(0.4rem, 1.6vw, 1rem); padding: 0.5rem; flex-wrap: wrap;
+        justify-content: center; margin-top: 0.2rem; }
+
+      .tile { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+        cursor: pointer; border-radius: 16px; padding: 0.5rem; position: relative; color: var(--dim);
+        transition: transform 0.12s ease, color 0.12s ease; }
+      .tile .icon { width: var(--big); height: var(--big); display: grid; place-items: center; }
+      .tile .icon svg { width: 78%; height: 78%; }
+      .tile.tool .icon { width: var(--small); height: var(--small); }
+      .tile .cap { font-size: var(--f-base); max-width: calc(var(--big) + 0.4rem); text-align: center; line-height: 1.2;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); }
+      .tile.tool .cap { font-size: var(--f-sm); max-width: calc(var(--small) + 3.2rem); }
+      .tile .hot { position: absolute; top: 0.2rem; right: 0.35rem; font: 700 var(--f-sm) ui-monospace, monospace;
+        color: var(--dim); opacity: 0.7; }
+      .tile .badge { position: absolute; right: 0.45rem; bottom: 2.0rem; font-size: var(--f-sm); filter: grayscale(0.2); }
+      /* Selection — the rEFInd selection_big / selection_small graphic, behind the icon. */
+      .tile.sel { color: var(--accent); transform: translateY(-2px) scale(1.04); }
+      .tile.sel .cap { color: var(--fg); }
+      .tile.sel .icon { background: var(--sel-big) center/contain no-repeat; }
+      .tile.tool.sel .icon { background: var(--sel-small) center/contain no-repeat; }
+      .tile.dimmed { opacity: 0.4; }
+
+      /* Label + info line + timeout — the text block under the menu (rEFInd layout). */
+      #label { flex: 0 0 auto; font-size: clamp(var(--f-md), 2.6vw, var(--f-lg)); font-weight: 700; color: var(--fg);
+        letter-spacing: 0.01em; margin: 0.382rem 0 0.236rem; min-height: 1.6em; text-align: center; }
+      #infoline { flex: 0 0 auto; font: var(--f-sm) ui-monospace, Menlo, Consolas, monospace; color: var(--dim);
+        text-align: center; min-height: 1.2em; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #infoline .k { color: var(--accent); } #infoline .ok { color: var(--holo-ok); } #infoline .bad { color: var(--holo-danger); }
+      #timeout { flex: 0 0 auto; font-size: var(--f-base); color: var(--dim); margin: 0.618rem 0 0.382rem; min-height: 1.3em; text-align: center; }
+      #timeout b { color: var(--fg); } #timeout.run { color: var(--accent); }
+      #hints { flex: 0 0 auto; font-size: var(--f-sm); color: var(--dim); opacity: 0.7; margin-bottom: 0.2rem; text-align: center; }
+
+      /* ── Overlays: About · Submenu · Line editor · EFI shell · config drawer ─────── */
+      .overlay { position: absolute; inset: 0; z-index: 40; display: none; background: rgba(2,5,9,0.92);
+        backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1.5rem; }
+      .overlay.open { display: flex; }
+      .panel { background: var(--holo-surface); border: 1px solid var(--holo-border); border-radius: 14px; max-width: 44rem; width: 100%;
+        max-height: 88%; overflow: auto; padding: 1.4rem 1.6rem; box-shadow: 0 24px 70px rgba(0,0,0,0.6); }
+      .panel h2 { margin: 0 0 0.2rem; font-size: var(--f-lg); }
+      .panel h3 { font-size: var(--f-sm); text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 1.1rem 0 0.5rem; }
+      .panel p { color: var(--holo-ink); margin: 0.4rem 0; }
+      .panel .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: var(--f-sm); color: var(--dim); }
+      .panel dl { display: grid; grid-template-columns: 10rem 1fr; gap: 0.382rem 0.9rem; margin: 0.4rem 0; font-size: var(--f-base); }
+      .panel dt { color: var(--dim); } .panel dd { margin: 0; word-break: break-all; }
+      .panel .close { float: right; }
+      .menulist { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+      .menulist li { padding: 0.55rem 0.8rem; border: 1px solid var(--holo-border); border-radius: 8px; margin-bottom: 0.4rem;
+        cursor: pointer; display: flex; align-items: center; gap: 0.7rem; }
+      .menulist li.sel, .menulist li:hover { border-color: var(--accent); background: #0f1620; }
+      .menulist li .ic { width: 1.4rem; height: 1.4rem; color: var(--accent); flex: 0 0 auto; }
+      .menulist li .ic svg { width: 100%; height: 100%; }
+      .menulist li .sub { color: var(--dim); font-size: var(--f-sm); }
+      #editline { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.95rem;
+        background: var(--holo-bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 8px; padding: 0.6rem 0.7rem; }
+      #shellout { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: var(--f-sm); white-space: pre-wrap;
+        background: var(--holo-bg); border: 1px solid var(--holo-border); border-radius: 8px; padding: 0.8rem; min-height: 12rem;
+        max-height: 46vh; overflow: auto; color: var(--holo-ink); }
+      #shellin { width: 100%; margin-top: 0.5rem; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9rem;
+        background: var(--holo-bg); color: var(--fg); border: 1px solid var(--holo-border); border-radius: 8px; padding: 0.55rem 0.7rem; }
+      #cfgtext { width: 100%; min-height: 50vh; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: var(--f-sm);
+        background: var(--holo-bg); color: var(--holo-ink); border: 1px solid var(--holo-border); border-radius: 8px; padding: 0.7rem; }
+      .btn { font: inherit; padding: 0.35rem 0.8rem; border-radius: 7px; border: 1px solid var(--holo-border); background: var(--holo-border);
+        color: var(--fg); cursor: pointer; margin: 0.3rem 0.3rem 0 0; }
+      .btn:hover { background: var(--holo-border); } .btn.primary { background: var(--holo-accent); border-color: var(--holo-accent); }
+      .btn.danger { border-color: var(--holo-danger); color: var(--holo-danger); }
+
+      /* ── Firmware Setup (F2) — UEFI utility chrome, golden-ratio split ─────────────── */
+      .panel.fw { max-width: 54rem; }
+      /* φ split: tab rail : content = 1 : 1.618 */
+      #fwBody { display: grid; grid-template-columns: 13rem 1fr; gap: 1.618rem; margin-top: 1rem;
+        border-top: 1px solid var(--holo-border); padding-top: 1rem; }
+      #fwTabs { display: flex; flex-direction: column; gap: 0.382rem; }
+      #fwTabs button { font: var(--f-base) ui-monospace, Menlo, Consolas, monospace; text-align: left;
+        color: var(--dim); background: transparent; border: 1px solid transparent; border-radius: 7px;
+        padding: 0.5rem 0.7rem; cursor: pointer; display: flex; justify-content: space-between; gap: 0.6rem; }
+      #fwTabs button:hover { color: var(--fg); }
+      #fwTabs button.sel { color: var(--fg); background: #0f1620; border-color: var(--accent); }
+      #fwTabs button .v { color: var(--holo-ok); font-size: var(--f-sm); }
+      #fwTabs button .v.bad { color: var(--holo-danger); }
+      #fwPane h3 { margin-top: 0; }
+      #fwPane dl { grid-template-columns: 11rem 1fr; }
+      #fwPane dd { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--fg); }
+      #fwPane dd.dim { color: var(--dim); } #fwPane dd.ok { color: var(--holo-ok); } #fwPane dd.bad { color: var(--holo-danger); }
+      #fwPane .meter { height: 0.5rem; border-radius: 999px; background: var(--holo-border); overflow: hidden; margin-top: 0.3rem; }
+      #fwPane .meter i { display: block; height: 100%; background: var(--accent); }
+      #fwPane label.fld { display: grid; grid-template-columns: 11rem 1fr; align-items: center; gap: 0.9rem; margin: 0.5rem 0; font-size: var(--f-base); }
+      #fwPane label.fld span { color: var(--dim); }
+      #fwPane input, #fwPane select { font: var(--f-base) ui-monospace, Menlo, Consolas, monospace; color: var(--fg);
+        background: var(--holo-bg); border: 1px solid var(--holo-border); border-radius: 6px; padding: 0.4rem 0.55rem; }
+      #fwPane input:focus, #fwPane select:focus { border-color: var(--accent); outline: none; }
+      @media (max-width: 640px) { #fwBody { grid-template-columns: 1fr; } #fwTabs { flex-direction: row; flex-wrap: wrap; } }
+
+      /* ── The booted holospace — mounted full-viewport, nestable (frame architecture) ── */
+      #bootframe { position: fixed; inset: 0; z-index: 60; background: var(--holo-bg); display: none; }
+      #bootframe.open { display: block; }
+      #bootframe iframe { width: 100%; height: 100%; border: 0; display: block; }
+      #bootback { position: fixed; left: 10px; bottom: 10px; z-index: 61; display: none;
+        font: var(--f-sm) ui-monospace, monospace; color: var(--dim); background: #0d1117cc; border: 1px solid var(--holo-border);
+        border-radius: 999px; padding: 6px 12px; cursor: pointer; backdrop-filter: blur(6px); }
+      #bootback.open { display: block; } #bootback:hover { color: var(--fg); }
+
+      /* Boot handoff splash — the Secure-Boot verification message. */
+      #handoff { position: absolute; inset: 0; z-index: 50; display: none; flex-direction: column;
+        align-items: center; justify-content: center; gap: 0.8rem; background: var(--holo-bg);
+        font: 0.95rem ui-monospace, Menlo, Consolas, monospace; color: var(--fg); }
+      #handoff.open { display: flex; }
+      #handoff .big { font-size: 1.3rem; font-weight: 700; }
+      #handoff .step { color: var(--dim); } #handoff .step.ok { color: var(--holo-ok); } #handoff .step.bad { color: var(--holo-danger); }
+
+      /* Screensaver. */
+      #saver { position: absolute; inset: 0; z-index: 55; background: var(--holo-bg); display: none; }
+      #saver.on { display: block; }
+
+      #toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); background: var(--holo-surface-2);
+        border: 1px solid var(--holo-border); border-radius: 8px; padding: 0.45rem 0.9rem; font-size: var(--f-sm); opacity: 0;
+        transition: opacity 0.2s; z-index: 80; pointer-events: none; }
+      #toast.show { opacity: 1; }
+
+      /* Mobile: shrink the icons, let the OS row scroll, wrap the chrome. */
+      @media (max-width: 640px) {
+        :root { --big: 84px; --small: 40px; }
+        #bar { flex-wrap: wrap; gap: 0.35rem 0.5rem; }
+        #bar .k { max-width: 60vw; }
+        #bar button, #bar select { min-height: 40px; }
+      }
+      /* Text-only mode (textonly true) — a plain list, no graphics. */
+      body.textonly #banner, body.textonly .tile .icon, body.textonly .scrollarrow { display: none; }
+      body.textonly #osrow, body.textonly #toolrow { flex-direction: column; align-items: stretch; gap: 0.2rem; }
+      body.textonly .tile { flex-direction: row; justify-content: flex-start; gap: 0.6rem; padding: 0.3rem 0.6rem; }
+      body.textonly .tile.sel { transform: none; outline: 1px solid var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <span class="name">Holo Boot</span>
+      <span class="tag">· holospace · rEFInd-native</span>
+      <span class="k" id="kaddr" title="κ-address of the selected loader">holo://boot</span>
+      <span class="ver" id="ver" title="Law L5 — boot assets + the selected loader re-derive to their κ"></span>
+      <span class="sp"></span>
+      <select id="themeSel" title="theme — a rEFInd theme.conf included over refind.conf"></select>
+      <button id="cfgBtn" title="edit refind.conf (the menu re-parses live)">⚙ refind.conf</button>
+      <button id="fsBtn" title="fullscreen (F11)">⛶</button>
+    </div>
+
+    <div id="screen">
+      <div id="banner"><img id="bannerImg" alt="Holo Boot" /></div>
+      <div class="grow" id="growTop"></div>
+      <div id="oswrap">
+        <span class="scrollarrow" id="arrowL" data-dir="-1">‹</span>
+        <div id="osrow" role="listbox" aria-label="Boot entries" tabindex="0"></div>
+        <span class="scrollarrow" id="arrowR" data-dir="1">›</span>
+      </div>
+      <div id="label">&nbsp;</div>
+      <div id="infoline">&nbsp;</div>
+      <div id="toolrow" role="listbox" aria-label="Tools"></div>
+      <div id="timeout">&nbsp;</div>
+      <div class="grow" id="growBot"></div>
+      <div id="hints">↔ select · ↕ rows · Enter boot · F2 firmware setup · Insert/Tab options · Esc rescan · F10 shot · 1–9 hotkeys</div>
+
+      <!-- Overlays live inside the screen so they sit under the chrome. -->
+      <div class="overlay" id="aboutOv">
+        <div class="panel">
+          <button class="btn close" data-close="aboutOv">✕ Close</button>
+          <h2>About Holo Boot</h2>
+          <p class="mono" id="aboutVer">Holo Boot 0.1 · rEFInd-faithful · Hologram OS</p>
+          <p>Holo Boot is the hologram-native <a href="https://www.rodsbooks.com/refind/" target="_blank" rel="noopener" style="color:var(--accent)">rEFInd</a>:
+            a graphical boot manager that runs entirely in the browser, with no server and no install. Where rEFInd
+            scans the EFI System Partition for OS loaders and boots them, Holo Boot scans the <b>κ-store</b> for
+            <b>holospaces</b> and boots them — each identified by its content hash, not its location (Law L1).</p>
+          <h3>Secure Boot = κ re-derivation (Law L5)</h3>
+          <p>Before a loader boots, Holo Boot fetches its bytes and re-derives their κ, refusing any entry whose
+            content does not match the κ pinned in <span class="mono">boot/boot-manifest.json</span>. This is the
+            content-addressed analog of Secure Boot / shim signature verification — a tampered loader is rejected.</p>
+          <h3>Faithful to the rEFInd spec</h3>
+          <p class="mono">refind.conf parser · menuentry / submenuentry stanzas · the big-icon + tools rows ·
+            selection graphics · banner · themes · timeout + default_selection · hideui / showtools · the
+            keyboard model (arrows · Enter · Insert/F2/Tab/+ · Esc · Delete/- · F10 · 1–9 · letters) ·
+            the boot-options submenu + line editor · mouse + touch.</p>
+          <dl>
+            <dt>Engine</dt><dd>the platform — vanilla JS, <span class="mono">crypto.subtle</span> for Law-L5 κ, no framework, no CDN, no build</dd>
+            <dt>Config</dt><dd class="mono">boot/refind.conf (+ included theme.conf)</dd>
+            <dt>Manifest</dt><dd class="mono">boot/boot-manifest.json</dd>
+            <dt>Upstream</dt><dd>rEFInd © Roderick W. Smith, GPLv3 — rodsbooks.com/refind</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="overlay" id="subOv">
+        <div class="panel">
+          <button class="btn close" data-close="subOv">✕ Close</button>
+          <h2 id="subTitle">Boot options</h2>
+          <p class="mono" id="subLoader"></p>
+          <ul class="menulist" id="subList"></ul>
+          <p class="mono" style="color:var(--dim)">Enter boots the highlighted option · Insert/F2 edits the boot-options line · Esc returns</p>
+        </div>
+      </div>
+
+      <div class="overlay" id="editOv">
+        <div class="panel">
+          <h2>Edit boot options</h2>
+          <p class="mono" id="editLoader"></p>
+          <input id="editline" spellcheck="false" />
+          <p class="mono" style="color:var(--dim)">Enter boots with these options · Esc cancels</p>
+        </div>
+      </div>
+
+      <div class="overlay" id="shellOv">
+        <div class="panel">
+          <button class="btn close" data-close="shellOv">✕ Close</button>
+          <h2>Hologram EFI Shell</h2>
+          <div id="shellout"></div>
+          <input id="shellin" spellcheck="false" placeholder="help · ls · boot &lt;n|name&gt; · kappa &lt;name&gt; · verify · about · exit" />
+        </div>
+      </div>
+
+      <div class="overlay" id="cfgOv">
+        <div class="panel" style="max-width:52rem">
+          <button class="btn close" data-close="cfgOv">✕ Close</button>
+          <h2>refind.conf</h2>
+          <p class="mono" style="color:var(--dim)">Edit and Apply — the menu re-parses live (the real directive set + menuentry stanzas).</p>
+          <textarea id="cfgtext" spellcheck="false"></textarea>
+          <div>
+            <button class="btn primary" id="cfgApply">Apply (rescan)</button>
+            <button class="btn" id="cfgReload">Reload from disk</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Firmware Setup (F2) — a faithful UEFI setup utility. Every field is queried live
+           from the platform; nothing is hardcoded. The Boot tab edits the parsed refind.conf
+           directives in place (writes back to `g`, re-renders), exactly like the config drawer. -->
+      <div class="overlay" id="fwOv">
+        <div class="panel fw">
+          <button class="btn close" data-close="fwOv">✕ Exit (Esc)</button>
+          <h2>Hologram Platform Manager</h2>
+          <p class="mono" id="fwSub">UEFI-class firmware setup · content-addressed · Law L5</p>
+          <div id="fwBody">
+            <nav id="fwTabs" role="tablist"></nav>
+            <section id="fwPane"></section>
+          </div>
+          <p class="mono" style="color:var(--dim)">↑↓ section · live platform readout · Esc returns to the boot menu</p>
+        </div>
+      </div>
+
+      <div id="handoff">
+        <div class="big" id="hoTitle">Booting…</div>
+        <div class="step" id="hoStep">verifying loader κ…</div>
+      </div>
+      <div id="saver"></div>
+    </div>
+
+    <div id="bootframe"><iframe id="bf" title="booted holospace" allow="fullscreen; clipboard-read; clipboard-write; camera; microphone; display-capture; autoplay"></iframe></div>
+    <div id="bootback" title="return to Holo Boot (Esc)">⎋ Holo Boot</div>
+    <div id="toast"></div>
+
+    <!-- Share affordance + #k= provenance + Law-L5 stamp (no auto button). -->
+    <script src=".holo/sha256/e9464e1ccc25bd0ba2840ced25d7d1199794be73cf1c1ee98f7513bd0b6fd892.js" data-holo-shared="teleport.js" defer></script>
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      const params = new URLSearchParams(location.search);
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      let toastT; const toast = (m) => { const e = $("toast"); e.textContent = m; e.classList.add("show");
+        clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove("show"), 2000); };
+
+      // ── Law L5: sha256 re-derivation (the pins are sha256) ──────────────────────────
+      async function sha256(u8) { const d = await crypto.subtle.digest("SHA-256", u8);
+        return "sha256:" + Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join(""); }
+      async function rederive(url) {
+        try { const b = new Uint8Array(await (await fetch(url, { cache: "no-store" })).arrayBuffer()); return await sha256(b); }
+        catch { return null; }
+      }
+      let MANIFEST = { assets: {}, loaders: {} };
+
+      // ── rEFInd config parser ────────────────────────────────────────────────────────
+      // A faithful tokenizer for refind.conf: comments (#), quoted strings, the global
+      // directives, and nested menuentry { … submenuentry { … } } stanzas. `include`
+      // pulls in a theme.conf (its globals override, exactly like rEFInd themes).
+      function tokenize(line) {
+        const out = []; let i = 0, cur = "", q = false;
+        while (i < line.length) {
+          const c = line[i++];
+          if (c === '"') { q = !q; continue; }
+          if (!q && /\s/.test(c)) { if (cur) { out.push(cur); cur = ""; } continue; }
+          if (!q && c === "#") break;
+          cur += c;
+        }
+        if (cur) out.push(cur);
+        return out;
+      }
+      // Resolve a config + its includes into one ordered line list (text fetched).
+      async function loadConfigText(url, depth = 0) {
+        if (depth > 4) return [];
+        let text = "";
+        try { text = await (await fetch(url, { cache: "no-store" })).text(); } catch { return []; }
+        const base = url.slice(0, url.lastIndexOf("/") + 1);
+        const lines = [];
+        for (const raw of text.split(/\r?\n/)) {
+          const toks = tokenize(raw);
+          if (toks[0] === "include" && toks[1]) {
+            // include path is relative to the web root in our manifest (boot/themes/…),
+            // so resolve from origin, not the config's own dir, to match the pins.
+            const inc = new URL(toks[1], location.href).href;
+            lines.push(...await loadConfigText(inc, depth + 1));
+          } else lines.push(raw);
+        }
+        return lines;
+      }
+      function parseConfig(lines) {
+        const g = {};                      // global scalars / lists
+        const entries = [];                // menuentry stanzas
+        let cur = null, sub = null;
+        const setG = (k, toks) => { g[k] = toks.join(" "); };
+        for (const raw of lines) {
+          const toks = tokenize(raw);
+          if (!toks.length) continue;
+          const k = toks[0];
+          if (sub) {
+            if (k === "}") { sub = null; continue; }
+            sub[k] = toks.slice(1).join(" ").replace(/^"|"$/g, "");
+            if (k === "disabled") sub.disabled = true;
+            continue;
+          }
+          if (cur) {
+            if (k === "}") { entries.push(cur); cur = null; continue; }
+            if (k === "submenuentry") { sub = { title: raw.replace(/^\s*submenuentry\s+/, "").replace(/\{.*$/, "").trim().replace(/^"|"$/g, "") }; cur.submenu.push(sub); continue; }
+            if (k === "disabled") { cur.disabled = true; continue; }
+            cur[k] = toks.slice(1).join(" ");
+            continue;
+          }
+          if (k === "menuentry") {
+            cur = { title: raw.replace(/^\s*menuentry\s+/, "").replace(/\{\s*$/, "").trim().replace(/^"|"$/g, ""), submenu: [] };
+            continue;
+          }
+          // Global directive (scalar or comma list — we keep the raw string).
+          setG(k, toks.slice(1));
+        }
+        return { g, entries };
+      }
+      const asList = (s) => (s ? s.split(",").map((x) => x.trim()).filter(Boolean) : []);
+      const asBool = (s, d = false) => (s == null ? d : /^(true|on|1|yes)$/i.test(s.trim()));
+
+      // ── Auto-scan target set (`scanfor internal`) ───────────────────────────────────
+      // A loader present on this origin but not named by a stanza is discovered by the scan
+      // — the κ-store analog of rEFInd finding a loader on a volume. The set is derived from
+      // the κ-manifest's pinned `loaders` (so every scanned entry is manifest-backed), not a
+      // hardcoded list. With `scanfor manual` (the shipped default) this path is inert and
+      // only the manual stanzas show — each app opens as a window inside the one desktop.
+      const titleFromLoader = (l) => l.replace(/\.html$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+      // ── Icon cache (inline SVG so currentColor tints; Law-L5 verified) ───────────────
+      const iconCache = new Map(); let assetsOk = 0, assetsTot = 0;
+      async function loadIcon(name) {
+        if (iconCache.has(name)) return iconCache.get(name);
+        const rel = (g.icons_dir || "boot/icons").replace(/\/$/, "") + "/" + name + ".svg";
+        const p = (async () => {
+          try {
+            const txt = await (await fetch(rel, { cache: "no-store" })).text();
+            const pin = MANIFEST.assets[rel];
+            if (pin) { assetsTot++; if ((await sha256(new TextEncoder().encode(txt))) === pin) assetsOk++; }
+            return txt;
+          } catch { return `<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="20" width="88" height="88" rx="12" fill="none" stroke="currentColor" stroke-width="6"/></svg>`; }
+        })();
+        iconCache.set(name, p); return p;
+      }
+
+      // ── Tool definitions (showtools tokens → hologram-native actions) ────────────────
+      const TOOLS = {
+        shell:    { title: "EFI Shell", icon: "tool_shell", hot: "S", info: "the Hologram EFI shell — boot, inspect κ, verify", run: openShell },
+        memtest:  { title: "Memory Test", icon: "tool_memtest", hot: "T", info: "κ-store integrity self-test — re-derive every pinned byte", run: runMemtest },
+        netboot:  { title: "Net Boot", icon: "tool_netboot", hot: "N", info: "live link status + peer-announced loaders (navigator.connection)", run: () => { netDiscover(); openFirmware("net"); } },
+        bootorder:{ title: "Boot Order", icon: "tool_bootorder", hot: "O", info: "set the default boot entry (default_selection)", run: openBootOrder },
+        hidden_tags:{ title: "Hidden Tags", icon: "func_hidden", hot: "H", info: "restore entries hidden with Delete/-", run: openHidden },
+        about:    { title: "About Holo Boot", icon: "func_about", hot: "A", info: "version, license, and the κ Secure-Boot model", run: () => openOverlay("aboutOv") },
+        firmware: { title: "Firmware Setup", icon: "func_firmware", hot: "F", info: "the Hologram Platform Manager — live CPU · memory · storage · GPU · Secure Boot (F2)", run: () => openFirmware() },
+        exit:     { title: "Exit Holo Boot", icon: "func_exit", hot: "X", info: "leave the boot manager (continue / close)", run: doExit },
+        shutdown: { title: "Shut Down", icon: "func_shutdown", hot: "U", info: "power off — blank the screen", run: doShutdown },
+        reboot:   { title: "Reboot", icon: "func_reset", hot: "R", info: "restart Holo Boot and rescan the κ-store", run: () => location.reload() },
+      };
+
+      // ── State ─────────────────────────────────────────────────────────────────────
+      let g = {};                 // current globals
+      let lastParsed = null;      // last parsed {g, entries} — reused by firmware "Save & Exit"
+      let osEntries = [], toolEntries = [];
+      let netEntries = [];        // peer-announced (netboot)
+      let row = "os", oi = 0, ti = 0;
+      let hidden = new Set(JSON.parse(localStorage.getItem("holoboot.hidden") || "[]"));
+      let countdown = null, tleft = 0, interacted = false;
+
+      const sel = () => (row === "os" ? osEntries[oi] : toolEntries[ti]);
+
+      // ── Build the menu from the config ──────────────────────────────────────────────
+      async function rescan() {
+        const lines = await loadConfigText(new URL("boot/refind.conf", location.href).href);
+        const parsed = parseConfig(lines);
+        g = parsed.g; lastParsed = parsed;
+        applyTheme(g);
+        // OS entries: manual stanzas first (rEFInd order), filtered by disabled/hidden.
+        const seen = new Set();
+        const fromStanzas = parsed.entries
+          .filter((e) => !e.disabled)
+          .map((e) => {
+            const loader = (e.loader || "").trim();
+            seen.add(loader);
+            return {
+              title: e.title, loader, volume: e.volume || "kappa-store",
+              icon: iconNameFromPath(e.icon) || "os_unknown",
+              ostype: e.ostype || "Linux",
+              splashTheme: e.splashtheme || "",
+              options: normOpts(e.options), graphics: (e.graphics || "on") !== "off",
+              submenu: e.submenu || [], source: "manual",
+            };
+          });
+        // Auto-scan (scanfor internal): add present, manifest-pinned loaders not already listed.
+        const scan = asList(g.scanfor).map((s) => s.toLowerCase());
+        let autoEntries = [];
+        if (scan.includes("internal")) {
+          const dontFiles = asList(g.dont_scan_files);
+          for (const loader of Object.keys(MANIFEST.loaders)) {
+            if (seen.has(loader) || dontFiles.includes(loader)) continue;
+            if (await present(loader)) autoEntries.push({ title: titleFromLoader(loader), loader, volume: "kappa-store", icon: "os_unknown", ostype: "Linux", splashTheme: "", options: "", graphics: true, submenu: [], source: "scan" });
+          }
+        }
+        // Net boot (scanfor netboot): peer-announced loaders.
+        const net = scan.includes("netboot") ? netEntries.slice() : [];
+        osEntries = [...fromStanzas, ...autoEntries, ...net].filter((e) => !hidden.has(e.title));
+        const maxTags = parseInt(g.max_tags || "0", 10);
+        if (maxTags > 0) osEntries = osEntries.slice(0, maxTags);
+
+        // Tools from showtools (always-present defaults if unset).
+        const show = asList(g.showtools).length ? asList(g.showtools) : ["about", "hidden_tags", "shutdown", "reboot"];
+        toolEntries = show.filter((t) => TOOLS[t]).map((t) => ({ ...TOOLS[t], token: t }));
+
+        // hideui hints
+        $("hints").style.display = asList(g.hideui).includes("hints") || asList(g.hideui).includes("all") ? "none" : "";
+        $("banner").style.display = (asList(g.hideui).includes("banner") || asList(g.hideui).includes("all")) ? "none" : "";
+        document.body.classList.toggle("textonly", asBool(g.textonly));
+
+        // Resolve the default + initial selection (default_selection; "+"=last booted).
+        oi = Math.max(0, resolveDefault(g.default_selection));
+        ti = 0; row = "os";
+        await render();
+        startTimeout();
+      }
+
+      const iconNameFromPath = (p) => (p ? p.split("/").pop().replace(/\.[a-z]+$/i, "") : "");
+      const normOpts = (o) => (o == null ? "" : o.replace(/^"|"$/g, ""));
+      async function present(loader) {
+        try { const r = await fetch(loader, { method: "HEAD", cache: "no-store" }); return r.ok; }
+        catch { return false; }
+      }
+      function resolveDefault(d) {
+        if (!d) return 0;
+        d = d.trim();
+        if (d === "+") { const last = localStorage.getItem("holoboot.last"); const i = osEntries.findIndex((e) => e.title === last); return i >= 0 ? i : 0; }
+        if (/^[1-9]$/.test(d)) return Math.min(osEntries.length - 1, parseInt(d, 10) - 1);
+        const i = osEntries.findIndex((e) => e.title.toLowerCase().includes(d.toLowerCase()));
+        return i >= 0 ? i : 0;
+      }
+
+      // ── Apply theme (palette + banner + selection + sizes) ──────────────────────────
+      function applyTheme(g) {
+        const r = document.documentElement.style;
+        if (g.holo_bg) r.setProperty("--bg", g.holo_bg);
+        if (g.holo_fg) r.setProperty("--fg", g.holo_fg);
+        if (g.holo_accent) r.setProperty("--accent", g.holo_accent);
+        if (g.holo_dim) r.setProperty("--dim", g.holo_dim);
+        if (g.big_icon_size) r.setProperty("--big-cfg", parseInt(g.big_icon_size, 10) + "px");
+        if (g.small_icon_size) r.setProperty("--small-cfg", parseInt(g.small_icon_size, 10) + "px");
+        if (g.selection_big) r.setProperty("--sel-big", `url("${g.selection_big}")`);
+        if (g.selection_small) r.setProperty("--sel-small", `url("${g.selection_small}")`);
+        if (g.banner) $("bannerImg").src = g.banner;
+        const fit = (g.banner_scale || "noscale") === "fillscreen";
+        $("banner").style.height = fit ? "clamp(60px,13vh,140px)" : "clamp(48px,9vh,92px)";
+      }
+
+      // ── Render ──────────────────────────────────────────────────────────────────────
+      async function render() {
+        const osrow = $("osrow"); osrow.innerHTML = "";
+        for (let i = 0; i < osEntries.length; i++) osrow.appendChild(await tileEl(osEntries[i], i, "os"));
+        const toolrow = $("toolrow"); toolrow.innerHTML = "";
+        for (let i = 0; i < toolEntries.length; i++) toolrow.appendChild(await tileEl(toolEntries[i], i, "tools"));
+        updateSelection();
+        updateArrows();
+      }
+      async function tileEl(e, i, kind) {
+        const t = document.createElement("div");
+        t.className = "tile" + (kind === "tools" ? " tool" : "");
+        t.dataset.row = kind; t.dataset.i = i;
+        const ic = document.createElement("div"); ic.className = "icon"; ic.innerHTML = await loadIcon(e.icon);
+        const cap = document.createElement("div"); cap.className = "cap"; cap.textContent = e.title;
+        t.appendChild(ic); t.appendChild(cap);
+        const showBadges = !asList(g.hideui).includes("badges") && !asList(g.hideui).includes("all");
+        if (kind === "os" && showBadges && e.source === "scan") { const b = document.createElement("span"); b.className = "badge"; b.textContent = "🛰"; b.title = "auto-scanned from the κ-store"; t.appendChild(b); }
+        if (kind === "os" && showBadges && e.source === "net") { const b = document.createElement("span"); b.className = "badge"; b.textContent = "🌐"; b.title = "peer-announced (netboot)"; t.appendChild(b); }
+        const hot = kind === "os" ? (i < 9 ? String(i + 1) : "") : (e.hot || "");
+        if (hot && !asList(g.hideui).includes("all")) { const h = document.createElement("span"); h.className = "hot"; h.textContent = hot; t.appendChild(h); }
+        t.onclick = () => {
+          const wasSel = (kind === row) && ((kind === "os" && i === oi) || (kind === "tools" && i === ti));
+          row = kind; if (kind === "os") oi = i; else ti = i;
+          cancelTimeout(); updateSelection();
+          if (wasSel) activate();         // click the already-selected tile → launch (rEFInd click)
+        };
+        t.ondblclick = () => { row = kind; if (kind === "os") oi = i; else ti = i; cancelTimeout(); activate(); };
+        return t;
+      }
+      function updateSelection() {
+        const tiles = document.querySelectorAll(".tile");
+        tiles.forEach((t) => t.classList.remove("sel"));
+        const cur = document.querySelector(`.tile[data-row="${row}"][data-i="${row === "os" ? oi : ti}"]`);
+        if (cur) { cur.classList.add("sel"); cur.scrollIntoView({ block: "nearest", inline: "center" }); }
+        const e = sel();
+        const hideLabel = asList(g.hideui).includes("label") || asList(g.hideui).includes("all");
+        $("label").innerHTML = hideLabel ? "&nbsp;" : esc(e ? e.title : "");
+        renderInfo(e);
+      }
+      async function renderInfo(e) {
+        if (!e) { $("infoline").innerHTML = "&nbsp;"; return; }
+        if (row === "tools") { $("infoline").innerHTML = esc(e.info || ""); return; }
+        const pin = MANIFEST.loaders[e.loader];
+        const where = `${esc(e.loader)}${e.volume ? " on " + esc(e.volume) : ""}`;
+        let kpart = pin ? `<span class="k">holo://${esc(pin.slice(0, 19))}…</span>` : `<span class="bad">unsigned</span>`;
+        $("infoline").innerHTML = `${where} · ${kpart}`;
+        $("kaddr").textContent = pin ? "holo://" + pin.slice(0, 26) + "…" : "holo://" + esc(e.loader);
+      }
+      function updateArrows() {
+        const r = $("osrow"); const overflow = r.scrollWidth > r.clientWidth + 4;
+        $("arrowL").classList.toggle("on", overflow); $("arrowR").classList.toggle("on", overflow);
+      }
+
+      // ── Activate (Enter / click-selected) ───────────────────────────────────────────
+      function activate() {
+        const e = sel(); if (!e) return;
+        if (row === "tools") { e.run && e.run(); return; }
+        boot(e);
+      }
+
+      // ── Boot a holospace — Law L5 verify, then mount full-viewport (nestable) ────────
+      async function boot(e, extraOptions) {
+        cancelTimeout();
+        const opts = mergeOpts(e.options, extraOptions);
+        const url = e.loader + (opts ? (opts.startsWith("?") ? opts : "?" + opts) : "");
+        $("hoTitle").textContent = "Booting " + e.title;
+        const step = $("hoStep"); step.className = "step"; step.textContent = "verifying loader κ…";
+        $("handoff").classList.add("open");
+        // Secure Boot: re-derive the loader bytes vs the pinned κ.
+        const pin = MANIFEST.loaders[e.loader];
+        if (pin) {
+          const got = await rederive(e.loader);
+          if (got && got === pin) { step.className = "step ok"; step.textContent = "✓ κ verified — " + pin.slice(0, 22) + "… · handing off"; }
+          else if (got && got !== pin) {
+            step.className = "step bad"; step.textContent = "✗ κ MISMATCH — boot refused (loader tampered)";
+            toast("boot refused: " + e.loader + " failed Law-L5 verification"); setTimeout(() => $("handoff").classList.remove("open"), 2600); return;
+          } else { step.className = "step"; step.textContent = "loader present, κ not re-derivable — booting unverified"; }
+        } else {
+          step.className = "step"; step.textContent = "no κ pin (external loader) — booting unverified";
+        }
+        localStorage.setItem("holoboot.last", e.title);
+        // Plymouth stage: after the loader is κ-verified, hand off to Holo Splash, which
+        // plays the boot splash — branded with THIS entry's own logo — then chains to the
+        // verified loader. Faithful to the real flow (bootloader → splash → OS). Skipped
+        // for non-OS entries (e.nosplash), when disabled (refind.conf `enable_splash false`
+        // or the page's ?nosplash), or if splash.html is absent.
+        // Display manager (SDDM): a multi-user OS SESSION hands off to the greeter for a
+        // self-sovereign, hardware-bound sign-in before the desktop; media/kiosk loaders boot
+        // straight. The greeter is interposed as the splash's `next`, so the real flow is
+        // bootloader → Plymouth → SDDM → shell (faithful to a real Linux desktop boot).
+        const isSession = /^(shell|home|os|workspace)\.html|^apps\/sdk\//.test(e.loader || "");
+        const target = isSession
+          ? "login.html?" + new URLSearchParams({ next: url, label: e.title,
+              logo: "boot/icons/" + (e.icon || "os_unknown") + ".svg" }).toString()
+          : url;
+        const useSplash = !params.has("nosplash") && asBool(g.enable_splash, true) && !e.nosplash && await present("splash.html");
+        const mountUrl = useSplash
+          ? "splash.html?" + new URLSearchParams({ next: target, label: e.title,
+              logo: "boot/icons/" + (e.icon || "os_unknown") + ".svg", theme: e.splashTheme || "holo-pulse",
+              duration: "7" }).toString()
+          : target;
+        setTimeout(() => {
+          $("handoff").classList.remove("open");
+          $("bf").src = new URL(mountUrl, location.href).href;
+          $("bootframe").classList.add("open"); $("bootback").classList.add("open");
+          $("bf").focus();
+        }, pin ? 650 : 350);
+      }
+      const stripQ = (s) => (s || "").replace(/^[?&]+/, "");
+      function mergeOpts(base, extra) {
+        const parts = [stripQ(base), stripQ(extra)].filter(Boolean);
+        return parts.length ? "?" + parts.join("&") : "";
+      }
+      function returnToMenu() {
+        $("bootframe").classList.remove("open"); $("bootback").classList.remove("open");
+        $("bf").src = "about:blank"; rescan();
+      }
+      $("bootback").onclick = returnToMenu;
+
+      // ── Submenu (Insert/F2/Tab/+) + line editor ─────────────────────────────────────
+      let subState = null; // { entry, items, idx }
+      function openSubmenu() {
+        if (row !== "os") return; const e = sel(); if (!e) return;
+        const items = [{ title: "Boot " + e.title, options: e.options || "" },
+          ...e.submenu.map((s) => ({
+            title: s.title,
+            options: s.add_options != null ? mergeOpts(e.options, s.add_options) : (s.options != null ? "?" + stripQ(s.options) : (e.options || "")),
+            loader: s.loader, initrd: s.initrd,
+          }))];
+        subState = { entry: e, items, idx: 0 };
+        $("subTitle").textContent = "Boot options — " + e.title;
+        $("subLoader").textContent = (e.loader) + " · ostype " + (e.ostype || "Linux");
+        renderSub();
+        openOverlay("subOv");
+      }
+      async function renderSub() {
+        const ul = $("subList"); ul.innerHTML = "";
+        for (let i = 0; i < subState.items.length; i++) {
+          const it = subState.items[i]; const li = document.createElement("li");
+          if (i === subState.idx) li.className = "sel";
+          const ic = document.createElement("span"); ic.className = "ic"; ic.innerHTML = await loadIcon(subState.entry.icon);
+          const txt = document.createElement("div");
+          txt.innerHTML = `<div>${esc(it.title)}</div><div class="sub">${esc((it.loader || subState.entry.loader) + (it.options ? " " + it.options : ""))}</div>`;
+          li.appendChild(ic); li.appendChild(txt);
+          li.onclick = () => { subState.idx = i; bootSub(); };
+          ul.appendChild(li);
+        }
+      }
+      function bootSub() {
+        const it = subState.items[subState.idx]; const e = subState.entry;
+        closeOverlay("subOv");
+        boot({ ...e, loader: it.loader || e.loader, options: it.options || "" });
+      }
+      function openEditor() {
+        const e = row === "os" ? sel() : null; if (!e) return;
+        const cur = subState ? subState.items[subState.idx] : { options: e.options || "" };
+        $("editLoader").textContent = (cur.loader || e.loader);
+        $("editline").value = stripQ(cur.options || e.options || "");
+        closeOverlay("subOv"); openOverlay("editOv");
+        setTimeout(() => $("editline").focus(), 30);
+      }
+
+      // ── Tools implementations ────────────────────────────────────────────────────────
+      function openShell() {
+        openOverlay("shellOv"); const out = $("shellout");
+        out.textContent = "Hologram EFI Shell — type `help`.\n";
+        $("shellin").value = ""; setTimeout(() => $("shellin").focus(), 30);
+      }
+      async function shellExec(cmd) {
+        const out = $("shellout"); const line = (s = "") => { out.textContent += s + "\n"; out.scrollTop = out.scrollHeight; };
+        out.textContent += "FS0:\\> " + cmd + "\n";
+        const [c, ...a] = cmd.trim().split(/\s+/); const arg = a.join(" ");
+        if (c === "help") line("commands: help · ls · boot <n|name> · kappa <name> · verify · about · cls · exit");
+        else if (c === "ls") osEntries.forEach((e, i) => line(`  ${i + 1}. ${e.title.padEnd(28)} ${e.loader}`));
+        else if (c === "cls") out.textContent = "";
+        else if (c === "about") line("Holo Boot — the hologram-native rEFInd. κ re-derivation is Secure Boot (Law L5).");
+        else if (c === "kappa") { const e = findEntry(arg); line(e ? `  ${e.loader} → ${MANIFEST.loaders[e.loader] || "(unsigned)"}` : "  no such entry"); }
+        else if (c === "verify") { line("re-deriving all pinned loaders…"); for (const e of osEntries) { const pin = MANIFEST.loaders[e.loader]; if (!pin) { line(`  ${e.loader}: unsigned`); continue; } const got = await rederive(e.loader); line(`  ${e.loader}: ${got === pin ? "✓ verified" : "✗ MISMATCH"}`); } }
+        else if (c === "boot") { const e = findEntry(arg); if (e) { closeOverlay("shellOv"); boot(e); } else line("  no such entry"); }
+        else if (c === "exit" || c === "quit") closeOverlay("shellOv");
+        else if (c) line("  unknown: " + c + " (try `help`)");
+      }
+      const findEntry = (a) => /^[0-9]+$/.test(a) ? osEntries[parseInt(a, 10) - 1] : osEntries.find((e) => e.title.toLowerCase().includes((a || "").toLowerCase()));
+      $("shellin").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { const v = ev.target.value; ev.target.value = ""; shellExec(v); } ev.stopPropagation(); });
+
+      async function runMemtest() {
+        openOverlay("shellOv"); const out = $("shellout"); out.textContent = "κ-store integrity test (Law L5) — re-deriving every pinned byte…\n\n";
+        let ok = 0, bad = 0, tot = 0;
+        for (const [rel, pin] of Object.entries(MANIFEST.assets)) { tot++; const got = await rederive(rel); if (got === pin) ok++; else { bad++; out.textContent += `  ✗ ${rel}\n`; } }
+        for (const [rel, pin] of Object.entries(MANIFEST.loaders)) { tot++; const got = await rederive(rel); if (got === pin) ok++; else { bad++; out.textContent += `  ✗ ${rel}\n`; } }
+        out.textContent += `\n${ok}/${tot} objects re-derive to their κ — ${bad === 0 ? "PASS ✓ (store intact)" : "FAIL ✗ (" + bad + " corrupt)"}\n`;
+        out.scrollTop = out.scrollHeight; $("shellin").value = ""; $("shellin").placeholder = "memory test complete — type exit";
+      }
+      function openBootOrder() {
+        subState = null;
+        $("subTitle").textContent = "Boot Order — set the default"; $("subLoader").textContent = "default_selection (the entry that boots on timeout)";
+        const ul = $("subList"); ul.innerHTML = "";
+        osEntries.forEach((e, i) => { const li = document.createElement("li"); li.innerHTML = `<div><div>${i + 1}. ${esc(e.title)}</div><div class="sub">${esc(e.loader)}</div></div>`;
+          li.onclick = () => { g.default_selection = e.title; localStorage.setItem("holoboot.last", e.title); oi = i; row = "os"; closeOverlay("subOv"); updateSelection(); toast("default → " + e.title); }; ul.appendChild(li); });
+        openOverlay("subOv");
+      }
+      function openHidden() {
+        $("subTitle").textContent = "Hidden Tags"; $("subLoader").textContent = hidden.size ? "click to restore" : "no hidden entries";
+        const ul = $("subList"); ul.innerHTML = "";
+        [...hidden].forEach((title) => { const li = document.createElement("li"); li.innerHTML = `<div>${esc(title)}</div>`;
+          li.onclick = () => { hidden.delete(title); saveHidden(); closeOverlay("subOv"); rescan(); toast("restored " + title); }; ul.appendChild(li); });
+        openOverlay("subOv");
+      }
+      const saveHidden = () => localStorage.setItem("holoboot.hidden", JSON.stringify([...hidden]));
+      function hideSelected() {
+        if (row !== "os") return; const e = sel(); if (!e) return;
+        hidden.add(e.title); saveHidden(); toast("hid " + e.title + " (restore via Hidden Tags)"); rescan();
+      }
+      // ── Firmware Setup (F2) — a real UEFI setup utility over live platform data ──────
+      let fwPlat = null, fwTab = "main", fwTabIds = [];
+      const naDD = (v) => (v == null || v === "" ? '<dd class="dim">unavailable</dd>' : `<dd>${esc(v)}</dd>`);
+      const fmtB = (n) => { if (n == null) return null; const u = ["B", "KiB", "MiB", "GiB", "TiB"]; let i = 0, x = n;
+        while (x >= 1024 && i < u.length - 1) { x /= 1024; i++; } return x.toFixed(x < 10 && i > 0 ? 1 : 0) + " " + u[i]; };
+
+      // Query every platform parameter the browser actually exposes. Nothing is fabricated:
+      // a missing API surfaces as "unavailable", never as a guessed value.
+      async function gatherPlatform() {
+        const p = {}, nav = navigator;
+        try { p.t = Math.round(window.__holoBootMs || performance.now()); } catch { p.t = null; }
+        p.cores = nav.hardwareConcurrency || null;
+        p.arch = (nav.userAgentData && nav.userAgentData.platform) || nav.platform || null;
+        p.mobile = nav.userAgentData ? nav.userAgentData.mobile : null;
+        p.ua = nav.userAgent || ""; p.lang = nav.language || "";
+        p.deviceMemory = nav.deviceMemory || null;
+        p.heap = (window.performance && performance.memory) ? performance.memory : null;
+        p.online = nav.onLine;
+        const c = nav.connection || nav.mozConnection || nav.webkitConnection;
+        p.conn = c ? { effectiveType: c.effectiveType, downlink: c.downlink, rtt: c.rtt, saveData: c.saveData } : null;
+        p.dpr = window.devicePixelRatio || 1; p.screenW = screen.width; p.screenH = screen.height;
+        p.vpW = innerWidth; p.vpH = innerHeight;
+        p.secureBoot = !!(window.crypto && crypto.subtle);
+        p.coi = (typeof crossOriginIsolated !== "undefined") ? crossOriginIsolated : null;
+        p.sw = ("serviceWorker" in nav) ? (nav.serviceWorker.controller ? "active" : "none") : "unsupported";
+        try { p.storage = await nav.storage.estimate(); } catch { p.storage = null; }
+        try { p.persisted = (nav.storage && nav.storage.persisted) ? await nav.storage.persisted() : null; } catch { p.persisted = null; }
+        // GPU — prefer WebGPU adapter info (ties to the WebGPU substrate); fall back to WebGL.
+        p.gpu = null; p.gpuApi = "none"; p.gpuGl = null;
+        try {
+          if (nav.gpu) {
+            p.gpuApi = "WebGPU"; const a = await nav.gpu.requestAdapter();
+            if (a) { let info = a.info || null; if (!info && a.requestAdapterInfo) { try { info = await a.requestAdapterInfo(); } catch {} }
+              p.gpu = { vendor: info && info.vendor, architecture: info && info.architecture, description: info && info.description, features: a.features ? a.features.size : null }; }
+          }
+        } catch {}
+        if (!p.gpu) { try { const cv = document.createElement("canvas"); const gl = cv.getContext("webgl2") || cv.getContext("webgl");
+          if (gl) { if (p.gpuApi === "none") p.gpuApi = "WebGL"; const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+            p.gpuGl = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } } catch {} }
+        p.assetCount = Object.keys(MANIFEST.assets || {}).length;
+        p.loaderCount = Object.keys(MANIFEST.loaders || {}).length;
+        p.algo = MANIFEST.algo || "sha256";
+        return p;
+      }
+
+      function fwTabDefs(p) {
+        const def = osEntries[Math.max(0, resolveDefault(g.default_selection))] || osEntries[0];
+        const loaderPin = def ? MANIFEST.loaders[def.loader] : null;
+        return [
+          { id: "main", label: "Main", render: () => `<h3>System Information</h3><dl>
+              <dt>Product</dt><dd>Hologram OS</dd>
+              <dt>Boot manager</dt><dd>Holo Boot · rEFInd-native</dd>
+              <dt>POST time</dt>${naDD(p.t != null ? p.t + " ms" : null)}
+              <dt>κ algorithm</dt><dd>${esc(p.algo)}</dd>
+              <dt>κ-store objects</dt><dd>${p.assetCount} assets · ${p.loaderCount} loaders</dd>
+              <dt>Language</dt>${naDD(p.lang)}
+              <dt>Secure Boot</dt>${p.secureBoot ? '<dd class="ok">Enabled — κ re-derivation (L5)</dd>' : '<dd class="bad">disabled (no crypto.subtle)</dd>'}</dl>` },
+          { id: "cpu", label: "Processor", render: () => `<h3>Processor</h3><dl>
+              <dt>Logical cores</dt>${naDD(p.cores)}
+              <dt>Architecture</dt>${naDD(p.arch)}
+              <dt>Form factor</dt>${naDD(p.mobile == null ? null : (p.mobile ? "mobile" : "desktop"))}
+              <dt>User agent</dt>${naDD(p.ua)}</dl>` },
+          { id: "mem", label: "Memory", render: () => {
+              const heap = p.heap ? `${fmtB(p.heap.usedJSHeapSize)} / ${fmtB(p.heap.jsHeapSizeLimit)}` : null;
+              return `<h3>Memory</h3><dl>
+                <dt>Device memory</dt>${naDD(p.deviceMemory != null ? "≥ " + p.deviceMemory + " GB" : null)}
+                <dt>JS heap</dt>${naDD(heap)}</dl>${(p.deviceMemory == null && !p.heap) ? '<p class="mono" style="color:var(--dim)">Memory APIs are gated by the browser; shown only where exposed.</p>' : ""}`; } },
+          { id: "storage", label: "Storage", render: () => {
+              if (!p.storage) return `<h3>Storage — κ-store</h3><dl><dt>Quota</dt><dd class="dim">unavailable</dd></dl>`;
+              const used = p.storage.usage || 0, quota = p.storage.quota || 0, pct = quota ? Math.min(100, used / quota * 100) : 0;
+              return `<h3>Storage — κ-store (OPFS)</h3><dl>
+                <dt>Used</dt><dd>${fmtB(used)}</dd>
+                <dt>Quota</dt><dd>${fmtB(quota)}</dd>
+                <dt>Utilisation</dt><dd>${pct.toFixed(pct < 10 ? 2 : 0)} %</dd>
+                <dt>Persistent</dt>${naDD(p.persisted == null ? null : (p.persisted ? "granted" : "best-effort"))}</dl>
+                <div class="meter"><i style="width:${pct}%"></i></div>`; } },
+          { id: "display", label: "Display", render: () => `<h3>Display</h3><dl>
+              <dt>Screen</dt><dd>${p.screenW} × ${p.screenH}</dd>
+              <dt>Viewport</dt><dd>${p.vpW} × ${p.vpH}</dd>
+              <dt>Pixel ratio</dt><dd>${p.dpr}×</dd>
+              <dt>resolution</dt><dd>${esc(g.resolution || "max")}</dd></dl>` },
+          { id: "gpu", label: "Graphics", render: () => {
+              const L = [`<dt>API</dt><dd>${esc(p.gpuApi)}</dd>`];
+              if (p.gpu) { L.push(`<dt>Vendor</dt>${naDD(p.gpu.vendor)}`); L.push(`<dt>Architecture</dt>${naDD(p.gpu.architecture)}`);
+                if (p.gpu.description) L.push(`<dt>Adapter</dt>${naDD(p.gpu.description)}`); if (p.gpu.features != null) L.push(`<dt>Features</dt><dd>${p.gpu.features}</dd>`); }
+              if (p.gpuGl) L.push(`<dt>Renderer</dt>${naDD(p.gpuGl)}`);
+              if (!p.gpu && !p.gpuGl) L.push(`<dt>Adapter</dt><dd class="dim">unavailable</dd>`);
+              return `<h3>Graphics</h3><dl>${L.join("")}</dl>`; } },
+          { id: "security", label: "Secure Boot", render: () => `<h3>Secure Boot — Law L5 (κ re-derivation)</h3><dl>
+              <dt>Engine</dt>${p.secureBoot ? '<dd class="ok">crypto.subtle · SHA-256</dd>' : '<dd class="bad">unavailable</dd>'}
+              <dt>Boot assets</dt><dd class="${assetsOk === assetsTot && assetsTot ? "ok" : "bad"}">${assetsOk}/${assetsTot} re-derive to κ</dd>
+              <dt>Cross-origin iso.</dt>${naDD(p.coi == null ? null : (p.coi ? "yes" : "no"))}
+              <dt>Service worker</dt><dd>${esc(p.sw)}</dd>
+              <dt>Default loader</dt>${naDD(def ? def.loader : null)}
+              <dt>Loader κ</dt>${loaderPin ? `<dd class="ok">${esc(loaderPin.slice(0, 30))}…</dd>` : '<dd class="bad">unsigned</dd>'}</dl>` },
+          { id: "net", label: "Network", render: () => `<h3>Network — Net Boot</h3><dl>
+              <dt>Link</dt>${p.online ? '<dd class="ok">online</dd>' : '<dd class="bad">offline</dd>'}
+              <dt>Effective type</dt>${naDD(p.conn ? p.conn.effectiveType : null)}
+              <dt>Downlink</dt>${naDD(p.conn && p.conn.downlink != null ? p.conn.downlink + " Mb/s" : null)}
+              <dt>RTT</dt>${naDD(p.conn && p.conn.rtt != null ? p.conn.rtt + " ms" : null)}
+              <dt>Save-Data</dt>${naDD(p.conn ? (p.conn.saveData ? "on" : "off") : null)}
+              <dt>Peer loaders</dt><dd>${netEntries.length} announced</dd></dl>` },
+          { id: "boot", label: "Boot", render: () => `<h3>Boot Configuration — refind.conf (live)</h3>
+              <label class="fld"><span>timeout (s)</span><input id="fwTimeout" type="number" min="0" value="${esc(parseInt(g.timeout || "0", 10))}"></label>
+              <label class="fld"><span>default_selection</span><select id="fwDefault"></select></label>
+              <label class="fld"><span>scanfor</span><input id="fwScanfor" value="${esc(g.scanfor || "manual")}"></label>
+              <label class="fld"><span>showtools</span><input id="fwShowtools" value="${esc(g.showtools || "")}"></label>
+              <div><button class="btn primary" id="fwApply">Save &amp; Exit</button> <button class="btn" id="fwDiscard">Discard</button></div>
+              <p class="mono" style="color:var(--dim)">Writes back to the live config and re-renders the menu — the same path as ⚙ refind.conf.</p>` },
+        ];
+      }
+
+      async function openFirmware(tab) {
+        fwTab = tab || "main";
+        $("fwSub").textContent = "UEFI-class firmware setup · " + (MANIFEST.algo || "sha256") + " · Law L5";
+        openOverlay("fwOv");
+        fwPlat = await gatherPlatform();
+        fwTabIds = fwTabDefs(fwPlat).map((t) => t.id);
+        if (!fwTabIds.includes(fwTab)) fwTab = "main";
+        renderFw();
+      }
+      function renderFw() {
+        const tabs = fwTabDefs(fwPlat); const nav = $("fwTabs"); nav.innerHTML = "";
+        tabs.forEach((t) => { const b = document.createElement("button"); b.textContent = t.label;
+          if (t.id === fwTab) b.className = "sel"; b.onclick = () => { fwTab = t.id; renderFw(); }; nav.appendChild(b); });
+        const cur = tabs.find((t) => t.id === fwTab) || tabs[0];
+        $("fwPane").innerHTML = cur.render();
+        if (fwTab === "boot") wireBootTab();
+      }
+      function fwMove(d) { const i = fwTabIds.indexOf(fwTab); if (i < 0) return;
+        fwTab = fwTabIds[(i + d + fwTabIds.length) % fwTabIds.length]; renderFw(); }
+      function wireBootTab() {
+        const dsel = $("fwDefault");
+        dsel.innerHTML = `<option value="+">+ (last booted)</option>` + osEntries.map((e, i) => `<option value="${esc(e.title)}">${i + 1}. ${esc(e.title)}</option>`).join("");
+        const curDef = (g.default_selection || "+").trim();
+        dsel.value = [...dsel.options].some((o) => o.value === curDef) ? curDef : "+";
+        $("fwApply").onclick = () => {
+          g.timeout = String(Math.max(0, parseInt($("fwTimeout").value || "0", 10)));
+          g.default_selection = $("fwDefault").value;
+          g.scanfor = $("fwScanfor").value.trim() || "manual";
+          g.showtools = $("fwShowtools").value.trim();
+          if (g.default_selection && g.default_selection !== "+") localStorage.setItem("holoboot.last", g.default_selection);
+          closeOverlay("fwOv"); rescanFromGlobals(); toast("firmware settings applied");
+        };
+        $("fwDiscard").onclick = () => closeOverlay("fwOv");
+      }
+      // Rebuild the menu from the LIVE g (honouring firmware edits), reusing the last parse.
+      function rescanFromGlobals() { if (!lastParsed) return rescan(); return rescanFrom(lastParsed); }
+
+      function doShutdown() {
+        $("saver").classList.add("on"); $("saver").innerHTML = `<div style="position:absolute;inset:0;display:grid;place-items:center;color:#3a4350;font:14px ui-monospace,monospace">It is now safe to close this holospace.</div>`;
+      }
+      function doExit() {
+        if ($("bootframe").classList.contains("open")) return returnToMenu();
+        if (window.top !== window.self) { try { window.parent.postMessage({ type: "holo-boot-exit" }, "*"); } catch {} }
+        doShutdown();
+      }
+
+      // ── netboot — peer announcement over the substrate (BroadcastChannel) ─────────────
+      const netCh = ("BroadcastChannel" in window) ? new BroadcastChannel("holo-boot-net") : null;
+      function netDiscover() {
+        if (!netCh) return;
+        try { netCh.postMessage({ type: "holo-boot-who" }); } catch {}
+      }
+      if (netCh) {
+        netCh.onmessage = (ev) => {
+          const m = ev.data || {};
+          if (m.type === "holo-boot-who") { try { netCh.postMessage({ type: "holo-boot-announce", title: "Holo Boot", loader: "boot.html" }); } catch {} return; }
+          if (m.type === "holo-boot-announce" && m.loader) {
+            if (!netEntries.find((e) => e.loader === m.loader && e.title === m.title)) {
+              netEntries.push({ title: m.title || m.loader, loader: m.loader, volume: "peer", icon: "os_unknown", ostype: "Linux", options: m.options || "", graphics: true, submenu: [], source: "net" });
+              if (asList(g.scanfor).map((s) => s.toLowerCase()).includes("netboot")) rescan();
+            }
+          }
+        };
+      }
+
+      // ── Overlays ────────────────────────────────────────────────────────────────────
+      const anyOpen = () => document.querySelector(".overlay.open");
+      function openOverlay(id) { $(id).classList.add("open"); cancelTimeout(); }
+      function closeOverlay(id) { $(id).classList.remove("open"); if (id === "subOv") subState = null; }
+      document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => closeOverlay(b.dataset.close)));
+      document.querySelectorAll(".overlay").forEach((o) => (o.onclick = (e) => { if (e.target === o) closeOverlay(o.id); }));
+
+      // ── Timeout / countdown ──────────────────────────────────────────────────────────
+      function startTimeout() {
+        cancelTimeout(); interacted = false;
+        const t = parseInt(g.timeout || "0", 10);
+        if (asBool(g.shutdown_after_timeout) && t > 0) { /* still counts down, then shuts down */ }
+        if (t === 0) { $("timeout").innerHTML = "&nbsp;"; return; }
+        if (t < 0) { setTimeout(() => { if (!interacted) timeoutFire(); }, 30); return; }
+        tleft = t; tickTimeout();
+        countdown = setInterval(() => { tleft--; if (tleft <= 0) { timeoutFire(); } else tickTimeout(); }, 1000);
+      }
+      function tickTimeout() {
+        const e = osEntries[resolveDefault(g.default_selection)] || osEntries[0];
+        $("timeout").classList.add("run");
+        $("timeout").innerHTML = asBool(g.shutdown_after_timeout)
+          ? `Shutting down in <b>${tleft}</b> s — press any key to cancel`
+          : `Booting <b>${esc(e ? e.title : "default")}</b> in <b>${tleft}</b> s — press any key to cancel`;
+      }
+      function timeoutFire() {
+        cancelTimeout();
+        if (asBool(g.shutdown_after_timeout)) return doShutdown();
+        const e = osEntries[resolveDefault(g.default_selection)] || osEntries[0];
+        if (e) { oi = osEntries.indexOf(e); row = "os"; boot(e); }
+      }
+      function cancelTimeout() { interacted = true; if (countdown) { clearInterval(countdown); countdown = null; } $("timeout").classList.remove("run"); $("timeout").innerHTML = "&nbsp;"; }
+
+      // ── Screenshot (F10) — serialize the boot screen to an SVG download ──────────────
+      function screenshot() {
+        try {
+          const node = $("screen").cloneNode(true);
+          node.querySelectorAll(".overlay,#handoff,#saver").forEach((n) => n.remove());
+          const w = $("screen").clientWidth, h = $("screen").clientHeight;
+          const xml = new XMLSerializer().serializeToString(node);
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="background:${getComputedStyle(document.body).backgroundColor};color:${getComputedStyle(document.body).color};font-family:sans-serif">${xml}</div></foreignObject></svg>`;
+          const n = String((parseInt(localStorage.getItem("holoboot.shot") || "0", 10) + 1)).padStart(3, "0");
+          localStorage.setItem("holoboot.shot", n);
+          const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+          a.download = `screenshot_${n}.svg`; a.click(); toast("saved screenshot_" + n + ".svg");
+        } catch (e) { toast("screenshot failed: " + e.message); }
+      }
+
+      // ── Keyboard — the faithful rEFInd model ─────────────────────────────────────────
+      addEventListener("keydown", (ev) => {
+        // When a holospace is booted, only Esc (no focus in frame) returns.
+        if ($("bootframe").classList.contains("open")) { if (ev.key === "Escape") { ev.preventDefault(); returnToMenu(); } return; }
+        // Overlays own their own keys.
+        if ($("editOv").classList.contains("open")) {
+          if (ev.key === "Enter") { ev.preventDefault(); const opts = $("editline").value; const e = row === "os" ? sel() : null; const ld = subState ? (subState.items[subState.idx].loader || subState.entry.loader) : (e && e.loader); closeOverlay("editOv"); if (ld) boot({ ...(subState ? subState.entry : e), loader: ld, options: opts ? "?" + stripQ(opts) : "" }); }
+          else if (ev.key === "Escape") { ev.preventDefault(); closeOverlay("editOv"); }
+          return;
+        }
+        if ($("shellOv").classList.contains("open")) { if (ev.key === "Escape") closeOverlay("shellOv"); return; }
+        if ($("subOv").classList.contains("open")) {
+          if (ev.key === "ArrowUp") { ev.preventDefault(); if (subState) { subState.idx = (subState.idx - 1 + subState.items.length) % subState.items.length; renderSub(); } }
+          else if (ev.key === "ArrowDown") { ev.preventDefault(); if (subState) { subState.idx = (subState.idx + 1) % subState.items.length; renderSub(); } }
+          else if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); if (subState) bootSub(); }
+          else if (ev.key === "Insert" || ev.key === "Tab" || ev.key === "+") { ev.preventDefault(); openEditor(); }
+          else if (ev.key === "Escape" || ev.key === "Backspace") { ev.preventDefault(); closeOverlay("subOv"); }
+          return;
+        }
+        if ($("fwOv").classList.contains("open")) {
+          if (ev.key === "ArrowUp") { ev.preventDefault(); fwMove(-1); }
+          else if (ev.key === "ArrowDown") { ev.preventDefault(); fwMove(1); }
+          else if (ev.key === "Escape") { ev.preventDefault(); closeOverlay("fwOv"); }
+          return;
+        }
+        if (anyOpen()) { if (ev.key === "Escape") closeOverlay(anyOpen().id); return; }
+
+        cancelTimeout();
+        const k = ev.key;
+        if (k === "ArrowLeft") { ev.preventDefault(); move(-1); }
+        else if (k === "ArrowRight") { ev.preventDefault(); move(1); }
+        else if (k === "ArrowUp") { ev.preventDefault(); row = "os"; clampSel(); updateSelection(); }
+        else if (k === "ArrowDown") { ev.preventDefault(); if (toolEntries.length) { row = "tools"; clampSel(); updateSelection(); } }
+        else if (k === "Home") { ev.preventDefault(); row = "os"; oi = 0; updateSelection(); }
+        else if (k === "End") { ev.preventDefault(); if (toolEntries.length) { row = "tools"; ti = toolEntries.length - 1; } else oi = osEntries.length - 1; updateSelection(); }
+        else if (k === "PageUp") { ev.preventDefault(); move(-3); }
+        else if (k === "PageDown") { ev.preventDefault(); move(3); }
+        else if (k === "Enter" || k === " ") { ev.preventDefault(); activate(); }
+        else if (k === "F2") { ev.preventDefault(); openFirmware(); }
+        else if (k === "Insert" || k === "Tab" || k === "+") { ev.preventDefault(); openSubmenu(); }
+        else if (k === "Escape" || k === "Backspace") { ev.preventDefault(); rescan(); toast("rescanned the κ-store"); }
+        else if (k === "Delete" || k === "-") { ev.preventDefault(); hideSelected(); }
+        else if (k === "F10" || k === "\\") { ev.preventDefault(); screenshot(); }
+        else if (/^[1-9]$/.test(k)) { ev.preventDefault(); const i = parseInt(k, 10) - 1; if (osEntries[i]) { row = "os"; oi = i; updateSelection(); boot(osEntries[i]); } }
+        else if (/^[a-zA-Z]$/.test(k)) hotkey(k.toLowerCase());
+      });
+      function move(d) {
+        if (row === "os") { if (!osEntries.length) return; oi = (oi + d + osEntries.length) % osEntries.length; }
+        else { if (!toolEntries.length) return; ti = (ti + d + toolEntries.length) % toolEntries.length; }
+        updateSelection();
+      }
+      function clampSel() { oi = Math.min(oi, Math.max(0, osEntries.length - 1)); ti = Math.min(ti, Math.max(0, toolEntries.length - 1)); }
+      function hotkey(ch) {
+        // rEFInd letter hotkeys: tool hotkeys first, then OS name-prefix.
+        const tool = toolEntries.find((t) => (t.hot || "").toLowerCase() === ch);
+        if (tool) { row = "tools"; ti = toolEntries.indexOf(tool); updateSelection(); tool.run(); return; }
+        const i = osEntries.findIndex((e) => e.title.toLowerCase().startsWith(ch));
+        if (i >= 0) { row = "os"; oi = i; updateSelection(); boot(osEntries[i]); }
+      }
+
+      // ── Pointer: arrows scroll; idle → screensaver ──────────────────────────────────
+      document.querySelectorAll(".scrollarrow").forEach((a) => (a.onclick = () => { $("osrow").scrollBy({ left: parseInt(a.dataset.dir, 10) * 220, behavior: "smooth" }); }));
+      $("osrow").addEventListener("scroll", updateArrows);
+      addEventListener("resize", updateArrows);
+      let saverT; function pokeSaver() { $("saver").classList.remove("on"); const s = parseInt(g.screensaver || "0", 10); if (s > 0) { clearTimeout(saverT); saverT = setTimeout(() => $("saver").classList.add("on"), s * 1000); } }
+      ["mousemove", "keydown", "touchstart", "click"].forEach((ev) => addEventListener(ev, () => { if ($("saver").classList.contains("on")) $("saver").classList.remove("on"); pokeSaver(); }, { passive: true }));
+
+      // ── Chrome: theme picker, config drawer, fullscreen ──────────────────────────────
+      const THEMES = [
+        { id: "", name: "Theme: default" },
+        { id: "boot/themes/midnight/theme.conf", name: "Theme: midnight" },
+      ];
+      $("themeSel").innerHTML = THEMES.map((t) => `<option value="${t.id}">${t.name}</option>`).join("");
+      $("themeSel").onchange = async () => {
+        // Swap the included theme by editing the in-memory config's include and rescanning.
+        const id = $("themeSel").value;
+        const base = await (await fetch("boot/refind.conf", { cache: "no-store" })).text();
+        const swapped = base.replace(/^include\s+.*$/m, id ? "include " + id : "include boot/themes/default/theme.conf");
+        const lines = []; for (const raw of swapped.split(/\r?\n/)) { const t = tokenize(raw); if (t[0] === "include" && t[1]) lines.push(...await loadConfigText(new URL(t[1], location.href).href)); else lines.push(raw); }
+        const parsed = parseConfig(lines); g = parsed.g; applyTheme(g); await render(); toast("theme applied");
+      };
+      $("cfgBtn").onclick = async () => { $("cfgtext").value = await (await fetch("boot/refind.conf", { cache: "no-store" })).text(); openOverlay("cfgOv"); };
+      $("cfgReload").onclick = async () => { $("cfgtext").value = await (await fetch("boot/refind.conf", { cache: "no-store" })).text(); };
+      $("cfgApply").onclick = async () => {
+        // Parse the edited text directly (honour its includes), then re-render live.
+        const txt = $("cfgtext").value; const lines = [];
+        for (const raw of txt.split(/\r?\n/)) { const t = tokenize(raw); if (t[0] === "include" && t[1]) lines.push(...await loadConfigText(new URL(t[1], location.href).href)); else lines.push(raw); }
+        const parsed = parseConfig(lines); g = parsed.g; lastParsed = parsed; applyTheme(g);
+        // Rebuild entries from this parsed config (same logic as rescan, sans refetch).
+        await rescanFrom(parsed); closeOverlay("cfgOv"); toast("applied — menu re-parsed");
+      };
+      async function rescanFrom(parsed) {
+        const seen = new Set();
+        const fromStanzas = parsed.entries.filter((e) => !e.disabled).map((e) => { const loader = (e.loader || "").trim(); seen.add(loader);
+          return { title: e.title, loader, volume: e.volume || "kappa-store", icon: iconNameFromPath(e.icon) || "os_unknown", ostype: e.ostype || "Linux", options: normOpts(e.options), graphics: (e.graphics || "on") !== "off", submenu: e.submenu || [], source: "manual" }; });
+        let autoEntries = [];
+        if (asList(g.scanfor).map((s) => s.toLowerCase()).includes("internal")) for (const loader of Object.keys(MANIFEST.loaders)) { if (seen.has(loader)) continue; if (await present(loader)) autoEntries.push({ title: titleFromLoader(loader), loader, volume: "kappa-store", icon: "os_unknown", ostype: "Linux", options: "", graphics: true, submenu: [], source: "scan" }); }
+        osEntries = [...fromStanzas, ...autoEntries].filter((e) => !hidden.has(e.title));
+        const show = asList(g.showtools).length ? asList(g.showtools) : ["about", "hidden_tags", "shutdown", "reboot"];
+        toolEntries = show.filter((t) => TOOLS[t]).map((t) => ({ ...TOOLS[t], token: t }));
+        document.body.classList.toggle("textonly", asBool(g.textonly));
+        oi = Math.max(0, resolveDefault(g.default_selection)); ti = 0; row = "os"; await render(); startTimeout();
+      }
+      function toggleFs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
+      $("fsBtn").onclick = toggleFs;
+      addEventListener("keydown", (e) => { if (e.key === "F11") { e.preventDefault(); toggleFs(); } });
+
+      // ── Boot ─────────────────────────────────────────────────────────────────────────
+      (async () => {
+        try { MANIFEST = await (await fetch("boot/boot-manifest.json", { cache: "no-store" })).json(); } catch { MANIFEST = { assets: {}, loaders: {} }; }
+        await rescan();
+        // Law-L5 chrome verdict (assets re-derived during icon load).
+        $("ver").textContent = assetsTot ? (assetsOk === assetsTot ? "✓ κ verified" : "✗ κ mismatch") : "";
+        $("ver").className = "ver " + (assetsOk === assetsTot && assetsTot ? "ok" : assetsTot ? "bad" : "");
+        $("ver").title = `Law L5 · ${assetsOk}/${assetsTot} boot assets re-derive to their κ`;
+        $("aboutVer").textContent = `Holo Boot · rEFInd-faithful · ${Object.keys(MANIFEST.loaders || {}).length} loaders · ${Object.keys(MANIFEST.assets || {}).length} assets pinned (${MANIFEST.algo || "sha256"}) · ${assetsOk}/${assetsTot} L5-verified`;
+        pokeSaver(); netDiscover();
+        // A parent holospace can hand Holo Boot an extra entry or boot it directly.
+        addEventListener("message", (ev) => {
+          const m = ev.data || {}; if (m.type === "holo-boot-add" && m.loader) { netEntries.push({ title: m.title || m.loader, loader: m.loader, volume: m.volume || "peer", icon: m.icon || "os_unknown", ostype: "Linux", options: m.options || "", graphics: true, submenu: [], source: "net" }); rescan(); }
+          if (m.type === "holo-boot-boot" && m.loader) boot({ title: m.title || m.loader, loader: m.loader, options: m.options || "" });
+        });
+        // Honour a deep link: ?boot=<name|n> boots straight away; ?src=<url> adds + boots.
+        const bootArg = params.get("boot");
+        if (params.get("src")) { const u = params.get("src"); boot({ title: "External loader", loader: u, options: "" }); }
+        else if (bootArg) { const e = findEntry(bootArg); if (e) { oi = osEntries.indexOf(e); boot(e); } }
+        window.__holoBootMs = performance.now();   // real POST→ready time (firmware Main tab)
+        window.__holoBootReady = true;
+      })();
+    </script>
+      <script src=".holo/sha256/293a9ac28f6139046ef0300a444579adbee5eb7fb2e3f86f9305507cacc497c0.js" data-holo-shared="holo-theme.js"></script>
+</body>
+</html>

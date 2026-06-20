@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Q Faculty bridge (Fork 2, the iframe boundary) — an app reaches the SAME Q over the governed cross-frame channel, GOVERNED: it READS the OS reflection (coherence/briefing/notices, read-only); its intent is GROUNDED in the user model by the shell (affinity + relevant recents) without the app ever seeing the raw model; q.remember writes through attributed to the app; and it is REFUSED the user's private/privileged surfaces (trust mutation, acting-as-user, raw memory). Fail-soft on a thin Q",
+  "authority": "the holo-gov cross-frame governed RPC (holo-privacy:rpc) · the app-as-separate-principal model (holo-q-app.js, fail-closed + receipted) · holospaces Laws L1 (private-first) / L5",
+  "witnessed": true,
+  "covers": [
+    "faculty-bridge",
+    "reflection-reads",
+    "grounded-intent",
+    "raw-model-private",
+    "refuses-trust-and-act",
+    "attributed-remember",
+    "fail-soft"
+  ],
+  "checks": {
+    "exposesReflectionReads": true,
+    "groundsAppIntentInUserModel": true,
+    "rawModelNeverHandedToApp": true,
+    "refusesTrustMutationAndAct": true,
+    "rememberWritesThroughAttributed": true,
+    "nonFacultyFallsThrough": true,
+    "unknownFacultyRefusedNotThrown": true,
+    "degradesWhenFacultyAbsent": true
+  },
+  "failed": []
+}

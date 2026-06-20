@@ -39,6 +39,8 @@ const checks = {
     /function showToast/.test(notify) && /items\.unshift\(rec\)/.test(notify),
   "a bare/transient toast is shown but NOT filed (history stays meaningful)":
     /if \(opts\.transient\) return rec/.test(notify),
+  "the live pill collapses per concern too — ONE pill per concernKey, never a duplicate stack (persistent 'action' pills can't pile up)":
+    /const key = concernKey\(rec\)/.test(notify) && /el\.__hnKey === key/.test(notify) && /el\.remove\(\)/.test(notify) && /t\.__hnKey = key/.test(notify),
   "history is per-operator + durable (localStorage UI-state axis, survives reload + re-sign-in)":
     /holo\.notify\.v1\./.test(notify) && /getOperator/.test(notify) && /localStorage\.setItem\(opKey\(\)/.test(notify),
   "history is a recent window, not an unbounded log (capped)": /CAP\s*=\s*\d+/.test(notify) && /slice\(0, CAP\)/.test(notify),

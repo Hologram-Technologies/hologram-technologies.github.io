@@ -43,7 +43,7 @@
     .topright .grid { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; color:var(--dim); cursor:pointer; }
     .topright .grid:hover { background:color-mix(in srgb, var(--ink) 10%, transparent); }
     .topright .grid svg { width:20px; height:20px; }
-    .topright .ava { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(135deg,#8ab4f8,#c77bff); color:#fff; font-weight:600; font-size:13px; }
+    .topright .ava { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(135deg,#8ab4f8,#c77bff); color:#fff; font-weight:600; font-size: var(--holo-text-sm, 0.813rem); }
 
     /* the search box + Google's icon cluster (clear · mic · lens · search) */
     form { display:flex; align-items:center; width:100%; max-width:var(--col); height:46px; background:var(--box); border:1px solid var(--line); border-radius:var(--s7); padding:0 var(--s2) 0 var(--s4); }
@@ -89,7 +89,7 @@
     h2.section { font-size:var(--t-meta); color:var(--dim); font-weight:400; margin:var(--s5) 0 var(--s3); }
     .res { margin:0 0 var(--s5); }
     .res .head { display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s1); }
-    .fav { position:relative; width:26px; height:26px; border-radius:50%; flex:0 0 auto; display:grid; place-items:center; color:#fff; font-size:12px; font-weight:700; overflow:hidden; }
+    .fav { position:relative; width:26px; height:26px; border-radius:50%; flex:0 0 auto; display:grid; place-items:center; color:#fff; font-size: var(--holo-text-sm, 0.75rem); font-weight:700; overflow:hidden; }
     .fav img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; padding:3px; }
     .res .srccol { min-width:0; } .res .name { font-size:var(--t-body); color:var(--ink); line-height:1.25; } .res .url { font-size:var(--t-meta); color:var(--url); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .res .kebab { margin-left:auto; color:var(--dim); cursor:pointer; padding:0 var(--s2); align-self:center; }
@@ -107,7 +107,7 @@
     .img-cell .thumb { width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--s2); background:var(--panel); border:1px solid var(--line); display:block; }
     .img-cell:hover .thumb { border-color:var(--accent); }
     .img-cell .cap { color:var(--link); font-size:var(--t-meta); margin-top:var(--s1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .img-cell .capsub { color:var(--dim); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .img-cell .capsub { color:var(--dim); font-size: var(--holo-text-sm, 0.688rem); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .empty { color:var(--dim); padding:var(--s7) 2px; text-align:center; font-size:var(--t-sl); }
     footer { color:var(--dim); font-size:var(--t-meta); padding:var(--s4) var(--gutter); border-top:1px solid var(--line); margin-top:var(--s6); }
     footer b { color:var(--ink); font-weight:600; }
@@ -116,7 +116,7 @@
 <body>
   <div class="hero">
     <div class="wordmark"><span class="holo">Holo</span> Search</div>
-    <div class="tagline">One box for the verifiable web a corroborated answer with sourced results, every one a self-verifying object. No AI, no tracking.</div>
+    <div class="tagline">One box for the verifiable web a corroborated answer with sourced results, every one a self-checking object. No AI, no tracking.</div>
     <form id="f" role="search">
       <input id="q" type="search" name="q" autocomplete="off" autofocus placeholder="Search the verifiable web" aria-label="Search the verifiable web" />
       <button type="button" class="icon clear" id="clear" aria-label="Clear" hidden><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>

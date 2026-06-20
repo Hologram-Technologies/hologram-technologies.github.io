@@ -33,6 +33,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history + tags, so git-cliff can build the whole changelog
+      # ── Apps come from the SEPARATE apps repo. Vendor them into the OS deploy so every /apps/<id>/*
+      # request resolves SAME-ORIGIN (fast, no cross-origin heal round-trip). The Service Worker still
+      # re-derives every byte against the app's holospace.lock.json (Law L5) — vendoring changes only
+      # WHERE the bytes are fetched, never WHETHER they are content-verified. Without this, the OS site
+      # lists apps in the catalog but their bytes live on another origin and every launch 404s → heal.
+      - name: Check out the apps repo
+        uses: actions/checkout@v4
+        with:
+          repository: Hologram-Technologies/hologram-apps
+          ref: main
+          path: apps-src
+          # No LFS / huge blobs: the forge model caches (apps/q/forge/.models, .kvxproc) are .gitignored
+          # in the apps repo and excluded from every lock, so they never reach the deploy.
       # ── Live, self-updating changelog ────────────────────────────────────────────────────────
       # Regenerate CHANGELOG.md from the repo history (Conventional Commits → Keep a Changelog),
       # build the Atom feed, prove conformance (fail-closed), and commit the refreshed source of
@@ -76,15 +89,28 @@ jobs:
       - name: Docs reference drift gate (fail-closed)
         run: node system/tools/docs-reference-witness.mjs   # a stale documented name/path blocks the deploy
       - name: Build docs site (Astro Starlight)
-        # Project-page deploys serve under /<repo>/, so the docs base must be /<repo>/docs —
-        # otherwise Astro's absolute asset refs (/docs/_astro/…) escape the subpath and the docs
-        # render unstyled. On a root site (custom domain / <user>.github.io) drop DOCS_BASE.
+        # Docs base is deployment-relative. A ROOT site (a <user>.github.io user/org repo, or a custom
+        # domain) serves at "/", so docs live at /docs. A project-page repo serves under /<repo>/, so the
+        # base must be /<repo>/docs or Astro's absolute asset refs (/docs/_astro/…) escape the subpath and
+        # render unstyled. Detect the org/user root site by the repo name ending in `.github.io`.
         env:
-          DOCS_BASE: /${{ github.event.repository.name }}/docs
+          DOCS_BASE: ${{ endsWith(github.event.repository.name, '.github.io') && '/docs' || format('/{0}/docs', github.event.repository.name) }}
         run: |
           cd system/docs/site
           npm ci
           npm run build   # prebuild regenerates the reference; Astro emits into ../../../docs
+      # Vendor the SMALL content-addressed runtime artifacts that are gitignored (NOT source) so they
+      # ship in the deploy and their features work: esbuild-wasm (Forge code editor, 12 MB), Chrome
+      # DevTools front_end (84 MB), interact.js (widget snapping, 96 KB). Each script fetches + verifies
+      # integrity. Best-effort (|| true): a flaky upstream degrades that one feature, never the deploy.
+      # The HEAVY weights (voice 3.4 GB, Q models) are NOT vendored here — they heal by κ at runtime
+      # (holo-fhs-sw: Release asset → IPFS), so the Pages site stays under the 1 GB cap.
+      - name: Vendor small runtime artifacts
+        run: |
+          cd system
+          node tools/vendor-esbuild-wasm.mjs || true
+          node tools/vendor-interactjs.mjs || true
+          node tools/vendor-chrome-devtools.mjs || true
       - uses: actions/configure-pages@v5
         with:
           enablement: true   # self-enable Pages (GitHub Actions source) on a fresh repo, so the first push deploys with no manual settings toggle
@@ -111,6 +137,22 @@ jobs:
           cp CHANGELOG.md feed.xml _site/
           cp system/llms.txt _site/
           cp -r system/os _site/os
+          # Vendor the apps at their FLAT serve path (/os/apps/<id>/*), mirroring the dev server's
+          # readRel: the SW maps apps/<id>/* via fhsMap (→ usr/share/holospaces/…) and falls back to
+          # this flat path, so both app code AND app-local _shared/ bundles resolve same-origin. The
+          # catalog (usr/share/holospaces/index.jsonld) stays the authoritative app list.
+          # ONLY the CATALOG apps are vendored (the Ctrl+K set) — the repo also holds heavy non-launcher
+          # demos (v86 OS images, GBs) that would blow the 1 GB Pages cap. Heavy weights inside catalog
+          # apps (Q's models, gitignored) aren't in the checkout, so they're naturally omitted and heal
+          # by κ at runtime (holo-fhs-sw: Release asset → IPFS). Keeps the deploy lean and bounded.
+          if [ -d apps-src/apps ]; then
+            mkdir -p _site/os/apps
+            cp apps-src/apps/index.jsonld _site/os/apps/ 2>/dev/null || true
+            cp apps-src/apps/holospaces.jsonld _site/os/apps/ 2>/dev/null || true
+            for id in $(node -e 'const c=JSON.parse(require("fs").readFileSync("apps-src/apps/index.jsonld","utf8"));console.log([...new Set(c["dcat:dataset"].map(a=>String(a["dcat:landingPage"]).split("/")[1]))].join(" "))'); do
+              [ -d "apps-src/apps/$id" ] && cp -r "apps-src/apps/$id" "_site/os/apps/$id"
+            done
+          fi
           cp -r system/os/.well-known _site/.well-known
           # The gateway (index.html) is served RAW by the host — NOT through the Service Worker — so its own
           # classic-script assets must sit at the dev-layout paths it references: the vendored Vanta

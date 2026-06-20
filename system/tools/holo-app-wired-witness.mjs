@@ -30,8 +30,10 @@ const ENGINE = ["holo-theme.js", "holo-ui-kernel.js", "holo-ui.js"];
 // build-generated HTML would fork upstream and force a reseal of their whole multi-hundred-MB
 // closure, for no real gain (the OS still themes the host frame around them). Such an app is held
 // to the vendoring contract instead of the wiring contract — listed here so the exception is
-// explicit and auditable, never silent. jypyter = the full JupyterLite distro (see app-vendoring).
-const VENDORED_EXEMPT = new Set(["jypyter"]);
+// explicit and auditable, never silent. jypyter = the full JupyterLite distro (see app-vendoring);
+// holo-3d/holo-linux/holo-x86 embed a whole FOREIGN OS UI (KolibriOS WebGL · riscv64 Debian · v86 x86)
+// the OS cannot restyle — the engine themes the host frame around them, same vendoring contract.
+const VENDORED_EXEMPT = new Set(["jypyter", "holo-3d", "holo-linux", "holo-x86"]);
 
 const appIds = existsSync(APPS)
   ? readdirSync(APPS).filter((n) => { try { return statSync(join(APPS, n, "index.html")).isFile(); } catch { return false; } })

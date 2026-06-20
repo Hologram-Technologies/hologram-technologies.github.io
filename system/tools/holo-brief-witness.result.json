@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S6 BRIEF: insight κs (S4) with enforced provenance (S5) become one proactive message (ANIMA's first letter), delivered to the inbox/voice with no query. The brief is a sealed κ-object ordered by confidence; it renders BY VERIFICATION — each line re-checked against the live evidence at display time, so a claim whose source was tampered drops out and is named in `refused`; intact lines remain. Delivery is a swappable sink and never carries an unverified claim",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · W3C PROV-O · IETF RFC 8785 (JCS) · holospaces Law L5 · rests on #holo-ingest + #holo-map + #holo-insight",
+  "witnessed": true,
+  "covers": [
+    "brief",
+    "proactive-letter",
+    "sealed-kappa",
+    "ordered-by-confidence",
+    "click-through-evidence",
+    "verify-before-show",
+    "tamper-hides-claim",
+    "inbox-delivery"
+  ],
+  "sample": {
+    "briefKappa": "did:holo:sha256:aa9996a40cf4b1f00b3496cfab9a549dbb77f027c23d82d11264e6e28a23ea08",
+    "insightCount": 6,
+    "letter": "I looked at what you just added and found 6 things worth your attention:\n1. Acme Corp is corroborated by 2 independent sources.  (confidence 89%, 2 sources)\n2. Berlin is corroborated by 2 independent sources.  (confidence 89%, 2 sources)\n3. Acme Corp is the most connected entity (3 relationships) — the natural focal point.  (confidence 70%, 2 sources)\n4. This data looks organizational / CRM-like (1 Organization, 1 Place, 1 Person).  (confidence 65%, 2 sources)\n5. \"Acme Corp holo:hasRole/CEO Dana Lee\" rests on a single source — corroborate before relying on it.  (confidence 50%, 1 source)\n6. \"Acme Corp holo:year 2023\" rests on a single source — corroborate before relying on it.  (confidence 50%, 1 source)",
+    "refusedOnTamper": 5
+  },
+  "checks": {
+    "briefComposesAndSeals": true,
+    "orderedByConfidence": true,
+    "proactiveLetterRenders": true,
+    "everyLineClicksThrough": true,
+    "tamperHidesThatClaim": true,
+    "untamperedLinesRemain": true,
+    "deliveredProactively": true,
+    "sinkNeverCarriesUnverified": true
+  },
+  "failed": []
+}

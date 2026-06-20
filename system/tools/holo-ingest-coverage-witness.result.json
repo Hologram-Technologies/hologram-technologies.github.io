@@ -1,0 +1,52 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "the + — S7 COVERAGE: one Port routes every media/file/stream family to its handler (text native; video→Holo Tube, audio→κ-audio+Moonshine, model→Forge as injected adapters) and never silently drops — an unhandled family is sealed raw (≥1 κ, honest) and coverage() logs what is real vs sealed-raw (no silent caps). Cross-modality is proven end-to-end: audio → ASR transcript → MAP → REASON → a proactive insight, unifying modalities into the one κ-hypergraph. Routing mechanics witnessed with deterministic stand-ins; real encoders are the production adapters",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L2/L5 · rests on #holo-ingest + #holo-map + #holo-insight",
+  "witnessed": true,
+  "covers": [
+    "universal-port",
+    "family-routing",
+    "no-silent-drop",
+    "injected-adapter-seam",
+    "bounded-logged",
+    "honest-coverage",
+    "cross-modality",
+    "classification"
+  ],
+  "sample": {
+    "families": [
+      "text",
+      "structured",
+      "image",
+      "audio",
+      "video",
+      "model",
+      "richdoc",
+      "archive",
+      "binary"
+    ],
+    "coverage": [
+      "text:raw",
+      "structured:raw",
+      "image:raw",
+      "audio:adapter",
+      "video:adapter",
+      "model:raw",
+      "richdoc:raw",
+      "archive:raw",
+      "binary:raw"
+    ],
+    "crossModality": "audio→\"Acme Corp is based in Berlin. Acme Corp …\"→2 entities→4 insights"
+  },
+  "checks": {
+    "everyFamilyRoutesNoDrop": true,
+    "nativeTextYieldsView": true,
+    "unhandledSealedRawHonest": true,
+    "injectedAdapterTakesOver": true,
+    "boundedCapIsLogged": true,
+    "coverageReportIsHonest": true,
+    "crossModalityEndToEnd": true,
+    "familyClassificationSane": true
+  },
+  "failed": []
+}

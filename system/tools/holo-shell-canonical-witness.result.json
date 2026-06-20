@@ -1,8 +1,9 @@
 {
   "witnessed": false,
-  "passed": 15,
-  "failed": 3,
+  "passed": 14,
+  "failed": 4,
   "covers": [
+    "the default boot ('/') routes to the ONE",
     "the canonical shell is served from OS2 (",
     "the served shell IS the spatial holospac",
     "the rEFInd boot loader hands off to the ",
@@ -10,20 +11,18 @@
     "the greeter's default session + fallback",
     "holospace.html folds a normal app link i",
     "no duplicate DEFAULT shell in the catalo",
+    "the old duplicate shell CODE is retired ",
     "the retired shells are unreachable — no ",
     "the ONE shared embed guard exists in the",
     "no app renders its own tab strip when em",
     "the shell is sealed in the OS-wide κ-rou",
-    "the served shell RE-DERIVES to its seale",
-    "the shell resolves BY CONTENT at /.holo/",
-    "the shell is anchored on the unified UOR",
-    "the served shell RE-DERIVES to its subst"
+    "the shell is anchored on the unified UOR"
   ],
   "results": [
     {
       "name": "the default boot ('/') routes to the ONE canonical shell",
-      "ok": false,
-      "detail": "no redirect"
+      "ok": true,
+      "detail": "gateway boots → shell.html"
     },
     {
       "name": "the canonical shell is served from OS2 (os/usr/share/frame/shell.html)",
@@ -58,11 +57,11 @@
     {
       "name": "no duplicate DEFAULT shell in the catalog (a kept self-contained app is exempt)",
       "ok": true,
-      "detail": "42 apps · self-contained exempt: org.hologram.HoloBrowser"
+      "detail": "52 apps · self-contained exempt: org.hologram.HoloBrowser"
     },
     {
       "name": "the old duplicate shell CODE is retired (holospaces/browser · holospaces/sdk · apps/sdk)",
-      "ok": false,
+      "ok": true,
       "detail": ""
     },
     {
@@ -83,17 +82,17 @@
     {
       "name": "the shell is sealed in the OS-wide κ-route closure (a did:holo content address)",
       "ok": true,
-      "detail": "κ bf64a677513e8943…"
+      "detail": "κ e0cd1f204db8ad77…"
     },
     {
       "name": "the served shell RE-DERIVES to its sealed κ — tamper-refused (Law L5)",
-      "ok": true,
-      "detail": "re-derives"
+      "ok": false,
+      "detail": "served 3982bedae685 ≠ sealed e0cd1f204db8"
     },
     {
       "name": "the shell resolves BY CONTENT at /.holo/sha256/<κ> (substrate-addressable, not path-only)",
-      "ok": true,
-      "detail": "HTTP 200"
+      "ok": false,
+      "detail": "HTTP 404"
     },
     {
       "name": "the shell loader is Secure-Boot-pinned (rEFInd re-derives + refuses a mismatch, Law L5)",
@@ -103,12 +102,12 @@
     {
       "name": "the shell is anchored on the unified UOR substrate (carries its did:holo:blake3 σ-axis κ)",
       "ok": true,
-      "detail": "blake3 0775734b6889c989…"
+      "detail": "blake3 9eeb33f4f888e8f2…"
     },
     {
       "name": "the served shell RE-DERIVES to its substrate κ via OS2 BLAKE3 (≡ substrate kappa(), Law L5 / CC-51)",
-      "ok": true,
-      "detail": "re-derives on the substrate axis"
+      "ok": false,
+      "detail": "served 5e07f7e0c88b ≠ sealed 9eeb33f4f888"
     }
   ],
   "spec": "Hologram OS — one canonical holospace shell (shell.html, in OS2): the default and only launcher for every app; duplicates retired; the embed guard enforced for every app"

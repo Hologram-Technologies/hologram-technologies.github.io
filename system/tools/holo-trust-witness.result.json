@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Trust (S4, the trust boundary) — the contract that lets Q ACT while the user stays in the driving seat: disposition = min(user-trust, risk-cap) under the conscience floor, defaulting to propose (default-deny); three hard guarantees the trust level can't override (value/irreversible/egress capped at ask; no silent act without undo; the conscience gate is the fail-closed floor); every autonomous or approved act seals a re-derivable PROV-O receipt with an undo; one-move pause goes fully hands-off; and trust is mutated ONLY by the user (setTrust), never by Q",
+  "authority": "the Holo Constitution conscience gate (ADR-0033) · the wallet default-deny human-approval model (ADR-0053) · W3C PROV-O · UOR-ADDR · holospaces Laws L1/L5",
+  "witnessed": true,
+  "covers": [
+    "trust-boundary",
+    "default-deny",
+    "risk-cap",
+    "no-blind-silent-act",
+    "conscience-floor",
+    "receipt-and-undo",
+    "explicit-approval",
+    "one-move-pause"
+  ],
+  "checks": {
+    "defaultDenyNeverSilent": true,
+    "trustLadderGovernsDisposition": true,
+    "riskCapNeverSilentForValue": true,
+    "noBlindSilentAct": true,
+    "conscienceIsTheFloor": true,
+    "silentActSealsReceiptAndUndo": true,
+    "askPathRequiresExplicitApproval": true,
+    "oneMovePauseAndUserOnlyTrust": true
+  },
+  "failed": []
+}

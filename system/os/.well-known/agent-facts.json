@@ -218,84 +218,6 @@
       ]
     },
     {
-      "id": "agent_facts",
-      "description": "NANDA AgentFacts for a Hologram OS holospace (ADR-034): a self-verifying agent description (identity · provider · endpoints · capabilities · skills) that is, on the same bytes, a valid NANDA AgentFacts record AND a did:holo you re-derive (Law L5) AND a W3C VC. Give a holospace slug (e.g. 'holowallet') or omit for the OS agent.",
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ],
-      "supportedLanguages": [
-        "en"
-      ]
-    },
-    {
-      "id": "agent_reputation",
-      "description": "An agent's verifiable, tamper-evident REPUTATION (Holo AgentTrust, ADR-039): a content-addressed, append-only chain — one κ commits to the whole history. Returns a recomputed (not self-reported) summary: age, uptime, certifications, distinct issuers, freshly-minted + revocation signals, and the chain head κ you re-derive (verifyDeep, Law L5). Give a holospace slug.",
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ],
-      "supportedLanguages": [
-        "en"
-      ]
-    },
-    {
-      "id": "verify_receipt",
-      "description": "Verify a multi-agent WORK RECEIPT (Holo Orchestrate, ADR-045): re-derive a content-addressed execution DAG and report — for an answer assembled by many agents — WHO acted (NANDA identity), HOW trustworthy (AgentTrust), UNDER WHAT AUTHORITY (UCAN delegation), that EVERY STEP passed the conscience gate (Constitution, ADR-033), and EXACTLY what they produced. Tamper any step and it refuses (Law L5). Give the receipt bundle as 'graph' (array of UOR objects); omit to verify a freshly-built demo.",
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ],
-      "supportedLanguages": [
-        "en"
-      ]
-    },
-    {
-      "id": "verify_delegation",
-      "description": "Verify a capability DELEGATION chain (Holo Delegate, ADR-042 / UCAN): re-derive the chain and report whether agent B's authority is valid — principal alignment (you can only re-delegate what you were granted), attenuation (no privilege escalation), roots in the resource owner, not expired, not revoked. Give the chain as 'graph' + the resource owner 'sub'; omit for a demo.",
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ],
-      "supportedLanguages": [
-        "en"
-      ]
-    },
-    {
-      "id": "verify_settlement",
-      "description": "Verify a SETTLEMENT and release payment against PROVEN work (Holo Settle, ADR-048 / x402-NP): re-derive the work receipt and release a voucher per contributing agent ONLY if it re-derives + every step was authorized + conscience-accepted. Tampered/unproven work releases nothing. Give the settlement bundle as 'graph'; omit for a demo.",
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ],
-      "supportedLanguages": [
-        "en"
-      ]
-    },
-    {
-      "id": "agent_passport",
-      "description": "One-link agent onboarding: a single SELF-VERIFYING object bundling a holospace agent's identity (NANDA AgentFacts κ), reputation (AgentTrust head κ + summary), skills, and every agent door (MCP · NANDA · A2A · Skills). Re-derive its did:holo to verify the whole bundle (Law L5). Give a holospace slug.",
-      "inputModes": [
-        "application/json"
-      ],
-      "outputModes": [
-        "application/ld+json"
-      ],
-      "supportedLanguages": [
-        "en"
-      ]
-    },
-    {
       "id": "browser_open",
       "description": "Open a URL in Holo Browser's content-addressed loader and return a self-verifying snapshot: the served/minted κ (a did:holo you re-derive, Law L5), final URL, title, extracted text and links. Accepts holo://κ, ipfs://, ENS .eth and http(s) (a live page is fetched once and minted into a κ).",
       "inputModes": [
@@ -461,5 +383,5 @@
     "proofPurpose": "assertionMethod",
     "proofValue": "z52AGDeouypAb1b9uvx8XLRGChN3EaDDY5CXWxDcHDzRLPTZrWsaBYgnh4Tir1AaqJMxca9bqpS2sHveDBPneAKvf"
   },
-  "id": "did:holo:sha256:92cd82370b11315d226331b2c4e441b750d3c881d5af9f82026e512a2af63803"
+  "id": "did:holo:sha256:b004004291e16c634affcb93fd11de3899dbb5786a467b052655eea99d086c24"
 }

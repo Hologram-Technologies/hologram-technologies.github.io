@@ -1348,7 +1348,7 @@ async function renderSemantic(card, r){
   const ans = r.answer ? `<div class="rrow"><div class="k">answer</div><div class="v">${esc(r.answer)}</div></div>` : "";
   const preview = r.html ? `<div class="pv"><iframe sandbox="allow-same-origin" src="${URL.createObjectURL(new Blob([r.html],{type:"text/html"}))}"></iframe></div>` : "";
   const open = `<a class="open" href="/ipfs/${esc(r.cid)}/" target="_blank" rel="noopener">Open κ-page ↗</a>`;
-  const idxLine = indexInfo ? `<div style="color:var(--dim);font:11px var(--mono);margin-bottom:9px">κ-index · ${indexInfo.count} docs · built ${esc((indexInfo.builtAt||"").slice(0,10))} · pointer ${esc(indexInfo.pointer||"—")} · ${esc(short(indexInfo.indexCid||"",7))}</div>` : "";
+  const idxLine = indexInfo ? `<div style="color:var(--dim);font:var(--holo-text-sm, 0.688rem) var(--mono);margin-bottom:9px">κ-index · ${indexInfo.count} docs · built ${esc((indexInfo.builtAt||"").slice(0,10))} · pointer ${esc(indexInfo.pointer||"—")} · ${esc(short(indexInfo.indexCid||"",7))}</div>` : "";
   const tierTag = r.tier === "live" ? `live${r.learned ? " · learned +" + r.learned : ""}` : "offline";
   card.innerHTML = `<div class="rhd">${glyph("#10b981","Q")}<div><div class="ttl">${esc(r.query)}</div><div class="sub">semantic web → ${r.sources.length} verified source${r.sources.length===1?"":"s"} · ${esc(tierTag)} · ${esc((r.probes||[]).join(" ⊕ "))}</div></div><span class="badge">semantic</span></div>`
     + `<div class="rbody">${idxLine}${ans}${srcRows}</div>` + preview + sealStrip(r, open);
@@ -1359,7 +1359,7 @@ function onionHint(r,v){ return /\.onion\b/i.test(v) ? `<div class="qstrip"><spa
 
 function captionWeb3(r){ const c=r.card;
   if (c["@type"]==="holo:Name") return c["holo:address"]?`<b>${esc(c["holo:name"])}</b> resolves to ${esc(short(c["holo:address"],6))}.`:`<b>${esc(c["holo:name"])}</b> has no address record.`;
-  if (c["@type"]==="holo:Asset") return `<b>${esc(c["holo:name"]||c["holo:symbol"])}</b> — ${esc(c["holo:standard"])} on ${esc(c["holo:chain"])}.`;
+  if (c["@type"]==="holo:Asset") return `<b>${esc(c["holo:name"]||c["holo:symbol"])}</b>, ${esc(c["holo:standard"])} on ${esc(c["holo:chain"])}.`;
   if (c["@type"]==="holo:Chain") return `${esc(c["holo:chain"])}${c["holo:height"]!=null?`, at block ${esc(c["holo:height"])}`:""}.`;
   const nat=c["holo:native"]; return `Holds <b>${esc(nat?nat["holo:amount"]:"0")} ${esc(nat?nat["holo:symbol"]:"")}</b> on ${esc(c["holo:chain"])}.`;
 }
@@ -1378,7 +1378,7 @@ function cardText(r, v){
 
 // ── Ask Q (model-free recall over everything streamed + resolved) ──
 async function runRecall(query){
-  if (!corpus || !corpus.size()) return { html:`<div style="color:var(--dim);font-size:var(--t-meta)">Nothing indexed yet — the page is still streaming, or recall is offline.</div>`, n:0 };
+  if (!corpus || !corpus.size()) return { html:`<div style="color:var(--dim);font-size:var(--t-meta)">Nothing indexed yet. The page is still streaming, or recall is offline.</div>`, n:0 };
   let res; try { res = await recall(query, { k:6 }); } catch(e){ return { html:`<div class="rerr">${esc(e.message)}</div>`, n:0 }; }
   if (!res.ok || !res.results.length) return { html:`<div style="color:var(--dim);font-size:var(--t-meta)">No match for “${esc(query)}”.</div>`, n:0 };
   const ev = res.results.map(x=>`<div class="ev"><span class="rk">#${x.rank} · ${esc((x.via||[]).join("⊕")||"bm25")}</span>${esc((x.text||"").slice(0,260))}<span class="src">${esc(short(x.kappa,12))}</span></div>`).join("");
@@ -1444,7 +1444,7 @@ function buildGuide(items, intent){
   const top = items[0], second = items[1];
   if (intent) return { text:`Closest in your world to “${esc(intent.slice(0,30))}”: <b>${esc(top.title)}</b>.`, go:top.addr };
   const origins = [...new Set(items.slice(0,6).map(i=>i.origin))].slice(0,3);
-  return { text:`You've been across ${esc(origins.join(", "))}. Pick up <b>${esc(top.title)}</b>${second?` — or revisit <b>${esc(second.title)}</b>`:""}.`, go:top.addr };
+  return { text:`You've been across ${esc(origins.join(", "))}. Pick up <b>${esc(top.title)}</b>${second?`, or revisit <b>${esc(second.title)}</b>`:""}.`, go:top.addr };
 }
 function renderGuide(intent="", items=null){
   const el = document.getElementById("qguide"); if (!el) return;

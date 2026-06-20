@@ -21,6 +21,7 @@
 import * as holoIpfs from "../usr/lib/holo/holo-ipfs.js";
 import { sealSnapshot, blockSource, publishToKStore } from "./holo-web-snapshot.mjs";
 import { resolveIpfsPath, makeGetBlock } from "./holo-ipfs-gateway.mjs";
+import { IPFS_GATEWAYS } from "./holo-peers.mjs";
 import { isExperienceKey } from "../usr/lib/holo/holo-session.mjs";
 import { jcs } from "../usr/lib/holo/holo-uor.mjs";
 
@@ -224,6 +225,44 @@ export async function restoreHolospace(rootCid, getBlock) {
 // serves it elsewhere. Returns the number of blocks published. Browser/SW only (no-op in Node: no caches).
 export async function publishToCloud(blocks) { return publishToKStore(blocks); }
 
+// pinShareToCloud(rootCid, blocks, { endpoint, fetchImpl }) → { carCid, gateways } | null. The WORLDWIDE
+// reach the link alone cannot give a big holospace: the WHOLE sealed CAR is POSTed to a pin endpoint that
+// holds the IPFS credential server-side (never in the page), uploaded to public IPFS, and pinned. The CAR
+// is opaque bytes there, so its content id (carCid) is deterministic and any public gateway serves it back
+// byte-for-byte; openCarByCid re-imports + re-derives every block (L5) on the far device. Returns null when
+// no endpoint is reachable (e.g. a static host) so the UI can fall back honestly. Also mirrors the blocks
+// into the local commons so THIS device resolves instantly too.
+export async function pinShareToCloud(rootCid, blocks, { endpoint = "/api/pin", fetchImpl } = {}) {
+  try { await publishToKStore(blocks); } catch {}
+  const f = fetchImpl || (typeof fetch !== "undefined" ? fetch : null); if (!f) return null;
+  const car = exportCar(rootCid, blocks);
+  let r; try { r = await f(endpoint, { method: "POST", headers: { "content-type": "application/vnd.ipld.car" }, body: car }); } catch { return null; }
+  if (!r || !r.ok) return null;
+  let j; try { j = await r.json(); } catch { return null; }
+  if (!j || !j.carCid) return null;
+  return { carCid: j.carCid, gateways: Array.isArray(j.gateways) && j.gateways.length ? j.gateways : IPFS_GATEWAYS };
+}
+
+// openCarByCid(carCid, { fetchImpl, gateways }) → { roots, blocks } | null. Pull the pinned CAR back from
+// the first public gateway that serves it, parse it, and hand the verified block map to the importer. This
+// is the open side of pinShareToCloud — bytes in, the SAME L5 re-derivation as a file the user carried.
+// Pinata's gateway serves a freshly pinned CID instantly; lead with it, then the public trustless gateways
+// (which catch up via the DHT) so a worldwide link opens fast on a cold device that never saw the pin list.
+const SHARE_GATEWAYS = ["https://gateway.pinata.cloud", ...IPFS_GATEWAYS];
+export async function openCarByCid(carCid, { fetchImpl, gateways = SHARE_GATEWAYS } = {}) {
+  const f = fetchImpl || (typeof fetch !== "undefined" ? fetch : null); if (!f || !carCid) return null;
+  for (const g of gateways) {
+    try {
+      const ac = (typeof AbortController !== "undefined") ? new AbortController() : null; const to = ac ? setTimeout(() => ac.abort(), 12000) : null;
+      let r; try { r = await f(`${String(g).replace(/\/$/, "")}/ipfs/${carCid}`, ac ? { signal: ac.signal } : {}); } finally { if (to) clearTimeout(to); }
+      if (!r || !r.ok) continue;
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      const got = importCar(bytes); if (got && got.roots && got.roots.length) return got;
+    } catch {}
+  }
+  return null;
+}
+
 // cloudBlockSource({fetchImpl}) → a getBlock that resolves a CID from the local κ-store commons FIRST
 // (O(1), no network — the published blocks), then trustless IPFS gateways, re-deriving every block (L5).
 // discover:false + a short timeout so a miss fails fast → restoreWorkspace returns an honest null.
@@ -252,4 +291,4 @@ export function decodeResumeLink(input) {
 // pasted string to the cloud resolver vs. the link decoder.
 export function looksLikeToken(s) { return /^did:holo:sha256:[0-9a-f]{64}$/.test(String(s || "").trim()) || /^bafy[0-9a-z]+$/.test(String(s || "").trim()); }
 
-export default { portableManifest, verifiedBlockSource, sealWorkspace, restoreWorkspace, buildHolospaceManifest, analyzeHolospace, sealHolospace, restoreHolospace, exportCar, importCar, publishToCloud, cloudBlockSource, encodeResumeLink, decodeResumeLink, looksLikeToken };
+export default { portableManifest, verifiedBlockSource, sealWorkspace, restoreWorkspace, buildHolospaceManifest, analyzeHolospace, sealHolospace, restoreHolospace, exportCar, importCar, publishToCloud, pinShareToCloud, openCarByCid, cloudBlockSource, encodeResumeLink, decodeResumeLink, looksLikeToken };

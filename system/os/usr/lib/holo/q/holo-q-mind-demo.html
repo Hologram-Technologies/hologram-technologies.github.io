@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Q Mind — demo</title>
+<style>
+  :root{--holo-bg:#0d0f17;--holo-fg:#e8e8ef;--holo-accent:#6ea8fe;--holo-line:#ffffff22;--holo-chip:#ffffff12}
+  body{background:var(--holo-bg);margin:0;padding:2.4em;font:14px system-ui}
+  .card{max-width:560px;margin:0 auto;background:#ffffff0a;border:1px solid var(--holo-line);border-radius:1em;padding:1.2em 1.4em}
+  h1{font-size:15px;font-weight:600;color:var(--holo-fg);margin:0 0 .2em;opacity:.7}
+  #log{max-width:560px;margin:1.2em auto 0;font:12px ui-monospace,monospace;color:#9fe6b0;white-space:pre-wrap}
+</style></head>
+<body>
+  <div class="card"><h1>Identity → Mind</h1><div id="mount"></div></div>
+  <div id="log"></div>
+  <script type="module">
+    import * as mux from "./holo-q-mux.js";
+    import * as bridge from "../voice/holo-q-faculty-models.mjs";
+    import { steer } from "./holo-q-model-steer.mjs";
+    import { mountMind } from "./holo-q-mind.js";
+    const log = (m) => { document.getElementById("log").textContent += m + "\n"; };
+    window.__mux = mux; window.__bridge = bridge; window.__steer = steer;
+    const ui = mountMind(document.getElementById("mount"), { mux, bridge, steer, onSpeak: (s) => log("🗣 " + s) });
+    window.__ui = ui;
+    log("mounted. resolveModel(code).source = " + mux.resolveModel("code").source);
+  </script>
+</body></html>

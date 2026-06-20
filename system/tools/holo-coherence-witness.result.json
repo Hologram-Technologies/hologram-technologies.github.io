@@ -1,0 +1,34 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Coherence (S1 reflection) — the OS folds its perception stream (a real heal sweep + the conformance gate's verdict + app activity) into ONE self-verifying snapshot κ ('what's true now'); the snapshot's identity is its STATE not the clock (same state ⇒ same κ under any clock, Law L5), coherence is an honest re-derivable scalar (whole+green = 1.0), the diff is no-noise (identical state ⇒ nothing to say), and reflection is private-first (share default-deny + conscience-gated)",
+  "authority": "W3C PROV-O · W3C DID Core (did:holo) · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical content), id excluded) · holospaces Laws L1/L2/L5 · rests on #holo-telemetry-tap + #heal",
+  "witnessed": true,
+  "covers": [
+    "coherence-model",
+    "reflection",
+    "content-addressed-state",
+    "honest-coherence-scalar",
+    "no-noise-diff",
+    "private-first",
+    "law-l5",
+    "s0-s1-composition"
+  ],
+  "sample": {
+    "snapshot": "did:holo:sha256:6d1906aa56d5ca98c500fea791940c2032e4c9bc8e72a27c17c143c2691529a0",
+    "coherence": 0.958,
+    "whole": true,
+    "attention": 4,
+    "realHealed": 1
+  },
+  "checks": {
+    "foldsRealTickToSelfVerifyingSnapshot": true,
+    "identityIsStateNotClock": true,
+    "differentStateDifferentKappa": true,
+    "tamperedSnapshotRefused": true,
+    "coherenceIsHonest": true,
+    "attentionIsExactlyTheIncoherentSet": true,
+    "diffNoNoiseOnIdenticalState": true,
+    "reflectionIsPrivateFirst": true
+  },
+  "failed": []
+}

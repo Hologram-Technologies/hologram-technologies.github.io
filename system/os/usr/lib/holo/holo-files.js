@@ -116,10 +116,16 @@ async function opfsResolve(parts) { let dir = await opfsRoot(); for (const p of 
 // path under home, e.g. "/home/user/docs" → ["docs"]
 const homeParts = (path) => path.replace(/^\/home\/user\/?/, "").split("/").filter(Boolean);
 
+// Internal OPFS stores live at the same root as Home (homeParts("/home/user") === []). They are
+// substrate plumbing, never the user's files — hide them (and any dotfile) so Home reads like a
+// native desktop, not a system root.
+const HIDDEN_HOME = new Set(["holo-cloud"]);
+const isHiddenHome = (name) => name.startsWith(".") || HIDDEN_HOME.has(name);
 async function listHome(path) {
   const dir = await opfsResolve(homeParts(path));
   const out = [];
   for await (const [name, h] of dir.entries()) {
+    if (isHiddenHome(name)) continue;
     if (h.kind === "directory") out.push(node({ name, path: path.replace(/\/$/, "") + "/" + name, kind: "dir", source: "opfs", writable: true, role: "folder" }));
     else { let bytes = null, did = ""; try { const f = await h.getFile(); bytes = f.size; } catch {} out.push(node({ name, path: path.replace(/\/$/, "") + "/" + name, kind: "file", source: "opfs", bytes, did, mime: mimeOf(name), writable: true })); }
   }

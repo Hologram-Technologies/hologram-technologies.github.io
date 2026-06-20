@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Memory (S2, Q's persistent user model) — a durable, content-addressed memory of the user's world that SURVIVES reload, learns preference affinity from votes, stays private-first (export default-deny + conscience-gated), is bounded, and is forgettable on request; each record is a self-verifying UOR object (Law L5)",
+  "authority": "W3C PROV-O · W3C DID Core (did:holo) · IETF RFC 8785 (JCS) · UOR-ADDR · holospaces Laws L1/L5",
+  "witnessed": true,
+  "covers": [
+    "persistent-user-model",
+    "survives-reload",
+    "content-addressed-records",
+    "affinity-learning",
+    "bounded",
+    "forgettable",
+    "private-first"
+  ],
+  "checks": {
+    "persistsAcrossReload": true,
+    "recordsReDerive": true,
+    "feedbackAggregates": true,
+    "affinityLearnsFromVotes": true,
+    "boundedCapTrimsOldest": true,
+    "userCanForget": true,
+    "privateFirstEgressGated": true,
+    "summaryIsHonest": true
+  },
+  "failed": []
+}

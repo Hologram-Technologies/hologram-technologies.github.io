@@ -1,0 +1,36 @@
+{
+  "witnessed": true,
+  "passed": 4,
+  "failed": 0,
+  "rootKappa": "1c87193c80c403dbb88ebf141f18ee46fc37668e49f9205ac75c14dfa1a823e7",
+  "cid": "bafkreia4q4mtzageapn3rdv7cqprr3sg7q3wndsj7eqfvr24ctp2dkbd44",
+  "covers": [
+    "opening …/#<root-CID> exposes the verified root on self.",
+    "the booted root SELF-VERIFIES against the link's content",
+    "a WRONG CID self-verifies as FALSE (the badge is honest,",
+    "no fragment → no false claim (cid null, boots normally)"
+  ],
+  "results": [
+    {
+      "name": "opening …/#<root-CID> exposes the verified root on self.__holoRoot",
+      "ok": true,
+      "detail": "cid 1c87193c80c4… verified=true"
+    },
+    {
+      "name": "the booted root SELF-VERIFIES against the link's content-address (verified ✓)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a WRONG CID self-verifies as FALSE (the badge is honest, not cosmetic)",
+      "ok": true,
+      "detail": "verified=false"
+    },
+    {
+      "name": "no fragment → no false claim (cid null, boots normally)",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "spec": "delta A (wired) — opening the OS at the shareable link …/#<root-CID> in a real browser self-verifies the booted boot-root against the link's content-address (self.__holoRoot.verified). Correct CID ⇒ true; wrong CID ⇒ false; no fragment ⇒ no claim. The page-level loader reads the fragment (the SW cannot) and re-derives (Law L5)."
+}

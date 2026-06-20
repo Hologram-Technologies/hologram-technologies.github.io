@@ -2,7 +2,7 @@
 
 **Status:** Proposed (architecture; not yet implemented). Captures the decision *before* engine code so
 the build is deliberate. Supersedes nothing; extends the wallpaper work (the living-wallpaper engine in
-`shell.html`) into a navigable render substrate. Witness + conformance row land per stage (see *Rollout*).
+`shell.html`) into a navigable render surface. Witness + conformance row land per stage (see *Rollout*).
 
 **Context.** The product objective is a *fully immersive experience*: real-time-rendered, infinitely
 detailed visual environments, navigable natively inside **every** holospace — "a cockpit of a spaceship
@@ -24,7 +24,7 @@ plausible detail for a **fixed 2-D image**; it cannot produce infinite navigable
 Those are a different problem class. Conflating them would point the build down the wrong road. SR is
 **one tile** — offline asset detail, and a real-time render-resolution amplifier — not the engine.
 
-**Decision.** Build **Holo Cosmos**, a layered render substrate where a *universe is a κ* and detail is
+**Decision.** Build **Holo Cosmos**, a layered render surface where a *universe is a κ* and detail is
 *generated and streamed on demand*, never pre-stored whole. Each layer is content-addressed, re-derivable
 (L1 content-not-location, L5 verify-by-re-derivation) and maps to a part the OS already has.
 

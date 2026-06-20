@@ -1,0 +1,186 @@
+<!doctype html>
+<!-- holo-voice-tts-bench.html — Q VOICE bake-off harness (Phase P-A).
+     Drives ANY TTS engine through the createTTS seam over a fixed Q phrase set, measures it (load · synth ·
+     RTF · device), and plays each clip through the LIVE Holo Audio "Voice + room" chain — with an A/B
+     toggle (raw model vs Holo Sound) and a BLIND compare (two configs, labels hidden until you rank).
+     This is the instrument that lets us pick "hyper-realistic" by EAR + numbers before committing weights.
+     Today only Kokoro-82M q8 is vendored; fp16/fp32/WebGPU + other models are added behind the same seam. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Q Voice — bake-off</title>
+<style>
+  :root{--bg:#0a0c12;--panel:#12151d;--line:#232838;--ink:#e9edf6;--dim:#8b94a7;--acc:#5b8cff;--ok:#3fb950;--warn:#e3b341;--mono:ui-monospace,Menlo,Consolas,monospace}
+  *{box-sizing:border-box}body{margin:0;background:radial-gradient(1200px 700px at 70% -20%,#141a2e,var(--bg) 60%);color:var(--ink);font:15px/1.5 system-ui,sans-serif;padding:22px;max-width:980px;margin:0 auto}
+  h1{font-size:1.15rem;margin:0 0 2px}h1 small{color:var(--dim);font-weight:400;font-size:.8rem}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0}
+  label{color:var(--dim);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;display:block;margin:0 0 4px}
+  select,button,textarea{font:inherit;color:var(--ink);background:#0e1119;border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+  button{cursor:pointer;font-weight:600}button:hover:not(:disabled){border-color:var(--acc)}button:disabled{opacity:.45;cursor:default}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#06122e}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1 1 150px;min-width:120px}
+  .toggle{display:inline-flex;align-items:center;gap:7px;color:var(--ink);font-size:.9rem}
+  table{width:100%;border-collapse:collapse;font:.84rem/1.4 var(--mono)}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}th{color:var(--dim);font-weight:600}
+  td.n{text-align:right}
+  .pill{font:.72rem/1 var(--mono);padding:4px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.acc{color:var(--acc)}
+  .blind{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  #log{font:.78rem/1.5 var(--mono);color:var(--dim);white-space:pre-wrap;max-height:120px;overflow:auto;margin-top:8px}
+  .hint{color:var(--dim);font-size:.8rem;margin-top:6px}
+</style>
+
+<h1>Q Voice — bake-off <small>· measure + listen before committing a model (P-A)</small></h1>
+
+<div class="card">
+  <div class="row">
+    <div><label>Engine</label><select id="model"></select></div>
+    <div><label>Voice</label><select id="voice"></select></div>
+    <div><label>Precision</label><select id="dtype"><option value="q8">q8 (vendored)</option><option value="fp16">fp16 (needs vendor)</option><option value="fp32">fp32 (needs vendor)</option></select></div>
+    <div><label>Device</label><select id="device"><option value="wasm">WASM</option><option value="webgpu">WebGPU</option></select></div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div style="flex:3 1 320px"><label>Phrase</label><select id="phrase"></select></div>
+    <div style="flex:0 0 auto;align-self:flex-end"><button class="primary" id="run">▶ Synthesize</button></div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <label class="toggle"><input type="checkbox" id="engine" checked> Holo Sound (Voice + room)</label>
+    <label class="toggle"><input type="checkbox" id="spatial"> spatial (HRTF)</label>
+    <label class="toggle">room <input type="range" id="room" min="0" max="0.4" step="0.02" value="0.12" style="vertical-align:middle"></label>
+    <span class="pill" id="dev">—</span>
+  </div>
+  <div class="hint" id="hint">Loads the model on first synth (heavy). fp16/fp32/WebGPU require vendoring those weights — the harness reports honestly if a config can't load here.</div>
+</div>
+
+<div class="card">
+  <b>Measurements</b>
+  <table><thead><tr><th>#</th><th>config</th><th class="n">load ms</th><th class="n">synth ms</th><th class="n">dur s</th><th class="n">RTF</th><th>device</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+  <div class="hint">RTF = synth time ÷ audio duration (lower = faster than real-time). synth ms ≈ time-to-first-audio for non-streaming. Tap ▶ on a row to replay through the current chain.</div>
+</div>
+
+<div class="card">
+  <b>Blind A/B</b>
+  <div class="hint">Stash two takes (any model/voice/precision), then play them in random hidden order and pick which sounds more like a real person in the room.</div>
+  <div class="row" style="margin-top:8px"><button id="stashA">Stash as A</button><button id="stashB">Stash as B</button><button id="blindGo" disabled>▶ Blind compare</button><span class="pill" id="blindState">A: — · B: —</span></div>
+  <div class="blind" id="blindPick" style="margin-top:10px;display:none"><span>Which was better?</span><button id="pickX">First</button><button id="pickY">Second</button><span class="pill" id="blindResult"></span></div>
+</div>
+
+<div id="log"></div>
+
+<script type="module">
+import { createTTS } from "./holo-voice-tts.mjs";
+
+const $ = (id) => document.getElementById(id);
+const log = (m) => { const el = $("log"); el.textContent += m + "\n"; el.scrollTop = el.scrollHeight; };
+const VOICES = ["af_heart","af_bella","af_nicole","bf_emma","am_michael","am_fenrir","am_puck","bm_george"];
+const PHRASES = [
+  "Good morning, Explorer. Everything's ready when you are.",
+  "I've pulled up your files — three changed since yesterday.",
+  "Are you sure? This one can't be undone.",
+  "Here's what I found, and why I think it matters to you.",
+  "It's nine forty-one. Your first meeting starts in nineteen minutes.",
+];
+VOICES.forEach(v => $("voice").add(new Option(v, v)));
+PHRASES.forEach((p,i) => $("phrase").add(new Option(p, String(i))));
+
+// ── engine REGISTRY — Kokoro by default; any HD adapter (Parler · StyleTTS2 · a κ clone) self-registers by
+// pushing { id, label, make(opts)→engine } onto window.HOLO_TTS_ENGINES BEFORE this page loads, and gets
+// measurement + A/B for free. Each engine implements the createTTS seam: {load, synth, voices, info}. ──
+// a lazily-resolved engine: defers importing/constructing the real engine until first load(), so a missing
+// adapter or un-vendored weights surface as an honest load() failure (a "fail" row) — never a broken page.
+function lazyEngine(resolveFn) {
+  let real = null;
+  return {
+    async load(onProgress) { if (!real) real = await resolveFn(); return real.load(onProgress); },
+    async synth(t, o) { if (!real) real = await resolveFn(); return real.synth(t, o); },
+    voices() { try { return real ? real.voices() : []; } catch (e) { return []; } },
+    info() { try { return real ? real.info() : { ready: false }; } catch (e) { return { ready: false }; } },
+  };
+}
+const REGISTRY = [
+  { id: "kokoro", label: "Kokoro-82M (vendored)", make: (o) => createTTS({ model: "onnx-community/Kokoro-82M-v1.0-ONNX", dtype: o.dtype, device: o.device, voice: o.voice, preferWebGPU: o.device === "webgpu" }) },
+  { id: "parler", label: "Parler-TTS Mini (HD · run tools/vendor-voice-hd.mjs first)", make: (o) => lazyEngine(() => import("./holo-voice-tts-parler.mjs").then((m) => m.createParlerTTS({ dtype: o.dtype, device: o.device, preferWebGPU: o.device === "webgpu" }))) },
+];
+try { if (Array.isArray(window.HOLO_TTS_ENGINES)) for (const e of window.HOLO_TTS_ENGINES) if (e && e.id && typeof e.make === "function") REGISTRY.push(e); } catch (e) {}
+REGISTRY.forEach(e => $("model").add(new Option(e.label, e.id)));
+
+// ── Holo Audio "Voice + room" chain (the live presence the user would hear) ──
+let actx = null, voiceAn = null, voiceFx = null;
+async function ensureChain() {
+  if (!window.HoloAudio) { await import("../holo-audio.js").catch(()=>{}); }
+  if (!actx) { actx = new (window.AudioContext||window.webkitAudioContext)(); voiceAn = actx.createAnalyser(); }
+  if (!voiceFx && window.HoloAudio && window.HoloAudio.createForSource) {
+    voiceFx = window.HoloAudio.createForSource(actx, voiceAn);
+    if (voiceFx && voiceFx.ok) { voiceFx.setPreset("Voice"); voiceFx.setRoom(+$("room").value); voiceFx.setSpatial($("spatial").checked); }
+  }
+  try { await actx.resume(); } catch (e) {}
+}
+function playPCM(pcm, rate) {
+  const buf = actx.createBuffer(1, pcm.length, rate); buf.getChannelData(0).set(pcm);
+  const src = actx.createBufferSource(); src.buffer = buf;
+  if ($("engine").checked && voiceFx && voiceFx.ok) src.connect(voiceAn); else src.connect(actx.destination);
+  src.start(); return buf.duration;
+}
+$("room").addEventListener("input", () => { if (voiceFx) voiceFx.setRoom(+$("room").value); });
+$("spatial").addEventListener("change", () => { if (voiceFx) voiceFx.setSpatial($("spatial").checked); });
+
+// ── engine cache (one per model⊕dtype⊕device) so re-runs don't reload ──
+const engines = new Map();
+function engineFor(engineId, dtype, device, voice) {
+  const e = REGISTRY.find((x) => x.id === engineId) || REGISTRY[0];
+  const key = e.id + "|" + dtype + "|" + device;
+  if (!engines.has(key)) engines.set(key, e.make({ dtype, device, voice }));
+  return { key, eng: engines.get(key), label: e.id };
+}
+
+let lastTake = null, takeA = null, takeB = null, rowN = 0;
+async function synth() {
+  const engineId = $("model").value, dtype = $("dtype").value, device = $("device").value, voice = $("voice").value;
+  const text = PHRASES[+$("phrase").value];
+  $("run").disabled = true; $("dev").textContent = "loading…";
+  await ensureChain();
+  const { eng } = engineFor(engineId, dtype, device, voice);
+  let loadMs = 0, synthMs = 0, dur = 0, dev = "—", err = null, res = null;
+  try {
+    const t0 = performance.now(); await eng.load((p) => { if (p && p.status) $("dev").textContent = p.status + (p.progress?(" "+Math.round(p.progress)+"%"):""); }); loadMs = Math.round(performance.now() - t0);
+    if (!$("voice").value || !eng.voices().includes(voice)) {} // voice may be lazy
+    const t1 = performance.now(); res = await eng.synth(text, { voice }); synthMs = Math.round(performance.now() - t1);
+    dur = res.audio.length / res.sampling_rate; dev = (eng.info().device || "?");
+  } catch (e) { err = (e && e.message) || String(e); log("✗ " + dtype + "/" + device + ": " + err); }
+  $("dev").textContent = err ? ("error · " + dev) : ("device: " + dev);
+  const rtf = dur ? (synthMs/1000/dur) : 0;
+  const cfg = engineId + " · " + voice + " · " + dtype + "/" + device;
+  rowN++;
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${rowN}</td><td>${cfg}</td><td class="n">${loadMs||"—"}</td><td class="n ${synthMs&&synthMs<800?'ok':synthMs>2500?'warn':''}">${synthMs||"—"}</td><td class="n">${dur?dur.toFixed(2):"—"}</td><td class="n ${rtf&&rtf<1?'ok':'warn'}">${rtf?rtf.toFixed(2):"—"}</td><td>${err?'<span class=warn>fail</span>':dev}</td><td></td>`;
+  $("rows").prepend(tr);
+  if (res) {
+    lastTake = { res, cfg };
+    const dr = playPCM(res.audio, res.sampling_rate);
+    const rep = document.createElement("button"); rep.textContent = "▶"; rep.title = "replay through current chain"; rep.style.padding = "2px 9px";
+    rep.onclick = () => playPCM(res.audio, res.sampling_rate); tr.lastChild.appendChild(rep);
+    log(`✓ ${cfg} — load ${loadMs}ms · synth ${synthMs}ms · ${dr.toFixed(2)}s · RTF ${rtf.toFixed(2)} · ${dev}`);
+  }
+  $("run").disabled = false;
+}
+$("run").onclick = synth;
+
+// ── blind A/B ──
+function refreshBlind(){ $("blindState").textContent = "A: " + (takeA?takeA.cfg:"—") + " · B: " + (takeB?takeB.cfg:"—"); $("blindGo").disabled = !(takeA && takeB); }
+$("stashA").onclick = () => { if (lastTake) { takeA = lastTake; refreshBlind(); } };
+$("stashB").onclick = () => { if (lastTake) { takeB = lastTake; refreshBlind(); } };
+let blindOrder = null;
+$("blindGo").onclick = async () => {
+  if (!(takeA && takeB)) return;
+  blindOrder = Math.random() < 0.5 ? [takeA, takeB] : [takeB, takeA];   // hidden order
+  $("blindResult").textContent = ""; $("blindPick").style.display = "flex";
+  await ensureChain();
+  playPCM(blindOrder[0].res.audio, blindOrder[0].res.sampling_rate);
+  const g = blindOrder[0].res.audio.length / blindOrder[0].res.sampling_rate;
+  setTimeout(() => playPCM(blindOrder[1].res.audio, blindOrder[1].res.sampling_rate), Math.round(g*1000) + 700);
+};
+function reveal(pickFirst){ const chosen = pickFirst ? blindOrder[0] : blindOrder[1]; $("blindResult").innerHTML = '<span class="acc">you picked: ' + chosen.cfg + '</span>'; }
+$("pickX").onclick = () => reveal(true);
+$("pickY").onclick = () => reveal(false);
+
+log("ready — pick a phrase and Synthesize. First run loads Kokoro (~92MB q8, vendored).");
+</script>

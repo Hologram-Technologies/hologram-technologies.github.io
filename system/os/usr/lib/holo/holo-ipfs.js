@@ -145,6 +145,15 @@ export function cidToString(cid, base = "base32") {
 export const cidToV1 = (cid) => { const c = parseCID(cid); return makeCIDv1(c.codec, c.hashCode, c.digest); };
 export const cidEqual = (a, b) => equalBytes(parseCID(a).digest, parseCID(b).digest) && parseCID(a).codec === parseCID(b).codec;
 
+// cidToKappa(cid) → 64-hex sha-256 κ — the inverse of kappaToCid: a CIDv1 (raw|dag-pb) over a sha2-256
+// multihash IS a κ on the open-web axis. Refuses a non-sha2-256 / wrong-length CID (Law L1: a κ is the
+// sha-256 of canonical bytes, so a fragment CID that isn't sha2-256 can never name a κ-object).
+export function cidToKappa(input) {
+  const c = parseCID(input);
+  if (c.hashCode !== 0x12 || c.digest.length !== 32) throw new Error("cidToKappa: not a sha2-256 CID");
+  return toHex(c.digest);
+}
+
 // ── hashing ───────────────────────────────────────────────────────────────────────
 export async function sha256(bytes) { if (!HAS_SUBTLE) throw new Error("WebCrypto unavailable"); return new Uint8Array(await crypto.subtle.digest("SHA-256", toBytes(bytes))); }
 export async function sha512(bytes) { return new Uint8Array(await crypto.subtle.digest("SHA-512", toBytes(bytes))); }

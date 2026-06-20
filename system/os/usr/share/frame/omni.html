@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Omni Resolve one content-addressed space</title>
+<title>Omni Resolve one verified space</title>
 <!--
   omni.html — a LIVE lab for the omni-resolve seam (sbin/holo-omni-object.mjs). Type any address from the four
   namespaces — https:// · did:holo: · ipfs:// · bare CID — and watch it resolve into the SAME content-
@@ -16,24 +16,24 @@
           --accent:#3b82f6; --good:#34d399; --bad:#f87171; --warn:#fbbf24; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
   * { box-sizing:border-box; }
   body { margin:0; background:radial-gradient(1200px 600px at 50% -10%, #0b1426 0%, var(--bg) 60%); color:var(--ink);
-         font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100vh; }
+         font:var(--holo-text-sm, 0.938rem)/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100vh; }
   .wrap { max-width:920px; margin:0 auto; padding:40px 22px 80px; }
   h1 { font-size:22px; font-weight:650; margin:0 0 4px; letter-spacing:-.02em; }
-  .sub { color:var(--dim); margin:0 0 26px; font-size:13.5px; }
+  .sub { color:var(--dim); margin:0 0 26px; font-size: var(--holo-text-sm, 0.844rem); }
   .sub b { color:var(--accent); font-weight:600; }
   .bar { display:flex; gap:10px; align-items:center; background:var(--panel); border:1px solid var(--line);
          border-radius:14px; padding:8px 8px 8px 16px; box-shadow:0 8px 40px rgba(0,0,0,.5); }
   .bar:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 24%,transparent),0 8px 40px rgba(0,0,0,.5); }
   .bar .ic { color:var(--dim); font-size:17px; }
-  #addr { flex:1; min-width:0; border:0; background:transparent; color:var(--ink); outline:none; font:15px var(--mono); }
-  #go { border:0; border-radius:10px; padding:9px 18px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; font-size:14px; }
+  #addr { flex:1; min-width:0; border:0; background:transparent; color:var(--ink); outline:none; font:var(--holo-text-sm, 0.938rem) var(--mono); }
+  #go { border:0; border-radius:10px; padding:9px 18px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; font-size: var(--holo-text-sm, 0.875rem); }
   #go:disabled { opacity:.5; cursor:default; }
   .chips { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0; }
   .chip { border:1px solid var(--line); background:var(--panel); color:var(--dim); border-radius:999px;
-          padding:5px 12px; font:12px var(--mono); cursor:pointer; transition:.12s; }
+          padding:5px 12px; font:var(--holo-text-sm, 0.75rem) var(--mono); cursor:pointer; transition:.12s; }
   .chip:hover { color:var(--ink); border-color:var(--accent); }
-  .toggle { margin-left:auto; display:flex; align-items:center; gap:7px; color:var(--dim); font-size:12px; cursor:pointer; user-select:none; }
-  .steps { margin:22px 0 0; font:12.5px var(--mono); color:var(--dim); display:grid; gap:3px; min-height:0; }
+  .toggle { margin-left:auto; display:flex; align-items:center; gap:7px; color:var(--dim); font-size: var(--holo-text-sm, 0.75rem); cursor:pointer; user-select:none; }
+  .steps { margin:22px 0 0; font:var(--holo-text-sm, 0.781rem) var(--mono); color:var(--dim); display:grid; gap:3px; min-height:0; }
   .steps .s { display:flex; gap:9px; align-items:baseline; opacity:0; transform:translateY(3px); animation:in .22s forwards; }
   @keyframes in { to { opacity:1; transform:none; } }
   .steps .dot { color:var(--accent); }
@@ -41,33 +41,33 @@
   .card { margin:22px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:none; }
   .card.show { display:block; animation:in .25s; }
   .hd { display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); background:var(--panel2); }
-  .badge { font:11px var(--mono); padding:3px 9px; border-radius:7px; border:1px solid var(--line); color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
+  .badge { font:var(--holo-text-sm, 0.688rem) var(--mono); padding:3px 9px; border-radius:7px; border:1px solid var(--line); color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
   .badge.web{ color:#93c5fd; border-color:#1e3a5f; } .badge.cid{ color:#c4b5fd; border-color:#3b2f63; } .badge.kappa{ color:#6ee7b7; border-color:#1f4f3f; }
-  .verify { margin-left:auto; font-weight:600; font-size:13px; }
+  .verify { margin-left:auto; font-weight:600; font-size: var(--holo-text-sm, 0.813rem); }
   .verify.ok { color:var(--good); } .verify.bad { color:var(--bad); }
   .rows { padding:8px 20px 16px; }
   .row { display:grid; grid-template-columns:92px 1fr; gap:14px; padding:9px 0; border-bottom:1px solid #131a28; align-items:start; }
   .row:last-child { border:0; }
-  .row .k { color:var(--dim); font-size:12.5px; padding-top:2px; }
-  .row .v { font:12.5px var(--mono); color:var(--ink); word-break:break-all; }
+  .row .k { color:var(--dim); font-size: var(--holo-text-sm, 0.781rem); padding-top:2px; }
+  .row .v { font:var(--holo-text-sm, 0.781rem) var(--mono); color:var(--ink); word-break:break-all; }
   .row .v .pill { color:var(--accent); }
   .prov { display:flex; flex-wrap:wrap; gap:6px; }
-  .prov span { font:11px var(--mono); padding:2px 8px; border-radius:6px; background:#0e1726; border:1px solid var(--line); color:var(--dim); }
+  .prov span { font:var(--holo-text-sm, 0.688rem) var(--mono); padding:2px 8px; border-radius:6px; background:#0e1726; border:1px solid var(--line); color:var(--dim); }
   .prov span.hit { color:var(--good); border-color:#1f4f3f; background:#0c1c16; }
   .prov span.find { color:var(--warn); border-color:#4a3b16; background:#1c160c; }
   .preview { border-top:1px solid var(--line); }
-  .preview .pt { padding:10px 20px; color:var(--dim); font-size:12px; display:flex; gap:10px; align-items:center; }
-  .preview pre { margin:0; padding:0 20px 18px; font:12px var(--mono); color:#aeb9d0; white-space:pre-wrap; word-break:break-all; max-height:280px; overflow:auto; }
+  .preview .pt { padding:10px 20px; color:var(--dim); font-size: var(--holo-text-sm, 0.75rem); display:flex; gap:10px; align-items:center; }
+  .preview pre { margin:0; padding:0 20px 18px; font:var(--holo-text-sm, 0.75rem) var(--mono); color:#aeb9d0; white-space:pre-wrap; word-break:break-all; max-height:280px; overflow:auto; }
   .preview iframe { width:100%; height:340px; border:0; border-top:1px solid var(--line); background:#fff; }
   .preview img { max-width:100%; display:block; padding:0 20px 18px; }
   .dir { padding:4px 12px 14px; display:grid; gap:2px; max-height:300px; overflow:auto; }
   .direntry { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:0; background:transparent; color:var(--ink);
-              padding:8px 10px; border-radius:8px; cursor:pointer; font:13px var(--mono); }
+              padding:8px 10px; border-radius:8px; cursor:pointer; font:var(--holo-text-sm, 0.813rem) var(--mono); }
   .direntry:hover { background:#0e1726; }
-  .direntry .dn { flex:1; color:#cdd7ea; } .direntry .dc { color:#566c8a; font-size:11px; }
+  .direntry .dn { flex:1; color:#cdd7ea; } .direntry .dc { color:#566c8a; font-size: var(--holo-text-sm, 0.688rem); }
   .direntry::before { content:"›"; color:var(--accent); }
   .err { color:var(--bad); }
-  .foot { margin-top:30px; color:#4a5573; font-size:11.5px; line-height:1.7; }
+  .foot { margin-top:30px; color:#4a5573; font-size: var(--holo-text-sm, 0.719rem); line-height:1.7; }
   .foot code { color:var(--dim); }
   input[type=checkbox]{ accent-color:var(--accent); }
 </style>
@@ -75,7 +75,7 @@
 <body>
 <div class="wrap">
   <h1>Omni Resolve</h1>
-  <p class="sub">One box. Paste a <b>https://</b> url, a <b>did:holo:</b> κ, an <b>ipfs://</b> link, or a bare <b>CID</b> it resolves into one content-addressed space, every byte re-derived to its address before it's admitted (Law&nbsp;L5).</p>
+  <p class="sub">One box. Paste a <b>https://</b> url, a <b>did:holo:</b> κ, an <b>ipfs://</b> link, or a bare <b>CID</b> it resolves into one verified space, every byte verified to its address before it's admitted.</p>
 
   <div class="bar">
     <span class="ic">⌕</span>
@@ -95,7 +95,7 @@
   <div class="card" id="card">
     <div class="hd">
       <span class="badge" id="kind"></span>
-      <span id="title" style="font:13px var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <span id="title" style="font:var(--holo-text-sm, 0.813rem) var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       <span class="verify" id="verify"></span>
     </div>
     <div class="rows">
@@ -108,7 +108,7 @@
   </div>
 
   <div class="foot">
-    The <code>https://</code> leg <b>imports</b> any web object and mints its κ the reverse bridge. The <code>ipfs://</code>/CID leg fetches the verifiable IPLD <em>block</em>; multi-block UnixFS file assembly is the next layer up. "via dev proxy" routes fetches through the host so the lab works despite cross-origin CORS turn it off to see raw browser CORS behaviour.<br>
+    The <code>https://</code> leg <b>imports</b> any web object and verifies it the reverse bridge. The <code>ipfs://</code>/CID leg fetches the verifiable IPLD <em>block</em>; multi-block UnixFS file assembly is the next layer up. "via dev proxy" routes fetches through the host so the lab works despite cross-origin CORS turn it off to see raw browser CORS behaviour.<br>
     Backed by <code>/sbin/holo-omni-object.mjs</code> + <code>/sbin/holo-routing.mjs</code> (Delegated Routing V1). Nothing here is trusted: the hash is.
   </div>
 </div>

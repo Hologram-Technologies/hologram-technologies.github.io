@@ -40,6 +40,12 @@ const hex = (k) => String(k).split(":").pop();
 const ENTRY = "/";
 const BOOT = ["holospace.html", "shell.html", "holo-launch.mjs", "holo-fhs-sw.js", "manifest.webmanifest"];
 
+// Witness the PROD code path on localhost: serve the SW VERBATIM (sealed ALLOW_DEV_FRESH=false →
+// DEV=false → cache-first + L5 + heal), exactly what a dumb static host (GitHub Pages) ships. This is
+// what makes the SUFFICIENT (browser-lane) proof of origin-blocked boot reproducible without a remote
+// HTTPS host. The SW logic is unmodified and its bytes still re-derive to the pinned κ. Override-able.
+process.env.HOLO_PROD_SW = process.env.HOLO_PROD_SW || "1";
+
 const { port, close } = await startServer();
 const base = `http://127.0.0.1:${port}`;
 console.log(`OS2 serving at ${base}\n`);
@@ -119,10 +125,11 @@ if (chromium) {
     const served = hits.filter(([, s, c]) => s === 200 && c === "hit").length;
     const miss = hits.filter(([, s, c]) => !(s === 200 && c === "hit")).map(([p, s, c]) => `${p}:${s}/${c}`);
 
-    // The SW runs in DEV mode on localhost (holo-fhs-sw.js:29,470,508): PATH requests are served FRESH
-    // and never cached, so offline boot is disabled BY DESIGN — not a defect. Production (!DEV: HTTPS,
-    // non-localhost, e.g. GitHub Pages) is cache-first (x-holo-cache:hit) and boots offline. The
-    // localhost harness CANNOT witness the prod path. Classify that honestly: dev-bypassed ≠ fail.
+    // This harness serves the SW VERBATIM (HOLO_PROD_SW, set above) so it runs the PROD path on
+    // localhost: cache-first (x-holo-cache:hit), boots offline — the same code a dumb static host ships.
+    // The dev-bypassed branch below remains as an honest fallback: if someone forces dev-fresh
+    // (HOLO_PROD_SW=0), the SW serves PATH requests fresh + uncached, offline boot is off BY DESIGN, and
+    // we classify that as dev-bypassed (neutral), never a fabricated green.
     const DEVHOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(new URL(base).hostname);
     const devBypassed = DEVHOST && !booted && served === 0 && hits.every(([, s, c]) => c !== "hit");
     if (devBypassed) {

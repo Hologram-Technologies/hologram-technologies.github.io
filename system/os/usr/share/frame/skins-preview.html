@@ -6,32 +6,32 @@
 <title>Holo Browser — Vintage Skins</title>
 <style>
   :root { color-scheme: light; }
-  body { margin: 0; background: #2b2f36; color: #e6e6e6; font: 14px -apple-system, "Segoe UI", system-ui, sans-serif; }
+  body { margin: 0; background: #2b2f36; color: #e6e6e6; font: var(--holo-text-sm, 0.875rem) -apple-system, "Segoe UI", system-ui, sans-serif; }
   header { padding: 18px 20px 8px; }
   header h1 { margin: 0 0 4px; font-size: 18px; }
-  header p { margin: 0; color: #aab; font-size: 12.5px; }
+  header p { margin: 0; color: #aab; font-size: var(--holo-text-sm, 0.781rem); }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 20px; position: sticky; top: 0; background: #2b2f36; z-index: 5; border-bottom: 1px solid #00000040; }
   .bar button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid #4a4f57; background: #3a3f47; color: #e6e6e6; cursor: pointer; }
   .bar button.sel { background: #1f6feb; border-color: #1f6feb; }
   .bar .spacer { flex: 1; }
   .stage { padding: 18px 20px 40px; }
-  .kappa { font: 11px ui-monospace, monospace; color: #8fae8f; padding: 4px 20px 0; }
+  .kappa { font: var(--holo-text-sm, 0.688rem) ui-monospace, monospace; color: #8fae8f; padding: 4px 20px 0; }
   /* the <holo-window> .frame the engine mounts into — a real browser-tab viewport */
   .frame { display: flex; flex-direction: column; height: 460px; max-width: 980px; border-radius: 10px; overflow: hidden; box-shadow: 0 12px 40px #0009; background: #fff; }
-  .page { flex: 1; min-height: 0; background: #fff; color: #111; overflow: auto; padding: 26px 32px; font: 15px "Times New Roman", Times, serif; }
+  .page { flex: 1; min-height: 0; background: #fff; color: #111; overflow: auto; padding: 26px 32px; font: var(--holo-text-sm, 0.938rem) "Times New Roman", Times, serif; }
   .page h2 { font-size: 22px; margin: 0 0 8px; }
   .page a { color: #0000ee; }
   .page a.v { color: #551a8b; }
-  .note { color: #678; font-size: 12px; padding: 0 20px; }
+  .note { color: #678; font-size: var(--holo-text-sm, 0.75rem); padding: 0 20px; }
 </style>
 </head>
 <body>
   <header>
     <h1>Holo Browser — Vintage Skins</h1>
-    <p>Every skin is a κ-addressed object fetched + re-derived (Law L5), mounted as chrome around one live page. Switching never reloads the page — the iframe/viewport is preserved.</p>
+    <p>Every skin is a verified object fetched + verified, mounted as chrome around one live page. Switching never reloads the page — the iframe/viewport is preserved.</p>
   </header>
   <div class="bar" id="bar">
-    <span style="color:#aab;font-size:12px">Skin:</span>
+    <span style="color:#aab;font-size: var(--holo-text-sm, 0.75rem)">Skin:</span>
     <span class="spacer"></span>
     <button id="loadtoggle" title="Simulate a page load to see the throbber + status">◐ Toggle loading</button>
   </div>
@@ -41,7 +41,7 @@
       <div class="page" id="page">
         <h2>The Hologram Web</h2>
         <p>This is a stand-in web page. The chrome above and the status bar below are the active vintage skin —
-        re-authored faithfully as web chrome, served from the κ-store, and re-derived before it paints.</p>
+ re-authored faithfully as web chrome, served from the object store, and verified before it paints.</p>
         <p>Try switching skins: the page text, scroll, and (in the real browser) history all stay put.
         Visited links render <a class="v" href="#">purple</a>, unvisited <a href="#">blue</a>, just like 1996.</p>
       </div>

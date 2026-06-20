@@ -26,8 +26,14 @@ const dev = read(join(here, "holo-serve-fhs.mjs"));                 // the DEV s
 const closure = JSON.parse(read(join(OS2, "etc/os-closure.json")) || "{}").closure || {};
 const BACKENDS = ["scRoute", "developRoute", "roomRoute", "mcpProxy", "webProxy", "pipeUpstream"];
 
+// Leak detection scans CODE ONLY. A comment may legitimately NAME the dev server or a backend
+// (documentation — e.g. the SW's dev-fresh comment notes that tools/holo-serve-fhs.mjs flips a flag),
+// which is not an import, call, or dependency. Stripping comments still catches every real reference.
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+const swCode = stripComments(sw);
+
 // ── 1 · the shipped Service Worker is PURE content-delivery + verification — no server ──
-const swBackend = BACKENDS.filter((b) => has(sw, b)).concat(["child_process", "spawn(", "yt-dlp"].filter((t) => has(sw, t)));
+const swBackend = BACKENDS.filter((b) => has(swCode, b)).concat(["child_process", "spawn(", "yt-dlp"].filter((t) => has(swCode, t)));
 const swVerifies = has(sw, "sha256hex") && has(sw, "blake3hex") && has(sw, "BYBLAKE") && has(sw, "409") && has(sw, "refuse");
 rec("the shipped delivery worker (holo-fhs-sw.js) is PURE content-route + Law-L5 verify (both axes, refuse-on-mismatch)", swVerifies, swVerifies ? "κ-route + re-derive + 409" : "missing verify path");
 rec("the shipped delivery worker carries NO server, proxy, or backend logic", swBackend.length === 0, swBackend.length ? "found: " + swBackend.join(", ") : "none");
@@ -37,7 +43,7 @@ rec("the shipped delivery worker IS a serverless MCP endpoint (answers /mcp + /~
 
 // ── 2 · the optional companion backends are confined to the DEV server, which is NOT shipped ──
 const devHasAll = BACKENDS.every((b) => has(dev, b));
-const devNotShipped = !Object.keys(closure).some((k) => /serve-fhs/.test(k)) && !has(sw, "holo-serve-fhs");
+const devNotShipped = !Object.keys(closure).some((k) => /serve-fhs/.test(k)) && !has(swCode, "holo-serve-fhs");
 rec("the companion backends (sc · develop · room · mcp · web) live ONLY in the dev server", devHasAll, devHasAll ? "all in holo-serve-fhs.mjs" : "not all confined");
 rec("the dev server is a DEV TOOL, not part of the sealed image (no os-closure pin, not referenced by the SW)", devNotShipped, devNotShipped ? "tools/ only" : "leaked into the image");
 

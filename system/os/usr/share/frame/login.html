@@ -14,7 +14,8 @@
      wallpaper (the "aurora" plane), blurred behind an acrylic layer, so signing in feels like the glass
      lifting to reveal the workspace beneath. The avatar + name + sign-in float on the glass (Windows-
      lock vocabulary); accounts sit bottom-left, power/another-device bottom-right, AI-agent help bottom-
-     center. Auth is the unchanged self-sovereign unlock (unlockDevice biometric · unlockPass · access · guest). -->
+     center. Auth is BIOMETRIC-ONLY — no passcode: unlockDevice (this device's biometric) · access
+     (first-run biometric enrol) · pairWithPhone (the phone's biometric) · guest (ephemeral). -->
 <style>
   /* ── GOLDEN-RATIO DESIGN SYSTEM ───────────────────────────────────────────────────────────────
      One fluid unit --u and powers of φ govern every size, gap and control, so the lock screen is one
@@ -222,10 +223,10 @@
 
   /* ── APPEARANCE (Dark · Light · Immersive) ─────────────────────────────────────────────────────
      The lock screen reflects the operator's chosen theme (set pre-paint by holo-appearance-boot.js
-     and live by the toggle below), so sign-in matches the desktop it opens into. Immersive = the
-     signature aurora; Dark / Light drop the aurora glows for a clean, launcher-quiet surface. */
-  :root[data-holo-immersive="off"] .wall i { opacity: 0; }                 /* clean, no aurora glows */
-  :root[data-holo-palette="dark"][data-holo-immersive="off"] .wall { background: #09090B; }
+     and live by the toggle below), so sign-in matches the desktop it opens into. Dark ALWAYS wears the
+     navy aurora — identical to the boot splash's handoff backdrop — so sign-in flows seamlessly out of
+     the boot animation with no change of scene. Light drops the glows for a clean, launcher-quiet day surface. */
+  :root[data-holo-palette="light"][data-holo-immersive="off"] .wall i { opacity: 0; }   /* clean, no aurora glows */
   /* Light: a soft daylight wall, dark ink, a bright frost — every key surface flipped. */
   :root[data-holo-palette="light"] { --ink: #1a1d24; --ink-dim: rgba(26,29,36,.74); --ink-faint: rgba(26,29,36,.5); }
   :root[data-holo-palette="light"] body { background: #eceae4; }
@@ -362,6 +363,9 @@ try {
     sddm.connect("informationMessage", (m) => setBusy(m));
     sddm.connect("loginFailed", () => setStatus(window.__lastErr || "Try again", true));
     sddm.connect("loginSucceeded", () => { setStatus("Opening my space…"); document.body.classList.add("unfog"); });
+    // Biometric-only: nothing this device can verify (no passkey enrolled here) → don't ask for a
+    // passcode (there isn't one). Offer the phone's biometric or Guest instead.
+    sddm.connect("needName", () => renderCenter({ ...st, hasBio: false }, sddm));
 
     // window.HoloLogin — the agent-facing API (mirrors script#holo-agent-login)
     window.HoloLogin = {
@@ -392,15 +396,34 @@ function avatarHtml(u, big) {
   return `<div class="${cls}" style="background:linear-gradient(140deg,#5b6b86,#3a455c)">${I.person}</div>`;
 }
 
+// renderPhoneGuest — the no-passcode fallback when this device can't do a biometric (no enclave, or
+// a legacy identity with no passkey enrolled here): the operator signs in with their PHONE's
+// biometric, or enters as an ephemeral Guest. Nothing to type, ever — the experience stays biometric.
+function renderPhoneGuest(st, sddm, heading) {
+  const p = $("panel");
+  p.innerHTML = `${avatarHtml(st.selected, true)}
+    <h1 class="name">${esc(heading)}</h1>
+    <div class="auth">
+      <button class="bio" id="phone">${I.phone}Sign in with your phone</button>
+      <button class="alt" id="guest">Continue as Guest</button>
+      <div class="sub">This device has no biometric. Use your phone’s fingerprint or face — or enter as Guest.</div>
+      <div class="status"></div>
+    </div>`;
+  p.querySelector("#phone").onclick = () => sddm.pairWithPhone();
+  p.querySelector("#guest").onclick = () => sddm.guest();
+}
+
 function renderCenter(st, sddm) {
   const firstRun = !st.selected;
   const p = $("panel");
+  // No biometric on this device → no passcode means the phone's biometric (or Guest) is the way in.
+  if (!st.hasBio) { renderPhoneGuest(st, sddm, firstRun ? "Sign in" : (st.selected.label || "Welcome")); return; }
   if (firstRun) {
     p.innerHTML = `${avatarHtml(null, true)}
       <h1 class="name">Set up this device</h1>
       <div class="auth">
         <div class="box"><input id="namein" type="text" autocomplete="name" placeholder="My name" /><button class="submit" id="go" title="Create">${I.arrow}</button></div>
-        <div class="sub">${st.hasBio ? "Secured by " + esc(st.bioName) : "You’ll set a passphrase"}</div>
+        <div class="sub">Secured by ${esc(st.bioName)}</div>
         <div class="status"></div>
       </div>`;
     const nameEl = p.querySelector("#namein"), go = p.querySelector("#go");
@@ -410,19 +433,19 @@ function renderCenter(st, sddm) {
     return;
   }
   const u = st.selected;
+  // A legacy key with no biometric enrolled on THIS device can't be unlocked here — there is no
+  // passcode to fall back on, so sign in with the phone's biometric instead.
+  if (!u.cred) { renderPhoneGuest(st, sddm, u.label || "Welcome"); return; }
+  // Returning operator — one biometric tap. Nothing to type.
   p.innerHTML = `${avatarHtml(u, true)}
     <h1 class="name">${esc(u.label || "Welcome")}</h1>
     <div class="auth">
-      ${st.hasBio && u.cred ? `<button class="bio" id="bio">${I.fp}It’s me</button><button class="alt" id="altpass">Use passphrase</button>` : ``}
-      <div class="box" id="passbox" ${st.hasBio && u.cred ? 'style="display:none"' : ''}><input id="passin" type="password" autocomplete="current-password" placeholder="Passphrase" /><button class="submit" id="go" title="Sign in">${I.arrow}</button></div>
+      <button class="bio" id="bio">${I.fp}It’s me</button>
       <div class="status"></div>
     </div>`;
-  const bio = p.querySelector("#bio"), passbox = p.querySelector("#passbox"), passin = p.querySelector("#passin"), go = p.querySelector("#go"), alt = p.querySelector("#altpass");
-  if (bio) bio.onclick = () => { bio.disabled = true; sddm.unlockDevice(); };
-  if (alt) alt.onclick = () => { passbox.style.display = ""; alt.style.display = "none"; if (bio) bio.style.display = "none"; passin.focus(); };
-  const submit = () => { const v = passin.value; if (!v) { passin.focus(); return; } go.disabled = true; sddm.unlockPass(u.kappa, v); };
-  go.onclick = submit; passin.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
-  setTimeout(() => { (bio || passin).focus && (bio || passin).focus(); }, 40);
+  const bio = p.querySelector("#bio");
+  bio.onclick = () => { bio.disabled = true; sddm.unlockDevice(); };
+  setTimeout(() => bio.focus(), 40);
 }
 
 function renderUsers(st, sddm) {

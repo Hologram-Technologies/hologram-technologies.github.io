@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "Holo Telemetry TAP (S0 perception adoption) — the OS's live seams (a real heal sweep, app lifecycle, the conformance gate) flow through the witnessed observability runtime as content-addressed PROV-O signals whose W3C ids re-derive from content (Law L5); the heal seam is driven LIVE so the signal carries the real sweep counts (adoption, not a mock); timing stays honestly attested and egress stays default-deny",
+  "authority": "OpenTelemetry data model + W3C Trace Context · W3C PROV-O · IETF RFC 8785 (JCS) · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L2/L5 · rests on #holo-telemetry + #heal",
+  "witnessed": true,
+  "covers": [
+    "telemetry-adoption",
+    "perception-tap",
+    "heal-observed",
+    "app-observed",
+    "gate-observed",
+    "law-l5",
+    "honest-split",
+    "private-first"
+  ],
+  "sample": {
+    "span": "did:holo:sha256:37fbbede76ba8cd4a6ef4a0fca1b83265e4d2b51d4462786e18f0d12a122beb5",
+    "traceId": "cd64bbfabe25e11c03b8f4c5f88a0e30",
+    "realHealed": 1,
+    "redRows": 2
+  },
+  "checks": {
+    "healSweepEmitsVerifiableSpan": true,
+    "healMetricsAndLogsReDerive": true,
+    "tamperedTappedSignalRefused": true,
+    "appLifecycleEmitsVerifiable": true,
+    "gateVerdictEmitsVerifiable": true,
+    "honestSplitPreserved": true,
+    "deterministicIdContentNotClock": true,
+    "localOnlyEgressStillGated": true
+  },
+  "failed": []
+}
