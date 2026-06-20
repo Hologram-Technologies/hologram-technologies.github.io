@@ -30,6 +30,33 @@
       "hosc:category": "Runtime"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#sec7-egress-opaque",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "SEC-7 — the egress forwarder is CONTENT-BLIND: the SW↔page egress seam (sbin/holo-egress-sw.mjs) relays an outbound response as OPAQUE BYTES — forwarded verbatim across chunk boundaries, never decoded, parsed, or mutated — and returns null (the caller falls back) rather than FABRICATING a response when no page can egress. Witnessed live pure-Node against the real exported seam: a multi-chunk byte stream (including invalid-UTF-8 and malformed-JSON bytes) is relayed byte-identical; an upstream error surfaces as a stream error, never as substituted content; zero/silent/absent clients each resolve to null; and an end-to-end mock page bridge has its stream relayed byte-identical with the content-type forwarded verbatim.",
+      "hosc:authority": "holospaces docs/13-Product-Security §13.5 SEC-7 (an egress peer forwards as opaque bytes and never perceives or alters it) · Law L1 (identity is content) · WHATWG Streams · HTML MessageChannel — tools/holo-egress-witness.mjs",
+      "hosc:witness": "tools/holo-egress-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#l5-whole-os-served",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "L5 (whole-OS coverage) — re-derivation (Law L5) covers EVERY served first-party byte, not only the boot closure. The Service Worker pins boot-critical files via os-closure.json (~500 κ) but serves the whole os/ tree; the served-set closure (os/etc/os-served.json, tools/seal-served.mjs) pins every served file (serve-rel/FHS key → did:holo:sha256) and the SW folds it lazily with the same foldClosure(), resolving a pin by the request path OR its fhsMap disk-path alias. Witnessed live pure-Node: under that exact lookup over os-closure ⊕ os-served, every served first-party file resolves a pin (whole-OS L5 coverage, not ~7%), a deterministic parity sample re-derives to the on-disk bytes (so enabling verification cannot false-refuse — boot-safe), and a tampered byte fails its pin (the refusal is real, not vacuous). The live prod-SW browser confirmation (offline boot + a tampered served byte → 409) is a separate tier.",
+      "hosc:authority": "holospaces Architecture Constraints §L5 (verify by re-derivation) · §L1 (identity is content) · §T3 (untrusted GitHub-Pages gateway) · docs/13-Product-Security §13.5 SEC-1 (integrity) — tools/holo-served-coverage-witness.mjs; pin source tools/seal-served.mjs; enforcement os/holo-fhs-sw.js (ensureServed + dual pin lookup)",
+      "hosc:witness": "tools/holo-served-coverage-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
+      "@id": "https://hologram.os/conformance/os2#l5-whole-os-served-browser",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "L5 (whole-OS coverage, real browser) — in real Chromium in PROD cache-first mode (a non-localhost host so the SW's dev-fresh bypass is OFF, exactly like a GitHub-Pages deploy), the Service Worker folds os-served.json and routes a file OUTSIDE the boot closure through the verify+cache branch: x-holo-cache is set (not the unpinned passthrough), its bytes re-derive to the pinned κ, and a re-fetch serves from the κ cache (cached only because it passed L5) — with no boot regression and no fatal page errors. The refuse-on-mismatch path is the same code os-closure files already exercise (witnessed by holo-w1 / holo-dev-fresh-gate).",
+      "hosc:authority": "holospaces Architecture Constraints §L5 (verify by re-derivation) · §T3 (untrusted GitHub-Pages gateway) · docs/13-Product-Security §13.5 SEC-1 · W3C Service Workers · verify in real Chromium prod-mode (Playwright, HTTPS proxy on a non-localhost host) — tools/holo-served-enforce-witness.mjs",
+      "hosc:witness": "tools/holo-served-enforce-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Security"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
       "@type": "hosc:ConformanceAssertion",
       "name": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode).",

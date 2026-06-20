@@ -1,0 +1,25 @@
+{
+  "spec": "Hologram OS egress is content-blind (SEC-7): the SW↔page egress seam forwards an outbound response as opaque bytes — relayed verbatim, never decoded/parsed/mutated — and returns null (caller falls back) rather than fabricating content when no page can egress.",
+  "authority": "holospaces docs/13-Product-Security §13.5 SEC-7 (egress forwards opaque bytes, never perceives or alters) · Law L1 (identity is content) · WHATWG Streams · HTML MessageChannel — seam under test: os/sbin/holo-egress-sw.mjs",
+  "witnessed": true,
+  "covers": [
+    "egress-opaque-forward",
+    "no-perceive",
+    "no-alter",
+    "fail-safe-null",
+    "sec-7"
+  ],
+  "note": "Core opacity proven by pure-Node checks (no DOM/network). End-to-end through a mock page bridge: passed. The real-browser bridge (a page fetching over the network) is a separate tier.",
+  "e2e": "passed",
+  "checks": {
+    "forward: multi-chunk byte stream relayed byte-identical (opaque, order-preserving)": true,
+    "forward: invalid-UTF-8 and malformed-JSON bytes pass through unaltered (never decoded/parsed)": true,
+    "forward: an upstream error surfaces as a stream error (never fabricated content)": true,
+    "requestPageEgress: zero clients → null (no fabrication)": true,
+    "requestPageEgress: a client that never answers → null within timeout (fail-safe)": true,
+    "requestPageEgress: absent clients API → null (no throw, no fabrication)": true,
+    "e2e: mock bridge stream relayed byte-identical + content-type forwarded verbatim": true
+  },
+  "passed": 7,
+  "failed": 0
+}

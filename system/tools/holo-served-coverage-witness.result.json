@@ -1,0 +1,28 @@
+{
+  "spec": "Law L5 covers the WHOLE served OS: under the Service Worker's pin lookup (os-closure ⊕ os-served, by request path or fhsMap alias), every served first-party file resolves a pin and the pins match the on-disk bytes — so every served byte is re-derived and a tampered byte is refused, not just the boot closure.",
+  "authority": "holospaces Architecture Constraints §L5 (verify by re-derivation) · §L1 (identity is content) · §T3 (untrusted gateway) · docs/13-Product-Security SEC-1 — seam under test: os/holo-fhs-sw.js (ensureServed + dual pin lookup), os/etc/os-served.json (tools/seal-served.mjs)",
+  "witnessed": true,
+  "covers": [
+    "l5-whole-os",
+    "served-set-closure",
+    "no-false-refusal",
+    "tamper-refused",
+    "sec-1"
+  ],
+  "servedFiles": 6739,
+  "pinsBoot": 499,
+  "pinsServed": 6739,
+  "uncovered": 0,
+  "paritySample": 153,
+  "parityBad": 0,
+  "staleClosureKeys": 0,
+  "note": "Pure-Node proof that enforcement is SAFE (no false refusal) and NON-vacuous (tamper detected). Full parity holds by construction (seal-served hashes the same disk); the sample re-checks it. The live prod-SW browser confirmation (HOLO_PROD_SW offline boot + a tampered served byte → 409) is a separate tier.",
+  "checks": {
+    "os-served.json present and supersets the boot closure": true,
+    "every served first-party file resolves a pin (Law L5 covers the whole OS)": true,
+    "dual lookup resolves flat aliases via fhsMap (e.g. _shared/* → usr/lib/holo/*) — non-vacuous": true,
+    "a tampered served byte fails its pin (L5 refusal is real, not vacuous)": true
+  },
+  "passed": 4,
+  "failed": 0
+}

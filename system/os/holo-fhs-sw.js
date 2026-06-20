@@ -285,6 +285,24 @@ async function ensureVoiceManifest(rel) {
     for (const [f, k] of Object.entries(m.runtime || {})) put(`usr/lib/holo/voice/vendor/transformers/${f}`, k);
   } catch { /* unpinned → as before */ }
 }
+// Lazily fold the SERVED-set closure (os/etc/os-served.json) into the pins, ONCE. os-closure.json is the
+// curated network-free BOOT set (~500 κ); but the SW also serves the WHOLE os/ tree, and without this the
+// ~93% of served files outside the boot closure pass UNVERIFIED (the unpinned branch below). os-served
+// pins every served file (serve-rel/FHS-disk key → sha256), so re-derivation (Law L5) covers the whole OS,
+// not just boot. Best-effort: a missing/!ok manifest leaves the extra paths unpinned (served as before,
+// NEVER refused) — so this can only ADD verification; it cannot regress boot, and offline boot still
+// verifies via the boot closure (os-closure). Folded with the SAME foldClosure() as os-closure (Law L5).
+// A shared PROMISE, not a boolean: concurrent early-boot requests must AWAIT the same fold, else a request
+// that arrives mid-fetch would see "already folding" and race ahead to an empty pin map → serve unverified.
+// Memoized, so the manifest is fetched+folded exactly once; a miss/error resolves (those bytes stay
+// unpinned = served as before, no regression) and is not retried in a loop.
+let SERVEDFOLD = null;
+function ensureServed() {
+  return SERVEDFOLD || (SERVEDFOLD = (async () => {
+    try { const r = await fetch(BASE + "etc/os-served.json", { cache: "no-store" }); if (r.ok) foldClosure((await r.json()).closure); }
+    catch { /* no served manifest → those bytes stay unpinned (served unverified, as before) — no regression */ }
+  })());
+}
 const sha256hex = async (buf) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", buf))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -555,7 +573,8 @@ self.addEventListener("fetch", (event) => {
     } else {
       await ensureAppLock(rel);                               // app bytes are verified too (lazy lock fold) — not just OS bytes
       await ensureVoiceManifest(rel);                         // voice weights heal by κ (gitignored, never deployed)
-      expect = BYPATH.get(rel) || null;                       // the pinned (sha256) κ for this path, if any
+      await ensureServed();                                   // fold the SERVED-set closure → re-derive EVERY served byte, not just boot (Law L5)
+      expect = BYPATH.get(rel) || BYPATH.get(fhsMap(rel) || rel) || null;   // pin by the request path OR its FHS-mapped disk path (os-served is disk-keyed; flat aliases like _shared/* route through fhsMap)
     }
 
     // κ-routes are content-addressed (immutable) → cacheable + verified. PATH requests bypass the by-κ

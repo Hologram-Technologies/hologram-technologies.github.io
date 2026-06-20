@@ -1,0 +1,48 @@
+{
+  "witnessed": true,
+  "passed": 6,
+  "failed": 0,
+  "target": "usr/lib/holo/holo-admit.mjs",
+  "pin": "574cc6a4c83e93183b4ad6ed355a596e6171a5721e0521119cd7298f00c33ead",
+  "covers": [
+    "prod secure context + the EDITED SW installs and controls (no boot regre",
+    "a NON-boot served file flows through the VERIFY branch (x-holo-cache set",
+    "its bytes re-derive to the pinned κ (Law L5 verified the file the boot c",
+    "re-fetch served from the κ cache as VERIFIED (cached only because it pas",
+    "an unknown κ-route is refused with 404 (never silently served)",
+    "no fatal page errors during boot + fetches"
+  ],
+  "results": [
+    {
+      "name": "prod secure context + the EDITED SW installs and controls (no boot regression)",
+      "ok": true,
+      "detail": "{\"secure\":true,\"controlled\":true,\"host\":\"holo.test\"}"
+    },
+    {
+      "name": "a NON-boot served file flows through the VERIFY branch (x-holo-cache set ⇒ os-served fold active, not unpinned passthrough)",
+      "ok": true,
+      "detail": "x-holo-cache:miss · 2564 bytes"
+    },
+    {
+      "name": "its bytes re-derive to the pinned κ (Law L5 verified the file the boot closure never pinned)",
+      "ok": true,
+      "detail": "sha256 == os-served pin (574cc6a4c83e…)"
+    },
+    {
+      "name": "re-fetch served from the κ cache as VERIFIED (cached only because it passed L5)",
+      "ok": true,
+      "detail": "x-holo-cache:hit"
+    },
+    {
+      "name": "an unknown κ-route is refused with 404 (never silently served)",
+      "ok": true,
+      "detail": "status:404"
+    },
+    {
+      "name": "no fatal page errors during boot + fetches",
+      "ok": true,
+      "detail": "clean"
+    }
+  ],
+  "spec": "In real Chromium, prod cache-first mode (non-localhost host ⇒ DEV=false), the EDITED holo-fhs-sw.js folds os-served.json and routes a file OUTSIDE the boot closure through the verify+cache branch (x-holo-cache set), its bytes re-deriving to the pinned κ — so Law L5 covers the whole served OS, not just the ~500-file boot closure. The refuse-on-mismatch mechanism is the same path os-closure files exercise (witnessed by holo-w1 / holo-dev-fresh-gate)."
+}
