@@ -1533,14 +1533,34 @@
     const fw = $("fwin"), frame = $("fwframe"), titleEl = $("fwtitle"), esc = $("fwesc"), loading = $("fwloading"), closeDot = $("fwclose"), scrim = $("fwscrim");
     if (!fw || !frame) return;
     let lastFocus = null;
+    let revealed = false;
+    // reveal() — drop the "Opening…" overlay and show the doc. Idempotent. Same-origin, so we also wire
+    // Esc-from-inside-the-iframe to close (key events don't cross frames on their own).
+    function reveal() {
+      if (revealed) return; revealed = true;
+      frame.classList.add("in"); loading.style.display = "none";
+      try { frame.contentDocument.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); }); } catch {}
+    }
     function open(url, title) {
       titleEl.textContent = title || "Hologram";
+      revealed = false;
       frame.classList.remove("in"); loading.style.display = "grid";
       frame.src = url;
       fw.hidden = false; void fw.offsetWidth;   // force reflow so the open transition plays (rAF can stall on a throttled tab)
       fw.classList.add("open");
       document.body.style.overflow = "hidden";
       lastFocus = document.activeElement; try { closeDot.focus(); } catch {}
+      // CRISP + NEVER-STUCK: reveal the moment the doc DOM is INTERACTIVE (same-origin readyState) — do NOT
+      // wait for the full `load`, which blocks on the heavy deferred cloud background (~600 KB three.js). A
+      // hard timeout is the safety net so "Opening…" can never hang even if a subresource never settles.
+      const t0 = Date.now();
+      (function poll() {
+        if (revealed || fw.hidden) return;
+        let rs = ""; try { rs = frame.contentDocument && frame.contentDocument.readyState; } catch {}
+        if (rs === "interactive" || rs === "complete") return reveal();
+        if (Date.now() - t0 > 3500) return reveal();
+        setTimeout(poll, 50);
+      })();
     }
     function close() {
       if (fw.hidden) return;
@@ -1550,10 +1570,7 @@
     }
     frame.addEventListener("load", () => {
       if (!frame.src || frame.src === "about:blank") return;
-      frame.classList.add("in"); loading.style.display = "none";
-      // The framed page is same-origin, so close from inside too: Esc while focus is in the iframe
-      // should still close the window (key events do not cross frames on their own).
-      try { frame.contentDocument.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); }); } catch {}
+      reveal();
     });
     closeDot.addEventListener("click", close);
     esc.addEventListener("click", close);

@@ -542,8 +542,16 @@
 <!-- the SAME homepage background: Vanta CLOUDS2 (Vanta.js + three.js r134, both MIT), vendored locally and
      served same-origin (no runtime CDN). Deferred so they never block the window's reveal; the glass window
      then frosts this live cloudscape exactly as the app-search launcher frosts the homepage. -->
-<script defer src="../system/vendor/vanta/three.min.js"></script>
-<script defer src="../system/vendor/vanta/vanta.clouds2.min.js"></script>
+<!-- SKIP the ~615 KB three.js when embedded in the OS gateway (the gateway behind already renders the
+     clouds, embed CSS hides .bg, the module below guards on window.VANTA) — the "super fast / crisp" win.
+     Loaded normally on the standalone page; data-embed is set by the inline boot script above. -->
+<script>
+  if (!document.documentElement.hasAttribute("data-embed")) {
+    ["../system/vendor/vanta/three.min.js", "../system/vendor/vanta/vanta.clouds2.min.js"].forEach(function (s) {
+      var e = document.createElement("script"); e.src = s; e.defer = true; document.head.appendChild(e);
+    });
+  }
+</script>
 <script type="module">
   // Immersive background — the genuine Vanta CLOUDS2 effect, mounted on #vanta and pinned to the tuned
   // homepage horizon (we patch the shader on the effect's prototype at runtime, so the vendored file's
