@@ -1,6 +1,6 @@
 {
   "witnessed": true,
-  "passed": 6,
+  "passed": 7,
   "failed": 0,
   "target": "usr/lib/holo/holo-admit.mjs",
   "pin": "574cc6a4c83e93183b4ad6ed355a596e6171a5721e0521119cd7298f00c33ead",
@@ -10,6 +10,7 @@
     "its bytes re-derive to the pinned κ (Law L5 verified the file the boot c",
     "re-fetch served from the κ cache as VERIFIED (cached only because it pas",
     "an unknown κ-route is refused with 404 (never silently served)",
+    "HARDENING — an UNPINNED file in a sealed zone is refused with 409, not s",
     "no fatal page errors during boot + fetches"
   ],
   "results": [
@@ -37,6 +38,11 @@
       "name": "an unknown κ-route is refused with 404 (never silently served)",
       "ok": true,
       "detail": "status:404"
+    },
+    {
+      "name": "HARDENING — an UNPINNED file in a sealed zone is refused with 409, not served unverified (fail-closed)",
+      "ok": true,
+      "detail": "status:409"
     },
     {
       "name": "no fatal page errors during boot + fetches",

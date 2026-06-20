@@ -8,7 +8,7 @@
 // like a GitHub-Pages deploy. The refuse-on-mismatch mechanism itself is the SAME code os-closure files
 // already exercise (witnessed by W1 / dev-fresh-gate), here extended to the whole served tree.
 //   node tools/holo-served-enforce-witness.mjs
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createServer as createHttps } from "node:https";
 import { request as httpRequest } from "node:http";
@@ -48,6 +48,11 @@ await new Promise((r) => proxy.listen(0, "127.0.0.1", r));
 const origin = `https://${HOST}:${proxy.address().port}`;
 console.log(`http 127.0.0.1:${httpPort} → https ${origin} (prod mode)  ·  target: ${PICK}\n`);
 
+// HARDENING PROBE — a file in a sealed zone (etc/*) that is NOT in os-served (the dev server serves it 200).
+// In prod the SW must REFUSE it (409), not serve it unverified. Created here, removed in the cleanup below.
+const PROBE = join(here, "../os/etc/__hardening_probe__.jsonld");
+writeFileSync(PROBE, '{"probe":"sealed-zone path absent from os-served — must be refused (fail-closed)"}\n');
+
 const browser = await chromium.launch({ args: [`--host-resolver-rules=MAP ${HOST} 127.0.0.1`, "--ignore-certificate-errors"] });
 try {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true });
@@ -71,17 +76,21 @@ try {
     const f2 = await fetch("/" + pick, { cache: "no-store" }); const c2 = f2.headers.get("x-holo-cache");
     // negative control: a κ-route for an unknown hex is not in the closure index → 404 (never silently served)
     const f404 = await fetch("/.holo/sha256/" + "0".repeat(64), { cache: "no-store" });
-    return { c1, c2, matches, bytes: buf.byteLength, status404: f404.status };
+    // HARDENING: an unpinned file in a sealed zone (etc/*) must be refused (fail-closed), not served unverified
+    const fSealed = await fetch("/etc/__hardening_probe__.jsonld", { cache: "no-store" });
+    return { c1, c2, matches, bytes: buf.byteLength, status404: f404.status, sealedStatus: fSealed.status };
   }, { pick: PICK, pin: PIN });
 
   rec("a NON-boot served file flows through the VERIFY branch (x-holo-cache set ⇒ os-served fold active, not unpinned passthrough)", r.c1 === "miss" || r.c1 === "hit" || r.c1 === "opfs", `x-holo-cache:${r.c1} · ${r.bytes} bytes`);
   rec("its bytes re-derive to the pinned κ (Law L5 verified the file the boot closure never pinned)", r.matches === true, `sha256 == os-served pin (${PIN.slice(0, 12)}…)`);
   rec("re-fetch served from the κ cache as VERIFIED (cached only because it passed L5)", r.c2 === "hit" || r.c2 === "opfs", `x-holo-cache:${r.c2}`);
   rec("an unknown κ-route is refused with 404 (never silently served)", r.status404 === 404, `status:${r.status404}`);
+  rec("HARDENING — an UNPINNED file in a sealed zone is refused with 409, not served unverified (fail-closed)", r.sealedStatus === 409, `status:${r.sealedStatus}`);
   rec("no fatal page errors during boot + fetches", perr.length === 0, perr.slice(0, 2).join(" | ") || "clean");
   await browser.close();
 } catch (e) { await browser.close().catch(() => {}); rec("witness completed without throwing", false, String((e && e.message) || e)); }
 await close(); proxy.close();
+try { rmSync(PROBE); } catch {}
 
 const witnessed = failed === 0 && passed >= 5;
 console.log(`\n${witnessed ? "WITNESSED ✓ — os-served extends L5 to the whole served OS in a real prod-mode browser" : "NOT WITNESSED ✗ — see failing rows"} · ${passed}/${passed + failed}`);

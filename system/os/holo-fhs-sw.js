@@ -296,10 +296,14 @@ async function ensureVoiceManifest(rel) {
 // that arrives mid-fetch would see "already folding" and race ahead to an empty pin map → serve unverified.
 // Memoized, so the manifest is fetched+folded exactly once; a miss/error resolves (those bytes stay
 // unpinned = served as before, no regression) and is not retried in a loop.
-let SERVEDFOLD = null;
+let SERVEDFOLD = null, SERVED_OK = false;
+const SEALED_TOPS = new Set();   // top-level dirs os-served pins → a "sealed zone". Excludes apps/* (they verify via per-app locks), so an app byte is never caught by the fail-closed refuse below.
 function ensureServed() {
   return SERVEDFOLD || (SERVEDFOLD = (async () => {
-    try { const r = await fetch(BASE + "etc/os-served.json", { cache: "no-store" }); if (r.ok) foldClosure((await r.json()).closure); }
+    try {
+      const r = await fetch(BASE + "etc/os-served.json", { cache: "no-store" });
+      if (r.ok) { const j = await r.json(); foldClosure(j.closure); for (const k of Object.keys(j.closure || {})) SEALED_TOPS.add(k.split("/")[0]); SERVED_OK = true; }
+    }
     catch { /* no served manifest → those bytes stay unpinned (served unverified, as before) — no regression */ }
   })());
 }
@@ -639,6 +643,13 @@ self.addEventListener("fetch", (event) => {
       return out;
     }
     if (expect) return finalize(await resp.arrayBuffer(), resp, rel, { "x-holo-cache": "dev-fresh" });   // DEV path request: served fresh, never cached, never refused
+    // L5/SEC-1 fail-CLOSED for sealed zones: we reach here only UNPINNED. If os-served loaded (SERVED_OK) and
+    // this path sits under a top-level os-served pins (a "sealed zone"), an unpinned 200 is an anomaly — an
+    // unsealed or injected first-party byte — so in PROD refuse it instead of serving it unverified. Whole-OS
+    // coverage means every legitimate sealed byte IS pinned, so this only catches a reseal gap or tamper. Gated
+    // on SERVED_OK → a failed manifest load degrades to the prior passthrough (never bricks); apps/* is not a
+    // sealed zone here (it verifies via per-app locks), so an app byte is never refused.
+    if (!DEV && SERVED_OK && SEALED_TOPS.has((fhsMap(rel) || rel).split("/")[0])) return refuse(rel, "(sealed — must be in os-served)", "(unpinned)");
     if (BASE !== "/" && HTMLISH(rel)) return finalize(await resp.arrayBuffer(), resp, rel);   // unpinned HTML still needs the subpath re-root
     return withHeaders(resp.body, resp);
   })());

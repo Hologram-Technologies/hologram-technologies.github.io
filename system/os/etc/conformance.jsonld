@@ -75,6 +75,15 @@
       "hosc:category": "Security"
     },
     {
+      "@id": "https://hologram.os/conformance/os2#cc1-cc2-engine-parity",
+      "@type": "hosc:ConformanceAssertion",
+      "name": "CC-1/CC-2 — browser and native engines yield IDENTICAL κ. In real Chromium and in Node, the dual-axis κ (sha256 serving ⊕ BLAKE3 σ-axis) is byte-for-byte identical over the same real OS objects and edge inputs — so a Node-sealed pin (os-closure/os-served) always re-derives in the browser Service Worker (Law L5), and the σ-axis matches the reference BLAKE3 KAT (browser ≡ Node ≡ reference). Witnessed in real Chromium against the served holo-blake3.mjs + WebCrypto sha256, compared to Node's node:crypto + the same BLAKE3 module. The live Rust-wasm oracle (a third engine) stays gated on HOLO_SUBSTRATE_PKG and is not required — the KAT vectors are the reference σ-axis (pinned 20/20 by holo-blake3-witness).",
+      "hosc:authority": "holospaces docs/10-Quality-Requirements CC-1 (byte-for-byte equality with the reference σ-axis) · CC-2 (browser and native engines yield identical κ) · BLAKE3 reference KAT · W3C WebCrypto — tools/holo-engine-parity-witness.mjs; engine os/usr/lib/holo/holo-blake3.mjs; reference tools/holo-blake3-witness.mjs",
+      "hosc:witness": "tools/holo-engine-parity-witness.mjs",
+      "hosc:required": true,
+      "hosc:category": "Runtime"
+    },
+    {
       "@id": "https://hologram.os/conformance/os2#holo-tube-l5-media-path",
       "@type": "hosc:ConformanceAssertion",
       "name": "R1 — Holo Tube streams video as κ-addressed objects and EVERY media segment is re-derived to its κ before it reaches the decoder (Law L5 on the MSE path). A stream is immutable per segment: a MediaGraph seals it as a content-addressed DAG (init segment + ordered media segments, each one κ); the κ-feed (holo-media.mjs over the OS κ-store) resolves each segment BY ITS κ and re-derives it, so a tampered byte is refused — playback stalls rather than feeding bad bytes to the decoder. Witnessed offline against the sealed demo MediaGraph and its real fMP4 segments: all 15 segments re-derive to their κ, and a single flipped byte fails verification (refused before decode).",
