@@ -3,7 +3,10 @@ name: Deploy Hologram OS to GitHub Pages
 # Publishes the OS as-is: the site root IS the FHS image (os/). No build step — the in-browser
 # Service Worker (os/holo-fhs-sw.js, the twin of tools/holo-serve-fhs.mjs, sharing
 # os/lib/holo-fhs-map.mjs) maps the flat URL space onto the FHS tree and supplies cross-origin
-# isolation at runtime. Proven by tools/pages-deploy-witness.mjs against a dumb static host.
+# isolation at runtime. Two fail-closed gates guard every deploy: the staged-ARTIFACT seal check
+# (reseal.mjs --check on _site/os — verifies the exact bytes uploaded) and a post-deploy COLD-BOOT
+# witness (tools/holo-cold-boot-witness.mjs — a fresh visitor must boot with no Safety-Stop). See the
+# "Verify staged artifact" step and the verify-boot job below.
 #
 # Serve at a ROOT site (a <user>.github.io user/org site, or a custom domain) so the app's
 # absolute references (/_shared/…, /usr/…) resolve. Under a project subpath (/<repo>/) those
@@ -29,6 +32,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}   # handed to the verify-boot job below
     steps:
       - uses: actions/checkout@v4
         with:
@@ -178,8 +183,45 @@ jobs:
             cp "system/os/usr/lib/holo/$f" "_site/system/os/usr/lib/holo/$f"
           done
           cp system/llms.txt _site/system/llms.txt
+          # Build marker: lets the post-deploy cold-boot witness WAIT for THIS commit to be live on the
+          # CDN before it asserts, so it never tests stale bytes. Lives at the site ROOT (outside os/), so
+          # it is served raw by the host and never touched by the Service Worker.
+          printf '{"commit":"%s","run":"%s"}\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > _site/build-id.json
+      # ── Staged-ARTIFACT seal gate (Law L5, fail-closed) — verify the bytes we ACTUALLY upload ──────
+      # The source seal gate above ran BEFORE staging + app/runtime vendoring. This re-derives every
+      # pinned κ against the assembled _site/os — the exact tree that goes live — so a staging or vendor
+      # step that corrupted a pinned byte can never reach a visitor (it would 409 at boot). Same single
+      # verifier as the source gate (no second, drifting checker), pointed at the artifact via HOLO_OS_DIR.
+      - name: Verify staged artifact (deploy only what re-derives)
+        run: HOLO_OS_DIR=_site/os node system/tools/reseal.mjs --check
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # ── Post-deploy COLD-BOOT witness (fail-closed) ──────────────────────────────────────────────────
+  # The absence of THIS is what let a mis-sealed image reach users on 2026-06-21: the SW refused every
+  # request (anchor != served closure) and detection waited on a human. This job loads the LIVE site as
+  # a genuinely cold visitor and asserts it boots with no Safety-Stop — turning a silent universal
+  # outage into a red deploy. It waits for this commit's build marker before asserting (no stale-byte
+  # race). Phase A (network-only) re-derives the exact invariant that broke; Phase B drives a real
+  # browser under the worker. A red here means the just-published site is down — investigate immediately.
+  verify-boot:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install witness deps (Playwright + chromium)
+        run: |
+          cd system
+          npm ci || npm install
+          npx playwright install --with-deps chromium
+      - name: Cold-boot health check (a fresh visitor must boot — no Safety-Stop)
+        env:
+          HOLO_DEPLOY: ${{ needs.deploy.outputs.page_url }}
+          EXPECT_BUILD: ${{ github.sha }}
+        run: node system/tools/holo-cold-boot-witness.mjs

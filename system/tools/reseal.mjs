@@ -29,13 +29,16 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fhsMap } from "../os/lib/holo-fhs-map.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OS = join(here, "../os");
 const SYSTEM = join(here, "..");
 const checkOnly = process.argv.includes("--check");
+// --check (read-only) MAY target a STAGED ARTIFACT via HOLO_OS_DIR — e.g. the deploy's _site/os — so CI
+// verifies the bytes it ACTUALLY uploads, not just the source tree (the source gate runs pre-staging). A
+// full reseal (writes via the sub-tools, which resolve their own source os/) ALWAYS targets the source.
+const OS = (checkOnly && process.env.HOLO_OS_DIR) ? resolve(process.env.HOLO_OS_DIR) : join(here, "../os");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const hexOf = (d) => String(d || "").split(":").pop().toLowerCase();
 const run = (script) => spawnSync(process.execPath, [join(here, script)], { cwd: SYSTEM, encoding: "utf8" });

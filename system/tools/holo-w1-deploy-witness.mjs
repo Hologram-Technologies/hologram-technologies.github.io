@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const URL = (process.env.W1_DEPLOY || "https://humuhumu33.github.io/os-holo/os/").replace(/\/?$/, "/");
+const URL = (process.env.W1_DEPLOY || "https://hologram-technologies.github.io/hologram-os/os/").replace(/\/?$/, "/");
 // boot-critical CONTENT the desktop loads (must serve from the κ cache offline). Excluded by design:
 // holo-fhs-sw.js (the active worker persists across offline — the browser never re-fetches it to run)
 // and etc/manifest.webmanifest (PWA install metadata, not a boot dependency) — both legitimately 502
