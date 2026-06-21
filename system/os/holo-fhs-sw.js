@@ -332,8 +332,29 @@ const withHeaders = (body, resp, extra = {}) => { const h = new Headers(resp.hea
 // dark, framed look as the rest of the OS (charset utf-8, so the copy never garbles), and let the red
 // light · Esc · "Go back" return the visitor to the page they came from.
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/><title>This couldn’t be verified — Hologram OS</title>
+// A safe JS string literal for the page's inline self-report (escape `<` so a path can never close </script>).
+const jsLit = (s) => JSON.stringify(String(s)).replace(/</g, "\\u003c");
+// kind ∈ "path" (a SINGLE object didn't re-derive → possible tamper / partial transfer) | "closure"
+// (the whole pin set is untrusted → the site was published mis-sealed: an OPERATOR error, not an attack on
+// the visitor). The copy says WHICH, so a visitor isn't told "you're under attack" when the real cause is a
+// bad deploy — and the operator gets an unambiguous, actionable message. The page also self-reports to the
+// console (no server exists to beacon to; devtools is where the operator looks).
+const refuseHtml = (rel, want, got, axis, kind = "path") => {
+  const universal = kind === "closure";
+  const title = universal ? "This site wasn’t published correctly — Hologram OS" : "This couldn’t be verified — Hologram OS";
+  const h1 = universal ? "This site didn’t publish correctly" : "This didn’t match, so nothing opened";
+  const lead = universal
+    ? "Hologram checks that every part of the page matches its seal before it runs. The published files don’t match their seal, so nothing opened."
+    : "Hologram verifies every part before it runs. This one didn’t match, so it stopped here to keep you safe.";
+  const quiet = universal
+    ? "This is a problem with how the site was published — not your device, and not an attack on you. Reloading won’t help until it’s republished."
+    : "Nothing loaded, and your device is fine — the page was likely changed, or only partly arrived.";
+  const micro = universal
+    ? "If you published this site: re-run the reseal and redeploy. Otherwise please try again later, or open Hologram from its official link."
+    : "If this keeps happening, open Hologram from its official link.";
+  const report = jsLit("[Hologram] Safety-Stop (" + kind + "): " + rel + " — wanted " + axis + ":" + want + (got ? (" · got " + axis + ":" + got) : ""));
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/><title>${esc(title)}</title>
 <style>
   :root{ --fg:#eaf0fb; --soft:#c6d2e6; --muted:#8b97ad; --line:#1b2433; --panel:#0c111b; --accent:#7defc9; }
   *{ box-sizing:border-box; } html,body{ height:100%; margin:0; }
@@ -380,14 +401,14 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
     <div class="body">
       <div class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z"/><path d="M9.5 12.5l1.8 1.8 3.4-3.6"/></svg></div>
       <div class="kicker">Safety stop</div>
-      <h1 id="h">This didn’t match, so nothing opened</h1>
-      <p class="lead">Hologram verifies every part before it runs. This one didn’t match, so it stopped here to keep you safe.</p>
-      <p class="quiet">Nothing loaded, and your device is fine — the page was likely changed, or only partly arrived.</p>
+      <h1 id="h">${esc(h1)}</h1>
+      <p class="lead">${esc(lead)}</p>
+      <p class="quiet">${esc(quiet)}</p>
       <div class="acts">
         <button class="btn btn-p" id="back" type="button">Go back</button>
         <button class="btn btn-g" id="reload" type="button">Try again</button>
       </div>
-      <p class="micro">If this keeps happening, open Hologram from its official link.</p>
+      <p class="micro">${esc(micro)}</p>
       <details>
         <summary>Technical details</summary>
         <div class="tech"><b>Checked</b><span>${esc(rel)}</span><b>Expected</b><span>${axis}:${esc(want)}</span><b>Found</b><span>${axis}:${esc(got)}</span></div>
@@ -395,6 +416,7 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
     </div>
   </main>
 <script>
+  try{ console.error(${report}); }catch(e){}
   function goBack(){ if (history.length > 1) history.back(); else location.href = "../"; }
   document.getElementById("back").addEventListener("click", goBack);
   document.getElementById("dot").addEventListener("click", goBack);
@@ -402,9 +424,20 @@ const refuseHtml = (rel, want, got, axis) => `<!doctype html><html lang="en"><he
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") goBack(); });
 </script>
 </body></html>`;
-const refuse = (rel, want, got, axis = "sha256") => new Response(refuseHtml(rel, want, got, axis), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
+};
+// Make a refusal OBSERVABLE, not just rendered. There is no origin server to beacon to, so "report" means:
+// (1) a distinct console.error in the SW scope (where the operator looks in devtools), and (2) a best-effort
+// postMessage to every window client, so a BOOTED OS can surface a single-path refusal (possible tamper) via
+// its telemetry/Inbox. Both are best-effort and can never throw into the response path. A UNIVERSAL refusal
+// has no live client to hear (2) — there its own page self-reports (refuseHtml) and CI's cold-boot witness
+// catches it; the message exists for the single-path case, which is the real-tamper scenario the design is for.
+function reportRefusal(kind, rel, want, got, axis) {
+  try { console.error("[holo-sw] safety-stop (" + kind + "): " + rel + " — wanted " + axis + ":" + want); } catch {}
+  try { self.clients.matchAll({ includeUncontrolled: true, type: "window" }).then((cs) => { for (const c of cs) c.postMessage({ type: "holo:refusal", kind, rel, want, got, axis }); }, () => {}); } catch {}
+}
+const refuse = (rel, want, got, axis = "sha256") => { reportRefusal("path", rel, want, got, axis); return new Response(refuseHtml(rel, want, got, axis, "path"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
 // G1/SEC-1: the pin set itself failed to re-derive against the baked anchor → the whole boot is untrusted. Fail closed.
-const refuseClosure = () => new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } });
+const refuseClosure = () => { reportRefusal("closure", "etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256"); return new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256", "closure"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
 
 // ── SERVERLESS MCP — the SW answers the Model Context Protocol with NO origin server (Law L1/L4).
 // Discovery (GET .well-known/mcp.json + /~<app>/.well-known/mcp.json) and JSON-RPC (POST /mcp +
