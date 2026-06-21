@@ -11,6 +11,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- P6 — honest, self-reporting Safety-Stop (operator mis-seal vs possible tamper)
 - CC-1/CC-2 live engine parity + fail-closed L5 for sealed zones
 - CC-10 — explicit error on architecture mismatch, never silently wrong
 - Extend Law L5 verification to the whole served OS + witness SEC-7
