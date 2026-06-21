@@ -129,7 +129,21 @@ export function makeTap({ telemetry, service = "holo.tap" } = {}) {
     return { span: sealed, metrics, logs, closure, hasContent: entities > 0 };
   }
 
-  return { observeHeal, observeApp, observeGate, observeIngest, tracer, meter, logger, SEV };
+  // ── SEAM 5 · a content-address REFUSAL (the SW's 409 Safety-Stop) ─────────────────────────────────────
+  // observeRefusal({ kind, rel, want, got, axis }) — re-express a Service-Worker refusal (Law L5, fail-closed)
+  // as telemetry, so the OS SEES its own fail-closed events instead of them being invisible — the exact gap
+  // the 2026-06-21 Safety-Stop exposed. kind ∈ "path" (one object didn't re-derive → possible tamper / partial
+  // transfer) | "closure" (the whole pin set is untrusted → a mis-sealed deploy). A counter per kind (so
+  // refusals aggregate) + one WARN log naming what was refused. want/got are content κ, not PII. Returns the
+  // sealed κ(s) so a witness can verify the signal re-derives, like every other seam.
+  async function observeRefusal(event = {}) {
+    const kind = String(event.kind || "path"), rel = String(event.rel || ""), axis = String(event.axis || "sha256");
+    const count = await meter.counter("refusal." + kind, { unit: "1" }).record(1, { rel });
+    const log = await logger.emit(SEV.WARN, "safety.refusal", { attributes: { kind, rel, axis, want: String(event.want || ""), got: String(event.got || "") } });
+    return { count, log };
+  }
+
+  return { observeHeal, observeApp, observeGate, observeIngest, observeRefusal, tracer, meter, logger, SEV };
 }
 
 // ── browser binding: window.HoloTap over window.HoloTelemetry, once the observability plane is ready. Like
@@ -146,4 +160,33 @@ if (typeof window !== "undefined") {
   };
   if (window.HoloTelemetry) wire();
   else if (document.documentElement) document.documentElement.addEventListener("holo-telemetry-ready", wire, { once: true });
+}
+
+// ── REFUSAL SIGNAL ─────────────────────────────────────────────────────────────────────────────────────
+// Hear the Service Worker's "holo:refusal" postMessage (it fires on every 409 Safety-Stop, holo-fhs-sw.js)
+// and (1) feed it to the tap so the OS OBSERVES its own fail-closed events — the gap the 2026-06-21 Safety-
+// Stop exposed — and (2) surface a SINGLE-PATH refusal (the real-tamper case the design is for) in the Inbox,
+// but only where HoloNotify is mounted (the shell). A UNIVERSAL "closure" refusal means the whole site is
+// down, so there is no live client/Inbox to file into — its own page self-reports there. Registered
+// independent of telemetry readiness so a message is never missed; everything best-effort and try-wrapped, so
+// this can never throw onto the boot path. If the tap isn't wired yet, observeRefusal simply no-ops (the SW's
+// own console.error stays the floor).
+if (typeof navigator !== "undefined" && navigator.serviceWorker && typeof navigator.serviceWorker.addEventListener === "function") {
+  try {
+    navigator.serviceWorker.addEventListener("message", (ev) => {
+      const d = ev && ev.data;
+      if (!d || d.type !== "holo:refusal") return;
+      try { if (window.HoloTap && window.HoloTap.observeRefusal) window.HoloTap.observeRefusal(d); } catch (e) { /* observe is best-effort */ }
+      try {
+        if (d.kind === "path" && window.HoloNotify && window.HoloNotify.notify) {
+          window.HoloNotify.notify({
+            id: "holo-refusal:" + String(d.rel || ""),   // collapse repeats of the SAME object into one living note
+            category: "action", severity: "warn", sender: "Safety", icon: "🛡",
+            title: "An object failed verification",
+            body: "“" + String(d.rel || "an object") + "” didn’t match its fingerprint and was refused. Nothing unverified was loaded.",
+          });
+        }
+      } catch (e) { /* Inbox is best-effort; absent in app frames */ }
+    });
+  } catch (e) { /* serviceWorker messaging unavailable → the SW's console.error remains the floor */ }
 }
