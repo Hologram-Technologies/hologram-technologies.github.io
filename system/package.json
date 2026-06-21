@@ -6,6 +6,7 @@
   "description": "Hologram OS — the thin desktop holospace frame: a Linux FHS root realized as a content-addressed, self-verifying semantic graph. Apps live in the separate Hologram Apps repo and boot in this OS's holospace template frame by κ.",
   "license": "MIT",
   "scripts": {
+    "prepare": "node tools/install-hooks.mjs",
     "gate": "node tools/gate.mjs",
     "boot-budget": "node tools/boot-budget-ci.mjs",
     "serve": "node tools/holo-serve-fhs.mjs",

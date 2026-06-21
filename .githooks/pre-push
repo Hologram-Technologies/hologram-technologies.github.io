@@ -1,0 +1,25 @@
+#!/bin/sh
+# pre-push (fast feedback; CI's verify-boot is the real guarantee) — refuse to publish an UNSEALED OS
+# image to the deploy branch (main). If served bytes != pinned κ, the live Service Worker fail-closes
+# every request and every visitor sees the "Safety Stop" page. WIP/feature branches push freely (their
+# trees are intentionally unsealed during development). Genuine emergency bypass: git push --no-verify.
+#
+# Wired via `git config core.hooksPath .githooks` (done automatically by package.json "prepare").
+
+deploy_ref="refs/heads/main"
+push_to_deploy=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ "$remote_ref" = "$deploy_ref" ] && push_to_deploy=1
+done
+[ "$push_to_deploy" -eq 1 ] || exit 0
+
+echo "pre-push: verifying OS seals before publishing to main…"
+if ! node system/tools/reseal.mjs --check; then
+  echo ""
+  echo "✗ push blocked — the OS image is NOT sealed. Deploying this would Safety-Stop every visitor."
+  echo "  fix:  (cd system && node tools/reseal.mjs)   then commit the reseal and push again"
+  echo "  (emergency bypass: git push --no-verify — but CI verify-boot will still gate the deploy)"
+  exit 1
+fi
+echo "pre-push: OS image is sealed ✓"
+exit 0
