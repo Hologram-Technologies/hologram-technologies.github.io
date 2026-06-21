@@ -11,6 +11,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Added
 
+- Refusal → tap (+ Inbox) so the OS sees its 409s
 - P6 — honest, self-reporting Safety-Stop (operator mis-seal vs possible tamper)
 - CC-1/CC-2 live engine parity + fail-closed L5 for sealed zones
 - CC-10 — explicit error on architecture mismatch, never silently wrong
