@@ -110,10 +110,41 @@ async function phaseB() {
   } finally { await browser.close(); }
 }
 
+// ── Phase C: the GATEWAY (the actual URL a user opens) ──────────────────────────────────────────────
+// The root gateway (index.html) is served RAW by the host — outside the Service Worker AND outside the
+// seal — so neither the artifact gate nor Phases A/B cover it. Yet it is the one surface a visitor lands
+// on, and it FAILS CLOSED on its own (Law L5 self-certification): it re-derives its own bytes and refuses
+// to boot if it can't (data-holo-certified, #enter disabled). A broken/unprovable gateway would strand
+// every visitor with Power-up greyed out — invisible to A/B. This loads the real gateway and asserts it
+// certifies and enables Power-up — closing the last unwitnessed boot surface (browser-only; if Playwright
+// is unavailable this is skipped, like Phase B).
+async function phaseC() {
+  let chromium;
+  try { ({ chromium } = await import("playwright")); }
+  catch { return; }   // already reported by Phase B's skip notice
+  let browser;
+  try { browser = await chromium.launch(); }
+  catch (e) { if (process.env.CI) rec("launch chromium for gateway check", false, e.message); return; }
+  try {
+    const page = await (await browser.newContext()).newPage();
+    await page.goto(SITE, { waitUntil: "load", timeout: 60000 }).catch(() => {});
+    let state = "pending";
+    for (let i = 0; i < 100 && state === "pending"; i++) {   // the self-cert is async (fetch+hash own bytes)
+      state = await page.evaluate(() => document.documentElement.getAttribute("data-holo-certified") || "pending").catch(() => "err");
+      if (state === "pending") await sleep(100);
+    }
+    rec("gateway self-certifies (data-holo-certified=true)", state === "true", "state=" + state);
+    const enterOk = await page.evaluate(() => { const e = document.getElementById("enter"); return !!e && !e.disabled; }).catch(() => false);
+    rec("Power-up is enabled on the certified gateway", enterOk);
+    const refusal = await page.evaluate(() => document.documentElement.getAttribute("data-holo-refusal") || "").catch(() => "");
+    rec("no gateway certification refusal", !refusal, refusal ? "refusal=" + refusal : "clean");
+  } finally { await browser.close(); }
+}
+
 (async () => {
   console.log(`cold-boot witness → ${OS}\n`);
   const live = await awaitBuild();
-  if (live) { await phaseA(); await phaseB(); }
+  if (live) { await phaseA(); await phaseB(); await phaseC(); }
   const ok = fail === 0;
   try { writeFileSync(join(here, "holo-cold-boot-witness.result.json"), JSON.stringify({ os: OS, expect: EXPECT || null, pass, fail, ok, results }, null, 2)); } catch {}
   console.log(`\n${ok ? "PASS" : "FAIL"} — ${pass} ok · ${fail} failed`);
