@@ -86,6 +86,14 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: system/docs/site/package-lock.json
+      # ── Seal gate (Law L5, fail-closed) ───────────────────────────────────────────────────────
+      # The OS is published AS-IS: the in-browser Service Worker re-derives every served byte to its
+      # pinned κ and refuses a mismatch (409). So a commit whose seals drifted — an edit (or the
+      # shell auto-formatter) not followed by `npm run reseal` — would deploy an image that 409s at
+      # boot. Verify the committed image is fully sealed (boot closure + whole tree + SW anchor) and
+      # FAIL the deploy if not, before any later step mutates the tree. Fix locally: `npm run reseal`.
+      - name: Seal gate (served bytes must == pinned κ)
+        run: node system/tools/reseal.mjs --check
       - name: Docs reference drift gate (fail-closed)
         run: node system/tools/docs-reference-witness.mjs   # a stale documented name/path blocks the deploy
       - name: Build docs site (Astro Starlight)
