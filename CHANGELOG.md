@@ -52,6 +52,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Reseal main so the SW anchor matches the served closure (fixes Safety-Stop boot)
 - Living Map two-pane studio with honeycomb seam updates and reseal
 - SEC-8 — bound a declared multihash length by actual payload (CID parser)
 - Stage the gateway's static-import modules so the live site can boot
