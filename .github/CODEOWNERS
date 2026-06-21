@@ -1,0 +1,31 @@
+# CODEOWNERS — guard the SAFETY MACHINERY so the gates can't be silently removed or weakened.
+#
+# This is the I-7 "meta-gap" fix from the 2026-06-21 Safety-Stop post-mortem: the deploy gates,
+# the seal toolchain, the runtime verifier, and the trust anchor are the things that keep a
+# mis-sealed image from ever reaching a visitor. A change to any of them deserves a deliberate,
+# reviewed eye. Patterns are repo-root-relative; the LAST matching pattern wins.
+#
+# NOTE: there is intentionally NO catch-all (`* @owner`) line — that would require code-owner
+# review on EVERY file and is needless friction for routine app/OS work. Only the paths below are
+# gated. CODEOWNERS auto-requests review from these owners; it is ENFORCED only once branch
+# protection on `main` turns on "Require review from Code Owners" (see the deploy hardening notes).
+
+# ── The deploy gates themselves (and this file) ──────────────────────────────────────────────
+/.github/workflows/      @humuhumu33
+/.github/CODEOWNERS       @humuhumu33
+
+# ── The seal toolchain: defines + verifies "every served byte re-derives to its pinned κ" ─────
+/system/tools/reseal.mjs                  @humuhumu33
+/system/tools/reseal-drift.mjs            @humuhumu33
+/system/tools/holo-anchor-sw.mjs          @humuhumu33
+/system/tools/seal-served.mjs             @humuhumu33
+/system/tools/install-hooks.mjs           @humuhumu33
+/.githooks/                               @humuhumu33
+
+# ── The post-deploy boot witness (proves a cold visitor boots with no Safety-Stop) ────────────
+/system/tools/holo-cold-boot-witness.mjs  @humuhumu33
+
+# ── The runtime verifier + the trust anchor / closures it enforces (Law L5) ───────────────────
+/system/os/holo-fhs-sw.js        @humuhumu33
+/system/os/etc/os-closure.json   @humuhumu33
+/system/os/etc/os-served.json    @humuhumu33
