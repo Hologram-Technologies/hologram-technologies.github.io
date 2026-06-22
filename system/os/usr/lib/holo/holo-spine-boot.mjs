@@ -25,6 +25,7 @@ import "/_shared/holo-strand.mjs";   // side-effect: window.HoloStrand — the o
 import "/_shared/holo-strand-provenance.mjs";   // side-effect: window.HoloStrandProvenance — P2: the "+" ingest provenance derives from the spine
 import "/_shared/holo-strand-audit.mjs";        // side-effect: window.HoloStrandAudit — P3: one signed audit source (consent · delegation · value)
 import "/_shared/holo-strand-rules.mjs";        // side-effect: window.HoloStrandRules — P4: validation rules as chain-referenced κ (forkable, provable)
+import "/_shared/holo-strand-feed.mjs";         // side-effect: window.HoloStrandFeed — the human-readable view of the one spine (Q.activity reads it)
 import "/_shared/holo-evolve.mjs";   // side-effect: registers window.HoloEvolve once Q.trust is up (closes the loop, gated)
 import { ensureBrainFloor, makeBrainFloor } from "/_shared/holo-brain-floor.mjs";   // guarantee a brain on every core task
 import { makeIntentRouter } from "/_shared/holo-intent.mjs";              // one classifier
@@ -153,6 +154,9 @@ import "/_shared/holo-fix-proposer.mjs";  // side-effect: window.__holoFixPropos
       } catch (e) {}
       window.Q.coherence = () => engine.last();                         // Q's reflection — "what's true now"
       window.Q.notices = () => (lastResult && lastResult.observation ? lastResult.observation.proposals : []);
+      // Q.activity(opts) — "what did I do / approve / ingest?" read from the ONE source chain (resume ·
+      // ingest provenance · consent/delegation/value audit · rules), most-recent-first, plain language.
+      window.Q.activity = (opts = {}) => { try { return window.HoloStrandFeed.activityFeed(window.HoloStrand, opts); } catch (e) { return []; } };
       window.Q.briefing = () => {                                       // one plain sentence — the simple, personal surface
         const snap = engine.last();
         const notices = window.Q.notices();
