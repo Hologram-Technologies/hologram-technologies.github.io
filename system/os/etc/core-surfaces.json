@@ -1,0 +1,9 @@
+{
+  "comment": "App surfaces the OS shell loads DIRECTLY (not via the Ctrl+K launcher), so they MUST be vendored into every static deploy even when absent from apps/index.jsonld. Decouples 'the shell needs it' from 'it is in the launcher catalog'. pages.yml vendors (catalog landingPage ids) UNION (these surfaces); holo-cold-app-witness.mjs asserts each resolves on a cold visit. Add an id here whenever the shell starts loading /apps/<id>/* that is not a launcher app.",
+  "surfaces": [
+    "spaces"
+  ],
+  "notes": {
+    "spaces": "The Play honeycomb / living map. holo-play-ui.mjs mounts /apps/spaces?embed=play full-canvas. Loaded by the shell's Play verb; not guaranteed to be a launcher entry."
+  }
+}

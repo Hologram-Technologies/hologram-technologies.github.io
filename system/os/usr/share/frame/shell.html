@@ -265,6 +265,12 @@
       #omni .go:active { transform: translateY(0) scale(.92); }
       #omni .go:active svg { transform: translateX(3px) scale(.94); }
       #omni:focus-within .go { animation: omni-spin 7s linear infinite; }
+      #omni .omni-act { width: 24px; height: 24px; flex: 0 0 auto; border: 0; background: transparent; color: var(--holo-ink-dim); border-radius: 7px; cursor: pointer; display: none; place-items: center; padding: 0; margin-left: 1px; transition: color .15s ease, background .15s ease; }
+      #omni.has-addr .omni-act { display: grid; }
+      #omni .omni-act svg { width: 15px; height: 15px; display: block; }
+      #omni .omni-act:hover { color: var(--holo-ink); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+      #omni .omni-act.on { color: var(--accent); }
+      #omni .omni-act.copied { color: #46e08a; }
       @media (prefers-reduced-motion: reduce) { #omni:focus-within, #omni:focus-within .go { animation: none; } }
       /* omnibox suggestions — a Chrome-style dropdown that fuses every corpus into one ranked list */
       .omni-sug { position: fixed; z-index: 200; background: var(--holo-surface, #0c111b); border: 1px solid var(--holo-border); border-radius: 14px;
@@ -874,6 +880,23 @@
     <script defer src="/_shared/holo-terms.js" data-holo-shared="holo-terms.js"></script>
     <script defer src="/_shared/holo-privacy.js" data-holo-shared="holo-privacy.js"></script>
     <script defer src="/_shared/holo-gov.js" data-holo-shared="holo-gov.js"></script>
+    <!-- NATIVE-CHROME mode: inside the native Hologram Chromium host the page is served over the holo://
+         substrate as the top-level document, so Chromium's OWN tabstrip + omnibox are the tab/address UI.
+         We hide ONLY the browser-chrome bits of shell's bar (tabs, new-tab, fullscreen, back/fwd/reload/
+         home) and keep the Hologram actions (Sign in · Inbox · Search-the-OS omni · Create/Play/Share).
+         Gated on the holo: scheme so the web build (https) renders shell's full bar unchanged. -->
+    <style>
+      html.native-chrome #tabstrip > #newtab,
+      html.native-chrome #tabstrip > #fullscreen-btn,
+      html.native-chrome #tabstrip > .tab,
+      html.native-chrome #nav-back,
+      html.native-chrome #nav-fwd,
+      html.native-chrome #nav-reload,
+      html.native-chrome #nav-home,
+      html.native-chrome #omni { display: none !important; }   /* the branded omni toolbar replaces shell's own search bar */
+      html.native-chrome #tabstrip { justify-content: flex-end; }
+    </style>
+    <script>try{if(location.protocol==="holo:"&&window.top===window.self)document.documentElement.classList.add("native-chrome");}catch(e){}</script>
   </head>
   <body>
     <div id="tabstrip" role="tablist" aria-label="Tabs"><button id="newtab" type="button" title="New tab" aria-label="New tab">+</button><button id="identity-btn" type="button" title="Sign in to access your wallet" aria-label="Sign in to access your wallet"><span class="ib-av" id="ib-av"></span><span class="ib-nm" id="ib-nm">Sign in</span></button><button id="notif-btn" type="button" title="Inbox" aria-label="Inbox" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button><button id="fullscreen-btn" type="button" title="Full screen" aria-label="Full screen"></button></div>
@@ -883,7 +906,7 @@
       <button class="nav" id="nav-reload" type="button" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button>
       <button class="nav" id="nav-home" type="button" title="Home this tab's original view" aria-label="Home this tab's original view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></button>
       <span id="scope" hidden aria-live="polite" title="the app you're in"></span>
-      <div id="omni"><span class="sec" title="Hologram — one address for every object, verified by its fingerprint"><svg class="holomark" viewBox="-104 -104 208 208" width="19" height="19" role="img" aria-label="Hologram"><defs><linearGradient id="omniSpec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3b6b"/><stop offset="20%" stop-color="#ff9e2c"/><stop offset="40%" stop-color="#ffe24a"/><stop offset="58%" stop-color="#46e08a"/><stop offset="74%" stop-color="#2bd4ff"/><stop offset="88%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/></linearGradient></defs><g fill="url(#omniSpec)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Search anything" placeholder="Search anything" /><button class="go" id="omni-go" type="button" title="Open" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button></div>
+      <div id="omni"><span class="sec" title="Hologram — one address for every object, verified by its fingerprint"><svg class="holomark" viewBox="-104 -104 208 208" width="19" height="19" role="img" aria-label="Hologram"><defs><linearGradient id="omniSpec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3b6b"/><stop offset="20%" stop-color="#ff9e2c"/><stop offset="40%" stop-color="#ffe24a"/><stop offset="58%" stop-color="#46e08a"/><stop offset="74%" stop-color="#2bd4ff"/><stop offset="88%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/></linearGradient></defs><g fill="url(#omniSpec)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Search anything" placeholder="Search anything" /><button class="omni-act" id="omni-copy" type="button" title="Copy this address" aria-label="Copy address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="omni-act" id="omni-reveal" type="button" title="Reveal the full content address (κ)" aria-label="Reveal content address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M11.4 11.6 21 2M17 6l3 3M15.5 7.5 18 10"/></svg></button><button class="go" id="omni-go" type="button" title="Open" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button></div>
       <div id="verbs" aria-label="Create, Play, Share — the three things you can do">
         <button id="verb-build" type="button" title="Create — author a component into a verified object">✦ <span class="vl">Create</span></button>
         <button id="verb-run" type="button" title="Play — explore the Holo Hub, the store for every app">▶ <span class="vl">Play</span></button>
@@ -1788,7 +1811,20 @@
         wallet: function () { try { return window.HoloWallet && window.HoloWallet.open(); } catch (e) {} },   // the wallet is core OS chrome (the docked sovereign vault), not a catalog app — always opens the same surface
         q: function () { try { return window.Q && window.Q.summon && window.Q.summon(); } catch (e) {} },
       });
-      const reflectOmni = () => { const t = tabs[activeTab] || {}; const o = $("#omni-addr"); if (o && document.activeElement !== o) o.value = t.addr || ""; const sec = $("#omni .sec"); if (sec) { sec.dataset.scheme = t.addr ? schemeOf(t.addr).k : "search"; } updateScope(); };   // omnibox keeps the static Hologram mark; the per-tab scheme rides the tab favicon
+      const omniAddr = { words: null, kappa: null, revealed: false };   // the focused app's human + machine address, for the copy/reveal icons
+      const reflectOmni = () => {
+        const t = tabs[activeTab] || {}; const o = $("#omni-addr"); const omni = $("#omni");
+        let words = null, kappa = null;
+        const m = /^holo:\/\/(.+)$/.exec(t.addr || "");
+        if (m) { const a = catalog.find((c) => c.id === m[1] || String(c.did || "").endsWith(m[1])); if (a && a.words) { words = a.words; kappa = "holo://" + String(a.did || "").split(":").pop(); } }
+        if (kappa !== omniAddr.kappa) omniAddr.revealed = false;   // a new app → default to the friendly three words
+        omniAddr.words = words; omniAddr.kappa = kappa;
+        if (omni) omni.classList.toggle("has-addr", !!words);      // show the copy + reveal-κ icons only for an app address
+        if (o && document.activeElement !== o) o.value = words ? (omniAddr.revealed ? kappa : words) : (t.addr || "");
+        const rv = $("#omni-reveal"); if (rv) { rv.classList.toggle("on", omniAddr.revealed); rv.title = omniAddr.revealed ? "Show the three-word address" : "Reveal the full content address (κ)"; }
+        const sec = $("#omni .sec"); if (sec) { sec.dataset.scheme = t.addr ? schemeOf(t.addr).k : "search"; }
+        updateScope();
+      };   // omnibox keeps the static Hologram mark; the per-tab scheme rides the tab favicon
       // ── ONE search bar, standardised: the active holospace's name sits by ⌂, and the omnibar's plain-text
       //    search is forwarded INTO that tab's app (it prioritises its own κ-objects). Address-like input
       //    (κ · CID · URL · holo://) still navigates globally. Apps opt in via `holo:search:ready`. ──
@@ -3457,7 +3493,7 @@
       // ── spotlight ─────────────────────────────────────────────────────────────────────
       let catalog = [];
       try { const idx = await fetch("/apps/index.jsonld", { cache: "no-store" }).then((r) => r.json());
-        catalog = (idx["dcat:dataset"] || []).map((a) => ({ id: a["schema:identifier"], did: a["@id"], name: a["schema:name"], landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") })); } catch {}
+        catalog = (idx["dcat:dataset"] || []).map((a) => ({ id: a["schema:identifier"], did: a["@id"], name: a["schema:name"], words: a["holo:words"] || null, kw: [].concat(a["schema:keywords"] || [], a["holo:categories"] || [], a["schema:applicationCategory"] || []).join(" ").toLowerCase(), landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") })); } catch {}
       const spot = $("#spot"), q = $("#q"), results = $("#results");
       let spotList = [], selIdx = 0;
       const openSpot = () => { spot.classList.add("open"); q.value = ""; renderResults(""); q.focus(); };
@@ -3465,10 +3501,14 @@
       let smartRoute = null;
       // a stable per-app hue derived from its id (κ-shaped) — same app, same colour, every render
       const appHue = (a) => { const s = String((a && (a.id || a.name)) || ""); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % 360; };
-      function renderResults(term) { const r = classify(term, catalog); smartRoute = (r.kind === "web" || r.kind === "holo") ? r : null; spotList = matches(term, catalog).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""))).slice(0, 30); selIdx = 0; paintResults(); }
+      // PERSONALIZED ORDER (zero-config, magical): your learned profile (window.HoloProfile, distilled from
+      // your own on-device usage) floats the apps you actually care about to the TOP of the launcher. A fresh
+      // user (no profile yet) keeps the plain alphabetical order — no regression. 100% local; nothing egresses.
+      const profileBoost = (a) => { try { const terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || []; if (!terms.length) return 0; const hay = (String(a.name || "") + " " + String(a.id || "") + " " + String(a.kw || "")).toLowerCase(); let s = 0; for (const t of terms) { const w = String(t || "").toLowerCase(); if (w.length > 2 && hay.indexOf(w) >= 0) s++; } return s; } catch (e) { return 0; } };
+      function renderResults(term) { const r = classify(term, catalog); smartRoute = (r.kind === "web" || r.kind === "holo") ? r : null; let list = matches(term, catalog); if (r.kind === "app" && r.app && !list.some((a) => a.id === r.app.id)) list = [r.app, ...list]; spotList = list.sort((a, b) => (profileBoost(b) - profileBoost(a)) || String(a.name || "").localeCompare(String(b.name || ""))).slice(0, 30); selIdx = 0; paintResults(); }
       function paintResults() {
         const smart = smartRoute ? `<div class="row sel" data-smart="1"><span class="appicon" style="--h:${smartRoute.kind === "web" ? 190 : 265};--ic:url('/apps/ipfs/icon.svg')"><i></i></span><div>Open <b>${(smartRoute.label || "").replace(/</g, "&lt;")}</b></div><div class="id">${smartRoute.kind === "web" ? "content-addressed web ↗" : "holo://κ ↗"}</div></div>` : "";
-        results.innerHTML = (smart + spotList.map((a, i) => `<div class="row${(!smartRoute && i === selIdx) ? " sel" : ""}" data-i="${i}"><span class="appicon" style="--h:${appHue(a)};--ic:url('${a.landing.replace(/[^/]+$/, "icon.svg")}')"><i></i></span><div>${a.name}</div><div class="id">${(a.did || "").split(":").pop().slice(0, 10)}…</div></div>`).join(""))
+        results.innerHTML = (smart + spotList.map((a, i) => `<div class="row${(!smartRoute && i === selIdx) ? " sel" : ""}" data-i="${i}"><span class="appicon" style="--h:${appHue(a)};--ic:url('${a.landing.replace(/[^/]+$/, "icon.svg")}')"><i></i></span><div>${a.name}</div><div class="id">${a.words ? a.words : (a.did || "").split(":").pop().slice(0, 10) + "…"}</div></div>`).join(""))
           || `<div class="row" style="color:#6e7681;cursor:default">Type a holospace, a holo://κ, or a web address (CID · ipfs · .eth · url) — or ✎ author your own.</div>`;
         const sr = results.querySelector("[data-smart]"); if (sr) sr.onclick = () => openWeb(smartRoute);
         [...results.querySelectorAll(".row[data-i]")].forEach((row) => { row.onclick = () => launch(spotList[+row.dataset.i]); row.onmouseenter = () => { selIdx = +row.dataset.i; markSel(); }; });
@@ -3563,6 +3603,21 @@
         if (needNewTab()) newTab(name);
         const myTab = activeTab;
         setActiveTabTitle(name); setActiveTabAddr("holo://" + app.id); recordNav();
+        // P3 · honest capability degradation: if this app declares a HARD requirement the visitor's browser
+        // lacks (etc/app-capabilities.json: webgpu/opfs/sab/storage), mount a calm LABELED fallback instead of
+        // an app that would blank or throw — "many parts dont work for me." No-op when nothing is missing.
+        try {
+          const shortId = String(app.landing || "").split("/")[1];
+          const requires = (APPCAPS && APPCAPS[shortId]) || [];
+          if (requires.length && window.HoloRequires) {
+            const missing = window.HoloRequires.missingFor(requires);
+            if (missing.length) {
+              const present = requires.filter((r) => !missing.includes(r));
+              addNode({ kind: "app", appId: app.id, title: name, srcdoc: window.HoloRequires.fallbackDoc({ appName: name, missing, present }), sandbox: "", state: "max" });
+              return;
+            }
+          }
+        } catch (e) {}
         const def = await appDef(app);
         const { sandbox, allow } = capabilitiesToSandbox(await gateCaps(def));
         if (activeTab !== myTab) { if (tabs[myTab]) selectTab(myTab); else return; }   // mount into the tab we opened
@@ -4009,7 +4064,13 @@
           .cs-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .1s linear}
           .cs-stage iframe.on{opacity:1}
           .cs-codeview{position:absolute;inset:0;display:none;background:rgba(24,24,27,.82)}   /* translucent — readable code, a hint of frost */
-          .cs-codeview.on{display:flex;flex-direction:column}
+          .cs-codeview.on{display:flex;flex-direction:row}
+          .cs-explorer{width:200px;min-width:148px;max-width:38%;flex:0 0 auto;overflow:auto;border-right:1px solid rgba(255,255,255,.08)}
+          .cs-codemain{flex:1;min-width:0;display:flex;flex-direction:column}
+          .cs-tabsbar{flex:0 0 auto}
+          .cs-edhost{position:relative;flex:1;min-height:0;display:flex}
+          .cs-fileview{display:none;position:absolute;inset:0;margin:0;padding:12px 16px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#d4d4d4;background:#1e1e1e;font:0.78rem/1.5 ui-monospace,monospace;box-sizing:border-box}
+          .cs-fileview.on{display:block}
           .cs-gutter{padding:12px 8px 12px 14px;text-align:right;color:#5a626e;background:transparent;overflow:hidden;
             font:var(--holo-text-sm, 0.813rem)/1.5 var(--holo-font-mono,ui-monospace,monospace);user-select:none;white-space:pre}
           .cs-code{position:relative;flex:1;min-width:0;overflow:hidden}
@@ -4097,12 +4158,14 @@
                 '<iframe id="cs-fb" sandbox="allow-scripts allow-same-origin"></iframe></div>' +
               '<div class="cs-codeview" id="cs-codeview">' +
                 (r.editable
-                  ? '<div class="cs-edwrap" id="cs-edwrap"><div class="cs-gutter" id="cs-gutter">1</div><div class="cs-code"><pre class="cs-hl"><code id="cs-hl"></code></pre>' +
+                  ? '<aside class="cs-explorer" id="cs-explorer"></aside><div class="cs-codemain"><div class="cs-tabsbar" id="cs-tabsbar"></div><div class="cs-edhost">' +
+                    '<div class="cs-edwrap" id="cs-edwrap"><div class="cs-gutter" id="cs-gutter">1</div><div class="cs-code"><pre class="cs-hl"><code id="cs-hl"></code></pre>' +
                     '<textarea id="cs-ta" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea></div><div class="cs-cm" id="cs-cm"></div></div>' +
+                    '<pre class="cs-fileview" id="cs-fileview"></pre></div>' +
                     '<div class="cs-status" id="cs-status"><span class="seg"><span class="dotk"></span><span id="cs-st-lang">HTML</span></span>' +
                     '<span class="seg" id="cs-st-pos">Ln 1, Col 1</span><span class="grow"></span>' +
                     '<span class="seg k" id="cs-st-k" title="Fingerprint of this app — click to copy">holo://…</span>' +
-                    '<span class="seg">UTF-8</span><span class="seg">✦ Hologram</span></div>'
+                    '<span class="seg">UTF-8</span><span class="seg">✦ Hologram</span></div></div>'
                   : '<div class="cs-roview">This holospace is an external page there is no local source to edit.<br>Use ↗ to open it, or start fresh from Home → Create.</div>') +
               '</div>' +
               '<iframe class="cs-devpane" id="cs-dev" title="Holo DevTools" allow="clipboard-write"></iframe>' +   // DEV mode: the κ-CDP-backed Chrome DevTools (ADR-0095), lazily mounted
@@ -4254,6 +4317,27 @@
             }).catch(function (e) { console.warn("holo: CM6 editor load failed - fallback editor stays", e); });
           })();
         }
+        // ── VS Code chrome: the explorer sidebar (file tree = the κ-object tree) + tabs, around CM6 (purely additive) ──
+        if (r.editable) (async function mountCodeExplorer() {
+          try {
+            const [M, D] = await Promise.all([import("/_shared/q/holo-code-explorer-ui.mjs"), import("/_shared/q/holo-code-diff.mjs")]);
+            if (!document.getElementById("hx-css")) { const st = document.createElement("style"); st.id = "hx-css"; st.textContent = M.EXPLORER_CSS + D.DIFF_CSS; document.head.appendChild(st); }
+            const elx = $$("cs-explorer"), tabs = $$("cs-tabsbar"), fv = $$("cs-fileview"); if (!elx) return;
+            const buildFor = function () { const a = window.__holoApp; return (a && (a.app || a.compiled)) ? a : { source: (ta && ta.value) || r.src || "" }; };
+            const storeOf = function () { const a = window.__holoApp; return (a && a.sealed && a.sealed.store) || {}; };
+            function showDiff() { const h = studio.history || []; fv.innerHTML = h.length < 2 ? '<div class="hd-wrap"><div class="hd-stat">no previous version yet — your edits land here</div></div>' : D.renderDiffHTML(D.lineDiff(h[h.length - 2].src, (ta && ta.value) || "")); fv.classList.add("on"); }
+            function srcTab(file) { tabs.innerHTML = M.renderTabsHTML([{ id: file.id, name: file.name, lang: file.lang, kappa: file.kappa }], { activeId: file.id }); if ((studio.history || []).length > 1) { const row = tabs.querySelector(".hx-tabs") || tabs; const b = document.createElement("button"); b.textContent = "⇄ Diff"; b.title = "diff vs the previous version"; b.style.cssText = "margin-left:auto;align-self:center;background:transparent;border:1px solid var(--holo-line,#2a2f37);color:var(--holo-ink-2,#aab6c6);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer"; b.onclick = showDiff; row.appendChild(b); } }
+            function refresh(activeId) {
+              try { M.mountExplorer(elx, buildFor(), { store: storeOf(), activeId: activeId || null, onOpen: function (file, opened, err) {
+                if (file.name === "index.html" || file.group === "projection") { srcTab(file); fv.classList.remove("on"); if (studio.focusCode) studio.focusCode(); return; }
+                tabs.innerHTML = M.renderTabsHTML([{ id: file.id, name: file.name, lang: file.lang, kappa: file.kappa }], { activeId: file.id });
+                fv.textContent = err ? ("⚠ " + err + "  (refused — does not re-derive to its κ)") : opened.content;
+                fv.classList.add("on");
+              } }); } catch (e) {}
+            }
+            refresh(); window.__holoCodeExplorer = { refresh };
+          } catch (e) { /* the explorer is additive — never break Code */ }
+        })();
         // ── view toggle ──
         const cv = $$("cs-codeview"), tabPv = $$("cs-tab-pv"), tabCode = $$("cs-tab-code"), tabDev = $$("cs-tab-dev"), devFrame = $$("cs-dev");
         // BUILD (default) ⇄ CODE ⇄ DEV — one dock, three depths. DEV lazily mounts the κ-CDP-backed Chrome
@@ -4333,7 +4417,12 @@
         //    κ-memoized (O(1) on a repeat prompt), rendered through the studio's content-addressed
         //    double-buffered preview (instant, serverless, anchored in κ). A deterministic local builder
         //    stands in for the on-device generative specialist (the same provider seam it plugs into). ──
-        function csTitle(p) { return (String(p).replace(/[^a-z0-9 ]/gi, " ").trim().split(/\s+/).slice(0, 6).map(function (w) { return w[0].toUpperCase() + w.slice(1); }).join(" ") || "Holospace"); }
+        function csTitle(p) {   // a concise, COMPLETE hero title: drop filler so we never clip mid-phrase (e.g. "…Name And" losing "email") and the accent word is meaningful
+          var STOP = { a: 1, an: 1, the: 1, to: 1, of: 1, for: 1, and: 1, or: 1, with: 1, in: 1, on: 1, at: 1, my: 1, your: 1, app: 1, that: 1, simple: 1 };
+          var words = String(p).replace(/[^a-z0-9 ]/gi, " ").trim().split(/\s+/).filter(Boolean);
+          var content = words.filter(function (w) { return !STOP[w.toLowerCase()]; });
+          return ((content.length ? content : words).slice(0, 5).map(function (w) { return w[0].toUpperCase() + w.slice(1); }).join(" ") || "Holospace");
+        }
         function csAccent(p) { const k = { blue: "#5b8cff", green: "#34d399", teal: "#2dd4bf", purple: "#7c5cff", pink: "#f472b6", gold: "#fbbf24", red: "#f87171" }; const m = Object.keys(k).find(function (x) { return String(p).toLowerCase().includes(x); }); if (m) return k[m]; const C = Object.values(k); let h = 0; for (const c of String(p)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return C[h % C.length]; }
         function buildHolospaceHTML(p) {
           const t = csTitle(p), a = csAccent(p), parts = t.split(" "), head = parts.slice(0, -1).join(" ") || t, tail = parts.length > 1 ? parts.slice(-1)[0] : "";
@@ -4512,7 +4601,9 @@
               try {
                 const fs = await window.HoloCreateApp.buildFromIntent(prompt, { generate: _codeDevice });
                 if (fs && fs.projectionHtml && fs.test && fs.test.ok) {
-                  window.__holoApp = fs;
+                  window.__holoApp = fs; try { window.__holoCodeExplorer && window.__holoCodeExplorer.refresh(); } catch (e) {}
+                  try { if (window.HoloLens) window.HoloLens.expose(fs); } catch (e) {}   // κ-lens ready (A6) — DevTools/Console can inspect every κ-object
+
                   if (studio) studio._lastTier = "full-stack" + (fs.app && fs.app.collections && fs.app.collections.length ? " · " + fs.app.collections.length + " data" : "");
                   yield { replace: fs.projectionHtml };
                   return;
@@ -5011,10 +5102,28 @@
           // A–G). The existing κ + agent fabric above are untouched. Exposes window.__holoApp and surfaces the
           // app's holo:// κ; a SPEC-emitting coder upgrades this to a full UI+data+auth app via buildFullStackApp.
           try {
-            if (publish && window.HoloCreateApp && s.ta) {
-              var __fs = window.HoloCreateApp.sealBuiltApp(s.ta.value, { name: (s.node && s.node.name) || "app" });
-              window.__holoApp = __fs;
-              toast("✦ holo-app · " + __fs.share);
+            if (publish && s.ta) {
+              // seal + surface the holo-app κ. The full-stack module is lazy-loaded (4477); if Publish fires
+              // before that import resolves, load it ON DEMAND here so the "✦ holo-app · holo://…" link ALWAYS
+              // appears (the bug was: a quick Publish skipped this whole block when HoloCreateApp wasn't ready).
+              var __seal = function (M) {
+                try {
+                  var __fs = M.sealBuiltApp(s.ta.value, { name: (s.node && s.node.name) || "app" });
+                  window.__holoApp = __fs; try { window.__holoCodeExplorer && window.__holoCodeExplorer.refresh(); } catch (e) {}
+                  // κ-LENS ready (ADR-0095 A6): expose the build's κ-object tree so DevTools (the κ panel / the
+                  // Console / the Claude extension) can inspect+govern every κ-object with zero manual setup. Set
+                  // it shell-side AND on the built app's same-origin frame, so inspectedWindow.eval(__holoLens())
+                  // reaches it whether Dev inspects the holospace or the shell. Never throws into publish.
+                  try { if (window.HoloLens) {
+                    window.HoloLens.expose(__fs);
+                    var __el = s.node && mounted.get(s.node.id), __f = __el && __el.querySelector("iframe");
+                    if (__f && __f.contentWindow) { try { __f.contentWindow.__holoLens = function () { return window.HoloLens.of(__fs); }; } catch (e) {} }
+                  } } catch (e) {}
+                  toast("✦ holo-app · " + __fs.share);
+                } catch (e) {}
+              };
+              if (window.HoloCreateApp) __seal(window.HoloCreateApp);
+              else import("/_shared/q/holo-q-create-fullstack.mjs").then(function (M) { window.HoloCreateApp = M; __seal(M); }).catch(function () {});
             }
           } catch (e) {}
         }
@@ -5520,6 +5629,10 @@
         // (holo://<hex> · did:holo:sha256:<hex> · bare 64-hex). Checked first so a shared app link always
         // opens the running app, never a search or a raw object viewer.
         { const app = appByKappa(v); if (app) return launch(app); }
+        // THREE WORDS (brass.junior.quiz) — a κ's speakable address. Resolve to its app HERE, before the
+        // web3/onion/media legs, which would otherwise claim a dotted name. classify matches the app's
+        // precomputed three-word address in the catalog (derived from the app's κ at build, Law L1/L5).
+        if (/^[a-z]+\.[a-z]+\.[a-z]+$/i.test(v)) { const cw = classify(v, catalog); if (cw.kind === "app" && cw.app) return launch(cw.app); }
         await ensureOmniLegs();                               // web3/onion/media legs are lazy — ensure ready before dispatch (idempotent; usually already warm from focus)
         let pr; try { pr = parseRef(v); } catch { }
         if (pr && pr.kind === "kappa" && pr.axis && pr.axis !== "sha256") { toast(`${pr.axis} objects resolve on the substrate · mesh, not the open web not reachable here`); return; }   // e.g. did:holo:blake3 → a clean message, not a confusing search/app attempt
@@ -5530,6 +5643,7 @@
         if (await openWeb3(v)) return;   // web3: ENS · 0x account/token/tx · Solana · CAIP → one sealed κ-card
         if (classifyMedia(v).kind === "file") return void openMedia(v);   // a direct media address (.mp4/.mp3/… URL · κ-route · IPFS path) → κ-anchored streaming player, seekable, BEFORE the web→browser guess
         const r = classify(v, catalog);
+        if (r.kind === "app" && r.app) return launch(r.app);   // THREE WORDS (brass.junior.quiz) or a κ that is an app → open the holospace
         if (r.kind === "web") return openHoloBrowser(r.address || r.url || v);   // live web → Holo Browser: κ-minted, re-derived (L5), navigable, renders in a real Chromium iframe
         if (r.kind === "holo") { if (await openContentAddress(v)) return; return openWeb(r); }   // holo://κ content address → inline verified render
         const a = matches(v, catalog)[0];                                // else prefer a holospace app match
@@ -5668,6 +5782,11 @@
       // dupes in your "recent" rows. On-device, private; absent file → graceful {} (no boost).
       let HOLO_RANK = {};
       fetch("/etc/holo-rank.json").then((r) => r.json()).then((j) => { HOLO_RANK = j.ranks || {}; }).catch(() => {});
+      // app-capabilities — per-app HARD requirements (webgpu/opfs/sab/storage). openHolospaceApp consults this
+      // to render a labeled fallback when the visitor's browser lacks a capability the app needs (P3). Absent
+      // file → graceful {} (no app gated), so this can only ADD honest degradation, never block a launch.
+      let APPCAPS = {};
+      fetch("/etc/app-capabilities.json").then((r) => r.json()).then((j) => { APPCAPS = j.requires || {}; }).catch(() => {});
       function buildSuggestions(q) {
         q = (q || "").trim(); if (!q) return [];
         const items = [], seen = new Set();
@@ -5694,6 +5813,8 @@
           add({ icon: ({ web: "🌐", cid: "⬡", web3: "◈", app: "◆", kappa: "◆" })[r.kind] || "↻", title: r.title, sub: "recent · " + (r.kind || "visited"), run: () => omniGo(r.input || r.addr) }, "rec:" + r.addr);
         if (/^(holo ?)?(wallet|vault|money|sovereign|identity|seed)/i.test(q))   // the wallet is core OS chrome, not a catalog app → its own built-in tile, opening the docked sovereign vault
           add({ icon: "🛡", title: "Holo Wallet", sub: "sovereign vault · identity · money", run: () => { try { window.HoloWallet && window.HoloWallet.open(); } catch (_) {} } }, "core:wallet");
+        if (cls.kind === "app" && cls.app)                                // THREE WORDS (brass.junior.quiz) → the app it addresses, surfaced at the top
+          add({ iconUrl: (cls.app.landing || "").replace(/[^/]+$/, "icon.svg"), title: cls.app.name, sub: "holospace · " + q, run: () => launch(cls.app) }, "app:" + cls.app.id);
         for (const a of matches(q, catalog).slice(0, 5))                  // installed holospaces (this device's app catalog)
           add({ iconUrl: (a.landing || "").replace(/[^/]+$/, "icon.svg"), title: a.name, sub: "holospace", run: () => launch(a) }, "app:" + a.id);
         for (const o of searchSubstrate(q, 4))                            // YOUR universe — every content-addressed object, opened by κ (re-derived)
@@ -5738,6 +5859,8 @@
         }
       });
       $("#omni-go").onclick = () => { const v = $("#omni-addr").value; hideSug(); if (inTabSearch(v)) { forwardSearch(v); return; } $("#omni-addr").value = ""; omniGo(v); };
+      $("#omni-copy").onclick = async () => { const v = (omniAddr.revealed ? omniAddr.kappa : omniAddr.words) || $("#omni-addr").value; if (!v) return; try { await navigator.clipboard.writeText(v); } catch (e) { try { const i = $("#omni-addr"); i.focus(); i.select(); document.execCommand("copy"); } catch (_) {} } const b = $("#omni-copy"); b.classList.add("copied"); toast("Copied  " + v); setTimeout(() => b.classList.remove("copied"), 1100); };
+      $("#omni-reveal").onclick = () => { omniAddr.revealed = !omniAddr.revealed; reflectOmni(); const o = $("#omni-addr"); if (o && document.activeElement === o && omniAddr.words) o.value = omniAddr.revealed ? omniAddr.kappa : omniAddr.words; };
       addEventListener("resize", () => { if (sug.open) showSug(); });
       // toolbar nav: reload the active tab's content; home opens a fresh tab. (Back/fwd reserved for web history.)
       // ── per-holotab navigation: Back · Forward · Reload · Home (the tab's original view) ──
@@ -6191,6 +6314,25 @@
           // surface shares EXACTLY the decision voice and the omnibar use; fall back to Q.intent if it's absent.
           const decided = (window.HoloResolve && typeof window.HoloResolve.decide === "function") ? window.HoloResolve.decide(text) : null;
           const it = decided ? { kind: decided.kind, target: decided.target } : ((window.Q && window.Q.intent) ? window.Q.intent(text) : { kind: isQuestion(text) ? "ask" : "build" });
+          // TOOL-USE: an ask/build turn may map to a registered app tool (Files/Control/Inbox/Wallet…). Try it
+          // BEFORE conversing — a READ runs ambiently + grounds the answer; a WRITE/DESTRUCTIVE surfaces a
+          // step-up Approve (never auto-runs); no match falls through to normal converse/build (no regression).
+          if ((it.kind === "ask" || it.kind === "build") && window.HoloAgents && window.HoloAgents.routeToTool) {
+            try {
+              const tr = await window.HoloAgents.routeToTool(text, { ctx: window.HoloAgents.qContext() });
+              if (tr && tr.tool && tr.ran && tr.result) {
+                const r = tr.result;
+                addMsg("asst", "✦ " + esc(tr.tool) + (r.ok ? "" : " — " + esc(r.reason || "unavailable")) + (r.ok && r.result ? "<pre>" + esc(JSON.stringify(r.result, null, 2)).slice(0, 600) + "</pre>" : ""));
+                busy = false; thread.scrollTop = thread.scrollHeight; return;
+              }
+              if (tr && tr.tool && !tr.ran && tr.proposal) {
+                const m = addMsg("asst", "✦ " + esc(tr.proposal.humanSummary || ("Proposes " + tr.tool)) + ' <button class="qchip" data-approve="' + esc(tr.tool) + '">Approve</button>');
+                const btn = m.querySelector("[data-approve]");
+                if (btn) btn.onclick = async function () { btn.disabled = true; btn.textContent = "…"; try { const done = await window.HoloAgents.invoke(tr.tool, {}, window.HoloAgents.qContext({ userApproved: true })); btn.parentElement.innerHTML = "✦ " + esc(tr.tool) + (done && done.ok ? " — done" : " — " + esc((done && done.reason) || "needs approval")); } catch (e) { btn.textContent = "failed"; } };
+                busy = false; thread.scrollTop = thread.scrollHeight; return;
+              }
+            } catch (e) {}
+          }
           try {
             if (it.kind === "nav") { try { omniGo(it.target || text); } catch (e) {} close(); }   // a URL/κ/search typed at Q → navigate, don't "build"
             else if (it.kind === "open") { await qOpen(it.target); }
@@ -6312,7 +6454,14 @@
           // it is handed — it never generates text, so a cold/un-warmed brain can post honest notes and
           // nothing is fabricated (Law L5). window.Q.note(text|{title,body,deepLink,severity}).
           try { if (!window.Q.note) window.Q.note = (text, o = {}) => { try { return window.HoloNotify ? window.HoloNotify.q(typeof text === "string" ? { title: text, ...o } : { ...text, ...o }) : null; } catch (e) { return null; } }; } catch (e) {}
-          import("/_shared/q/holo-q-app.js").then((m) => { try { window.HoloQServe = m.createQServe({ Q: window.Q, summon: (t, c) => { t ? run(t, c) : open(); } }); } catch (e) {} }).catch(() => {}); })();
+          import("/_shared/q/holo-q-app.js").then((m) => { try { window.HoloQServe = m.createQServe({ Q: window.Q, summon: (t, c) => { t ? run(t, c) : open(); } }); } catch (e) {} }).catch(() => {});
+          // AGENT TOOL SURFACES: load the unified registry (Files/Control/Inbox/Wallet) + the tool-use router,
+          // and expose them so the Q orb can route a turn to a tool BEFORE conversing (read → run + ground; a
+          // write/destructive → step-up proposal). Floor works model-free today; the brain is the silent upgrade.
+          import("/_shared/holo-agent-registry.mjs").then(async (reg) => {
+            try { await reg.browserRegistry(); const rt = await import("/_shared/holo-agent-router.mjs"); const surf = await import("/_shared/holo-agent-surface.mjs");
+              window.HoloAgents = { routeToTool: rt.routeToTool, invoke: reg.invoke, toolMenu: reg.toolMenu, qContext: surf.qContext, surfaces: reg.surfaces }; } catch (e) {}
+          }).catch(() => {}); })();
       })();
       // ── Ambient Q alternate invokes: the omnibar (⌘/Ctrl+Enter sends your line to Q) and VOICE (an
       //    unhandled spoken turn routes to Q). The orb stays the ONE surface; these just open it. ──
@@ -6655,10 +6804,19 @@
          shell (and, injected per-frame above, every app) through the Holo Audio engine. One point of truth
          for exceptional, loudness-normalized, spatial-for-music sound across the whole OS. -->
     <script type="module" src="/_shared/holo-sound.mjs" data-holo-shared="holo-sound.mjs"></script>
+    <!-- Holo Requires — honest HARD-capability degradation. Defines window.HoloRequires so openHolospaceApp can
+         render a labeled fallback (instead of a blank/crash) when a visitor's browser lacks WebGPU/OPFS/SAB/
+         storage an app declares it needs (etc/app-capabilities.json). Distinct from the ADR-028 UX tier system. -->
+    <script type="module" src="/_shared/holo-requires.mjs" data-holo-shared="holo-requires.mjs"></script>
     <!-- The + Everywhere — the ambient ingest layer in the shell itself: the omni bar + every shell text input
          gets the near-invisible "+" → upload/link/holo-object-by-κ → a context-ranked, provenance-backed brief,
          fused into Q (voice + text one path). Same universal-wire pattern as Holo Sound; zero per-app edits. -->
     <script type="module" src="/_shared/holo-plus-boot.mjs" data-holo-shared="holo-plus-boot.mjs"></script>
+    <!-- Holo Profile — the ONE personalization seam: reads your on-device memory (HoloMemory), distills a
+         profile (interests/intentions), and exposes a frozen read-only window.HoloProfile that the shell's
+         surfaces (launch order · ranking · tool-router · brief) read to adapt to you. 100% local: a
+         projection of your own memory, never egresses. Same universal-wire pattern; zero per-app edits. -->
+    <script type="module" src="/_shared/holo-profile-context.mjs" data-holo-shared="holo-profile-context.mjs"></script>
     <!-- Holo Video — the embedded glass video player window pinned into the dock right after the music
          disc (movable · resizable · immersive full screen). Loaded near the dock so its rail tile is live. -->
     <script defer src="/_shared/holo-video.js" data-holo-shared="holo-video.js"></script>

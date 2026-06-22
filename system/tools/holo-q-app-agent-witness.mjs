@@ -77,5 +77,21 @@ console.log("\ndeterministic:");
   ok(a.manifestK === b.manifestK, "same intent+plan → same app κ (re-derivable)");
 }
 
+// ── 7) monetization inferred from intent → the /access purchase route (Bug #2 fix) ─────────────────────────
+console.log("\nmonetization (pricing inferred from intent → pay→grant /access):");
+{
+  const newsletter = async () => ({ name: "Newsletter", identity: "required",
+    ui: { type: "page", children: [{ type: "hero", props: { title: "Newsletter" } }] },
+    collections: [{ name: "subscribers", kind: "subscriber", fields: [{ name: "email", type: "string" }] }, { name: "issues", kind: "issue", fields: [{ name: "title", type: "string" }] }],
+    capabilities: [{ collection: "subscribers", ops: ["read", "write"] }, { collection: "issues", ops: ["read", "write"] }] });
+  const paid = await buildFullStackApp("a paid newsletter, $5 to subscribe", { plan: newsletter });
+  const purchase = (paid.api.routes || []).filter((r) => r.op === "purchase");
+  ok(purchase.length === 1 && purchase[0].path === "/subscribers/access", "a priced intent yields exactly one POST /<col>/access on the membership collection");
+  ok(purchase[0].price && purchase[0].price.amount === 5, "the $5 from the intent flows to the route's price (pay → grant)");
+  ok(paid.test.ok, "the priced app still passes conformance (the /access route stays within the capability model — api-within-caps holds)");
+  const free = await buildFullStackApp("a free newsletter", { plan: newsletter });
+  ok((free.api.routes || []).filter((r) => r.op === "purchase").length === 0, "no price in the intent → no /access route (no spurious monetization)");
+}
+
 console.log(`\n${fail === 0 ? "GREEN" : "RED"} — ${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

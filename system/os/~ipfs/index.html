@@ -19,8 +19,8 @@
   <meta name="twitter:description" content="Browse the entire IPFS space as easily as the web every block verified.">
   <meta name="twitter:image" content="/~ipfs/og.svg">
   <meta name="holo:app" content="ipfs">
-<meta http-equiv="refresh" content="0; url=/holospace.html?app=did%3Aholo%3Asha256%3Ad1ecc2a19960c35180a5f2e325c669ae1722de735ba292d05b90380a1720f03d&amp;shared=1">
-<link rel="canonical" href="/holospace.html?app=did%3Aholo%3Asha256%3Ad1ecc2a19960c35180a5f2e325c669ae1722de735ba292d05b90380a1720f03d&amp;shared=1">
+<meta http-equiv="refresh" content="0; url=../holospace.html?app=did%3Aholo%3Asha256%3Ad1ecc2a19960c35180a5f2e325c669ae1722de735ba292d05b90380a1720f03d&amp;shared=1">
+<link rel="canonical" href="../holospace.html?app=did%3Aholo%3Asha256%3Ad1ecc2a19960c35180a5f2e325c669ae1722de735ba292d05b90380a1720f03d&amp;shared=1">
 <style>html,body{height:100%;margin:0;background:#05070f;color:#eef0fb;
   font:500 1rem/1.5 system-ui,-apple-system,sans-serif}
  .c{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:1rem;text-align:center}
@@ -35,6 +35,7 @@
 </svg><div>Opening Holo IPFS…</div></div>
 <!-- Boot into the live κ projection, PRESERVING the URL hash — a shared link carries #k=<cid> (the teleport
      content handle) and &w=<board> in the fragment; dropping it would lose the shared provenance. -->
-<script>location.replace("/holospace.html?app=did%3Aholo%3Asha256%3Ad1ecc2a19960c35180a5f2e325c669ae1722de735ba292d05b90380a1720f03d&shared=1" + (location.hash || ""));</script>
+<script>(function(){var p=location.pathname,root=p.replace(/\/~[^/]*\/?$/,"/");if(root===p)root="/";
+  location.replace(root+"holospace.html?app=did%3Aholo%3Asha256%3Ad1ecc2a19960c35180a5f2e325c669ae1722de735ba292d05b90380a1720f03d&shared=1"+(location.hash||""));})();</script>
 </body>
 </html>

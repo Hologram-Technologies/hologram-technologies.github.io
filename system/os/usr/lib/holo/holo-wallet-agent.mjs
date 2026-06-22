@@ -147,7 +147,7 @@ async function govern(tool, ctx, authorize) {
   // 2) an external agent: its delegation must ALREADY hold the needed capability (SEC-2). The human still signs after.
   if (kind === "agent") {
     const seamKindForCap = tool.risk === "read" ? "address" : tool.risk === "sign" ? "sign" : "send";
-    const auth = await authorize(ctx.delegation, { kind: seamKindForCap, revoked: ctx.revoked || [], nowIso: ctx.nowIso || null });
+    const auth = await authorize(ctx.delegation, { kind: seamKindForCap, revoked: ctx.revoked || [], revocationSet: ctx.revocationSet || null, nowIso: ctx.nowIso || null });
     if (!auth.ok) return { ok: false, reason: "agent: " + auth.reason };
     if (!ctx.delegation) return { ok: false, reason: "agent: no delegation presented (default-deny)" };
     return { ok: true, via: "delegation+human-gate", agent: auth.agent };
@@ -184,13 +184,21 @@ export function prepare(name, args = {}) {
   };
 }
 
+// ── passport() — the agent's read-only self-introspection: "what authority do I actually hold?" Verifies
+//    BOTH roots (substrate + hardware) and returns the presentable passport, or null. Mints nothing, touches
+//    no seam, needs no consent (it only reveals what is already inside the credential the agent presents) —
+//    the read counterpart to the human's mintPassport. SEC-2: an agent can SHOW its passport, never issue one. ──
+export async function passport(delegation, { nowIso = null } = {}) {
+  return (await import("./holo-delegate.mjs")).passportOf(delegation, { nowIso });
+}
+
 // ── invoke() — the ONLY path that can touch the seam. Governs first (default-deny), then routes the
 //    request through the injected seam (which, in the browser, is the human-gated holo-wallet-bridge). ──
 export function makeWalletAgent({ seam, authorize } = {}) {
   if (!seam) throw new Error("holo-wallet-agent: a seam (holo-wallet-bridge) is required");
   const auth = authorize || (async (d, o) => (await import("./holo-delegate.mjs")).authorizeRequest(d, o));
   return {
-    describe, listTools, prepare,
+    describe, listTools, prepare, passport,
     async invoke(name, args = {}, ctx = {}) {
       const tool = byName(name);
       if (!tool) return { ok: false, reason: "unknown tool: " + name };

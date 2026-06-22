@@ -151,7 +151,7 @@ On top of self-verifying objects, the substrate gives agents a verifiable stack:
 |---|---|---|
 | **Verify & resolve** | `verify_object`, `resolve_object` | every result re-derives to its content address |
 | **Authorization** | UCAN capability chains | a scoped, revocable grant; privilege escalation is caught by re-derivation (ADR-042) |
-| **Provable ownership & settlement** | `own_verify`, `own_settle`, `own_passport` | pay against a *proven* title, not a claimed one — a forged title releases nothing (ADR-053) |
+| **Provable ownership & settlement** | `own_verify`, `own_settle`, `own_passport` | pay against a *proven* title, not a claimed one — a forged title releases nothing (ADR-053). Provenance + issuer-bound origin are delivered; *exclusive* title needs an ordering anchor (Layer-2) |
 | **Work receipts** | multi-agent orchestration | one content-addressed PROV-O DAG whose root proves every step passed the conscience gate (ADR-045) |
 
 Start at [AGENTS.md](AGENTS.md).

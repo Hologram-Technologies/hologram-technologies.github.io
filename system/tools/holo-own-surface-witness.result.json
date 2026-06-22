@@ -1,0 +1,13 @@
+{
+  "spec": "The opt-in asset surface (ADR-053): HoloOwnUI.claimAsset and HoloSDK.mintTitle{asset} originate issuer-bound asset Titles (κ commits to the creator's key); the legacy provenance paths (claim / mintTitle{owned}) are unchanged. Both kinds re-derive and self-verify (Law L5).",
+  "passed": 6,
+  "failed": 0,
+  "checks": {
+    "Own UI claim(): legacy provenance Title verifies": true,
+    "Own UI claimAsset(): asset Title verifies, descriptor present": true,
+    "Own UI claimAsset(): registered chain is retrievable by its owned κ": true,
+    "SDK mintTitle{owned}: legacy provenance Title verifies": true,
+    "SDK mintTitle{asset}: asset Title verifies, owner = Maya": true,
+    "two distinct assets ⇒ distinct κ, both issued by Maya": true
+  }
+}

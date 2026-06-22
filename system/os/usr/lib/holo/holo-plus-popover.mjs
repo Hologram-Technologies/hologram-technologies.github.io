@@ -79,9 +79,29 @@ export function makePopover({ doc = document, win = window, run = null } = {}) {
   }
 
   async function defaultRun(inputs, context = null) {
-    const { runPlus } = await import("./holo-plus.mjs");
+    const { runPlus, bindQ } = await import("./holo-plus.mjs");
     const tap = (win.HoloTap && typeof win.HoloTap.observeIngest === "function") ? win.HoloTap : null;
-    return runPlus(inputs, { tap, context, title: "What the + found" });
+    // Graceful brain upgrade (silent over the deterministic baseline): use Q's FAST text model for
+    // extraction/insight when it's warm, so the "+" stays fast; absent → bindQ({}) → baseline. Never blocks.
+    const hv = win.HoloVoice;
+    const brain = (hv && typeof hv.quick === "function") ? { generate: (p) => hv.quick(p) }
+                : (win.Q && typeof win.Q.generate === "function") ? win.Q : null;
+    let q = {};
+    try { q = await bindQ(brain); } catch (e) { q = {}; }
+    // FILE the verified brief to the Inbox as a proactive "letter" (three-category holo-notify) so the
+    // insight PERSISTS past this popover — unrequested, surfaced gently, never demanding. holo-brief.deliver()
+    // RENDERS first (verify-before-show, L5), so the sink only ever sees verified claims. Absent Inbox → no-op.
+    const sink = async (b) => {
+      try {
+        const n = win.HoloNotify;
+        if (n && typeof n.q === "function") {
+          n.q({ category: "letter", sender: "Q", title: b.title || "What the + found", body: b.body || "", deepLink: b.briefKappa ? "brief:" + b.briefKappa : undefined });
+          return { delivered: true };
+        }
+      } catch (e) {}
+      return { delivered: false };
+    };
+    return runPlus(inputs, { tap, context, title: "What the + found", ...q, sink });
   }
   function renderResult(res, out) {
     const items = (out.brief && out.brief["holo:items"]) || out.insights || [];

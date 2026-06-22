@@ -66,5 +66,13 @@ console.log("\ncontrol is governed (no autonomous writes):");
 console.log("\ncapability-scoped:");
 ok(lens.objects.filter((o) => o.group === "capability").every((c) => lens.objects.some((o) => o.group === "collection" && o.name === c.collection)), "every exposed capability is over a DECLARED collection (no ambient authority)");
 
+// ── 6) accepts BOTH builder shapes: {app} (buildFromIntent) and {compiled} (sealBuiltApp/publish) ─────────
+console.log("\nshape-agnostic (full-stack build AND publish-sealed app):");
+{
+  const asPublish = { compiled: build.app, sealed: build.sealed, api: build.api };   // sealBuiltApp's shape
+  const lp = lensFor(asPublish);
+  ok(lp.objects.length === lens.objects.length && lp.manifestK === lens.manifestK, "lensFor reads the {compiled} publish shape identically to {app} (no empty lens after Publish)");
+}
+
 console.log(`\n${fail === 0 ? "GREEN" : "RED"} — ${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

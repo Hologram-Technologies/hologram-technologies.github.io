@@ -204,7 +204,7 @@
       import * as login from "/_shared/holo-login.mjs";
       import { verifySession } from "/_shared/holo-identity.mjs";
       import { teeAvailable, teeAssert, teeEnroll } from "/_shared/holo-webauthn.mjs";
-      import { mintNpc, delegate } from "/_shared/holo-delegate.mjs";
+      import { mintNpc, delegate, mintPassport } from "/_shared/holo-delegate.mjs";
 
       const $ = (id) => document.getElementById(id);
       const show = (id) => { for (const s of document.querySelectorAll("main section")) s.classList.add("hidden"); $(id).classList.remove("hidden"); };
@@ -338,17 +338,17 @@
         if (!op) return ($("mintErr").textContent = "Sign in first.");
         $("mintErr").textContent = "Authorising…";
         try {
-          // PAYLOAD-BOUND step-up: a fresh biometric bound to "authorise agent <name> (<caps>)" releases the
-          // signing key for THIS grant only (delegation.issue is authority-tier). Fail-closed; no typed secret.
-          const { requireStepUp } = await import("/_shared/holo-stepup.mjs");
-          const { secret } = await requireStepUp(
-            { kind: "delegation.issue", appId: "org.hologram.HoloIdentity", operator: op.kappa,
-              reason: "Authorise agent “" + name + "” (" + [...selCaps].join(", ") + ")", payload: { name, caps: [...selCaps] } },
-            { credentialId: op.cred, exposeSecret: true });
-          const pc = await login.unlock(op.kappa, secret);            // → the signing principal (Ed25519 ‖ ML-DSA)
+          // AGENT PASSPORT — one biometric mints a DUAL-ROOTED credential: the same payload-bound step-up
+          // (delegation.issue, authority-tier) that releases the signing key is ALSO embedded in the grant,
+          // so the credential carries BOTH roots — substrate (its κ re-derives) AND hardware (a human cleared
+          // exactly this agent+caps at this device's TEE). mintPassport does the step-up→unlock→delegate dance
+          // in one call; fail-closed, no typed secret. The result is what the agent presents to the wallet.
           const npc = mintNpc(name);
           const caps = [...selCaps];
-          const { credential } = await delegate(pc, npc, { capabilities: caps, notAfter: null, nowIso: new Date().toISOString() });
+          const { credential } = await mintPassport(
+            { operator: op.kappa, npc, capabilities: caps, notAfter: null,
+              reason: "Authorise agent “" + name + "” (" + caps.join(", ") + ")" },
+            { credentialId: op.cred });
           const key = AGENTS_KEY(op.kappa);
           let list = []; try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
           // persist the SIGNED grant — this is what the agent presents to the wallet (req.delegation) and

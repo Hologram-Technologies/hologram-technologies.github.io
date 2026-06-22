@@ -1,0 +1,54 @@
+{
+  "os": "http://127.0.0.1:8391/hologram-os/os/",
+  "expect": null,
+  "pass": 9,
+  "fail": 0,
+  "ok": true,
+  "results": [
+    {
+      "name": "live SW bakes a CLOSURE_KAPPA anchor",
+      "ok": true,
+      "detail": "67f18c4e46db5b6b…"
+    },
+    {
+      "name": "SW anchor === sha256(served os-closure.json) — the incident invariant",
+      "ok": true,
+      "detail": "anchor 67f18c4e46db vs closure 67f18c4e46db"
+    },
+    {
+      "name": "boot-critical served files re-derive to their pinned κ",
+      "ok": true,
+      "detail": "4/4"
+    },
+    {
+      "name": "service worker takes control on a cold visit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no Safety-Stop (zero 409 refusals) during a cold boot under the worker",
+      "ok": true,
+      "detail": "0× 409"
+    },
+    {
+      "name": "boots offline after first load (the serverless promise)",
+      "ok": true,
+      "detail": "served the boot with no network"
+    },
+    {
+      "name": "gateway self-certifies (data-holo-certified=true)",
+      "ok": true,
+      "detail": "state=true"
+    },
+    {
+      "name": "Power-up is enabled on the certified gateway",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no gateway certification refusal",
+      "ok": true,
+      "detail": "clean"
+    }
+  ]
+}

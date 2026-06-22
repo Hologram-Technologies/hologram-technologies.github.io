@@ -189,9 +189,28 @@ console.log("holo-devtools-live-backend — Tier 1 (pure-web, κ-anchored real F
     const ctxEv = evs3.find((e) => e.method === "Runtime.executionContextCreated");
     ok("session events are TAGGED with the sessionId", ctxEv && ctxEv.sessionId === "holo-page");
 
+    // 8 · Network.enable subscribes the κ-stream tap → fetches become panel requests (A4) -----------
+    {
+      let push = null;
+      const src = { subscribe(onFetch) { push = onFetch; return () => { push = null; }; } };
+      const beN = createLiveDevToolsBackend({ target: () => ({ doc, win, kappa: KROOT }), edit, conscience: acceptAll, kappaFetchSource: src });
+      const netEvs = [];
+      beN.dispatch("Network.enable", {}, { onEvent: (e) => netEvs.push(e) });
+      ok("Network.enable subscribes the live κ-fetch tap", typeof push === "function");
+      push({ kappa: KROOT, bytes: 2048, cacheHit: false, verified: true, provenance: [KOBJ] });
+      ok("a served κ-fetch reaches the panel (requestWillBeSent + responseReceived)", netEvs.some((e) => e.method === "Network.requestWillBeSent") && netEvs.some((e) => e.method === "Network.responseReceived"));
+      const resp = netEvs.find((e) => e.method === "Network.responseReceived");
+      ok("the request row carries the κ + L5-pass badge", resp && resp.params.response.headers["x-holo-kappa"] === KROOT && resp.params.response.headers["x-holo-verify"] === "L5-pass");
+      push({ kappa: KOBJ, bytes: 16, verified: false });
+      ok("a tampered κ-fetch → loadingFailed (RED), and produces NO extra 200", netEvs.some((e) => e.method === "Network.loadingFailed") && netEvs.filter((e) => e.method === "Network.responseReceived").length === 1);
+      beN.dispatch("Network.disable", {});
+      ok("Network.disable unsubscribes the tap (no leak)", push === null);
+    }
+
     const result = {
       witnessed: fail === 0,
       covers: [
+        "Network.enable subscribes the live κ-stream tap → every κ-fetch is a request in the panel (axis · cache-hit/L3 · L5 badge · provenance); tampered → loadingFailed RED; disable unsubscribes (A4)",
         "Tier 1 PURE-WEB real F12 — the live same-origin holospace reflected as CDP (no native host, no extension)",
         "DOM domain ⇄ the LIVE document: real tree, flat attributes, comment/text nodes, childNodeCount; root + [data-holo-k] nodes alias a κ (L1/L2)",
         "DOM.requestChildNodes returns {} and emits a DOM.setChildNodes event (the render path) — the exact shape the vendored frontend renders",

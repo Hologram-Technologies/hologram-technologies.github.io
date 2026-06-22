@@ -1,0 +1,60 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "the wordlist is a content-addressed κ-object — its sha256 IS the pinned WORDLIST_KAPPA (BIP-39, 2048, public domain); changing it is a new versioned κ, never an edit",
+    "κ → three words is deterministic (same κ + same wordlist-κ → same words, forever)",
+    "every app in the real 50-app catalog gets a UNIQUE three-word address (33 bits ≫ 50)",
+    "each three-word address resolves (verify-before-trust, L5) to exactly its own κ",
+    "the user's opaque κ (bb5fde48…) → three words → expands straight back to holo://<that κ>",
+    "LAW L5 — a wrong or tampered triple resolves to NOTHING (refuse; the words never mis-resolve)",
+    "looksLikeWords distinguishes a three-word address from a domain by wordlist membership, not shape",
+    "the words decode to the κ-leading integer (the cheap candidate filter) + verified AutoSuggest"
+  ],
+  "wordlistKappa": "did:holo:sha256:2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda",
+  "sample": [
+    {
+      "name": "Holo Amp",
+      "words": "brass.junior.quiz"
+    },
+    {
+      "name": "Holo ASCII",
+      "words": "horror.adult.pattern"
+    },
+    {
+      "name": "Holo Atlas",
+      "words": "confirm.win.bar"
+    },
+    {
+      "name": "Holo Atlas 96",
+      "words": "decide.mention.indoor"
+    },
+    {
+      "name": "Holo Guide",
+      "words": "drop.right.fall"
+    },
+    {
+      "name": "Holo Boot Prompt",
+      "words": "correct.sleep.situate"
+    }
+  ],
+  "example": {
+    "kappa": "did:holo:sha256:bb5fde48d9dc00c97ba68c42088538d660c2a0509d60210a934eb4a4ab1d0c36",
+    "words": "brass.junior.quiz",
+    "link": "holo://bb5fde48d9dc00c97ba68c42088538d660c2a0509d60210a934eb4a4ab1d0c36"
+  },
+  "checks": {
+    "wordlist-is-pinned-kappa-object": true,
+    "kappa-to-words-deterministic": true,
+    "real-catalog-loaded": true,
+    "every-app-unique-three-words": true,
+    "all-apps-resolve-to-their-own-kappa": true,
+    "opaque-kappa-round-trips-via-words": true,
+    "L5-tampered-triple-resolves-to-nothing": true,
+    "recognizer-words-not-domain": true,
+    "words-value-round-trip": true,
+    "autosuggest-verified": true
+  },
+  "failed": [],
+  "authority": "BIP-39 (open/public-domain) · what3words published design principles (not its IP) · W3C i18n / DCAT / schema.org / SKOS · IETF RFC 8785 (JCS) · holospaces Law L1/L2/L5"
+}

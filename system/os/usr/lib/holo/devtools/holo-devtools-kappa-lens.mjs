@@ -22,7 +22,8 @@ function inspectBlock(kappa, bytes, kind) {
 
 // build = the result of buildFullStackApp/buildFromIntent (or { app, sealed, api }). Returns the κ-object tree.
 export function lensFor(build = {}) {
-  const app = build.app || build;
+  // accept both builder shapes: buildFullStackApp/buildFromIntent → {app}; sealBuiltApp (publish) → {compiled}.
+  const app = build.app || build.compiled || build;
   const store = (build.sealed && build.sealed.store) || {};
   const api = build.api || {};
   const objects = [];

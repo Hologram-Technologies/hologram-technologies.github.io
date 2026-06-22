@@ -1,0 +1,41 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "proquint codec — bijective; matches the canonical reference vectors (127.0.0.1 → lusab-babad); the SAME codec encodes a κ-tail and an IPv6 address",
+    "edge-name — a self-described slug (re-projected from the object's attributes) + a κ-derived proquint tail; deterministic",
+    "the truename tail decodes to the κ's leading bits (the resolver's candidate filter)",
+    "LAW L5 — a truename re-derives BOTH slug and κ-prefix and admits only on exact match; a tampered tail, a wrong slug, and an impostor object are all refused — a name cannot lie",
+    "κ → IPv6 — CGA/ULA-style (RFC 3972/4193/7217) hash-derived address; RFC 5952-canonical text (≡ Law L2); deterministic; round-trips",
+    "κ ⇄ CIDv1 (raw, sha2-256) — identity preserved across the IPv6/IPFS locator view (cidToDid === the κ)",
+    "multiaddr — /ip6/<addr>/tcp/4001/ipfs/<CID>, dual-stack-ready, multiformats-native",
+    "LAW L1 — truename, IPv6, and CID are labels/locators; the κ stays the sole @id; address() is unaffected"
+  ],
+  "example": {
+    "kappa": "did:holo:sha256:be688923df0683d2d662c0f566cef60458d1928ba7e48a622f8e1a0d6dc57d3f",
+    "truename": "holo-amp~runom-mohog-tusak",
+    "ipv6": "fdbe:6889:23df:683:d2d6:62c0:f566:cef6",
+    "cid": "bafkreif6nceshxygqpjnmywa6vtm55qeldizfc5h4sfgel4odigw3rl5h4",
+    "multiaddr": "/ip6/fdbe:6889:23df:683:d2d6:62c0:f566:cef6/tcp/4001/ipfs/bafkreif6nceshxygqpjnmywa6vtm55qeldizfc5h4sfgel4odigw3rl5h4"
+  },
+  "rawDemo": {
+    "kappa": "did:holo:sha256:bb5fde48d9dc00c97ba68c42088538d660c2a0509d60210a934eb4a4ab1d0c36",
+    "tail": "rotiz-tunam-tolis",
+    "ipv6": "fdbb:5fde:48d9:dc00:c97b:a68c:4208:8538",
+    "cid": "bafkreif3l7perwo4adexxjumiieikogwmdbkaue5maqqve2owsskwhimgy",
+    "multiaddr": "/ip6/fdbb:5fde:48d9:dc00:c97b:a68c:4208:8538/tcp/4001/ipfs/bafkreif3l7perwo4adexxjumiieikogwmdbkaue5maqqve2owsskwhimgy"
+  },
+  "checks": {
+    "proquint-matches-canonical-vectors": true,
+    "proquint-bijective-round-trip": true,
+    "truename-self-described-deterministic": true,
+    "truename-tail-is-kappa-prefix": true,
+    "L5-name-cannot-lie": true,
+    "kappa-to-ipv6-cga-rfc5952": true,
+    "kappa-cid-identity-preserved": true,
+    "multiaddr-ip6-ipfs-form": true,
+    "L1-kappa-is-sole-identity": true
+  },
+  "failed": [],
+  "authority": "proquint · RFC 4291/5952/4193/3972/7217/8305 · multiformats (multiaddr/CID) · W3C DID Core / schema.org / SKOS · IETF RFC 8785 (JCS) · holospaces Law L1/L2/L5"
+}

@@ -57,4 +57,17 @@ export function trackKappaFetches(emit) {
   };
 }
 
-export default { kappaToNetworkEvents, trackKappaFetches };
+// createKappaFetchTap() → a pushable κ-fetch source (the seam between the real streamHolo/openHoloFiles fetch
+// sites and the Network panel — like holo-notify/holo-sound, a per-document seam with no per-call-site coupling
+// beyond one note()). The backend subscribes(); each κ-fetch site calls note({kappa,axis,bytes,cacheHit,verified,
+// provenance,renderMs}). No-op (0 subscribers) when DevTools is closed, so emitting is always cheap + safe.
+export function createKappaFetchTap() {
+  const subs = new Set();
+  return {
+    subscribe(onFetch) { subs.add(onFetch); return () => subs.delete(onFetch); },
+    note(f) { if (subs.size) for (const s of subs) { try { s(f); } catch (e) {} } },
+    get size() { return subs.size; },
+  };
+}
+
+export default { kappaToNetworkEvents, trackKappaFetches, createKappaFetchTap };

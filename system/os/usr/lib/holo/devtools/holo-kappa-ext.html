@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<!-- holo-kappa-ext.html — the DevTools EXTENSION start page (ADR-0095 A6). Loaded by the vendored
+     ExtensionServer in a hidden iframe; the server injects the standard chrome.devtools API. This page does
+     ONE thing: register a native top-level "κ" panel via the PUBLIC panels.create API (exactly how React
+     DevTools adds its panel) — so the κ-lens renders inside real DevTools chrome ("looks like the original").
+     No front_end edit: this is the documented extension surface. -->
+<meta charset="utf-8" />
+<script>
+  // chrome.devtools.* is injected by the ExtensionServer before this runs.
+  try {
+    chrome.devtools.panels.create("κ", "", "holo-kappa-panel.html", function () { /* panel mounted */ });
+  } catch (e) { /* not in a DevTools extension context (opened directly) — no-op */ }
+</script>

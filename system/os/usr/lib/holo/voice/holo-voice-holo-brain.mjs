@@ -52,7 +52,15 @@ export function createHoloModelBrain(opts = {}) {
       if (!(typeof navigator !== "undefined" && navigator.gpu)) throw new Error("no WebGPU on this device");
       const mod = await import(/* @vite-ignore */ FORGE + "gpu/holo-brain-engine.mjs");
       const spec = MODELS[cfg.model] || { url: cfg.model, kappa: cfg.kappa || "" };   // a known key, or a direct .holo URL
-      brain = (mod.createHoloBrain || mod.default)({ holoUrl: spec.url, releaseUrl: spec.release, kappa: spec.kappa, maxTokens: cfg.maxTokens });
+      // optional LoRA adapter BY κ: fetch the adapter .holo via the κ-route, L5-open it (footer-verified bodies),
+      // and hand the engine the decoded {target,scale,r,layers} — it rides the witnessed attn_q delta in run().
+      let adapter = null;
+      if (cfg.adapter) {
+        const lora = await import(/* @vite-ignore */ FORGE + "gpu/holo-lora.mjs");
+        const ab = await fetch("/.holo/sha256/" + cfg.adapter).then((r) => { if (!r.ok) throw new Error("adapter κ " + cfg.adapter + " → " + r.status); return r.arrayBuffer(); });
+        adapter = lora.openAdapterHolo(new Uint8Array(ab));
+      }
+      brain = (mod.createHoloBrain || mod.default)({ holoUrl: spec.url, releaseUrl: spec.release, kappa: spec.kappa, maxTokens: cfg.maxTokens, adapter });
       return brain;
     })().catch((e) => { loadingP = null; throw e; });
     return loadingP;

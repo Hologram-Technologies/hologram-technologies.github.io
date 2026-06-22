@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSy
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { shareCardPage, shareCardSvg } from "../os/usr/lib/holo/holo-share-card.mjs";   // κ-Open Phase 4: per-app unfurl cards
+import { kappaToWords } from "../os/usr/lib/holo/holo-words.mjs";                        // Three Words: κ → speakable address
 
 const here = dirname(fileURLToPath(import.meta.url));               // tools/
 const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");   // sibling apps repo
@@ -21,6 +22,8 @@ const kByIdent = {};
 try { for (const a of (JSON.parse(readFileSync(join(OS2, "etc/os-closure.json"), "utf8")).apps || [])) if (a.identifier && a.root) kByIdent[a.identifier] = a.root; } catch {}
 
 const KAPPA_RE = /^did:holo:sha256:[0-9a-f]{64}$/;
+// the pinned BIP-39 wordlist (its sha256 IS its κ) → each app's deterministic three-word address.
+const WORDLIST = readFileSync(join(OS2, "usr/lib/holo/words/bip39-english.txt"), "utf8").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
 // the app's TRUE root κ is the content address sealed in its own holospace.lock.json (Law L1) —
 // the authoritative source. os-closure is a secondary mirror; slug is the honest last resort.
 const lockRoot = (dir) => {
@@ -74,12 +77,17 @@ for (const dir of dirs) {
   if (isOsImage(d)) { osImages++; continue; }    // a sub-image of an emulator menu, not a launcher app
   const kappa = lockRoot(dir) || kByIdent[d.id] || `did:holo:slug:${d.id}`;
   if (!KAPPA_RE.test(kappa)) slug.push(dir);
+  // three words a human can say — a deterministic projection of the κ (holo-words). Stamped only for a
+  // real content κ (a slug has no bytes to derive from). schema:alternateName carries it for W3C agents;
+  // it is a LABEL, never the identity (Law L1). The full κ stays @id and resolves directly.
+  const words = KAPPA_RE.test(kappa) ? kappaToWords(kappa, WORDLIST) : null;
   dataset.push({
     "@id": kappa,                                 // identity = the app's content root κ (Law L1)
     "holo:root": kappa,                           // the standard's named single-address discovery key (SEC-6)
     "@type": d.type || ["schema:SoftwareApplication", "schema:WebApplication"],
     "schema:name": NAME_FIX[d.id] || d.name,
     "schema:identifier": d.id,                    // the human slug — a label, never the identity
+    ...(words ? { "holo:words": words, "schema:alternateName": words } : {}),
     "schema:description": d.summary || "",
     "schema:applicationCategory": CATEGORY_FIX[d.id] || d.applicationCategory || "Utility",
     ...(Array.isArray(d.categories) && d.categories.length ? { "holo:categories": d.categories } : {}),
