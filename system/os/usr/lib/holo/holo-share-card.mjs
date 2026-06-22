@@ -53,15 +53,19 @@ export function shareCardSvg({ kappa, name }) {
 export function shareCardPage({ id, name, summary, kappa, origin = "" }) {
   const meta = shareCardMeta({ id, name, summary, origin });
   const ref = /^did:holo:sha256:[0-9a-f]{64}$/.test(String(kappa)) ? kappa : id;   // κ-native when pinned, else id
-  const boot = `/holospace.html?app=${encodeURIComponent(ref)}&shared=1`;
+  const refEnc = encodeURIComponent(ref);
+  // Topology-INDEPENDENT boot: the card always lives at <osroot>/~<app>/, so derive <osroot> from our OWN
+  // location and boot the sibling holospace.html. Works whether the OS mounts at "/" (dev, custom domain)
+  // or "/os/" (the Pages staging) — root-absolute "/holospace.html" would break under /os/. The relative
+  // <meta refresh> is the no-JS crawler fallback (crawlers read OG and don't navigate anyway).
   return `<!doctype html>
 <html lang="en" data-holo-boot="off">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(name)} · Hologram</title>${meta}
-<meta http-equiv="refresh" content="0; url=${esc(boot)}">
-<link rel="canonical" href="${esc(boot)}">
+<meta http-equiv="refresh" content="0; url=../holospace.html?app=${esc(refEnc)}&amp;shared=1">
+<link rel="canonical" href="../holospace.html?app=${esc(refEnc)}&amp;shared=1">
 <style>html,body{height:100%;margin:0;background:#05070f;color:#eef0fb;
   font:500 1rem/1.5 system-ui,-apple-system,sans-serif}
  .c{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:1rem;text-align:center}
@@ -71,7 +75,8 @@ export function shareCardPage({ id, name, summary, kappa, origin = "" }) {
 <div class="c">${identiconSvg(kappa, { size: 120, card: false })}<div>Opening ${esc(name)}…</div></div>
 <!-- Boot into the live κ projection, PRESERVING the URL hash — a shared link carries #k=<cid> (the teleport
      content handle) and &w=<board> in the fragment; dropping it would lose the shared provenance. -->
-<script>location.replace(${JSON.stringify(boot)} + (location.hash || ""));</script>
+<script>(function(){var p=location.pathname,root=p.replace(/\\/~[^/]*\\/?$/,"/");if(root===p)root="/";
+  location.replace(root+"holospace.html?app=${refEnc}&shared=1"+(location.hash||""));})();</script>
 </body>
 </html>
 `;

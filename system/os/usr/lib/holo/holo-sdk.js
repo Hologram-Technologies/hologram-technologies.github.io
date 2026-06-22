@@ -268,9 +268,11 @@ async function ensureOwn() {
 // ownership is implicit/ambient; apps may also pass `by` explicitly per call.
 export function setOperator(principal) { _operator = principal; return _operator; }
 export function operator() { return _operator; }
-export async function mintTitle({ owned, rights } = {}, by = _operator) {
+// mintTitle: a genesis Title. Pass `owned` for a provenance Title over a pre-existing κ, OR `asset`
+// to ORIGINATE a new issuer-bound asset whose κ commits to your key (impersonation-resistant).
+export async function mintTitle({ asset, owned, rights } = {}, by = _operator) {
   const { own } = await ensureOwn(); if (!own) throw new Error("HoloOwn not loaded");
-  if (!by) throw new Error("no operator — call HoloSDK.setOperator(principal) first"); return own.mint({ owned, rights }, by); }
+  if (!by) throw new Error("no operator — call HoloSDK.setOperator(principal) first"); return own.mint({ asset, owned, rights }, by); }
 export async function transferTitle({ title, to, rights } = {}, by = _operator, opts = {}) {
   const { own } = await ensureOwn(); if (!by) throw new Error("no operator"); return own.transfer({ title, to, rights }, by, opts); }
 export async function ownerOf(titles, opts) { const { own } = await ensureOwn(); return own.resolveOwner(titles, opts); }

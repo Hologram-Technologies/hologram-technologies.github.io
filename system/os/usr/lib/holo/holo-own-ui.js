@@ -38,6 +38,9 @@ export async function ownState(ownedK) {
   return { owned: ownedK, unowned: false, owner: v.owner, ownerDid: v.ownerDid, ok: v.ok, head: chain[chain.length - 1], chain };
 }
 export async function claim(ownedK, rights = {}) { const by = await signer(); const t = await own.mint({ owned: ownedK, rights }, by); await saveChain(ownedK, [t]); return t; }
+// claimAsset: ORIGINATE a new issuer-bound asset — its κ commits to your key, so no one else can mint
+// a competing genesis to the same asset. Returns the Title; its owned κ keys the registered chain.
+export async function claimAsset(asset, rights = {}) { const by = await signer(); const t = await own.mint({ asset, rights }, by); await saveChain(t.owned, [t]); return t; }
 export async function transferTo(ownedK, to, opts = {}) { const by = await signer(); const chain = await loadChain(ownedK); if (!chain.length) throw new Error("nothing to transfer — claim it first"); const t = await own.transfer({ title: chain[chain.length - 1], to }, by, opts); await saveChain(ownedK, [...chain, t]); return t; }
 export async function anchorIt(ownedK, chainName = "ethereum", rail) { const chain = await loadChain(ownedK); if (!chain.length) throw new Error("claim it first"); return own.anchor(chain[chain.length - 1]["@id"], chainName, rail || railFor()); }
 export async function sellTo(ownedK, to, amount, chainName = "ethereum", rail) {
@@ -106,4 +109,4 @@ export async function openOwnSheet(ownedK, { onChange, chain = "ethereum" } = {}
   document.body.appendChild(ov);
 }
 
-if (typeof window !== "undefined") window.HoloOwnUI = { ownedKappaOf, setOperator, operator, onUnlock, ownState, loadChain, claim, transferTo, anchorIt, sellTo, badgeFor, openOwnSheet };
+if (typeof window !== "undefined") window.HoloOwnUI = { ownedKappaOf, setOperator, operator, onUnlock, ownState, loadChain, claim, claimAsset, transferTo, anchorIt, sellTo, badgeFor, openOwnSheet };

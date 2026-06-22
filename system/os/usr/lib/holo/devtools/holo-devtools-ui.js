@@ -16,6 +16,8 @@
 
 import { createDevToolsServe } from "./holo-devtools-serve.mjs";
 import { createLiveDevToolsServe } from "./holo-devtools-live-backend.mjs";   // Tier 1: real F12 over the live same-origin holospace
+import { createKappaFetchTap } from "./holo-devtools-kappa-network.mjs";       // A4: the Network panel's κ-stream seam
+import { lensFor, inspectKappa } from "./holo-devtools-kappa-lens.mjs";        // A6: the κ-lens (every app κ-object, inspect+govern)
 import { jcs, address } from "../holo-object.mjs";   // both are Buffer-free (browser + SW safe — see holo-object.mjs:42)
 import { scene as sceneManifest } from "../holo-scene.mjs";
 
@@ -76,12 +78,20 @@ export function installDevToolsServe({ objects = [], placements = [], type = "ho
 // This is the PURE-WEB real-F12 path: no native host, no extension. `target()` returns the live
 // { doc, win, kappa } of the focused holospace iframe; the backend reflects its REAL DOM/CSSOM/eval and
 // routes every edit through liveEdit so the holospace stays κ-addressed. The shell calls this from mountDev.
-export function installLiveDevToolsServe({ target, edit = null, conscience = null } = {}) {
+export function installLiveDevToolsServe({ target, edit = null, conscience = null, kappaFetchSource = null } = {}) {
+  // the Network panel's κ-stream source (A4): the shared seam window.HoloDevToolsNet, into which any κ-fetch
+  // site (streamHolo/openHoloFiles/the SW κ-gate) emits one note(); the backend subscribes on Network.enable.
+  const tap = kappaFetchSource || (typeof window !== "undefined"
+    ? (window.HoloDevToolsNet || (window.HoloDevToolsNet = createKappaFetchTap()))
+    : createKappaFetchTap());
   const liveEdit = edit || ((kappa, source) => {
     const LE = (typeof window !== "undefined") ? window.HoloLiveEdit : null;
-    return (LE && LE.edit) ? LE.edit(kappa || (typeof window !== "undefined" && window.HoloDevToolsTarget), source) : { ok: false, reason: "no live editor" };
+    const r = (LE && LE.edit) ? LE.edit(kappa || (typeof window !== "undefined" && window.HoloDevToolsTarget), source) : { ok: false, reason: "no live editor" };
+    // a DevTools-driven re-seal IS a κ-write — surface it in the Network timeline (verified by construction).
+    try { const k = r && (r.kappa || (r.ok && r.id)); if (k) tap.note({ kappa: k, axis: "sha256", bytes: (source && source.length) || 0, cacheHit: false, verified: r.ok !== false, provenance: kappa ? [kappa] : [] }); } catch (e) {}
+    return r;
   });
-  const serve = createLiveDevToolsServe({ target, edit: liveEdit, conscience });
+  const serve = createLiveDevToolsServe({ target, edit: liveEdit, conscience, kappaFetchSource: tap });
   if (typeof window !== "undefined") window.HoloDevToolsServe = serve;
   return serve;
 }
@@ -103,6 +113,16 @@ function projectLiveDesktop() {
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   const { objects, placements } = projectLiveDesktop();
   const serve = installDevToolsServe({ objects, placements });
+  // the κ-LENS surface (A6): the robust, faithful way to inspect+control EVERY κ-object of a holo-app from the
+  // REAL Console (the surface the Claude extension drives) — and the contract holo-kappa-panel.html reads via
+  // inspectedWindow.eval. of(build)→the κ-object tree; inspect(κ,store) re-derives + REFUSES tamper (L5); the
+  // surface a build calls expose(build) on, which sets window.__holoLens so any inspector (Console, the native
+  // κ panel under a WebView2 host, the Claude extension) can read it. No front_end edit.
+  window.HoloLens = {
+    of: lensFor,
+    inspect: inspectKappa,
+    expose: (build) => { try { window.__holoLens = () => lensFor(build); } catch (e) {} return window.__holoLens; },
+  };
   window.HoloDevTools = {
     install: installDevToolsServe,
     installLive: installLiveDevToolsServe,   // Tier 1: real F12 over the live same-origin holospace (pure web)

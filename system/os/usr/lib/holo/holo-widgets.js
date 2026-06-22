@@ -30,7 +30,7 @@
 
   // ── persistence ─────────────────────────────────────────────────────────────────────────
   function load() { try { return JSON.parse(W.localStorage.getItem(LS) || "[]"); } catch (e) { return []; } }
-  function serialize() { return live.map(function (w) { return { id: w.id, type: w.type, x: w.x, y: w.y, w: w.w, h: w.h, hidden: w.hidden, config: w.config }; }); }
+  function serialize() { return live.map(function (w) { var r = { id: w.id, type: w.type, x: w.x, y: w.y, w: w.w, h: w.h, hidden: w.hidden, config: w.config }; if (w._userMoved) r.moved = true; return r; }); }
   function save() { try { if (persistScope) W.localStorage.setItem(LS, JSON.stringify(serialize())); } catch (e) {} fireChange(); }
   function fireChange() { var snap; try { snap = serialize(); } catch (e) { return; } onChangeFns.forEach(function (fn) { try { fn(snap); } catch (e) {} }); }
   function uid() { try { return "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); } catch (e) { return "w" + (uid._n = (uid._n || 0) + 1); } }
@@ -263,7 +263,7 @@
     });
     w.el.addEventListener("pointerup", function (e) {
       if (!down) return; var wasMoved = moved; w.el.classList.remove("dragging"); down = null; if (wasMoved) clearGuides();
-      if (wasMoved) { save(); return; }
+      if (wasMoved) { if (w.type === "q") w._userMoved = true; save(); return; }   // dragging the orb opts it out of corner auto-pin
       var sp = spec(w.type), now = Date.now();
       if (now - lastTap < 280) { lastTap = 0; if (tapTimer) { clearTimeout(tapTimer); tapTimer = 0; }   // double → type override, else edit
         if (sp && sp.onDouble) { try { sp.onDouble(host(w)); } catch (x) {} } else openEdit(w); return; }
@@ -376,7 +376,7 @@
           w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
           var g = guidesFor({ left: w.x, top: w.y, width: w._dw, height: w._dh }, w.el); showGuides(g.v, g.h);
         },
-        end: function () { w.el.classList.remove("dragging"); clearGuides(); save(); },
+        end: function () { w.el.classList.remove("dragging"); if (w.type === "q") w._userMoved = true; clearGuides(); save(); },
       },
       modifiers: [
         I.modifiers.snap({ targets: [vT, hT, I.snappers.grid({ x: SNAP_GRID, y: SNAP_GRID })], range: SNAP_RANGE, relativePoints: [{ x: 0, y: 0 }, { x: 0.5, y: 0.5 }, { x: 1, y: 1 }] }),
@@ -458,6 +458,7 @@
     var items = [];
     // a type may contribute its own verbs at the top (e.g. Start/Pause/Reset) — then a separator.
     try { if (sp && sp.menuItems) { sp.menuItems(host(w)).forEach(function (it) { items.push([it.label, it.fn]); }); if (items.length) items.push(["—"]); } } catch (e) {}
+    if (w.type === "q" && w._userMoved) { items.push(["⌖  Reset orb to corner", function () { w._userMoved = false; anchorOrb(); scheduleUnglide(); save(); }]); items.push(["—"]); }
     if (SEL.length >= 2) { items.push(["⛓  Bundle " + SEL.length + " selected", groupSelected]); items.push(["—"]); }   // ≥2 shift-selected → fuse into one κ
     items = items.concat([
       ["✎  Edit…", function () { openEdit(w); }],
@@ -517,7 +518,9 @@
     w.y = (pos && pos.y != null) ? pos.y : Math.max(40, Math.round(innerHeight * 0.3 + (n % 4) * 30));
     if (!mount(w)) return null;
     live.push(w);
-    var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
+    var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y;
+    if (w.type !== "q") { var cp = clearPlace(w.x, w.y, w.el.offsetWidth, w.el.offsetHeight); w.x = cp.x; w.y = cp.y; }   // land clear of any open window (the orb keeps its corner)
+    w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
     save();
     try { w.el.animate([{ transform: "scale(.7)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.34,1.4,.5,1)" }); } catch (e) {}
     return w;
@@ -574,6 +577,46 @@
 
   function reflowAll() { live.forEach(function (w) { if (w.el && !w.hidden) { var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; } }); }
 
+  // ── keep widgets clear of app/preview windows (the tiling layer below the widget plane) ────────────
+  // A widget should never sit UNDER an open window. We avoid only PERSISTENT windows (holo-window), never
+  // transient previews, and never a window that covers the whole canvas (nothing to clear to). Cheap: it
+  // reads rects only when asked, and only nudges a widget that is actually overlapped.
+  function windowRects() {
+    var out = [];
+    try { var els = DOC.querySelectorAll("holo-window");
+      for (var i = 0; i < els.length; i++) { var el = els[i]; if (el.hasAttribute && el.hasAttribute("hidden")) continue; var r = el.getBoundingClientRect(); if (!r.width || !r.height) continue; out.push(r); }
+    } catch (e) {}
+    return out;
+  }
+  function hits(rect, r, pad) { pad = pad || 0; return rect.left < r.right + pad && rect.left + rect.width > r.left - pad && rect.top < r.bottom + pad && rect.top + rect.height > r.top - pad; }
+  function hitsAny(rect, rects, pad) { for (var i = 0; i < rects.length; i++) if (hits(rect, rects[i], pad)) return rects[i]; return null; }
+  function coversCanvas(r) { var b = deskBounds(); return r.left <= b.minX + 6 && r.top <= b.minY + 6 && r.right >= b.maxX - 6 && r.bottom >= b.maxY - 6; }
+  // the nearest CLEAR resting spot for a widget of ww×hh near (x,y): keep it if clear, else walk the golden
+  // anchors (φ columns × thirds + margins) and return the first that clears every window. Falls back to (x,y).
+  function clearPlace(x, y, ww, hh) {
+    var wins = windowRects().filter(function (r) { return !coversCanvas(r); });
+    if (!wins.length || !hitsAny({ left: x, top: y, width: ww, height: hh }, wins, 10)) return { x: x, y: y };
+    var b = deskBounds(), Wu = b.maxX - b.minX, Hu = b.maxY - b.minY;
+    var xs = [b.minX + Wu * 0.382 - ww / 2, (b.minX + b.maxX) / 2 - ww / 2, b.minX + Wu * 0.618 - ww / 2, b.minX + EDGE, b.maxX - ww - EDGE];
+    var ys = [b.minY + Hu * 0.30, b.minY + Hu * 0.5 - hh / 2, b.minY + Hu * 0.70 - hh / 2, b.minY + EDGE, b.maxY - hh - EDGE];
+    for (var j = 0; j < ys.length; j++) for (var i = 0; i < xs.length; i++) {
+      var cx = Math.max(b.minX, Math.min(xs[i], b.maxX - ww)), cy = Math.max(b.minY, Math.min(ys[j], b.maxY - hh));
+      if (!hitsAny({ left: cx, top: cy, width: ww, height: hh }, wins, 8)) return { x: Math.round(cx), y: Math.round(cy) };
+    }
+    return { x: x, y: y };                                          // nowhere clear (windows fill the canvas) — keep, never thrash
+  }
+  function avoidWindows() {
+    var wins = windowRects().filter(function (r) { return !coversCanvas(r); });
+    if (!wins.length) return;
+    live.forEach(function (w) {
+      if (!w.el || w.hidden || w.type === "q") return;              // the orb owns its corner; widgets clear the windows
+      var ww = w.el.offsetWidth, hh = w.el.offsetHeight;
+      if (!hitsAny({ left: w.x, top: w.y, width: ww, height: hh }, wins, 0)) return;
+      var cp = clearPlace(w.x, w.y, ww, hh); if (cp.x === w.x && cp.y === w.y) return;
+      w.x = cp.x; w.y = cp.y; w.el.classList.add("hw-gliding"); w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
+    });
+  }
+
   // ── centre-anchored reflow — keep every floating object fixed RELATIVE TO THE HOLOSPACE CENTRE as the
   //    canvas resizes (a side panel opening narrows the usable width). Shift each by HALF the viewport
   //    delta: the centre moves by exactly that, so the composition tracks it instead of hiding under the
@@ -585,6 +628,7 @@
   function anchorOrb() {
     for (var i = 0; i < live.length; i++) {
       var w = live[i]; if (w.type !== "q" || w.hidden || !w.el) continue;
+      if (w._userMoved) continue;                                  // the user placed the orb — leave it (recenter still clamps it into bounds)
       var b = deskBounds(), ww = w.el.offsetWidth || 120, hh = w.el.offsetHeight || 120, gap = 30;
       var gb = parseFloat(getComputedStyle(DOC.documentElement).getPropertyValue("--gap-b")) || 0;   // clear the bottom "Powered by" credit gutter
       w.x = Math.round(b.maxX - ww - gap); w.y = Math.round(b.maxY - hh - gap - gb);
@@ -625,14 +669,17 @@
     if (lastCx == null) { lastCx = c.cx; lastCy = c.cy; }
     var dx = c.cx - lastCx, dy = c.cy - lastCy;                      // how far the holospace centre moved (dock/aside-aware)
     lastCx = c.cx; lastCy = c.cy; lastVW = W.innerWidth; lastVH = W.innerHeight;
-    if (repositionToMode()) { anchorOrb(); scheduleUnglide(); save(); return; }   // a preset mode → re-derive its golden layout for the new size
-    if (!dx && !dy) return reflowAll();                              // no centre shift → just keep them in bounds
+    if (repositionToMode()) { anchorOrb(); avoidWindows(); scheduleUnglide(); save(); return; }   // a preset mode → re-derive its golden layout for the new size
+    if (!dx && !dy) { reflowAll(); anchorOrb(); avoidWindows(); return; }   // no centre shift → keep in bounds + re-pin the orb to the corner
     live.forEach(function (w) {
       if (!w.el || w.hidden) return;
+      if (w.type === "q" && !w._userMoved) return;                  // an un-moved orb is corner-pinned by anchorOrb, not centre-shifted (the corner moves by the full aside, not half)
       w.x += dx; w.y += dy;                                          // logical, unclamped → open ⇄ close is exactly reversible
       var p = clampPos(w, w.x, w.y);                                 // clamp only the DISPLAY so it never hides under the panel
       w.el.classList.add("hw-gliding"); w.el.style.left = p.x + "px"; w.el.style.top = p.y + "px";
     });
+    anchorOrb();                                                    // re-pin the un-moved orb to the (aside-aware) corner; a user-moved orb was shifted + clamped above
+    avoidWindows();                                                 // keep widgets clear of any open window after the shift
     scheduleUnglide();                                              // drop the glide once settled (transient VIEW transform, not persisted)
   }
 
@@ -643,6 +690,7 @@
   function mountRecord(s) {
     if (!spec(s.type)) return null;                               // type not registered here — skip, keep the record on the shell side
     var w = { id: s.id || uid(), type: s.type, x: s.x, y: s.y, w: s.w, h: s.h, hidden: !!s.hidden, config: s.config || {} };
+    w._userMoved = !!s.moved;
     if (!mount(w)) return null;
     live.push(w);
     if (!w.hidden) { var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; }
@@ -651,16 +699,19 @@
   function setBoard(records, opts) {
     opts = opts || {};
     closeEdit(); closeMenu();
-    live.slice().forEach(function (w) { teardown(w); if (w.el) w.el.remove(); });
-    live.length = 0;
+    // KEEP sticky system widgets (the Q orb) mounted across the swap — it is a per-OS affordance that must
+    // ride EVERY holospace tab bottom-right, not vanish when the board changes. Only the board widgets swap.
+    live.slice().forEach(function (w) { if (isStickyType(w.type)) return; teardown(w); if (w.el) w.el.remove(); });
+    live = live.filter(function (w) { return isStickyType(w.type); });
     persistScope = opts.persist !== false;
-    (records || []).forEach(mountRecord);
+    (records || []).filter(function (s) { return !isStickyType(s.type); }).forEach(mountRecord);   // never double-mount the preserved orb
     if (persistScope) settleMode();                              // home board (the shell's restore path) → re-fit to the CURRENT viewport so a board saved at a narrower boot size doesn't render off-centre
+    anchorOrb();                                                 // re-pin the preserved orb to this tab's corner (unless the user moved it)
     return live.length;
   }
   // A "sticky" widget type (e.g. the Holo Q voice orb) is a SYSTEM affordance: it survives mode switches
   // and is never folded into a mode's saved board, so it isn't duplicated or lost when you change modes.
-  function isStickyType(t) { var sp = spec(t); return !!(sp && sp.sticky); }
+  function isStickyType(t) { if (t === "q") return true; var sp = spec(t); return !!(sp && sp.sticky); }   // the Q orb is always a system affordance, even before holo-voice registers its spec
   function modeSnapshot() { return serialize().filter(function (s) { return !isStickyType(s.type); }); }
 
   // ── scenes — a one-click composed arrangement of widgets (the Momentum-style "Focus space") ──────
@@ -708,15 +759,35 @@
     return name;
   }
 
+  // ── reflow on ANY change to the usable canvas — not just window resize ──────────────────────────
+  // A right side-carriage (Wallet · Share · Play · Create · Notify) or the left dock squeezes the canvas
+  // via --holo-aside-w / --holo-dock-w WITHOUT firing a window `resize`, so the aside-aware recenter() was
+  // never being triggered on open/close — that was the drift. Observe the real #world element instead, and
+  // catch the .34s glide's settled end too, so the last frame is exact. ResizeObserver-absent → resize stays.
+  // leading-immediate + trailing recenter, coalesced. Deliberately NOT rAF: a side carriage can open while
+  // the tab is backgrounded (rAF is throttled then — the shell avoids it for the same reason), and recenter
+  // is delta-based so the leading + trailing calls each glide by their share of the centre shift.
+  var _reoT = 0;
+  function reflowSoon() { if (_reoT) return; recenter(); _reoT = setTimeout(function () { _reoT = 0; recenter(); }, 90); }
+  function wireCanvasObserver() {
+    var world = DOC.getElementById("world");
+    if (!world && (wireCanvasObserver._n = (wireCanvasObserver._n || 0) + 1) < 80) { setTimeout(wireCanvasObserver, 120); return; }   // shell mounts #world async — wait for it
+    var target = world || DOC.getElementById("holo-desk") || DOC.documentElement;
+    try { if (W.ResizeObserver) new W.ResizeObserver(reflowSoon).observe(target); } catch (e) {}
+    try { (world || DOC.documentElement).addEventListener("transitionend", function (ev) { var p = ev.propertyName; if (p === "left" || p === "right" || p === "width") recenter(); }); } catch (e) {}
+  }
+
   // ── boot ────────────────────────────────────────────────────────────────────────────────
   function boot() {
     W.addEventListener("resize", recenter);
+    wireCanvasObserver();
     DOC.addEventListener("keydown", function (e) { if (e.key === "Escape" && SEL.length) selClear(); });   // Escape clears a bundling selection
     ensureInteract();                                                    // load the interact.js snap engine (graceful if absent)
     var saved = load();
     saved.forEach(function (s) {
       if (!spec(s.type)) return;                                  // type not registered (yet) — skip, keep the record
       var w = { id: s.id || uid(), type: s.type, x: s.x, y: s.y, w: s.w, h: s.h, hidden: !!s.hidden, config: s.config || {} };
+      w._userMoved = !!s.moved;
       if (mount(w)) { live.push(w); if (!w.hidden) { var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; } }
     });
     seedFirstRun(saved);
@@ -747,6 +818,7 @@
     hide: function (id) { var w = live.filter(function (x) { return x.id === id; })[0]; if (w) hide(w); },
     list: function () { return live; }, types: function () { return Object.keys(TYPES); },
     snapshot: serialize,                                         // the persistable board — folded into the holospace κ
+    reflow: recenter,                                            // re-centre + re-pin everything to the CURRENT usable canvas (the shell may call this after a carriage opens/closes)
     setBoard: setBoard,                                         // swap the whole board (the shell calls this per holospace tab)
     onChange: function (fn) { if (typeof fn === "function") onChangeFns.push(fn); return W.HoloWidgets; },   // notified after any board mutation — the shell mirrors it into the active tab
     addScene: addScene,                                        // drop a composed arrangement

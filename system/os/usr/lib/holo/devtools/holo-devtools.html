@@ -77,7 +77,33 @@
     const __wsParam = __qs.get("ws") || __qs.get("wss");
     const __isRealWs = __wsParam && __wsParam !== "holo-bridge";   // a real host:port → the NATIVE real CDP socket (Tier 3)
     const __loadBundle = () => import("/_shared/devtools/vendor/front_end/entrypoints/devtools_app/devtools_app.js")
+      .then(() => __registerKappaPanel())
       .catch(() => document.documentElement.classList.add("holo-devtools-needs-bundle"));
+
+    // Register the native top-level "κ" panel (the κ-lens, ADR-0095 A6) via the PUBLIC panels.create API — the
+    // way React DevTools adds its panel, so it renders in real DevTools chrome with NO front_end edit. The
+    // vendored ExtensionServer only ENABLES extensions for an http(s) inspected target with a real tab id, so
+    // this fires under the NATIVE host (WebView2/Tauri = the real Chrome DevTools, real tabId). In pure-web the
+    // inspected page is holo:// → extensions stay disabled → this is a silent no-op (the κ-lens is still fully
+    // live via the Console: window.HoloLens / window.__holoLens). Fully guarded; never throws into the UI.
+    function __registerKappaPanel() {
+      let tries = 0;
+      const iv = setInterval(() => {
+        if (++tries > 40) { clearInterval(iv); return; }   // ~10s; pure-web never enables → quiet stop
+        try {
+          const es = self.Extensions && self.Extensions.extensionServer;
+          const host = globalThis.InspectorFrontendHost;
+          if (!es || !host || !es.extensionsEnabled) return;            // wait until the embedder enables extensions
+          if (es.registeredExtensions && [...es.registeredExtensions.keys()].some((o) => /kappa/.test(o))) { clearInterval(iv); return; }
+          let cb = null; const orig = host.setAddExtensionCallback;
+          host.setAddExtensionCallback = (fn) => { cb = fn; };          // capture the server's add-extension callback
+          try { es.initializeExtensions(); } catch (e) {}
+          host.setAddExtensionCallback = orig;
+          if (typeof cb === "function") cb({ startPage: location.origin + "/_shared/devtools/holo-kappa-ext.html", name: "holo-kappa", exposeExperimentalAPIs: true });
+          clearInterval(iv);
+        } catch (e) { /* never surface into the inspector UI */ }
+      }, 250);
+    }
 
     if (__isRealWs) {
       // ── NATIVE Tier 3: a real WebSocket to WebView2's real Chrome DevTools Protocol — genuine F12. ──

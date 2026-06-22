@@ -19,8 +19,8 @@
   <meta name="twitter:description" content="A sovereign, browser-first coding desktop: tabs, a Monaco editor, an integrated terminal, and a visual diff with accept/reject over the witnessed Holo Code engine. The brain is local verifiable inference (Holo Q), the tools work over the verified substrate, and every session is a receipt that proves itself genuine.">
   <meta name="twitter:image" content="/~code-desktop/og.svg">
   <meta name="holo:app" content="code-desktop">
-<meta http-equiv="refresh" content="0; url=/holospace.html?app=did%3Aholo%3Asha256%3Ac20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e&amp;shared=1">
-<link rel="canonical" href="/holospace.html?app=did%3Aholo%3Asha256%3Ac20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e&amp;shared=1">
+<meta http-equiv="refresh" content="0; url=../holospace.html?app=did%3Aholo%3Asha256%3Ac20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e&amp;shared=1">
+<link rel="canonical" href="../holospace.html?app=did%3Aholo%3Asha256%3Ac20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e&amp;shared=1">
 <style>html,body{height:100%;margin:0;background:#05070f;color:#eef0fb;
   font:500 1rem/1.5 system-ui,-apple-system,sans-serif}
  .c{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:1rem;text-align:center}
@@ -35,6 +35,7 @@
 </svg><div>Opening Holo Code Desktop…</div></div>
 <!-- Boot into the live κ projection, PRESERVING the URL hash — a shared link carries #k=<cid> (the teleport
      content handle) and &w=<board> in the fragment; dropping it would lose the shared provenance. -->
-<script>location.replace("/holospace.html?app=did%3Aholo%3Asha256%3Ac20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e&shared=1" + (location.hash || ""));</script>
+<script>(function(){var p=location.pathname,root=p.replace(/\/~[^/]*\/?$/,"/");if(root===p)root="/";
+  location.replace(root+"holospace.html?app=did%3Aholo%3Asha256%3Ac20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e&shared=1"+(location.hash||""));})();</script>
 </body>
 </html>

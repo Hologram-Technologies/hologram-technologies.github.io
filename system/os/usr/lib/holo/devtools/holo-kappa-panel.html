@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!-- holo-kappa-panel.html — the κ panel VIEW (ADR-0095 A6). Renders inside native DevTools chrome (registered
+     by holo-kappa-ext.html via the public panels.create API — no front_end edit). It shows the κ-LENS: EVERY
+     κ-object the inspected holo-app holds (manifest · reducer · projection · collections · capabilities · REST ·
+     MCP), each INSPECTABLE (re-derive + verify, L5 — a tampered block shows RED) and CONTROLLABLE through a
+     GOVERNED action only (edit→new κ, data→a proposal §2.9, capability→an attenuated grant SEC-2). Data crosses
+     the frame boundary the faithful way: chrome.devtools.inspectedWindow.eval of the inspected page's
+     window.__holoLens() (the shell injects it into a built app's frame). Styled to the OS --holo-* tokens. -->
+<html lang="en"><head><meta charset="utf-8" />
+<link rel="stylesheet" href="/_shared/holo-theme.css" />
+<style>
+  :root { color-scheme: dark; }
+  html,body { margin:0; height:100%; background:var(--holo-bg,#0b0d10); color:var(--holo-ink,#e8eef5);
+    font:13px/1.5 var(--holo-font, ui-monospace, "SF Mono", Menlo, monospace); }
+  #bar { display:flex; align-items:center; gap:.6rem; padding:.5rem .8rem; border-bottom:1px solid var(--holo-line,#222a33);
+    position:sticky; top:0; background:var(--holo-bg,#0b0d10); }
+  #bar b { font-weight:600; letter-spacing:.02em; } #bar .id { opacity:.6; font-size:11px; }
+  #bar button { margin-left:auto; background:var(--holo-surface,#161a20); color:var(--holo-ink,#e8eef5);
+    border:1px solid var(--holo-line,#222a33); border-radius:6px; padding:.25rem .6rem; cursor:pointer; }
+  #tree { padding:.4rem 0 2rem; }
+  .grp { padding:.35rem .8rem .15rem; opacity:.55; text-transform:uppercase; font-size:10px; letter-spacing:.08em; margin-top:.4rem; }
+  .obj { padding:.3rem .8rem; border-bottom:1px solid color-mix(in srgb, var(--holo-line,#222a33) 50%, transparent); }
+  .obj .row { display:flex; align-items:center; gap:.5rem; cursor:pointer; }
+  .badge { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  .ok { background:var(--holo-ok,#3ddc84); } .bad { background:var(--holo-bad,#ff5c5c); }
+  .name { font-weight:600; } .meta { opacity:.6; font-size:11px; }
+  .kap { opacity:.5; font-size:11px; margin-left:auto; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ctl { font-size:11px; opacity:.7; padding:.1rem .45rem; border:1px dashed var(--holo-line,#33404d); border-radius:5px; }
+  pre { margin:.35rem 0 0 1.3rem; padding:.5rem .7rem; background:var(--holo-surface,#12161b); border-radius:6px;
+    max-height:240px; overflow:auto; white-space:pre-wrap; word-break:break-word; display:none; }
+  .open pre { display:block; }
+  #empty { padding:2rem .9rem; max-width:60ch; line-height:1.7; opacity:.85; }
+  #empty code { background:var(--holo-surface,#161a20); padding:.1em .4em; border-radius:5px; }
+</style></head>
+<body>
+  <div id="bar"><b>κ</b><span class="id" id="mk"></span><button id="refresh">Refresh</button></div>
+  <div id="tree"></div>
+  <div id="empty" hidden>
+    <p><strong>The substrate, open to inspect.</strong> This panel exposes every κ-addressed object of the
+       focused holo-app — manifest, reducer, UI elements, collections, capabilities, and the derived REST/MCP
+       surface. Each re-derives to its own address (Law L5); a tampered block shows red.</p>
+    <p>No κ-app is in view. Build or open one (Create), or expose <code>window.__holoLens</code> in the inspected
+       page. The κ-lens reads it through <code>inspectedWindow.eval</code> — the same door any DevTools panel uses.</p>
+  </div>
+<script>
+  const GROUPS = [["manifest","Manifest · identity"],["reducer","Reducer · logic"],["projection","Projection · UI κ-DAG"],
+    ["collection","Collections · data"],["capability","Capabilities · auth"],["rest","REST · functions"],["mcp","MCP · tools"]];
+  const tree = document.getElementById("tree"), empty = document.getElementById("empty"), mk = document.getElementById("mk");
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+
+  // pull the lens from the inspected page via the standard extension door (faithful, no privileged access).
+  function fetchLens(cb) {
+    if (!(window.chrome && chrome.devtools && chrome.devtools.inspectedWindow)) return cb(null);
+    chrome.devtools.inspectedWindow.eval(
+      "(function(){try{return window.__holoLens?JSON.stringify(window.__holoLens()):null}catch(e){return null}})()",
+      (res) => { try { cb(res ? JSON.parse(res) : null); } catch (e) { cb(null); } }
+    );
+  }
+  function render(lens) {
+    tree.innerHTML = "";
+    if (!lens || !lens.objects || !lens.objects.length) { empty.hidden = false; mk.textContent = ""; return; }
+    empty.hidden = true; mk.textContent = lens.manifestK ? ("did:holo:sha256:" + String(lens.manifestK).replace(/^did:holo:sha256:/, "").slice(0, 10) + "…") : "";
+    for (const [key, label] of GROUPS) {
+      const items = lens.objects.filter((o) => o.group === key);
+      if (!items.length) continue;
+      const h = document.createElement("div"); h.className = "grp"; h.textContent = label + " · " + items.length; tree.appendChild(h);
+      for (const o of items) {
+        const el = document.createElement("div"); el.className = "obj";
+        const name = o.name || o.path || o.collection || o.kind || o.group;
+        const meta = o.method ? (o.method + " " + (o.path || "")) : (o.ops ? o.ops.join("/") : (o.kind || ""));
+        const verified = o.verified !== false;
+        el.innerHTML =
+          '<div class="row">' +
+            (o.kappa ? '<span class="badge ' + (verified ? "ok" : "bad") + '" title="' + (verified ? "re-derives (L5)" : "DOES NOT re-derive — refused") + '"></span>' : '<span class="badge ok" style="opacity:.3"></span>') +
+            '<span class="name">' + esc(name) + '</span>' +
+            (meta ? '<span class="meta">' + esc(meta) + '</span>' : '') +
+            (o.control ? '<span class="ctl" title="' + esc(o.control.note || "") + '">' + esc(o.control.kind) + '</span>' : '') +
+            (o.kappa ? '<span class="kap">' + esc(o.kappa) + '</span>' : '') +
+          '</div>' +
+          (o.content !== undefined ? '<pre>' + esc(typeof o.content === "string" ? o.content : JSON.stringify(o.content, null, 2)) + '</pre>' : '');
+        const row = el.querySelector(".row"); if (row) row.onclick = () => el.classList.toggle("open");
+        tree.appendChild(el);
+      }
+    }
+  }
+  function refresh() { fetchLens(render); }
+  document.getElementById("refresh").onclick = refresh;
+  refresh();
+  // re-pull when the inspected page navigates (the κ-app changed).
+  try { chrome.devtools.network.onNavigated.addListener(refresh); } catch (e) {}
+</script>
+</body></html>

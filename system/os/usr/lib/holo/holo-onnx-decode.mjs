@@ -60,12 +60,24 @@ export async function streamModel(manifest, { getBlock = fetchBlockByKappa, veri
   const refs = orderedRefs(manifest);
   const blocks = [];
   let total = 0;
+  // DevTools Network panel (A4): surface each weight-block κ-fetch in the κ-stream timeline when DevTools is
+  // open. The tap is a no-op with no subscribers, so this is free on the hot path. Honest signals only — real
+  // bytes, real timing; `verified` is true only if we re-derived locally OR the block came through the SW
+  // gateway (which re-derives, L5); cache-hit is inferred from a warm sub-ms read.
+  const net = (typeof globalThis !== "undefined" && globalThis.HoloDevToolsNet) || null;
+  const swVerified = getBlock === fetchBlockByKappa;
+  const clock = () => (typeof performance !== "undefined" && performance.now) ? performance.now() : 0;
   for (const ref of refs) {
+    const t0 = net ? clock() : 0;
     const bytes = await getBlock(ref);
     if (verify) {
       const got = `blake3:${await blake3hex(bytes)}`;
-      if (got !== ref) throw new Error(`weight κ mismatch: expected ${ref}, derived ${got}`);
+      if (got !== ref) {
+        if (net) { try { net.note({ kappa: ref, axis: "blake3", bytes: bytes.length, verified: false }); } catch (e) {} }
+        throw new Error(`weight κ mismatch: expected ${ref}, derived ${got}`);
+      }
     }
+    if (net) { const dt = clock() - t0; try { net.note({ kappa: ref, axis: "blake3", bytes: bytes.length, cacheHit: dt > 0 && dt < 3, verified: verify || swVerified, renderMs: Math.round(dt) }); } catch (e) {} }
     blocks.push(bytes);
     total += bytes.length;
   }

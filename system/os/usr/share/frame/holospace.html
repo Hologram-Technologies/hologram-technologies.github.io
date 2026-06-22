@@ -35,42 +35,140 @@
   #bootfx { font: 600 1.05rem/1 ui-monospace, Menlo, Consolas, monospace; }
   #bootfx .hfx-s { color: #8b5cf6; font-size: 1.15em; }
   #bootfx .hfx-t { color: #9b95c4; }
-  /* κ-Open loader (Phase 2) — the Google-Earth-class veil. Inlined so the name + spinner paint on the FIRST
-     frame with zero fetch; holo-loader.mjs upgrades the backdrop to a tier-appropriate live cosmos after.
-     The deep-space gradient is the floor (lite / reduced-motion): a still, gorgeous frame, zero GPU. */
+  /* κ-Open splash — the Google-Earth-class loading screen. The chosen Milky-Way photo (vendored at full
+     native resolution + sealed, no external fetch, instant + offline). The deep-space base paints on the
+     FIRST frame and the photo fades in on decode (no flash). No background animation — only the DNA braille
+     spinner lives. Golden ratio (φ≈1.618) drives the type scale, the vertical rhythm and the legibility scrim. */
   #holo-loader { position: fixed; inset: 0; z-index: 9999; overflow: hidden;
-    background: radial-gradient(130% 120% at 50% 36%, #0a0f24 0%, #05070f 46%, #010206 100%);
-    transition: opacity .55s ease, filter .55s ease; }
-  #holo-loader.is-done { opacity: 0; filter: brightness(1.25); pointer-events: none; }
-  #holo-loader-sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  #holo-loader-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center;
-    gap: 1.1rem; text-align: center; padding: 2rem; }
-  #holo-loader-mark { width: 30px; height: 30px; color: #c4b5fd; opacity: .85;
-    filter: drop-shadow(0 0 14px rgba(124,92,246,.5)); }
-  #holo-loader-name { min-height: 1.25em; font: 500 1.08rem/1.3 system-ui, -apple-system, sans-serif;
-    letter-spacing: .015em; color: #eef0fb; opacity: 0; transform: translateY(2px);
-    transition: opacity .5s ease, transform .5s ease; text-shadow: 0 1px 18px rgba(0,0,0,.55); }
-  #holo-loader-name.is-named { opacity: .96; transform: none; }
-  #holo-loader-spin { width: 26px; height: 26px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.15); border-top-color: rgba(124,92,246,.95);
-    animation: holoLoaderSpin .9s linear infinite; }
-  @keyframes holoLoaderSpin { to { transform: rotate(360deg); } }
+    --phi: 1.618;
+    --logo: clamp(2.4rem, 5.6vw, 4rem);                    /* the wordmark — large + immersive */
+    --spin: calc(var(--logo) / var(--phi));                /* spinner glyphs = wordmark ÷ φ */
+    --gap:  calc(var(--logo) / var(--phi));                /* golden vertical rhythm between them */
+    background-color: #02030a;                              /* the splash ALWAYS opens on solid black */
+    transition: opacity .6s ease, filter .6s ease; }
+  /* The photo lives on its OWN layer so it can be GRADED + drift without touching the wordmark. The source
+     is a soft upscale (real detail ≈2.5K), so raw sharpness is capped — instead a cinematic grade (a touch
+     more contrast + vibrance), a slow Ken-Burns drift, a breathing sun-bloom and fine grain make it read
+     hyper-real and ALIVE. Set by JS only after the photo decodes (script below): black first, no flash. */
+  /* the photo: cinematic grade + a slow Ken-Burns drift */
+  #holo-loader-bg { position: absolute; inset: 0; z-index: 0; background: no-repeat 50% 50% / cover;
+    filter: saturate(1.14) contrast(1.07) brightness(1.03);
+    animation: holoDrift 26s ease-in-out infinite alternate; will-change: transform; }
+  @keyframes holoDrift { from { transform: scale(1.045) translate3d(0, 0, 0); }
+                         to   { transform: scale(1.10) translate3d(-1.2%, -0.8%, 0); } }
+  /* fine volumetric grain — cinematic texture that also hides the source's gradient banding */
+  #holo-loader-bg::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  /* the GPU light canvas (holo-splash-gpu.mjs): a living, volumetric bloom over the sun when WebGPU is
+     available — supersedes the CSS bloom below, which is the fallback. Screen-blended (adds light only). */
+  #holo-loader-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; mix-blend-mode: screen;
+    opacity: 0; transition: opacity .8s ease; }
+  #holo-loader-fx.on { opacity: 1; }
+  /* a gentle bloom over the sun flare — magical light that softly breathes (CSS fallback when no WebGPU) */
+  #holo-loader-bloom { position: absolute; inset: 0; z-index: 0; pointer-events: none; mix-blend-mode: screen;
+    background: radial-gradient(34% 24% at 50% 44%, rgba(150,200,255,.5), rgba(90,150,255,.15) 45%, transparent 70%);
+    will-change: opacity;
+    animation: holoBreath 6.5s ease-in-out infinite; }
+  @keyframes holoBreath { 0%, 100% { opacity: .5; } 50% { opacity: .9; } }
+  /* the STAGE holds every visible element; it stays invisible (only the black base shows) until the photo
+     has DECODED, then fades ALL elements in TOGETHER (.ready) — nothing pops in out of sync. */
+  #holo-loader-stage { position: absolute; inset: 0; opacity: 0; transition: opacity .5s ease; }
+  #holo-loader.ready #holo-loader-stage { opacity: 1; }
+  /* legibility scrim: a golden-ratio radial falloff + soft vignette, so the wordmark reads over any sky */
+  #holo-loader-scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none; background:
+    radial-gradient(ellipse 61.8% 38.2% at 50% 50%, rgba(0,0,0,.5), rgba(0,0,0,.1) 61.8%, transparent 80%),
+    radial-gradient(135% 135% at 50% 50%, transparent 61.8%, rgba(2,3,10,.5)); }
+  #holo-loader.is-done { opacity: 0; filter: brightness(1.2); pointer-events: none; }
+  #holo-loader-center { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center;
+    justify-items: center; gap: var(--gap); text-align: center;
+    /* centered, so safe-area is insurance — but keep the wordmark clear of notch / Dynamic Island / home bar */
+    padding: max(2rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
+             max(2rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); }
+  #holo-loader-word { font: 300 var(--logo)/1.1 "Google Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: .2em; text-indent: .2em; color: #f5f7ff;
+    text-shadow: 0 2px 44px rgba(0,0,0,.65), 0 1px 4px rgba(0,0,0,.5); white-space: nowrap; }
+  /* braille spinner — the HoloFX DNA animation, φ-scaled, with a faint cyan life-glow */
+  #holo-loader-spin { font: 500 var(--spin)/1 ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+    letter-spacing: .1em; color: rgba(226,234,255,.96); min-height: 1em;
+    text-shadow: 0 0 26px rgba(124,170,255,.62), 0 1px 6px rgba(0,0,0,.5); }
   @media (prefers-reduced-motion: reduce) {
-    #holo-loader-spin { animation: none; border-top-color: rgba(124,92,246,.6); }
+    #holo-loader-bg, #holo-loader-bloom, #holo-loader-fx { animation: none; }
+    #holo-loader-bg { transform: scale(1.045); }            /* hold a still, graded frame — no drift */
     #holo-loader { transition: opacity .2s ease; } }
+  /* fidelity: on a LEAN tier (weak / battery-limited phone — data-holo-motion published by holo-fidelity)
+     hold the splash still and drop the grain blend, like reduced-motion — smooth, no continuous compositing. */
+  [data-holo-motion="lean"] #holo-loader-bg,
+  [data-holo-motion="lean"] #holo-loader-bloom { animation: none; }
+  [data-holo-motion="lean"] #holo-loader-bg { transform: scale(1.045); }
+  [data-holo-motion="lean"] #holo-loader-bg::after { display: none; }
+  /* MOBILE — the wordmark must never clip on a phone. Shrink --logo (the golden type scale: --spin and --gap
+     both derive from --logo ÷ φ, so the whole composition scales together — φ preserved) and tighten the
+     letter-spacing so "HOLOGRAM OS" fits with comfortable margin at 320–460px. Desktop is untouched. */
+  @media (max-width: 460px) {
+    #holo-loader { --logo: clamp(1.9rem, 9.5vw, 3.1rem); }   /* larger wordmark + (via φ) larger spinner */
+    #holo-loader-word { letter-spacing: .1em; text-indent: .1em; }
+    /* lift the wordmark up off the bright sun glare onto the upper golden line (~38% from top) — more
+       legible AND a stronger composition; the spinner follows just below it. */
+    #holo-loader-center { transform: translateY(-11%); }
+    /* a lighter glow on mobile → each spinner repaint is cheap (no heavy 26px blur every frame) = no lag */
+    #holo-loader-spin { text-shadow: 0 0 12px rgba(124,170,255,.5), 0 1px 4px rgba(0,0,0,.5); }
+  }
+  /* very short / landscape phones — keep the centred group compact so it never crowds top-and-bottom */
+  @media (max-height: 460px) {
+    #holo-loader { --logo: clamp(1.5rem, 6.5vh, 2.6rem); }
+    #holo-loader-center { transform: translateY(-6%); }
+  }
 </style>
 </head>
 <body>
-<!-- κ-Open loader veil (Phase 2): paints instantly; holo-loader.mjs hydrates the cosmos backdrop and the
-     boot module cross-fades it into the mounted app. The error/app-picker host (#msg) hides beneath it. -->
+<!-- κ-Open splash: an immersive NASA Earth photo + the HOLOGRAM OS wordmark + a small Google-style spinner.
+     Paints instantly (inline); the boot module cross-fades it into the mounted app. #msg hides beneath it. -->
 <div id="holo-loader" aria-hidden="true">
-  <canvas id="holo-loader-sky"></canvas>
-  <div id="holo-loader-center">
-    <svg id="holo-loader-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 1.6c.5 4.9 2.4 6.85 7.4 7.4-5 .55-6.9 2.5-7.4 7.4-.5-4.9-2.4-6.85-7.4-7.4 5-.55 6.9-2.5 7.4-7.4Z" fill="currentColor"/></svg>
-    <div id="holo-loader-name"></div>
-    <div id="holo-loader-spin"></div>
+  <div id="holo-loader-stage">
+    <div id="holo-loader-bg"></div>
+    <canvas id="holo-loader-fx"></canvas>
+    <div id="holo-loader-bloom"></div>
+    <div id="holo-loader-scrim"></div>
+    <div id="holo-loader-center">
+      <div id="holo-loader-word">HOLOGRAM OS</div>
+      <div id="holo-loader-spin" aria-hidden="true"></div>
+    </div>
   </div>
 </div>
+<script>
+/* κ-Open welcome: open on solid black, then reveal ALL elements together the INSTANT the photo has DECODED
+   (sharp, never a partial paint, never a fallback flash). For the lowest pre-show latency we fetch a
+   device-appropriate resolution — the 2.5K rendition on normal screens (identical sharpness there, decodes
+   ~4× faster than the 8K master) and the 8K only on 4K+/retina panels. Record the reveal moment so the boot
+   module holds the screen 5s FROM when it became visible. Relative paths resolve at "/" (dev) and "/os/". */
+(function () { try {
+  var loader = document.getElementById("holo-loader"), bg = document.getElementById("holo-loader-bg");
+  if (!loader || !bg) return;
+  // Three renditions of the SAME Earth-sunrise, matched to the device so the photo renders ~1:1 (sharp,
+  // never upscaled) without over-fetching: 8K master, a 3840 mid (retina phones / laptops — avoids the ~1.46×
+  // upscale a 2.5K would suffer on a tall portrait phone), and the 2.5K (low-DPR / small). Pick by the larger
+  // device-pixel dimension; fall through to a smaller one only if a fetch fails. → hyper-real + sharp + lean.
+  var R8 = "usr/share/wallpapers/splash.jpg", R4 = "usr/share/wallpapers/splash-3840.jpg", R2 = "usr/share/wallpapers/splash-fallback.jpg";
+  var dpx = 0; try { dpx = Math.max(screen.width || 0, screen.height || 0) * (window.devicePixelRatio || 1); } catch (e) {}
+  var srcs = dpx > 3000 ? [R8, R4, R2] : dpx > 1700 ? [R4, R2, R8] : [R2, R4];
+  function revealAll() {
+    if (loader.classList.contains("ready")) return;
+    window.__splashRevealAt = (window.performance && performance.now) ? performance.now() : 0;
+    loader.classList.add("ready");                         // fade EVERY element in TOGETHER
+    try { window.dispatchEvent(new Event("holo-splash-ready")); } catch (e) {}
+  }
+  function show(i) {
+    if (i >= srcs.length) return revealAll();               // nothing loaded → reveal on the black base
+    var src = srcs[i], im = new Image();
+    var paint = function () { bg.style.backgroundImage = "url('" + src + "')"; try { window.__perfImg = src.split("/").pop(); } catch (e) {} revealAll(); };
+    im.onload = function () { (im.decode ? im.decode() : Promise.resolve()).then(paint, paint); };
+    im.onerror = function () { show(i + 1); };               // try the next smaller rendition
+    im.src = src;
+  }
+  show(0);
+  setTimeout(revealAll, 2500);                             // safety: never hang on a pathologically slow image
+} catch (e) {} })();
+</script>
 <div id="msg" style="display:none; z-index:10000"><div id="bootfx">Resolving app…</div></div>
 <!-- Holo FX (the OS's faithful unicode-animations adoption): a sharp `scan` sweep replaces the
      static boot text. Classic script → window.HoloFX is ready before the deferred module runs. -->
@@ -91,6 +189,10 @@
 <script type="module">
 import { mount, parseLink, projectHtml, entryBase } from "./holo-launch.mjs";
 import { sealConstitution } from "./_shared/holo-admit.mjs";
+// Adaptive fidelity (holo-fidelity): on import it probes device⊗connection⊗prefs and publishes
+// data-holo-fidelity / data-holo-motion + --holo-fx-* vars on <html>, and sets window.HoloFidelity. So the
+// splash (and anything reading those) auto-leans on a weak / battery-saver phone, not just under reduced-motion.
+import "./_shared/holo-fidelity.mjs";
 
 const msg = document.getElementById("msg");
 // κ-Open loader (Phase 2): the inlined veil already paints; hydrate() upgrades its backdrop to a
@@ -99,8 +201,83 @@ const msg = document.getElementById("msg");
 // trap the app under the veil. The old `scan` sweep is retired in favour of the loader's quiet spinner.
 const bootFx = null;
 import("./_shared/holo-loader.mjs").then((L) => L.hydrate({ seed: raw || "holo" })).catch(() => {});
+// κ-Open splash: drive the braille spinner with the HoloFX DNA animation — a living, intelligent braille
+// cadence under the HOLOGRAM OS wordmark. HoloFX is a classic script loaded above, so it's ready here.
+// Stopped when the veil fades (below), so no interval outlives the splash.
+let splashSpin = null, splashFx = null;
+// Drive the DNA braille frames OURSELVES (not HoloFX.spin) so the loading spinner ALWAYS animates — a
+// progress indicator is the canonical exception to prefers-reduced-motion, and HoloFX.spin freezes to a
+// static frame under it (which fires on phones in battery-saver). setInterval runs in the foreground even
+// when battery-saver throttles requestAnimationFrame. Stopped when the veil fades (fadeVeil → splashSpin.stop).
+try {
+  const spEl = document.getElementById("holo-loader-spin");
+  const dna = (window.HoloFX && window.HoloFX.spinners && window.HoloFX.spinners.dna) || null;
+  const frames = (dna && dna.frames) || ["⠋⠉⠙⠚", "⠉⠙⠚⠒", "⠙⠚⠒⠂", "⠚⠒⠂⠂", "⠒⠂⠂⠒", "⠂⠂⠒⠲", "⠂⠒⠲⠴", "⠒⠲⠴⠤", "⠲⠴⠤⠄", "⠴⠤⠄⠋", "⠤⠄⠋⠉", "⠄⠋⠉⠙"];
+  const interval = (dna && dna.interval) || 80;
+  if (spEl) {
+    spEl.textContent = frames[0];
+    // rAF on a TIME BASE: vsync-aligned (smooth, no setInterval clamp/drift), and we only write the DOM when
+    // the frame index actually changes (~12/s, not every rAF) — minimal paint, super low latency. Time-based
+    // so it stays on-tempo and never freezes even when battery-saver throttles rAF.
+    const t0 = (window.performance && performance.now) ? performance.now() : 0;
+    let raf = 0, last = -1;
+    const tick = (now) => {
+      const idx = Math.floor(((now || 0) - t0) / interval) % frames.length;
+      if (idx !== last) { spEl.textContent = frames[idx]; last = idx; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    splashSpin = { stop() { cancelAnimationFrame(raf); } };
+  }
+} catch (e) {}
+// PERF HUD (opt-in: ?perf=1) — a tiny always-on overlay so you can read real numbers on a real phone: the
+// fidelity tier/motion, time-to-reveal, TTI (app frame loaded), live fps, and which image rendition served.
+// Never created on a normal open; lives on <body> so it persists after the veil fades.
+try {
+  if (new URLSearchParams(location.search).get("perf") === "1") {   // `params` const is declared later (TDZ)
+    const hud = document.createElement("div");
+    hud.style.cssText = "position:fixed;left:8px;top:8px;z-index:2147483647;background:rgba(0,0,0,.74);color:#7fffd4;font:11px/1.45 ui-monospace,monospace;padding:7px 9px;border-radius:7px;pointer-events:none;white-space:pre;box-shadow:0 4px 16px rgba(0,0,0,.5)";
+    document.body.appendChild(hud); window.__perfHud = hud;
+    let frames = 0, t0 = performance.now(), fps = 0;
+    const render = () => {
+      let fd = {}; try { fd = window.HoloFidelity.current(); } catch (e) {}
+      const rev = window.__splashRevealAt != null ? Math.round(window.__splashRevealAt) : "…";
+      const tti = window.__perfTTI != null ? Math.round(window.__perfTTI) : "…";
+      hud.textContent = "◆ HOLO perf\n"
+        + "tier   " + (fd.tier || "?") + " / " + (fd.motion || "?") + "\n"
+        + "dpr    " + (window.devicePixelRatio || 1) + "   bloom " + (fd.effects ? fd.effects.bloom : "?") + "\n"
+        + "reveal " + rev + " ms\n"
+        + "TTI    " + tti + " ms\n"
+        + "fps    " + (fps || "…") + "\n"
+        + "img    " + (window.__perfImg || "…");
+    };
+    const tick = (t) => { frames++; const dt = t - t0; if (dt >= 500) { fps = Math.round(frames * 1000 / dt); frames = 0; t0 = t; render(); } requestAnimationFrame(tick); };
+    requestAnimationFrame(tick); render();
+  }
+} catch (e) {}
+// κ-Open splash: WebGPU "living light" — a breathing volumetric bloom over the sun (holo-splash-gpu.mjs).
+// Additive (screen-blended) so it can only ADD light, never break the photo. When it mounts, it supersedes
+// the CSS bloom; if WebGPU is absent / fails / reduced-motion, mount() is skipped and the CSS bloom stays.
+try {
+  const reduceFx = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // fidelity gate: skip the continuous GPU bloom loop on a low / battery-saver tier (effects.bloom = 0) even
+  // if motion isn't reduced — the CSS bloom is the lean fallback. Keeps weak phones smooth and cool.
+  let fxBudget = true; try { fxBudget = !window.HoloFidelity || window.HoloFidelity.current().effects.bloom > 0; } catch (e) {}
+  if (!reduceFx && fxBudget) {
+    import("./_shared/holo-splash-gpu.mjs")
+      .then((G) => G.mount(document.getElementById("holo-loader-fx"), { sun: [0.5, 0.44] }))
+      .then((ctl) => {
+        if (!ctl) return;                                  // no WebGPU → CSS bloom remains
+        splashFx = ctl;
+        const fx = document.getElementById("holo-loader-fx"); if (fx) fx.classList.add("on");
+        const b = document.getElementById("holo-loader-bloom"); if (b) b.style.display = "none";
+      }).catch(() => {});
+  }
+} catch (e) {}
 // Cross-fade the veil → the mounted app (one continuous motion). Works even if HoloLoader never loaded.
 const fadeVeil = () => {
+  try { if (splashSpin) splashSpin.stop(""); } catch (e) {}
+  try { if (splashFx) splashFx.stop(); } catch (e) {}
   try { if (window.HoloLoader) return Promise.resolve(window.HoloLoader.done()).catch(() => {}); } catch (e) {}
   const v = document.getElementById("holo-loader");
   if (v) { v.classList.add("is-done"); setTimeout(() => { try { v.remove(); } catch (e) {} }, 700); }
@@ -153,6 +330,13 @@ async function boot() {
   let app = link ? apps.find((a) => a["@id"] === link.did)
           : raw  ? apps.find((a) => a["schema:identifier"] === raw || a["@id"] === raw)
           : null;
+  // THREE WORDS (holo-words): a shared/pasted three-word address (e.g. confirm.win.bar) → the app whose
+  // precomputed, κ-derived address matches. The catalog carries holo:words (gen-apps-catalog), so this is
+  // an exact lookup — no wordlist fetch. Additive: only when the strict id/κ match found nothing.
+  if (!app && raw && !link && /^[a-z]+\.[a-z]+\.[a-z]+$/i.test(raw)) {
+    const w = String(raw).toLowerCase();
+    app = apps.find((a) => String(a["holo:words"] || "").toLowerCase() === w);
+  }
   // Lenient fallback for a bare app reference — e.g. a Share-to-Run link built from an app's served
   // path (apps/<folder>/…) by an in-app surface that doesn't know the did (ADR-064). Match by the
   // folder id, then by an identifier suffix. Additive: only runs when the strict match found nothing,
@@ -240,10 +424,25 @@ async function boot() {
   document.body.appendChild(f);            // mount UNDER the veil; the veil then cross-fades to reveal it
   // κ-Open: cross-fade the loader veil → the mounted app once its first frame paints (or after a brief
   // cap), so the veil's fade and the app's holo-materialize read as one continuous motion — never a cut.
-  let veilFaded = false;
-  const revealApp = () => { if (veilFaded) return; veilFaded = true; fadeVeil(); };
-  f.addEventListener("load", () => setTimeout(revealApp, 60), { once: true });
-  setTimeout(revealApp, 1400);             // cap: never leave the veil up if frame load is slow/never fires
+  // MIN_SPLASH_MS — hold the welcome screen for a deliberate 5 seconds measured FROM the moment all elements
+  // become visible (window.__splashRevealAt, set by the inline reveal script the instant the photo decodes) —
+  // NOT from navigation start. So the user always sees the full composed screen for 5s, however long the
+  // image/app took to load. The veil also never fades before the app is mounted. (Set lower, e.g. 800, for a
+  // fast production feel.) The reveal is gated on the photo so pre-show is just the (minimised) decode time.
+  // Mobile holds the welcome 4s (from when the screen becomes visible — photo-decode time isn't added on top);
+  // desktop keeps the longer 5s moment.
+  const MIN_SPLASH_MS = (window.matchMedia && matchMedia("(max-width: 600px)").matches) ? 4000 : 5000;
+  let veilFaded = false, appReady = false;
+  const now = () => (performance && performance.now ? performance.now() : 0);
+  const tryFade = () => {
+    if (veilFaded || !appReady) return;
+    const revealAt = window.__splashRevealAt;
+    if (revealAt == null) { window.addEventListener("holo-splash-ready", tryFade, { once: true }); return; }   // elements not shown yet — wait, then hold 5s
+    veilFaded = true;
+    setTimeout(fadeVeil, Math.max(0, revealAt + MIN_SPLASH_MS - now()));
+  };
+  f.addEventListener("load", () => { try { if (window.__perfHud) window.__perfTTI = now(); } catch (e) {} appReady = true; tryFade(); }, { once: true });
+  setTimeout(() => { appReady = true; tryFade(); }, 1400);   // cap: arm even if frame load is slow/never fires
   // Holo governance (holo-gov.js): bind the VERIFIED identity of what we mounted so the host privacy
   // broker stamps disclosures AS this app (un-forgeable) and the Terms · Privacy shields reflect it.
   const govId = { did: m.id || null, id: (def && (def.id || def["schema:identifier"])) || null, name: m.name || "app" };
@@ -270,16 +469,20 @@ function restoreSharedWidgets() {
   s.onload = () => { let tries = 0; (function go() { const h = window.HoloWidgets; if (h && h.setBoard) return h.setBoard(board, { persist: false }); if (++tries < 60) setTimeout(go, 80); })(); };
   document.body.appendChild(s);
 }
-if (params.get("bare") === "1" || shared) {
-  boot().then((ctx) => { if (wantChrome) { const fr = document.getElementById("frame"); if (fr) fr.classList.add("holo-materialize"); } if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); restoreSharedWidgets(); })
-        .catch((e) => die("Boot failed: <code>" + (e && e.message || e) + "</code>"));
-} else {
-  // Normal link → the ONE canonical shell (os/usr/share/frame/shell.html), which hosts the app in its
-  // canvas. (?bare / shared #k= stay above as standalone mounts — the deliberate kiosk / guest mode.)
+// κ-Open is the DEFAULT frame for opening a STANDALONE app: a shared link (#k= / ?shared=1), a kiosk
+// embed (?bare=1), OR a plain ?app=κ all land in the fullscreen splash → app. The editable DESKTOP is
+// shell.html, reached explicitly with ?shell=1 (or by opening holospace.html with no app). So a single κ
+// link now opens into the magical welcome by default — never silently into the desktop. (#wks=/#car= stay
+// on the shell: they restore a multi-app holospace/workspace, not a single standalone app.)
+const goShell = params.get("shell") === "1" || (!raw && params.get("bare") !== "1" && !shared);
+if (goShell) {
   const p = new URLSearchParams();
   if (raw) p.set("open", raw);
   if (params.get("sw")) p.set("sw", params.get("sw"));
   location.replace("/shell.html" + (p.toString() ? "?" + p : ""));
+} else {
+  boot().then((ctx) => { if (wantChrome) { const fr = document.getElementById("frame"); if (fr) fr.classList.add("holo-materialize"); } if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); restoreSharedWidgets(); })
+        .catch((e) => die("Boot failed: <code>" + (e && e.message || e) + "</code>"));
 }
 </script>
 <!-- Sovereign delivery (ADR-026), guarded: a no-op unless ?sovereign=1 / localStorage.holoSovereign,

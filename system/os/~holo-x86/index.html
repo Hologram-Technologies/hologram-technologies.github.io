@@ -19,8 +19,8 @@
   <meta name="twitter:description" content="A real x86 Linux — v86 engine + BIOS + image all verified — booted in a browser tab.">
   <meta name="twitter:image" content="/~holo-x86/og.svg">
   <meta name="holo:app" content="holo-x86">
-<meta http-equiv="refresh" content="0; url=/holospace.html?app=did%3Aholo%3Asha256%3A01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc&amp;shared=1">
-<link rel="canonical" href="/holospace.html?app=did%3Aholo%3Asha256%3A01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc&amp;shared=1">
+<meta http-equiv="refresh" content="0; url=../holospace.html?app=did%3Aholo%3Asha256%3A01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc&amp;shared=1">
+<link rel="canonical" href="../holospace.html?app=did%3Aholo%3Asha256%3A01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc&amp;shared=1">
 <style>html,body{height:100%;margin:0;background:#05070f;color:#eef0fb;
   font:500 1rem/1.5 system-ui,-apple-system,sans-serif}
  .c{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:1rem;text-align:center}
@@ -35,6 +35,7 @@
 </svg><div>Opening Holo x86…</div></div>
 <!-- Boot into the live κ projection, PRESERVING the URL hash — a shared link carries #k=<cid> (the teleport
      content handle) and &w=<board> in the fragment; dropping it would lose the shared provenance. -->
-<script>location.replace("/holospace.html?app=did%3Aholo%3Asha256%3A01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc&shared=1" + (location.hash || ""));</script>
+<script>(function(){var p=location.pathname,root=p.replace(/\/~[^/]*\/?$/,"/");if(root===p)root="/";
+  location.replace(root+"holospace.html?app=did%3Aholo%3Asha256%3A01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc&shared=1"+(location.hash||""));})();</script>
 </body>
 </html>

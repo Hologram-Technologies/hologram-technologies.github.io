@@ -19,6 +19,8 @@
 //      is refused upstream by liveEdit). Pure + dependency-injected: the witness passes a mock document; the
 //      browser passes the real iframe. Identical dispatch (the Atlas-isomorphism discipline).
 
+import { trackKappaFetches } from "./holo-devtools-kappa-network.mjs";   // A4: κ-stream → Network panel events
+
 // ── CDP node-type constants (DOM) ────────────────────────────────────────────────────────────────
 const ELEMENT_NODE = 1, TEXT_NODE = 3, COMMENT_NODE = 8, DOCUMENT_NODE = 9, DOCTYPE_NODE = 10;
 const isKappa = (s) => typeof s === "string" && /^did:holo:(sha256|blake3):[0-9a-f]+$/.test(s);
@@ -42,7 +44,10 @@ const BOOT_ACK = new Set([
 //   edit(kappa, source) → liveEdit: re-seal the holospace source → { kappa } (the new content address).
 //   conscience  → { evaluate({verb,caller,intent}) -> {outcome:"accept"|"block",reason?} } (L4 gate).
 //   now()       → injectable clock for stable receipts.
-export function createLiveDevToolsBackend({ target, edit = null, conscience = null, now = () => 0 } = {}) {
+//   kappaFetchSource → { subscribe(onFetch) -> unsubscribe } (optional, A4): the live κ-stream tap. On
+//                 Network.enable the backend subscribes it and maps every κ-fetch to the panel's request
+//                 lifecycle (the browser injects the streamHolo tap; the witness injects a mock).
+export function createLiveDevToolsBackend({ target, edit = null, conscience = null, now = () => 0, kappaFetchSource = null } = {}) {
   if (typeof target !== "function") throw new Error("createLiveDevToolsBackend: target() accessor is required");
 
   // ── identity maps: CDP nodeId ⇄ live Node, plus a κ alias per node (L1/L2) ──
@@ -53,6 +58,7 @@ export function createLiveDevToolsBackend({ target, edit = null, conscience = nu
   const objects = new Map();      // objectId → live JS value (Runtime RemoteObjects)
   let ctxId = 0;
   let attached = false;           // page attach emitted once (guards the "target already exists" flood)
+  let netWired = false, netUnsub = null;   // Network panel: the κ-fetch tap subscription (A4), wired once
   const metrics = { frames: 0, edits: 0 };
 
   const ctx = () => { const t = target() || {}; return { doc: t.doc || null, win: t.win || null, kappa: t.kappa || null }; };
@@ -205,6 +211,21 @@ export function createLiveDevToolsBackend({ target, edit = null, conscience = nu
           id, origin: "holo://" + (kappa || "scene"), name: "holospace", uniqueId: "holo-ctx-" + id,
           auxData: { isDefault: true, type: "default", frameId: "holo-live" } } } }));
       }
+      return {};
+    }
+    // Network.enable: subscribe the live κ-stream tap → every κ-fetch becomes a request in the Network panel,
+    // carrying its axis · cache-hit (L3) · L5 verify badge · provenance (A4). Wired once on the session channel.
+    if (method === "Network.enable") {
+      if (typeof onEvent === "function" && kappaFetchSource && !netWired) {
+        netWired = true;
+        const onFetch = trackKappaFetches((ev) => { try { onEvent(ev); } catch (e) {} });
+        try { netUnsub = kappaFetchSource.subscribe(onFetch); } catch (e) {}
+      }
+      return {};
+    }
+    if (method === "Network.disable") {
+      if (netUnsub) { try { netUnsub(); } catch (e) {} netUnsub = null; }
+      netWired = false;
       return {};
     }
     if (method === "DOM.enable" || /\.(enable|disable)$/.test(method) || BOOT_ACK.has(method)) {
