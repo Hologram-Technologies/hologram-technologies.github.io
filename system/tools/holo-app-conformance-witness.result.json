@@ -1,7 +1,7 @@
 {
   "spec": "Every holospace application is a self-contained, shareable, provenance-tracked κ-holospace: it runs in the ONE canonical shell (P1), is a sealed serverless κ-object with no undeclared backend (P2), is named by a content address resolvable by any transport tier (P3), is discoverable + launchable from its single root κ via the one door (P4), is shareable as a link with a per-app social card (P5), and embeds an out-of-band κ-addressed version chain with per-version creator κ for programmatic royalties (P6). Enforced as a RATCHET over the served app repo: no app may LOSE a property, so conformance only increases. Properties not yet met are reported RED, never faked green (Law L5).",
   "authority": "ADR-0112 over ADR-0109 (Share) · ADR-0105/0106 (Workspace Sync + Session capture) · ADR-0082 (PROV-O) · ADR-0111 (Boot root + CSP/clickjacking floor) · ADR-0103 (Omni resolver) · #app-mobile-conformance (ratchet template) · Gateway launcher · static analysis of the served app repo + apps/index.jsonld",
-  "witnessed": true,
+  "witnessed": false,
   "covers": [
     "canonical-shell",
     "self-contained",
@@ -20,7 +20,7 @@
     "P1": 155,
     "P2": 152,
     "P3": 154,
-    "P4": 50,
+    "P4": 48,
     "P5": 50,
     "P6": 0
   },
@@ -323,14 +323,6 @@
       "share-as-link": true,
       "provenance": false
     },
-    "q": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": true,
-      "share-as-link": true,
-      "provenance": false
-    },
     "qemu": {
       "canonical-shell": true,
       "self-contained": true,
@@ -348,14 +340,6 @@
       "provenance": false
     },
     "search": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": true,
-      "share-as-link": true,
-      "provenance": false
-    },
-    "spaces": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -424,6 +408,22 @@
       "self-contained": false,
       "storage-agnostic": true,
       "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "q": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": false,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "spaces": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": false,
       "share-as-link": true,
       "provenance": false
     },
@@ -1268,5 +1268,15 @@
       "provenance": false
     }
   },
-  "regressions": []
+  "regressions": [
+    {
+      "app": "q",
+      "lost": [
+        "P4"
+      ],
+      "why": [
+        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
+      ]
+    }
+  ]
 }

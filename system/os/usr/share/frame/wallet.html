@@ -611,7 +611,7 @@
 
     <script src="/.holo/sha256/a0ebbc696bda5154727b76b42c11921231cbc652de3e705dd6b632456e6f34aa.js" data-holo-shared="teleport.js" defer></script>
     <script type="module">
-      import { HoloWallet, CHAINS, deriveAddress, history } from "/_shared/holo-wdk.js";
+      import { HoloWallet, CHAINS, deriveAddress, history, priceUsd } from "/_shared/holo-wdk.js";
       import { quote as jupQuote, MINTS } from "/_shared/holo-jupiter.js";
       import { qrSvg } from "/_shared/btc-wallet/wallet.js";
       import * as login from "/_shared/holo-login.mjs";
@@ -649,11 +649,11 @@
       };
 
       // ── the human-approval gate: returns a promise resolved by Approve/Deny (full-screen view) ──
-      let gateResolve = null;
+      let gateResolve = null, gateReq = null;
       let agentCtx = null;   // set by handleSignRequest when a verified agent (NPC) is the one asking
       async function gate(req) {
         return new Promise(async (resolve) => {
-          gateResolve = resolve;
+          gateResolve = resolve; gateReq = req;
           $("appWho").textContent = agentCtx
             ? ("Your agent “" + (agentCtx.label || "agent") + "” is asking, under the access you granted. You decide.")
             : (req._who || "A request to sign with your wallet.");
@@ -693,7 +693,28 @@
         });
       }
       const closeGate = (ok) => { $("view-approve").classList.remove("on"); const r = gateResolve; gateResolve = null; if (r) r(ok); };
-      $("appApprove").onclick = () => closeGate(true);
+      // Confirm IS the payload-bound biometric — the ONE signing seam. HoloWallet routes EVERY value/sign
+      // method (send · swap · signMessage · signTypedData · swapEvm · bridge · lending · fiat) through gate(),
+      // so this single place gives in-wallet AND app/agent requests exactly one fresh biometric over THIS
+      // exact action. The review above is what the human reads; the biometric signs precisely that. The
+      // reason committed into the consent κ is the same sentence shown ($appPlain), so words can't diverge
+      // from what is signed. Fail-closed: anything but { ok:true } ⇒ deny, the wallet does not sign.
+      $("appApprove").onclick = async () => {
+        const req = gateReq || {}, btn = $("appApprove");
+        btn.disabled = true;
+        try {
+          const op = currentOp || (typeof HoloSession !== "undefined" && HoloSession.signedInOperator && HoloSession.signedInOperator());
+          if (!op || !op.kappa) { toast("no signed-in operator to authorise this"); return closeGate(false); }
+          const { enforce } = await import("/_shared/holo-stepup-gate.mjs");
+          const action = { kind: "wallet." + (req.type || "send"), appId: "org.hologram.HoloWallet", operator: op.kappa,
+            reason: ($("appPlain").textContent || "Confirm this wallet action").trim(),
+            payload: { type: req.type || "send", chain: req.chain || null, to: req.to || null, amount: req.amount != null ? String(req.amount) : null, token: req.token || null, inputMint: req.inputMint || null, outputMint: req.outputMint || null, srcToken: req.srcToken || null, destToken: req.destToken || null, typedData: req.typedData || null, message: req.message || null } };
+          const g = await enforce(action, { credentialId: op.cred });
+          if (!g.ok) { toast("confirm with biometrics — " + (g.reason || "denied")); return closeGate(false); }
+          closeGate(true);
+        } catch (e) { toast("step-up unavailable: " + ((e && e.message) || e)); closeGate(false); }
+        finally { btn.disabled = false; }
+      };
       $("appDeny").onclick = () => closeGate(false);
 
       const wallet = new HoloWallet({ store, gate });
@@ -1006,12 +1027,41 @@
       function closeSheet() { if (openSheetId) sheetById(openSheetId).classList.remove("on"); $("scrim").classList.remove("on"); openSheetId = null; }
       $("scrim").onclick = closeSheet;
       for (const x of document.querySelectorAll(".sheet-x")) x.onclick = closeSheet;
-      // round action buttons: Receive/Send/Swap open sheets; Bridge/Buy are declared but not yet engine-backed.
+      // round action buttons: Receive/Send/Swap open sheets; Bridge is engine-backed (USD₮0 / LayerZero OFT).
       for (const a of document.querySelectorAll(".mmact")) a.onclick = () => {
         if (a.dataset.sheet) return openSheet(a.dataset.sheet);
-        if (a.dataset.act === "bridge") return toast("Bridge cross-chain routing isn’t engine-backed yet (Swap covers Solana spot)");
-        if (a.dataset.act === "buy") return toast("Buy an on-ramp isn’t connected yet");
+        if (a.dataset.act === "bridge") return bridgeFlow();
+        if (a.dataset.act === "buy") return buyFlow();
       };
+      // MoonPay on-ramp — deposits crypto INTO this wallet. The wallet builds an address-bound URL to the
+      // SEALED MoonPay origin (assert origin + our address), the gate consents, then we open the flow.
+      async function buyFlow() {
+        const currencyCode = (prompt("Buy which asset? (usdc, eth, usdc_arbitrum, sol, btc)", "usdc") || "").trim();
+        if (!currencyCode) return;
+        const amount = (prompt("How much (USD)?", "100") || "").trim();
+        try {
+          const r = await wallet.fiatBuy({ currencyCode, baseCurrencyAmount: amount ? Number(amount) : undefined, baseCurrencyCode: "usd" });
+          if (r.needsKey) toast("Set your MoonPay key in settings, then retry");
+          // open the asserted, address-bound MoonPay URL (sealed origin verified by the engine)
+          try { parentWin()?.postMessage({ type: "holo-open-url", url: r.url }, location.origin); } catch {}
+          window.open(r.url, "_blank", "noopener");
+          toast("Opening MoonPay · funds land in your wallet");
+        } catch (e) { toast("Buy: " + ((e && e.message) || e)); }
+      }
+      // USD₮0 cross-chain bridge — quote (read), confirm the LayerZero fee, then the gate signs the OFT send.
+      async function bridgeFlow() {
+        const dst = (prompt("Bridge USD₮0 from Arbitrum to which chain?\n(ethereum, optimism, polygon, plasma, hyperliquid)") || "").trim();
+        if (!dst) return;
+        const amount = (prompt("Amount of USD₮0 to bridge:") || "").trim();
+        if (!amount || !(Number(amount) > 0)) return;
+        try {
+          const q = await wallet.quoteBridge({ srcChain: "arbitrum", dstChain: dst, amount });
+          if (!confirm(`LayerZero fee ≈ ${(Number(q.nativeFee) / 1e18).toFixed(6)} ETH · min received ${(Number(q.minAmountLD) / 1e6).toFixed(2)} USD₮0 on ${dst}. Continue?`)) return;
+          const r = await wallet.bridgeUsdt0({ srcChain: "arbitrum", dstChain: dst, amount });
+          if (r.needsApproval) return toast("First approve USD₮0 to the bridge, then retry");
+          toast("Bridged · " + String(r.hash || "").slice(0, 12) + "…");
+        } catch (e) { toast("Bridge: " + ((e && e.message) || e)); }
+      }
       // Tokens · NFTs · Activity tabs
       for (const t of document.querySelectorAll("#view-wallet .mm-tab")) t.onclick = () => {
         document.querySelectorAll("#view-wallet .mm-tab").forEach((x) => x.classList.toggle("on", x === t));
@@ -1047,7 +1097,7 @@
           const { credentialId, secret } = await teeEnroll({ name: "Hologram" });
           const { principal } = await login.enroll({ label: "operator", secret, cred: credentialId });
           // sign in to Hologram OS — persist the verifiable session token (best-effort; never blocks the wallet)
-          try { const { openSession } = await import("/_shared/holo-identity.mjs"); sessionStorage.setItem("holo.session", JSON.stringify(await openSession(principal, { session: "primeos" }))); } catch {}
+          try { const { openSession, persistSession } = await import("/_shared/holo-identity.mjs"); await persistSession(await openSession(principal, { session: "primeos" }), secret); } catch {}
           currentOp = await login.currentOperator().catch(() => null);
           await wallet.openSeed(await login.unlockSeed(principal.kappa, secret));
           await enterWallet();
@@ -1086,8 +1136,8 @@
       async function signInOS(kappa, secret) {
         try {
           const principal = await login.unlock(kappa, secret);
-          const { openSession } = await import("/_shared/holo-identity.mjs");
-          sessionStorage.setItem("holo.session", JSON.stringify(await openSession(principal, { session: "primeos" })));
+          const { openSession, persistSession } = await import("/_shared/holo-identity.mjs");
+          await persistSession(await openSession(principal, { session: "primeos" }), secret);
           try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "holo-identity", action: "session-refreshed" }, location.origin); } catch {}
         } catch {}
       }
@@ -1143,7 +1193,10 @@
             agentCtx = auth.agent;
           } catch (e) { return reply({ error: "agent delegation error: " + (e && e.message) }); }
         }
-        // reads (address) never gate; everything else is logged + block-checked + gated.
+        // reads (address) never gate. The connected-sites block + log applies to everything else. The
+        // payload-bound biometric step-up is NOT here — it lives in the ONE signing seam (gate(), above),
+        // which HoloWallet calls inside every value/sign method, so this bridge and the in-wallet UI both
+        // get exactly one biometric over the exact action (no bypass, no double prompt). Reads don't gate.
         if (req.kind !== "address") {
           if (sites.isBlocked(origin)) return reply({ error: "blocked by you in Connected sites" });
           sites.touch(agentCtx ? ("agent · " + (agentCtx.label || agentCtx.subject)) : origin, req.kind || "send"); if (openSheetId === "sites") renderSites();
@@ -1152,11 +1205,32 @@
           if (req.kind === "sign") reply({ ok: true, signature: await wallet.signMessage({ chain: req.chain, message: req.message }) });
           else if (req.kind === "signTypedData") reply({ ok: true, signature: await wallet.signTypedData({ chain: req.chain || "ethereum", typedData: req.typedData }) });
           else if (req.kind === "address") reply({ ok: true, address: await wallet.address(req.chain || "ethereum") });
+          // ── reads — value never moves; the wallet answers from its own keys/live RPC, no signature. ──
+          else if (req.kind === "addresses") reply({ ok: true, addresses: await wallet.addresses() });
+          else if (req.kind === "balance") reply({ ok: true, chain: req.chain, balance: String(await wallet.balance(req.chain)) });
+          else if (req.kind === "tokenBalance") { const acc = await wallet.account(req.chain); reply({ ok: true, chain: req.chain, token: req.token, balance: String(await acc.getTokenBalance(req.token)) }); }
+          else if (req.kind === "price") reply({ ok: true, price: await priceUsd(req.chains || Object.keys(CHAINS)) });
+          else if (req.kind === "history") reply({ ok: true, history: await history(req.chain, await wallet.address(req.chain), { limit: req.limit || 25 }) });
+          else if (req.kind === "swapQuote") { const q = await jupQuote({ inputMint: req.inputMint, outputMint: req.outputMint, amount: req.amount }); reply({ ok: true, quote: q }); }
+          else if (req.kind === "swapQuoteEvm") reply({ ok: true, quote: await wallet.quoteEvm({ chain: req.chain || "ethereum", srcToken: req.srcToken, destToken: req.destToken, amount: req.amount, srcDecimals: req.srcDecimals, destDecimals: req.destDecimals }) });
           else if (req.kind === "swap") { const r = await wallet.swap({ inputMint: req.inputMint, outputMint: req.outputMint, amount: req.amount, slippageBps: req.slippageBps, inputDecimals: req.inputDecimals }); reply({ ok: true, txid: r.txid, hash: r.txid }); }
+          else if (req.kind === "swapEvm") { const r = await wallet.swapEvm({ chain: req.chain || "ethereum", srcToken: req.srcToken, destToken: req.destToken, amount: req.amount, slippageBps: req.slippageBps, srcDecimals: req.srcDecimals, destDecimals: req.destDecimals }); reply({ ok: true, ...r }); }
+          else if (req.kind === "bridgeQuote") reply({ ok: true, quote: await wallet.quoteBridge({ srcChain: req.srcChain, dstChain: req.dstChain, to: req.to, amount: req.amount }) });
+          else if (req.kind === "bridge") { const r = await wallet.bridgeUsdt0({ srcChain: req.srcChain, dstChain: req.dstChain, to: req.to, amount: req.amount, slippageBps: req.slippageBps }); reply({ ok: true, ...r }); }
+          else if (req.kind === "lendingPositions") reply({ ok: true, positions: await wallet.lendingPositions({ chain: req.chain || "arbitrum" }) });
+          else if (req.kind === "lending") { const r = await wallet.lendingAct({ chain: req.chain || "arbitrum", action: req.action, asset: req.asset, amount: req.amount, decimals: req.decimals, rateMode: req.rateMode }); reply({ ok: true, ...r }); }
+          else if (req.kind === "fiatQuote") reply({ ok: true, quote: await wallet.fiatQuote({ currencyCode: req.currencyCode, baseCurrencyAmount: req.baseCurrencyAmount, baseCurrencyCode: req.baseCurrencyCode }) });
+          else if (req.kind === "fiat") { const r = await wallet.fiatBuy({ currencyCode: req.currencyCode, baseCurrencyAmount: req.baseCurrencyAmount, baseCurrencyCode: req.baseCurrencyCode }); reply({ ok: true, ...r }); }
+          else if (req.kind === "aaAddress") reply({ ok: true, address: await wallet.aaAddress({ chain: req.chain || "ethereum", salt: req.salt }) }); // read: counterfactual smart-account address
+          else if (req.kind === "aaSend") { const r = await wallet.aaSend({ chain: req.chain || "ethereum", to: req.to, value: req.value, data: req.data, salt: req.salt, deploy: req.deploy }); reply({ ok: true, ...r }); } // gated: signs the userOpHash
+          else if (req.kind === "aa7702") { const r = await wallet.aa7702({ chain: req.chain || "ethereum", implAddress: req.implAddress }); reply({ ok: true, ...r }); } // gated: signs the EIP-7702 authorization
           else { const r = await wallet.send({ chain: req.chain, to: req.to, amount: req.amount, token: req.token }); reply({ ok: true, hash: r.hash }); }
         } catch (err) { reply({ error: err.message }); }
       }
-      window.addEventListener("message", (e) => handleSignRequest(e.data, (p) => e.source && e.source.postMessage({ type: "holo-wallet:sign-result", id: e.data?.id, ...p }, "*"), e.origin));
+      // reply is ORIGIN-SCOPED (not "*") — a sign-result carries the user's signature and must reach only the
+      // requesting origin. Sandboxed/opaque frames report origin "null" and fall back to "*" (there the byWin
+      // host assertion is the real control).
+      window.addEventListener("message", (e) => handleSignRequest(e.data, (p) => e.source && e.source.postMessage({ type: "holo-wallet:sign-result", id: e.data?.id, ...p }, (e.origin && e.origin !== "null") ? e.origin : "*"), e.origin));
       const seamBus = new BroadcastChannel("holo-wallet");
       seamBus.addEventListener("message", (e) => handleSignRequest(e.data, (p) => seamBus.postMessage({ type: "holo-wallet:sign-result", id: e.data?.id, ...p }), "this device (same-origin)"));
 

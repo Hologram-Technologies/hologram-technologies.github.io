@@ -82,6 +82,21 @@
       .${NS}-brand{display:inline-flex;align-items:center;gap:.35rem;text-decoration:none;color:inherit;opacity:.6;
         white-space:nowrap;font-weight:600}
       .${NS}-brand:hover{opacity:.92}
+      /* κ-Open Phase 3 — RECEDE: the OS chrome must never dominate the app. When idle the bar dims to a faint
+         icon strip that peeks at the bottom edge; any pointer/key activity (or hover) wakes it to full labels,
+         then it re-dims after a beat. Safe-area aware so it clears the home bar. The app stays full-bleed. */
+      .${NS}-root{transition:opacity .55s ease}
+      .${NS}-bar{transition:transform .45s cubic-bezier(.2,.85,.25,1),filter .45s ease,background .3s ease,box-shadow .45s ease;
+        padding-bottom:calc(.55rem + env(safe-area-inset-bottom,0px))}
+      .${NS}-name,.${NS}-sub,.${NS}-chip span,.${NS}-btn span,.${NS}-brand span{
+        transition:max-width .38s ease,opacity .3s ease,margin .3s ease;max-width:42vw;overflow:hidden}
+      .${NS}-root.recede{opacity:.2}
+      .${NS}-root.recede .${NS}-bar{transform:translateY(42%);filter:saturate(.55);
+        background:color-mix(in srgb, var(--holo-bg,#0b071e) 40%, transparent);box-shadow:none}
+      .${NS}-root.recede .${NS}-name,.${NS}-root.recede .${NS}-sub,.${NS}-root.recede .${NS}-chip span,
+      .${NS}-root.recede .${NS}-btn span,.${NS}-root.recede .${NS}-brand span{max-width:0;opacity:0;margin:0}
+      .${NS}-root.recede:hover{opacity:1}
+      .${NS}-root.recede:hover .${NS}-bar{transform:none;filter:none}
       /* arrival banner */
       .${NS}-hello{pointer-events:none;position:fixed;left:50%;top:14px;transform:translateX(-50%) translateY(-6px);
         z-index:2147483003;display:flex;align-items:center;gap:.5rem;max-width:92vw;
@@ -115,6 +130,8 @@
       @media (prefers-reduced-motion: reduce){
         .${NS}-hello,.${NS}-scrim,.${NS}-sheet,.${NS}-toast,.${NS}-btn{transition:none !important}
         .${NS}-hello{transform:translateX(-50%)}
+        .${NS}-root,.${NS}-bar,.${NS}-name,.${NS}-sub,.${NS}-chip span,.${NS}-btn span,.${NS}-brand span{transition:none !important}
+        .${NS}-root.recede .${NS}-bar{transform:none}      /* dim, never slide */
       }`;
     document.head.appendChild(s);
   }
@@ -240,6 +257,21 @@
     shareB.onclick = () => doShare(ctx);
     saveB.onclick = () => onSave(ctx);
     document.body.appendChild(root);
+    recede(root);
+  }
+
+  // recede(root) — keep the OS chrome from dominating the app. After a grace (so the arrival moment reads),
+  // the bar dims to a faint icon strip; any pointer/key activity wakes it to full labels for a beat, then it
+  // re-dims. Hover holds it awake. Pure presentation — the remix/share/save actions are always reachable.
+  function recede(root) {
+    const AWAKE = 2600, GRACE = 4200;
+    let t = 0;
+    const sleep = () => root.classList.add("recede");
+    const wake = () => { root.classList.remove("recede"); clearTimeout(t); t = setTimeout(sleep, AWAKE); };
+    t = setTimeout(sleep, GRACE);                                   // settle into recede shortly after arrival
+    for (const ev of ["pointermove", "pointerdown", "keydown", "focusin"]) W.addEventListener(ev, wake, { passive: true });
+    root.addEventListener("pointerenter", () => { root.classList.remove("recede"); clearTimeout(t); });
+    root.addEventListener("pointerleave", wake);
   }
 
   // mount({ name, kappa, link, raw }) — called by the projection (holospace.html) once the

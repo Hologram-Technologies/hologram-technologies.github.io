@@ -12,7 +12,7 @@
 // The real theme bytes (data/themes/maldives/*, components/2.0/*) are installed verbatim and
 // content-addressed under /usr/share/sddm/ — this runtime renders that real theme.
 
-import { openSession, ephemeral } from "./holo-identity.mjs";
+import { openSession, ephemeral, persistSession } from "./holo-identity.mjs";
 // Holo Login: the operator's identity AND omni-chain wallet derive from ONE BIP-39 seed — the
 // canonical login identity is now the seed's did:key (the SAME key Holo Wallet/Privacy use), its
 // session κ the content address of that key (Law L1, verifySession-compatible). enroll/unlock/roster
@@ -20,7 +20,7 @@ import { openSession, ephemeral } from "./holo-identity.mjs";
 import { enroll as enrollRoot, unlock, roster } from "./holo-login.mjs";
 // enroll() returns just the principal (the 12-word phrase stays inside the content-addressed vault,
 // retrievable later for backup); accepts the old `passphrase` param name as the unlock `secret`.
-const enroll = async (o = {}) => (await enrollRoot({ label: o.label, secret: o.passphrase ?? o.secret, cred: o.cred })).principal;
+const enroll = async (o = {}) => (await enrollRoot({ label: o.label, secret: o.passphrase ?? o.secret, cred: o.cred, credPub: o.credPub })).principal;
 import { measure, describe } from "./holo-host.mjs";
 import { teeAvailable, teeReason, teeName, teeEnroll, teeAssert, teeError } from "./holo-webauthn.mjs";
 
@@ -186,7 +186,7 @@ export async function createGreeter(params) {
   // establish(): bind operator ⊗ host, sign the loginctl-style session, hand off to the shell.
   async function establish(principal, session, { guest = false } = {}) {
     const token = await openSession(principal, { session: session.id, next: session.loader, host: host ? host.hostKappa : "", guest: guest || undefined });
-    try { sessionStorage.setItem("holo.session", JSON.stringify(token)); } catch {}
+    try { await persistSession(token, null); } catch {}   // display-split: presentation only (no operator secret on this path)
     // A guest is NON-PERSISTENT: skip the OPFS session mirror so nothing is written to the store.
     if (!guest) try {
       if (navigator?.storage?.getDirectory) {
@@ -267,8 +267,8 @@ export async function createGreeter(params) {
           // brand-new operator → bind a sovereign key to this device's enclave. `secret` here is the
           // enclave-derived hardware secret (NOT a typed passcode); enroll's param name is legacy.
           emit("informationMessage", "Setting up " + teeName() + "…");
-          const { credentialId, secret } = await teeEnroll({ name });
-          return finish(await enroll({ label: name, passphrase: secret, cred: credentialId }));
+          const { credentialId, secret, credPub } = await teeEnroll({ name });
+          return finish(await enroll({ label: name, passphrase: secret, cred: credentialId, credPub }));
         } catch (e) {
           // A real biometric cancel/timeout → report it. A capability gap (authenticator can't
           // derive a hardware secret) → steer to the phone's biometric; never to a passcode.
@@ -337,7 +337,7 @@ export async function createGreeter(params) {
         const token = { "@type": "HoloDelegatedSession", delegated: true, operator: got.operator, label: got.label || "",
           device: secrets.deviceKappa, grant: got.grant, can: got.can, session: session.id, next: session.loader,
           host: host ? host.hostKappa : "", issuedAt: new Date().toISOString() };
-        try { sessionStorage.setItem("holo.session", JSON.stringify(token)); } catch {}
+        try { await persistSession(token, null); } catch {}   // display-split: presentation only; the grant never sits in app-readable storage
         emit("loginSucceeded");
         const sep = session.loader.includes("?") ? "&" : "?";
         const u = `${session.loader}${sep}operator=${encodeURIComponent(got.operator)}&host=${encodeURIComponent(host ? host.hostKappa : "")}&session=${encodeURIComponent(got.grant.id)}&via=pair`;

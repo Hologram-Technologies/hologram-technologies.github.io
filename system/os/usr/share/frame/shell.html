@@ -1492,13 +1492,16 @@
       // gate (their data is already device-local). Fail-closed: signed-in + no biometric available → refuse.
       async function everythingAuthGate() {
         let op = null; try { op = HoloSession.signedInOperator(); } catch (e) {}
-        if (!op) return true;                                         // guest → no gate
-        let wa = null; try { wa = await import("/_shared/holo-webauthn.mjs"); } catch (e) { try { toast("Biometric module unavailable"); } catch (_) {} return false; }
+        if (!op || !op.kappa) return true;                            // guest → no gate
         try {
-          if (!(await wa.teeAvailable())) { try { toast("Biometric required for Everything — " + (await wa.teeReason())); } catch (_) {} return false; }
-          await wa.teeAssert({});                                     // platform biometric (userVerification:required); throws on cancel/fail
+          // PAYLOAD-BOUND step-up through the one seam (was bare teeAssert presence). "everything.open" is
+          // authority-tier → a fresh open prompts; a re-open within the trust window is suppressed (effortless).
+          const { enforce } = await import("/_shared/holo-stepup-gate.mjs");
+          const g = await enforce({ kind: "everything.open", appId: "org.hologram.shell", operator: op.kappa,
+            reason: "Open Everything — your full cross-app search", payload: null }, { credentialId: op.cred });
+          if (!g.ok) { try { toast("Confirm with biometrics — " + (g.reason || "denied")); } catch (_) {} return false; }
           return true;
-        } catch (e) { try { toast(wa.teeError(e)); } catch (_) {} return false; }
+        } catch (e) { try { toast("Step-up unavailable: " + ((e && e.message) || e)); } catch (_) {} return false; }
       }
       // onImportShared(m) — route an opened bundle by its type: a whole-experience SessionManifest RESUMES the
       // full session (replaces the current one — that's "resume my exact workspace"); a HolospaceShare opens as
@@ -2107,10 +2110,9 @@
           m.querySelector("#cv-manage").onclick = () => { modal.classList.remove("on"); const b = $("#holo-privacy-btn"); if (b) b.click(); else if (window.HoloPrivacy && window.HoloPrivacy.openControlCenter) window.HoloPrivacy.openControlCenter(); };
         };
         // session timer — counts from the verified session's issuedAt (else this load)
-        let start = Date.now();
-        try { const t = JSON.parse(sessionStorage.getItem("holo.session") || "null"); if (t && t.issuedAt) start = new Date(t.issuedAt).getTime(); } catch {}
+        let start = Date.now(), startSynced = false;
         const p2 = (n) => String(n).padStart(2, "0");
-        (function tick() { const s = Math.max(0, Math.floor((Date.now() - start) / 1000)); timerEl.textContent = "◷ " + Math.floor(s / 3600) + ":" + p2(Math.floor((s % 3600) / 60)) + ":" + p2(s % 60); setTimeout(tick, 1000); })();
+        (function tick() { if (!startSynced) { try { const hi = window.HoloIdentity; if (hi && hi.issuedAt) { start = new Date(hi.issuedAt).getTime(); startSynced = true; } } catch {} } const s = Math.max(0, Math.floor((Date.now() - start) / 1000)); timerEl.textContent = "◷ " + Math.floor(s / 3600) + ":" + p2(Math.floor((s % 3600) / 60)) + ":" + p2(s % 60); setTimeout(tick, 1000); })();
         // self-verified version — the OS content address (closure root κ) IS the proof
         let rootK = null, files = 0;
         fetch("/etc/os-closure.json", { cache: "no-store" }).then((r) => r.json()).then((c) => {
@@ -2598,7 +2600,7 @@
       // 1080p/1440p device seeds the 2560 rendition (371KB) at identical crispness; only a 4K+/retina panel
       // (device px > 2560) needs the 7680px master. Right-sizes the bytes, never the apparent sharpness.
       const _wallMaxDim = (Math.max(screen.width || 0, screen.height || 0) || 1920) * (window.devicePixelRatio || 1);
-      const WALL_KEY = "holo:wallpapers", WALL_SEED = "/usr/share/wallpapers/" + (_wallMaxDim <= 2560 ? "uor-2560.jpg" : "uor-8k.jpg"), WALL_DEPTH = "/usr/share/wallpapers/uor-depth.png", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 10;
+      const WALL_KEY = "holo:wallpapers", WALL_SEED = "/usr/share/wallpapers/" + (_wallMaxDim <= 2560 ? "uor-2560.jpg" : "uor-8k.jpg"), WALL_DEPTH = "/usr/share/wallpapers/uor-depth.png", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 13;
       // curated default collection — bundled photos sealed to κ at first boot (via Unsplash, attributed)
       const CURATED = [
         { file: "earth-nasa.jpg",    name: "Crescent Earth", by: "NASA",             byLink: "https://unsplash.com/@nasa" },
@@ -2609,6 +2611,7 @@
       ];
       const ORIGINAL_DESC = JSON.stringify({ "@type": "hosc:Wallpaper", style: "original", name: "Original" });
       const DEV_DESC = JSON.stringify({ "@type": "hosc:Wallpaper", style: "developer", name: "Developer" });   // procedural grid; rendered CSS-side, identity = κ(this descriptor)
+      const ASANOHA_DESC = JSON.stringify({ "@type": "hosc:Wallpaper", style: "asanoha", name: "Asanoha" });   // procedural WebGPU lattice (holo-asanoha-gpu.js), VE-styled; identity = κ(this descriptor)
       const _wallURL = new Map();   // κ → objectURL (revoke-free for the session)
       const wallRead = () => { try { const s = JSON.parse(localStorage.getItem(WALL_KEY)); if (s && Array.isArray(s.items) && s.items.length) return s; } catch {} return null; };
       const wallWrite = (s) => { try { localStorage.setItem(WALL_KEY, JSON.stringify(s)); } catch {} };
@@ -2639,6 +2642,9 @@
         // Developer — a procedural blueprint grid (rendered CSS-side, see #wallpaper.wp-dev). Identity is the
         // κ of its descriptor: same κ → byte-identical background (Law L5). Sharp at any DPR, zero raster.
         try { items.push({ k: await putWall(DEV_DESC), name: "Developer", kind: "grid", seed: true }); } catch {}
+        // Asanoha — a native WebGPU hemp-leaf lattice (usr/lib/holo/holo-asanoha-gpu.js), styled to the
+        // Vector-Equilibrium reference; analytic SDF so it is razor-sharp at any DPR with light flowing along the spokes.
+        try { items.push({ k: await putWall(ASANOHA_DESC), name: "Asanoha", kind: "shader", seed: true }); } catch {}
         if (curated) for (const w of CURATED) await sealCurated(items, w);
         return items;
       }
@@ -2687,7 +2693,7 @@
           world.insertBefore(c, world.firstChild); }
         return c;
       }
-      function stopLive() { if (_live) { try { _live.stop(); } catch {} _live = null; } const c = document.getElementById("wallpaper-canvas"); if (c) c.style.display = "none"; const gc = document.getElementById("wallpaper-gl"); if (gc) gc.remove(); }
+      function stopLive() { if (_live) { try { _live.stop(); } catch {} _live = null; } const c = document.getElementById("wallpaper-canvas"); if (c) c.style.display = "none"; const gc = document.getElementById("wallpaper-gl"); if (gc) gc.remove(); const ac = document.getElementById("wallpaper-asa"); if (ac) ac.remove(); }
       // a κ-aware resolver for the L5 chunk streamer: durable κ store first, then the OS source chain
       const kappaResolve = async (kappa) => { const hex = String(kappa).split(":").pop();
         try { const b = await holoStore.get("sha256:" + hex); if (b) return b; } catch {}
@@ -2703,6 +2709,32 @@
         const ctrl = HoloSpace.mount(wrap, { type: "space", seed: item.k }, { reduced: reduced || !liveOn(), resolve: kappaResolve });
         if (!ctrl) { wrap.remove(); return null; }   // no WebGL2 → caller falls back to the CSS desktop
         return { stop() { try { ctrl.stop(); } catch {} const w = document.getElementById("wallpaper-gl"); if (w) w.remove(); } };
+      }
+      // mount a procedural WebGPU wallpaper shader (currently the asanoha lattice) on its own canvas, the
+      // same shape as startSpace. Lazy-imports the module so it costs nothing until this wallpaper is chosen;
+      // returns null (→ caller falls back to the CSS desktop) if there is no WebGPU adapter.
+      // resolve a CSS custom property to [r,g,b] in 0..1 (any CSS color form), or the fallback if unset.
+      function tokenRGB(name, fallback) {
+        try {
+          const raw = getComputedStyle(root).getPropertyValue(name).trim();
+          if (!raw) return fallback;
+          const probe = document.createElement("span"); probe.style.color = raw; probe.style.display = "none";
+          document.body.appendChild(probe);
+          const m = getComputedStyle(probe).color.match(/[\d.]+/g); probe.remove();
+          if (!m || m.length < 3) return fallback;
+          return [m[0] / 255, m[1] / 255, m[2] / 255];
+        } catch { return fallback; }
+      }
+      async function startShader(item) {
+        const mod = await import("/usr/lib/holo/holo-asanoha-gpu.js");
+        if (!(await mod.ready) || !mod.gpuAvailable()) return null;
+        const c = document.createElement("canvas"); c.id = "wallpaper-asa"; c.setAttribute("aria-hidden", "true");
+        Object.assign(c.style, { position: "absolute", inset: "0", width: "100%", height: "100%", zIndex: "0", pointerEvents: "none" });
+        world.insertBefore(c, world.firstChild);
+        const reduced = (() => { try { return root.getAttribute("data-holo-motion") === "reduced" || matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
+        const ctrl = mod.createBackground(c, { reduced: reduced || !liveOn() });   // pure black field, white lines (module defaults); no parallax — a calm, static lattice
+        if (!ctrl) { c.remove(); return null; }   // no WebGPU context → fall back
+        return { stop() { try { ctrl.stop(); } catch {} const cc = document.getElementById("wallpaper-asa"); if (cc) cc.remove(); } };
       }
       // a tiny (48px) downscaled dataURL — the blur-up placeholder. Generating it loads the full image
       // once; HoloCompute.memo caches it by the wallpaper's κ (L1→L2), so a WARM load gets the
@@ -2902,6 +2934,12 @@
           let ctrl = null; try { ctrl = await startSpace(item); } catch (e) { try { console.warn("cosmos → fallback:", e); } catch {} }
           if (ctrl) { _live = ctrl; return; }
           applyStatic(item, null); return;   // no WebGL2 → the native CSS desktop (deep gradient)
+        }
+        if (item && item.kind === "shader") {
+          stopLive();
+          let ctrl = null; try { ctrl = await startShader(item); } catch (e) { try { console.warn("asanoha → fallback:", e); } catch {} }
+          if (ctrl) { _live = ctrl; return; }
+          applyStatic(item, null); return;   // no WebGPU → the native CSS desktop
         }
         if (item && item.kind === "image") {
           if (liveOn()) { let live = false; try { live = await startLive(item); } catch (e) { try { console.warn("live wallpaper → static:", e); } catch {} } if (live) return; }
@@ -3127,6 +3165,7 @@
             if (item.kind === "image") { const url = await wallObjURL(item); if (url) prev.style.backgroundImage = 'url("' + url + '")'; }
             else if (item.kind === "space") { prev.innerHTML = '<span class="wall-badge">✦ live · κ-seed</span>'; }
             else if (item.kind === "grid") { prev.innerHTML = '<span class="wall-badge">⌗ developer · κ-seed</span>'; }
+            else if (item.kind === "shader") { prev.style.background = "radial-gradient(circle at 50% 45%, #2a2f38 0%, #1c1f24 70%)"; prev.innerHTML = '<span class="wall-badge">✦ asanoha · WebGPU · κ-seed</span>'; }
             const meta = document.createElement("div"); meta.className = "wall-meta";
             const nm = document.createElement("span"); nm.className = "wall-name"; nm.textContent = item.name;
             const kk = document.createElement("span"); kk.className = "wall-k"; kk.title = "fingerprint"; kk.textContent = "holo://" + item.k.split(":").pop().slice(0, 12) + "…";
@@ -3796,7 +3835,7 @@
           + '<div class=w>'
           + '<div class=hd><div class=ey>✦ Creator mode</div><h1>Describe it. It builds, live.</h1></div>'
           + '<p class=lead>Your idea, a running app in seconds. No servers, nothing to deploy.</p>'
-          + '<div class=chips><span class=chip><i>✦</i>Build</span><span class=chip><i>▶</i>Run</span><span class=chip><i>♥</i>Share</span><span class=chip><i>◆</i>Monetise</span></div>'
+          + '<div class=chips><span class=chip><i>✦</i>Build</span><span class=chip><i>▶</i>Run</span><span class=chip><i>♥</i>Share</span><span class=chip><i>◆</i>Earn</span></div>'
           + '</div>';
       }
       function csResolve() {
@@ -3906,14 +3945,7 @@
             font:var(--holo-text-sm, 0.875rem)/1.5 var(--win-font,ui-sans-serif,system-ui);min-height:24px;max-height:170px;display:block}
           .cs-composer textarea::placeholder{color:#6b6b73}
           .cs-crow{display:flex;align-items:center;gap:9px;margin-top:8px}
-          .cs-crow .rnd{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
-            border:1px solid #2a2a31;color:#b8b8c0;font-size:17px;background:transparent}
-          .cs-crow .rnd:hover{background:#202026}
-          .cs-build{margin-left:auto;display:flex;align-items:center;gap:5px;color:#c4c4cc;font-size: var(--holo-text-sm, 0.813rem);cursor:pointer;
-            padding:5px 9px;border-radius:8px}
-          .cs-build:hover{background:#202026}
-          .cs-mic{color:#b8b8c0;font-size:16px;cursor:pointer}
-          .cs-send{width:31px;height:31px;border-radius:50%;background:#2563eb;color:#fff;display:grid;place-items:center;
+          .cs-send{margin-left:auto;width:31px;height:31px;border-radius:50%;background:#2563eb;color:#fff;display:grid;place-items:center;
             cursor:pointer;font-size:16px;border:0}
           .cs-send:hover{background:#1d5fe0}
           /* a run is in flight: the same button is now Stop — a calm red so it reads as "you can stop this" */
@@ -3923,7 +3955,7 @@
                 CODE mode. In PREVIEW mode this is just the slim bar; the live desktop is the canvas. ── */
           .cs-preview{order:1;flex:0 0 auto;display:flex;flex-direction:column;min-width:0;position:relative}
           #create-studio.code .cs-preview{flex:1 1 auto;min-height:0}
-          .cs-chrome{display:flex;align-items:center;gap:8px;padding:12px 14px 10px}
+          .cs-chrome{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px 14px 10px}
           .cs-seg{display:flex;background:#161619;border:1px solid #232327;border-radius:8px;padding:2px;flex:0 0 auto}
           .cs-seg button{border:0;background:transparent;color:#9a9aa2;font:600 var(--holo-text-sm, 0.75rem) var(--win-font,system-ui);
             padding:3px 11px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px}
@@ -4048,8 +4080,7 @@
             '<div class="cs-suggest" id="cs-suggest" style="display:none"><div class="gp"><span>⌕</span><span>Review your holospace</span><span title="info">ⓘ</span></div>' +
               '<span class="pill" id="cs-sug-go">Review</span><span class="x" id="cs-sug-x">✕</span></div>' +
             '<div class="cs-composer"><textarea id="cs-ask" rows="1" placeholder="Ask Holo to build…" spellcheck="false"></textarea>' +
-              '<div class="cs-crow"><span class="rnd" title="Add">＋</span><span class="cs-build" id="cs-mode">Build <span style="opacity:.6">⌄</span></span>' +
-              '<span class="cs-mic" title="Voice">🎙</span><button class="cs-send" id="cs-send" title="Send">↑</button></div></div>' +
+              '<div class="cs-crow"><button class="cs-send" id="cs-send" title="Send">↑</button></div></div>' +
           '</div>' +
           '<div class="cs-preview">' +
             '<div class="cs-chrome"><div class="cs-seg"><button class="on" id="cs-tab-pv">Build</button>' +
@@ -4320,19 +4351,9 @@
             + '<div class=card><b>Private</b><br><span>Runs on your device, content-addressed.</span></div>'
             + '<div class=card><b>Yours</b><br><span>One κ share it, no sign-in.</span></div></div></div>';
         }
-        const _csBuilder = { id: "holo-html-builder", embed: function (p) { return buildHolospaceHTML(p); } };
-        // perceive a built doc on the trinity (code+visual faces, coherent) — the EXIST + PERCEIVE legs.
-        function csPerceive(prompt, source) {
-          const T = (typeof window !== "undefined") ? window.HoloTrinity : null; if (!T) return;
-          const sid = "create:" + ((node && node.id) || "app");
-          T.fabric.compute({ provider: { id: "holo-codegen", embed: function () { return source; } }, task: "create", input: prompt + "@" + (source.length) }).then(function (f) {
-            T.scene.observeCode(sid, f.kappa, { source: "create-studio", kind: "build" });
-            T.scene.observeVisual(sid, studio.lastSavedK || f.kappa, { from: f.kappa });
-          }).catch(function () {});
-        }
         // the HYBRID generative seam (ADR-0087): lazily bind boost (frontier·opt-in) + the on-device
         // model (Qwen2.5 via Holo Voice LLM). Created cheaply; the heavy model load happens on first gen.
-        let _cg = null, _cgReady = false, _cgLoading = false, _deviceDead = false, _codeBadge = null, _lastActiveCode = null;
+        let _cg = null, _cgReady = false, _cgLoading = false, _deviceDead = false, _codeBadge = null, _lastActiveCode = null, _codeDevice = null;
         const _csTplMsg = function (p) { return 'Built <b style="font-style:normal">' + csEsc(p) + '</b> <span class="k">' + urlEl.textContent + '</span> · <span style="color:#7f90ad">template</span> ✦'; };
         // ── Q.fuse (ADR-0098): the moment a warm on-device brain is available, wire the COMPOUND verb with
         //    the DEFAULT PANEL (PERSONA mode — one brain, diverse reasoning lenses; ADR-0096). One-time; the
@@ -4446,9 +4467,14 @@
             if (!device) device = act.facultySampler(mux, "code", { chain: ["code", "respond"], onResolve: function (r) { _lastActiveCode = r; } });
             _codeBadge = function () { try { return act.describeActive(mux, "code", { chain: ["code", "respond"] }); } catch (e) { return null; } };
             const boost = (typeof window !== "undefined" && typeof window.HoloBoost === "function") ? function (m, o) { return window.HoloBoost(m, o); } : null;
-            _cg = mod.createCodegen({ device: device, boost: boost }); _cgReady = true;
+            _cg = mod.createCodegen({ device: device, boost: boost }); _cgReady = true; _codeDevice = device;   // expose the raw (messages,opts) sampler for spec-mode (full-stack build)
             wireFuse(device);                                             // the device sampler is always present now → Q.fuse rides the same brain
             wireRecall();                                                 // and Q.recall over your built-holospace corpus (ADR-0099)
+            // FULL-STACK CREATE: expose the holo-app engine in the Create context (additive, never-throws). A
+            // build can be sealed to a conformant holo-app via window.HoloCreateApp.sealBuiltApp(source) →
+            // { manifestK, share:"holo://sha256/…", api(REST+MCP descriptor), sealed }; buildFullStackApp(intent)
+            // runs the full A–H pipeline (UI+data+auth+REST/MCP) when the coder emits a typed spec.
+            import("/_shared/q/holo-q-create-fullstack.mjs").then(function (m) { window.HoloCreateApp = m; }).catch(function () {});
           } catch (e) { _cg = null; } finally { _cgLoading = false; }
           return _cg;
         }
@@ -4473,11 +4499,26 @@
             const editing = !!opts.editing, current = opts.current || null;
             const floor = buildHolospaceHTML(prompt);
             yield { replace: editing && current ? current : floor };      // instant, sealed baseline
-            const wantBoost = !!(typeof window !== "undefined" && window.HoloBoost && studio && studio.boost !== false);
+            const wantBoost = !!(typeof window !== "undefined" && window.HoloBoost);   // boost = the opt-in frontier gateway the user installs (window.HoloBoost)
             if (studio) studio._lastTier = "template";
             if (_deviceDead && !wantBoost) return;                        // a prior load was slow → floor stands
             const cg = await ensureCodegen();
             if (!cg || (!cg.has("device") && !wantBoost)) return;         // no real model → template-only build
+            // SPEC-MODE (full-stack · default): the coder emits a TYPED SPEC → compiles to a beautiful UI + data/
+            // auth + REST/MCP, self-tested + sealed to a κ (exposed as window.__holoApp). One-shot: the instant
+            // template snaps to the full app. A garbled model can't break it (the agent falls back to a valid
+            // app). Any failure falls THROUGH to streaming-HTML below — no regression.
+            if (!wantBoost && typeof window !== "undefined" && window.HoloCreateApp && window.HoloCreateApp.buildFromIntent && _codeDevice) {
+              try {
+                const fs = await window.HoloCreateApp.buildFromIntent(prompt, { generate: _codeDevice });
+                if (fs && fs.projectionHtml && fs.test && fs.test.ok) {
+                  window.__holoApp = fs;
+                  if (studio) studio._lastTier = "full-stack" + (fs.app && fs.app.collections && fs.app.collections.length ? " · " + fs.app.collections.length + " data" : "");
+                  yield { replace: fs.projectionHtml };
+                  return;
+                }
+              } catch (e) {}
+            }
             const queue = []; let done = false, result = null, wake = null, slow = false;
             const bump = function () { if (wake) { const w = wake; wake = null; w(); } };
             const TIMEOUT = wantBoost ? 60000 : 18000;
@@ -4840,13 +4881,13 @@
             const m = addMsg("assistant", 'Importing <b style="font-style:normal">' + csEsc(v) + '</b>…');
             holoImport(v, m).catch(function (e) { m.innerHTML = 'Couldn\'t import that — ' + csEsc(String((e && e.message) || e)) + '. <span style="color:#8b8b92">Check the link, or try the ↓ Import button.</span>'; });
           }
-          else if (studio.editable && studio.selection && mode !== "Chat") {   // a selection is active → scope the change to THAT element ("make this blue")
+          else if (studio.editable && studio.selection) {   // a selection is active → scope the change to THAT element ("make this blue")
             view("pv");
             const sel = studio.selection;
             const m = addMsg("assistant", 'Changing the <b style="font-style:normal">&lt;' + csEsc(sel.tag) + '&gt;</b> — ' + csEsc(v) + '…');
             holoElementEdit(v, sel, m).catch(function (e) { m.innerHTML = 'Edit error: ' + csEsc(String((e && e.message) || e)); });
           }
-          else if (studio.editable && mode !== "Chat") {   // a natural-language prompt in Build mode → build/refine a holospace in real time
+          else if (studio.editable) {   // a natural-language prompt → build/refine a holospace in real time
             view("pv");
             const m = addMsg("assistant", 'Building <b style="font-style:normal">' + csEsc(v) + '</b>…');
             holoBuild(v, m).catch(function (e) { m.innerHTML = 'Build error: ' + csEsc(String((e && e.message) || e)); });
@@ -4857,7 +4898,6 @@
         $$("cs-send").onclick = function () { if (studio.busy) cancelJob(); else send(); };   // the one composer button: Send when idle, Stop while a run is in flight
         ask.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!studio.busy) send(); } });
         ask.addEventListener("input", function () { ask.style.height = "auto"; ask.style.height = Math.min(170, ask.scrollHeight) + "px"; });
-        let mode = "Build"; $$("cs-mode").onclick = function (e) { mode = mode === "Build" ? "Chat" : "Build"; e.currentTarget.firstChild.textContent = mode + " "; };
         // ── chrome actions ──
         $$("cs-refresh").onclick = function () { const f = fa.classList.contains("on") ? fa : fb; if (r.mirror.url) f.src = f.src; else { studio.lastK = null; render(studio.applyLive ? ta.value : r.src); } toast("↻ reloaded"); };
         $$("cs-ext").onclick = function () { const u = r.mirror.url || linkFor(studio.lastSavedK); if (u) window.open(u, "_blank", "noopener"); };
@@ -4910,7 +4950,20 @@
             toast(studio.selectMode ? "⊹ Select on — click any element in the preview to edit it" : "Select off");
           }); }
         $$("cs-sug-x").onclick = function () { $$("cs-suggest").remove(); };
-        $$("cs-sug-go").onclick = function () { addMsg("assistant", "Your holospace is one self-contained, content-addressed object (holo://…) it loads instantly, runs serverless, and any guest can open it with no sign-in. Solid foundation. ✦"); };
+        $$("cs-sug-go").onclick = async function () {
+          // REAL review through the one Q door (window.Q.ask), grounded on THIS holospace's source — not a
+          // canned line. Mirrors the Q.ask pattern used by the Q chat panel. Falls back to the static line
+          // ONLY when no Q surface is present (honest degradation, never a fabricated "review").
+          const m = addMsg("assistant", "Reviewing your holospace…");
+          const Q = (typeof window !== "undefined") ? window.Q : null;
+          const src = (studio && (studio.curSrc || studio.lastSrc)) || "";
+          const FALLBACK = "Your holospace is one self-contained, content-addressed object (holo://…) it loads instantly, runs serverless, and any guest can open it with no sign-in. Solid foundation. ✦";
+          if (Q && typeof Q.ask === "function") {
+            let ans = null;
+            try { ans = await Q.ask("Review this holospace and suggest one concrete improvement. Be brief and specific.", { context: { source: String(src).slice(0, 4000) } }); } catch (e) {}
+            m.innerHTML = (ans && String(ans).trim()) ? (csEsc(String(ans).trim()) + " ✦") : FALLBACK;
+          } else { m.innerHTML = FALLBACK; }
+        };
         ov.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); closeCreate(true); } });
         // ── the lift: FLIP the live window into the preview pane (content-continuous) ──
         const fromRect = r.winEl ? r.winEl.getBoundingClientRect() : null;
@@ -4953,6 +5006,17 @@
           try { if (s.publishAgent) s.publishAgent()
             .then(function (surf) { if (surf && surf.appId) toast("⚡ agent-ready · MCP + REST API live at /~" + surf.appId + "/"); })
             .catch(function () {}); } catch (e) {}
+          // FULL-STACK SEAL (additive · never-throws): also seal the build as a conformant holo-apps app — a
+          // manifest κ over the reducer + projection, with a capability-derived REST/MCP descriptor (Stages
+          // A–G). The existing κ + agent fabric above are untouched. Exposes window.__holoApp and surfaces the
+          // app's holo:// κ; a SPEC-emitting coder upgrades this to a full UI+data+auth app via buildFullStackApp.
+          try {
+            if (publish && window.HoloCreateApp && s.ta) {
+              var __fs = window.HoloCreateApp.sealBuiltApp(s.ta.value, { name: (s.node && s.node.name) || "app" });
+              window.__holoApp = __fs;
+              toast("✦ holo-app · " + __fs.share);
+            }
+          } catch (e) {}
         }
       }
       $("#verb-build").onclick = function () { if (studio) closeCreate(true); else openCreate(); };   // the verb toggles the carriage (consistent with Play / Share)
@@ -4979,6 +5043,27 @@
       var playRail = null, playFrame = null;
       var plEsc = function (x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); };
       function playHoneyMap() { try { if (!playFrame || !playFrame.isConnected) { var fr = [].slice.call(document.querySelectorAll("#world iframe")).filter(function (f) { return /apps\/spaces/.test(f.getAttribute("src") || f.src || ""); }); playFrame = fr[fr.length - 1] || null; } return playFrame && playFrame.contentWindow && playFrame.contentWindow.HoloSpacesMap; } catch (e) { return null; } }
+      // ── LIVE preview: the cover becomes a real WINDOW INTO THE RUNNING APP — the very κ-projection the
+      //    hex-dive mounts (/holospace.html?app=κ), at full device-pixel resolution, so an app that streams
+      //    charts · changing data · video renders LIVE and HD inside the rail. Lazy (a short dwell so arrowing
+      //    through doesn't thrash) · one instance at a time · view-only (clicks fall through to Open). Heavy
+      //    apps (VMs · emulators · miners) keep the static cover — we don't boot a machine just to peek.
+      var playLive = { token: 0, frame: null };
+      function clearLivePreview() { playLive.token++; if (playLive.frame) { try { playLive.frame.remove(); } catch (e) {} playLive.frame = null; } }
+      function heavyPreview(m) { var s = ((m && m.appId || "") + " " + (m && m.name || "")).toLowerCase(); return /v86|qemu|x86|linux|\bvm\b|miner|emulator/.test(s); }
+      function mountLivePreview(vis, m) {
+        if (!vis || !m || !m.kappa || heavyPreview(m)) return;
+        var my = ++playLive.token;
+        setTimeout(function () {
+          if (my !== playLive.token || !vis.isConnected) return;     // selection moved on → abort this mount
+          var f = document.createElement("iframe"); f.className = "pl-live"; f.setAttribute("tabindex", "-1"); f.setAttribute("aria-hidden", "true"); f.setAttribute("scrolling", "no");
+          f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock allow-downloads");
+          f.setAttribute("allow", "fullscreen; clipboard-write");
+          f.src = "/holospace.html?app=" + m.kappa + "&bare=1";   // the same projection the dive mounts → the real, running app (WebGPU where the app uses it)
+          f.addEventListener("load", function () { if (my === playLive.token) { f.classList.add("on"); vis.classList.add("live"); } });
+          vis.appendChild(f); playLive.frame = f;
+        }, 360);
+      }
       function playRailHTML() {
         return '<div class="pl-rail">' +
           '<div class="pl-head"><div class="pl-title">Play</div><button class="pl-collapse" id="pl-collapse" title="Close" aria-label="Close">»</button></div>' +
@@ -4989,10 +5074,12 @@
       }
       function renderPlayCard(m) {
         if (!playRail) return; var card = playRail.querySelector("#pl-card"); if (!card) return;
+        clearLivePreview();   // tear down any prior live window before re-rendering the card
         if (!m) { card.innerHTML = '<div class="pl-empty"><div class="pl-empty-i">⬡</div><div>Touch a hexagon to preview it.</div></div>'; return; }
         var hue = (m.hue == null ? 200 : m.hue);
+        try { playRail.style.setProperty("--h", hue); } catch (e) {}   // bloom the rail glass in the selected app's hue
         card.innerHTML =
-          '<div class="pl-vis" style="--h:' + hue + '">' + (m.icon ? '<img src="' + plEsc(m.icon) + '" alt="">' : "") + '</div>' +
+          '<div class="pl-vis" style="--h:' + hue + '">' + (m.icon ? '<img src="' + plEsc(m.icon) + '" alt="">' : "") + '<span class="pl-badge">LIVE</span></div>' +
           '<div class="pl-name">' + plEsc(m.name || "App") + '</div>' +
           '<div class="pl-cat">' + plEsc(m.cat || "App") + '</div>' +
           (m.desc ? '<div class="pl-desc">' + plEsc(m.desc) + '</div>' : "") +
@@ -5001,6 +5088,8 @@
           '<div class="pl-rev"><div class="pl-rev-h">Reviews</div><div class="pl-rev-e">No reviews yet.</div></div>';
         var ob = card.querySelector("#pl-open"); if (ob) ob.onclick = function () { if (m.appId) openHolospaceApp(m.appId, "", m.name); };
         var kb = card.querySelector("#pl-k"); if (kb) kb.onclick = function () { try { navigator.clipboard.writeText(m.kappa || ""); toast("κ copied"); } catch (e) {} };
+        var vis = card.querySelector(".pl-vis"); if (vis) { vis.onclick = function () { if (m.appId) openHolospaceApp(m.appId, "", m.name); }; }   // the live window → tap to enter
+        mountLivePreview(vis, m);   // boot the real running app into the cover (lazy, view-only)
       }
       function wirePlayRail() {
         var tries = 0;
@@ -5008,6 +5097,7 @@
           var map = playHoneyMap();
           if (map) {
             map.onSelect = renderPlayCard; map.onOpen = function (info) { try { if (info && info.appId) openHolospaceApp(info.appId, "", info.name); } catch (e) {} };
+            try { if (playFrame && playFrame.contentWindow) playFrame.contentWindow.focus(); } catch (e) {}   // give the map keyboard focus so arrows work at once
             var chips = playRail && playRail.querySelector("#pl-cats");
             if (chips) {
               chips.innerHTML = '<button class="pl-chip on" data-c="">All</button>' + (map.categories || []).map(function (c) { return '<button class="pl-chip" data-c="' + plEsc(c) + '">' + plEsc(c) + "</button>"; }).join("");
@@ -5037,6 +5127,7 @@
       }
       function closePlay() {
         if (!playRail) return; var ov = playRail; playRail = null; playFrame = null;
+        clearLivePreview();   // stop the live app window when the rail closes
         document.body.classList.remove("cs-active");
         ov.classList.remove("on"); syncDockWidth(); setTimeout(function () { try { ov.remove(); } catch (e) {} }, 520);
         var b = $("#verb-run"); if (b) { b.classList.remove("on"); b.setAttribute("aria-expanded", "false"); }
@@ -5047,31 +5138,57 @@
       function playInjectStyle() {
         if (document.getElementById("play-studio-styles")) return;
         var st = document.createElement("style"); st.id = "play-studio-styles";
-        st.textContent = "#play-studio .pl-rail{--phi:1.618;--s1:8px;--s2:13px;--s3:21px;--s4:34px;display:flex;flex-direction:column;gap:var(--s2);height:100%;min-height:0;padding:var(--s3);color:var(--holo-ink,#e9e9ee);font:18px/1.5 var(--win-font,ui-sans-serif,system-ui);overflow:hidden}"
+        // Glass carriage: tint the Play aside translucent + blurred (scoped to #play-studio so the other
+        // carriages stay opaque), then let the SELECTED app's hue (--h on the rail) bloom through it.
+        st.textContent = "#play-studio.holo-aside{background:linear-gradient(155deg,rgba(20,16,42,.74),rgba(9,7,20,.82))!important;backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);border-left:1px solid rgba(255,255,255,.08)!important}"
+          + "#play-studio .pl-rail{--phi:1.618;--s1:8px;--s2:13px;--s3:21px;--s4:34px;position:relative;display:flex;flex-direction:column;gap:var(--s2);height:100%;min-height:0;padding:var(--s3);color:var(--holo-ink,#e9e9ee);font:18px/1.5 var(--win-font,ui-sans-serif,system-ui);overflow:hidden}"
+          // an ambient hue glow from the selected app, bleeding down from the top — the 'magical' tint
+          + "#play-studio .pl-rail::before{content:'';position:absolute;inset:0 0 auto 0;height:46%;pointer-events:none;background:radial-gradient(120% 90% at 50% -10%,hsla(var(--h,200),85%,60%,.22),transparent 70%);transition:background .35s ease;z-index:0}"
+          + "#play-studio .pl-rail>*{position:relative;z-index:1}"
           + "#play-studio .pl-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between}"
           + "#play-studio .pl-title{font-size:28px;font-weight:800;letter-spacing:-.01em}"
-          + "#play-studio .pl-collapse{width:36px;height:36px;border-radius:11px;border:1px solid var(--holo-border,#2a2350);background:rgba(255,255,255,.05);color:inherit;cursor:pointer;font-size:18px}"
+          + "#play-studio .pl-collapse{width:36px;height:36px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:inherit;cursor:pointer;font-size:18px;backdrop-filter:blur(8px)}"
+          + "#play-studio .pl-collapse:hover{background:rgba(255,255,255,.12)}"
+          // search + categories grouped in one glass header band, framing the cover below
           + "#play-studio .pl-srow{flex:0 0 auto;display:flex;gap:var(--s1);align-items:center}"
-          + "#play-studio #pl-search{flex:1;min-width:0;padding:12px 18px;font:inherit;color:inherit;background:rgba(255,255,255,.05);border:1px solid var(--holo-border,#2a2350);border-radius:999px}"
-          + "#play-studio #pl-search:focus{outline:none;border-color:color-mix(in srgb,var(--holo-accent,#5b8cff) 55%,transparent)}"
-          + "#play-studio .pl-mic{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:1px solid var(--holo-border,#2a2350);background:rgba(255,255,255,.05);color:inherit;cursor:pointer;font-size:18px}"
-          + "#play-studio .pl-mic.on{color:var(--holo-accent,#5b8cff);border-color:var(--holo-accent,#5b8cff)}"
+          + "#play-studio #pl-search{flex:1;min-width:0;padding:12px 18px;font:inherit;color:inherit;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:999px;backdrop-filter:blur(8px);transition:border-color .2s,box-shadow .2s}"
+          + "#play-studio #pl-search::placeholder{color:#9a9ab0}"
+          + "#play-studio #pl-search:focus{outline:none;border-color:hsla(var(--h,200),80%,65%,.6);box-shadow:0 0 0 3px hsla(var(--h,200),80%,60%,.16)}"
+          + "#play-studio .pl-mic{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:inherit;cursor:pointer;font-size:18px;backdrop-filter:blur(8px)}"
+          + "#play-studio .pl-mic.on{color:hsl(var(--h,200) 85% 70%);border-color:hsl(var(--h,200) 85% 65%)}"
           + "#play-studio .pl-cats{flex:0 0 auto;display:flex;gap:var(--s1);overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none;-webkit-mask:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 30px),transparent)}"
           + "#play-studio .pl-cats::-webkit-scrollbar{display:none}"
-          + "#play-studio .pl-chip{flex:0 0 auto;padding:9px 16px;font-size:15px;border-radius:999px;border:1px solid var(--holo-border,#2a2350);background:rgba(255,255,255,.05);color:#bdbdc6;cursor:pointer;white-space:nowrap}"
-          + "#play-studio .pl-chip:hover,#play-studio .pl-chip.on{color:#0a0a0b;background:#f4f4f6;border-color:#f4f4f6}"
+          + "#play-studio .pl-chip{flex:0 0 auto;padding:9px 16px;font-size:15px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#cdcdd8;cursor:pointer;white-space:nowrap;backdrop-filter:blur(8px);transition:.18s}"
+          + "#play-studio .pl-chip:hover{color:#fff;border-color:hsla(var(--h,200),80%,65%,.55)}"
+          + "#play-studio .pl-chip.on{color:#0a0a0b;background:#f4f4f6;border-color:#f4f4f6}"
           + "#play-studio .pl-card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:var(--s2);overflow:hidden}"
           + "#play-studio .pl-empty{margin:auto;text-align:center;color:#85858f;font-size:18px;display:flex;flex-direction:column;gap:var(--s2)}"
           + "#play-studio .pl-empty-i{font-size:52px;opacity:.5}"
-          + "#play-studio .pl-vis{flex:1 1 auto;min-height:0;border-radius:18px;display:grid;place-items:center;background:radial-gradient(125% 130% at 30% 16%,hsl(var(--h,200) 78% 58%),hsl(var(--h,200) 70% 22%) 70%,#0a0a10);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}"
-          + "#play-studio .pl-vis img{width:42%;height:42%;max-width:168px;max-height:168px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}"
+          // the COVER: a cinematic, hue-lit hero with depth, vignette, a top sheen and a slow shimmer
+          + "#play-studio .pl-vis{position:relative;flex:1 1 auto;min-height:0;border-radius:20px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(135% 130% at 32% 14%,hsl(var(--h,200) 82% 60%),hsl(var(--h,200) 72% 26%) 58%,#08070f 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.08),0 18px 50px rgba(0,0,0,.45),0 0 60px hsla(var(--h,200),80%,50%,.18)}"
+          + "#play-studio .pl-vis::before{content:'';position:absolute;inset:0;background:radial-gradient(80% 60% at 50% 120%,rgba(0,0,0,.55),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.14),transparent 28%);pointer-events:none}"
+          + "#play-studio .pl-vis::after{content:'';position:absolute;top:-60%;left:-30%;width:80%;height:220%;transform:rotate(18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent);pointer-events:none;animation:plsheen 6.5s ease-in-out infinite}"
+          + "@keyframes plsheen{0%,70%{transform:translateX(-30%) rotate(18deg)}100%{transform:translateX(360%) rotate(18deg)}}"
+          + "@media (prefers-reduced-motion:reduce){#play-studio .pl-vis::after{animation:none;opacity:0}}"
+          + "#play-studio .pl-vis img{position:relative;width:44%;height:44%;max-width:184px;max-height:184px;object-fit:contain;filter:drop-shadow(0 8px 22px rgba(0,0,0,.55));transition:opacity .4s ease}"
+          // the LIVE window: the real running app, full-DPR, fades in over the cover; view-only (clicks → Open)
+          + "#play-studio .pl-vis{cursor:pointer}"
+          + "#play-studio .pl-vis .pl-live{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0a0a10;opacity:0;transition:opacity .55s ease;pointer-events:none}"
+          + "#play-studio .pl-vis .pl-live.on{opacity:1}"
+          + "#play-studio .pl-vis.live img{opacity:0}"
+          + "#play-studio .pl-vis .pl-badge{position:absolute;top:11px;left:11px;z-index:3;display:none;align-items:center;gap:7px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.06em;color:#fff;background:rgba(0,0,0,.42);backdrop-filter:blur(8px)}"
+          + "#play-studio .pl-vis.live .pl-badge{display:inline-flex}"
+          + "#play-studio .pl-vis .pl-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 9px #34d399;animation:plpulse 1.5s ease-in-out infinite}"
+          + "@keyframes plpulse{0%,100%{opacity:1}50%{opacity:.35}}"
           + "#play-studio .pl-name{flex:0 0 auto;font-size:27px;font-weight:800;line-height:1.05;letter-spacing:-.01em}"
-          + "#play-studio .pl-cat{flex:0 0 auto;align-self:flex-start;padding:5px 13px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.08);color:#cfcfe0}"
+          + "#play-studio .pl-cat{flex:0 0 auto;align-self:flex-start;padding:5px 13px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);color:#e2e2ee}"
           + "#play-studio .pl-desc{flex:0 0 auto;font-size:16px;line-height:1.45;color:#c2c2cc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}"
-          + "#play-studio .pl-open{flex:0 0 auto;padding:14px;border:0;border-radius:14px;font:700 18px var(--win-font,system-ui);color:#fff;background:var(--holo-accent,#5b8cff);cursor:pointer}"
+          + "#play-studio .pl-open{flex:0 0 auto;padding:15px;border:0;border-radius:14px;font:700 18px var(--win-font,system-ui);color:#fff;cursor:pointer;background:linear-gradient(135deg,hsl(var(--h,200) 78% 58%),hsl(var(--h,200) 70% 46%));box-shadow:0 10px 26px hsla(var(--h,200),75%,45%,.4)}"
           + "#play-studio .pl-open:hover{filter:brightness(1.08)}"
+          + "#play-studio .pl-open:active{transform:translateY(1px)}"
           + "#play-studio .pl-meta{flex:0 0 auto;display:flex;justify-content:space-between;font-size:13px;color:#85858f}"
           + "#play-studio .pl-k{cursor:pointer;font-family:ui-monospace,monospace}"
+          + "#play-studio .pl-k:hover{color:hsl(var(--h,200) 80% 70%)}"
           + "#play-studio .pl-rev{flex:0 0 auto}"
           + "#play-studio .pl-rev-h{font-size:15px;font-weight:700;margin-top:4px}"
           + "#play-studio .pl-rev-e{font-size:14px;color:#85858f}";
@@ -5443,7 +5560,7 @@
       // toast files itself here; per-operator history. A deep-link routes through the omnibox / Q orb.
       try {
         mountNotifications(document.getElementById("notif-btn"), {
-          getOperator: () => { try { const t = JSON.parse(sessionStorage.getItem("holo.session") || "null"); return (t && t.operator && !t.guest) ? t.operator : null; } catch (e) { return null; } },
+          getOperator: () => { try { const hi = window.HoloIdentity; return (hi && hi.operator && !hi.guest) ? hi.operator : null; } catch (e) { return null; } },
           onDeepLink: (link) => {
             try {
               if (!link) return;
@@ -6763,7 +6880,7 @@
       <button id="brand-x" type="button" title="Dismiss" aria-label="Dismiss">✕</button>
     </div>
     <script type="module">
-      import { verifySession, ephemeral, openSession, enroll } from "/_shared/holo-identity.mjs";
+      import { verifySession, ephemeral, openSession, enroll, persistSession, loadPresentation } from "/_shared/holo-identity.mjs";
       import { teeAvailable, teeName, teeEnroll, teeError } from "/_shared/holo-webauthn.mjs";
       import { measure } from "/_shared/holo-host.mjs";
       (async () => {
@@ -6773,16 +6890,18 @@
         const hueOf = (k) => parseInt((String(k).split(":").pop() || "0").slice(0, 4), 16) % 360;
         let brandDismissed = false; try { brandDismissed = sessionStorage.getItem("holo.brand.x") === "1"; } catch {}
 
-        // Resolve the active identity: a handed-off / returning PERSISTENT session (Law L5), else GUEST.
-        let principal = null, body = null, guest = false;
-        let tok = null; try { tok = JSON.parse(sessionStorage.getItem("holo.session") || "null"); } catch {}
-        body = tok ? await verifySession(tok) : null;
-        if (p.get("operator") && body && body.operator !== p.get("operator")) body = null;
+        // Resolve the active identity (DISPLAY-SPLIT, identity-κ boundary). A returning operator resumes from the
+        // NON-secret PRESENTATION (operator κ + label, never pub/sig), shown but UNVERIFIED until a privileged
+        // action lazily unlocks the wrapped token (resumeSession, TEE). A GUEST mints a fresh ephemeral key held
+        // in memory. No replayable session assertion ever sits in app-readable storage (Law L5 verify on unlock).
+        let principal = null, body = null, guest = false, verified = false;
+        const pres = loadPresentation();
+        if (pres && pres.operator && !pres.guest && !(p.get("operator") && pres.operator !== p.get("operator"))) body = pres;
         if (!body) {                                  // GUEST by default — frictionless, ephemeral (held in memory only)
           principal = await ephemeral({ label: "Guest" });
           const gtok = await openSession(principal, { session: "guest", guest: true });
-          try { sessionStorage.setItem("holo.session", JSON.stringify(gtok)); } catch {}
-          body = await verifySession(gtok); guest = true;
+          try { await persistSession(gtok, null); } catch {}    // presentation only — guest is a throwaway key
+          body = await verifySession(gtok); guest = true; verified = true;
         }
         guest = guest || !!body.guest;
         window.__holoGuest = guest ? principal : null;        // the in-memory guest key, for signing this session
@@ -6792,7 +6911,7 @@
         // (verifySession already required BOTH halves — Law L5, fail-closed). Read-only, OS-wide.
         const subjectType = body.subjectType || "pc";
         const postQuantum = !!body.pqPub;
-        window.HoloIdentity = Object.freeze({ operator: body.operator, label: body.label, subjectType, guest, postQuantum, verified: true });
+        window.HoloIdentity = Object.freeze({ operator: body.operator, label: body.label, subjectType, guest, postQuantum, verified, locked: !verified, issuedAt: body.issuedAt || null });
         try { window.dispatchEvent(new CustomEvent("holo-identity", { detail: window.HoloIdentity })); } catch {}
 
         const WALLET_GLYPH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><path d="M16 13h.01"/></svg>';
@@ -6901,7 +7020,7 @@
             else { const pass = $("signin-pass").value || ""; if (pass.length < 4) { err.textContent = "Choose a passphrase (4+ characters)"; btn.disabled = false; return; } signSecret = pass; np = await enroll({ label: name, passphrase: pass }); }
             const host = await measure().catch(() => null);
             const ntok = await openSession(np, { session: "primeos", host: host ? host.hostKappa : "" });
-            try { sessionStorage.setItem("holo.session", JSON.stringify(ntok)); } catch {}
+            try { await persistSession(ntok, signSecret); } catch {}
             body = await verifySession(ntok); guest = false; window.__holoGuest = null;
             stamp(); close();
             // Holo Session (ADR-0106): the secret is in hand exactly here — derive the vault key + CLAIM the

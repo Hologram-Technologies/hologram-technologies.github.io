@@ -6,7 +6,6 @@
 // saved, it never nags again. Self-contained DOM (browser only); reuses holo-login + holo-webauthn.
 
 import * as login from "./holo-login.mjs";
-import { teeReason, teeAssert } from "./holo-webauthn.mjs";
 
 const DEFER_KEY = "holo.backup.deferred";
 const el = (tag, props = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(props)) { if (k === "style") n.style.cssText = v; else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2).toLowerCase(), v); else if (v != null) n.setAttribute(k, v); } for (const c of kids) if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); return n; };
@@ -43,14 +42,22 @@ function banner(op) {
   if (!fire()) setTimeout(fire, 400);   // Notify mounts at boot; retry once if this fires first
 }
 
-// reveal(kappa) — re-authenticate (biometric / passphrase), then surface the 12 words; confirm → saved.
+// reveal(kappa) — PAYLOAD-BOUND step-up, then surface the 12 words; confirm → saved. Revealing the key is a
+// `reveal`-tier act: it ALWAYS demands a fresh biometric bound to "reveal recovery phrase" (never an idle
+// session, never a typed secret). The ONE ceremony's secret opens the vault (exposeSecret). Fail-closed: no
+// TEE / cancelled ⇒ no reveal.
 export async function reveal(kappa) {
-  const op = (await login.roster()).find((o) => o.kappa === kappa);
-  const reason = await teeReason();
-  let secret;
-  if (op?.cred && !reason) secret = (await teeAssert({ credentialId: op.cred })).secret;   // biometric re-auth
-  else { secret = await passphrasePrompt(); if (secret == null) return; }
-  phraseModal(kappa, await login.revealMnemonic(kappa, secret));
+  try {
+    const op = (await login.roster()).find((o) => o.kappa === kappa);
+    const { requireStepUp } = await import("./holo-stepup.mjs");
+    const { secret } = await requireStepUp(
+      { kind: "identity.revealMnemonic", appId: "org.hologram.HoloLogin", operator: kappa, reason: "Reveal your 12-word recovery phrase" },
+      { credentialId: op?.cred, exposeSecret: true });
+    phraseModal(kappa, await login.revealMnemonic(kappa, secret));
+  } catch (e) {
+    // FAIL-CLOSED: no biometric/TEE or a cancelled ceremony ⇒ the phrase is not revealed, ever, on a weaker proof.
+    try { window.HoloNotify?.notify?.({ id: "holo-backup-need-bio", silent: true, sender: "Backup", severity: "warn", icon: "🔑", title: "Couldn’t reveal your phrase", body: "Revealing your recovery phrase needs your device biometric. " + ((e && e.message) || "") }); } catch (_) {}
+  }
 }
 
 function phraseModal(kappa, mnemonic) {
@@ -67,19 +74,6 @@ function phraseModal(kappa, mnemonic) {
       el("button", { id: "holo-backup-saved", style: btn("primary"), onclick: async () => { await login.markBackedUp(kappa); close(); document.getElementById("holo-backup-nudge")?.remove(); } }, "I've saved it")));
   const ov = el("div", { id: "holo-backup-modal", style: "position:fixed;inset:0;background:rgba(7,4,26,.78);backdrop-filter:blur(5px);display:grid;place-items:center;z-index:99999;" }, card);
   document.body.appendChild(ov);
-}
-
-function passphrasePrompt() {
-  return new Promise((resolve) => {
-    const done = (v) => { ov.remove(); resolve(v); };
-    const inp = el("input", { type: "password", placeholder: "Your passphrase", autocomplete: "current-password", style: "width:100%;box-sizing:border-box;height:38px;border-radius:10px;border:1px solid #3a356a;background:#06041a;color:#fff;padding:0 12px;font-size:var(--holo-text-sm,1rem);outline:none;margin-bottom:12px;" });
-    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") done(inp.value); if (e.key === "Escape") done(null); });
-    const card = el("div", { style: "background:#0d0a24;border:1px solid #2a2550;border-radius:14px;padding:22px;width:300px;color:#e7e9ff;font-family:system-ui,sans-serif;" },
-      el("div", { style: "font-weight:700;font-size:var(--holo-text-sm,1rem);margin-bottom:10px;" }, "Confirm it's you"), inp,
-      el("div", { style: "display:flex;justify-content:flex-end;" }, el("button", { style: btn("primary"), onclick: () => done(inp.value) }, "Reveal phrase")));
-    const ov = el("div", { style: "position:fixed;inset:0;background:rgba(7,4,26,.72);backdrop-filter:blur(4px);display:grid;place-items:center;z-index:99999;" }, card);
-    document.body.appendChild(ov); setTimeout(() => inp.focus(), 30);
-  });
 }
 
 if (typeof window !== "undefined") window.HoloBackup = { maybeNudge, reveal };

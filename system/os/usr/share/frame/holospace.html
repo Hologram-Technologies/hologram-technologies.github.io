@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>App</title>
+<!-- κ-Open unfurl (Phase 4): themed browser chrome (the deep-space loader base, so the open is immersive
+     not default-white) + generic OG fallback. The pretty path /~<app> injects PER-APP og:* earlier in
+     <head> (so it wins for shared links); these are the fallback for a plain ?app= open. -->
+<meta name="theme-color" content="#05070f">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hologram">
+<meta property="og:title" content="A Hologram app">
+<meta property="og:description" content="Opens on any device and runs instantly — no install, always verified.">
+<meta name="twitter:card" content="summary">
+<meta name="color-scheme" content="dark">
 <!-- The projection (engine: docs/08 §Projection) — a single did:holo / holo:// link boots an
      ISOLATED, capability-bounded, serverless holospace app directly in any browser, desktop or
      mobile. No server: the app is resolved from the content-addressed index and mounted in its
@@ -25,10 +35,43 @@
   #bootfx { font: 600 1.05rem/1 ui-monospace, Menlo, Consolas, monospace; }
   #bootfx .hfx-s { color: #8b5cf6; font-size: 1.15em; }
   #bootfx .hfx-t { color: #9b95c4; }
+  /* κ-Open loader (Phase 2) — the Google-Earth-class veil. Inlined so the name + spinner paint on the FIRST
+     frame with zero fetch; holo-loader.mjs upgrades the backdrop to a tier-appropriate live cosmos after.
+     The deep-space gradient is the floor (lite / reduced-motion): a still, gorgeous frame, zero GPU. */
+  #holo-loader { position: fixed; inset: 0; z-index: 9999; overflow: hidden;
+    background: radial-gradient(130% 120% at 50% 36%, #0a0f24 0%, #05070f 46%, #010206 100%);
+    transition: opacity .55s ease, filter .55s ease; }
+  #holo-loader.is-done { opacity: 0; filter: brightness(1.25); pointer-events: none; }
+  #holo-loader-sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #holo-loader-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center;
+    gap: 1.1rem; text-align: center; padding: 2rem; }
+  #holo-loader-mark { width: 30px; height: 30px; color: #c4b5fd; opacity: .85;
+    filter: drop-shadow(0 0 14px rgba(124,92,246,.5)); }
+  #holo-loader-name { min-height: 1.25em; font: 500 1.08rem/1.3 system-ui, -apple-system, sans-serif;
+    letter-spacing: .015em; color: #eef0fb; opacity: 0; transform: translateY(2px);
+    transition: opacity .5s ease, transform .5s ease; text-shadow: 0 1px 18px rgba(0,0,0,.55); }
+  #holo-loader-name.is-named { opacity: .96; transform: none; }
+  #holo-loader-spin { width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.15); border-top-color: rgba(124,92,246,.95);
+    animation: holoLoaderSpin .9s linear infinite; }
+  @keyframes holoLoaderSpin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    #holo-loader-spin { animation: none; border-top-color: rgba(124,92,246,.6); }
+    #holo-loader { transition: opacity .2s ease; } }
 </style>
 </head>
 <body>
-<div id="msg"><div id="bootfx">Resolving app…</div></div>
+<!-- κ-Open loader veil (Phase 2): paints instantly; holo-loader.mjs hydrates the cosmos backdrop and the
+     boot module cross-fades it into the mounted app. The error/app-picker host (#msg) hides beneath it. -->
+<div id="holo-loader" aria-hidden="true">
+  <canvas id="holo-loader-sky"></canvas>
+  <div id="holo-loader-center">
+    <svg id="holo-loader-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 1.6c.5 4.9 2.4 6.85 7.4 7.4-5 .55-6.9 2.5-7.4 7.4-.5-4.9-2.4-6.85-7.4-7.4 5-.55 6.9-2.5 7.4-7.4Z" fill="currentColor"/></svg>
+    <div id="holo-loader-name"></div>
+    <div id="holo-loader-spin"></div>
+  </div>
+</div>
+<div id="msg" style="display:none; z-index:10000"><div id="bootfx">Resolving app…</div></div>
 <!-- Holo FX (the OS's faithful unicode-animations adoption): a sharp `scan` sweep replaces the
      static boot text. Classic script → window.HoloFX is ready before the deferred module runs. -->
 <script src="_shared/holo-fx.js"></script>
@@ -50,9 +93,25 @@ import { mount, parseLink, projectHtml, entryBase } from "./holo-launch.mjs";
 import { sealConstitution } from "./_shared/holo-admit.mjs";
 
 const msg = document.getElementById("msg");
-// Sharp `scan` sweep while we resolve + mount the holospace (Holo FX / unicode-animations).
-const bootFx = window.HoloFX ? window.HoloFX.loader(document.getElementById("bootfx"), { name: "scan", label: "Resolving holospace…" }) : null;
-const die = (html) => { if (bootFx) bootFx.stop(""); msg.innerHTML = html; };
+// κ-Open loader (Phase 2): the inlined veil already paints; hydrate() upgrades its backdrop to a
+// tier-appropriate live cosmos and exposes window.HoloLoader { setName, done, fail }. Fire-and-forget —
+// it NEVER blocks boot, and the fade is removable without it (fadeVeil() below) so a failed import can't
+// trap the app under the veil. The old `scan` sweep is retired in favour of the loader's quiet spinner.
+const bootFx = null;
+import("./_shared/holo-loader.mjs").then((L) => L.hydrate({ seed: raw || "holo" })).catch(() => {});
+// Cross-fade the veil → the mounted app (one continuous motion). Works even if HoloLoader never loaded.
+const fadeVeil = () => {
+  try { if (window.HoloLoader) return Promise.resolve(window.HoloLoader.done()).catch(() => {}); } catch (e) {}
+  const v = document.getElementById("holo-loader");
+  if (v) { v.classList.add("is-done"); setTimeout(() => { try { v.remove(); } catch (e) {} }, 700); }
+  return Promise.resolve();
+};
+const die = (html) => {
+  try { if (window.HoloLoader) window.HoloLoader.fail(); } catch (e) {}
+  const v = document.getElementById("holo-loader"); if (v) v.remove();   // drop the veil so the message shows
+  if (bootFx) bootFx.stop("");
+  msg.style.display = "grid"; msg.innerHTML = html;
+};
 
 // Sovereign delivery (ADR-026): when enabled (?sovereign=1), the OS-wide κ Service Worker
 // (holo-boot-sw.js, brought up by the guarded module below) serves the WHOLE OS by content from
@@ -122,6 +181,8 @@ async function boot() {
   // app with only those. Fail-closed: no HoloTerms ⇒ undefined ⇒ mount falls back to declared.
   const grant = window.HoloTerms ? await window.HoloTerms.gate(def) : undefined;
   const m = mount({ def, lock, grant });
+  // κ-Open: the app's name is known — cross-fade it into the loader veil (Google-Earth style).
+  try { if (window.HoloLoader) window.HoloLoader.setName(m.name); } catch (e) {}
 
   // Bring up the ONE Holo Runtime delivery worker BEFORE mounting, so a SHARED app runs on the SAME
   // ultra-low-latency runtime as the rest of the OS (Law L2 — one canonical delivery wire, not a
@@ -176,8 +237,13 @@ async function boot() {
   if (!mountedByKappa) f.src = "./" + landing;
   document.title = `${m.name} · holospace`;
   if (bootFx) bootFx.stop("");
-  msg.remove();
-  document.body.appendChild(f);
+  document.body.appendChild(f);            // mount UNDER the veil; the veil then cross-fades to reveal it
+  // κ-Open: cross-fade the loader veil → the mounted app once its first frame paints (or after a brief
+  // cap), so the veil's fade and the app's holo-materialize read as one continuous motion — never a cut.
+  let veilFaded = false;
+  const revealApp = () => { if (veilFaded) return; veilFaded = true; fadeVeil(); };
+  f.addEventListener("load", () => setTimeout(revealApp, 60), { once: true });
+  setTimeout(revealApp, 1400);             // cap: never leave the veil up if frame load is slow/never fires
   // Holo governance (holo-gov.js): bind the VERIFIED identity of what we mounted so the host privacy
   // broker stamps disclosures AS this app (un-forgeable) and the Terms · Privacy shields reflect it.
   const govId = { did: m.id || null, id: (def && (def.id || def["schema:identifier"])) || null, name: m.name || "app" };

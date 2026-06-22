@@ -46,6 +46,27 @@ Rules:
 - **Witnesses are pure Node where possible** (so they are green in CI); browser-only checks
   must say so and degrade honestly (never a false pass).
 
+## Build topology — one source, generated derivatives
+
+The canonical OS is THIS tree, `system/os/` (GitHub Pages deploys it; sealed by `npm run reseal`,
+verified by `npm run reseal:check`). Everything else is **generated** from it — never hand-edit a
+derivative, and never audit one as if it were source:
+
+- The **native desktop image** `holo-apps/apps/tauri/dist/` is built by `apps/tauri/make-dist.mjs` (the
+  Tauri `beforeBuildCommand`): it materializes the `holo-fhs-map.mjs` rules ahead of time, self-seals,
+  and bakes the worker `CLOSURE_KAPPA` anchor. It is **gitignored** — a stale local `dist/` is a build
+  leftover, not a source. **Audit and seal `system/os/`, never a build output.** (A stale `dist/`
+  derailed the 2026-06-20 self-reflection audit; `make-dist.mjs` now fails loud if the OS source is
+  missing rather than silently building an empty image.)
+- `/_shared/*`, `/apps/<id>/*`, `/home.html`, … are flat-URL **aliases** of the FHS tree via
+  `lib/holo-fhs-map.mjs` (e.g. `_shared/* → usr/lib/holo/*`), not physical copies — there is no
+  `_shared/` dir in `system/os/`.
+
+Reseal after any `system/os/` edit with `npm run reseal` — ONE entrypoint, dependency-correct order:
+boot closure (`reseal-drift`) → SW anchor (`holo-anchor-sw`) → served tree (`seal-served`). The CI gate
+`npm run reseal:check` fails on any served-byte-≠-pinned-κ drift across the boot closure AND the whole
+tree.
+
 ## The map
 
 | Concern | Files | ADR |

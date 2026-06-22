@@ -109,24 +109,36 @@ export async function teeEnroll({ name, userId } = {}) {
   });
   if (!cred) throw new Error("biometric setup cancelled");
   const credentialId = b64u(cred.rawId);
+  // Capture the credential's PUBLIC key (SPKI) so a later step-up assertion signature is offline-
+  // verifiable (holo-stepup, second axis). Best-effort: getPublicKey() is widely supported but may be
+  // absent on older authenticators — the step-up still carries presence (UV flag) without it.
+  let credPub = null;
+  try { const spki = cred.response?.getPublicKey?.(); if (spki) credPub = b64u(spki); } catch {}
   let secret = cred.getClientExtensionResults?.()?.prf?.results?.first;
   // Some platforms enable PRF at creation but only RETURN it on a subsequent assertion.
   if (!secret) secret = unb64u((await teeAssert({ credentialId })).secret);
   if (!secret) throw new Error("no PRF / hardware secret");
-  return { credentialId, secret: b64u(secret) };
+  return { credentialId, secret: b64u(secret), credPub };
 }
 
-// ── assert: biometric prompt for an existing passkey; return {secret, credentialId} ──
+// ── assert: biometric prompt for an existing passkey; return {secret, credentialId, ...assertion} ──
 // `credentialId` targets one passkey; `allowCredentials` offers a set; BOTH empty ⇒ a usernameless
 // (discoverable-credential) prompt where the authenticator itself lists this origin's identities —
 // the operator proves possession of a key without ever naming it (Law L1). The returned
 // `credentialId` (the passkey the operator actually verified) is what the caller maps to a κ.
-export async function teeAssert({ credentialId, allowCredentials } = {}) {
+//
+// `challenge` (optional Uint8Array): for a STEP-UP, pass sha256(canon(action)) so the authenticator's
+// assertion signature COMMITS to the action (payload-bound consent, holo-stepup). Omit it for a plain
+// unlock and a fresh random challenge is used. The raw assertion bytes (clientDataJSON,
+// authenticatorData, signature — all base64url) are returned so the caller can carry the second,
+// authenticator-signed axis; the PRF `secret` is returned exactly as before (unlock path unchanged).
+export async function teeAssert({ credentialId, allowCredentials, challenge } = {}) {
   if (!teeSupported()) throw new Error("WebAuthn unavailable");
   const ids = (allowCredentials && allowCredentials.length) ? allowCredentials : (credentialId ? [credentialId] : []);
+  const ch = (challenge && challenge.byteLength) ? new Uint8Array(challenge) : rand(32);
   const assertion = await navigator.credentials.get({
     publicKey: {
-      challenge: rand(32),
+      challenge: ch,
       rpId: location.hostname,
       timeout: 60000,
       userVerification: "required",
@@ -137,5 +149,12 @@ export async function teeAssert({ credentialId, allowCredentials } = {}) {
   if (!assertion) throw new Error("biometric cancelled");
   const secret = assertion.getClientExtensionResults?.()?.prf?.results?.first;
   if (!secret) throw new Error("no PRF / hardware secret");
-  return { secret: b64u(secret), credentialId: b64u(assertion.rawId) };
+  const resp = assertion.response || {};
+  return {
+    secret: b64u(secret), credentialId: b64u(assertion.rawId),
+    // raw assertion (base64url) — the second axis for holo-stepup; harmless to ignore on the unlock path.
+    clientDataJSON: resp.clientDataJSON ? b64u(resp.clientDataJSON) : null,
+    authenticatorData: resp.authenticatorData ? b64u(resp.authenticatorData) : null,
+    signature: resp.signature ? b64u(resp.signature) : null,
+  };
 }

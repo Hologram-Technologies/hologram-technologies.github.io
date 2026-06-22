@@ -1,7 +1,7 @@
 {
   "witnessed": false,
-  "passed": 12,
-  "failed": 6,
+  "passed": 15,
+  "failed": 3,
   "covers": [
     "the default boot ('/') routes to the ONE",
     "the canonical shell is served from OS2 (",
@@ -14,7 +14,10 @@
     "the ONE shared embed guard exists in the",
     "no app renders its own tab strip when em",
     "the shell is sealed in the OS-wide κ-rou",
-    "the shell is anchored on the unified UOR"
+    "the served shell RE-DERIVES to its seale",
+    "the shell resolves BY CONTENT at /.holo/",
+    "the shell is anchored on the unified UOR",
+    "the served shell RE-DERIVES to its subst"
   ],
   "results": [
     {
@@ -80,17 +83,17 @@
     {
       "name": "the shell is sealed in the OS-wide κ-route closure (a did:holo content address)",
       "ok": true,
-      "detail": "κ abc29c7d26511e0c…"
+      "detail": "κ 57ad5f42afee83a7…"
     },
     {
       "name": "the served shell RE-DERIVES to its sealed κ — tamper-refused (Law L5)",
-      "ok": false,
-      "detail": "served 1889ec40b9e0 ≠ sealed abc29c7d2651"
+      "ok": true,
+      "detail": "re-derives"
     },
     {
       "name": "the shell resolves BY CONTENT at /.holo/sha256/<κ> (substrate-addressable, not path-only)",
-      "ok": false,
-      "detail": "HTTP 404"
+      "ok": true,
+      "detail": "HTTP 200"
     },
     {
       "name": "the shell loader is Secure-Boot-pinned (rEFInd re-derives + refuses a mismatch, Law L5)",
@@ -100,12 +103,12 @@
     {
       "name": "the shell is anchored on the unified UOR substrate (carries its did:holo:blake3 σ-axis κ)",
       "ok": true,
-      "detail": "blake3 7fb79b8576da16d6…"
+      "detail": "blake3 1134a0716529913a…"
     },
     {
       "name": "the served shell RE-DERIVES to its substrate κ via OS2 BLAKE3 (≡ substrate kappa(), Law L5 / CC-51)",
-      "ok": false,
-      "detail": "served 17145710ae07 ≠ sealed 7fb79b8576da"
+      "ok": true,
+      "detail": "re-derives on the substrate axis"
     }
   ],
   "spec": "Hologram OS — one canonical holospace shell (shell.html, in OS2): the default and only launcher for every app; duplicates retired; the embed guard enforced for every app"

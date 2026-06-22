@@ -2,8 +2,8 @@
   "witnessed": true,
   "passed": 8,
   "failed": 0,
-  "objects": 34830,
-  "distinctCells": 9893,
+  "objects": 21646,
+  "distinctCells": 9849,
   "covers": [
     "the coordinate math is VERBATIM upstream (Φ · page",
     "the finite torus is exactly the upstream space (ℤ₄",
@@ -28,17 +28,17 @@
     {
       "name": "every object maps INSIDE the finite torus (Φ round-trips: phiEncode(page,byte)===cell)",
       "ok": true,
-      "detail": "34830/34830 in-torus"
+      "detail": "21646/21646 in-torus"
     },
     {
       "name": "every object's coordinate RE-DERIVES from its κ alone — attribute-derived, self-verifying (Law L5)",
       "ok": true,
-      "detail": "34830/34830 re-derive"
+      "detail": "21646/21646 re-derive"
     },
     {
       "name": "the content→torus embedding USES the space (objects spread across cells + all 96 R96 classes)",
       "ok": true,
-      "detail": "9893 distinct cells · 96/96 R96 classes"
+      "detail": "9849 distinct cells · 96/96 R96 classes"
     },
     {
       "name": "the space is FINITE per level (12,288) and content-addressing is acyclic ⇒ infinitely nestable, no recursion",
@@ -48,7 +48,7 @@
     {
       "name": "the canonical shell self-declares its ATLAS96 coordinate + its sealed κ yields a real in-torus point (a point in — and itself an — atlas)",
       "ok": true,
-      "detail": "cell 11724 · page 45 · byte 204 · R96 12"
+      "detail": "cell 12051 · page 47 · byte 19 · R96 19"
     },
     {
       "name": "every holospace is ONE self-describing atlas object — the shell + every app's ROOT carries its self-coordinate (re-derived from its identity)",

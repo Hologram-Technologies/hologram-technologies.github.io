@@ -1,0 +1,11 @@
+{
+  "@ton/core": {
+    "version": "0.59.1",
+    "bundle": "ton-core.bundle.mjs",
+    "sha256": "7e19fdbe6b75f974b4582dadbd8db94af58b365e1e0fc7b703778e27b4c839a6",
+    "bundler": "esbuild --bundle --format=esm --platform=browser --target=es2022",
+    "exports": ["Cell","Address","beginCell","contractAddress","storeStateInit","BitString","Slice","external","internal","SendMode"],
+    "vector": { "publicKeyPattern": "(i*7+3)&0xff for i in 0..31", "walletV4R2Address": "0:d280e8e8eefe096e78bf9eb8f0ce6d968b2339867b01d0fef6fe8c9591b47789", "codeHash": "feb5ff6820e2ff0d9483e7e0d62c817d846789fb4ae580c878866d959dabd5c0" },
+    "fetched": "2026-06-21"
+  }
+}

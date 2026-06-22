@@ -226,7 +226,7 @@
       let op = null, identity = null;
 
       async function boot() {
-        try { const tok = JSON.parse(sessionStorage.getItem("holo.session") || "null"); identity = tok ? await verifySession(tok) : null; } catch {}
+        try { identity = JSON.parse(sessionStorage.getItem("holo.identity") || "null"); } catch {}
         try { op = await login.currentOperator(); } catch {}
         if (!op && (!identity || identity.guest)) return show("guest");
         renderMe();
@@ -308,8 +308,8 @@
           if (!(await teeAvailable().catch(() => false))) throw new Error("no-bio");
           const { credentialId, secret } = await teeEnroll({ name: "Hologram" });
           const { principal } = await login.enroll({ label: "operator", secret, cred: credentialId });
-          const { openSession } = await import("/_shared/holo-identity.mjs");
-          sessionStorage.setItem("holo.session", JSON.stringify(await openSession(principal, { session: "primeos" })));
+          const { openSession, persistSession } = await import("/_shared/holo-identity.mjs");
+          await persistSession(await openSession(principal, { session: "primeos" }), secret);
           op = await login.currentOperator().catch(() => null);
           try { sessionStorage.setItem("holo.justminted", "1"); } catch {}   // → the card reveals on first render
           try { window.parent.postMessage({ type: "holo-identity", action: "signed-in" }, location.origin); } catch {}
@@ -318,7 +318,7 @@
       };
 
       $("signout").onclick = () => {
-        try { sessionStorage.removeItem("holo.session"); } catch {}
+        try { ["holo.session", "holo.identity", "holo.session.wrapped"].forEach((k) => sessionStorage.removeItem(k)); } catch {}
         try { window.parent.postMessage({ type: "holo-identity", action: "signed-out" }, location.origin); } catch {}
         location.reload();
       };
@@ -338,10 +338,13 @@
         if (!op) return ($("mintErr").textContent = "Sign in first.");
         $("mintErr").textContent = "Authorising…";
         try {
-          // re-authorise the Player to SIGN the grant (the key never leaves the vault)
-          let secret;
-          if (op.cred && await teeAvailable().catch(() => false)) secret = (await teeAssert({ credentialId: op.cred })).secret;
-          else { secret = prompt("Enter your passphrase to authorise this agent"); if (!secret) throw new Error("cancelled"); }
+          // PAYLOAD-BOUND step-up: a fresh biometric bound to "authorise agent <name> (<caps>)" releases the
+          // signing key for THIS grant only (delegation.issue is authority-tier). Fail-closed; no typed secret.
+          const { requireStepUp } = await import("/_shared/holo-stepup.mjs");
+          const { secret } = await requireStepUp(
+            { kind: "delegation.issue", appId: "org.hologram.HoloIdentity", operator: op.kappa,
+              reason: "Authorise agent “" + name + "” (" + [...selCaps].join(", ") + ")", payload: { name, caps: [...selCaps] } },
+            { credentialId: op.cred, exposeSecret: true });
           const pc = await login.unlock(op.kappa, secret);            // → the signing principal (Ed25519 ‖ ML-DSA)
           const npc = mintNpc(name);
           const caps = [...selCaps];

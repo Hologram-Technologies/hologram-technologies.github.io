@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>asanoha · WebGPU wallpaper preview</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0b0f; overflow: hidden; font: 13px ui-monospace, monospace; color: #d8dde3; }
+  #wall { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: fixed; left: 12px; top: 10px; z-index: 3; opacity: .45; }
+</style>
+</head>
+<body>
+  <canvas id="wall"></canvas>
+  <div id="hud">booting…</div>
+  <script type="module">
+    import HoloAsanohaGPU from "./holo-asanoha-gpu.js";
+    const hud = document.getElementById("hud");
+    (async () => {
+      const ok = await HoloAsanohaGPU.ready;
+      hud.textContent = "WebGPU: " + (ok ? "ready · " + (HoloAsanohaGPU.DEFAULTS.rot * 180 / Math.PI).toFixed(1) + "°" : "no adapter");
+      if (!ok) return;
+      HoloAsanohaGPU.createBackground(document.getElementById("wall"), {});
+    })();
+  </script>
+</body>
+</html>

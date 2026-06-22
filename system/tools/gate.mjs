@@ -38,6 +38,10 @@ const LIVE_EXIT = new Set([
   "tools/holo-closure-anchor-witness.mjs",   // G1/SEC-1 — pin set verified against a baked anchor
   "tools/holo-delegate-witness.mjs",         // G4/SEC-2 — delegation attenuates, escalation refused
   "tools/holo-catalog-identity-witness.mjs", // G6/SEC-6 — every catalog @id is a content κ, never a slug
+  "tools/holo-stepup-witness.mjs",           // explicit-consent — payload-bound TEE step-up; no signature without a fresh, action-κ-bound biometric proof
+  "tools/holo-stepup-wiring-witness.mjs",    // explicit-consent — credPub captured at enrol round-trips (record→credentialOf) and verifies the step-up authenticator axis
+  "tools/holo-stepup-gate-witness.mjs",      // explicit-consent — the ONE enforcement seam: classify→require→verify host-side→trust-window→fail-closed→unforgeable bridge
+  "tools/holo-vault-rewrap-witness.mjs",     // key-custody — vault TEE-only rewrap: PRF vault passphrase-proof, κ-stable upgrade, S1–S4 guards (lockout-safe)
 ]);
 
 function classify(witnessRel) {

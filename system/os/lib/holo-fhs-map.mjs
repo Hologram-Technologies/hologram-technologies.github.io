@@ -44,6 +44,12 @@ export function fhsMap(rel) {
   // "/holo-os/system/os/<path>". On this flat origin the OS lives at root, so resolve that prefix to the OS
   // path (mirrors the dev-server alias in tools/holo-serve-fhs.mjs) — lets Q's .holo WebGPU brain load on Pages.
   if (rel.startsWith("holo-os/system/os/")) return fhsMap(rel.slice("holo-os/system/os/".length));
+  // κ-Open share cards (Phase 4): the pretty /~<app> link + its OG image are baked as static files
+  // (tools/gen-apps-catalog.mjs) so a dumb static host serves a per-app unfurl with no server. /~<app> →
+  // its baked index.html; /~<app>/og.svg is the content-derived κ-identicon. (The dev server resolves /~<app>
+  // dynamically in makeHandler, BEFORE fhsMap — these rules are the prod-SW/static path.)
+  if ((mm = rel.match(/^~([a-z0-9._-]{1,40})\/og\.svg$/i))) return "~" + mm[1] + "/og.svg";
+  if ((mm = rel.match(/^~([a-z0-9._-]{1,40})\/?$/i))) return "~" + mm[1] + "/index.html";
   // FHS passthrough: the whole Linux root is addressable at its real path (identity map).
   if (/^(usr|etc|var|boot|bin|sbin|lib|lib64|opt|srv|mnt|media|home|root|dev|proc|sys|run|tmp|ui)\//.test(rel)) return rel;
   return null;

@@ -10,6 +10,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { shareCardPage, shareCardSvg } from "../os/usr/lib/holo/holo-share-card.mjs";   // κ-Open Phase 4: per-app unfurl cards
 
 const here = dirname(fileURLToPath(import.meta.url));               // tools/
 const APPS = process.env.HOLO_APPS_REPO || join(here, "../../../holo-apps");   // sibling apps repo
@@ -137,6 +138,26 @@ for (const a of dataset) {
 if (lockMismatch.length) throw new Error(`gen-apps-catalog: vendored lock root ≠ catalog root for: ${lockMismatch.join("; ")} — re-run relock-app + gen so the κ pins agree.`);
 console.log(`✓ vendored ${vendoredLocks} app lock(s) → os/usr/share/holospaces/<id>/holospace.lock.json (the κ pins that let each app STREAM by content address)`);
 if (noLock.length) console.log(`  ⚠ no holospace.lock.json (can't stream by κ until sealed): ${noLock.join(", ")}`);
+
+// ── BAKE PER-APP SHARE CARDS (κ-Open Phase 4) ──────────────────────────────────────────────────────
+// The dev server injects the /~<app> unfurl dynamically; a static prod host (GitHub Pages) cannot. So bake
+// a STATIC /~<app>/index.html (OG head + boot into the live κ projection) + /~<app>/og.svg (content-derived
+// κ-identicon) per app into the served os/ tree. fhsMap routes /~<app> → these; a crawler reads the OG head,
+// a human is booted into the app. Uses the SAME holo-share-card module as the dev server → byte-no-drift
+// (Law L2). Origin-relative URLs (most crawlers resolve og:image against the page URL; strict ones can be
+// served absolute by a host that injects an origin — the dev server does).
+let bakedCards = 0;
+for (const a of dataset) {
+  const dir = String(a["dcat:landingPage"]).split("/")[1];
+  if (!dir) continue;
+  const id = dir, name = a["schema:name"], summary = a["schema:description"] || "", kappa = a["@id"];
+  const outDir = join(OS2, "~" + id);
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, "index.html"), shareCardPage({ id, name, summary, kappa }));
+  writeFileSync(join(outDir, "og.svg"), shareCardSvg({ kappa, name }));
+  bakedCards++;
+}
+console.log(`✓ baked ${bakedCards} per-app share card(s) → os/~<app>/{index.html,og.svg} (prod static unfurl, served by fhsMap)`);
 
 // ── HOLOSPACE TEMPLATES (First Light) ────────────────────────────────────────────────────────────
 // A holospace template is a curated COMPOSITION: one κ that opens a single tab nesting several apps.

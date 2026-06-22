@@ -1,0 +1,25 @@
+{
+  "@type": "holo:WitnessResult",
+  "witness": "holo-identity-leak",
+  "step": "S2",
+  "boundary": "A/frame",
+  "model": "display-split",
+  "appReadableKeys": [
+    "holo.identity",
+    "holo.session.wrapped"
+  ],
+  "leakPresent": false,
+  "gateOrientation": "safety (exit0=safe)",
+  "pass": 6,
+  "fail": 0,
+  "total": 6,
+  "ok": true,
+  "checks": {
+    "session-token-is-real-and-carries-the-sensitive-identity-1": true,
+    "precondition-apps-mount-allow-same-origin-share-os-origi-2": true,
+    "an-app-cannot-read-operator-pub-sig-from-the-persisted-s-3": true,
+    "the-presentation-carries-operator-label-but-not-pub-sig--4": true,
+    "the-wrapped-token-exposes-nothing-in-the-clear-app-opaqu-5": true,
+    "control-the-pre-fix-cleartext-persistence-is-correctly-d-6": true
+  }
+}

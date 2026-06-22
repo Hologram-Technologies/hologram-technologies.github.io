@@ -485,6 +485,153 @@
           }
         }
       }
+    },
+    {
+      "name": "wallet_get_address",
+      "description": "Holo Wallet (Tether-WDK parity) — read-only. Return the wallet's address for a chain (ethereum, base, arbitrum, optimism, polygon, bsc, avalanche, gnosis, linea, scroll, celo, blast, plasma, bitcoin, solana, hyperliquid). No value moves; no signature. Routed through the human-gated wallet seam (holo-wallet-bridge); keys never leave the wallet. An AI agent must present a wallet:read delegation; Q must hold the user's standing read-consent or ask. See holo-wallet-agent.mjs for the full 7-category surface and its self-verifying capability card.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" } },
+        "required": ["chain"]
+      }
+    },
+    {
+      "name": "wallet_get_balance",
+      "description": "Holo Wallet — read-only. Native-asset balance for a chain from live RPC (failover, no custodian). Value never moves. Agent needs wallet:read; Q asks unless granted standing read-consent. Default-deny otherwise.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" } },
+        "required": ["chain"]
+      }
+    },
+    {
+      "name": "wallet_get_token_balance",
+      "description": "Holo Wallet — read-only. ERC-20 (EVM) / SPL (Solana) token balance from live RPC. e.g. USD₮ across chains. Agent needs wallet:read; Q asks unless granted standing read-consent.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" }, "token": { "type": "string", "description": "token contract / SPL mint" } },
+        "required": ["chain", "token"]
+      }
+    },
+    {
+      "name": "pricing_get_price",
+      "description": "Holo Wallet — read-only. USD spot price per asset (public price feed). Value never moves.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chains": { "type": "array", "items": { "type": "string" } } }
+      }
+    },
+    {
+      "name": "indexer_get_history",
+      "description": "Holo Wallet — read-only. Recent transaction history for the wallet's account on a chain (public explorer/RPC). Value never moves.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" }, "limit": { "type": "number" } },
+        "required": ["chain"]
+      }
+    },
+    {
+      "name": "wallet_sign_message",
+      "description": "Holo Wallet — SIGN (key-touching). Sign a plain message (EIP-191) with the wallet's key. The wallet — not the caller — produces the signature, ONLY after a fresh payload-bound biometric approval (default-deny). An AI agent must present a wallet:sign delegation; Q must obtain explicit per-action user approval (never standing). The key never leaves the wallet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" }, "message": { "type": "string" } },
+        "required": ["chain", "message"]
+      }
+    },
+    {
+      "name": "wallet_sign_typed_data",
+      "description": "Holo Wallet — SIGN (key-touching). Sign EIP-712 typed data (e.g. a dapp/exchange order). Human biometric-gated, default-deny; agent needs wallet:spend; Q needs explicit per-action approval. Key never leaves the wallet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" }, "typedData": { "type": "object" } },
+        "required": ["typedData"]
+      }
+    },
+    {
+      "name": "wallet_send",
+      "description": "Holo Wallet — SPEND (moves value, IRREVERSIBLE). Send native or token value on a chain; broadcasts to the live network. The wallet signs ONLY after a fresh payload-bound biometric ceremony over THIS exact recipient+amount (default-deny, fail-closed). An AI agent must present a wallet:spend delegation that itself holds that capability (authority can only attenuate, SEC-2); Q must obtain explicit per-action user approval and may NEVER hold a standing spend grant. Re-derives a κ receipt (Law L5).",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string" }, "to": { "type": "string" }, "amount": { "type": "string" }, "token": { "type": "string", "description": "optional token contract/mint; omit for native" } },
+        "required": ["chain", "to", "amount"]
+      }
+    },
+    {
+      "name": "swap_execute",
+      "description": "Holo Wallet — SPEND. Execute a spot swap: Solana via Jupiter (inputMint/outputMint) OR EVM via Velora/ParaSwap (set chain + srcToken/destToken; native sentinel 0xEeee…). The route is untrusted: the wallet re-derives a min-out floor, asserts the SEALED router/program, simulates (eth_call / Solana sim) — THEN gates the human, THEN signs. Agent needs wallet:spend; Q needs explicit per-action approval. Key never leaves the wallet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "chain": { "type": "string", "description": "omit/solana = Jupiter; an EVM chain = Velora" }, "inputMint": { "type": "string" }, "outputMint": { "type": "string" }, "srcToken": { "type": "string" }, "destToken": { "type": "string" }, "amount": { "type": "string" }, "slippageBps": { "type": "number" } },
+        "required": ["amount"]
+      }
+    },
+    {
+      "name": "bridge_get_quote",
+      "description": "Holo Wallet — read-only. Quote a USD₮0 cross-chain bridge over LayerZero OFT: the native messaging fee + minimum received on the destination. Value never moves. srcChain/dstChain are chain names (ethereum, arbitrum, optimism, polygon, plasma, hyperliquid); the destination endpoint (dstEid) is re-derived from a pinned table, never trusted from input.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "srcChain": { "type": "string" }, "dstChain": { "type": "string" }, "to": { "type": "string" }, "amount": { "type": "string", "description": "human USD₮0 (6dp)" } },
+        "required": ["srcChain", "dstChain", "amount"]
+      }
+    },
+    {
+      "name": "bridge_execute",
+      "description": "Holo Wallet — SPEND. Bridge USD₮0 across chains via LayerZero OFT. The destination (dstEid) is re-derived from a pinned EID table, the recipient is your address→bytes32, the SEALED OFT contract is asserted (a drainer `to` is refused), the LZ fee is quoted, and the send() tx is simulated — THEN the human gate, THEN sign (value = the native messaging fee). Agent needs wallet:spend; Q needs explicit per-action approval. Key never leaves the wallet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "srcChain": { "type": "string" }, "dstChain": { "type": "string" }, "to": { "type": "string" }, "amount": { "type": "string" }, "slippageBps": { "type": "number" } },
+        "required": ["srcChain", "dstChain", "amount"]
+      }
+    },
+    {
+      "name": "lending_positions",
+      "description": "Holo Wallet — read-only. Read the wallet's Aave V3 position on a chain: total collateral, total debt, available-to-borrow (all USD, 8dp), liquidation threshold, LTV, and HEALTH FACTOR. Value never moves. Re-derived live from the chain (getUserAccountData on the sealed Pool).",
+      "inputSchema": { "type": "object", "properties": { "chain": { "type": "string", "description": "ethereum, arbitrum, optimism, polygon, avalanche, gnosis" } } }
+    },
+    {
+      "name": "lending_supply",
+      "description": "Holo Wallet — SPEND. Supply an asset as collateral to Aave V3. The SEALED Pool is asserted (a drainer is refused), allowance checked, and the tx eth_call-simulated — THEN the human gate, THEN sign. Agent needs wallet:spend; Q needs explicit per-action approval. Key never leaves the wallet.",
+      "inputSchema": { "type": "object", "properties": { "chain": { "type": "string" }, "asset": { "type": "string", "description": "token contract" }, "amount": { "type": "string" }, "decimals": { "type": "number" } }, "required": ["asset", "amount"] }
+    },
+    {
+      "name": "lending_borrow",
+      "description": "Holo Wallet — SPEND. Borrow an asset against Aave V3 collateral (variable rate). Borrow capacity is re-derived and the tx simulated (Aave reverts an unsafe borrow that would risk liquidation) BEFORE the human gate. Agent needs wallet:spend; Q needs explicit per-action approval. Key never leaves the wallet.",
+      "inputSchema": { "type": "object", "properties": { "chain": { "type": "string" }, "asset": { "type": "string" }, "amount": { "type": "string" }, "decimals": { "type": "number" }, "rateMode": { "type": "number", "description": "2=variable (default)" } }, "required": ["asset", "amount"] }
+    },
+    {
+      "name": "fiat_get_quote",
+      "description": "Holo Wallet — read-only. Quote a MoonPay fiat on-ramp purchase (how much crypto a fiat amount buys, incl. fees). Needs the operator's MoonPay publishable key configured. Value never moves.",
+      "inputSchema": { "type": "object", "properties": { "currencyCode": { "type": "string", "description": "usdc, eth, usdc_arbitrum, sol, btc…" }, "baseCurrencyAmount": { "type": "number" }, "baseCurrencyCode": { "type": "string" } } }
+    },
+    {
+      "name": "fiat_buy",
+      "description": "Holo Wallet — SPEND-class consent. Buy crypto with fiat via MoonPay. An on-ramp DEPOSITS to the wallet, so there is NO key signature; instead the wallet builds a widget URL bound to the SEALED MoonPay origin and YOUR re-derived address (funds cannot be redirected elsewhere) and the human gate consents before it opens. Completion is verified by the on-chain deposit (ingest boundary), not MoonPay's word. Agent needs wallet:spend; Q needs explicit per-action approval.",
+      "inputSchema": { "type": "object", "properties": { "currencyCode": { "type": "string" }, "baseCurrencyAmount": { "type": "number" }, "baseCurrencyCode": { "type": "string" } } }
+    },
+    {
+      "name": "aa_account_address",
+      "description": "Holo Wallet — read-only. Return the wallet's counterfactual ERC-4337 smart-account address (SimpleAccount v0.7), re-derived from the SEALED factory on an EVM chain. Value never moves.",
+      "inputSchema": { "type": "object", "properties": { "chain": { "type": "string" }, "salt": { "type": "number" } } }
+    },
+    {
+      "name": "aa_send",
+      "description": "Holo Wallet — SPEND. Build + sign an ERC-4337 UserOperation (execute to→value→data) from the smart account. The SEALED EntryPoint is asserted and the userOpHash re-derived BEFORE the human gate; the EOA key signs only after consent. Returns the signed UserOp for a bundler to submit (submission out-of-band). Agent needs wallet:spend; Q needs per-action approval. Key never leaves the wallet.",
+      "inputSchema": { "type": "object", "properties": { "chain": { "type": "string" }, "to": { "type": "string" }, "value": { "type": "string" }, "data": { "type": "string" }, "salt": { "type": "number" }, "deploy": { "type": "boolean" } }, "required": ["to"] }
+    },
+    {
+      "name": "aa_authorize_7702",
+      "description": "Holo Wallet — SPEND. Sign an EIP-7702 authorization delegating this EOA to a smart-contract implementation (the 'gasless' account upgrade). The authHash is re-derived and the signature self-checked to recover to the owner BEFORE return; the type-4 tx is relayer/sponsor-submitted (out-of-band). Agent needs wallet:spend; Q needs per-action approval.",
+      "inputSchema": { "type": "object", "properties": { "chain": { "type": "string" }, "implAddress": { "type": "string" } }, "required": ["implAddress"] }
+    },
+    {
+      "name": "x402_pay",
+      "description": "Holo Wallet — SPEND. Pay an x402 HTTP 402 challenge: sign an EIP-3009 USD₮ `transferWithAuthorization` (gasless, off-chain) authorizing the seller to pull the exact amount. A payment IS an EIP-712 signature, so it rides the SAME human-gated signTypedData door — default-deny, payload-bound biometric, key never leaves the wallet. An AI agent must present a wallet:spend delegation (authority only attenuates, SEC-2); Q must obtain explicit per-action approval (never standing). The facilitator verifies by re-deriving the digest and recovering the signer (fail-closed on tamper/underpay/expiry/replay) before settling on-chain. Input: the 402 `requirements` (from makeRequirements), the payer `from` address, and optional chain/validBefore/nonce. Returns { xPayment (base64 X-PAYMENT header), payload }.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "requirements": { "type": "object" }, "from": { "type": "string" }, "chain": { "type": "string" }, "validBefore": { "type": "number" }, "nonce": { "type": "string" } },
+        "required": ["requirements", "from"]
+      }
     }
   ],
   "prompts": [
