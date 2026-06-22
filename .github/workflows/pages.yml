@@ -219,7 +219,7 @@ jobs:
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
   # ── Post-deploy COLD-BOOT witness (fail-closed) ──────────────────────────────────────────────────
   # The absence of THIS is what let a mis-sealed image reach users on 2026-06-21: the SW refused every
