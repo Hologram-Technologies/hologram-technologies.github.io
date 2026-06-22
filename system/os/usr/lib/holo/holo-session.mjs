@@ -254,9 +254,22 @@ export async function unlockOperatorKey({ operator, secret } = {}) {
   if (!operator || !secret) return false;
   const dev = await deviceId();
   _opKey = { operator, bytes: await deriveOperatorKeyBytes(operator, secret, dev) };
+  // Attach the operator as the SOURCE-CHAIN signer so spine entries gain AUTHORSHIP (Ed25519/ECDSA over
+  // the entry κ), not just hash-linkage. Fail-soft: a TEE/PRF secret that isn't the key passphrase — or no
+  // strand present — leaves entries content-linked, exactly as before. The principal holds a non-extractable key.
+  try {
+    if (typeof window !== "undefined" && window.HoloStrand && window.HoloStrand.setSigner) {
+      const id = await import("./holo-identity.mjs");
+      const principal = await id.unlock(operator, secret).catch(() => null);
+      if (principal && principal.kappa === operator) window.HoloStrand.setSigner(principal);
+    }
+  } catch (e) { /* leave entries content-linked (still tamper-evident); authorship is a bonus, never a gate */ }
   return true;
 }
-export function lockOperator() { _opKey = null; }
+export function lockOperator() {
+  _opKey = null;
+  try { if (typeof window !== "undefined" && window.HoloStrand && window.HoloStrand.setSigner) window.HoloStrand.setSigner(null); } catch (e) {}
+}
 export function operatorLocked() { const op = signedInOperator(); return !!op && !(_opKey && _opKey.operator === op); }
 
 // activeRealm — an UNLOCKED operator → their κ realm (vault cipher); a guest OR a signed-in-but-locked
