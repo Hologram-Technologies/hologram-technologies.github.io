@@ -132,61 +132,15 @@ jobs:
       # the AGENTS + CONSTITUTION docs, the FHS image as the os/ subtree, and a root mirror of
       # /.well-known. No source dirs (crates/docs/tools) are published. No build — the Service
       # Worker maps flat→FHS + supplies cross-origin isolation at runtime.
-      - name: Stage site (gateway + OS subtree)
-        run: |
-          mkdir -p _site
-          cp index.html README.md AGENTS.md CONSTITUTION.md _site/
-          # The built docs site (Astro output: pages + _astro assets + pagefind search). The gateway's
-          # Docs / Manifesto nav and the Free Download door (docs/download.html) all live under here, so
-          # it must be published or those links 404. NOTE: the docs assets are absolute (/docs/_astro/…),
-          # so they resolve only at a ROOT site — under a /<repo>/ project path the docs render unstyled.
-          cp -r docs _site/docs
-          # Force our two STATIC window-pages over the build output, so their doc-window embed mode is
-          # guaranteed to ship verbatim regardless of how the docs build treats public/*.html.
-          cp system/docs/site/public/manifesto.html _site/docs/manifesto.html
-          cp system/docs/site/public/download.html _site/docs/download.html
-          # The live changelog: the Astro build does NOT emit changelog.html, so generate the styled
-          # reader page directly into the staged docs (the gateway's "Changelog" door opens
-          # /docs/changelog.html) and write the Atom feed alongside — both from the same parsed CHANGELOG.md
-          # so they never drift. Then stage the Keep a Changelog source at the root.
-          node system/tools/changelog-feed.mjs CHANGELOG.md _site/feed.xml _site/docs/changelog.html
-          cp CHANGELOG.md _site/
-          cp system/llms.txt _site/
-          cp -r system/os _site/os
-          # Vendor the apps at their FLAT serve path (/os/apps/<id>/*), mirroring the dev server's
-          # readRel: the SW maps apps/<id>/* via fhsMap (→ usr/share/holospaces/…) and falls back to
-          # this flat path, so both app code AND app-local _shared/ bundles resolve same-origin. The
-          # catalog (usr/share/holospaces/index.jsonld) stays the authoritative app list.
-          # ONLY the CATALOG apps are vendored (the Ctrl+K set) — the repo also holds heavy non-launcher
-          # demos (v86 OS images, GBs) that would blow the 1 GB Pages cap. Heavy weights inside catalog
-          # apps (Q's models, gitignored) aren't in the checkout, so they're naturally omitted and heal
-          # by κ at runtime (holo-fhs-sw: Release asset → IPFS). Keeps the deploy lean and bounded.
-          if [ -d apps-src/apps ]; then
-            mkdir -p _site/os/apps
-            cp apps-src/apps/index.jsonld _site/os/apps/ 2>/dev/null || true
-            cp apps-src/apps/holospaces.jsonld _site/os/apps/ 2>/dev/null || true
-            for id in $(node -e 'const c=JSON.parse(require("fs").readFileSync("apps-src/apps/index.jsonld","utf8"));console.log([...new Set(c["dcat:dataset"].map(a=>String(a["dcat:landingPage"]).split("/")[1]))].join(" "))'); do
-              [ -d "apps-src/apps/$id" ] && cp -r "apps-src/apps/$id" "_site/os/apps/$id"
-            done
-          fi
-          cp -r system/os/.well-known _site/.well-known
-          # The gateway (index.html) is served RAW by the host — NOT through the Service Worker — so its own
-          # classic-script assets AND its ES-module imports must sit at the dev-layout paths it references:
-          # the vendored Vanta cloudscape (immersive background), the standalone Holo FX braille animator,
-          # the WebGPU cloud-sky modules it STATICALLY imports (holo-clouds-gpu / -volumetric-gpu — a failed
-          # static import aborts the WHOLE gateway module, so Power-up would silently die and nothing boots),
-          # the conscience module the boot gate imports, plus the llms.txt discovery copy. Without these the
-          # gateway can't boot (static-import abort) or falls back to the CSS nebula and a static κ.
-          mkdir -p _site/system/vendor _site/system/os/usr/lib/holo
-          cp -r system/vendor/* _site/system/vendor/
-          for f in holo-fx.js holo-clouds-gpu.js holo-clouds-volumetric-gpu.js holo-conscience.js; do
-            cp "system/os/usr/lib/holo/$f" "_site/system/os/usr/lib/holo/$f"
-          done
-          cp system/llms.txt _site/system/llms.txt
-          # Build marker: lets the post-deploy cold-boot witness WAIT for THIS commit to be live on the
-          # CDN before it asserts, so it never tests stale bytes. Lives at the site ROOT (outside os/), so
-          # it is served raw by the host and never touched by the Service Worker.
-          printf '{"commit":"%s","run":"%s"}\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > _site/build-id.json
+      # Assemble _site via the ONE shared assembler (tools/holo-stage-site.mjs) — the SAME script the local
+      # cold-machine harness runs, so "what the deploy ships" is reproducible off-CI. It copies the gateway +
+      # root docs, the built docs site (+ manifesto/download/changelog/feed), the OS subtree, the gateway's
+      # raw runtime assets, the build marker, and vendors apps at their flat serve path as (catalog landingPage
+      # ids) ∪ (os/etc/core-surfaces.json) — so a shell surface dropped from the launcher (the empty-Play bug)
+      # can't silently vanish. apps-src = the separately-checked-out apps repo. Output identical to the prior
+      # inline bash; the logic now lives in one tested place instead of a workflow heredoc.
+      - name: Stage site (gateway + OS subtree + apps)
+        run: node system/tools/holo-stage-site.mjs --repo . --apps apps-src --out _site
       # ── Staged-ARTIFACT seal gate (Law L5, fail-closed) — verify the bytes we ACTUALLY upload ──────
       # The source seal gate above ran BEFORE staging + app/runtime vendoring. This re-derives every
       # pinned κ against the assembled _site/os — the exact tree that goes live — so a staging or vendor
@@ -194,6 +148,14 @@ jobs:
       # verifier as the source gate (no second, drifting checker), pointed at the artifact via HOLO_OS_DIR.
       - name: Verify staged artifact (deploy only what re-derives)
         run: HOLO_OS_DIR=_site/os node system/tools/reseal.mjs --check
+      # ── Cold-APP coverage gate (Law L5, fail-closed) — every advertised/loaded surface must resolve ──
+      # The seal gate above proves pinned bytes re-derive; it does NOT prove the launcher's apps (or shell
+      # surfaces like the Play honeycomb) were actually vendored into the artifact. This asserts every id in
+      # (catalog landingPage ids) ∪ (os/etc/core-surfaces.json) has its holospace.json + lock + index.html in
+      # _site/os — so an advertised-but-unvendored surface (the empty-Play / "many parts dont work" bug) FAILS
+      # the deploy instead of reaching a visitor. Reads the SAME union the vendor step copies, so they can't drift.
+      - name: Verify app coverage (every advertised/loaded surface is vendored)
+        run: HOLO_OS_DIR=_site/os node system/tools/holo-cold-app-witness.mjs
       # ── Pre-publish COLD-BOOT gate (fail-closed) — BLOCKS the deploy if a fresh visitor can't boot ──
       # Serve the staged _site EXACTLY as Pages will (a dumb static host → the κ Service Worker runs PROD,
       # L5 enforced) and cold-boot it through the gateway in a real browser BEFORE uploading. Catches what
@@ -236,13 +198,19 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - name: Install witness deps (Playwright + chromium)
+      - name: Install witness deps (Playwright + Chromium/WebKit/Firefox)
         run: |
           cd system
           npm ci || npm install
-          npx playwright install --with-deps chromium
-      - name: Cold-boot health check (a fresh visitor must boot — no Safety-Stop)
+          npx playwright install --with-deps chromium webkit firefox
+      # Cross-engine COLD-MACHINE matrix on the LIVE bytes (P4): the OS must boot with no Safety-Stop AND every
+      # advertised/loaded surface must resolve (no 404/409) AND a missing navigation must render the calm in-OS
+      # not-found AND a missing capability must degrade to a labeled fallback — on Chromium, WebKit AND Firefox.
+      # The pre-upload gate proves the artifact; this proves the published reality (CDN propagation, host quirks)
+      # across the three engines a real visitor might use. EXPECT_BUILD makes each engine wait for THIS commit's
+      # build marker first (no stale-byte race). A red here means the just-published site is broken for some
+      # real browser — investigate immediately.
+      - name: Cold-machine matrix (boots + every surface resolves, all engines)
         env:
-          HOLO_DEPLOY: ${{ needs.deploy.outputs.page_url }}
           EXPECT_BUILD: ${{ github.sha }}
-        run: node system/tools/holo-cold-boot-witness.mjs
+        run: node system/tools/holo-cold-machine.mjs --live "${{ needs.deploy.outputs.page_url }}" --with-browser --engines chromium,webkit,firefox

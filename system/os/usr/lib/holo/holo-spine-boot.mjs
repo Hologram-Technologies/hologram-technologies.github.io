@@ -21,6 +21,17 @@ import { makeCourier } from "/_shared/holo-courier.mjs";
 import { makeTrust } from "/_shared/holo-trust.mjs";
 import { makeSpine } from "/_shared/holo-spine.mjs";
 import { makeMemory } from "/_shared/holo-memory.mjs";
+import "/_shared/holo-strand.mjs";   // side-effect: window.HoloStrand — the operator's source chain (resume spine; holo-session mirrors/reconciles through it)
+import "/_shared/holo-strand-provenance.mjs";   // side-effect: window.HoloStrandProvenance — P2: the "+" ingest provenance derives from the spine
+import "/_shared/holo-strand-audit.mjs";        // side-effect: window.HoloStrandAudit — P3: one signed audit source (consent · delegation · value)
+import "/_shared/holo-strand-rules.mjs";        // side-effect: window.HoloStrandRules — P4: validation rules as chain-referenced κ (forkable, provable)
+import "/_shared/holo-strand-feed.mjs";         // side-effect: window.HoloStrandFeed — the human-readable view of the one spine (Q.activity reads it)
+import "/_shared/holo-strand-stores.mjs";       // side-effect: window.HoloStrandStores — P5: old stores as projections of the spine
+import "/_shared/holo-warrant.mjs";             // side-effect: window.HoloWarrant — W: the κ-immune system (proof-of-invalid, verified not trusted)
+import "/_shared/holo-strand-admit.mjs";        // side-effect: window.HoloStrandAdmit — V: peer re-validation on receipt (verify-before-mount gate)
+import "/_shared/holo-shard.mjs";               // side-effect: window.HoloShard — D: content-addressed shared space (sharded κ-store)
+import "/_shared/holo-gossip.mjs";              // side-effect: window.HoloGossip — G: κ-gossip of heads + warrants (anti-entropy, self-healing)
+import "/_shared/holo-membrane.mjs";            // side-effect: window.HoloMembrane — M: per-app membranes (forkable app boundary)
 import "/_shared/holo-evolve.mjs";   // side-effect: registers window.HoloEvolve once Q.trust is up (closes the loop, gated)
 import { ensureBrainFloor, makeBrainFloor } from "/_shared/holo-brain-floor.mjs";   // guarantee a brain on every core task
 import { makeIntentRouter } from "/_shared/holo-intent.mjs";              // one classifier
@@ -68,9 +79,30 @@ import "/_shared/holo-fix-proposer.mjs";  // side-effect: window.__holoFixPropos
     // Q's PERSISTENT USER MODEL (S2) — durable over localStorage (small, per-origin; survives reload). Q.remember
     // writes through here so feedback + intents persist; Q.briefing/affinity can read what you've done before.
     const MEMKEY = "holo.memory.v1";
+    // AT-REST ENCRYPTION (privacy by construction, matching holo-memory's idb store): records are AES-GCM
+    // sealed under the operator's sovereign vault key (holo-session.activeCipher) before they touch
+    // localStorage — a same-origin app reads only ciphertext, never your memory. Fail-CLOSED: no cipher
+    // (locked) → don't write plaintext. Legacy v1 plaintext arrays are read once, then re-sealed on next save.
+    const _b64e = (u8) => { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+    const _b64d = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    const _cipher = async () => { try { const m = await import("/_shared/holo-session.mjs"); return m.activeCipher ? (await m.activeCipher()).cipher : null; } catch (e) { return null; } };
     const lsBackend = {
-      load: async () => { try { return JSON.parse(localStorage.getItem(MEMKEY)) || []; } catch (e) { return []; } },
-      save: async (recs) => { try { localStorage.setItem(MEMKEY, JSON.stringify(recs)); } catch (e) {} },
+      load: async () => {
+        try {
+          const s = localStorage.getItem(MEMKEY); if (!s) return [];
+          let v; try { v = JSON.parse(s); } catch (e) { return []; }
+          if (Array.isArray(v)) return v;                                           // v1 plaintext → migrated on next save
+          if (v && v.v === 2 && typeof v.b64 === "string") { const c = await _cipher(); if (!c) return []; const pt = await c.open(_b64d(v.b64)); return pt ? JSON.parse(new TextDecoder().decode(pt)) : []; }
+          return [];
+        } catch (e) { return []; }
+      },
+      save: async (recs) => {
+        try {
+          const c = await _cipher(); if (!c) return;                                // locked / no key → never write plaintext
+          const blob = await c.seal(new TextEncoder().encode(JSON.stringify(recs)));
+          localStorage.setItem(MEMKEY, JSON.stringify({ v: 2, b64: _b64e(blob) }));
+        } catch (e) {}
+      },
     };
     const memory = makeMemory({ backend: lsBackend, now: () => new Date().toISOString(), conscience });
 
@@ -128,6 +160,23 @@ import "/_shared/holo-fix-proposer.mjs";  // side-effect: window.__holoFixPropos
       } catch (e) {}
       window.Q.coherence = () => engine.last();                         // Q's reflection — "what's true now"
       window.Q.notices = () => (lastResult && lastResult.observation ? lastResult.observation.proposals : []);
+      // Q.activity(opts) — "what did I do / approve / ingest?" read from the ONE source chain (resume ·
+      // ingest provenance · consent/delegation/value audit · rules), most-recent-first, plain language.
+      window.Q.activity = (opts = {}) => { try { return window.HoloStrandFeed.activityFeed(window.HoloStrand, opts); } catch (e) { return []; } };
+      // the κ-immune system: ONE shared immunity the receive gate (admit, V) and Q.flag both consult, so a
+      // confirmed warrant blocks the actor everywhere on this device. Bound once Q is up.
+      try { if (window.HoloWarrant && !window.__holoImmunity) window.__holoImmunity = window.HoloWarrant.makeImmunity(); } catch (e) {}
+      // Q.flag(entry, ruleset) — the human door to the immune system: raise a warrant on a bad entry, then
+      // CONFIRM it independently (the verdict never trusts the flagger). Agents call window.HoloWarrant
+      // directly; both reach the SAME shared immunity. Returns { ok, warrant?, actor?, why }.
+      window.Q.flag = async (entry, ruleset) => {
+        try {
+          const w = await window.HoloWarrant.raiseWarrant({ entry, ruleset }, null);
+          if (!w) return { ok: false, why: "entry-is-valid" };           // refuse to flag a conforming entry
+          const r = await (window.__holoImmunity || window.HoloWarrant.makeImmunity()).receive(w);
+          return { ok: !!r.confirmed, warrant: w.id, actor: r.actor || null, why: r.why || null };
+        } catch (e) { return { ok: false, why: (e && e.message) || "flag-failed" }; }
+      };
       window.Q.briefing = () => {                                       // one plain sentence — the simple, personal surface
         const snap = engine.last();
         const notices = window.Q.notices();

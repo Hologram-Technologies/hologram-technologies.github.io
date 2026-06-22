@@ -152,11 +152,13 @@ export function createSession({ kv, store, now }) {
 
   // restore — head → κ-store → L5 re-derive → decrypt (or v1 plaintext migrate) → device check.
   // Returns the manifest body (with holo:v normalized) or null for a clean default.
-  async function restore({ realm, device, cipher = null }) {
+  // `kappa` (P1) optionally OVERRIDES the realm head — the resume spine passes the κ it recovered when the
+  // live head drifted, so restore re-derives from the trustworthy point (still full L5 + device checks).
+  async function restore({ realm, device, cipher = null, kappa = null }) {
     if (!realm) return null;
-    const head = readHead(realm); if (!head || !head.k) return null;
-    const blob = await store.get(head.k); if (!blob) return null;                  // missing / evicted → clean default
-    if (("did:holo:sha256:" + await sha256hex(blob)) !== head.k) return null;      // Law L5: poisoned byte → refuse
+    const head = readHead(realm); const k = kappa || (head && head.k); if (!k) return null;
+    const blob = await store.get(k); if (!blob) return null;                       // missing / evicted → clean default
+    if (("did:holo:sha256:" + await sha256hex(blob)) !== k) return null;           // Law L5: poisoned byte → refuse
     const u = blob instanceof Uint8Array ? blob : new Uint8Array(blob);
     let body = parseManifest(u);                                                   // v1 plaintext path (migration)
     if (!body && cipher) { const pt = await cipher.open(u); if (pt) body = parseManifest(pt); }   // v2 ciphertext path
@@ -252,9 +254,22 @@ export async function unlockOperatorKey({ operator, secret } = {}) {
   if (!operator || !secret) return false;
   const dev = await deviceId();
   _opKey = { operator, bytes: await deriveOperatorKeyBytes(operator, secret, dev) };
+  // Attach the operator as the SOURCE-CHAIN signer so spine entries gain AUTHORSHIP (Ed25519/ECDSA over
+  // the entry κ), not just hash-linkage. Fail-soft: a TEE/PRF secret that isn't the key passphrase — or no
+  // strand present — leaves entries content-linked, exactly as before. The principal holds a non-extractable key.
+  try {
+    if (typeof window !== "undefined" && window.HoloStrand && window.HoloStrand.setSigner) {
+      const id = await import("./holo-identity.mjs");
+      const principal = await id.unlock(operator, secret).catch(() => null);
+      if (principal && principal.kappa === operator) window.HoloStrand.setSigner(principal);
+    }
+  } catch (e) { /* leave entries content-linked (still tamper-evident); authorship is a bonus, never a gate */ }
   return true;
 }
-export function lockOperator() { _opKey = null; }
+export function lockOperator() {
+  _opKey = null;
+  try { if (typeof window !== "undefined" && window.HoloStrand && window.HoloStrand.setSigner) window.HoloStrand.setSigner(null); } catch (e) {}
+}
 export function operatorLocked() { const op = signedInOperator(); return !!op && !(_opKey && _opKey.operator === op); }
 
 // activeRealm — an UNLOCKED operator → their κ realm (vault cipher); a guest OR a signed-in-but-locked
@@ -266,16 +281,45 @@ async function activeRealm() {
   return { realm: guestRealm(dev), cipher: makeCipher(deviceKeyBytes()), operator: false };
 }
 
+// activeCipher — the current at-rest cipher for ANY module that needs to seal/open private data under the
+// same key discipline as the experience manifest: the operator's vault cipher when unlocked, else the device
+// cipher (guest/locked). So a store like holo-memory can encrypt-at-rest with ONE shared, sovereign key —
+// nothing readable by a same-origin app, nothing leaves the device. Returns { realm, cipher, operator }.
+export async function activeCipher() { return activeRealm(); }
+
 export async function saveSnapshot(state) {
   const core = await bound(); const { realm, cipher } = await activeRealm(); const device = await deviceId();
   const res = await core.save({ ...state, realm, device, cipher, tab: TAB_ID, expectSeq: _seq[realm] });
-  if (res && res.seq != null) _seq[realm] = res.seq;
+  if (res && res.seq != null) {
+    _seq[realm] = res.seq;
+    // P1 — mirror every resume point onto the operator's SOURCE CHAIN, so the spine holds a hash-linked,
+    // tamper-evident history of where you were (not just a swappable last-write head). Additive + fail-soft.
+    try { if (typeof window !== "undefined" && window.HoloStrand && res.kappa) await window.HoloStrand.append({ kind: "session.snapshot", payload: { realm, kappa: res.kappa, seq: res.seq } }); } catch (e) {}
+  }
   return res;
 }
 export async function restoreSnapshot() {
   const core = await bound(); const { realm, cipher } = await activeRealm(); const device = await deviceId();
   const head = core.readHead(realm); if (head && head.seq != null) _seq[realm] = head.seq;
-  return core.restore({ realm, device, cipher });
+  // P1 — consult the resume spine: if the live head drifted from the chain's recorded last point, the
+  // spine wins (it cannot be silently moved). Any uncertainty falls back to today's head-based restore.
+  let kappa = null;
+  try {
+    if (typeof window !== "undefined" && window.HoloStrand && window.HoloStrand.reconcileResume) {
+      const r = await window.HoloStrand.reconcileResume(head && head.k);
+      if (r && r.continuity === "recovered" && r.kappa) kappa = r.kappa;
+    }
+  } catch (e) {}
+  return core.restore({ realm, device, cipher, kappa });
+}
+// resumeContinuity — the spine's verdict on this realm's resume (ok · recovered · empty · chain-broken),
+// for the boot path / Control to surface. Diagnostic, read-only, fail-soft.
+export async function resumeContinuity() {
+  try {
+    if (typeof window === "undefined" || !window.HoloStrand || !window.HoloStrand.reconcileResume) return null;
+    const core = await bound(); const { realm } = await activeRealm(); const head = core.readHead(realm);
+    return await window.HoloStrand.reconcileResume(head && head.k);
+  } catch (e) { return null; }
 }
 export async function applyExperience(body) { return (await bound()).apply(body); }
 export async function resetDevice() {

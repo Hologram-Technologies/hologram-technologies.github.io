@@ -67,7 +67,12 @@ export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImpo
       let cap = null; try { cap = getApp && getApp(); } catch (e) {}
       if (cap && cap.link) {
         _view = "share"; _publishing = false; _gated = false;
-        _sealed = { app: true, link: cap.link, world: null, name: cap.name || "App", kappa: cap.kappa || "", travels: travelLine("app", cap, null) };
+        // CC-56: AUTO-ATTEST the share-to-run link so it self-verifies on arrival (embedded, non-prompting, fail-soft).
+        let link = cap.link;
+        if (cap.kappa && /^did:holo:sha256:/.test(String(cap.kappa))) {
+          try { const A = await import("./holo-attest.mjs"); link = await A.attestShareLink(cap.link, String(cap.kappa)); } catch (e) {}
+        }
+        _sealed = { app: true, link, world: null, name: cap.name || "App", kappa: cap.kappa || "", travels: travelLine("app", cap, null) };
         render(); paintCurrentQR(); return;
       }
       _scope = "holospace";   // nothing shareable focused → degrade gracefully

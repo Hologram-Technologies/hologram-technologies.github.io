@@ -179,15 +179,27 @@ async function askClient(kappa) {
 let RECOVERY = null;   // the ordered NON-origin recovery chain, built once (IPFS, then the mesh bridge)
 const recovery = () => RECOVERY || (RECOVERY = [(() => { try { return ipfsPeer({ ipfs: holoIpfs }); } catch { return null; } })(), bridgePeer("mesh", askClient)].filter(Boolean));
 // heal(rel, hex, axis, resp) → Response | null — κ-verified bytes recovered from a non-origin source, time-boxed.
+// Bound an EXTERNAL recovery fetch so a STALLED (not failed) connection can't hang heal() forever — on
+// timeout it aborts and heal falls through to the next source. Used only for SMALL source files; the large
+// weight-asset fetch below is intentionally left to the browser's own socket timeout (a short cap would
+// abort legitimate >100 MB downloads on a slow link). The PRIMARY origin fetch is never bounded either —
+// a slow network still needs it to complete. Only small, redundant recovery sources are time-boxed.
+async function fetchT(url, opts, ms = HEAL_MS) {
+  const ac = new AbortController();
+  const t = setTimeout(() => { try { ac.abort(); } catch {} }, ms);
+  try { return await fetch(url, { ...opts, signal: ac.signal }); }
+  finally { clearTimeout(t); }
+}
 async function heal(rel, hex, axis, resp) {
   if (axis !== "sha256" || !/^[0-9a-f]{64}$/.test(hex)) return null;   // IPFS/mesh κ are sha2-256 (the open-web axis)
   let bytes = null, src = "mesh";
   // FAST content source: the apps-holo repo serves app files WHOLE by path (GitHub CDN — no IPFS
   // chunking/propagation lag, large files included). Try it first for app bytes and VERIFY the whole-file
   // κ (Law L5) so a wrong byte is refused. Location is just a latency choice; the κ is the identity (Law L1).
+  // Time-boxed (small source files): a stalled CDN falls through to the release/IPFS sources, never hangs.
   if (rel.startsWith("apps/")) {
     try {
-      const r = await fetch(APPS_HOLO_BASE + rel, { cache: "no-store" });
+      const r = await fetchT(APPS_HOLO_BASE + rel, { cache: "no-store" });
       if (r.ok) { const ab = await r.arrayBuffer(); if ((await sha256hex(ab)) === hex) { bytes = new Uint8Array(ab); src = "apps-holo"; } }
     } catch {}
   }
@@ -230,7 +242,7 @@ const APPLOCK = new Set();   // app-ids whose lock closure has been folded into 
 // baked anchor — the ONE κ a tamperer cannot forge without also editing this worker, which the browser loads
 // out-of-band (SW registration / SRI), never through the handler it defines. Sealed by tools/holo-anchor-sw.mjs
 // on every reseal. Empty string ⇒ an unsealed dev tree → enforcement off (no false refusal before first seal).
-const CLOSURE_KAPPA = "2341173defecb62e839390d6782fdfe2e386bd91ea390961014de2f618e44fe4";
+const CLOSURE_KAPPA = "0ef6f20d735faded82b820d16ef580af17aa2f700fb1371958a06b3e4ee600d1";
 let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {
@@ -341,18 +353,26 @@ const jsLit = (s) => JSON.stringify(String(s)).replace(/</g, "\\u003c");
 // console (no server exists to beacon to; devtools is where the operator looks).
 const refuseHtml = (rel, want, got, axis, kind = "path") => {
   const universal = kind === "closure";
-  const title = universal ? "This site wasn’t published correctly — Hologram OS" : "This couldn’t be verified — Hologram OS";
-  const h1 = universal ? "This site didn’t publish correctly" : "This didn’t match, so nothing opened";
-  const lead = universal
+  const notfound = kind === "notfound";   // an in-scope navigation to a path that simply isn't here — NOT a tamper/seal failure
+  const kicker = notfound ? "Not found" : "Safety stop";
+  const title = notfound ? "Nothing here — Hologram OS" : universal ? "This site wasn’t published correctly — Hologram OS" : "This couldn’t be verified — Hologram OS";
+  const h1 = notfound ? "This page isn’t part of Hologram OS" : universal ? "This site didn’t publish correctly" : "This didn’t match, so nothing opened";
+  const lead = notfound
+    ? "Hologram couldn’t find anything at this address, so nothing opened."
+    : universal
     ? "Hologram checks that every part of the page matches its seal before it runs. The published files don’t match their seal, so nothing opened."
     : "Hologram verifies every part before it runs. This one didn’t match, so it stopped here to keep you safe.";
-  const quiet = universal
+  const quiet = notfound
+    ? "The link may be old, or the app may have moved. Your device is fine — nothing went wrong."
+    : universal
     ? "This is a problem with how the site was published — not your device, and not an attack on you. Reloading won’t help until it’s republished."
     : "Nothing loaded, and your device is fine — the page was likely changed, or only partly arrived.";
-  const micro = universal
+  const micro = notfound
+    ? "Go back to where you were, or open Hologram from its home screen."
+    : universal
     ? "If you published this site: re-run the reseal and redeploy. Otherwise please try again later, or open Hologram from its official link."
     : "If this keeps happening, open Hologram from its official link.";
-  const report = jsLit("[Hologram] Safety-Stop (" + kind + "): " + rel + " — wanted " + axis + ":" + want + (got ? (" · got " + axis + ":" + got) : ""));
+  const report = jsLit((notfound ? "[Hologram] Not found: " : "[Hologram] Safety-Stop (" + kind + "): ") + rel + (notfound ? "" : " — wanted " + axis + ":" + want + (got ? (" · got " + axis + ":" + got) : "")));
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/><title>${esc(title)}</title>
 <style>
@@ -400,27 +420,29 @@ const refuseHtml = (rel, want, got, axis, kind = "path") => {
     <div class="bar"><span class="lights" aria-hidden="true"><i class="c" id="dot" title="Go back"></i><i class="m"></i><i class="x"></i></span><span class="btitle">Hologram OS</span></div>
     <div class="body">
       <div class="ico" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z"/><path d="M9.5 12.5l1.8 1.8 3.4-3.6"/></svg></div>
-      <div class="kicker">Safety stop</div>
+      <div class="kicker">${esc(kicker)}</div>
       <h1 id="h">${esc(h1)}</h1>
       <p class="lead">${esc(lead)}</p>
       <p class="quiet">${esc(quiet)}</p>
       <div class="acts">
         <button class="btn btn-p" id="back" type="button">Go back</button>
-        <button class="btn btn-g" id="reload" type="button">Try again</button>
+        <button class="btn btn-g" id="reload" type="button">${notfound ? "Home" : "Try again"}</button>
       </div>
       <p class="micro">${esc(micro)}</p>
       <details>
         <summary>Technical details</summary>
-        <div class="tech"><b>Checked</b><span>${esc(rel)}</span><b>Expected</b><span>${axis}:${esc(want)}</span><b>Found</b><span>${axis}:${esc(got)}</span></div>
+        <div class="tech"><b>Checked</b><span>${esc(rel)}</span>${notfound ? "" : `<b>Expected</b><span>${axis}:${esc(want)}</span><b>Found</b><span>${axis}:${esc(got)}</span>`}</div>
       </details>
     </div>
   </main>
 <script>
-  try{ console.error(${report}); }catch(e){}
-  function goBack(){ if (history.length > 1) history.back(); else location.href = "../"; }
+  try{ ${notfound ? "console.info" : "console.error"}(${report}); }catch(e){}
+  var NOTFOUND = ${notfound ? "true" : "false"}, HOME = ${jsLit(BASE)};
+  function goBack(){ if (history.length > 1) history.back(); else location.href = HOME || "../"; }
   document.getElementById("back").addEventListener("click", goBack);
   document.getElementById("dot").addEventListener("click", goBack);
-  document.getElementById("reload").addEventListener("click", function(){ location.reload(); });
+  // Safety-Stop secondary = "Try again" (reload); Not-found secondary = "Home" (reloading a missing page just 404s again).
+  document.getElementById("reload").addEventListener("click", function(){ if (NOTFOUND) location.href = HOME || "../"; else location.reload(); });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") goBack(); });
 </script>
 </body></html>`;
@@ -436,6 +458,11 @@ function reportRefusal(kind, rel, want, got, axis) {
   try { self.clients.matchAll({ includeUncontrolled: true, type: "window" }).then((cs) => { for (const c of cs) c.postMessage({ type: "holo:refusal", kind, rel, want, got, axis }); }, () => {}); } catch {}
 }
 const refuse = (rel, want, got, axis = "sha256") => { reportRefusal("path", rel, want, got, axis); return new Response(refuseHtml(rel, want, got, axis, "path"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
+// An in-scope NAVIGATION to a path that simply isn't here would otherwise pass the HOST's raw 404 page into
+// the frame (the "GitHub 404 inside a tab" a visitor reported). Render a calm in-OS not-found instead — never
+// let a foreign error page reach the visitor. Scoped to top-level navigations so app fetch() probes that
+// expect a 404 are untouched. Keeps the 404 status (honest), just replaces the body + look.
+const notFound = (rel) => { try { console.info("[holo-sw] not found: " + rel); } catch {} return new Response(refuseHtml(rel, "", "", "sha256", "notfound"), { status: 404, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
 // G1/SEC-1: the pin set itself failed to re-derive against the baked anchor → the whole boot is untrusted. Fail closed.
 const refuseClosure = () => { reportRefusal("closure", "etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256"); return new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256", "closure"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
 
@@ -673,7 +700,11 @@ self.addEventListener("fetch", (event) => {
     }
     if (resp.status !== 200) {                                // origin has no copy → SELF-HEAL the pinned κ from a non-origin source before passing the error through
       const healed = expect && trustCache ? await heal(rel, expect, axis, resp) : null;
-      return healed || withHeaders(resp.body, resp);
+      if (healed) return healed;
+      // A bare host 404 for a top-level navigation strands the visitor on the host's error page. Replace it
+      // with a calm in-OS not-found (navigations only; asset/fetch 404s pass through so app logic still sees them).
+      if (resp.status === 404 && req.mode === "navigate") return notFound(rel);
+      return withHeaders(resp.body, resp);
     }
 
     // Law L5: re-derive the bytes against the pinned κ ON ITS AXIS; refuse a mismatch. (κ-routes always;

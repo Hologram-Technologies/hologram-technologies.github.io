@@ -667,7 +667,7 @@
           $("appPlain").textContent = plain;
           const isSig = req.type === "sign" || req.type === "signTypedData";
           $("appTitle").textContent = isSig ? "Signature request" : "Transaction request";
-          $("appAccount").textContent = agentCtx ? ("🤖 " + (agentCtx.label || "Agent") + " · acting for you") : "Account 0";
+          $("appAccount").textContent = agentCtx ? ("🤖 " + (agentCtx.label || "Agent") + (agentCtx.attest === "tee" ? " · passport ✓" : agentCtx.attest === "soft" ? " · passport" : " · grant") + " · acting for you") : "Account 0";
           $("appNetwork").textContent = CHAINS[req.chain]?.name || (req.type === "swap" ? "Solana" : req.chain || "");
           const moves = req.type === "send" || req.type === "swap";
           $("appRisk").className = "risk " + (moves ? "warn" : "ok");
@@ -1191,6 +1191,9 @@
             const auth = authorizeRequest(req.delegation, { kind: req.kind, revoked, nowIso: new Date().toISOString() });
             if (!auth.ok) return reply({ error: "agent: " + auth.reason });
             agentCtx = auth.agent;
+            // AGENT PASSPORT (display): does this agent hold a dual-rooted, TEE-attested passport, or a basic
+            // grant? attestationOf re-derives the HARDWARE root offline (the substrate root was just verified).
+            try { const { attestationOf } = await import("/_shared/holo-delegate.mjs"); agentCtx.attest = await attestationOf(req.delegation); } catch {}
           } catch (e) { return reply({ error: "agent delegation error: " + (e && e.message) }); }
         }
         // reads (address) never gate. The connected-sites block + log applies to everything else. The

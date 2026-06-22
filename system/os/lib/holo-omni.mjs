@@ -18,6 +18,16 @@ export function classify(input, catalog = []) {
   const s = String(input || "").trim();
   if (!s) return { kind: "empty" };
 
+  // THREE WORDS (holo-words) — "brass.junior.quiz": a κ's speakable address. Match the app's
+  // precomputed three-word address in the index (verify-before-trust already happened at build, when
+  // the words were derived from the app's κ). Tried BEFORE the bare-domain rule so a real three-word
+  // address resolves to its app, while a genuine domain (no catalog match) still falls through to the web.
+  const w = s.toLowerCase();
+  if (/^[a-z]+\.[a-z]+\.[a-z]+$/.test(w)) {
+    const app = catalog.find((a) => a.words && String(a.words).toLowerCase() === w);
+    if (app) return { kind: "app", app, label: app.name };
+  }
+
   // holo:// or did:holo → a κ object: an app if the index knows it, else raw content by κ.
   let m = s.match(/^(?:holo:\/\/|did:holo:sha256:)([0-9a-f]{64})$/i);
   if (m) {

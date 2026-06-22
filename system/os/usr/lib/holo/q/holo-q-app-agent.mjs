@@ -33,14 +33,31 @@ export function conformanceCheck(app, api) {
 
 const defaultSpec = (intent) => ({ name: String(intent || "App").slice(0, 60), ui: { type: "page", children: [{ type: "hero", props: { title: String(intent || "App").slice(0, 60) } }] }, collections: [], capabilities: [] });
 
+// inferPricing(intent, collections) → { <collection>: { amount, currency } } when the intent both names a price
+// AND signals monetization (paid/subscribe/premium/unlock/access…). Picks the collection whose name reads like
+// membership/access, else the first. Deterministic (a weak model needn't emit pricing); explicit pricing overrides.
+export function inferPricing(intent, collections = []) {
+  const t = String(intent || "").toLowerCase();
+  const m = t.match(/\$\s?(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:dollars?|usd|bucks|\/\s*mo(?:nth)?|a\s*month|per\s*month|monthly)/);
+  const amount = m ? parseFloat(m[1] || m[2]) : 0;
+  if (!amount) return {};
+  if (!/\b(paid|pay|subscribe|subscription|premium|pro|unlock|access|member(?:ship)?|buy|purchase|upgrade|donat|tip)\b/.test(t)) return {};
+  const names = (collections || []).map((c) => c && c.name).filter(Boolean);
+  const pick = names.find((n) => /(subscrib|member|access|pro|premium|plan|tier|donor|supporter)/i.test(n)) || names[0];
+  return pick ? { [pick]: { amount, currency: "USD" } } : {};
+}
+
 export async function buildFullStackApp(intent, { plan = null, pricing = {}, history = [] } = {}) {
   // 1) PLAN: intent → a typed spec (the structured synth; injected). Any failure → a minimal valid app.
   let spec = null;
   try { spec = plan ? await plan(intent) : null; } catch (e) { spec = null; }
   if (!spec || typeof spec !== "object") spec = defaultSpec(intent);
 
-  // 2–3) COMPILE + WIRE
-  const wire = (s) => { const app = compileSpec(s); const api = deriveApi(app.manifest, { pricing }); const bridge = createCapBridge({ capabilities: app.capabilities, read: () => null }); return { app, api, bridge }; };
+  // 2–3) COMPILE + WIRE. Pricing the intent implies (e.g. "$5 to subscribe") is inferred and assigned to the
+  // most likely collection, so deriveApi emits the POST /<col>/access purchase route (pay → grant). Explicit
+  // pricing always wins. The /access route stays WITHIN the capability model (a purchase op on a declared
+  // collection) — api-within-caps still holds; nothing ambient is created.
+  const wire = (s) => { const app = compileSpec(s); const priced = Object.assign(inferPricing(intent, app.collections), pricing); const api = deriveApi(app.manifest, { pricing: priced }); const bridge = createCapBridge({ capabilities: app.capabilities, read: () => null }); return { app, api, bridge }; };
   let { app, api, bridge } = wire(spec);
 
   // 4) SELF-TEST

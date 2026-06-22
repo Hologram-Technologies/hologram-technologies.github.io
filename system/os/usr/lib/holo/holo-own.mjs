@@ -2,6 +2,12 @@
 // addressable substrate. Separates TITLE (who controls a κ — solved natively, self-verifying)
 // from SCARCITY (global ordering — anchored to an existing chain by reference, never minted).
 //
+// Genesis comes in two ADDITIVE kinds: a PROVENANCE Title (mint{ owned }) over a pre-existing κ,
+// and an ISSUER-BOUND ASSET Title (mint{ asset }) whose κ commits to the creator's key — a different
+// issuer ⇒ a different κ, so no one can mint a competing genesis to the *same* asset κ (originator
+// authenticity, closed at creation). Neither delivers EXCLUSIVITY: two genesis for one κ, like two
+// conflicting transfers, are forks resolved only by the SCARCITY anchor (detectForks ⊕ anchor-wins).
+//
 // A Title is a content-addressed, signed Realization: owner (a principal's σ-axis κ) ⊕ owned κ
 // ⊕ prior Title (lineage); its identity is its κ (substrate-parity blake3, via holo-realization
 // + holo-blake3); the head κ proves the whole PROV-O history. Transfer is a capability op signed
@@ -18,6 +24,7 @@ import { sha256Hex } from "./holo-identity.mjs";
 const VOCAB = "https://hologram.os/ns/own#";
 const TITLE_IRI = VOCAB + "Title";
 const DELEG_IRI = VOCAB + "Delegation";
+const ASSET_IRI = VOCAB + "Asset";
 const te = new TextEncoder();
 const SUB = globalThis.crypto?.subtle || (await import("node:crypto")).webcrypto.subtle;
 const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
@@ -48,9 +55,19 @@ async function seal(body, principal) {
 
 // ── Title ────────────────────────────────────────────────────────────────────
 // mint: a genesis Title — the minter asserts initial ownership of `owned` (self-signed).
-export async function mint({ owned, rights = {}, issuedAt = "", nonce = "" }, owner) {
+export async function mint({ asset, owned, rights = {}, issuedAt = "", nonce = "" }, owner) {
+  // ISSUER-BINDING (optional): when `asset` is given, the asset's κ commits to its creator's key —
+  // a different issuer ⇒ a different κ, so no one can mint a competing genesis to the same asset κ.
+  // When `asset` is absent, this is a legacy provenance Title over the caller-supplied `owned` κ.
+  let assetDescriptor;
+  if (asset) {
+    const issuerRef = await pubRef(owner.pub);
+    assetDescriptor = { "@type": ASSET_IRI, ...asset, issuer: issuerRef };
+    owned = await addr.address(assetDescriptor);                       // owned IS the bound asset κ
+  }
   const body = { "@context": VOCAB, "@type": TITLE_IRI, owner: keyRef(owner), owned,
-    issuer: { pub: owner.pub, alg: owner.alg }, rights, issuedAt, nonce };
+    issuer: { pub: owner.pub, alg: owner.alg }, rights, issuedAt, nonce,
+    ...(assetDescriptor ? { assetDescriptor } : {}) };
   return seal(body, owner);                                            // genesis has no `prior`
 }
 
@@ -82,6 +99,12 @@ export async function verifyChain(titles, { delegations = {} } = {}) {
     if (i === 0) {
       if (t.prior) errors.push(`#0: genesis must have no prior`);
       if (issuerRef !== t.owner) errors.push(`#0: genesis not self-signed by its owner`);
+      // ISSUER-BINDING (optional, additive): a genesis that carries an asset descriptor MUST
+      // re-derive to `owned` AND be issued by the genesis signer. Absent ⇒ legacy provenance Title.
+      if (t.assetDescriptor) {
+        if ((await addr.address(t.assetDescriptor)) !== t.owned) errors.push(`#0: owned does not re-derive from its asset descriptor`);
+        if (t.assetDescriptor.issuer !== issuerRef) errors.push(`#0: asset not issued by the genesis owner (issuer-binding)`);
+      }
     } else {
       const prev = titles[i - 1];
       if (t.prior !== prev["@id"]) { errors.push(`#${i}: prior does not link the chain`); continue; }
@@ -154,4 +177,4 @@ export async function settle({ order, chain }, payerSig) {
   return voucher;
 }
 
-export const ns = { VOCAB, TITLE_IRI, DELEG_IRI };
+export const ns = { VOCAB, TITLE_IRI, DELEG_IRI, ASSET_IRI };

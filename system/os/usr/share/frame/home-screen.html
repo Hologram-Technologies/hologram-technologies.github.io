@@ -1251,7 +1251,21 @@
     function ask(text) {
       text = (text || "").trim(); if (!text) { $("q-input").focus(); return; }
       var reply = $("q-reply"); reply.textContent = "Thinking…";
-      qBrain(text, { onDelta: function (s) { reply.textContent = s; } }).then(function (r) { reply.textContent = r || "Done."; });   // shared brain bridge (same as the hero)
+      function converse() { qBrain(text, { onDelta: function (s) { reply.textContent = s; } }).then(function (r) {
+        var ans = r || "Done."; reply.textContent = ans;
+        // REPLY-CAPTURE (mobile): a quiet 👍 stores THIS (prompt, reply) as a liked example so Q learns from it
+        // (reply-SFT). Same captureUpvote as desktop; private (encrypted memory), never shared. Fail-soft.
+        try { if (window.HoloLearning && window.HoloLearning.captureUpvote) { var up = document.createElement("button"); up.textContent = "👍"; up.title = "Good answer — Q learns from this"; up.style.cssText = "margin-left:8px;opacity:.5;background:none;border:none;cursor:pointer;font:inherit"; up.onclick = function () { up.disabled = true; up.style.opacity = "1"; up.textContent = "👍 learned"; try { window.HoloLearning.captureUpvote(text, ans); } catch (e) {} }; reply.appendChild(up); } } catch (e) {}
+      }); }
+      // ONE intent door (the SAME classifier the desktop shell uses via HoloResolve): an "open" intent LAUNCHES
+      // the app; every other intent converses via the brain. So "open music" behaves identically by voice or
+      // text, zero config. Falls back to converse if the classifier import or app-match misses (no regression).
+      import("/_shared/q/holo-q.js").then(function (m) {
+        var it = (m && m.classifyIntent) ? m.classifyIntent(text) : null;
+        if (it && it.kind === "open" && it.target && !/^(?:https?:|holo:|did:|ipfs:|www\.)/i.test(it.target)
+            && typeof window.__homeLaunch === "function" && window.__homeLaunch(it.target)) { reply.textContent = ""; return; }
+        converse();
+      }).catch(converse);
     }
   })();
 
@@ -1274,13 +1288,28 @@
   var PREFER = ["browser", "search", "docs", "notepad", "music", "video", "wallet", "meet", "git", "ipfs", "capture", "player"];
   var apps = CURATED;
 
+  // PROFILE BOOST (zero-config): how well an app matches what you actually use (window.HoloProfile, distilled
+  // from your own encrypted local memory). 100% local; fail-soft (no profile → 0 → unchanged order).
+  function profileBoost(a) {
+    try {
+      var terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || [];
+      if (!terms.length) return 0;
+      var hay = (String(a.name || "") + " " + String(a.id || "") + " " + String(a.kw || "")).toLowerCase();
+      var s = 0; for (var i = 0; i < terms.length; i++) { var w = String(terms[i] || "").toLowerCase(); if (w.length > 2 && hay.indexOf(w) >= 0) s++; }
+      return s;
+    } catch (e) { return 0; }
+  }
   function pick12(list) {
     if (!list || !list.length) return CURATED;
-    var byId = {}; list.forEach(function (a) { byId[a.id] = a; });
-    var out = [];
-    PREFER.forEach(function (id) { if (byId[id]) { out.push(byId[id]); byId[id] = null; } });
-    list.forEach(function (a) { if (out.length < 12 && byId[a.id]) { out.push(a); byId[a.id] = null; } });
-    return out.slice(0, 12);
+    // PROFILE-FIRST: the apps you use float to the top, then the curated PREFER order, then catalog order.
+    // A fresh user (no profile) → unchanged PREFER+catalog order (no regression). Same magic as the desktop launcher.
+    var idx = {}; list.forEach(function (a, i) { idx[a.id] = i; });
+    var pref = {}; PREFER.forEach(function (id, i) { pref[id] = PREFER.length - i; });
+    return list.slice().sort(function (a, b) {
+      var d = profileBoost(b) - profileBoost(a); if (d) return d;
+      var p = (pref[b.id] || 0) - (pref[a.id] || 0); if (p) return p;
+      return (idx[a.id] || 0) - (idx[b.id] || 0);
+    }).slice(0, 12);
   }
   function iconFor(a) { return a.landing ? a.landing.replace(/[^/]+$/, "icon.svg") : ""; }
   function initials(n) { return (String(n || "?").trim()[0] || "?").toUpperCase(); }
@@ -1302,9 +1331,20 @@
   fetch("/apps/index.jsonld", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (idx) {
     if (!idx) return;
     var list = (idx["dcat:dataset"] || []).map(function (a) {
-      return { id: a["schema:identifier"], name: a["schema:name"], kappa: a["@id"], landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") };
+      return { id: a["schema:identifier"], name: a["schema:name"], kappa: a["@id"], kw: [].concat(a["schema:keywords"] || [], a["holo:categories"] || [], a["schema:applicationCategory"] || []).join(" ").toLowerCase(), landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") };
     }).filter(function (a) { return a.id && a.landing; });
-    if (list.length) { apps = pick12(list); renderApps(); }
+    if (list.length) {
+      apps = pick12(list); renderApps();
+      // RE-PERSONALIZE once your profile is ready: the catalog fetch + the encrypted-memory load + distill are
+      // all async and may finish after this. Poll briefly for profile terms (race-proof; the holo-memory-ready
+      // event can fire before this handler exists), then re-pick + re-render. Stops as soon as it applies, or
+      // after a few seconds for a fresh user with no profile yet. 100% local, fail-soft.
+      var _pt = 0, _piv = setInterval(function () {
+        var terms = []; try { terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || []; } catch (e) {}
+        if (terms.length) { apps = pick12(list); renderApps(); clearInterval(_piv); }
+        else if (++_pt > 24) clearInterval(_piv);
+      }, 250);
+    }
   }).catch(function () {});
 
   // ── Settings ────────────────────────────────────────────────────────────────────────────────
@@ -1357,6 +1397,16 @@
     $("mins-more").classList.remove("on"); $("timer-expand").classList.remove("on");
     openSheet($("timer"));
   }
+  // W4 (mobile intent door): launch an app BY NAME for the shared intent classifier — "open music" → Music.
+  // Exposed on window so the Q-input scope can reach it; returns true iff an app launched. Same κ-native
+  // openApp path (promptOpen → holospace.html?app=κ); no new launch logic, just a name→app match.
+  if (typeof window !== "undefined") window.__homeLaunch = function (name) {
+    var t = String(name || "").trim().toLowerCase(); if (!t) return false;
+    var app = (apps || []).filter(Boolean).find(function (a) {
+      return (a.name || "").toLowerCase() === t || (a.id || "").toLowerCase() === t
+          || (a.name || "").toLowerCase().indexOf(t) >= 0 || (a.id || "").toLowerCase().indexOf(t) >= 0; });
+    if (!app) return false; promptOpen(app); return true;
+  };
   $("timer-expand").addEventListener("click", function () { $("mins-more").classList.toggle("on"); this.classList.toggle("on"); });
   document.querySelectorAll("#mins-quick button, #mins-more button").forEach(function (b) {
     b.addEventListener("click", function () { if (pendingApp) { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); openApp(pendingApp, +b.dataset.min); } });
@@ -1407,5 +1457,11 @@
      desktop shell does. Re-derives every recovered byte (Law L5); the sealed anchor is never auto-healed.
      Guarded — can never break boot. -->
 <script type="module" src="./holo-heal-boot.mjs"></script>
+<!-- Self-evolving personalization on the phone home: bind your encrypted memory + the profile seam so the
+     mobile launcher (pick12) reorders to the apps you actually use — the SAME magic as the desktop launcher,
+     off the SAME window.HoloProfile seam. 100% local; memory is AES-GCM at rest; nothing egresses. -->
+<script type="module" src="/_shared/holo-memory.mjs"></script>
+<script type="module" src="/_shared/holo-profile-context.mjs"></script>
+<script type="module" src="/_shared/holo-learning.mjs"></script>
 </body>
 </html>

@@ -1,0 +1,44 @@
+{
+  "mode": "net",
+  "target": "http://127.0.0.1:8390/os/",
+  "pass": 7,
+  "fail": 0,
+  "ok": true,
+  "results": [
+    {
+      "name": "core-surfaces manifest present",
+      "ok": true,
+      "detail": "surfaces=[spaces]"
+    },
+    {
+      "name": "app id set derived (catalog ∪ core-surfaces)",
+      "ok": true,
+      "detail": "50 ids — catalog 50, core 1"
+    },
+    {
+      "name": "every advertised/loaded app surface resolves on a cold visit (50 apps)",
+      "ok": true,
+      "detail": "50/50 ok"
+    },
+    {
+      "name": "service worker takes control (for SW-resolution phase)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a missing in-scope navigation shows a calm in-OS page (not the host 404)",
+      "ok": true,
+      "detail": "in-OS not-found ✓"
+    },
+    {
+      "name": "every surface resolves through the prod Service Worker (200, no 404/409)",
+      "ok": true,
+      "detail": "all 200"
+    },
+    {
+      "name": "a required capability, when absent, degrades to a labeled fallback (real WebGPU stripping)",
+      "ok": true,
+      "detail": "webgpu=false, missing=[\"webgpu\"], labeled=true"
+    }
+  ]
+}

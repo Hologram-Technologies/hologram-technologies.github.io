@@ -46,9 +46,13 @@ export function captureContext({
   target = null,
   win = (typeof window !== "undefined" ? window : null),
   doc = (typeof document !== "undefined" ? document : null),
-  appOf = defaultAppOf, qOf = defaultQOf, memory = null, maxText = 2000,
+  appOf = defaultAppOf, qOf = defaultQOf, memory = null, profile = null, maxText = 2000,
 } = {}) {
   const tag = target ? String(target.tagName || "").toLowerCase() : null;
+  // PROFILE (your standing interest signal): auto-read from window.HoloProfile so EVERY "+" ranks to what you
+  // care about, not just the local surface — zero per-call work. 100% local (the profile is derived from your
+  // own on-device memory; nothing egresses). Guarded + injectable: no HoloProfile / Node → stays null (no-op).
+  const prof = profile || (() => { try { return (win && win.HoloProfile && win.HoloProfile.terms && win.HoloProfile.terms()) || null; } catch { return null; } })();
   return {
     activeApp: appOf(win, doc),
     route: (win && win.location && win.location.pathname) || null,
@@ -56,6 +60,7 @@ export function captureContext({
     inputKind: tag,
     qConversationId: qOf(win),
     memory: memory || null,         // null unless the caller opts in — the local surface is the default
+    profile: (prof && prof.length) ? prof : null,   // the user's derived interests (local), folded into ranking
     surface: "local",
   };
 }
@@ -69,6 +74,8 @@ export function contextTerms(ctx) {
   if (ctx.inputText) bag.push(ctx.inputText);
   if (ctx.memory && typeof ctx.memory === "string") bag.push(ctx.memory);
   if (ctx.memory && Array.isArray(ctx.memory)) bag.push(ctx.memory.join(" "));
+  if (ctx.profile && Array.isArray(ctx.profile)) bag.push(ctx.profile.join(" "));   // standing interests
+  if (ctx.profile && typeof ctx.profile === "string") bag.push(ctx.profile);
   const words = bag.join(" ").toLowerCase().match(/[a-z0-9][a-z0-9'-]{2,}/g) || [];
   return [...new Set(words)];
 }
