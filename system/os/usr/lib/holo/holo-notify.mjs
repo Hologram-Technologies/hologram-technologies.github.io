@@ -81,6 +81,24 @@ function relTime(ts) {
 const ICON = { Q: "✶", Backup: "🔑", System: "◉" };
 const sevIcon = (sev) => ({ ok: "✓", warn: "⚠", danger: "✕", info: "" }[sev] || "");
 
+// Context-aware Inbox ordering (PRESENTATION ONLY — never mutates `items`, the durable store, or any κ;
+// it reorders a copy for display). With NO profile signal it is the identity — the list reads exactly as
+// before (newest-first), so a brand-new operator sees zero change. Given the operator's own interest terms
+// (window.HoloProfile.terms(), distilled on-device, never egressed) it floats unresolved "needs-you" items
+// to the top and gently lifts notes that match what you care about, keeping the original recency order as a
+// STABLE tiebreaker so nothing is shuffled arbitrarily. Pure + deterministic so it witnesses headless.
+export function rankInbox(view, terms = [], catOf = (r) => (r && r.category) || "update") {
+  if (!Array.isArray(view)) return [];
+  if (view.length < 2) return view.slice();
+  const ws = (Array.isArray(terms) ? terms : []).map((t) => String(t).toLowerCase()).filter((w) => w.length > 2);
+  if (!ws.length) return view.slice();                       // graceful identity — zero change without context
+  const rel = (r) => { const hay = ((r.title || "") + " " + (r.body || "") + " " + (r.sender || "")).toLowerCase(); let s = 0; for (const w of ws) if (hay.includes(w)) s++; return s; };
+  return view
+    .map((r, i) => ({ r, i, score: (catOf(r) === "action" && !r.read ? 1e6 : 0) + rel(r) }))
+    .sort((a, b) => (b.score - a.score) || (a.i - b.i))      // relevance/urgency first; recency holds ties (stable)
+    .map((x) => x.r);
+}
+
 export function mountNotifications(bellEl, { getOperator = () => null, onDeepLink = () => {} } = {}) {
   injectStyles();
 
@@ -168,8 +186,11 @@ export function mountNotifications(bellEl, { getOperator = () => null, onDeepLin
     filtersEl.innerHTML = [chip("all", "All"), ...CAT_ORDER.map((k) => chip(k, CATEGORY[k].label))].join("");
     filtersEl.querySelectorAll(".hn-chip").forEach((b) => b.addEventListener("click", () => { filter = b.dataset.f; renderFilters(); renderList(); }));
   }
+  // the operator's distilled interest terms, read lazily + defensively from the one private-context seam
+  // (window.HoloProfile, set by holo-profile-context). Absent/empty -> rankInbox is the identity.
+  const profileTerms = () => { try { const t = window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms(); return Array.isArray(t) ? t : []; } catch { return []; } };
   function renderList() {
-    const view = items.filter((r) => filter === "all" || catOf(r) === filter);
+    const view = rankInbox(items.filter((r) => filter === "all" || catOf(r) === filter), profileTerms(), catOf);
     if (!view.length) { listEl.innerHTML = `<div class="hn-empty"><div class="hn-empty-mark">${esc(kappaRun(8))}</div><div>You're all caught up.</div><div class="hn-empty-sub">Q's letters and alerts gather here.</div></div>`; return; }
     listEl.innerHTML = view.map((r) => {
       const cat = catOf(r);

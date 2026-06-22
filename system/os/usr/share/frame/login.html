@@ -489,15 +489,15 @@ function renderAgent(sddm) {
   $("agentbtn").innerHTML = `${I.robot}AI agent`;
   $("agentpanel").innerHTML = `
     <h2>Signing in as an AI agent</h2>
-    <p class="ap-lead">Two ways to proceed you can do <b>Guest</b> yourself; <b>Ask Human</b> needs the person.</p>
+    <p class="ap-lead">Two ways to proceed — you can do <b>Guest</b> yourself; <b>Ask Human</b> needs the person.</p>
     <div class="ap-opt"><div class="ap-h">${I.ghost} Guest</div>
-      <p>Instant, private, throwaway identity. No human and no biometric needed nothing is saved after the session.</p>
+      <p>Instant, private, throwaway identity — no biometric needed, nothing is saved after the session.</p>
       <button id="agent-guest">Continue as Guest</button>
       <code>or load this page with ?guest=1</code></div>
     <div class="ap-opt secondary"><div class="ap-h">${I.person} Ask Human</div>
-      <p>A saved, sovereign identity needs the person’s device biometric (Windows Hello / Touch ID) you can’t do that yourself. Ask them to approve.</p>
+      <p>A saved, sovereign identity needs the person’s device biometric (Windows Hello / Touch ID) — you can’t do that yourself. Ask them to approve.</p>
       <button id="agent-askhuman">Ask the human to sign in</button></div>`;
-  $("agentcall").innerHTML = `${I.robot}<span>An AI agent is requesting access sign in below to approve.</span>`;
+  $("agentcall").innerHTML = `${I.robot}<span>An AI agent is requesting access — sign in below to approve.</span>`;
   $("agentbtn").onclick = (e) => { e.stopPropagation(); $("agentpanel").classList.toggle("on"); };
   $("agentpanel").addEventListener("click", (e) => e.stopPropagation());
   document.addEventListener("click", () => $("agentpanel").classList.remove("on"));

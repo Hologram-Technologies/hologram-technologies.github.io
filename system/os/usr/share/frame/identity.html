@@ -162,18 +162,18 @@
             <div class="idrow">
               <span class="role-tag" id="role">Player</span>
               <span class="badge ok" id="pqBadge" title="Verified by signature (Ed25519 ‖ ML-DSA)">🛡 Post-quantum</span>
-              <button class="kchip" id="kid" title="your identity address tap to copy">did:holo </button>
+              <button class="kchip" id="kid" title="your identity address — tap to copy">did:holo </button>
             </div>
             <p class="tagline">Yours alone. Yours <b>forever</b>.</p>
             <button class="btn" id="shareCard"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 11.3h-6.7l-5.2-6.9-6 6.9H1.6l7.7-8.8L1 2.5h6.8l4.7 6.3 5.7-6.3Zm-1.2 17.6h1.8L7.1 4.3H5.2L17 20.1Z"/></svg> Share my sovereign card</button>
           </div>
 
           <div class="col-info facets">
-            <button class="row" id="walletRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><path d="M16 13h.01"/></svg></span><span class="m"><b>Money</b><span>Your wallet every chain, one tap to sign.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="row" id="walletRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><path d="M16 13h.01"/></svg></span><span class="m"><b>Money</b><span>Your wallet — every chain, one tap to sign.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
 
-            <button class="row" id="qRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.9L12 16l-1.9-5.1L5.5 9l4.6-1.2z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/></svg></span><span class="m"><b>Intelligence</b><span>Holo Q your private AI to create, ask and act.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="row" id="qRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.9L12 16l-1.9-5.1L5.5 9l4.6-1.2z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/></svg></span><span class="m"><b>Intelligence</b><span>Holo Q — your private AI to create, ask, and act.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
 
-            <button class="row" id="netRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="12" cy="18" r="2.3"/><path d="M7.7 7.6l8.6 0M7.2 7.9l4 8.2M16.8 7.9l-4 8.2"/></svg></span><span class="m"><b>Network</b><span>Connect peer-to-peer a link, no server.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
+            <button class="row" id="netRow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="12" cy="18" r="2.3"/><path d="M7.7 7.6l8.6 0M7.2 7.9l4 8.2M16.8 7.9l-4 8.2"/></svg></span><span class="m"><b>Network</b><span>Connect peer-to-peer — a link, no server.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></button>
 
             <h3>Agents</h3>
             <div id="agentList"></div>
@@ -275,7 +275,7 @@
         let list = []; try { list = JSON.parse(localStorage.getItem(AGENTS_KEY(kappa)) || "[]"); } catch {}
         const el = $("agentList");
         if (!list.length) { el.innerHTML = `<div class="empty">No agents yet. Create one to let it act for you safely.</div>`; return; }
-        el.innerHTML = list.map((a, i) => `<div class="agent"><span class="d">${(a.name || "A")[0].toUpperCase()}</span><div class="m"><b>${a.name || "Agent"}</b><span class="mono" data-copy="${a.kappa}" title="its own identity address tap to copy">${short(a.kappa, 7)}</span></div><span class="caps">${(a.caps || []).map(capLabel).join(" · ")}</span><button class="revoke" data-i="${i}" title="Revoke">✕</button></div>`).join("");
+        el.innerHTML = list.map((a, i) => `<div class="agent"><span class="d">${(a.name || "A")[0].toUpperCase()}</span><div class="m"><b>${a.name || "Agent"}</b><span class="mono" data-copy="${a.kappa}" title="its own identity address — tap to copy">${short(a.kappa, 7)}</span></div><span class="caps">${(a.caps || []).map(capLabel).join(" · ")}</span><button class="revoke" data-i="${i}" title="Revoke">✕</button></div>`).join("");
         for (const k of el.querySelectorAll("[data-copy]")) k.onclick = () => copy(k.dataset.copy);
         for (const b of el.querySelectorAll(".revoke")) b.onclick = () => revokeAgent(kappa, +b.dataset.i);
       }
