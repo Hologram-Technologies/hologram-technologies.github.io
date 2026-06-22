@@ -54,6 +54,7 @@ automatically from [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ### Fixed
 
+- Load the spine-boot mods as ES modules (holo-control-dsp.js is .js-named but exports)
 - Reseal main so the SW anchor matches the served closure (fixes Safety-Stop boot)
 - Living Map two-pane studio with honeycomb seam updates and reseal
 - SEC-8 — bound a declared multihash length by actual payload (CID parser)
