@@ -7,6 +7,7 @@
 // consented (holo-stepup) + rides the existing κ-carriage. Pure + isomorphic (Node + browser).
 import "./holo-zk.js";                                   // side-effect: sets globalThis.HoloZK (IIFE)
 import { jcs, sha256hex, didHolo } from "./holo-uor.mjs";
+import * as RANGE from "./holo-zk-range.mjs";            // B3: transparent range/predicate proofs (no setup, no SNARK)
 const ZK = (typeof globalThis !== "undefined" && globalThis.HoloZK) || null;
 
 // issueCredential(claims, signer) — sign a salted-digest claim set under your did:key. The credential is
@@ -28,10 +29,29 @@ export function proveAttribute(cred, keys) {
   return { ...body, id: didHolo("sha256", sha256hex(jcs(body))) };
 }
 
-// verifyProof(proof) — VERIFY-BEFORE-TRUST: (1) κ re-derives over the body (tamper-refuse); (2) the issuer
-// signature binds the claim set to the did:key; (3) each revealed claim's digest is in that signed set (else
-// forged). Returns ONLY the disclosed facts { ok, did, claims }, or null. Offline, no server.
+// provePredicate({ value, op, bound|a,b, n }) — B3: a κ-PROOF of a NUMERIC predicate over your OWN value,
+// revealing nothing but that the predicate holds. op "ge" → value ≥ bound; op "in" → value ∈ [a,b]. No issuer,
+// no circuit — a transparent range proof (holo-zk-range). The κ (id) content-addresses the proof (tamper-refuse).
+export function provePredicate({ value, op = "ge", bound = null, a = null, b = null, n = 32 } = {}) {
+  let pred;
+  if (op === "ge") pred = RANGE.proveGE(value, bound, n);
+  else if (op === "in") pred = RANGE.proveRangeIn(value, a, b, n);
+  else throw new Error("holo-proof: unknown predicate op " + op);
+  const body = { ...pred, claim: op === "ge" ? "≥ " + bound : "∈ [" + a + ", " + b + "]" };
+  return { ...body, id: didHolo("sha256", sha256hex(jcs(body))) };
+}
+
+// verifyProof(proof) — VERIFY-BEFORE-TRUST. For a HoloRangePredicate: κ re-derives (tamper-refuse) + the range
+// proof verifies → learn ONLY that the predicate holds (never the value). For a HoloProof (SD-JWT): (1) κ
+// re-derives; (2) the issuer signature binds the claim set to the did:key; (3) each revealed digest ∈ that set.
+// Returns ONLY the disclosed facts, or null. Offline, no server.
 export async function verifyProof(proof) {
+  if (proof && proof["@type"] === "HoloRangePredicate") {                            // B3 numeric predicate
+    const { id, ...body } = proof;
+    if (id && id !== didHolo("sha256", sha256hex(jcs(body)))) return null;           // body tampered
+    const ok = body.op === "ge" ? RANGE.verifyGE(body) : body.op === "in" ? RANGE.verifyRangeIn(body) : false;
+    return ok ? { ok: true, predicate: { op: body.op, claim: body.claim } } : null;  // the fact, not the value
+  }
   if (!ZK || !proof || !Array.isArray(proof.digests)) return null;
   const { id, ...body } = proof;
   if (id && id !== didHolo("sha256", sha256hex(jcs(body)))) return null;            // body tampered
@@ -46,7 +66,17 @@ export async function verifyProof(proof) {
 // attributes as a κ-proof + a self-contained share link. Refuses without consent. gate injectable (prod =
 // biometric step-up; witness = a stub). The recipient decodeProofLink()s it and verifyProof()s — learning
 // only the disclosed fact. 100% local; the consent gate is the ONLY egress point.
-export async function shareProof({ claims, attributes, audience = null, signer = null, gate = null } = {}) {
+export async function shareProof({ claims, attributes, predicate = null, audience = null, signer = null, gate = null } = {}) {
+  if (predicate) {                                        // B3: share a NUMERIC predicate proof (value never revealed)
+    const human = predicate.op === "in" ? "is between " + predicate.a + " and " + predicate.b : "is at least " + predicate.bound;
+    const action = { kind: "proof.share", predicate: { op: predicate.op, bound: predicate.bound, a: predicate.a, b: predicate.b }, audience,
+      reason: "Prove a number you hold " + human + (audience ? " to " + audience : "") + " — the value itself is NOT revealed." };
+    const consent = gate ? await gate(action) : await defaultGate(action);
+    if (!consent || !consent.ok) return { ok: false, refused: true, reason: (consent && consent.reason) || "consent required", action };
+    const proof = provePredicate(predicate);
+    let enc; try { enc = (typeof btoa !== "undefined") ? btoa(unescape(encodeURIComponent(JSON.stringify(proof)))) : Buffer.from(JSON.stringify(proof)).toString("base64"); } catch (e) { enc = ""; }
+    return { ok: true, proof, action, link: "#proof=" + enc };
+  }
   const s = signer || await operatorSigner();
   const cred = await issueCredential(claims, s);
   const attrs = [].concat(attributes || []);
@@ -76,6 +106,6 @@ export async function operatorSigner() {
 // learning only the disclosed fact (verify-before-trust). The PROVE side (assemble + stepup-consent + share)
 // is driven by Q / the Share carriage (holo-proof-ui), not here.
 if (typeof window !== "undefined" && !window.HoloProof) {
-  window.HoloProof = Object.freeze({ verify: verifyProof, prove: proveAttribute, issue: issueCredential, signer: operatorSigner, share: shareProof, decode: decodeProofLink });
+  window.HoloProof = Object.freeze({ verify: verifyProof, prove: proveAttribute, predicate: provePredicate, issue: issueCredential, signer: operatorSigner, share: shareProof, decode: decodeProofLink });
 }
-export default { issueCredential, proveAttribute, verifyProof, operatorSigner, shareProof, decodeProofLink };
+export default { issueCredential, proveAttribute, provePredicate, verifyProof, operatorSigner, shareProof, decodeProofLink };

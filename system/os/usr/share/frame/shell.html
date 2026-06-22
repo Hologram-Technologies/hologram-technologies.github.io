@@ -6867,9 +6867,14 @@
     <!-- The visible, honest face of "Q is learning you": a plain-language Inbox letter + reset/pause controls
          (window.HoloLearning). No jargon; the user always sees it and stays in control. 100% local. -->
     <script type="module" src="/_shared/holo-learning.mjs" data-holo-shared="holo-learning.mjs"></script>
+    <!-- A1 the trainer itself: window.HoloMicroFinetune — the whole-transformer LoRA loop (forge graph
+         autograd: forward → masked-CE → full-graph backward → AdamW on every layer's adapters → all-layers
+         κ-checkpoint) that turns your up-voted turns into a sealed, re-derivable adapter. Loaded BEFORE the
+         scheduler so the plug is live at its first tick. Fail-soft: null until a trainable model is mounted. -->
+    <script type="module" src="/_shared/holo-micro-finetune.mjs" data-holo-shared="holo-micro-finetune.mjs"></script>
     <!-- Learn while you rest: a background, idle/charging-time, interruptible scheduler that micro-finetunes
          your per-user adapter on NEW up-voted turns and silently swaps it in — never blocks the UI, device-tier
-         gated, respects pause. The GPU trainer (A1) plugs in via window.HoloMicroFinetune; no-op until then. -->
+         gated, respects pause. Calls the A1 trainer above (window.HoloMicroFinetune); skips if no model yet. -->
     <script type="module" src="/_shared/holo-learn-scheduler.mjs" data-holo-shared="holo-learn-scheduler.mjs"></script>
     <!-- Holo Video — the embedded glass video player window pinned into the dock right after the music
          disc (movable · resizable · immersive full screen). Loaded near the dock so its rail tile is live. -->
