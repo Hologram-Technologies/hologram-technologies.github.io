@@ -1,0 +1,40 @@
+# gitleaks configuration for Hologram OS.
+#
+# Secrets are never committed. This extends gitleaks' default rules (so the
+# high-precision provider rules — AWS, GitHub PAT, Stripe, JWT, private keys, …
+# — stay active) and allowlists the OS's content-addressed identifiers and
+# PUBLIC addresses, which are hashes/ids, not secrets, and otherwise trip the
+# entropy-based generic-api-key rule. The allowlist matches identifier SHAPES,
+# never a real provider token shape, so a genuine leak still fails the gate.
+
+title = "hologram-os"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Content-addressed identifiers and public addresses are not secrets."
+regexes = [
+  '''[0-9a-f]{64}''',                  # sha256 κ-label (content address)
+  '''z6Mk[1-9A-HJ-NP-Za-km-z]{44}''',  # did:key Ed25519 PUBLIC key (a DID, not a secret)
+  '''0x[a-fA-F0-9]{40}''',             # EVM contract / wallet PUBLIC address
+  '''5[1-9A-HJ-NP-Za-km-z]{47}''',     # Substrate/Bittensor ss58 PUBLIC account address
+  '''ba[a-z2-7]{57,}''',               # IPFS CIDv1 (base32)
+  '''holo\.[a-z0-9.]+\.v[0-9]+''',     # holo localStorage key names
+]
+paths = [
+  '''.*holospace\.lock\.json$''',
+  '''.*\.holo$''',
+  '''.*\.kappa$''',
+  '''.*os-closure\.json$''',
+  '''.*os-served\.json$''',
+  '''.*\.result\.json$''',
+  '''.*/\.well-known/.*''',
+  '''.*/vendor/.*''',
+  '''.*/xterm/.*''',
+  '''.*\.min\.js$''',
+  '''.*\.jsonld$''',
+  '''CHANGELOG\.md$''',
+  '''.*\.lock$''',
+  '''package-lock\.json$''',
+]
