@@ -21,6 +21,7 @@ import { makeCourier } from "/_shared/holo-courier.mjs";
 import { makeTrust } from "/_shared/holo-trust.mjs";
 import { makeSpine } from "/_shared/holo-spine.mjs";
 import { makeMemory } from "/_shared/holo-memory.mjs";
+import "/_shared/holo-strand.mjs";   // side-effect: window.HoloStrand — the operator's source chain (resume spine; holo-session mirrors/reconciles through it)
 import "/_shared/holo-evolve.mjs";   // side-effect: registers window.HoloEvolve once Q.trust is up (closes the loop, gated)
 import { ensureBrainFloor, makeBrainFloor } from "/_shared/holo-brain-floor.mjs";   // guarantee a brain on every core task
 import { makeIntentRouter } from "/_shared/holo-intent.mjs";              // one classifier

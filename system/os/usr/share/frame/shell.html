@@ -1988,7 +1988,8 @@
         try { _link = await resolveBootResume(); } catch (e) {}       // a shared holospace (#wks) or cloud token (?wks) opened as a URL
         let _body = null;
         try { _body = HoloSession.takeResume(); } catch (e) {}        // a staged resume (legacy reload path)
-        if (!_body) _body = await HoloSession.restoreSnapshot();      // THIS device's own active realm — restore it first
+        if (!_body) _body = await HoloSession.restoreSnapshot();      // THIS device's own active realm — restore it first (the resume spine reconciles drift inside restoreSnapshot)
+        try { const _c = await HoloSession.resumeContinuity(); if (_c && _c.continuity !== "ok" && _c.continuity !== "empty") console.log("[holo-strand] resume continuity:", _c.continuity, _c); } catch (e) {}
         await applyBody(_body);
         if (_link) {                                                  // then open what the link carried, as a NEW isolated tab
           if (Array.isArray(_link["@type"]) && _link["@type"].includes("holo:HolospaceShare")) applyHolospace(_link);
