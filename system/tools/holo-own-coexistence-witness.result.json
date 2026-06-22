@@ -1,0 +1,12 @@
+{
+  "spec": "Issuer-binding is additive (ADR-053): legacy provenance Titles (title over a pre-existing κ) and issuer-bound asset Titles (a new asset whose κ commits to its creator's key) coexist; both re-derive and self-verify (Law L5); asset minting refuses originator impersonation at creation; the transfer path is unchanged. Exclusivity/scarcity (double-genesis fork, double-spend) remains a Layer-2 anchor concern, not closed here.",
+  "passed": 5,
+  "failed": 0,
+  "checks": {
+    "provenance Title (raw owned) verifies, owner = Maya, owned == the pre-existing κ": true,
+    "asset Title verifies, owner = Maya, owned re-derives from its descriptor": true,
+    "both Title kinds verify side by side to distinct, correct owners": true,
+    "asset Title transfers to Atlas; chain re-derives, head resolves to Atlas": true,
+    "foreign issuer cannot produce Maya's asset κ (issuer-binding)": true
+  }
+}

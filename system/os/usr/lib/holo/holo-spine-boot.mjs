@@ -68,9 +68,30 @@ import "/_shared/holo-fix-proposer.mjs";  // side-effect: window.__holoFixPropos
     // Q's PERSISTENT USER MODEL (S2) — durable over localStorage (small, per-origin; survives reload). Q.remember
     // writes through here so feedback + intents persist; Q.briefing/affinity can read what you've done before.
     const MEMKEY = "holo.memory.v1";
+    // AT-REST ENCRYPTION (privacy by construction, matching holo-memory's idb store): records are AES-GCM
+    // sealed under the operator's sovereign vault key (holo-session.activeCipher) before they touch
+    // localStorage — a same-origin app reads only ciphertext, never your memory. Fail-CLOSED: no cipher
+    // (locked) → don't write plaintext. Legacy v1 plaintext arrays are read once, then re-sealed on next save.
+    const _b64e = (u8) => { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+    const _b64d = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    const _cipher = async () => { try { const m = await import("/_shared/holo-session.mjs"); return m.activeCipher ? (await m.activeCipher()).cipher : null; } catch (e) { return null; } };
     const lsBackend = {
-      load: async () => { try { return JSON.parse(localStorage.getItem(MEMKEY)) || []; } catch (e) { return []; } },
-      save: async (recs) => { try { localStorage.setItem(MEMKEY, JSON.stringify(recs)); } catch (e) {} },
+      load: async () => {
+        try {
+          const s = localStorage.getItem(MEMKEY); if (!s) return [];
+          let v; try { v = JSON.parse(s); } catch (e) { return []; }
+          if (Array.isArray(v)) return v;                                           // v1 plaintext → migrated on next save
+          if (v && v.v === 2 && typeof v.b64 === "string") { const c = await _cipher(); if (!c) return []; const pt = await c.open(_b64d(v.b64)); return pt ? JSON.parse(new TextDecoder().decode(pt)) : []; }
+          return [];
+        } catch (e) { return []; }
+      },
+      save: async (recs) => {
+        try {
+          const c = await _cipher(); if (!c) return;                                // locked / no key → never write plaintext
+          const blob = await c.seal(new TextEncoder().encode(JSON.stringify(recs)));
+          localStorage.setItem(MEMKEY, JSON.stringify({ v: 2, b64: _b64e(blob) }));
+        } catch (e) {}
+      },
     };
     const memory = makeMemory({ backend: lsBackend, now: () => new Date().toISOString(), conscience });
 

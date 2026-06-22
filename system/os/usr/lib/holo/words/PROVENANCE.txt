@@ -1,0 +1,20 @@
+bip39-english.txt — the BIP-39 English mnemonic wordlist (2048 words).
+
+Source:   https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt
+Standard: BIP-39 (Mnemonic code for generating deterministic keys), public domain.
+Bytes:    2048 words, newline-separated, lowercase, sorted, 3–8 letters each, unique,
+          curated to be unambiguous (homophones removed, first-4-letters unique).
+SHA-256:  2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda
+
+This file's SHA-256 IS its κ on the sha256 axis:
+  WORDLIST_KAPPA = did:holo:sha256:2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda
+
+The Three-Words encoding (holo-words.mjs) pins this κ, so "same κ + same wordlist-κ →
+same three words" is permanent and verifiable (Law L1/L2/L5). Changing the wordlist is
+a new versioned κ-object, never an in-place edit.
+
+Why BIP-39 (not what3words): what3words' wordlist and algorithm are proprietary and
+patented — there is no open spec to conform to, and copying their list/method is not
+permitted. BIP-39 is an open, public-domain, homophone-screened, 50+-language standard.
+We adopt its open list and what3words' published DESIGN PRINCIPLES (short common words,
+no homophones/profanity, offline-deterministic, multilingual), not their IP.

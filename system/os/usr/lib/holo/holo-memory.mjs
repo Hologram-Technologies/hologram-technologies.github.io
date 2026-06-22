@@ -118,11 +118,33 @@ if (typeof window !== "undefined") {
     const KEY = "holo.memory.v1", DB = "holo-memory", STORE = "kv";
     const open = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     const tx = async (mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction(STORE, mode); const s = t.objectStore(STORE); const rq = fn(s); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); }); };
-    return { load: () => tx("readonly", (s) => s.get(KEY)).then((v) => v || []), save: (recs) => tx("readwrite", (s) => s.put(recs, KEY)) };
+    // AT-REST ENCRYPTION (privacy by construction): records are AES-GCM sealed under the operator's sovereign
+    // vault key (holo-session.activeCipher) before they touch IndexedDB — a same-origin app reads only
+    // ciphertext, never your memory; nothing leaves the device. Fail-CLOSED: no cipher (locked) → DON'T persist
+    // plaintext. Legacy v1 plaintext arrays are read once, then re-sealed on the next save (transparent migrate).
+    const te = new TextEncoder(), td = new TextDecoder();
+    const cipher = async () => { try { const m = await import("./holo-session.mjs"); return m.activeCipher ? (await m.activeCipher()).cipher : null; } catch (e) { return null; } };
+    return {
+      load: async () => {
+        const raw = await tx("readonly", (s) => s.get(KEY)); if (!raw) return [];
+        if (Array.isArray(raw)) return raw;                                       // v1 plaintext → migrated on next save
+        if (raw.v === 2 && raw.blob) { const c = await cipher(); if (!c) return []; try { const pt = await c.open(raw.blob); return pt ? JSON.parse(td.decode(pt)) : []; } catch (e) { return []; } }
+        return [];
+      },
+      save: async (recs) => {
+        const c = await cipher(); if (!c) return null;                            // locked / no key → never write plaintext
+        const blob = await c.seal(te.encode(JSON.stringify(recs)));
+        return tx("readwrite", (s) => s.put({ v: 2, blob }, KEY));
+      },
+    };
   };
   const wire = async () => {
     try {
-      if (window.HoloMemory || !window.HoloApp) return;
+      // bind once, in a real Hologram operator context — an APP frame (window.HoloApp) OR the SHELL (window.HoloSpine /
+      // window.Q). The shell never set HoloApp, so the persisted memory model + window.HoloMemory were silently
+      // never bound there (Q.briefing recall + the profile seam went dark); accepting the shell signal fixes that.
+      // holo-memory is NOT injected into sandboxed app frames, so this does not widen exposure.
+      if (window.HoloMemory || !(window.HoloApp || window.HoloSpine || window.Q)) return;
       const backend = (typeof indexedDB !== "undefined") ? idbBackend() : null;
       const mem = makeMemory({ backend, now: () => new Date().toISOString(), conscience: window.HoloConscience || null });
       await mem.ready();
@@ -130,6 +152,9 @@ if (typeof window !== "undefined") {
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-memory-ready"));
     } catch (e) { /* leave unset; callers fail-soft */ }
   };
-  if (window.HoloApp) wire();
-  else if (document.documentElement) document.documentElement.addEventListener("holo-app-ready", wire, { once: true });
+  if (window.HoloApp || window.HoloSpine || window.Q) wire();
+  else if (document.documentElement) {
+    document.documentElement.addEventListener("holo-app-ready", wire, { once: true });
+    let n = 0; const iv = setInterval(() => { if (window.HoloMemory || window.HoloApp || window.HoloSpine || window.Q) { wire(); clearInterval(iv); } else if (++n > 40) clearInterval(iv); }, 250);
+  }
 }

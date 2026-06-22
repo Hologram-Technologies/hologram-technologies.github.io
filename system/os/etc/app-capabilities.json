@@ -1,0 +1,14 @@
+{
+  "comment": "Hard capability requirements per app, keyed by SHORT app id (the apps/<id>/ segment). The shell consults this before mounting (openHolospaceApp): if a required capability is absent on the visitor's machine, it renders holo-requires.fallbackDoc — a calm LABELED card — instead of mounting an app that would blank or throw. Kept OS-side and decoupled from the apps repo (like core-surfaces.json) so adding/adjusting a requirement needs no per-app relock. Capabilities: webgpu | opfs | sab | storage | threads. List ONLY hard requirements — if an app degrades gracefully on its own, leave it out. holo-cold-app-witness.mjs reads this to witness each declared app under real capability stripping.",
+  "requires": {
+    "q": ["webgpu"],
+    "qvac": ["webgpu"],
+    "forge": ["webgpu"],
+    "holo-3d": ["webgpu"],
+    "cosmos": ["webgpu"],
+    "holo-v86": ["sab"],
+    "holo-x86": ["sab"],
+    "holo-linux": ["sab"],
+    "qemu": ["sab"]
+  }
+}

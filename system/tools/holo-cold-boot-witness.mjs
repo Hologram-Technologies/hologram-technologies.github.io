@@ -34,6 +34,7 @@ const results = []; let pass = 0, fail = 0;
 const rec = (n, ok, d = "") => { results.push({ name: n, ok, detail: d }); ok ? pass++ : fail++; console.log(`${ok ? "PASS" : "FAIL"} — ${n}${d ? "  (" + d + ")" : ""}`); };
 const get = (u, o) => fetch(u, { cache: "no-store", ...o });
 const sleep = (m) => new Promise((r) => setTimeout(r, m));
+const ENGINE = (process.env.PW_ENGINE || "chromium").trim();   // chromium | webkit | firefox — the OS must boot on each (P4)
 
 // ── wait for THIS build to be live (CDN propagation) before asserting, so we never test stale bytes ──
 async function awaitBuild() {
@@ -74,16 +75,16 @@ async function phaseA() {
 
 // ── Phase B: a genuinely cold visitor, under a real worker (Playwright optional) ──
 async function phaseB() {
-  let chromium;
-  try { ({ chromium } = await import("playwright")); }
+  let pw;
+  try { pw = await import("playwright"); }
   catch { console.log("\n(playwright not installed — Phase B real-browser cold boot skipped; Phase A is still fatal)"); return; }
   let browser;
-  try { browser = await chromium.launch(); }
+  try { browser = await (pw[ENGINE] || pw.chromium).launch(); }
   catch (e) {
     // In CI the browser is installed, so a launch failure is a real setup fault → FAIL (never let P2
     // silently degrade to network-only). Locally without a browser binary, skip and rely on Phase A.
-    if (process.env.CI) { rec("launch chromium for cold-boot", false, e.message); return; }
-    console.log(`\n(chromium not launchable locally — Phase B skipped: ${e.message})`); return;
+    if (process.env.CI) { rec(`launch ${ENGINE} for cold-boot`, false, e.message); return; }
+    console.log(`\n(${ENGINE} not launchable locally — Phase B skipped: ${e.message})`); return;
   }
   try {
     const ctx = await browser.newContext();             // fresh profile = a genuinely cold first visit
@@ -93,12 +94,16 @@ async function phaseB() {
     const refused = [];
     page.on("response", (r) => { if (r.status() === 409) refused.push(r.url()); });
     await page.goto(OS, { waitUntil: "load", timeout: 60000 }).catch(() => {});
-    const controlled = await page.evaluate(async () => {
-      const s = (m) => new Promise((r) => setTimeout(r, m));
-      if (navigator.serviceWorker && !navigator.serviceWorker.controller) { try { await navigator.serviceWorker.register("./holo-fhs-sw.js", { type: "module" }); } catch {} }
-      for (let i = 0; i < 200 && !(navigator.serviceWorker && navigator.serviceWorker.controller); i++) await s(100);
-      return !!(navigator.serviceWorker && navigator.serviceWorker.controller);
-    }).catch(() => false);
+    // Kick a registration (best-effort; the OS boot also self-registers), THEN poll control from the Node
+    // side. The OS navigates as it boots, which destroys any long in-page evaluate — so a single awaited
+    // loop inside the page would throw "context destroyed" and read as "no control" (a false negative seen
+    // on a fast-booting local artifact). Per-iteration evaluates tolerate the navigation (catch → retry).
+    await page.evaluate(async () => { try { if (navigator.serviceWorker && !navigator.serviceWorker.controller) await navigator.serviceWorker.register("./holo-fhs-sw.js", { type: "module" }); } catch {} }).catch(() => {});
+    let controlled = false;
+    for (let i = 0; i < 200 && !controlled; i++) {
+      controlled = await page.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller)).catch(() => false);
+      if (!controlled) await page.waitForTimeout(100).catch(() => {});
+    }
     rec("service worker takes control on a cold visit", controlled);
     if (!controlled) return;
     // reload so EVERY boot request — including the top-level document — flows through the worker, then let
@@ -107,6 +112,16 @@ async function phaseB() {
     await page.waitForTimeout(4000);
     rec("no Safety-Stop (zero 409 refusals) during a cold boot under the worker",
       refused.length === 0, refused.length ? `${refused.length}× 409 — e.g. ${refused[0]}` : "0× 409");
+    // P5 · offline-after-first-load: the OS claims to be serverless/offline. After one warm boot the worker
+    // has cached the boot bytes; with the network CUT, a reload must still take control and serve the document
+    // (not the browser's "no internet" page). This turns the serverless promise into a gate.
+    let offlineOk = false, offlineDetail = "";
+    try {
+      await page.context().setOffline(true);
+      await page.reload({ waitUntil: "load", timeout: 45000 }).catch((e) => { offlineDetail = e.message.split("\n")[0]; });
+      offlineOk = await page.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller) && document.readyState === "complete" && !!document.querySelector("body *")).catch(() => false);
+    } finally { await page.context().setOffline(false); }
+    rec("boots offline after first load (the serverless promise)", offlineOk, offlineOk ? "served the boot with no network" : (offlineDetail || "no SW control / empty document offline"));
   } finally { await browser.close(); }
 }
 
@@ -119,12 +134,12 @@ async function phaseB() {
 // certifies and enables Power-up — closing the last unwitnessed boot surface (browser-only; if Playwright
 // is unavailable this is skipped, like Phase B).
 async function phaseC() {
-  let chromium;
-  try { ({ chromium } = await import("playwright")); }
+  let pw;
+  try { pw = await import("playwright"); }
   catch { return; }   // already reported by Phase B's skip notice
   let browser;
-  try { browser = await chromium.launch(); }
-  catch (e) { if (process.env.CI) rec("launch chromium for gateway check", false, e.message); return; }
+  try { browser = await (pw[ENGINE] || pw.chromium).launch(); }
+  catch (e) { if (process.env.CI) rec(`launch ${ENGINE} for gateway check`, false, e.message); return; }
   try {
     const page = await (await browser.newContext()).newPage();
     await page.goto(SITE, { waitUntil: "load", timeout: 60000 }).catch(() => {});

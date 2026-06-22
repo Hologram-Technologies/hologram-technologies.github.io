@@ -63,6 +63,8 @@ export function looksLikeNavigation(text) {
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) return true;                              // http(s):// ftp:// ...
   if (/^did:holo:(sha256|blake3):[0-9a-f]{64}$/i.test(t)) return true;             // a content address κ
   if (/^[0-9a-f]{64}$/i.test(t)) return true;                                       // a bare 64-hex κ
+  // a TRUENAME — slug~quint(-quint)* (holo-truename); a destination (an alias for a κ), never "build".
+  if (/^[a-z0-9][a-z0-9-]*~[bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz](-[bdfghjklmnprstvz][aiou][bdfghjklmnprstvz][aiou][bdfghjklmnprstvz])*$/i.test(t)) return true;
   if (/^[a-z2-7]{16,56}\.onion(\/|$)/i.test(t)) return true;                        // a Tor onion
   if (/^\S+\.[a-z]{2,}(\/\S*)?$/i.test(t) && !/\s/.test(t)) return true;            // a bare domain (one token, has a TLD)
   return false;

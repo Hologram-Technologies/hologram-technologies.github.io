@@ -470,7 +470,10 @@
       if (!gpu) return;
       setTimeout(function () {
         import(BASE + "voice/holo-voice-holo-brain.mjs").then(function (m) {
-          if (m.prefetchHoloBrain) m.prefetchHoloBrain(CFG.holoModel || "qwen2.5-0.5b").catch(function () {});
+          // if a model was opened BY LINK (#model=κ), prefetch THAT κ's bytes — not the default — so the linked
+          // model is the one that's warm by first-touch (else we'd waste bandwidth warming a 0.5B we won't use).
+          if (CFG.holoModelKappa && m.loadHoloBytes) m.loadHoloBytes("/.holo/sha256/" + CFG.holoModelKappa, CFG.holoModelKappa).catch(function () {});
+          else if (m.prefetchHoloBrain) m.prefetchHoloBrain(CFG.holoModel || "qwen2.5-0.5b").catch(function () {});
         }).catch(function () {});
       }, 1500);                                                       // after the ear (≈0ms) + voice (500ms) warm kick off
     });
@@ -1150,7 +1153,16 @@
       _holoBrainLoading = (async function () {
         try {
           var m = await import(BASE + "voice/holo-voice-holo-brain.mjs");
-          var engine = (m.createHoloModelBrain || m.default)({ model: CFG.holoModel || "qwen2.5-0.5b" });
+          // a model opened BY LINK (openModelLink → CFG.holoModelKappa) loads that κ as Q's brain via the SW
+          // κ-route (/.holo/sha256/<κ> → IPFS heal); else the "respond" faculty model RESOLVED VIA THE MUX
+          // (ADR-0084) — exactly as speak/listen do (resolveFacultyModel) — so the one settings picker actually
+          // steers the main chat brain. Honor a pinned/override choice; fail SAFE to the pinned default. An
+          // adapter κ (#adapter=) rides along — the engine applies its witnessed attn_q delta over whichever base.
+          var adapterK = CFG.holoAdapterKappa || null;
+          var respondKey = (m.modelKeyForFaculty && m.modelKeyForFaculty("respond")) || CFG.holoModel || "qwen2.5-0.5b";
+          var engine = CFG.holoModelKappa
+            ? (m.createHoloModelBrain || m.default)({ model: "/.holo/sha256/" + CFG.holoModelKappa, kappa: CFG.holoModelKappa, adapter: adapterK })
+            : (m.createHoloModelBrain || m.default)({ model: respondKey, adapter: adapterK });
           await engine.load();                                     // quiet (no HUD) — overlaps the welcome
           _holoBrain = { engine };
           return _holoBrain;
@@ -1172,6 +1184,12 @@
       _holoUpTried = true;
       _holoUpLoading = (async function () {
         try {
+          // DEVICE-TIER GATE: the 1.5B (~1.1GB) auto-loads only on a HIGH-tier GPU (large per-binding ceiling).
+          // The 0.5B engine already reported the device tier at load; on a phone/integrated GPU we stay on it —
+          // silently OOM-ing a mobile tab is the opposite of magical. Unknown tier → proceed (no regression).
+          var baseInfo = _holoBrain && _holoBrain.engine && _holoBrain.engine.info && _holoBrain.engine.info();
+          var tier = baseInfo && baseInfo.gpu && baseInfo.gpu.tier;
+          if (tier && tier !== "high") { console.info("[HoloVoice] device tier '" + tier + "' — staying on the 0.5B brain (1.5B upgrade skipped)"); return null; }
           var m = await import(BASE + "voice/holo-voice-holo-brain.mjs");
           var engine = (m.createHoloModelBrain || m.default)({ model: CFG.holoUpgradeModel || "qwen2.5-1.5b" });
           await engine.load();
@@ -2085,8 +2103,8 @@
       '<div class="hv-eng"><span>Name <em style="opacity:.6">(say “hey&nbsp;…”)</em></span><input type="text" class="hv-name" id="hv-name" maxlength="24" spellcheck="false" autocomplete="off"></div>' +
       '<div class="hv-eng"><span>Voice</span><select class="hv-voice" id="hv-voice">' + VOICES.map(function (v) { return '<option value="' + v[0] + '">' + v[1] + '</option>'; }).join("") + '</select></div>' +
       '<div class="hv-eng"><span>Hands-free wake word</span><input type="checkbox" class="hv-sw" id="hv-wake-sw"></div>' +
-      '<div class="hv-eng"><span>Use WebGPU <em style="opacity:.6">(1.5B, faster)</em></span><input type="checkbox" class="hv-sw" id="hv-gpu-sw"></div>' +
-      '<button type="button" class="hv-test">Test WebGPU on this device</button>' +
+      '<div class="hv-eng"><span>Smarter replies <em style="opacity:.6">(uses more power)</em></span><input type="checkbox" class="hv-sw" id="hv-gpu-sw"></div>' +
+      '<button type="button" class="hv-test">Check this device</button>' +
       '<div class="hv-note"></div>';
     DOC.body.appendChild(menuEl);
     var sw = menuEl.querySelector("#hv-gpu-sw"), wsw = menuEl.querySelector("#hv-wake-sw"), nm = menuEl.querySelector("#hv-name"), vc = menuEl.querySelector("#hv-voice"), test = menuEl.querySelector(".hv-test"), note = menuEl.querySelector(".hv-note");
@@ -2096,17 +2114,17 @@
       note.textContent = wakeOn
         ? "Listening. Just say “Hey " + w + "”, e.g. “Hey " + w + ", open the browser.”"
         : (CFG.preferWebGPU
-          ? "WebGPU on. If replies look like gibberish, your GPU path is unsupported — run the test or turn this off."
-          : "On the any-browser WASM model (0.5B). Turn on WebGPU for the larger 1.5B model, then test it.");
+          ? "Smarter replies are on. If answers look garbled, this device can’t run them — tap Check, or turn this off."
+          : "Using the fast, lightweight assistant. Turn on smarter replies for higher-quality answers, then Check this device.");
     }
     nm.addEventListener("input", function () { setWakeWord(nm.value); if (menuEl.querySelector(".hv-note")) refresh(); });
     vc.addEventListener("change", function () { setVoice(vc.value); speakNatural("Hi, this is " + CFG.wakeWord + "."); });   // preview the chosen voice
     wsw.addEventListener("change", async function () { if (wsw.checked) { var ok = await startWake(); if (!ok) wsw.checked = false; } else stopWake(); refresh(); });
     sw.addEventListener("change", function () { setEngine(sw.checked); refresh(); });
     test.addEventListener("click", async function () {
-      test.disabled = true; test.textContent = "Testing… (loads ~1GB once)";
+      test.disabled = true; test.textContent = "Checking… (one-time setup)";
       try { await testWebGPU(); } catch (e) {}
-      test.disabled = false; test.textContent = "Test WebGPU on this device"; refresh(); sw.checked = !!CFG.preferWebGPU;
+      test.disabled = false; test.textContent = "Check this device"; refresh(); sw.checked = !!CFG.preferWebGPU;
     });
     menuEl._refresh = refresh; refresh();
     DOC.addEventListener("click", function (e) { if (menuEl.getAttribute("data-show") === "1" && !menuEl.contains(e.target) && e.target !== btn) hideMenu(); });
@@ -2555,7 +2573,7 @@
       ensureQWidget._wired = true;
       W.HoloWidgets.onChange(function (board) {
         try { var q = (board || []).filter(function (w) { return w.type === "q" && !w.hidden; })[0];
-          if (q) localStorage.setItem(QPOS_LS, JSON.stringify({ x: q.x, y: q.y, w: q.w })); } catch (e) {}
+          if (q) localStorage.setItem(QPOS_LS, JSON.stringify({ x: q.x, y: q.y, w: q.w, moved: !!q.moved })); } catch (e) {}
       });
     }
     var tries = 0;
@@ -2565,7 +2583,7 @@
       if (liveQ) { firstMeeting(); return; }                     // already present (restored or added) — done
       if (tries < 8) { setTimeout(attempt, 200); return; }       // let the shell restore its board first (~1.6s)
       var p = savedQPos() || orbHome();
-      try { W.HoloWidgets.add("q", null, { x: p.x, y: p.y, w: p.w || 120 }); } catch (e) {}
+      try { var qw = W.HoloWidgets.add("q", null, { x: p.x, y: p.y, w: p.w || 120 }); if (qw && p && p.moved) qw._userMoved = true; } catch (e) {}   // restore the "user placed it" opt-out so it isn't yanked back to the corner
       firstMeeting();
     })();
   }
@@ -2765,6 +2783,7 @@
       '<div class="qp-head"><canvas class="qp-orb"></canvas>' +
         '<div class="qp-id"><div class="qp-title">' + (CFG.wakeWord || "Q") + '</div><div class="qp-sub">on-device · private</div></div>' +
         '<button class="qp-scope" title="What Q can see and act on">🌐 Whole OS</button>' +
+        '<div class="qp-icon qp-share" title="Share this chat as a link">↗</div>' +
         '<div class="qp-icon qp-immersive" title="Immersive voice mode">🎙</div>' +
         '<div class="qp-icon qp-close" title="Collapse (Esc)" aria-label="Collapse panel">»</div></div>' +
       '<div class="qp-thread"><div class="qp-empty">Ask me anything, or tell me what to do.<br><br>I can see and act across your whole OS — open apps, change settings, drive what’s on screen.</div></div>' +
@@ -2782,6 +2801,7 @@
     qScopeBtn.textContent = qScopeLabel();                              // reflect the persisted scope on open
     qScopeBtn.addEventListener("click", function () { qScope = qScope === "os" ? "tab" : "os"; qScopeBtn.textContent = qScopeLabel(); try { W.localStorage.setItem("holo.voice.scope", qScope); } catch (e) {} speakToast(qScope === "os" ? "Q can act across the whole OS." : "Q is focused on this space."); });
     qPanel.querySelector(".qp-immersive").addEventListener("click", function () { openLive(); });
+    var shareEl = qPanel.querySelector(".qp-share"); if (shareEl) shareEl.addEventListener("click", function () { shareChat(); });
     qPanel.querySelector(".qp-close").addEventListener("click", closeQPanel);
     // golden scale is ratio-locked (no drag-resize) — just keep the holospace inset in sync as the
     // responsive width tracks the viewport, exactly like every other right carriage.
@@ -3146,6 +3166,98 @@
   };
   function preset(name) { var p = PRESETS[name]; if (!p) return null; Object.assign(CFG, p); return name; }
 
+  // ── SHARE A CHAT: a conversation is content you can hand someone as a link. shareChat() packs Q's live
+  //    _history into a URL #fragment (serverless — never hits a server); opening a #chat= link restores it
+  //    into Q and the brain re-prefills the FULL history → continues from the exact point. Token-exact
+  //    resume witnessed in the forge harness; Q's chat is the same createHoloBrain. ──────────────────────
+  function shareChat() {
+    var msgs = _history.slice(1).filter(function (m) { return m && (m.role === "user" || m.role === "assistant") && m.content; });
+    if (!msgs.length) { speakToast("Nothing to share yet — ask me something first."); return null; }
+    var link = null;
+    try { var b64 = btoa(unescape(encodeURIComponent(JSON.stringify({ v: 1, model: "Q", system: sysPrompt(), messages: msgs })))); link = location.origin + location.pathname + "#chat=" + encodeURIComponent(b64); } catch (e) { return null; }
+    try { navigator.clipboard && navigator.clipboard.writeText(link); } catch (e) {}
+    speakToast("Chat link copied — whoever opens it lands exactly here.");
+    try { W.dispatchEvent(new CustomEvent("holo-chat-shared", { detail: { link: link, turns: msgs.length } })); } catch (e) {}
+    return link;
+  }
+  function restoreChat(src) {
+    var h = src || location.hash || ""; var m = h.match(/chat=([^&]+)/); if (!m) return false;
+    var p; try { p = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); } catch (e) { return false; }
+    if (!p || !p.messages || !p.messages.length) return false;
+    _history = [{ role: "system", content: sysPrompt() }].concat(p.messages);   // converseAgent refreshes [0] with the live OS context on the next turn
+    openQPanel(); if (qThread) qThread.innerHTML = "";
+    p.messages.forEach(function (msg) { qBubble(msg.role === "user" ? "you" : "q", msg.content); });
+    speakToast("Restored a shared chat — pick up right where it left off.");
+    try { W.history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    try { W.dispatchEvent(new CustomEvent("holo-chat-restored", { detail: { turns: p.messages.length } })); } catch (e) {}
+    return true;
+  }
+  // CARRIAGE (ADR-0105): the cross-device / IPFS form of a shared chat. shareChatCarriage() seals the
+  // conversation into an IPFS κ-DAG and emits a #wks= link (self-contained CAR, never hits a server; pinnable
+  // to #car= via Pinata). restoreChatCarriage() decodes + re-derives every block (L5) → the conversation,
+  // and hands it to Q. The simple #chat= fragment (shareChat) stays the instant offline form. The seal/restore
+  // primitives (sealWorkspace/encodeResumeLink/decodeResumeLink/restoreWorkspace) are witnessed (5/5 round-trip).
+  var _wsMod = null;
+  function carriageMod() { if (!_wsMod) _wsMod = import("/sbin/holo-workspace-sync.mjs").catch(function () { return null; }); return _wsMod; }
+  function chatMessages() { return _history.slice(1).filter(function (m) { return m && (m.role === "user" || m.role === "assistant") && m.content; }); }
+  async function shareChatCarriage() {
+    var msgs = chatMessages(); if (!msgs.length) { speakToast("Nothing to share yet — ask me something first."); return null; }
+    var ws = await carriageMod();
+    if (!ws || !ws.sealWorkspace) return shareChat();      // carriage absent (off-shell) → self-contained #chat=
+    var manifest = { "@type": ["holo:SessionManifest"], "holo:kind": "holo:ChatShare", "holo:conversation": { model: "Q", system: sysPrompt(), messages: msgs } };
+    var sealed = await ws.sealWorkspace({ manifest: manifest, transport: "link" });
+    var url = location.origin + location.pathname + "#wks=" + ws.encodeResumeLink(sealed.rootCid, sealed.blocks);
+    try { navigator.clipboard && navigator.clipboard.writeText(url); } catch (e) {}
+    speakToast("Chat link copied — opens anywhere, verified block-by-block.");
+    window.__shareWks = url;
+    try { W.dispatchEvent(new CustomEvent("holo-chat-shared", { detail: { link: url, transport: "wks", rootCid: sealed.rootCid, turns: msgs.length } })); } catch (e) {}
+    return url;
+  }
+  async function restoreChatCarriage(h) {
+    var ws = await carriageMod(); if (!ws || !ws.decodeResumeLink) return false;
+    var got = ws.decodeResumeLink(h || location.hash || ""); if (!got || !got.roots || !got.roots[0]) return false;
+    var r = await ws.restoreWorkspace(got.roots[0], ws.verifiedBlockSource(got.blocks));   // L5: every block re-derived before use
+    var conv = r && r.manifest && r.manifest["holo:kind"] === "holo:ChatShare" && r.manifest["holo:conversation"];
+    if (!conv) return false;                                // not a chat → leave the #wks= for the holospace boot-resume
+    _history = [{ role: "system", content: sysPrompt() }].concat(conv.messages || []);
+    openQPanel(); if (qThread) qThread.innerHTML = "";
+    (conv.messages || []).forEach(function (msg) { qBubble(msg.role === "user" ? "you" : "q", msg.content); });
+    speakToast("Restored a shared chat (verified) — pick up where it left off.");
+    try { W.history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    try { W.dispatchEvent(new CustomEvent("holo-chat-restored", { detail: { turns: (conv.messages || []).length, transport: "wks" } })); } catch (e) {}
+    return true;
+  }
+  // OPEN-BY-LINK: #model=<κ> loads that model as Q's brain via the SW κ-route (/.holo/sha256/<κ> → IPFS, L5);
+  // #adapter=<κ> carries a fine-tune to apply on top (the brain-forward application is the adapter-in-Q track).
+  // The link is a content hash — the bytes arrive verified, nothing of the user's is sent.
+  function openModelLink(modelKappa, adapterKappa) {
+    var mk = /^[0-9a-f]{64}$/i.test(modelKappa || "") ? modelKappa.toLowerCase() : "";
+    var ak = /^[0-9a-f]{64}$/i.test(adapterKappa || "") ? adapterKappa.toLowerCase() : "";
+    if (!mk && !ak) return false;
+    CFG.holoAdapterKappa = ak;
+    if (mk) { CFG.holoBrain = true; CFG.holoModelKappa = mk; }   // a linked model κ becomes Q's brain (else keep the default base, with the adapter on top)
+    // a linked model OR adapter changes what the brain IS — drop the current engine so the next warm rebuilds it
+    // fresh (the adapter is bound at engine-BUILD time; without this reset an already-loaded brain would silently
+    // ignore an adapter-only link). This is what makes #adapter= seamless: open the link, no settings, it applies.
+    try { resetBrain(); } catch (e) {} _holoBrain = null; _holoBrainTried = false; _holoBrainLoading = null;
+    openQPanel();
+    speakToast(ak ? (mk ? "Opening a shared model + adapter by link…" : "Applying a shared adapter…") : "Opening a shared model by link…");
+    try { warmStarter(); } catch (e) {}   // EAGER warm: stream the linked κ (model and/or adapter) NOW so the first turn lands ready (κ-route → IPFS heal, per-block L5)
+    try { W.dispatchEvent(new CustomEvent("holo-model-opened", { detail: { model: mk, adapter: ak } })); } catch (e) {}
+    try { W.history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    return true;
+  }
+  // boot link router: a shared CHAT, MODEL, or ADAPTER link opened as a URL → the right surface (chat → restore;
+  // model/adapter → load as Q's brain). Holospace/workspace links (#wks=/#car=) are handled by resolveBootResume.
+  function maybeRestoreShared() {
+    var h = location.hash || "";
+    if (/[#&]chat=/.test(h)) { try { restoreChat(); } catch (e) {} return; }
+    var mm = h.match(/[#&]model=([0-9a-fA-F]{64})/), am = h.match(/[#&]adapter=([0-9a-fA-F]{64})/);
+    if (mm || am) { try { openModelLink(mm && mm[1], am && am[1]); } catch (e) {} return; }
+    if (/[#&]wks=/.test(h)) { restoreChatCarriage(h).catch(function () {}); }   // a CARRIAGE chat link → Q (non-chat #wks= returns false, left for the shell's holospace boot-resume)
+  }
+  if (DOC.readyState === "loading") DOC.addEventListener("DOMContentLoaded", function () { setTimeout(maybeRestoreShared, 60); }); else setTimeout(maybeRestoreShared, 60);
+
   // ── public API ──────────────────────────────────────────────────────────────────────────────────
   W.HoloVoice = {
     version: "0.47",
@@ -3215,6 +3327,9 @@
     startWake: startWake, stopWake: stopWake, toggleWake: toggleWake,  // hands-free wake word, serverless + persisted; toggleWake = one-tap on/off w/ feedback
     wakeDebug: function (on) { WAKE.debug = on !== false; if (WAKE.debug) speakToast("Wake debug on — open the console and say “" + wakePhrase() + "”."); return WAKE.debug; },   // log every segment: what Whisper heard + VAD + match
     openPanel: openQPanel, closePanel: closeQPanel, togglePanel: toggleQPanel, ask: qAsk,   // the docked Q panel — see the OS + converse/act together; ask(text) drives a turn
+    shareChat: shareChat, restoreChat: restoreChat,   // a conversation is a content link: shareChat()→#chat= URL fragment (serverless); restoreChat() rehydrates Q + the brain re-prefills (exact resume)
+    shareChatCarriage: shareChatCarriage, restoreChatCarriage: restoreChatCarriage,   // the IPFS/cross-device form: seal→#wks= CAR (pinnable→#car=), restore re-derives every block (L5)
+    openModelLink: openModelLink,   // open a model/adapter BY κ-link: loads it as Q's brain via the SW κ-route (/.holo/sha256/<κ> → IPFS, L5)
     context: function () { return qContext(qScope); }, osState: osSnapshot, scope: function (s) { if (s === "os" || s === "tab") { qScope = s; try { W.localStorage.setItem("holo.voice.scope", s); } catch (e) {} if (qScopeBtn) qScopeBtn.textContent = qScopeLabel(); } return qScope; },   // what Q can SEE of the κ-OS + its read/act scope
     embed: embedText, warmEmbed: ensureEmbed,   // semantic embeddings (EmbeddingGemma) → Q's semantic memory; lazy-loads + binds the QVAC embed seam
     see: seeImage, warmVision: ensureVision,     // sight (SmolVLM-256M) → describe/answer about an image; lazy-loads on first call

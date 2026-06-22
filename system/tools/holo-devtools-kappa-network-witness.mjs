@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const imp = (rel) => import(pathToFileURL(resolve(HERE, rel)).href);
-const { kappaToNetworkEvents, trackKappaFetches } = await imp("../os/usr/lib/holo/devtools/holo-devtools-kappa-network.mjs");
+const { kappaToNetworkEvents, trackKappaFetches, createKappaFetchTap } = await imp("../os/usr/lib/holo/devtools/holo-devtools-kappa-network.mjs");
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log("  ✓ " + m); } else { fail++; console.log("  ✗ " + m); } };
@@ -65,6 +65,22 @@ console.log("\nthe live tap (Network.enable → :delta):");
   onFetch({ kappa: K, cacheHit: true, verified: true });
   ok(sent.filter((m) => m === "Network.requestWillBeSent").length === 2, "every κ-fetch emits its request lifecycle through the tap");
   ok(sent.includes("Network.responseReceived"), "served fetches reach the panel as responses");
+}
+
+// ── 6) the seam — the stream layer emits, the backend subscribes (no per-call-site coupling) ──────────────
+console.log("\nthe κ-fetch tap (the seam stream-layer → panel):");
+{
+  const tap = createKappaFetchTap();
+  ok(tap.size === 0, "a fresh tap has no subscribers (emitting is a cheap no-op when DevTools is closed)");
+  const got = [];
+  const unsub = tap.subscribe((f) => got.push(f));
+  ok(tap.size === 1, "the backend subscribes on Network.enable");
+  tap.note({ kappa: K, bytes: 10, verified: true });
+  ok(got.length === 1 && got[0].kappa === K, "a κ-fetch site's note() reaches the backend");
+  unsub();
+  tap.note({ kappa: K, bytes: 10, verified: true });
+  ok(got.length === 1 && tap.size === 0, "unsubscribe stops delivery (Network.disable / panel closed — no leak)");
+  ok((() => { try { const t = createKappaFetchTap(); t.subscribe(() => { throw new Error("boom"); }); t.note({ kappa: K }); return true; } catch (e) { return false; } })(), "a throwing subscriber never breaks the fetch site (note() is isolated)");
 }
 
 console.log(`\n${fail === 0 ? "GREEN" : "RED"} — ${pass} passed, ${fail} failed\n`);

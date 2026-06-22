@@ -47,6 +47,8 @@ export function createQClient({ target, source } = {}) {
     briefing: () => call("q.briefing", {}),
     notices: () => call("q.notices", {}),
     remember: (signal) => call("q.remember", { signal: signal || {} }),
+    // "+" grounding from inside an app → the shell's one Q (holo-plus-q's detectQBus finds this on window.Q).
+    addGrounding: (grounding) => call("q.ground", { grounding: grounding || null }),
   };
 }
 
@@ -69,6 +71,7 @@ export function installQApp(opts = {}) {
     briefing: () => client.briefing(),
     notices: () => client.notices(),
     remember: (signal) => client.remember(signal),
+    addGrounding: (grounding) => client.addGrounding(grounding),   // "+" inside an app → the one Q
     _client: client,
   };
   if (!window.Q) window.Q = Q;
@@ -96,6 +99,10 @@ export function createQServe({ Q, summon } = {}) {
       const fac = (typeof window !== "undefined" && window.HoloQFaculty) || null;
       if (fac) { const f = await fac.serve({ method, args, caller }); if (f) return f; }
       const ground = (text) => { try { return fac ? fac.ground(caller, text) : null; } catch (e) { return null; } };
+      if (method === "q.ground") {   // "+" grounding from an app frame → the shell faculty's sink (feeds the next ask)
+        if (fac && typeof fac.addGrounding === "function") { try { fac.addGrounding(args.grounding); return { result: { ok: true } }; } catch (e) { return { result: { ok: false } }; } }
+        return { result: { ok: false, reason: "no faculty" } };
+      }
       if (method === "q.summon") { if (summon) summon(args.text || null, ctxFrom(args.context, caller)); return { result: { ok: true, app: caller } }; }
       if (method === "q.ask") { const ans = await Q.ask(String(args.text || ""), { context: ctxFrom(args.context, caller), grounding: ground(String(args.text || "")) }); return { result: ans != null ? ans : "" }; }
       if (method === "q.create") { const r = await Q.agent(String(args.text || ""), { caller: caller, params: { current: (args.context && args.context.source) || null, grounding: ground(String(args.text || "")) } }); return { result: r }; }

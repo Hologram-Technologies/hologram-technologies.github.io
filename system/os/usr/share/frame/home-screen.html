@@ -1251,7 +1251,16 @@
     function ask(text) {
       text = (text || "").trim(); if (!text) { $("q-input").focus(); return; }
       var reply = $("q-reply"); reply.textContent = "Thinking…";
-      qBrain(text, { onDelta: function (s) { reply.textContent = s; } }).then(function (r) { reply.textContent = r || "Done."; });   // shared brain bridge (same as the hero)
+      function converse() { qBrain(text, { onDelta: function (s) { reply.textContent = s; } }).then(function (r) { reply.textContent = r || "Done."; }); }
+      // ONE intent door (the SAME classifier the desktop shell uses via HoloResolve): an "open" intent LAUNCHES
+      // the app; every other intent converses via the brain. So "open music" behaves identically by voice or
+      // text, zero config. Falls back to converse if the classifier import or app-match misses (no regression).
+      import("/_shared/q/holo-q.js").then(function (m) {
+        var it = (m && m.classifyIntent) ? m.classifyIntent(text) : null;
+        if (it && it.kind === "open" && it.target && !/^(?:https?:|holo:|did:|ipfs:|www\.)/i.test(it.target)
+            && typeof window.__homeLaunch === "function" && window.__homeLaunch(it.target)) { reply.textContent = ""; return; }
+        converse();
+      }).catch(converse);
     }
   })();
 
@@ -1357,6 +1366,16 @@
     $("mins-more").classList.remove("on"); $("timer-expand").classList.remove("on");
     openSheet($("timer"));
   }
+  // W4 (mobile intent door): launch an app BY NAME for the shared intent classifier — "open music" → Music.
+  // Exposed on window so the Q-input scope can reach it; returns true iff an app launched. Same κ-native
+  // openApp path (promptOpen → holospace.html?app=κ); no new launch logic, just a name→app match.
+  if (typeof window !== "undefined") window.__homeLaunch = function (name) {
+    var t = String(name || "").trim().toLowerCase(); if (!t) return false;
+    var app = (apps || []).filter(Boolean).find(function (a) {
+      return (a.name || "").toLowerCase() === t || (a.id || "").toLowerCase() === t
+          || (a.name || "").toLowerCase().indexOf(t) >= 0 || (a.id || "").toLowerCase().indexOf(t) >= 0; });
+    if (!app) return false; promptOpen(app); return true;
+  };
   $("timer-expand").addEventListener("click", function () { $("mins-more").classList.toggle("on"); this.classList.toggle("on"); });
   document.querySelectorAll("#mins-quick button, #mins-more button").forEach(function (b) {
     b.addEventListener("click", function () { if (pendingApp) { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); openApp(pendingApp, +b.dataset.min); } });

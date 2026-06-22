@@ -216,6 +216,7 @@
           icon: a["schema:image"] ? new URL(a["schema:image"], ROOT).href : null,
           landing: landing ? new URL(landing, ROOT).href : null,
           dir: dirOf(landing),
+          kappa: String(a["@id"] || "").split(":").pop(),   // the app's content κ (sha256 hex) = its holospace origin
         };
       });
       return map;
@@ -255,6 +256,14 @@
     // The Holo Video tile is a LIVE object: it opens its own beautiful floating glass player window
     // (movable · resizable · immersive full screen) on the top shell plane — never a holospace tab.
     if (id === VIDEO_ID && W.HoloVideo && W.HoloVideo.open) { try { W.HoloVideo.open(); return; } catch (e) {} }
+    // NATIVE κ-tab: in the native Chromium host the desktop is served over the holo:// substrate as the
+    // top-level document — so opening an app = navigating THIS tab to the app's own κ-origin
+    // (holo://<κ>/), which Chromium isolates and the κ-route verifies. No shell, no iframe. In the web
+    // build (https, or embedded in shell) this is skipped → the existing openTab/iframe path runs.
+    if (location.protocol === "holo:" && W.top === W.self) {
+      var kap = (appInfo(id) || {}).kappa;
+      if (kap && /^[0-9a-f]{64}$/.test(kap)) { location.href = "holo://" + kap + "/"; return; }
+    }
     // The NAV opens every app as its OWN focused holospace tab (never hijacks the current surface).
     if (W.HoloShell && W.HoloShell.openTab) { try { W.HoloShell.openTab(id, appInfo(id).name); setTimeout(updateRunning, 60); return; } catch (e) {} }
     // Holo Browser is the universal navigator: a dock tap opens that object in a browser tab.

@@ -1,0 +1,32 @@
+<!doctype html><meta charset=utf-8><title>holo-voice share-a-chat witness</title>
+<body><pre id=out>loading holo-voice.js…</pre>
+<script src="holo-voice.js" defer></script>
+<script>
+// Witness the share-a-chat wiring on the REAL Q surface (holo-voice.js W.HoloVoice): restoreChat() a
+// crafted #chat= link → it rehydrates Q's private _history + renders the panel; shareChat() reads that
+// _history back into a link → the round-trip preserves the conversation. (The brain continuation is the
+// same createHoloBrain already witnessed in the forge harness.)
+window.addEventListener("load", function () {
+  setTimeout(function () {
+    const out = document.getElementById("out");
+    const HV = window.HoloVoice;
+    if (!HV) { out.textContent = "FAIL — window.HoloVoice not exposed"; window.__vshare = { ok: false, err: "no HoloVoice" }; return; }
+    const hasApi = typeof HV.shareChat === "function" && typeof HV.restoreChat === "function";
+    // craft a shared-chat link (2 turns) and restore it into the REAL Q
+    const chat = { v: 1, model: "Q", system: "You are Q.", messages: [
+      { role: "user", content: "What is the capital of France? Reply with only the city name." },
+      { role: "assistant", content: "Paris" }] };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(chat))));
+    const restored = hasApi ? HV.restoreChat("#chat=" + b64) : false;
+    const bubbles = document.querySelectorAll("#q-panel .qp-msg").length;
+    // shareChat reads Q's now-restored _history back into a link → decode + compare
+    const link = hasApi ? HV.shareChat() : null;
+    let roundTrip = null;
+    try { const m = link.match(/chat=([^&]+)/); const p = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); roundTrip = p.messages; } catch (e) {}
+    const same = roundTrip && roundTrip.length === 2 && roundTrip[0].content === chat.messages[0].content && roundTrip[1].content === chat.messages[1].content;
+    const ok = hasApi && restored === true && bubbles === 2 && !!link && same;
+    window.__vshare = { ok, hasApi, restored, bubblesRendered: bubbles, linkLen: link && link.length, roundTripPreserved: same };
+    out.textContent = (ok ? "PASS" : "FAIL") + " — share-a-chat on the real Q surface\n" + JSON.stringify(window.__vshare, null, 2);
+  }, 400);
+});
+</script>

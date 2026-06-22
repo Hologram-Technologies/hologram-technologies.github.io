@@ -70,7 +70,7 @@ export async function enroll({ label = "operator", secret, cred, credPub, credAl
   // refuse to mint a passphrase-openable vault (that would be a typed-secret path to the key). No
   // authenticator (or explicit headless `allowPhrase`) ⇒ phrase wrap is allowed. The greeter always passes
   // `cred`, so this never blocks a real first-run sign-in; it only closes the no-cred programmatic backdoor.
-  if (!cred && !allowPhrase && await _teeAvailable()) throw new Error("biometric required to enroll on this device (no typed-secret vault)");
+  if (!cred && !allowPhrase && await _teeAvailable()) throw new Error("Use your fingerprint or Face ID to create your account on this device.");
   const mnemonic = generateMnemonic(12);
   const vault = await createVault(mnemonic, await vaultKey(secret));
   const principal = await principalFromSeed(seedFromMnemonic(mnemonic), label);
@@ -135,7 +135,7 @@ export async function revealMnemonic(kappa, secret) {
   if (!rec) throw new Error("no such operator on this device");
   // S4: where the enclave is available, a phrase-wrapped vault must be upgraded (upgradeWrap) before its key
   // material is surfaced — a typed-secret vault is never a path to the seed/phrase on a TEE device.
-  if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("secure this account with your biometric before revealing your phrase");
+  if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("Turn on your fingerprint or Face ID to unlock your backup phrase.");
   return openVault(rec.vault, await vaultKey(secret)).mnemonic;       // throws on the wrong secret (AEAD)
 }
 // backed-up flag — drives the deferrable "secure your account" nudge (don't nag once they've saved it).
@@ -149,7 +149,7 @@ export async function unlockSeed(kappa, secret) {
   if (!rec) throw new Error("no such operator on this device");
   // S4: on a TEE device, the wallet seed is reachable only from a TEE-wrapped vault — a phrase vault must be
   // upgraded (upgradeWrap) first. Off-device (no authenticator) it stays openable for recovery.
-  if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("secure this account with your biometric before using the wallet");
+  if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("Turn on your fingerprint or Face ID to use your wallet.");
   return openVault(rec.vault, await vaultKey(secret)).seed;            // throws on the wrong secret (AEAD)
 }
 

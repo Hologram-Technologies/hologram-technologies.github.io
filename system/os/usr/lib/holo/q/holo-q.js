@@ -29,6 +29,28 @@ import { createRecall } from "./holo-q-recall.js";
 
 const intentText = (i) => typeof i === "string" ? i : (i && (i.text || i.utterance || i.input || i.prompt)) || "";
 
+// classifyIntent(text) → { kind, target } — the ONE intent classifier, pure (string in, decision out, no state).
+// Exported standalone so EVERY surface shares the exact same door: the desktop shell (HoloResolve over
+// Q.intent), the "+" router, AND the mobile home — no divergent per-surface regex. kinds: help · close ·
+// minimize · maximize · arrange · open · ask · build. (createQ's intent() simply delegates here.)
+export function classifyIntent(text) {
+  const s = String(text || "").trim();
+  if (!s) return { kind: "build", target: "" };
+  const low = s.toLowerCase();
+  let m;
+  if (/^(?:help|what can (?:you|q) do|what can i (?:say|ask|do|build)|capabilities|commands|\/help)\b/.test(low)) return { kind: "help", target: "" };
+  if ((m = low.match(/^(?:close|quit|exit|dismiss)\b\s*(.*)$/))) return { kind: "close", target: m[1].trim() || "this" };
+  if ((m = low.match(/^(?:minimi[sz]e|hide)\b\s*(.*)$/))) return { kind: "minimize", target: m[1].trim() || "this" };
+  if ((m = low.match(/^(?:maximi[sz]e|full[\s-]?screen|expand)\b\s*(.*)$/))) return { kind: "maximize", target: m[1].trim() || "this" };
+  if (/^(?:tile|arrange|grid)\b/.test(low)) return { kind: "arrange", target: "tile" };
+  if (/^(?:cascade|stack)\b/.test(low)) return { kind: "arrange", target: "cascade" };
+  if (/^(?:focus mode|distraction[\s-]?free|zen)\b/.test(low)) return { kind: "arrange", target: "focus" };
+  if ((m = s.match(/^(?:open|launch|go to|goto|navigate to|take me to|jump to)\s+(.+)$/i))) return { kind: "open", target: m[1].trim() };
+  if (/^(?:https?:\/\/|holo:\/\/|did:holo:|ipfs:\/\/|www\.)/i.test(s) || /^[\w-]+\.(?:com|org|net|io|dev|app|xyz|ai|gov|edu|co|eth)\b/i.test(s)) return { kind: "open", target: s };
+  if (/\?\s*$/.test(s) || /^(?:what|why|how|who|when|where|which|is|are|does|do|can|could|should|would|will|explain|describe|tell me|summari[sz]e|define)\b/i.test(low)) return { kind: "ask", target: s };
+  return { kind: "build", target: s };
+}
+
 // createQ({ trinity?, mux?, conscience?, clock? }) — all deps injectable (the Holo Atlas isomorphism).
 // `conscience` may be an object ({evaluate}) or a thunk returning one (resolved per call → load-order safe).
 export function createQ({ trinity = null, mux: muxImpl = mux, conscience = null, clock = null } = {}) {
@@ -131,23 +153,7 @@ export function createQ({ trinity = null, mux: muxImpl = mux, conscience = null,
   //    into what Q should DO — act on the OS (open · close · minimize · maximize), ASK (a question), or
   //    BUILD (everything else). The host executes the action verbs against the OS's existing open/window
   //    primitives; Q just decides. Pure → witnessed; reusable by the orb, an app, or an agent. ──
-  function intent(text) {
-    const s = String(text || "").trim();
-    if (!s) return { kind: "build", target: "" };
-    const low = s.toLowerCase();
-    let m;
-    if (/^(?:help|what can (?:you|q) do|what can i (?:say|ask|do|build)|capabilities|commands|\/help)\b/.test(low)) return { kind: "help", target: "" };
-    if ((m = low.match(/^(?:close|quit|exit|dismiss)\b\s*(.*)$/))) return { kind: "close", target: m[1].trim() || "this" };
-    if ((m = low.match(/^(?:minimi[sz]e|hide)\b\s*(.*)$/))) return { kind: "minimize", target: m[1].trim() || "this" };
-    if ((m = low.match(/^(?:maximi[sz]e|full[\s-]?screen|expand)\b\s*(.*)$/))) return { kind: "maximize", target: m[1].trim() || "this" };
-    if (/^(?:tile|arrange|grid)\b/.test(low)) return { kind: "arrange", target: "tile" };
-    if (/^(?:cascade|stack)\b/.test(low)) return { kind: "arrange", target: "cascade" };
-    if (/^(?:focus mode|distraction[\s-]?free|zen)\b/.test(low)) return { kind: "arrange", target: "focus" };
-    if ((m = s.match(/^(?:open|launch|go to|goto|navigate to|take me to|jump to)\s+(.+)$/i))) return { kind: "open", target: m[1].trim() };
-    if (/^(?:https?:\/\/|holo:\/\/|did:holo:|ipfs:\/\/|www\.)/i.test(s) || /^[\w-]+\.(?:com|org|net|io|dev|app|xyz|ai|gov|edu|co|eth)\b/i.test(s)) return { kind: "open", target: s };
-    if (/\?\s*$/.test(s) || /^(?:what|why|how|who|when|where|which|is|are|does|do|can|could|should|would|will|explain|describe|tell me|summari[sz]e|define)\b/i.test(low)) return { kind: "ask", target: s };
-    return { kind: "build", target: s };
-  }
+  function intent(text) { return classifyIntent(text); }
 
   // ── CAPABILITIES — Q tells you what you can say. Discoverability IS the simplicity: one door, but the
   //    user shouldn't have to guess its verbs. Pure → witnessed; the orb renders it on "help". ──

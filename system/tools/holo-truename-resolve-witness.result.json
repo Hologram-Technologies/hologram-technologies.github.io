@@ -1,0 +1,51 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "the real 50-app served catalog is the candidate set; every app has a UNIQUE truename (the κ→name reverse index is sound)",
+    "the user's original opaque κ (bb5fde48…) IS Holo Amp; its truename resolves back to exactly that κ",
+    "ALL apps round-trip: truename → exactly its own κ (verify-before-trust, no ambiguity)",
+    "expand(truename) → the holo://<hex> the existing κ-navigation already mounts (a truename is an alias for a κ)",
+    "LAW L5 — a tampered tail or a wrong slug resolves to NOTHING (refuse, never guess)",
+    "the nav detector routes a truename as a destination but a build phrase as intent (no false-positive)",
+    "verified prefix autocomplete over the catalog"
+  ],
+  "sample": [
+    {
+      "name": "Holo Amp",
+      "truename": "holo-amp~rotiz-tunam-tolis"
+    },
+    {
+      "name": "Holo ASCII",
+      "truename": "holo-ascii~kujaf-magug-kulim"
+    },
+    {
+      "name": "Holo Atlas",
+      "truename": "holo-atlas~timoh-zurid-lisot"
+    },
+    {
+      "name": "Holo Atlas 96",
+      "truename": "holo-atlas-96~ragok-farad-sinin"
+    },
+    {
+      "name": "Holo Guide",
+      "truename": "holo-guide~dofoh-kunuf-dovor"
+    },
+    {
+      "name": "Holo Boot Prompt",
+      "truename": "holo-boot-prompt~vavig-laran-mibil"
+    }
+  ],
+  "checks": {
+    "real-catalog-loaded": true,
+    "every-app-has-unique-truename": true,
+    "opaque-kappa-is-amp-and-round-trips": true,
+    "all-50-apps-resolve-to-their-own-kappa": true,
+    "expand-to-holo-link": true,
+    "L5-tamper-resolves-to-nothing": true,
+    "nav-detector-truename-not-buildphrase": true,
+    "suggest-autocomplete": true
+  },
+  "failed": [],
+  "authority": "holospaces Law L1/L2/L5 · W3C DCAT / schema.org · proquint · RFC 5952 · the holo-proquint/holo-truename/holo-locator spine"
+}

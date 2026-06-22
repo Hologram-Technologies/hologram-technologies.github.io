@@ -266,6 +266,12 @@ async function activeRealm() {
   return { realm: guestRealm(dev), cipher: makeCipher(deviceKeyBytes()), operator: false };
 }
 
+// activeCipher — the current at-rest cipher for ANY module that needs to seal/open private data under the
+// same key discipline as the experience manifest: the operator's vault cipher when unlocked, else the device
+// cipher (guest/locked). So a store like holo-memory can encrypt-at-rest with ONE shared, sovereign key —
+// nothing readable by a same-origin app, nothing leaves the device. Returns { realm, cipher, operator }.
+export async function activeCipher() { return activeRealm(); }
+
 export async function saveSnapshot(state) {
   const core = await bound(); const { realm, cipher } = await activeRealm(); const device = await deviceId();
   const res = await core.save({ ...state, realm, device, cipher, tab: TAB_ID, expectSeq: _seq[realm] });

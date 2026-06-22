@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="dark" />
+    <title>Hologram</title>
+    <!-- omnibar.html — the ONE Hologram-branded search/address bar. In the native Chromium host this
+         renders as the browser's top toolbar (a thin web BrowserView), replacing Chrome's omnibox so
+         the whole OS has one unified bar. Spectrum-outline animation + holomark + "Search anything with
+         Hologram"; no go-button. Enter → window.cefQuery('holo:omni:<value>') → the host classifies it
+         (κ/URL → navigate the active tab, verified; query → OS search). The host calls window.__setOmni
+         to reflect the active tab's address. The look is copied verbatim from shell.html's #omni. -->
+    <style>
+      :root {
+        --holo-bg: #0c0e13; --holo-ink: #e8ecf4; --holo-ink-dim: #8a93a6; --accent: #5b8cff;
+      }
+      @property --omni-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+      @keyframes omni-spin { to { --omni-spin: 360deg; } }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: #0a0c10; }
+      body { display: flex; align-items: center; height: 100%; padding: 0 14px;
+        font: 14px -apple-system, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      #omni { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 40px;
+        padding: 0 16px; border: 1.5px solid transparent; border-radius: 999rem;
+        background: linear-gradient(var(--holo-bg), var(--holo-bg)) padding-box,
+          conic-gradient(from var(--omni-spin), #ff3b6b, #ff9e2c, #ffe24a, #46e08a, #2bd4ff, #5b8cff, #c77bff, #ff3b6b) border-box;
+        box-shadow: 0 0 24px -7px rgba(120, 140, 255, .5);
+        animation: omni-spin 7s linear infinite; }
+      #omni:focus-within { box-shadow: 0 0 28px -6px rgba(120, 140, 255, .7), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+      #omni .sec { display: inline-flex; align-items: center; flex: 0 0 auto; }
+      #omni .sec img { display: block; width: 20px; height: 20px; filter: drop-shadow(0 0 5px rgba(130, 150, 255, .35)); }
+      #omni input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--holo-ink);
+        outline: none; font: inherit; }
+      #omni input::placeholder { color: var(--holo-ink-dim); opacity: 1; }
+      @media (prefers-reduced-motion: reduce) { #omni { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="omni">
+      <span class="sec" title="Hologram — one address for every object, verified by its fingerprint">
+        <img src="/usr/share/icons/hologram-dark.svg" alt="Hologram" />
+      </span>
+      <input id="addr" type="text" spellcheck="false" autocomplete="off"
+             aria-label="Search anything with Hologram" placeholder="Search anything with Hologram" />
+    </div>
+    <script>
+      (function () {
+        var a = document.getElementById("addr");
+        function q(req) { try { window.cefQuery({ request: req, persistent: false, onSuccess: function () {}, onFailure: function () {} }); } catch (e) {} }
+        a.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { var v = a.value.trim(); if (v) q("holo:omni:" + v); }
+        });
+        // The host reflects the active tab's address here (blank on Hologram home/omnibar surfaces).
+        window.__setOmni = function (u) {
+          try { a.value = (u && !/^holo:\/\/os\/(shell|home|omnibar)\b/.test(u)) ? u : ""; } catch (e) {}
+        };
+      })();
+    </script>
+  </body>
+</html>

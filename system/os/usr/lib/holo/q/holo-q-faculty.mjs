@@ -30,18 +30,36 @@ export function makeFacultyBridge({ Q } = {}) {
   // ground(caller, text) — the sanctioned path to the user model: the SHELL computes grounding for an app's
   // create/ask (affinity for this request + relevant recent intents), to be passed INTO generation. The app
   // never receives this object — only the grounded result. Returns a small, safe context, or null if no memory.
+  // "+" groundings the user added by intent (holo-plus-q → fuseToQ → addGrounding). Conversation-scoped,
+  // bounded, newest-first — these inform the NEXT answer without polluting the long-term user model. Each is
+  // a content-addressed holo:Grounding κ-object (auditable), so a cited insight still traces to its source bytes.
+  const plus = [];
+  function addGrounding(g) {
+    if (!g || typeof g !== "object") return false;
+    plus.unshift({ kappa: g["@id"] || g.kappa || null, text: String(g["schema:text"] || ""),
+      insights: g["holo:insights"] || [], sources: g["holo:sources"] || [] });
+    if (plus.length > 6) plus.length = 6;                                  // bounded (Law L3 — RAM is a cache)
+    // also write-through to the user model so the SHELL's own ask path (which grounds via Q.memory) sees it.
+    try { if (typeof Q.remember === "function") Q.remember({ kind: "intent", text: plus[0].text, meta: { via: "the+", kappa: plus[0].kappa } }); } catch (e) {}
+    return true;
+  }
+
   function ground(caller, text) {
-    const mem = Q.memory; if (!mem) return null;
+    const mem = Q.memory;
     let affinity = 0, hints = [];
-    try { affinity = typeof mem.affinity === "function" ? mem.affinity(text) : 0; } catch (e) {}
+    try { affinity = (mem && typeof mem.affinity === "function") ? mem.affinity(text) : 0; } catch (e) {}
     try {
       const toks = new Set(String(text || "").toLowerCase().match(/[a-z0-9]+/g) || []);
-      const recent = typeof mem.recent === "function" ? mem.recent({ kind: "intent", n: 12 }) : [];
+      const recent = (mem && typeof mem.recent === "function") ? mem.recent({ kind: "intent", n: 12 }) : [];
       hints = recent.map((r) => String(r["holmem:text"] || r.text || ""))
         .filter((s) => { const rt = new Set(s.toLowerCase().match(/[a-z0-9]+/g) || []); return [...toks].some((x) => rt.has(x)); })
         .slice(0, 3);
     } catch (e) {}
-    return { affinity, hints, app: String(caller || "app") };
+    // the "+" groundings are user-chosen context: surface them regardless of token overlap (newest first).
+    const plusHints = plus.map((p) => p.text).filter(Boolean);
+    const merged = [...plusHints, ...hints].slice(0, 5);
+    if (!mem && !plus.length) return null;                                 // nothing to ground with
+    return { affinity, hints: merged, app: String(caller || "app"), plus: plus.slice(0, 3) };
   }
 
   // serve({ method, args, caller }) → { result } | { error } | null. Returns null when `method` is NOT a
@@ -66,7 +84,7 @@ export function makeFacultyBridge({ Q } = {}) {
     return null;   // not a faculty method — let the base serve handle it
   }
 
-  return { serve, ground, methods: () => [...READS, "q.remember"].sort() };
+  return { serve, ground, addGrounding, methods: () => [...READS, "q.remember"].sort() };
 }
 
 // ── browser binding: window.HoloQFaculty over the shell Q, once the spine has wired Q's faculties. The host's
@@ -78,6 +96,9 @@ if (typeof window !== "undefined") {
     try {
       if (window.HoloQFaculty || !(window.Q && typeof window.Q.coherence === "function")) return;
       window.HoloQFaculty = makeFacultyBridge({ Q: window.Q });
+      // expose the "+" delivery sink ON the shell Q, so holo-plus-q's detectQBus finds it (window.Q.addGrounding)
+      // and an intent's grounding reaches Q's next answer. Idempotent; never clobbers an existing sink.
+      try { if (typeof window.Q.addGrounding !== "function") window.Q.addGrounding = (g) => window.HoloQFaculty.addGrounding(g); } catch (e) {}
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-q-faculty-ready"));
     } catch (e) { /* leave unset; apps keep the proxy subset */ }
   };
