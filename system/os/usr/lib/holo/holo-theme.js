@@ -171,7 +171,7 @@
       mods.forEach(function (m) {
         if (document.querySelector('script[src*="' + m + '"]')) return;
         var s = document.createElement("script");
-        if (/\.mjs$/.test(m)) s.type = "module"; else s.defer = true;
+        s.type = "module";   // every entry in this spine-boot list is an ES module. holo-control-dsp.js is .js-named but `export`s — loading it as a classic script threw "Unexpected token 'export'" and silently dropped the DSP core. Module scripts defer by default.
         s.src = SHARED + m;
         (document.head || document.documentElement).appendChild(s);
       });
