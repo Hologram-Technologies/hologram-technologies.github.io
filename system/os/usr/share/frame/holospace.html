@@ -349,6 +349,23 @@ async function boot() {
   if (!app) return die(`<b>Hologram OS</b> pick a holospace:<div class="apps">` +
     apps.map((a) => `<a href="?app=${encodeURIComponent(a["@id"])}">${a["schema:name"]}</a>`).join(" · ") + `</div>`);
 
+  // CC-56 portable κ-attestation (RFC 9334 RATS): a shared link MAY carry att=<base64url> — the sharer's
+  // signed Evidence vouching that THIS κ is what runs. VERIFY-BEFORE-MOUNT, fail-closed: if present and it
+  // fails to re-derive (Law L5) or its subject is not one of THIS app's identities, REFUSE to mount. Absent
+  // ⇒ proceed unchanged. Automatic + invisible to the guest.
+  const attEnc = params.get("att") || (location.hash.match(/[#&]att=([^&#]+)/) || [])[1] || "";
+  if (attEnc) {
+    let verified = null;
+    try {
+      const A = await import("./_shared/holo-attest.mjs");
+      const rec = A.decodeAttestationLink(attEnc);
+      const v = rec ? await A.verifyAttestation(rec) : null;
+      const ids = new Set([app["@id"], raw, app["schema:identifier"], app["holo:words"]].filter(Boolean).map(String));
+      verified = v && ids.has(String(v.subject));
+    } catch (e) { verified = null; }
+    if (!verified) return die("This shared link's attestation didn't verify — refusing to open. It may be tampered, or vouches for a different app.");
+  }
+
   // Fetch the app's definition + content-address lock. A "lean" OS-image catalogue carries only
   // @id · identifier · fhs and omits dcat:landingPage — so when it's absent, fall back to the app
   // REFERENCE as the folder id (the launcher / launchApp pass apps/<id>, and every app's files live
