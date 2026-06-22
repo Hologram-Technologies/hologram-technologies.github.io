@@ -194,6 +194,27 @@ jobs:
       # verifier as the source gate (no second, drifting checker), pointed at the artifact via HOLO_OS_DIR.
       - name: Verify staged artifact (deploy only what re-derives)
         run: HOLO_OS_DIR=_site/os node system/tools/reseal.mjs --check
+      # ── Pre-publish COLD-BOOT gate (fail-closed) — BLOCKS the deploy if a fresh visitor can't boot ──
+      # Serve the staged _site EXACTLY as Pages will (a dumb static host → the κ Service Worker runs PROD,
+      # L5 enforced) and cold-boot it through the gateway in a real browser BEFORE uploading. Catches what
+      # the seal gate can't: a gateway that won't self-certify, or an uncaught boot-time error (e.g. a module
+      # loaded as a classic script — the kind that fail-closes nothing but strands the boot). Gates on 409s +
+      # syntax/reference errors only (a GPU-less runner emits benign pageerrors we ignore). A red here STOPS
+      # the job before upload-pages-artifact — the broken bytes never reach a visitor. (The verify-boot job
+      # below is the post-deploy twin: it re-checks the REAL live subpath URL, which this localhost gate can't.)
+      - name: Pre-publish cold-boot gate (blocks the deploy)
+        run: |
+          cd system && (npm ci || npm install)
+          npx playwright install --with-deps chromium
+          cd "$GITHUB_WORKSPACE"
+          PAGES_ROOT="$GITHUB_WORKSPACE/_site" node system/tools/serve-pages.mjs 8080 &
+          SP=$!
+          for i in $(seq 1 40); do curl -sf -o /dev/null "http://127.0.0.1:8080/" && break; sleep 0.5; done
+          set +e
+          HOLO_DEPLOY="http://127.0.0.1:8080/" node system/tools/holo-cold-boot-witness.mjs
+          RC=$?
+          kill $SP 2>/dev/null || true
+          exit $RC
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

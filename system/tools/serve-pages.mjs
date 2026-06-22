@@ -16,6 +16,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..");        // system/  (here = system/tools)
 const REPO = join(ROOT, "..");        // the repo root — the gateway + the root docs live here
 const OS = join(ROOT, "os");          // system/os
+// PAGES_ROOT (optional, absolute): serve a pre-assembled site dir (the deploy's _site) AS-IS instead of
+// the repo, so CI can cold-boot the EXACT artifact it is about to publish. In _site the OS already sits at
+// os/ (flattened), so the repo's os/→system/os fallback is skipped.
+const SERVE_ROOT = process.env.PAGES_ROOT || REPO;
+const FLAT = !!process.env.PAGES_ROOT;
 const ROOT_FILES = ["index.html", "README.md", "AGENTS.md", "CONSTITUTION.md"];
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".json": "application/json", ".jsonld": "application/ld+json", ".wasm": "application/wasm", ".png": "image/png",
@@ -29,7 +34,7 @@ function resolve(pathname) {
   let p = pathname.replace(/^\/+/, "");
   if (p === "" || p.endsWith("/")) p += "index.html";
   if (p.split("/").includes("..")) return null;                      // no path traversal
-  return join(REPO, p);
+  return join(SERVE_ROOT, p);
 }
 
 const server = http.createServer((req, res) => {
@@ -38,7 +43,7 @@ const server = http.createServer((req, res) => {
   if (abs && existsSync(abs) && statSync(abs).isDirectory()) abs = join(abs, "index.html");
   // the gateway/JSON-LD reference the OS as `os/…`; the real path is `system/os/…`. Resolve both
   // so declarative links also work (boot uses whichever the gateway probes).
-  if ((!abs || !existsSync(abs)) && /^\/os\//.test(pathname)) abs = join(REPO, "system", pathname.replace(/^\/+/, ""));
+  if (!FLAT && (!abs || !existsSync(abs)) && /^\/os\//.test(pathname)) abs = join(REPO, "system", pathname.replace(/^\/+/, ""));
   if (!abs || !existsSync(abs) || !statSync(abs).isFile()) { res.writeHead(404, { "content-type": "text/plain" }); return res.end("404: " + pathname); }
   res.writeHead(200, { "content-type": TYPES[extname(abs).toLowerCase()] || "application/octet-stream", "cache-control": "no-store" });
   res.end(readFileSync(abs));

@@ -73,78 +73,51 @@ async function phaseA() {
 }
 
 // ── Phase B: a genuinely cold visitor, under a real worker (Playwright optional) ──
+// ── Phase B: a real cold boot THROUGH THE GATEWAY (the URL a visitor actually opens) ────────────────
+// Redirect-proof + GPU-independent. We do NOT navigate /os/ directly (os/index.html does location.replace
+// → a race that's flaky pre-publish); instead we open the gateway, let it self-certify (Law L5), press
+// Power-up, and let the boot chain (Plymouth → SDDM → shell) fan out through the worker — OBSERVING THE
+// WIRE the whole time. A Safety-Stop IS an HTTP 409 from the worker; a boot-breaking regression throws a
+// SyntaxError/ReferenceError. We gate on exactly those two (not generic pageerrors — a headless/GPU-less
+// runner emits those benignly). This same flow works pre-publish (serving _site) and post-deploy (live).
 async function phaseB() {
   let chromium;
   try { ({ chromium } = await import("playwright")); }
-  catch { console.log("\n(playwright not installed — Phase B real-browser cold boot skipped; Phase A is still fatal)"); return; }
+  catch { console.log("\n(playwright not installed — browser cold-boot skipped; Phase A is still fatal)"); return; }
   let browser;
   try { browser = await chromium.launch(); }
   catch (e) {
-    // In CI the browser is installed, so a launch failure is a real setup fault → FAIL (never let P2
-    // silently degrade to network-only). Locally without a browser binary, skip and rely on Phase A.
+    // In CI the browser is installed, so a launch failure is a real setup fault → FAIL (never let the
+    // gate silently degrade to network-only). Locally without a browser binary, skip and rely on Phase A.
     if (process.env.CI) { rec("launch chromium for cold-boot", false, e.message); return; }
-    console.log(`\n(chromium not launchable locally — Phase B skipped: ${e.message})`); return;
+    console.log(`\n(chromium not launchable locally — browser cold-boot skipped: ${e.message})`); return;
   }
   try {
-    const ctx = await browser.newContext();             // fresh profile = a genuinely cold first visit
-    const page = await ctx.newPage();
-    // OBSERVE the wire: a Safety-Stop IS an HTTP 409 from the worker. Watching responses is redirect-proof
-    // (the boot page navigates once the worker activates, which would destroy an in-page evaluate).
-    const refused = [];
-    page.on("response", (r) => { if (r.status() === 409) refused.push(r.url()); });
-    await page.goto(OS, { waitUntil: "load", timeout: 60000 }).catch(() => {});
-    const controlled = await page.evaluate(async () => {
-      const s = (m) => new Promise((r) => setTimeout(r, m));
-      if (navigator.serviceWorker && !navigator.serviceWorker.controller) { try { await navigator.serviceWorker.register("./holo-fhs-sw.js", { type: "module" }); } catch {} }
-      for (let i = 0; i < 200 && !(navigator.serviceWorker && navigator.serviceWorker.controller); i++) await s(100);
-      return !!(navigator.serviceWorker && navigator.serviceWorker.controller);
-    }).catch(() => false);
-    rec("service worker takes control on a cold visit", controlled);
-    if (!controlled) return;
-    // reload so EVERY boot request — including the top-level document — flows through the worker, then let
-    // the boot chain fan out. A mis-sealed image refuses (409) here; refuseClosure 409s EVERYTHING.
-    await page.reload({ waitUntil: "load", timeout: 60000 }).catch(() => {});
-    await page.waitForTimeout(4000);
-    rec("no Safety-Stop (zero 409 refusals) during a cold boot under the worker",
-      refused.length === 0, refused.length ? `${refused.length}× 409 — e.g. ${refused[0]}` : "0× 409");
-  } finally { await browser.close(); }
-}
-
-// ── Phase C: the GATEWAY (the actual URL a user opens) ──────────────────────────────────────────────
-// The root gateway (index.html) is served RAW by the host — outside the Service Worker AND outside the
-// seal — so neither the artifact gate nor Phases A/B cover it. Yet it is the one surface a visitor lands
-// on, and it FAILS CLOSED on its own (Law L5 self-certification): it re-derives its own bytes and refuses
-// to boot if it can't (data-holo-certified, #enter disabled). A broken/unprovable gateway would strand
-// every visitor with Power-up greyed out — invisible to A/B. This loads the real gateway and asserts it
-// certifies and enables Power-up — closing the last unwitnessed boot surface (browser-only; if Playwright
-// is unavailable this is skipped, like Phase B).
-async function phaseC() {
-  let chromium;
-  try { ({ chromium } = await import("playwright")); }
-  catch { return; }   // already reported by Phase B's skip notice
-  let browser;
-  try { browser = await chromium.launch(); }
-  catch (e) { if (process.env.CI) rec("launch chromium for gateway check", false, e.message); return; }
-  try {
-    const page = await (await browser.newContext()).newPage();
+    const page = await (await browser.newContext()).newPage();   // fresh profile = a genuinely cold first visit
+    const refused = [], fatal = [];
+    page.on("response", (r) => { if (r.status() === 409) refused.push(r.url().replace(/^https?:\/\/[^/]+/, "")); });
+    page.on("pageerror", (e) => { const s = String(e); if (/SyntaxError|ReferenceError|Unexpected token|is not defined/.test(s)) fatal.push(s.slice(0, 140)); });
+    // 1) the gateway (served raw — outside the SW + the seal) self-certifies before it will boot.
     await page.goto(SITE, { waitUntil: "load", timeout: 60000 }).catch(() => {});
     let state = "pending";
-    for (let i = 0; i < 100 && state === "pending"; i++) {   // the self-cert is async (fetch+hash own bytes)
-      state = await page.evaluate(() => document.documentElement.getAttribute("data-holo-certified") || "pending").catch(() => "err");
+    for (let i = 0; i < 120 && state === "pending"; i++) {
+      state = await page.evaluate(() => document.documentElement.getAttribute("data-holo-certified") || "pending").catch(() => "pending");
       if (state === "pending") await sleep(100);
     }
     rec("gateway self-certifies (data-holo-certified=true)", state === "true", "state=" + state);
     const enterOk = await page.evaluate(() => { const e = document.getElementById("enter"); return !!e && !e.disabled; }).catch(() => false);
     rec("Power-up is enabled on the certified gateway", enterOk);
-    const refusal = await page.evaluate(() => document.documentElement.getAttribute("data-holo-refusal") || "").catch(() => "");
-    rec("no gateway certification refusal", !refusal, refusal ? "refusal=" + refusal : "clean");
+    // 2) press Power-up → the boot chain fans out THROUGH the worker; watch the wire.
+    if (enterOk) { await page.click("#enter", { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(14000); }
+    rec("no Safety-Stop (zero 409 refusals) during a cold boot", refused.length === 0, refused.length ? `${refused.length}× 409 — e.g. ${refused[0]}` : "0× 409");
+    rec("no fatal boot error (syntax/reference)", fatal.length === 0, fatal.length ? fatal[0] : "clean");
   } finally { await browser.close(); }
 }
 
 (async () => {
   console.log(`cold-boot witness → ${OS}\n`);
   const live = await awaitBuild();
-  if (live) { await phaseA(); await phaseB(); await phaseC(); }
+  if (live) { await phaseA(); await phaseB(); }
   const ok = fail === 0;
   try { writeFileSync(join(here, "holo-cold-boot-witness.result.json"), JSON.stringify({ os: OS, expect: EXPECT || null, pass, fail, ok, results }, null, 2)); } catch {}
   console.log(`\n${ok ? "PASS" : "FAIL"} — ${pass} ok · ${fail} failed`);
