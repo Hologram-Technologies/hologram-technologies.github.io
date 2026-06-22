@@ -31,3 +31,9 @@
 *.zip    binary
 *.gz     binary
 *.jar    binary
+
+# FIGlet fonts: ASCII art with high-bit bytes that git's `text=auto` heuristic classifies
+# INCONSISTENTLY across platforms/versions — so a CI checkout could eol-mangle them and the
+# sealed κ would no longer match the deploy bytes (a real fail-closed seal-gate break). Pin
+# them binary so their bytes are identical everywhere, like every other shipped asset.
+*.flf    binary
