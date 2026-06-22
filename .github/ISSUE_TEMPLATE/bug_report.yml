@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in the OS does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a suspected **security vulnerability**, do not file here — see
+        [SECURITY.md](../SECURITY.md).
+  - type: input
+    id: where
+    attributes:
+      label: Where (app / module / page)
+      placeholder: "e.g. Files app, holo-q-mux, gateway boot"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include any Safety-Stop / 409, console errors, or the build-id.json commit.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Steps, and whether it reproduces on the live site or only locally.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "browser + version, OS, cold load vs warm"

@@ -1,0 +1,38 @@
+version: 2
+
+# Keep dependencies and pinned actions current as reviewable PRs rather than
+# silent drift. Actions are pinned by SHA (supply-chain authority is pinned, not
+# floating on a movable tag); Dependabot proposes the SHA bump for review.
+
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: npm
+    directory: "/system"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: npm
+    directory: "/system/docs/site"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: cargo
+    directory: "/system/crates/holospaces-web"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"

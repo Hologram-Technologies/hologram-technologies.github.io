@@ -1,0 +1,22 @@
+name: Feature / change
+description: Propose a capability or change to the OS.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The intent first — the outcome you want, not just the mechanism.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: laws
+    attributes:
+      label: Fit with the laws
+      description: Content-not-location, verify-by-re-derivation (L5), authority only attenuates. Note any tension.

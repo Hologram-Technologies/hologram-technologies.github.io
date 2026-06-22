@@ -1,0 +1,26 @@
+# gitleaks configuration for Hologram OS.
+#
+# Secrets are never committed. This extends gitleaks' default rules and allowlists
+# the OS's content-addressed artifacts — κ-labels, lockfiles, closures, sealed
+# .holo bytes — which are hashes, not secrets, and would otherwise read as
+# high-entropy strings and trip the generic detectors.
+
+title = "hologram-os"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Content-addressed artifacts (κ-labels / sealed bytes) are not secrets."
+paths = [
+  '''.*holospace\.lock\.json$''',
+  '''.*\.holo$''',
+  '''.*\.kappa$''',
+  '''.*os-closure\.json$''',
+  '''.*os-served\.json$''',
+  '''.*/\.well-known/.*''',
+  '''.*/vendor/.*''',
+  '''CHANGELOG\.md$''',
+  '''.*\.lock$''',
+  '''package-lock\.json$''',
+]
