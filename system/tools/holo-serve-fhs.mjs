@@ -18,6 +18,7 @@ import { Readable } from "node:stream";
 import { createHash } from "node:crypto";                 // re-derivation at the κ-route's substrate fallback (Law L5)
 import { fhsMap } from "../os/lib/holo-fhs-map.mjs";     // the ONE flat→FHS mapping (shared with the Pages SW)
 import { identiconSvg } from "../os/usr/lib/holo/holo-identicon.mjs";   // content-derived OG-card visual
+import { shareCardMeta, shareCardSvg } from "../os/usr/lib/holo/holo-share-card.mjs";   // ONE canonical unfurl card (dev + baker)
 import { buildAppRegistry, descriptor, handle as mcpHandle } from "../os/usr/lib/holo/mcp/holo-mcp.mjs";   // per-app MCP surface (dependency-free core)
 import { handleApi, collectNdjson, collectSse } from "../os/usr/lib/holo/api/holo-api-core.mjs";   // per-app unified REST API (κ-stream ingress/egress)
 import { onionFetch, normalizeTransport, resolveActiveTransport } from "../os/sbin/holo-omni-onion-transport.mjs";   // the two honest Tor transports (gateway · SOCKS5) + local-Tor autodetect
@@ -629,21 +630,17 @@ export function makeHandler(stats = { os2: 0, apps: 0, orig: new Set(), miss: ne
     if (mTilde) {
       const meta = appMeta(mTilde[1]);
       if (!meta) { res.writeHead(404, COI); return res.end("no such holospace: " + mTilde[1]); }
-      if (mTilde[2]) {   // /~<app>/og.svg → the content-derived identicon card
+      if (mTilde[2]) {   // /~<app>/og.svg → the content-derived identicon card (shared canonical with the baker)
         res.writeHead(200, { ...COI, "content-type": "image/svg+xml; charset=utf-8", "cache-control": "max-age=600" });
-        return res.end(identiconSvg(meta.root, { size: 320, label: meta.name }));
+        return res.end(shareCardSvg({ kappa: meta.root, name: meta.name }));
       }
       const boot = readRel("holospace.html", stats);
       if (!boot) { res.writeHead(404, COI); return res.end("boot page missing"); }
       const host = req.headers.host || ("127.0.0.1");
-      const img = `http://${host}/~${mTilde[1]}/og.svg`;
-      const og = `\n  <base href="/">\n  <meta property="og:type" content="website">`
-        + `\n  <meta property="og:title" content="${meta.name.replace(/"/g, "&quot;")}">`
-        + `\n  <meta property="og:description" content="${meta.summary.replace(/"/g, "&quot;")}">`
-        + `\n  <meta property="og:image" content="${img}">`
-        + `\n  <meta name="twitter:card" content="summary_large_image">`
-        + `\n  <meta name="twitter:image" content="${img}">`
-        + `\n  <meta name="holo:app" content="${mTilde[1]}">`;
+      // https-aware absolute origin so the card resolves behind a TLS reverse proxy / Pages, not just dev http.
+      const proto = String(req.headers["x-forwarded-proto"] || "http").split(",")[0].trim() || "http";
+      // The ONE canonical unfurl head (holo-share-card.mjs) — byte-identical to the prod baked /~<app> pages.
+      const og = `\n  <base href="/">` + shareCardMeta({ id: mTilde[1], name: meta.name, summary: meta.summary, origin: `${proto}://${host}` });
       const html = boot.buf.toString("utf8").replace(/<head>/i, "<head>" + og);
       res.writeHead(200, { ...COI, "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
       return res.end(html);

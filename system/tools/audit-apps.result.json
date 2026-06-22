@@ -3,8 +3,8 @@
     {
       "id": "amp",
       "mounted": false,
-      "fromOS2": 76,
-      "fromApps": 4,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
       "errs": 0,
@@ -13,89 +13,117 @@
     },
     {
       "id": "ascii",
-      "mounted": true,
-      "fromOS2": 94,
-      "fromApps": 5,
+      "mounted": false,
+      "fromOS2": 54,
+      "fromApps": 6,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
-      "fallbackList": [],
-      "missingList": []
-    },
-    {
-      "id": "atlas",
-      "mounted": true,
-      "fromOS2": 112,
-      "fromApps": 99,
-      "fallbacks": 0,
-      "missing": 2,
+      "missing": 1,
       "errs": 2,
       "fallbackList": [],
       "missingList": [
-        "apps/holo-3d/holospace.lock.json",
-        "apps/holo-x86/holospace.lock.json"
+        "holo-splash.js"
+      ]
+    },
+    {
+      "id": "atlas",
+      "mounted": false,
+      "fromOS2": 72,
+      "fromApps": 111,
+      "fallbacks": 0,
+      "missing": 1,
+      "errs": 2,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js"
       ]
     },
     {
       "id": "atlas96",
-      "mounted": true,
-      "fromOS2": 89,
-      "fromApps": 12,
+      "mounted": false,
+      "fromOS2": 49,
+      "fromApps": 13,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 1,
+      "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "book",
-      "mounted": true,
-      "fromOS2": 94,
-      "fromApps": 8,
+      "mounted": false,
+      "fromOS2": 62,
+      "fromApps": 9,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 3,
+      "errs": 4,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-guide.js",
+        "holo-splash.js",
+        "mascot-light.svg"
+      ]
+    },
+    {
+      "id": "boot-prompt",
+      "mounted": false,
+      "fromOS2": 50,
+      "fromApps": 7,
+      "fallbacks": 0,
+      "missing": 2,
+      "errs": 3,
+      "fallbackList": [],
+      "missingList": [
+        "icon.svg",
+        "κ:e39372c984"
+      ]
     },
     {
       "id": "brcminer",
-      "mounted": true,
-      "fromOS2": 92,
-      "fromApps": 11,
+      "mounted": false,
+      "fromOS2": 52,
+      "fromApps": 12,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 1,
+      "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "browser",
-      "mounted": true,
-      "fromOS2": 103,
-      "fromApps": 15,
+      "mounted": false,
+      "fromOS2": 63,
+      "fromApps": 16,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-install.js",
+        "holo-splash.js"
+      ]
     },
     {
       "id": "btc",
-      "mounted": true,
-      "fromOS2": 99,
-      "fromApps": 6,
+      "mounted": false,
+      "fromOS2": 60,
+      "fromApps": 7,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 1,
+      "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "capture",
       "mounted": false,
-      "fromOS2": 76,
-      "fromApps": 4,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
       "errs": 0,
@@ -104,215 +132,288 @@
     },
     {
       "id": "cloud",
-      "mounted": true,
-      "fromOS2": 92,
+      "mounted": false,
+      "fromOS2": 52,
       "fromApps": 9,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 2,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "apps/cloud/srcdoc",
+        "holo-splash.js"
+      ]
     },
     {
       "id": "code",
-      "mounted": true,
-      "fromOS2": 95,
-      "fromApps": 11,
+      "mounted": false,
+      "fromOS2": 63,
+      "fromApps": 12,
       "fallbacks": 0,
-      "missing": 0,
+      "missing": 1,
       "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "code-desktop",
       "mounted": false,
-      "fromOS2": 76,
-      "fromApps": 4,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
-      "errs": 2,
+      "errs": 0,
       "fallbackList": [],
       "missingList": []
     },
     {
       "id": "control",
-      "mounted": true,
-      "fromOS2": 92,
-      "fromApps": 8,
+      "mounted": false,
+      "fromOS2": 52,
+      "fromApps": 9,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js",
+        "script.js"
+      ]
     },
     {
       "id": "cosmos",
-      "mounted": true,
-      "fromOS2": 76,
-      "fromApps": 5,
+      "mounted": false,
+      "fromOS2": 41,
+      "fromApps": 6,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 2,
+      "missing": 1,
+      "errs": 26,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "docs",
-      "mounted": true,
-      "fromOS2": 90,
+      "mounted": false,
+      "fromOS2": 50,
       "fromApps": 9,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "apps/docs/srcdoc",
+        "holo-splash.js"
+      ]
     },
     {
       "id": "etherscan",
-      "mounted": true,
-      "fromOS2": 102,
-      "fromApps": 19,
+      "mounted": false,
+      "fromOS2": 63,
+      "fromApps": 21,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 1,
+      "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "evm",
-      "mounted": true,
-      "fromOS2": 92,
-      "fromApps": 9,
+      "mounted": false,
+      "fromOS2": 53,
+      "fromApps": 10,
       "fallbacks": 0,
-      "missing": 1,
-      "errs": 1,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
       "missingList": [
-        "κ:be5d2092cb"
+        "holo-splash.js",
+        "κ:8dcd42a622"
       ]
     },
     {
       "id": "f1",
-      "mounted": true,
-      "fromOS2": 88,
-      "fromApps": 7,
+      "mounted": false,
+      "fromOS2": 48,
+      "fromApps": 8,
       "fallbacks": 0,
-      "missing": 1,
-      "errs": 1,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
       "missingList": [
+        "holo-splash.js",
         "κ:3de6f836fa"
       ]
     },
     {
       "id": "files",
-      "mounted": true,
-      "fromOS2": 95,
-      "fromApps": 5,
+      "mounted": false,
+      "fromOS2": 61,
+      "fromApps": 11,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 1,
+      "missing": 1,
+      "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "forge",
-      "mounted": true,
-      "fromOS2": 99,
-      "fromApps": 23,
+      "mounted": false,
+      "fromOS2": 56,
+      "fromApps": 8,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js",
+        "icon.svg"
+      ]
     },
     {
       "id": "git",
-      "mounted": true,
-      "fromOS2": 91,
+      "mounted": false,
+      "fromOS2": 51,
       "fromApps": 11,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 2,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "apps/git/srcdoc",
+        "holo-splash.js"
+      ]
     },
     {
       "id": "holo-3d",
       "mounted": false,
-      "fromOS2": 75,
-      "fromApps": 3,
+      "fromOS2": 25,
+      "fromApps": 8,
+      "fallbacks": 0,
+      "missing": 2,
+      "errs": 7,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js",
+        "vendor/three.min.js"
+      ]
+    },
+    {
+      "id": "holo-linux",
+      "mounted": false,
+      "fromOS2": 28,
+      "fromApps": 20,
+      "fallbacks": 0,
+      "missing": 9,
+      "errs": 9,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js",
+        "vendor/xterm/addon-clipboard.js",
+        "vendor/xterm/addon-fit.js",
+        "vendor/xterm/addon-search.js",
+        "vendor/xterm/addon-unicode11.js",
+        "vendor/xterm/addon-web-links.js",
+        "vendor/xterm/addon-webgl.js",
+        "vendor/xterm/xterm.css",
+        "vendor/xterm/xterm.js"
+      ]
+    },
+    {
+      "id": "holo-tube",
+      "mounted": false,
+      "fromOS2": 51,
+      "fromApps": 11,
+      "fallbacks": 0,
+      "missing": 1,
+      "errs": 2,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js"
+      ]
+    },
+    {
+      "id": "holo-v86",
+      "mounted": false,
+      "fromOS2": 24,
+      "fromApps": 9,
+      "fallbacks": 0,
+      "missing": 2,
+      "errs": 8,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js",
+        "vendor/three.min.js"
+      ]
+    },
+    {
+      "id": "holo-x86",
+      "mounted": false,
+      "fromOS2": 26,
+      "fromApps": 9,
+      "fallbacks": 0,
+      "missing": 4,
+      "errs": 8,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js",
+        "vendor/xterm/addon-fit.js",
+        "vendor/xterm/xterm.css",
+        "vendor/xterm/xterm.js"
+      ]
+    },
+    {
+      "id": "hub",
+      "mounted": false,
+      "fromOS2": 52,
+      "fromApps": 63,
+      "fallbacks": 0,
+      "missing": 1,
+      "errs": 2,
+      "fallbackList": [],
+      "missingList": [
+        "holo-splash.js"
+      ]
+    },
+    {
+      "id": "ipfs",
+      "mounted": false,
+      "fromOS2": 54,
+      "fromApps": 7,
       "fallbacks": 0,
       "missing": 1,
       "errs": 3,
       "fallbackList": [],
       "missingList": [
-        "apps/holo-3d/holospace.lock.json"
+        "holo-splash.js"
       ]
-    },
-    {
-      "id": "holo-linux",
-      "mounted": true,
-      "fromOS2": 79,
-      "fromApps": 20,
-      "fallbacks": 0,
-      "missing": 0,
-      "errs": 1,
-      "fallbackList": [],
-      "missingList": []
-    },
-    {
-      "id": "holo-x86",
-      "mounted": false,
-      "fromOS2": 75,
-      "fromApps": 3,
-      "fallbacks": 0,
-      "missing": 1,
-      "errs": 1,
-      "fallbackList": [],
-      "missingList": [
-        "apps/holo-x86/holospace.lock.json"
-      ]
-    },
-    {
-      "id": "hub",
-      "mounted": true,
-      "fromOS2": 77,
-      "fromApps": 103,
-      "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
-      "fallbackList": [],
-      "missingList": []
-    },
-    {
-      "id": "ipfs",
-      "mounted": true,
-      "fromOS2": 96,
-      "fromApps": 9,
-      "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
-      "fallbackList": [],
-      "missingList": []
     },
     {
       "id": "jypyter",
-      "mounted": true,
-      "fromOS2": 76,
-      "fromApps": 122,
+      "mounted": false,
+      "fromOS2": 25,
+      "fromApps": 7,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "build/lab/bundle.js",
+        "holo-splash.js"
+      ]
     },
     {
       "id": "liberty",
       "mounted": false,
-      "fromOS2": 75,
-      "fromApps": 2,
+      "fromOS2": 24,
+      "fromApps": 1,
       "fallbacks": 0,
       "missing": 0,
       "errs": 0,
@@ -322,8 +423,8 @@
     {
       "id": "meet",
       "mounted": false,
-      "fromOS2": 76,
-      "fromApps": 4,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
       "errs": 0,
@@ -332,12 +433,12 @@
     },
     {
       "id": "music",
-      "mounted": true,
-      "fromOS2": 94,
-      "fromApps": 12,
+      "mounted": false,
+      "fromOS2": 54,
+      "fromApps": 11,
       "fallbacks": 0,
       "missing": 1,
-      "errs": 1,
+      "errs": 2,
       "fallbackList": [],
       "missingList": [
         "apps/music/music/ingested/index.json"
@@ -345,77 +446,89 @@
     },
     {
       "id": "notepad",
-      "mounted": true,
-      "fromOS2": 94,
+      "mounted": false,
+      "fromOS2": 54,
       "fromApps": 10,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 2,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "apps/notepad/srcdoc",
+        "holo-splash.js"
+      ]
     },
     {
       "id": "notepadpp",
-      "mounted": true,
-      "fromOS2": 91,
-      "fromApps": 7,
+      "mounted": false,
+      "fromOS2": 56,
+      "fromApps": 8,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 2,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js",
+        "notepad.js"
+      ]
     },
     {
       "id": "os",
-      "mounted": true,
-      "fromOS2": 99,
-      "fromApps": 11,
+      "mounted": false,
+      "fromOS2": 60,
+      "fromApps": 12,
       "fallbacks": 0,
-      "missing": 1,
+      "missing": 2,
       "errs": 2,
       "fallbackList": [],
       "missingList": [
-        "apps/os/os-snapshot.bin.gz"
+        "apps/os/os-snapshot.bin.gz",
+        "holo-splash.js"
       ]
     },
     {
       "id": "plasma",
       "mounted": false,
-      "fromOS2": 76,
-      "fromApps": 4,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
-      "errs": 2,
+      "errs": 0,
       "fallbackList": [],
       "missingList": []
     },
     {
       "id": "player",
-      "mounted": true,
-      "fromOS2": 91,
-      "fromApps": 14,
+      "mounted": false,
+      "fromOS2": 51,
+      "fromApps": 13,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 2,
+      "missing": 2,
+      "errs": 3,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-rank.js",
+        "holo-watch.js"
+      ]
     },
     {
       "id": "privacy",
-      "mounted": true,
-      "fromOS2": 94,
-      "fromApps": 5,
+      "mounted": false,
+      "fromOS2": 54,
+      "fromApps": 6,
       "fallbacks": 0,
-      "missing": 0,
-      "errs": 1,
+      "missing": 1,
+      "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
       "id": "q",
-      "mounted": true,
-      "fromOS2": 93,
-      "fromApps": 57,
+      "mounted": false,
+      "fromOS2": 25,
+      "fromApps": 4,
       "fallbacks": 0,
       "missing": 0,
       "errs": 0,
@@ -424,68 +537,115 @@
     },
     {
       "id": "qemu",
-      "mounted": true,
-      "fromOS2": 99,
-      "fromApps": 8,
+      "mounted": false,
+      "fromOS2": 60,
+      "fromApps": 9,
+      "fallbacks": 0,
+      "missing": 2,
+      "errs": 2,
+      "fallbackList": [],
+      "missingList": [
+        "apps/qemu/qemu-system-x86_64.cc6.wasm",
+        "holo-splash.js"
+      ]
+    },
+    {
+      "id": "qvac",
+      "mounted": false,
+      "fromOS2": 55,
+      "fromApps": 6,
       "fallbacks": 0,
       "missing": 1,
       "errs": 2,
       "fallbackList": [],
       "missingList": [
-        "apps/qemu/qemu-system-x86_64.cc6.wasm"
+        "holo-splash.js"
       ]
     },
     {
-      "id": "qvac",
-      "mounted": true,
-      "fromOS2": 95,
-      "fromApps": 5,
+      "id": "search",
+      "mounted": false,
+      "fromOS2": 61,
+      "fromApps": 7,
       "fallbacks": 0,
-      "missing": 0,
+      "missing": 1,
       "errs": 2,
       "fallbackList": [],
-      "missingList": []
+      "missingList": [
+        "holo-splash.js"
+      ]
     },
     {
-      "id": "search",
-      "mounted": true,
-      "fromOS2": 101,
-      "fromApps": 8,
+      "id": "spaces",
+      "mounted": false,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
-      "errs": 1,
+      "errs": 0,
       "fallbackList": [],
       "missingList": []
     },
     {
       "id": "stream",
       "mounted": false,
-      "fromOS2": 76,
-      "fromApps": 4,
+      "fromOS2": 25,
+      "fromApps": 3,
       "fallbacks": 0,
       "missing": 0,
-      "errs": 2,
+      "errs": 0,
       "fallbackList": [],
       "missingList": []
     },
     {
       "id": "terms",
-      "mounted": true,
-      "fromOS2": 94,
-      "fromApps": 5,
+      "mounted": false,
+      "fromOS2": 54,
+      "fromApps": 6,
       "fallbacks": 0,
-      "missing": 1,
+      "missing": 2,
       "errs": 3,
       "fallbackList": [],
       "missingList": [
-        "κ:8ea05083b6"
+        "holo-splash.js",
+        "κ:8d6a490bdf"
       ]
     },
     {
       "id": "trade",
-      "mounted": true,
-      "fromOS2": 91,
-      "fromApps": 11,
+      "mounted": false,
+      "fromOS2": 51,
+      "fromApps": 12,
+      "fallbacks": 0,
+      "missing": 2,
+      "errs": 3,
+      "fallbackList": [],
+      "missingList": [
+        "_shared/vendor/lightweight-charts.standalone.production.js",
+        "holo-splash.js"
+      ]
+    },
+    {
+      "id": "ui",
+      "mounted": false,
+      "fromOS2": 51,
+      "fromApps": 18,
+      "fallbacks": 0,
+      "missing": 4,
+      "errs": 5,
+      "fallbackList": [],
+      "missingList": [
+        "gallery.css",
+        "holo-splash.js",
+        "vendor/daisyui/daisyui.css",
+        "vendor/holo-ui.css"
+      ]
+    },
+    {
+      "id": "video",
+      "mounted": false,
+      "fromOS2": 52,
+      "fromApps": 24,
       "fallbacks": 0,
       "missing": 0,
       "errs": 1,
@@ -493,38 +653,16 @@
       "missingList": []
     },
     {
-      "id": "ui",
-      "mounted": true,
-      "fromOS2": 91,
-      "fromApps": 15,
-      "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
-      "fallbackList": [],
-      "missingList": []
-    },
-    {
-      "id": "video",
-      "mounted": true,
-      "fromOS2": 92,
-      "fromApps": 26,
-      "fallbacks": 0,
-      "missing": 0,
-      "errs": 0,
-      "fallbackList": [],
-      "missingList": []
-    },
-    {
       "id": "workspace",
-      "mounted": true,
-      "fromOS2": 95,
-      "fromApps": 14,
+      "mounted": false,
+      "fromOS2": 55,
+      "fromApps": 10,
       "fallbacks": 0,
       "missing": 1,
       "errs": 3,
       "fallbackList": [],
       "missingList": [
-        "apps/workspace/workspace-kernel.gz"
+        "holo-splash.js"
       ]
     }
   ]

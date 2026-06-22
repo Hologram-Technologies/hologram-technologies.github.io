@@ -1,0 +1,191 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Holo Create — real-time, sovereign device-layer</title>
+<!-- A live harness wiring the six Create modules end-to-end in the browser: streaming-safe render (S1) →
+     κ-DAG (S2) → direct manipulation (S3) → design conscience (S4) → loop+share (S5) → latency (S6).
+     The coder is MOCKED (deterministic streamed HTML) so the harness proves the DEVICE-LAYER, not model
+     quality — the real coder plugs in via the cascade already wired in shell.html. -->
+<style>
+  :root { color-scheme: dark; --holo-bg:#0b0e16; --holo-surface:#161a26; --holo-fg:#cdd6f4; --holo-muted:#8b8b92; --holo-border:#2a2a31; --holo-accent:#2563eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px ui-sans-serif,system-ui; background:var(--holo-bg); color:var(--holo-fg); height:100vh; display:grid; grid-template-columns: 360px 1fr; }
+  #side { border-right:1px solid var(--holo-border); padding:16px; display:flex; flex-direction:column; gap:12px; overflow:auto; }
+  h1 { font-size:15px; margin:0 0 4px; }
+  .sub { color:var(--holo-muted); font-size:12px; }
+  textarea { width:100%; min-height:64px; background:var(--holo-surface); color:var(--holo-fg); border:1px solid var(--holo-border); border-radius:10px; padding:10px; resize:vertical; font:inherit; }
+  button { background:var(--holo-accent); color:#fff; border:0; border-radius:9px; padding:8px 12px; cursor:pointer; font:inherit; }
+  button.ghost { background:var(--holo-surface); color:var(--holo-fg); border:1px solid var(--holo-border); }
+  button:disabled { opacity:.4; cursor:default; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .panel { background:var(--holo-surface); border:1px solid var(--holo-border); border-radius:10px; padding:10px; font-size:12px; }
+  .k { font-family:ui-monospace,monospace; color:#9ad; word-break:break-all; }
+  .lbl { color:var(--holo-muted); text-transform:uppercase; letter-spacing:.04em; font-size:10px; margin-bottom:4px; }
+  #canvas { width:100%; height:100vh; border:0; background:var(--holo-bg); }
+  .seg { display:flex; gap:6px; }
+  .stat { font-size:11px; color:var(--holo-muted); }
+</style>
+<body>
+  <div id="side">
+    <div><h1>✦ Holo Create <span class="sub">device-layer</span></h1>
+    <div class="sub">Speak it. Watch it build. Touch any element to reshape it. It's yours (a κ).</div></div>
+    <textarea id="prompt">a pricing page with three tiers</textarea>
+    <div class="row"><button id="build">✦ Build</button><button id="undo" class="ghost" disabled>↶ Undo</button></div>
+    <label class="sub" style="display:flex;gap:7px;align-items:center;cursor:pointer"><input type="checkbox" id="real"> use the <b style="font-style:normal;color:var(--holo-fg)">real on-device LLM</b> (first build downloads the model — slow)</label>
+    <div id="status" class="sub"></div>
+    <div class="panel"><div class="lbl">app κ (this is yours · share anywhere · no server)</div><div id="appk" class="k">—</div></div>
+    <div class="panel" id="selpanel" style="display:none">
+      <div class="lbl">selected element</div><div id="selk" class="k">—</div>
+      <div class="seg" style="margin-top:8px"><button id="e-text" class="ghost">✎ Text</button><button id="e-accent" class="ghost">● Accent</button><button id="e-nudge" class="ghost">→ Nudge</button></div>
+      <div class="sub" style="margin-top:6px">prompt-edit and touch-edit land on the same κ.</div>
+    </div>
+    <div class="panel"><div class="lbl">witness (live)</div><div id="wit" class="stat">—</div></div>
+  </div>
+  <iframe id="canvas" sandbox="allow-same-origin allow-scripts"></iframe>
+
+<script type="module">
+import { streamRenderBuild } from "./holo-q-create-latency.mjs";
+import * as dag from "./holo-q-app-dag.mjs";
+import { applyGesture, gestureSetText, gestureSetStyle, gestureMove, createHistory } from "./holo-q-canvas-edit.mjs";
+import { enforce } from "./holo-q-design-conscience.mjs";
+
+const $ = (id) => document.getElementById(id);
+const canvas = $("canvas");
+let store = null, root = null, hist = null, selPath = null;
+const esc = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+// ── the MOCK coder: a deterministic, on-brand-ish app from the prompt (with a raw #fff so the conscience acts).
+function mockApp(p) {
+  const t = esc(p);
+  return '<!doctype html><html><head></head><body><main style="max-width:880px;margin:40px auto;padding:24px;font-family:ui-sans-serif,system-ui">'
+    + `<h1 style="color:#ffffff;font-size:34px;margin:0 0 6px">${t}</h1>`
+    + '<p style="color:#9aa;margin:0 0 28px">On-device. Verified. Yours.</p>'
+    + '<section style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px">'
+    + ['Starter','Pro','Scale'].map((n,i)=>`<div style="background:#12141c;border:1px solid #2a2f3a;border-radius:14px;padding:18px"><h2 style="margin:0 0 8px;color:#dfe">${n}</h2><p style="font-size:28px;margin:0;color:#fff">$${i*9}</p><button style="margin-top:14px;background:#2861e0;color:#fff;border:0;border-radius:9px;padding:9px 14px">Choose</button></div>`).join('')
+    + '</section><footer style="margin-top:28px;color:#778">Built in your browser · no server</footer></main></body></html>';
+}
+// stream in ~16 chunks. Pace with a microtask (NOT setTimeout — background tabs throttle timers to ≥1s, which
+// would stall the build; rAF is paused in hidden tabs entirely). For a foreground "watchable" cadence, the real
+// build paces via rAF when document.visibilityState === "visible".
+async function* mockStream(html) {
+  const n = Math.max(1, Math.ceil(html.length / 16)), re = new RegExp(".{1," + n + "}", "gs");
+  for (const c of (html.match(re) || [])) { yield c; await Promise.resolve(); }
+}
+
+// ── streaming render into the live iframe document (body innerHTML grows; no full-doc reload → no flicker).
+function ensureBase() {
+  const d = canvas.contentDocument;
+  if (!d.getElementById("holo-base")) {
+    const base = enforce('<!doctype html><html><head></head><body></body></html>').html;   // injects the --holo-* token root
+    d.open(); d.write(base); d.close();
+    const mark = d.createElement("meta"); mark.id = "holo-base"; d.head.appendChild(mark);
+  }
+  return d;
+}
+const bodyInner = (safe) => { const m = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(safe); return m ? m[1] : safe.replace(/^[\s\S]*?<\/head>/i,"").replace(/<\/?(?:html|body|head|!doctype)[^>]*>/gi,""); };
+// a forced dark + token shell so whatever the model emits renders on-brand (never a white flash).
+const FORCE_DARK = ':root{--holo-bg:#0b0e16;--holo-fg:#cdd6f4;--holo-surface:#161a26;--holo-border:#2a2a31;--holo-accent:#2563eb}html,body{background:var(--holo-bg)!important;color:var(--holo-fg);margin:0;font-family:ui-sans-serif,system-ui;padding:16px}img{max-width:100%}';
+function forceDark(d) { let st = d.getElementById("holo-force"); if (!st) { st = d.createElement("style"); st.id = "holo-force"; (d.head || d.documentElement).appendChild(st); } st.textContent = FORCE_DARK; }
+let _raf = 0, _pending = null;
+function paint(safe) {                       // rAF-throttled so streaming is smooth + visibly real-time (not per-token thrash)
+  _pending = safe;
+  if (_raf) return;
+  _raf = requestAnimationFrame(() => { _raf = 0; const d = ensureBase(); forceDark(d); d.body.innerHTML = bodyInner(_pending); });
+}
+
+// ── render the κ-DAG with a data-path on every element so a click maps back to a DAG path (hit-testing).
+function injectPath(open, ps) { const sc = /\/>$/.test(open); return open.slice(0, open.length - (sc?2:1)) + ` data-path="${ps}"` + (sc?"/>":">"); }
+function renderWithPaths(k, st, path) {
+  const dN = st[k];
+  if (dN.t === "txt" || dN.t === "raw") return dN.v;
+  const kids = dN.k.map((ck,i)=>renderWithPaths(ck, st, path.concat(i))).join("");
+  if (dN.t === "frag") return kids;
+  return injectPath(dN.o, path.join(".")) + kids + (dN.c||"");
+}
+function renderDAG() {
+  const html = renderWithPaths(root, store, []);
+  const d = canvas.contentDocument; d.open(); d.write(html); d.close();
+  forceDark(d);                              // guarantee dark + tokens regardless of what the model emitted
+  d.body.style.outline = "none";
+  d.body.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-path]"); if (!el) return;
+    e.preventDefault();
+    [...d.querySelectorAll("[data-holo-sel]")].forEach(x=>{x.style.outline="";x.removeAttribute("data-holo-sel");});
+    el.style.outline = "2px solid var(--holo-accent)"; el.setAttribute("data-holo-sel","1");
+    selPath = el.getAttribute("data-path").split(".").filter(s=>s!=="").map(Number);
+    const k = dag_kAtPath(root, store, selPath);
+    $("selpanel").style.display = "block"; $("selk").textContent = k ? k.slice(0,24)+"…" : "—";
+  });
+  appk(); witness();
+}
+function dag_kAtPath(r, st, path) { let k = r; for (const i of path) { const dN = st[k]; if (!dN || !dN.k) return null; k = dN.k[i]; } return k; }
+
+// ── the REAL on-device LLM (Holo Voice LLM → Qwen2.5-Coder on transformers.js). Lazy: the model loads on the
+// first real build. WASM (any browser); the full shell's cascade adds WebGPU + the draft tier for low latency.
+const setStatus = (t) => { $("status").textContent = t || ""; };
+let _llm = null;
+async function realCoder() {
+  if (!_llm) {
+    const m = await import("/_shared/voice/holo-voice-llm.mjs");
+    _llm = (m.createLLM || m.default)({});
+    setStatus("loading the on-device coder… (first time downloads the model)");
+    await _llm.load((pr) => { if (pr && pr.file) setStatus(`loading ${pr.file} ${pr.total ? Math.round(100*(pr.loaded||0)/pr.total)+"%" : "…"}`); });
+    setStatus("on-device coder ready — generating…");
+  }
+  return (p) => _llm.generate(fewShot(p), { maxTokens: 1600 });   // real token stream, format-anchored by a worked example
+}
+// a tiny few-shot so the small coder ACTUALLY emits one HTML document (no markdown, no JS template strings) —
+// the single biggest quality lever for a 1.5B model is showing it the exact output shape once.
+const EX_PROMPT = "a centered hello card";
+const EX_HTML = '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0e16;color:#cdd6f4;font-family:ui-sans-serif,system-ui}.card{background:#161a26;border:1px solid #2a2a31;border-radius:16px;padding:32px;text-align:center}.card h1{margin:0 0 8px}</style></head><body><div class="card"><h1>Hello</h1><p>Built on-device.</p></div></body></html>';
+function fewShot(p) {
+  return [
+    { role: "system", content: "You are a front-end engineer. Reply with ONE complete HTML document and NOTHING else: start at <!doctype html>, put all CSS in a single inline <style>, no external resources, no markdown/code-fences, no explanation, no JavaScript template strings. Dark, modern, responsive." },
+    { role: "user", content: "Build: " + EX_PROMPT },
+    { role: "assistant", content: EX_HTML },
+    { role: "user", content: "Build: " + p },
+  ];
+}
+
+// ── build = stream (smooth) → enforce (beauty) → decompose (κ-DAG) → render with paths. Real LLM or mock.
+async function build() {
+  $("build").disabled = true; selPath = null; $("selpanel").style.display = "none";
+  const p = $("prompt").value.trim() || "an app";
+  const useReal = $("real").checked;
+  let sampler = null;
+  if (useReal) { try { const gen = await realCoder(); sampler = () => gen(p); } catch (e) { setStatus("model unavailable — using mock: " + (e && e.message || e)); } }
+  if (!sampler) { sampler = () => mockStream(mockApp(p)); if (!useReal) setStatus("mock coder (a fixed template — turn on the real LLM above)"); }
+
+  let finalSafe = "";
+  const tiers = [{ name: "coder", sampler, whenReady: async () => {} }];
+  await streamRenderBuild({
+    template: (pp) => `<main style="padding:40px;font-family:ui-sans-serif"><h1>${esc(pp)}</h1><p style="color:#889">setting up…</p></main>`,
+    prompt: p, tiers, onFrame: (safe, meta) => { paint(safe); if (meta.tier !== "template") finalSafe = safe; },
+  });
+  const finalHtml = enforce(finalSafe || mockApp(p)).html;   // the model's real output, made beautiful
+  ({ root, store } = dag.decompose(finalHtml));
+  hist = createHistory(root);
+  renderDAG();
+  if (useReal && _llm) setStatus("built on-device — coder: " + ((_llm.info && _llm.info().model) || "ready"));
+  $("build").disabled = false; $("undo").disabled = true;
+}
+
+// ── edits: both doors land on applyGesture → editAtPath → new κ → re-render.
+function commit(r) { root = r.root; hist.push(root); renderDAG(); $("undo").disabled = !hist.canUndo(); }
+function withSel(fn) { if (selPath) { try { fn(); } catch(e){ alert(e.message); } } }
+$("e-text").onclick = () => withSel(() => { const t = prompt("New text:", ""); if (t!=null) commit(applyGesture(root, store, selPath, (h)=>gestureSetText(h, t))); });
+$("e-accent").onclick = () => withSel(() => commit(applyGesture(root, store, selPath, (h)=>gestureSetStyle(h, { color:"var(--holo-accent)" }))));
+$("e-nudge").onclick = () => withSel(() => commit(applyGesture(root, store, selPath, (h)=>gestureMove(h, 14, 0))));
+$("undo").onclick = () => { root = hist.undo(); renderDAG(); $("undo").disabled = !hist.canUndo(); };
+$("build").onclick = build;
+
+function appk() { $("appk").textContent = "holo://sha256/" + root.slice(0, 28) + "…"; }
+function witness() {
+  const v = dag.verify(store); const s = dag.stats(store, root);
+  $("wit").innerHTML = `L5 ✓ ${v.checked} nodes re-derive · ${s.unique} unique κ (${s.dedup} deduped) · every element addressable + shareable`;
+}
+
+window.__holoCreate = { build, get root(){return root;}, get store(){return store;}, dag, applyGesture, gestureSetText };
+build();
+</script>
+</body>
+</html>

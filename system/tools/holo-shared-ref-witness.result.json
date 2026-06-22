@@ -1,19 +1,14 @@
 {
   "@type": "earl:TestResult",
-  "witnessed": false,
+  "witnessed": true,
   "subject": "holo shared-ref integrity (every app's /.holo/sha256 data-holo-shared pin == current lib κ — no silent 404 drift)",
-  "passed": 294,
-  "failed": 1,
+  "passed": 145,
+  "failed": 0,
   "appsPresent": true,
-  "refs": 311,
-  "skipped": 16,
-  "stale": [
-    {
-      "file": "apps/tauri\\dist\\usr\\share\\frame\\shell.html",
-      "name": "holo-theme.js",
-      "pinned": "ce383598eb56…",
-      "current": "b4dbe84b9234…"
-    }
-  ],
-  "covers": []
+  "refs": 153,
+  "skipped": 8,
+  "stale": [],
+  "covers": [
+    "app shared-ref pins current (no κ drift)"
+  ]
 }

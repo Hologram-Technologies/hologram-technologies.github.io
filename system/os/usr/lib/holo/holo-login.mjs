@@ -27,6 +27,16 @@ const b64 = (b) => btoa(String.fromCharCode(...new Uint8Array(b)));
 async function vaultKey(secret) { return b64(await SUB.digest("SHA-256", te.encode(String(secret || "")))); }
 function avatarFor(kappa) { const h = kappa.split(":").pop(); return { hue: parseInt(h.slice(0, 4), 16) % 360, glyph: h.slice(0, 2).toUpperCase() }; }
 
+// ── TEE-only vault policy (vault-rewrap migration) ──────────────────────────────────────────────
+// teeAvailable hook — swappable so the rewrap witness can exercise the browser-only guards under Node.
+// In the browser it resolves to holo-webauthn.teeAvailable(); under Node (no WebAuthn) it is false, so the
+// TEE-only guards (S2/S4) are INERT off-device and the canonical cred/tee path is NEVER affected.
+let _teeAvailable = async () => { try { return await (await import("./holo-webauthn.mjs")).teeAvailable(); } catch { return false; } };
+export function __setTeeAvailable(fn) { _teeAvailable = fn; }   // test seam only
+// how a record's vault is wrapped: "tee" = enclave PRF (high-entropy, un-typeable) · "phrase" = a typed
+// secret (recovery/headless only). Legacy records (pre-tag) with a credential are treated as TEE-wrapped.
+const wrapOf = (r) => r && (r.wrap || (r.cred ? "tee" : "phrase"));
+
 // principalFromSeed(seed, label) → the greeter's signing principal. Compatible AS-IS with
 // holo-identity's openSession/verifySession (κ = did:holo:sha256(pub)); carries `did` (did:key) and
 // the wallet address helpers. The Ed25519 private key lives only in memory (non-extractable).
@@ -45,18 +55,26 @@ export async function principalFromSeed(seed, label = "operator") {
   };
 }
 
-function record(principal, vault, cred) {
+function record(principal, vault, cred, credPub, credAlg) {
   return { kappa: principal.kappa, did: principal.did, label: principal.label, alg: "Ed25519", pub: principal.pub,
-    vault, vaultKappa: vaultKappa(vault), cred: cred || null, avatar: avatarFor(principal.kappa), createdAt: new Date().toISOString() };
+    vault, vaultKappa: vaultKappa(vault), cred: cred || null,
+    wrap: cred ? "tee" : "phrase",                                      // S1: TEE-PRF wrap vs typed-secret wrap (recovery-only)
+    credPub: credPub || null, credAlg: credAlg ?? null,                 // WebAuthn credential pubkey (SPKI b64u) + COSE alg — for payload-bound step-up verification
+    avatar: avatarFor(principal.kappa), createdAt: new Date().toISOString() };
 }
 
 // enroll — first run: mint a fresh seed → wallet + identity, wrap the seed in a content-addressed
 // vault, persist. Returns the principal AND the 12-word recovery phrase (shown/sharded by the caller).
-export async function enroll({ label = "operator", secret, cred } = {}) {
+export async function enroll({ label = "operator", secret, cred, credPub, credAlg, allowPhrase = false } = {}) {
+  // S2: on a device with a real platform authenticator, a FRESH sovereign vault MUST be TEE-wrapped —
+  // refuse to mint a passphrase-openable vault (that would be a typed-secret path to the key). No
+  // authenticator (or explicit headless `allowPhrase`) ⇒ phrase wrap is allowed. The greeter always passes
+  // `cred`, so this never blocks a real first-run sign-in; it only closes the no-cred programmatic backdoor.
+  if (!cred && !allowPhrase && await _teeAvailable()) throw new Error("biometric required to enroll on this device (no typed-secret vault)");
   const mnemonic = generateMnemonic(12);
   const vault = await createVault(mnemonic, await vaultKey(secret));
   const principal = await principalFromSeed(seedFromMnemonic(mnemonic), label);
-  const rec = record(principal, vault, cred);
+  const rec = record(principal, vault, cred, credPub, credAlg);
   // INVISIBLE first-run ceremony — self-issue the sovereign-knowledge claim set + open the social
   // graph (Holo ZK / Holo Privacy). Non-blocking: a hiccup here never blocks sign-in.
   try { const { firstRun } = await import("./holo-ceremony.mjs"); const c = await firstRun(principal); rec.knowledge = c.credential; rec.graph = c.graph; rec.sd = c.disclosures; } catch {}
@@ -82,12 +100,32 @@ export async function unlock(kappa, secret) {
 }
 
 // recover — on a new device, from the 12-word phrase → the SAME canonical identity + wallet.
-export async function recover({ mnemonic, secret, label = "operator", cred } = {}) {
+export async function recover({ mnemonic, secret, label = "operator", cred, credPub, credAlg } = {}) {
   if (!validateMnemonic(mnemonic)) throw new Error("invalid recovery phrase");
   const vault = await createVault(mnemonic, await vaultKey(secret));
   const principal = await principalFromSeed(seedFromMnemonic(mnemonic), label);
-  await store.put(record(principal, vault, cred));
+  await store.put(record(principal, vault, cred, credPub, credAlg));
   return { principal, did: principal.did, vaultLink: "holo://" + vaultKappa(vault).split(":").pop() };
+}
+
+// upgradeWrap(kappa, oldSecret, teeSecret, cred, credPub, credAlg) — S3: transparently move a phrase-wrapped
+// vault onto a TEE-PRF wrap WITHOUT changing the seed/identity. Opens with the old secret, re-wraps under the
+// TEE secret, VERIFIES the re-derived κ AND that the new vault re-opens to the same κ before persisting (Law
+// L5), and only then swaps the record (the old record stands until the new one verifies — no window where the
+// operator is unreachable). Idempotent: an already-TEE vault with no new credential is left untouched.
+export async function upgradeWrap(kappa, oldSecret, teeSecret, cred, credPub, credAlg) {
+  const rec = await store.get(kappa);
+  if (!rec) throw new Error("no such operator on this device");
+  if (wrapOf(rec) === "tee" && !cred) return rec;                     // already TEE-wrapped → nothing to do
+  const { mnemonic, seed } = openVault(rec.vault, await vaultKey(oldSecret));   // throws on the wrong old secret (AEAD)
+  if ((await principalFromSeed(seed)).kappa !== kappa) throw new Error("re-wrap failed re-derivation (Law L5)");
+  const vault = await createVault(mnemonic, await vaultKey(teeSecret));
+  const check = openVault(vault, await vaultKey(teeSecret));          // the NEW vault must open with the TEE secret…
+  if ((await principalFromSeed(check.seed)).kappa !== kappa) throw new Error("re-wrapped vault failed verification"); // …to the SAME κ
+  const next = { ...rec, vault, vaultKappa: vaultKappa(vault), wrap: "tee",
+    cred: cred || rec.cred, credPub: credPub ?? rec.credPub, credAlg: credAlg ?? rec.credAlg };
+  await store.put(next);                                             // atomic swap (keyPath = kappa)
+  return next;
 }
 
 // revealMnemonic — the 12-word recovery phrase for backup. Requires the unlock secret (a fresh
@@ -95,6 +133,9 @@ export async function recover({ mnemonic, secret, label = "operator", cred } = {
 export async function revealMnemonic(kappa, secret) {
   const rec = await store.get(kappa);
   if (!rec) throw new Error("no such operator on this device");
+  // S4: where the enclave is available, a phrase-wrapped vault must be upgraded (upgradeWrap) before its key
+  // material is surfaced — a typed-secret vault is never a path to the seed/phrase on a TEE device.
+  if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("secure this account with your biometric before revealing your phrase");
   return openVault(rec.vault, await vaultKey(secret)).mnemonic;       // throws on the wrong secret (AEAD)
 }
 // backed-up flag — drives the deferrable "secure your account" nudge (don't nag once they've saved it).
@@ -106,6 +147,9 @@ export async function markBackedUp(kappa, val = true) { const r = await store.ge
 export async function unlockSeed(kappa, secret) {
   const rec = await store.get(kappa);
   if (!rec) throw new Error("no such operator on this device");
+  // S4: on a TEE device, the wallet seed is reachable only from a TEE-wrapped vault — a phrase vault must be
+  // upgraded (upgradeWrap) first. Off-device (no authenticator) it stays openable for recovery.
+  if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("secure this account with your biometric before using the wallet");
   return openVault(rec.vault, await vaultKey(secret)).seed;            // throws on the wrong secret (AEAD)
 }
 
@@ -114,17 +158,25 @@ export async function unlockSeed(kappa, secret) {
 // just opens" — the wallet app unlocks THIS operator's unified vault by biometric.
 export async function currentOperator() {
   let kappa = null;
-  try { const t = JSON.parse((typeof sessionStorage !== "undefined" && sessionStorage.getItem("holo.session")) || "null"); if (t && t.operator && !t.guest) kappa = t.operator; } catch {}
+  try { const t = JSON.parse((typeof sessionStorage !== "undefined" && sessionStorage.getItem("holo.identity")) || "null"); if (t && t.operator && !t.guest) kappa = t.operator; } catch {}
   const ops = await roster();
   return (kappa && ops.find((o) => o.kappa === kappa)) || ops[0] || null;
 }
 
 export async function roster() {
-  return (await store.all()).map((r) => ({ kappa: r.kappa, did: r.did, label: r.label, alg: r.alg, cred: r.cred || null, avatar: r.avatar || avatarFor(r.kappa), createdAt: r.createdAt }));
+  return (await store.all()).map((r) => ({ kappa: r.kappa, did: r.did, label: r.label, alg: r.alg, cred: r.cred || null, wrap: wrapOf(r), avatar: r.avatar || avatarFor(r.kappa), createdAt: r.createdAt }));
 }
 export async function forget(kappa) { return store.del(kappa); }
-// attach the WebAuthn credential id to an operator after a biometric is enrolled for it
-export async function attachCred(kappa, cred) { const r = await store.get(kappa); if (r) { r.cred = cred; await store.put(r); } }
+// attach the WebAuthn credential (id + pubkey + alg) to an operator after a biometric is enrolled
+export async function attachCred(kappa, cred, credPub, credAlg) { const r = await store.get(kappa); if (r) { r.cred = cred; if (credPub !== undefined) r.credPub = credPub; if (credAlg !== undefined) r.credAlg = credAlg; await store.put(r); } }
+
+// credentialOf(kappa) → { credentialId, pub (SPKI b64u), alg } — the operator's enrolled WebAuthn
+// credential, for payload-bound step-up signature verification (holo-stepup verifyWebAuthnAxis).
+// Null when no biometric credential is on file; pub null when it predates credPub capture.
+export async function credentialOf(kappa) {
+  const r = await store.get(kappa);
+  return r && r.cred ? { credentialId: r.cred, pub: r.credPub || null, alg: r.credAlg ?? -7 } : null;
+}
 
 // ── persistence — IndexedDB (browser), in-memory under Node (the witness) ──
 const hasIDB = typeof indexedDB !== "undefined";

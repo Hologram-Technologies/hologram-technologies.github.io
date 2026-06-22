@@ -26,6 +26,7 @@ const WITNESSES = [
   { name: "cosmos raymarch", url: `${BASE}/_shared/cosmos-parity.html` },
   { name: "holo-3d screen",  url: `${BASE}/_shared/screen-parity.html` },
   { name: "boot clouds",     url: `${BASE}/_shared/clouds-parity.html` },
+  { name: "asanoha lattice", url: `${BASE}/_shared/asanoha-parity.html` },   // WebGPU-native: structural invariants, not WebGL2 parity
 ];
 const CHROME = process.env.CHROME || [
   "C:/Program Files/Google/Chrome/Application/chrome.exe",

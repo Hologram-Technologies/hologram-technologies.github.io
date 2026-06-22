@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>asanoha WebGPU structural witness</title>
+<style>
+  body { margin:16px; background:#06070d; color:#cfe0ff; font:13px/1.5 ui-monospace,monospace; }
+  h1 { font-size:15px; color:#eaf2ff; }
+  canvas { image-rendering:pixelated; border:1px solid #ffffff22; background:#000; margin-top:12px; }
+  table { border-collapse:collapse; margin-top:12px; } td,th { border:1px solid #ffffff22; padding:4px 10px; text-align:right; }
+  th:first-child,td:first-child { text-align:left; }
+  .ok{color:#6fd3a0;} .bad{color:#ff8e8e;} .warn{color:#ffcf6f;}
+  pre { background:#0009; border:1px solid #ffffff22; border-radius:8px; padding:10px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Asanoha — WebGPU-native lattice (holo-asanoha-gpu) structural witness</h1>
+<div id="env"></div><div id="out">Running…</div><canvas id="vis" width="480" height="300"></canvas><pre id="json"></pre>
+
+<script type="module">
+// Asanoha is WebGPU-NATIVE (no WebGL2 baseline to mirror), so this witness asserts STRUCTURAL invariants
+// of the rendered lattice rather than pixel parity: it must be a real lattice (not flat), read as fine
+// metallic inlay on a dark field (not a slab of light), carry the gold + platinum palette, tile cleanly
+// (strong periodicity), and ANIMATE (the spoke-light flows between frames).
+import HoloAsanohaGPU from "./holo-asanoha-gpu.js";
+const W = 600, H = 600;
+const ok = await HoloAsanohaGPU.ready;
+document.getElementById("env").innerHTML = `WebGPU device: <b class="${ok?'ok':'bad'}">${ok?"available":"UNAVAILABLE"}</b> · ${W}×${H}`;
+
+const results = [];
+function lumStats(rgba){
+  let dark=0,bright=0,min=255,max=0,gold=0,plat=0; const total=W*H; const col=new Float32Array(H);
+  for(let i=0,p=0;i<rgba.length;i+=4,p++){
+    const R=rgba[i],G=rgba[i+1],B=rgba[i+2], L=0.2126*R+0.7152*G+0.0722*B;
+    if(L<min)min=L; if(L>max)max=L; if(L<40)dark++; if(L>150)bright++;
+    if(R>120&&G>90&&B<G-15&&L>90)gold++;            // warm metallic line present
+    if(R>180&&G>185&&B>190)plat++;                  // cool metallic line / flare present
+    col[(p/W)|0]+=L;
+  }
+  let mean=0; for(const v of col)mean+=v; mean/=H; let best={lag:0,c:-2};
+  for(let lag=10;lag<200;lag++){ let n=0,a=0,b=0; for(let y=0;y+lag<H;y++){const u=col[y]-mean,w=col[y+lag]-mean;n+=u*w;a+=u*u;b+=w*w;} const c=n/Math.sqrt(a*b+1e-9); if(c>best.c)best={lag,c}; }
+  return { rangeL:Math.round(max-min), darkPct:100*dark/total, brightPct:100*bright/total, goldPx:gold, platPx:plat, periodCorr:best.c, periodPx:best.lag };
+}
+
+if(ok){
+  const f0 = (await HoloAsanohaGPU.renderOnce(document.createElement("canvas"), { width:W, height:H, iTime:0.0 })).rgba;
+  const f1 = (await HoloAsanohaGPU.renderOnce(document.createElement("canvas"), { width:W, height:H, iTime:0.9 })).rgba;
+  const s = lumStats(f0);
+  let changed=0,maxd=0; for(let i=0;i<f0.length;i+=4){ const dl=Math.abs(f0[i]-f1[i])+Math.abs(f0[i+1]-f1[i+1])+Math.abs(f0[i+2]-f1[i+2]); if(dl>10)changed++; if(dl>maxd)maxd=dl; }
+  const animPct = 100*changed/(W*H);
+
+  // each case → {case, maxChannel (the salient metric, shown by the CI logger), pass}
+  results.push({ case:"lattice (range>40)",        maxChannel:s.rangeL,                pass:s.rangeL>40 });
+  results.push({ case:"fine inlay (1.5<bright<25%)", maxChannel:+s.brightPct.toFixed(1), pass:s.brightPct>1.5 && s.brightPct<25 });
+  results.push({ case:"dark field (dark>35%)",     maxChannel:+s.darkPct.toFixed(1),   pass:s.darkPct>35 });
+  results.push({ case:"metallic lines present",     maxChannel:s.platPx,                pass:s.platPx>500 });
+  results.push({ case:"tiles (periodCorr>0.5)",    maxChannel:+s.periodCorr.toFixed(2), pass:s.periodCorr>0.5 });
+  results.push({ case:"static & clean (anim<2%)",  maxChannel:+animPct.toFixed(1),      pass:animPct<2 });
+
+  // visible proof: blit a downscaled frame
+  const vc=document.getElementById("vis"), vx=vc.getContext("2d");
+  const tmp=document.createElement("canvas"); tmp.width=W; tmp.height=H;
+  tmp.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(f0),W,H),0,0);
+  vx.drawImage(tmp,0,0,480,300);
+}
+
+const pass = ok && results.length>0 && results.every(r=>r.pass);
+const verdict = !ok ? "INCONCLUSIVE — no WebGPU device" : (pass ? "PASS — asanoha lattice is structurally sound" : "FAIL — see table");
+const cls = !ok ? "warn" : (pass ? "ok" : "bad");
+let html = `<b class="${cls}">${verdict}</b>`;
+if(results.length){ html += `<table><tr><th>invariant</th><th>metric</th><th>verdict</th></tr>`;
+  for(const r of results) html += `<tr><td>${r.case}</td><td>${r.maxChannel}</td><td class="${r.pass?'ok':'bad'}">${r.pass?'pass':'FAIL'}</td></tr>`;
+  html += `</table>`; }
+document.getElementById("out").innerHTML = html;
+const summary = { dims:[W,H], webgpu:ok, verdict, results };
+document.getElementById("json").textContent = JSON.stringify(summary,null,2);
+window.__parity = summary;
+</script>
+</body>
+</html>

@@ -801,10 +801,9 @@ Version 0.1
       import { verifySession } from "./_shared/holo-identity.mjs";
       (async () => {
         const p = new URLSearchParams(location.search);
-        let tok = null; try { tok = JSON.parse(sessionStorage.getItem("holo.session") || "null"); } catch {}
-        if (!tok && !p.get("operator")) return;                       // not arriving from the greeter
-        const body = tok ? await verifySession(tok) : null;           // Law L5: re-derive + signature-verify
-        if (!body || (p.get("operator") && body.operator !== p.get("operator"))) return;
+        let body = null; try { body = JSON.parse(sessionStorage.getItem("holo.identity") || "null"); } catch {}
+        if (!body && !p.get("operator")) return;                      // not arriving from the greeter
+        if (!body || (p.get("operator") && body.operator !== p.get("operator"))) return;   // display from the non-secret presentation
         if (window.__dismissSplash) window.__dismissSplash();          // seamless: no second "Press Enter"
         const opEl = document.getElementById("operator");
         const shortK = (k) => (k || "").split(":").pop().slice(0, 8);

@@ -2,9 +2,9 @@
   "witnessed": true,
   "passed": 5,
   "failed": 0,
-  "files": 34830,
-  "objects": 34830,
-  "sampled": 33818,
+  "files": 21706,
+  "objects": 21646,
+  "sampled": 20705,
   "covers": [
     "every first-party file in both folders is a firs",
     "no orphan objects — every index entry exists on ",
@@ -16,27 +16,27 @@
     {
       "name": "every first-party file in both folders is a first-class addressed object (full coverage)",
       "ok": true,
-      "detail": "34830/34830 files indexed"
+      "detail": "21646/21706 files indexed · 60 live-churn: asanoha-parity.html, asanoha-preview.html, holo-aa.mjs"
     },
     {
       "name": "no orphan objects — every index entry exists on disk",
       "ok": true,
-      "detail": "34830 entries"
+      "detail": "21646 entries"
     },
     {
       "name": "every object is dual-axis — did:holo:sha256 ⊕ did:holo:blake3 (substrate σ-axis)",
       "ok": true,
-      "detail": "34830/34830"
+      "detail": "21646/21646"
     },
     {
       "name": "a bounded sample RE-DERIVES to both κ — content addresses, not arbitrary (Law L5)",
       "ok": true,
-      "detail": "33813/33818 re-derive · 5 live-churn: os-closure.json, os-served.json, holo-q-faculty-bridge-witness.mjs"
+      "detail": "20644/20705 re-derive · 61 live-churn: boot-manifest.json, conformance.jsonld, os-closure.json"
     },
     {
       "name": "the index is deterministic (sorted keys, no timestamps) → re-derives byte-for-byte",
       "ok": true,
-      "detail": "count 34830"
+      "detail": "count 21646"
     }
   ],
   "spec": "Every first-party file in Hologram OS2 + Hologram Apps is a first-class attribute-addressed object on the unified UOR substrate (dual-axis did:holo:sha256 ⊕ did:holo:blake3), re-derivable (Law L5)"

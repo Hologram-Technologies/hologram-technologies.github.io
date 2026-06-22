@@ -235,7 +235,7 @@ function deviceKeyBytes(kv = browserKv()) {
 
 export function signedInOperator() {
   try {
-    const t = JSON.parse((typeof globalThis.sessionStorage !== "undefined" && globalThis.sessionStorage.getItem("holo.session")) || "null");
+    const t = JSON.parse((typeof globalThis.sessionStorage !== "undefined" && globalThis.sessionStorage.getItem("holo.identity")) || "null");
     if (t && t.operator && !t.guest) return t.operator;
   } catch {}
   return null;

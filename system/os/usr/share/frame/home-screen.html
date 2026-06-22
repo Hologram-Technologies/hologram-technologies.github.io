@@ -679,7 +679,7 @@
   // resolved post-login; empty for guests / standalone. The async roster fills it in if the token lacks it.
   var NAME = "";
   (function resolveName() {
-    try { var t = JSON.parse(sessionStorage.getItem("holo.session") || "null"); if (t && t.label) NAME = t.label; } catch (e) {}
+    try { var t = JSON.parse(sessionStorage.getItem("holo.identity") || "null"); if (t && t.label) NAME = t.label; } catch (e) {}
     if (!NAME) try {
       var op = new URLSearchParams(location.search).get("operator");
       if (op) import("/_shared/holo-identity.mjs").then(function (m) { return m.roster && m.roster(); }).then(function (rs) {

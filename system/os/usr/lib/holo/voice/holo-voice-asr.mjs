@@ -40,7 +40,14 @@ const DEFAULTS = {
   // runs, serve Whisper's ONNX files from its .holo (HTTP-Range + per-block L5 + OPFS + serverless) into the
   // SAME engine — so the any-browser floor is ALSO content-addressed/warm/serverless, not a flat download.
   // ANY failure restores fetch + falls back to the vendored ONNX files. null = off. Same shim every faculty uses.
-  knativeServe: null,     // e.g. { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "…/whisper-tiny-onnx.holo" }
+  knativeServe: {         // κ-served whisper-tiny — its ONNX files stream from the .holo (per-block L5 + OPFS warm) into the SAME transformers engine. ANY failure restores fetch → vendored ONNX. matches modelWASM.
+    module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs",
+    holoUrl: "/.holo/sha256/361209ec2ff387beb9e763017cd50d18f9cc8b5276346d62420922ca9a5d9185",   // κ-pure source; the SW serves this directly once the κ-route heal-fallback lands (then `release` below can go)
+    modelId: "onnx-community/whisper-tiny",
+    // delivery TODAY: openHoloFiles (holo-files.mjs:18-21) range-fetches holoUrl; on miss it falls back to
+    // `release` as a DIRECT URL — CORS + Range from the GitHub Release CDN, per-block re-derived (L5).
+    release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/weights-v1/361209ec2ff387beb9e763017cd50d18f9cc8b5276346d62420922ca9a5d9185",
+  },
   lang: "en",
 };
 

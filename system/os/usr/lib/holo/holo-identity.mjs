@@ -198,6 +198,59 @@ export async function verifySession(token) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
+// Session at rest (identity-κ boundary, DISPLAY-SPLIT). The operator session is a κ-object. App frames share
+// the OS origin (allow-same-origin carries ambient injection — it is load-bearing, not removed), so NOTHING
+// identity-bearing may sit in app-readable storage in the clear. Split it: a non-secret PRESENTATION (operator
+// κ + label — the disclosure HoloIdentity already makes, NEVER pub/sig) for display, and the FULL token WRAPPED
+// at rest (the SAME PBKDF2→AES-GCM path that wraps the private key) so only a TEE/biometric unlock re-derives
+// the replayable assertion (lazy unlock). A same-origin app reads the presentation + ciphertext — never pub/sig.
+const SESSION_KEYS = { pres: "holo.identity", wrapped: "holo.session.wrapped", legacy: "holo.session" };
+const hasSS = typeof sessionStorage !== "undefined";
+
+// the app-visible presentation — operator κ + label only; the impersonation vector (pub/sig) stays wrapped.
+export function presentationOf(token) {
+  const t = token || {};
+  return { "@type": "HoloPresentation", operator: t.operator || null, label: t.label || "",
+    guest: !!t.guest, subjectType: t.subjectType || "pc", issuedAt: t.issuedAt || null, host: t.host || "" };
+}
+// wrap the full session token at rest (AES-GCM under the operator secret) → an opaque, re-deriving κ-object.
+export async function wrapSession(token, secret) {
+  if (!secret) throw new Error("wrapSession needs the operator secret");
+  const salt = rand(16), iv = rand(12);
+  const ct = new Uint8Array(await SUB.encrypt({ name: "AES-GCM", iv }, await wrapKey(secret, salt), te.encode(canon(token))));
+  return { "@type": "HoloWrappedSession", v: 1, alg: "AES-GCM", salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+}
+// unwrap → the full token; throws on a wrong secret / tampered blob (AES-GCM auth-tag, fail closed, Law L5).
+export async function unwrapSession(blob, secret) {
+  const pt = new Uint8Array(await SUB.decrypt({ name: "AES-GCM", iv: unb64(blob.iv) }, await wrapKey(secret, unb64(blob.salt)), unb64(blob.ct)));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+// split-persist (browser): presentation (cleartext, app-visible) + wrapped full token (app-opaque, only with a secret).
+export async function persistSession(token, secret = null) {
+  if (!hasSS) return;
+  try { sessionStorage.setItem(SESSION_KEYS.pres, JSON.stringify(presentationOf(token))); } catch {}
+  try { sessionStorage.removeItem(SESSION_KEYS.legacy); } catch {}                 // evict any legacy cleartext token
+  if (secret) { try { sessionStorage.setItem(SESSION_KEYS.wrapped, JSON.stringify(await wrapSession(token, secret))); } catch {} }
+  else { try { sessionStorage.removeItem(SESSION_KEYS.wrapped); } catch {} }       // guest / no-secret → presentation only
+}
+export function loadPresentation() {
+  if (!hasSS) return null;
+  try { return JSON.parse(sessionStorage.getItem(SESSION_KEYS.pres) || "null"); } catch { return null; }
+}
+// lazy unlock: re-derive the VERIFIED session from the wrapped token using a freshly-released secret (Law L5).
+export async function resumeSession(secret) {
+  if (!hasSS) return null;
+  let blob = null; try { blob = JSON.parse(sessionStorage.getItem(SESSION_KEYS.wrapped) || "null"); } catch {}
+  if (!blob) return null;
+  let token; try { token = await unwrapSession(blob, secret); } catch { return null; }
+  return await verifySession(token);
+}
+export function clearSession() {
+  if (!hasSS) return;
+  for (const k of Object.values(SESSION_KEYS)) { try { sessionStorage.removeItem(k); } catch {} }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
 // Persistence — IndexedDB (browser), with an OPFS mirror (Law L3); in-memory under node.
 // ───────────────────────────────────────────────────────────────────────────────
 const hasIDB = typeof indexedDB !== "undefined";

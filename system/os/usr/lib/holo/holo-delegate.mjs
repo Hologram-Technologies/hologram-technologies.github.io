@@ -114,7 +114,12 @@ export const grants = (body, capability) => !!body && Array.isArray(body.capabil
 //    listener and the witness). A signing request's kind maps to the capability it needs; the grant must
 //    verify, not be revoked, and include that capability. The HUMAN still approves at the gate afterwards —
 //    this only governs who may ask (default-deny). No delegation ⇒ not an agent request (governed elsewhere). ──
-export const CAP_FOR_KIND = { address: "wallet:read", sign: "wallet:sign", signTypedData: "wallet:spend", swap: "wallet:spend", send: "wallet:spend" };
+export const CAP_FOR_KIND = {
+  // reads (value never moves) — all need only wallet:read
+  address: "wallet:read", addresses: "wallet:read", balance: "wallet:read", tokenBalance: "wallet:read", price: "wallet:read", history: "wallet:read", swapQuote: "wallet:read", swapQuoteEvm: "wallet:read", bridgeQuote: "wallet:read", lendingPositions: "wallet:read", fiatQuote: "wallet:read", aaAddress: "wallet:read",
+  // signing / spending (fiat = initiates a money flow + reveals the address → spend-class consent)
+  sign: "wallet:sign", signTypedData: "wallet:spend", swap: "wallet:spend", swapEvm: "wallet:spend", bridge: "wallet:spend", lending: "wallet:spend", fiat: "wallet:spend", aaSend: "wallet:spend", aa7702: "wallet:spend", send: "wallet:spend",
+};
 export function authorizeRequest(delegation, { kind = "send", revoked = [], nowIso = null } = {}) {
   if (!delegation) return { ok: true, agent: null };
   const body = verifyDelegation(delegation, { nowIso });

@@ -241,9 +241,11 @@ function injectStyles() {
   .shx{--ink:var(--holo-ink,#e9eef7);--dim:color-mix(in srgb,var(--holo-ink,#e9eef7) 60%,transparent);
     --line:var(--holo-border,rgba(255,255,255,.12));--surface:color-mix(in srgb,var(--holo-ink,#e9eef7) 5%,transparent);
     --surface2:color-mix(in srgb,var(--holo-ink,#e9eef7) 9%,transparent);--acc:var(--holo-accent,#5b8cff);--ok:var(--holo-ok,#3fb950);
-    flex:1 1 auto;display:flex;flex-direction:column;gap:clamp(14px,2.4vh,22px);padding:clamp(16px,2.6vh,24px) 18px 22px;min-height:0;overflow:hidden;color:var(--ink)}
-  .shx-top{display:flex;flex-direction:column;gap:14px;flex:0 0 auto}
-  .shx-mid{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-height:0}
+    flex:1 1 auto;display:flex;flex-direction:column;gap:clamp(12px,2.2vh,22px);padding:clamp(14px,2.4vh,24px) 18px 20px;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;color:var(--ink)}
+  .shx-top{display:flex;flex-direction:column;gap:clamp(10px,1.8vh,14px);flex:0 0 auto}
+  /* the QR stage holds a scannable floor so it can never collapse to nothing; if a panel is genuinely too
+     short for the floor + the controls, the body scrolls (above) rather than overlap or clip a control. */
+  .shx-mid{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-height:168px;overflow:hidden;container-type:size}
   .shx-bot{display:flex;flex-direction:column;gap:11px;flex:0 0 auto}
   .shx-intro{display:flex;flex-direction:column;gap:7px}
   .shx-why{font-size:clamp(19px,2.5vh,22px);font-weight:680;letter-spacing:-.015em;line-height:1.22;color:var(--ink)}
@@ -252,12 +254,16 @@ function injectStyles() {
   .shx-seg-b{flex:1;border:0;border-radius:8px;background:transparent;color:var(--dim);font:600 15px var(--win-font,system-ui);padding:9px 8px;cursor:pointer;transition:.12s}
   .shx-seg-b.on{background:var(--acc);color:#fff}
   .shx-seg-b:not(.on):hover{color:var(--ink);background:var(--surface2)}
-  /* the hero white sticker — grows to FILL the space between the controls and the actions */
-  .shx-qrcard{position:relative;isolation:isolate;background:linear-gradient(158deg,#ffffff 0%,#eef0f6 100%);border-radius:24px;padding:clamp(14px,2vh,18px);display:flex;flex-direction:column;align-items:center;gap:12px;
+  /* the hero white sticker — a square that FITS the space left between the intro and the actions, sized to
+     the CARRIAGE (container query units), never the viewport. It shrinks on a short panel so it can never
+     overflow onto the text/links, and caps at 360px so it never bloats on a tall one. clamp floor keeps the
+     code scannable. This is what makes Share read clean at any screen size. */
+  .shx-qrcard{position:relative;isolation:isolate;background:linear-gradient(158deg,#ffffff 0%,#eef0f6 100%);border-radius:clamp(16px,3cqi,24px);padding:clamp(10px,3cqi,18px);display:flex;flex-direction:column;align-items:center;gap:clamp(7px,2cqi,12px);box-sizing:border-box;
+    width:clamp(120px,min(100cqi,calc(100cqb - 2.4rem)),360px);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.5), 0 2px 5px rgba(10,10,20,.22), 0 26px 56px -20px rgba(10,10,20,.7), 0 0 0 .5px rgba(10,10,20,.06);animation:shx-pop .5s cubic-bezier(.2,.9,.25,1.05)}
   .shx-qrcard::before{content:"";position:absolute;inset:0;border-radius:24px;pointer-events:none;z-index:2;background:linear-gradient(133deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,0) 30%, rgba(255,255,255,0) 78%, rgba(255,255,255,.4) 100%)}
   .shx-qrcard::after{content:"";position:absolute;right:0;bottom:0;width:38%;height:38%;border-radius:0 0 24px 0;pointer-events:none;z-index:1;background:radial-gradient(130% 130% at 100% 100%, rgba(10,10,20,.16), rgba(10,10,20,0) 62%)}
-  .shx-qrwrap{position:relative;z-index:3;width:min(320px,52vh,72vw);aspect-ratio:1/1}
+  .shx-qrwrap{position:relative;z-index:3;width:100%;aspect-ratio:1/1}
   .shx-qr,.shx-qr svg{width:100%;height:100%;display:block}
   .shx-qrcard.overflow .shx-qrlogo{display:none}
   .shx-qrlogo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:23%;height:23%;background:radial-gradient(120% 120% at 30% 20%,#ffffff,#eceef4);border-radius:26%;display:grid;place-items:center;color:#6d28d9;box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 2px 7px rgba(10,10,20,.28), 0 0 0 1.5px #fff}
@@ -292,7 +298,7 @@ function injectStyles() {
   .shx-or{text-align:center;color:var(--dim);font-size:14px;margin:2px 0}
   .shx-gate{color:var(--holo-warn,#fbbf24);font-size:14px;line-height:1.4;text-align:center}
   .shx-empty{color:var(--dim);font-size:15px;line-height:1.5;text-align:center}
-  .shx-bloom{width:min(300px,48vh);aspect-ratio:1/1;margin:auto;border-radius:24px;background:linear-gradient(158deg,rgba(255,255,255,.9),rgba(238,240,246,.9));animation:shx-pulse 1.1s ease-in-out infinite}
+  .shx-bloom{width:clamp(120px,min(100cqi,calc(100cqb - 2rem)),320px);aspect-ratio:1/1;margin:auto;border-radius:24px;background:linear-gradient(158deg,rgba(255,255,255,.9),rgba(238,240,246,.9));animation:shx-pulse 1.1s ease-in-out infinite}
   @keyframes shx-pop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes shx-pulse{0%,100%{opacity:.45}50%{opacity:.85}}
   @media (prefers-reduced-motion: reduce){ .shx-qrcard,.shx-bloom{animation:none} }`;

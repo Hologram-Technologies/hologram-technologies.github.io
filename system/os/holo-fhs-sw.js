@@ -230,7 +230,7 @@ const APPLOCK = new Set();   // app-ids whose lock closure has been folded into 
 // baked anchor — the ONE κ a tamperer cannot forge without also editing this worker, which the browser loads
 // out-of-band (SW registration / SRI), never through the handler it defines. Sealed by tools/holo-anchor-sw.mjs
 // on every reseal. Empty string ⇒ an unsealed dev tree → enforcement off (no false refusal before first seal).
-const CLOSURE_KAPPA = "cf1044e78585a8f76a4ba5589f77f37fbb37bcc091e27789b191b9e2af790a28";
+const CLOSURE_KAPPA = "2341173defecb62e839390d6782fdfe2e386bd91ea390961014de2f618e44fe4";
 let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {

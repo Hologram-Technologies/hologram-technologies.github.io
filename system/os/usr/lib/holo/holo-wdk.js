@@ -22,6 +22,9 @@ import { HDKey, SlipHDKey, secp256k1, ed25519, base58, generateMnemonic as _genM
 import { keccak256, keccak256Hex, bytesToHex as ethHex, hexToBytes, concatBytes, bytesFromQuantity, rlpEncode, txRaw, toChecksumAddress, Rpc, hashTypedData } from "./holo-eth.js";
 import * as BTC from "./btc-wallet/wallet.js";
 import { SolanaSource } from "./holo-solana.js";
+import * as TRON from "./holo-tron.mjs";
+import * as TON from "./holo-ton.mjs";
+import { txHistory as _txHistory } from "./holo-indexer.mjs";
 
 export { WDK, WalletManager, WdkSecretManager, protocols };
 
@@ -58,6 +61,8 @@ export const CHAINS = {
   bitcoin:  { kind: "btc", name: "Bitcoin",  symbol: "BTC", decimals: 8, coinType: 0, network: "mainnet", explorer: "https://mempool.space", accent: "#f7931a", coingecko: "bitcoin" },
   solana:   { kind: "sol", name: "Solana",   symbol: "SOL", decimals: 9, coinType: 501, rpc: "https://api.mainnet-beta.solana.com", rpcs: ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"], explorer: "https://solscan.io", accent: "#14f195", coingecko: "solana" },
   hyperliquid:{ kind: "evm", name: "Hyperliquid", symbol: "HYPE", decimals: 18, coinType: 60, chainId: 999, rpc: "https://rpc.hyperliquid.xyz/evm", rpcs: ["https://rpc.hyperliquid.xyz/evm"], explorer: "https://hyperevmscan.io", accent: "#50d2c1", coingecko: "hyperliquid" },   // HyperEVM (eip155:999), the Hyperliquid venue's EVM — see etc/holo-chains/hyperliquid.uor.json
+  tron:     { kind: "tron", name: "Tron",     symbol: "TRX", decimals: 6, coinType: 195, api: "https://api.trongrid.io", apis: ["https://api.trongrid.io"], explorer: "https://tronscan.org/#", accent: "#ff060a", coingecko: "tron" },   // secp256k1 (same key as EVM), base58check "T…" address (SLIP-0044 195)
+  ton:      { kind: "ton", name: "TON",      symbol: "TON", decimals: 9, coinType: 607, api: "https://toncenter.com", apis: ["https://toncenter.com"], explorer: "https://tonviewer.com", accent: "#0098ea", coingecko: "the-open-network" },   // Ed25519 (SLIP-0010), address = hash(wallet-v4r2 StateInit) via vendored @ton/core (SLIP-0044 607)
 };
 // Failover JSON-RPC: try each public endpoint in order; the first to answer wins (no custodian).
 function failoverRpc(urls) {
@@ -69,6 +74,8 @@ const PATH = {
   evm: (i) => `m/44'/60'/0'/0/${i}`,
   btc: (i) => `m/84'/0'/0'/0/${i}`,        // BIP-84 native segwit
   sol: (i) => `m/44'/501'/${i}'/0'`,        // Phantom / solana-keygen convention
+  tron: (i) => `m/44'/195'/0'/0/${i}`,      // Tron (secp256k1, SLIP-0044 195)
+  ton: (i) => `m/44'/607'/${i}'`,           // TON (SLIP-0010 ed25519, hardened; SLIP-0044 607)
 };
 
 // ── low-level signers (pure, witnessable) ───────────────────────────────────────────────
@@ -187,14 +194,15 @@ export function solanaSource(urls) {
 const seedBytes = (seed) => (typeof seed === "string" ? mnemonicToSeedSync(seed) : seed);
 function deriveKey(kind, seed, index) {
   const sb = seedBytes(seed);
-  if (kind === "sol") { const k = SlipHDKey.fromMasterSeed(sb).derive(PATH.sol(index)); return { priv: k.privateKey, pub: ed25519.getPublicKey(k.privateKey) }; }
-  const k = HDKey.fromMasterSeed(sb).derive((kind === "btc" ? PATH.btc : PATH.evm)(index));
+  if (kind === "sol" || kind === "ton") { const k = SlipHDKey.fromMasterSeed(sb).derive((kind === "ton" ? PATH.ton : PATH.sol)(index)); return { priv: k.privateKey, pub: ed25519.getPublicKey(k.privateKey) }; }
+  const k = HDKey.fromMasterSeed(sb).derive((kind === "btc" ? PATH.btc : kind === "tron" ? PATH.tron : PATH.evm)(index));
   return { priv: k.privateKey, pub: k.publicKey };
 }
 export function deriveAddress(chainKey, seed, index = 0) {
   const c = CHAINS[chainKey]; if (!c) throw new Error("unknown chain " + chainKey);
-  const { priv } = deriveKey(c.kind, seed, index);
-  return c.kind === "evm" ? evmAddress(priv) : c.kind === "btc" ? BTC.deriveAddress(priv, c.network) : solAddress(priv);
+  const { priv, pub } = deriveKey(c.kind, seed, index);
+  if (c.kind === "ton") return TON.tonAddress(pub);
+  return c.kind === "evm" ? evmAddress(priv) : c.kind === "btc" ? BTC.deriveAddress(priv, c.network) : c.kind === "tron" ? TRON.tronAddress(priv) : solAddress(priv);
 }
 // Human decimal amount → on-chain base units (wei hex for EVM, sats/lamports number otherwise).
 function parseUnits(amount, decimals) {
@@ -212,8 +220,9 @@ export function baseUnits(chainKey, amount) {
 // Each implements getAccount(index)/getAccountByPath; accounts implement the IWalletAccount surface
 // (getAddress/getBalance/sign/signTransaction/sendTransaction/transfer/verify/keyPair/dispose).
 function makeAccount(manager, kind, chainKey, index) {
-  const c = CHAINS[chainKey]; const path = (kind === "btc" ? PATH.btc : kind === "sol" ? PATH.sol : PATH.evm)(index);
+  const c = CHAINS[chainKey]; const path = (kind === "btc" ? PATH.btc : kind === "sol" ? PATH.sol : kind === "tron" ? PATH.tron : kind === "ton" ? PATH.ton : PATH.evm)(index);
   let { priv, pub } = deriveKey(kind, manager.seed, index);
+  const tronApis = () => manager._config.apis || c.apis || [c.api];
   const rpcList = () => manager._config.rpcs || c.rpcs || [manager._config.rpcUrl || c.rpc];
   const evmRpc = () => failoverRpc(rpcList());
   const solList = () => (manager._config.rpcs || c.rpcs || [manager._config.rpcUrl || c.rpc]).filter(Boolean);
@@ -221,7 +230,7 @@ function makeAccount(manager, kind, chainKey, index) {
   const acc = {
     index, path, _chain: chainKey, _kind: kind,
     get keyPair() { return { publicKey: pub, privateKey: priv }; },
-    async getAddress() { return kind === "evm" ? evmAddress(priv) : kind === "btc" ? BTC.deriveAddress(priv, c.network) : solAddress(priv); },
+    async getAddress() { return kind === "evm" ? evmAddress(priv) : kind === "btc" ? BTC.deriveAddress(priv, c.network) : kind === "tron" ? TRON.tronAddress(priv) : kind === "ton" ? TON.tonAddress(pub) : solAddress(priv); },
     async sign(message) { return kind === "sol" ? signSolMessage(message, priv) : signEvmMessage(message, priv); },
     async signTypedData(typedData) { if (kind !== "evm") throw new Error("signTypedData (EIP-712) is EVM-only"); return signEvmTypedData(typedData, priv); },
     async signRawSolanaTx(b64) { if (kind !== "sol") throw new Error("signRawSolanaTx is Solana-only"); return signSolanaRawTx(b64, priv, pub); },
@@ -233,6 +242,8 @@ function makeAccount(manager, kind, chainKey, index) {
     async getBalance() {
       if (kind === "evm") return BigInt(await evmRpc().call("eth_getBalance", [await acc.getAddress(), "latest"]));
       if (kind === "btc") { const b = await BTC.getBalance(await acc.getAddress(), c.network); return BigInt(b.confirmed); }
+      if (kind === "tron") return TRON.getBalance(await acc.getAddress(), { apis: tronApis() });
+      if (kind === "ton") return TON.getBalance(await acc.getAddress(), { apis: tronApis() });
       return BigInt(await sol().balance(await acc.getAddress()));
     },
     async getTokenBalance(tokenAddress) {
@@ -246,6 +257,7 @@ function makeAccount(manager, kind, chainKey, index) {
         let total = 0n; for (const a of (res?.value || [])) total += BigInt(a.account.data.parsed.info.tokenAmount.amount);
         return total;
       }
+      if (kind === "tron") return TRON.getTokenBalance(await acc.getAddress(), tokenAddress, { apis: tronApis() });
       throw new Error("getTokenBalance: unsupported chain kind " + kind);
     },
     // signing (offline, witnessable)
@@ -268,6 +280,14 @@ function makeAccount(manager, kind, chainKey, index) {
       if (kind === "btc") {
         const r = await BTC.send({ priv, toAddr: tx.to, amountSats: Number(tx.value), netKey: c.network, rate: tx.feeRate });
         return { hash: r.txid, fee: BigInt(r.fee) };
+      }
+      if (kind === "tron") {
+        const r = await TRON.send({ priv, fromAddr: await acc.getAddress(), toAddr: tx.to, amountSun: Number(tx.value), apis: tronApis() });
+        return { hash: r.txid, fee: r.fee };
+      }
+      if (kind === "ton") {
+        const r = await TON.send({ priv, pubkey: pub, toAddr: tx.to, amountNano: Number(tx.value), apis: tronApis() });
+        return { hash: r.hash, fee: r.fee };
       }
       // solana: build + sign + submit a real System transfer
       const src = sol(), from = await acc.getAddress();
@@ -310,7 +330,7 @@ function makeAccount(manager, kind, chainKey, index) {
 }
 function chainManager(kind) {
   return class extends WalletManager {
-    async getAccount(index = 0) { const p = (kind === "btc" ? PATH.btc : kind === "sol" ? PATH.sol : PATH.evm)(index); this._accounts[p] ??= makeAccount(this, kind, this._chainKey, index); return this._accounts[p]; }
+    async getAccount(index = 0) { const p = (kind === "btc" ? PATH.btc : kind === "sol" ? PATH.sol : kind === "tron" ? PATH.tron : PATH.evm)(index); this._accounts[p] ??= makeAccount(this, kind, this._chainKey, index); return this._accounts[p]; }
     async getAccountByPath(path) { const i = parseInt(String(path).match(/(\d+)'?\/?\d*'?$/)?.[1] ?? "0", 10); return this.getAccount(i); }
     async getFeeRates() { return { normal: 1n, fast: 2n }; }
   };
@@ -319,7 +339,9 @@ function chainManager(kind) {
 class WalletManagerEVM extends chainManager("evm") { constructor(seed, config = {}) { super(seed, config); this._chainKey = config.chain || "ethereum"; } }
 class WalletManagerBTC extends chainManager("btc") { constructor(seed, config = {}) { super(seed, config); this._chainKey = "bitcoin"; } }
 class WalletManagerSolana extends chainManager("sol") { constructor(seed, config = {}) { super(seed, config); this._chainKey = "solana"; } }
-export { WalletManagerEVM, WalletManagerBTC, WalletManagerSolana };
+class WalletManagerTron extends chainManager("tron") { constructor(seed, config = {}) { super(seed, config); this._chainKey = config.chain || "tron"; } }
+class WalletManagerTon extends chainManager("ton") { constructor(seed, config = {}) { super(seed, config); this._chainKey = config.chain || "ton"; } }
+export { WalletManagerEVM, WalletManagerBTC, WalletManagerSolana, WalletManagerTron, WalletManagerTon };
 
 // ── makeWDK — a WDK orchestrator with every chain in CHAINS registered (faithful usage) ──
 export function makeWDK(seed, { chains = Object.keys(CHAINS) } = {}) {
@@ -329,6 +351,8 @@ export function makeWDK(seed, { chains = Object.keys(CHAINS) } = {}) {
     if (c.kind === "evm") wdk.registerWallet(key, WalletManagerEVM, { chain: key, rpcUrl: c.rpc, rpcs: c.rpcs, chainId: c.chainId });
     else if (c.kind === "btc") wdk.registerWallet(key, WalletManagerBTC, { rpcUrl: c.rpc, rpcs: c.rpcs });
     else if (c.kind === "sol") wdk.registerWallet(key, WalletManagerSolana, { rpcUrl: c.rpc, rpcs: c.rpcs });
+    else if (c.kind === "tron") wdk.registerWallet(key, WalletManagerTron, { chain: key, apis: c.apis });
+    else if (c.kind === "ton") wdk.registerWallet(key, WalletManagerTon, { chain: key, apis: c.apis });
   }
   return wdk;
 }
@@ -342,29 +366,14 @@ export async function priceUsd(chainKeys = Object.keys(CHAINS), { fetchImpl } = 
   const out = {}; for (const k of chainKeys) { const id = CHAINS[k]?.coingecko; out[k] = (id && data[id]) ? data[id].usd : null; } return out;
 }
 
-// ── transaction history — read-only, from PUBLIC explorers/indexers (no key where avoidable):
-//    BTC → mempool.space · Solana → the chain's own RPC · EVM → the chain's block-explorer API.
-//    Returns a normalised [{ hash, time, direction, counterparty, value, explorer }]. No custodian.
+// ── transaction history — read-only, delegated to the sovereign INDEXER (holo-indexer.mjs): EVM via
+//    Blockscout (open-source, key-free) + etherscan-family fallback · BTC → mempool.space Esplora ·
+//    Solana → the chain's own JSON-RPC. Returns the normalised [{ hash, time, direction, counterparty,
+//    value, explorer }]. No custodian, no key where avoidable. (Was a key-gated EVM txlist that silently
+//    degraded to []; the indexer fixes the EVM read story across the major chains. WDK-Indexer parity.)
 export async function history(chainKey, address, { limit = 25, fetchImpl } = {}) {
   const c = CHAINS[chainKey]; if (!c) throw new Error("unknown chain " + chainKey);
-  const f = fetchImpl || (typeof fetch !== "undefined" ? fetch : null); if (!f) throw new Error("no fetch");
-  const link = (h) => `${c.explorer}/${c.kind === "btc" ? "tx" : c.kind === "sol" ? "tx" : "tx"}/${h}`;
-  if (c.kind === "btc") {
-    const txs = await (await f(`${c.explorer}/api/address/${address}/txs`)).json();
-    return (txs || []).slice(0, limit).map((t) => ({ hash: t.txid, time: t.status?.block_time || null, value: null, direction: null, counterparty: null, explorer: link(t.txid) }));
-  }
-  if (c.kind === "sol") {
-    const res = await new SolanaSource((c.rpcs || [c.rpc])[0]).call("getSignaturesForAddress", [address, { limit }]);
-    return (res || []).map((s) => ({ hash: s.signature, time: s.blockTime || null, value: null, direction: null, counterparty: null, explorer: link(s.signature) }));
-  }
-  // EVM: the explorer's public account txlist API (Etherscan/Blockscout family). Best-effort, no key.
-  const api = c.explorer.replace("//", "//api.").replace("api.optimistic", "api-optimistic");
-  const url = `${api}/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=${limit}`;
-  try {
-    const j = await (await f(url)).json();
-    if (!Array.isArray(j.result)) return [];
-    return j.result.slice(0, limit).map((t) => ({ hash: t.hash, time: t.timeStamp ? Number(t.timeStamp) : null, value: t.value, direction: t.from?.toLowerCase() === String(address).toLowerCase() ? "out" : "in", counterparty: t.from?.toLowerCase() === String(address).toLowerCase() ? t.to : t.from, explorer: link(t.hash) }));
-  } catch { return []; }    // many explorers gate txlist behind a key — degrade gracefully (sovereign-first)
+  return _txHistory({ ...c, key: chainKey }, address, { limit, fetchImpl });
 }
 
 // ── UOR vault — the encrypted seed, content-addressed (Law L1/L5) ───────────────────────
@@ -478,6 +487,123 @@ export class HoloWallet {
       source,
       sign: (b64) => acc.signRawSolanaTx(b64),
       approve: (info) => this._gate({ type: "swap", chain: "solana", venue: JUPITER.name, address: userPublicKey, inputMint, outputMint, amount: String(amount), ...info }),
+    });
+  }
+
+  // EVM spot SWAP via Velora (ParaSwap v6.2) — the EVM counterpart of the Jupiter seam. holo-evm-swap
+  // re-derives a min-out floor, asserts the sealed Augustus router, and eth_call-simulates BEFORE the gate
+  // fires; only then does the key sign the EIP-1559 tx. `amount` is human decimal in the src token's units.
+  async swapEvm({ chain = "ethereum", srcToken, destToken, amount, slippageBps = 50, srcDecimals = 18, destDecimals = 18, index = 0 }) {
+    const c = CHAINS[chain]; if (!c || c.kind !== "evm") throw new Error("swapEvm: not an EVM chain: " + chain);
+    const { swap } = await import("./holo-evm-swap.mjs");
+    const acc = await this.account(chain, index);
+    const userAddress = await this.address(chain, index);
+    const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    const amt = parseUnits(amount, srcDecimals).toString();              // human → base units
+    return swap({ chainId: c.chainId, srcToken, destToken, amount: amt, slippageBps, userAddress, srcDecimals, destDecimals }, {
+      rpc,
+      send: (tx) => acc.sendTransaction(tx),                              // gated AFTER approve() below resolves true
+      approve: (info) => this._gate({ type: "swapEvm", chain, address: userAddress, srcToken, destToken, amount: String(amount), ...info }),
+    });
+  }
+  // EVM swap quote — read-only (no gate, no key): the price route from Velora, for an agent/UI to inspect.
+  async quoteEvm({ chain = "ethereum", srcToken, destToken, amount, srcDecimals = 18, destDecimals = 18 }) {
+    const c = CHAINS[chain]; if (!c || c.kind !== "evm") throw new Error("quoteEvm: not an EVM chain: " + chain);
+    const { quote, minOutFloor } = await import("./holo-evm-swap.mjs");
+    const pr = await quote({ chainId: c.chainId, srcToken, destToken, amount: parseUnits(amount, srcDecimals).toString(), srcDecimals, destDecimals });
+    return { srcAmount: pr.srcAmount, destAmount: pr.destAmount, minOut: minOutFloor(pr).floor.toString(), router: pr.contractAddress };
+  }
+
+  // USD₮0 cross-chain BRIDGE via LayerZero OFT — holo-bridge re-derives the destination (dstEid from a pinned
+  // table) + recipient, asserts the sealed OFT, quotes the LZ fee, and simulates BEFORE the gate fires; only
+  // then does the key sign the send() tx (value = the native messaging fee). `amount` is human USD₮0 (6dp).
+  async bridgeUsdt0({ srcChain = "arbitrum", dstChain, to, amount, slippageBps = 50, index = 0 }) {
+    const { bridge, USDT0 } = await import("./holo-bridge.mjs");
+    const src = USDT0[srcChain]; if (!src) throw new Error("bridge: no sealed USD₮0 OFT on " + srcChain);
+    const c = CHAINS[srcChain]; if (!c || c.kind !== "evm") throw new Error("bridge: " + srcChain + " is not an EVM chain");
+    const acc = await this.account(srcChain, index);
+    const userAddress = await this.address(srcChain, index);
+    const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    const amountLD = parseUnits(amount, src.decimals).toString();
+    return bridge({ srcChain, dstChain, to: to || userAddress, amountLD, slippageBps, userAddress }, {
+      rpc,
+      send: (tx) => acc.sendTransaction(tx),
+      approve: (info) => this._gate({ type: "bridge", chain: srcChain, address: userAddress, amount: String(amount), ...info }),
+    });
+  }
+  // USD₮0 bridge quote — read-only (no gate, no key): the LayerZero native fee + minAmount for an agent/UI.
+  async quoteBridge({ srcChain = "arbitrum", dstChain, to, amount }) {
+    const { buildSendParam, quoteSend, USDT0 } = await import("./holo-bridge.mjs");
+    const src = USDT0[srcChain]; if (!src) throw new Error("bridge: no sealed USD₮0 OFT on " + srcChain);
+    const c = CHAINS[srcChain]; const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    const sp = buildSendParam({ srcChain, dstChain, to: to || await this.address(srcChain), amountLD: parseUnits(amount, src.decimals).toString() });
+    const fee = await quoteSend({ rpc, srcChain, sendParam: sp });
+    return { nativeFee: String(fee.nativeFee), minAmountLD: sp.minAmountLD, dstEid: sp.dstEid };
+  }
+
+  // DeFi LENDING via Aave V3 — positions read (collateral/debt/health) + supply/borrow/withdraw/repay.
+  // holo-lending asserts the sealed Pool, re-derives capacity, and eth_call-simulates BEFORE the gate.
+  async lendingPositions({ chain = "arbitrum", index = 0 }) {
+    const { positions } = await import("./holo-lending.mjs");
+    const c = CHAINS[chain]; const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    return positions({ rpc, chain, user: await this.address(chain, index) });
+  }
+  async lendingAct({ chain = "arbitrum", action, asset, amount, decimals = 6, rateMode = 2, index = 0 }) {
+    const { execute } = await import("./holo-lending.mjs");
+    const c = CHAINS[chain]; if (!c || c.kind !== "evm") throw new Error("lending: " + chain + " is not an EVM chain");
+    const acc = await this.account(chain, index);
+    const userAddress = await this.address(chain, index);
+    const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    const amt = parseUnits(amount, decimals).toString();
+    return execute({ chain, action, asset, amount: amt, userAddress, rateMode }, {
+      rpc,
+      send: (tx) => acc.sendTransaction(tx),
+      approve: (info) => this._gate({ type: "lending", chain, address: userAddress, amountHuman: String(amount), ...info }),
+    });
+  }
+
+  // FIAT on-ramp via MoonPay — deposits crypto INTO this wallet (no key signature). holo-fiat builds an
+  // address-bound widget URL to the SEALED origin, asserts it, and gates the human before handing it back.
+  async fiatBuy({ currencyCode = "usdc", baseCurrencyAmount, baseCurrencyCode = "usd", index = 0 }) {
+    const { onRamp, chainForCurrency } = await import("./holo-fiat.mjs");
+    const chain = chainForCurrency(currencyCode) || "ethereum";
+    const walletAddress = await this.address(chain, index);
+    let apiKey = ""; try { apiKey = (typeof localStorage !== "undefined" && localStorage.getItem("holo.fiat.moonpay.key")) || ""; } catch {}
+    return onRamp({ apiKey, walletAddress, currencyCode, baseCurrencyAmount, baseCurrencyCode }, {
+      approve: (info) => this._gate({ type: "fiat", chain, address: walletAddress, amount: baseCurrencyAmount != null ? String(baseCurrencyAmount) : null, ...info }),
+    });
+  }
+  async fiatQuote({ currencyCode = "usdc", baseCurrencyAmount = 100, baseCurrencyCode = "usd" }) {
+    const { buyQuote } = await import("./holo-fiat.mjs");
+    let apiKey = ""; try { apiKey = (typeof localStorage !== "undefined" && localStorage.getItem("holo.fiat.moonpay.key")) || ""; } catch {}
+    return buyQuote({ apiKey, currencyCode, baseCurrencyAmount, baseCurrencyCode });
+  }
+
+  // ACCOUNT ABSTRACTION (ERC-4337 + EIP-7702). holo-aa re-derives the smart-account address from the SEALED
+  // factory, computes the userOpHash / 7702 authHash exactly as the verifier does, asserts the EntryPoint,
+  // and gates before the EOA key signs. Submission (bundler / sponsored type-4 tx) is out-of-band.
+  async aaAddress({ chain = "ethereum", salt = 0, index = 0 }) {
+    const { accountAddress } = await import("./holo-aa.mjs");
+    const c = CHAINS[chain]; if (!c || c.kind !== "evm") throw new Error("aaAddress: EVM-only");
+    const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    return accountAddress({ rpc, owner: await this.address(chain, index), salt });
+  }
+  async aaSend({ chain = "ethereum", to, value = 0, data = "0x", salt = 0, deploy = false, index = 0 }) {
+    const { buildUserOp } = await import("./holo-aa.mjs");
+    const c = CHAINS[chain]; if (!c || c.kind !== "evm") throw new Error("aaSend: EVM-only");
+    const acc = await this.account(chain, index); const owner = await this.address(chain, index);
+    const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    return buildUserOp({ rpc, owner, priv: acc.keyPair.privateKey, chainId: c.chainId, to, value, data, salt, deploy }, {
+      approve: (info) => this._gate({ type: "aaSend", chain, address: owner, ...info }),
+    });
+  }
+  async aa7702({ chain = "ethereum", implAddress, index = 0 }) {
+    const { authorize7702 } = await import("./holo-aa.mjs");
+    const c = CHAINS[chain]; if (!c || c.kind !== "evm") throw new Error("aa7702: EVM-only");
+    const acc = await this.account(chain, index); const owner = await this.address(chain, index);
+    const rpc = failoverRpc(c.rpcs || [c.rpc]);
+    return authorize7702({ rpc, priv: acc.keyPair.privateKey, chainId: c.chainId, implAddress, owner }, {
+      approve: (info) => this._gate({ type: "aa7702", chain, address: owner, ...info }),
     });
   }
 }
