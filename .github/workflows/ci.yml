@@ -1,0 +1,36 @@
+name: ci
+
+# Pull-request gates. The OS is published AS-IS and the in-browser Service Worker
+# re-derives every served byte to its pinned κ (Law L5), so an edit not followed by
+# `npm run reseal`, a stale documented contract, or a malformed changelog would
+# only surface at DEPLOY (pages.yml) — after merge. These run the SAME fail-closed
+# witnesses on the PR, so drift is caught before it lands. All are dependency-free
+# Node; the heavy cold-boot witness stays in the deploy pipeline.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Seal + docs + changelog (fail-closed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Seal gate (served bytes must == pinned κ)
+        run: node system/tools/reseal.mjs --check
+      - name: Docs reference drift gate
+        run: node system/tools/docs-reference-witness.mjs
+      - name: Changelog conformance (Keep a Changelog + SemVer)
+        run: node system/tools/changelog-witness.mjs CHANGELOG.md

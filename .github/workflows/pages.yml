@@ -35,7 +35,7 @@ jobs:
     outputs:
       page_url: ${{ steps.deployment.outputs.page_url }}   # handed to the verify-boot job below
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0   # full history + tags, so git-cliff can build the whole changelog
       # ── Apps come from the SEPARATE apps repo. Vendor them into the OS deploy so every /apps/<id>/*
@@ -44,7 +44,7 @@ jobs:
       # WHERE the bytes are fetched, never WHETHER they are content-verified. Without this, the OS site
       # lists apps in the catalog but their bytes live on another origin and every launch 404s → heal.
       - name: Check out the apps repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Hologram-Technologies/hologram-apps
           ref: main
@@ -58,7 +58,7 @@ jobs:
       # and sidesteps the GITHUB_TOKEN "no re-trigger" rule a separate commit-then-deploy would hit.
       - name: Regenerate changelog (git-cliff)
         continue-on-error: true   # if git-cliff hiccups, fall back to the committed CHANGELOG.md — never break the site deploy
-        uses: orhun/git-cliff-action@v4
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4
         with:
           config: .github/cliff.toml
           args: --verbose
@@ -86,7 +86,7 @@ jobs:
       # with no manual step. A drift gate runs first and fails closed if a doc names something the
       # code no longer has.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -124,7 +124,7 @@ jobs:
           node tools/vendor-esbuild-wasm.mjs || true
           node tools/vendor-interactjs.mjs || true
           node tools/vendor-chrome-devtools.mjs || true
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
         with:
           enablement: true   # self-enable Pages (GitHub Actions source) on a fresh repo, so the first push deploys with no manual settings toggle
       # Stage a lean site from the new layout (everything lives under system/, except the gateway
@@ -156,11 +156,32 @@ jobs:
       # the deploy instead of reaching a visitor. Reads the SAME union the vendor step copies, so they can't drift.
       - name: Verify app coverage (every advertised/loaded surface is vendored)
         run: HOLO_OS_DIR=_site/os node system/tools/holo-cold-app-witness.mjs
-      - uses: actions/upload-pages-artifact@v3
+      # ── Pre-publish COLD-BOOT gate (fail-closed) — BLOCKS the deploy if a fresh visitor can't boot ──
+      # Serve the staged _site EXACTLY as Pages will (a dumb static host → the κ Service Worker runs PROD,
+      # L5 enforced) and cold-boot it through the gateway in a real browser BEFORE uploading. Catches what
+      # the seal gate can't: a gateway that won't self-certify, or an uncaught boot-time error (e.g. a module
+      # loaded as a classic script — the kind that fail-closes nothing but strands the boot). Gates on 409s +
+      # syntax/reference errors only (a GPU-less runner emits benign pageerrors we ignore). A red here STOPS
+      # the job before upload-pages-artifact — the broken bytes never reach a visitor. (The verify-boot job
+      # below is the post-deploy twin: it re-checks the REAL live subpath URL, which this localhost gate can't.)
+      - name: Pre-publish cold-boot gate (blocks the deploy)
+        run: |
+          cd system && (npm ci || npm install)
+          npx playwright install --with-deps chromium
+          cd "$GITHUB_WORKSPACE"
+          PAGES_ROOT="$GITHUB_WORKSPACE/_site" node system/tools/serve-pages.mjs 8080 &
+          SP=$!
+          for i in $(seq 1 40); do curl -sf -o /dev/null "http://127.0.0.1:8080/" && break; sleep 0.5; done
+          set +e
+          HOLO_DEPLOY="http://127.0.0.1:8080/" node system/tools/holo-cold-boot-witness.mjs
+          RC=$?
+          kill $SP 2>/dev/null || true
+          exit $RC
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
   # ── Post-deploy COLD-BOOT witness (fail-closed) ──────────────────────────────────────────────────
   # The absence of THIS is what let a mis-sealed image reach users on 2026-06-21: the SW refused every
@@ -173,8 +194,8 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - name: Install witness deps (Playwright + Chromium/WebKit/Firefox)
