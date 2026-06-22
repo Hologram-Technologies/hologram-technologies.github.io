@@ -22,6 +22,9 @@ import { makeTrust } from "/_shared/holo-trust.mjs";
 import { makeSpine } from "/_shared/holo-spine.mjs";
 import { makeMemory } from "/_shared/holo-memory.mjs";
 import "/_shared/holo-strand.mjs";   // side-effect: window.HoloStrand — the operator's source chain (resume spine; holo-session mirrors/reconciles through it)
+import "/_shared/holo-strand-provenance.mjs";   // side-effect: window.HoloStrandProvenance — P2: the "+" ingest provenance derives from the spine
+import "/_shared/holo-strand-audit.mjs";        // side-effect: window.HoloStrandAudit — P3: one signed audit source (consent · delegation · value)
+import "/_shared/holo-strand-rules.mjs";        // side-effect: window.HoloStrandRules — P4: validation rules as chain-referenced κ (forkable, provable)
 import "/_shared/holo-evolve.mjs";   // side-effect: registers window.HoloEvolve once Q.trust is up (closes the loop, gated)
 import { ensureBrainFloor, makeBrainFloor } from "/_shared/holo-brain-floor.mjs";   // guarantee a brain on every core task
 import { makeIntentRouter } from "/_shared/holo-intent.mjs";              // one classifier
