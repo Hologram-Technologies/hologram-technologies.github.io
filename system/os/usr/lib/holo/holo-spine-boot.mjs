@@ -26,6 +26,12 @@ import "/_shared/holo-strand-provenance.mjs";   // side-effect: window.HoloStran
 import "/_shared/holo-strand-audit.mjs";        // side-effect: window.HoloStrandAudit — P3: one signed audit source (consent · delegation · value)
 import "/_shared/holo-strand-rules.mjs";        // side-effect: window.HoloStrandRules — P4: validation rules as chain-referenced κ (forkable, provable)
 import "/_shared/holo-strand-feed.mjs";         // side-effect: window.HoloStrandFeed — the human-readable view of the one spine (Q.activity reads it)
+import "/_shared/holo-strand-stores.mjs";       // side-effect: window.HoloStrandStores — P5: old stores as projections of the spine
+import "/_shared/holo-warrant.mjs";             // side-effect: window.HoloWarrant — W: the κ-immune system (proof-of-invalid, verified not trusted)
+import "/_shared/holo-strand-admit.mjs";        // side-effect: window.HoloStrandAdmit — V: peer re-validation on receipt (verify-before-mount gate)
+import "/_shared/holo-shard.mjs";               // side-effect: window.HoloShard — D: content-addressed shared space (sharded κ-store)
+import "/_shared/holo-gossip.mjs";              // side-effect: window.HoloGossip — G: κ-gossip of heads + warrants (anti-entropy, self-healing)
+import "/_shared/holo-membrane.mjs";            // side-effect: window.HoloMembrane — M: per-app membranes (forkable app boundary)
 import "/_shared/holo-evolve.mjs";   // side-effect: registers window.HoloEvolve once Q.trust is up (closes the loop, gated)
 import { ensureBrainFloor, makeBrainFloor } from "/_shared/holo-brain-floor.mjs";   // guarantee a brain on every core task
 import { makeIntentRouter } from "/_shared/holo-intent.mjs";              // one classifier
@@ -157,6 +163,20 @@ import "/_shared/holo-fix-proposer.mjs";  // side-effect: window.__holoFixPropos
       // Q.activity(opts) — "what did I do / approve / ingest?" read from the ONE source chain (resume ·
       // ingest provenance · consent/delegation/value audit · rules), most-recent-first, plain language.
       window.Q.activity = (opts = {}) => { try { return window.HoloStrandFeed.activityFeed(window.HoloStrand, opts); } catch (e) { return []; } };
+      // the κ-immune system: ONE shared immunity the receive gate (admit, V) and Q.flag both consult, so a
+      // confirmed warrant blocks the actor everywhere on this device. Bound once Q is up.
+      try { if (window.HoloWarrant && !window.__holoImmunity) window.__holoImmunity = window.HoloWarrant.makeImmunity(); } catch (e) {}
+      // Q.flag(entry, ruleset) — the human door to the immune system: raise a warrant on a bad entry, then
+      // CONFIRM it independently (the verdict never trusts the flagger). Agents call window.HoloWarrant
+      // directly; both reach the SAME shared immunity. Returns { ok, warrant?, actor?, why }.
+      window.Q.flag = async (entry, ruleset) => {
+        try {
+          const w = await window.HoloWarrant.raiseWarrant({ entry, ruleset }, null);
+          if (!w) return { ok: false, why: "entry-is-valid" };           // refuse to flag a conforming entry
+          const r = await (window.__holoImmunity || window.HoloWarrant.makeImmunity()).receive(w);
+          return { ok: !!r.confirmed, warrant: w.id, actor: r.actor || null, why: r.why || null };
+        } catch (e) { return { ok: false, why: (e && e.message) || "flag-failed" }; }
+      };
       window.Q.briefing = () => {                                       // one plain sentence — the simple, personal surface
         const snap = engine.last();
         const notices = window.Q.notices();
