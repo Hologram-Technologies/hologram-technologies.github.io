@@ -4,55 +4,113 @@
     <meta charset="utf-8" />
     <meta name="color-scheme" content="dark" />
     <title>Hologram</title>
-    <!-- omnibar.html — the ONE Hologram-branded search/address bar. In the native Chromium host this
-         renders as the browser's top toolbar (a thin web BrowserView), replacing Chrome's omnibox so
-         the whole OS has one unified bar. Spectrum-outline animation + holomark + "Search anything with
-         Hologram"; no go-button. Enter → window.cefQuery('holo:omni:<value>') → the host classifies it
-         (κ/URL → navigate the active tab, verified; query → OS search). The host calls window.__setOmni
-         to reflect the active tab's address. The look is copied verbatim from shell.html's #omni. -->
+    <!-- omnibar.html — the native Hologram chrome: a tab strip + the ONE branded search/address bar.
+         Renders as a top overlay strip in the native Chromium host. The host drives the tab list via
+         window.__setTabs and the active address via window.__setOmni; the page talks back through
+         window.cefQuery (holo:tab:new|select|close, holo:omni:<value>). No invented browser chrome —
+         the omni look is shell.html's #omni verbatim. -->
     <style>
-      :root {
-        --holo-bg: #0c0e13; --holo-ink: #e8ecf4; --holo-ink-dim: #8a93a6; --accent: #5b8cff;
-      }
+      :root { --holo-bg: #0c0e13; --holo-ink: #e8ecf4; --holo-ink-dim: #8a93a6; --accent: #5b8cff; }
       @property --omni-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
       @keyframes omni-spin { to { --omni-spin: 360deg; } }
       * { box-sizing: border-box; }
-      html, body { margin: 0; height: 100%; background: #0a0c10; }
-      body { display: flex; align-items: center; height: 100%; padding: 0 14px;
-        font: 14px -apple-system, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      html, body { margin: 0; height: 100%; background: #0a0c10; overflow: hidden;
+        font: 13px -apple-system, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      body { display: flex; flex-direction: column; }
+
+      /* ── tab strip ─────────────────────────────────────────────────────────────── */
+      #tabs { display: flex; align-items: flex-end; gap: 2px; height: 38px; padding: 6px 8px 0; flex: 0 0 auto; }
+      .tab { position: relative; display: flex; align-items: center; gap: 8px; height: 32px; min-width: 60px; max-width: 220px;
+        padding: 0 8px 0 12px; border: 0; border-radius: 9px 9px 0 0; cursor: pointer; color: var(--holo-ink-dim);
+        background: color-mix(in srgb, var(--holo-ink) 5%, transparent); font: inherit; }
+      .tab.active { background: #1c1f26; color: var(--holo-ink); }
+      /* Chromium active-tab curve: concave "ears" at the bottom corners that blend into the toolbar. */
+      .tab.active::before, .tab.active::after { content: ""; position: absolute; bottom: 0; width: 9px; height: 9px; background: #1c1f26; pointer-events: none; }
+      .tab.active::before { left: -9px; -webkit-mask: radial-gradient(circle 9px at 0 0, transparent 8.5px, #000 9px); mask: radial-gradient(circle 9px at 0 0, transparent 8.5px, #000 9px); }
+      .tab.active::after { right: -9px; -webkit-mask: radial-gradient(circle 9px at 100% 0, transparent 8.5px, #000 9px); mask: radial-gradient(circle 9px at 100% 0, transparent 8.5px, #000 9px); }
+      .tab:not(.active):hover { background: color-mix(in srgb, var(--holo-ink) 9%, transparent); color: var(--holo-ink); }
+      .tab .t-ttl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tab .t-x { width: 18px; height: 18px; flex: 0 0 auto; border: 0; border-radius: 50%; background: transparent;
+        color: inherit; cursor: pointer; opacity: 0; display: grid; place-items: center; font-size: 15px; line-height: 1; }
+      .tab:hover .t-x, .tab.active .t-x { opacity: .6; }
+      .tab .t-x:hover { background: color-mix(in srgb, var(--holo-ink) 18%, transparent); opacity: 1; }
+      #newtab { flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent;
+        color: var(--holo-ink-dim); cursor: pointer; font-size: 20px; line-height: 1; }
+      #newtab:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
+
+      /* ── toolbar row: Chromium nav controls + the branded omni ───────────────────── */
+      #bar { flex: 1; display: flex; align-items: center; gap: 4px; padding: 0 12px 8px; }
+      .nav { flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent;
+        color: var(--holo-ink-dim); cursor: pointer; display: grid; place-items: center; }
+      .nav:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); color: var(--holo-ink); }
+      .nav svg { width: 18px; height: 18px; }
+      #bar #omni { margin-left: 4px; }
+      #menu { flex: 0 0 auto; margin-left: 4px; }
       #omni { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 40px;
         padding: 0 16px; border: 1.5px solid transparent; border-radius: 999rem;
         background: linear-gradient(var(--holo-bg), var(--holo-bg)) padding-box,
           conic-gradient(from var(--omni-spin), #ff3b6b, #ff9e2c, #ffe24a, #46e08a, #2bd4ff, #5b8cff, #c77bff, #ff3b6b) border-box;
-        box-shadow: 0 0 24px -7px rgba(120, 140, 255, .5);
-        animation: omni-spin 7s linear infinite; }
+        box-shadow: 0 0 24px -7px rgba(120, 140, 255, .5); animation: omni-spin 7s linear infinite; }
       #omni:focus-within { box-shadow: 0 0 28px -6px rgba(120, 140, 255, .7), 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
       #omni .sec { display: inline-flex; align-items: center; flex: 0 0 auto; }
       #omni .sec img { display: block; width: 20px; height: 20px; filter: drop-shadow(0 0 5px rgba(130, 150, 255, .35)); }
-      #omni input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--holo-ink);
-        outline: none; font: inherit; }
+      #omni input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--holo-ink); outline: none; font: 14px inherit; }
       #omni input::placeholder { color: var(--holo-ink-dim); opacity: 1; }
       @media (prefers-reduced-motion: reduce) { #omni { animation: none; } }
     </style>
   </head>
   <body>
-    <div id="omni">
-      <span class="sec" title="Hologram — one address for every object, verified by its fingerprint">
-        <img src="/usr/share/icons/hologram-dark.svg" alt="Hologram" />
-      </span>
-      <input id="addr" type="text" spellcheck="false" autocomplete="off"
-             aria-label="Search anything with Hologram" placeholder="Search anything with Hologram" />
+    <div id="tabs"></div>
+    <div id="bar">
+      <button class="nav" id="nav-back" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="nav" id="nav-fwd" title="Forward" aria-label="Forward"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button class="nav" id="nav-reload" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button>
+      <button class="nav" id="nav-home" title="Home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></button>
+      <div id="omni">
+        <span class="sec" title="Hologram — one address for every object, verified by its fingerprint">
+          <img src="/usr/share/icons/hologram-dark.svg" alt="Hologram" />
+        </span>
+        <input id="addr" type="text" spellcheck="false" autocomplete="off"
+               aria-label="Search anything with Hologram" placeholder="Search anything with Hologram" />
+      </div>
+      <button class="nav" id="menu" title="Menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
     </div>
     <script>
       (function () {
-        var a = document.getElementById("addr");
         function q(req) { try { window.cefQuery({ request: req, persistent: false, onSuccess: function () {}, onFailure: function () {} }); } catch (e) {} }
-        a.addEventListener("keydown", function (e) {
-          if (e.key === "Enter") { var v = a.value.trim(); if (v) q("holo:omni:" + v); }
+        var addr = document.getElementById("addr");
+        addr.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { var v = addr.value.trim(); if (v) q("holo:omni:" + v); }
         });
-        // The host reflects the active tab's address here (blank on Hologram home/omnibar surfaces).
+        // Chromium nav controls → act on the active tab via the host.
+        [["nav-back", "back"], ["nav-fwd", "fwd"], ["nav-reload", "reload"], ["nav-home", "home"]].forEach(function (p) {
+          var b = document.getElementById(p[0]);
+          if (b) b.addEventListener("click", function () { q("holo:nav:" + p[1]); });
+        });
+        document.getElementById("menu").addEventListener("click", function () { q("holo:menu"); });
+
+        var tabsEl = document.getElementById("tabs");
+        // The host pushes the authoritative tab list: [{ id, title, active }].
+        window.__setTabs = function (tabs) {
+          tabsEl.textContent = "";
+          (tabs || []).forEach(function (t) {
+            var el = document.createElement("button");
+            el.className = "tab" + (t.active ? " active" : "");
+            el.title = t.title || "New tab";
+            el.addEventListener("click", function () { q("holo:tab:select:" + t.id); });
+            var ttl = document.createElement("span"); ttl.className = "t-ttl"; ttl.textContent = t.title || "New tab";
+            var x = document.createElement("span"); x.className = "t-x"; x.textContent = "×";
+            x.title = "Close tab";
+            x.addEventListener("click", function (e) { e.stopPropagation(); q("holo:tab:close:" + t.id); });
+            el.appendChild(ttl); el.appendChild(x); tabsEl.appendChild(el);
+          });
+          var add = document.createElement("button"); add.id = "newtab"; add.textContent = "+"; add.title = "New tab";
+          add.addEventListener("click", function () { q("holo:tab:new"); });
+          tabsEl.appendChild(add);
+        };
+        // The host reflects the active tab's address (blank on Hologram home/omnibar surfaces).
         window.__setOmni = function (u) {
-          try { a.value = (u && !/^holo:\/\/os\/(shell|home|omnibar)\b/.test(u)) ? u : ""; } catch (e) {}
+          try { addr.value = (u && !/^holo:\/\/os\/(shell|home|omnibar)\b/.test(u)) ? u : ""; } catch (e) {}
         };
       })();
     </script>

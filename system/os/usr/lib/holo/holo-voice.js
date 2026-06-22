@@ -1159,10 +1159,14 @@
           // steers the main chat brain. Honor a pinned/override choice; fail SAFE to the pinned default. An
           // adapter κ (#adapter=) rides along — the engine applies its witnessed attn_q delta over whichever base.
           var adapterK = CFG.holoAdapterKappa || null;
+          // YOUR private per-user adapter (trained on your own usage, encrypted at rest via holo-user-adapter):
+          // load + decrypt LOCALLY and bind it into the brain so Q runs as YOU — "the model becomes you". Never
+          // fetched/egressed; falls through to the link-adapter / none if absent or locked.
+          var adapterBytes = null; try { var _ua = (typeof window !== "undefined" && window.HoloUserAdapter) ? await window.HoloUserAdapter.load() : null; if (_ua && _ua.bytes) adapterBytes = _ua.bytes; } catch (e) {}
           var respondKey = (m.modelKeyForFaculty && m.modelKeyForFaculty("respond")) || CFG.holoModel || "qwen2.5-0.5b";
           var engine = CFG.holoModelKappa
-            ? (m.createHoloModelBrain || m.default)({ model: "/.holo/sha256/" + CFG.holoModelKappa, kappa: CFG.holoModelKappa, adapter: adapterK })
-            : (m.createHoloModelBrain || m.default)({ model: respondKey, adapter: adapterK });
+            ? (m.createHoloModelBrain || m.default)({ model: "/.holo/sha256/" + CFG.holoModelKappa, kappa: CFG.holoModelKappa, adapter: adapterK, adapterBytes: adapterBytes })
+            : (m.createHoloModelBrain || m.default)({ model: respondKey, adapter: adapterK, adapterBytes: adapterBytes });
           await engine.load();                                     // quiet (no HUD) — overlaps the welcome
           _holoBrain = { engine };
           return _holoBrain;

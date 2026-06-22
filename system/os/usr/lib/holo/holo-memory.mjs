@@ -140,11 +140,11 @@ if (typeof window !== "undefined") {
   };
   const wire = async () => {
     try {
-      // bind once, in a real Hologram operator context — an APP frame (window.HoloApp) OR the SHELL (window.HoloSpine /
-      // window.Q). The shell never set HoloApp, so the persisted memory model + window.HoloMemory were silently
-      // never bound there (Q.briefing recall + the profile seam went dark); accepting the shell signal fixes that.
-      // holo-memory is NOT injected into sandboxed app frames, so this does not widen exposure.
-      if (window.HoloMemory || !(window.HoloApp || window.HoloSpine || window.Q)) return;
+      // bind once, wherever holo-memory is LOADED. It is included only in operator SURFACES (the shell + the
+      // mobile home), NEVER injected into sandboxed app frames — and records are AES-GCM encrypted at rest, so
+      // even if a frame bound it, without the operator key it decrypts to nothing. So bind-on-load is safe and
+      // lets EVERY operator surface (incl. the mobile home) get window.HoloMemory + the profile seam.
+      if (window.HoloMemory) return;
       const backend = (typeof indexedDB !== "undefined") ? idbBackend() : null;
       const mem = makeMemory({ backend, now: () => new Date().toISOString(), conscience: window.HoloConscience || null });
       await mem.ready();
@@ -152,9 +152,5 @@ if (typeof window !== "undefined") {
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-memory-ready"));
     } catch (e) { /* leave unset; callers fail-soft */ }
   };
-  if (window.HoloApp || window.HoloSpine || window.Q) wire();
-  else if (document.documentElement) {
-    document.documentElement.addEventListener("holo-app-ready", wire, { once: true });
-    let n = 0; const iv = setInterval(() => { if (window.HoloMemory || window.HoloApp || window.HoloSpine || window.Q) { wire(); clearInterval(iv); } else if (++n > 40) clearInterval(iv); }, 250);
-  }
+  wire();   // bind on load — holo-memory is only included in operator surfaces; encryption is the boundary
 }

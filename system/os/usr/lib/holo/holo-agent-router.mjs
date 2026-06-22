@@ -15,16 +15,25 @@ const toks = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").sp
 // FLOOR picker: score each tool by how many of its name+desc keywords the turn mentions; a distinctive
 // tool-noun (the part after the underscore — "attention","clear","balance") counts double. Pick the best
 // only if it clears a bar (≥2) AND beats the runner-up — else null (converse). Deterministic, no model.
-export function floorPick(text, menu) {
+export function floorPick(text, menu, profileTerms = []) {
   const tt = new Set(toks(text)); if (!tt.size) return null;
+  const pset = new Set((profileTerms || []).map((t) => String(t).toLowerCase()).filter((w) => w.length > 2));
   let best = null, bestScore = 0, second = 0;
   for (const t of menu) {
-    const kw = new Set(toks(t.name.replace(/_/g, " ")).concat(toks(t.desc || "")));
+    const kw = new Set(toks(t.name.replace(/_/g, " ")).concat(toks(t.desc || "")));   // text scoring (unchanged)
     let score = 0; for (const w of tt) if (kw.has(w)) score++;
     const noun = t.name.split("_").slice(1).join(" ");
     if (noun && tt.has(noun)) score++;                      // distinctive verb/noun → extra weight
-    if (score > bestScore) { second = bestScore; bestScore = score; best = t.name; }
-    else if (score > second) second = score;
+    // PROFILE TIEBREAK: a small (<1) nudge toward tools on a surface/topic you actually use — matched against
+    // name+desc+SURFACE+category (a SEPARATE set, so text scoring is byte-identical / backward-compatible).
+    // Capped below 1 so it can NEVER alone push a non-match over the ≥2 bar — the floor stays conservative:
+    // text governs WHETHER a tool fires, profile only orders WHICH among qualified/ambiguous ones (incl.
+    // resolving an otherwise-ambiguous tie that would converse into the tool you use). Disambiguates, never fabricates.
+    let pboost = 0;
+    if (pset.size) { const pkw = new Set([...kw, ...toks(t.surface || ""), ...toks(t.category || "")]); for (const w of pkw) { if (pset.has(w)) { pboost = 0.6; break; } } }
+    const total = score + pboost;
+    if (total > bestScore) { second = bestScore; bestScore = total; best = t.name; }
+    else if (total > second) second = total;
   }
   return (bestScore >= 2 && bestScore > second) ? best : null;
 }
@@ -36,7 +45,8 @@ export async function routeToTool(text, { brain = null, ctx = {} } = {}) {
   if (!menu.length) return { tool: null };
   let name = null;
   if (brain && typeof brain.pickTool === "function") { try { name = await brain.pickTool(text, menu); } catch (e) { name = null; } }
-  if (!name) name = floorPick(text, menu);
+  // the floor leans toward the surfaces you actually use (window.HoloProfile) — a tiebreak, never a trigger.
+  if (!name) { let pt = []; try { pt = (typeof window !== "undefined" && window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || []; } catch (e) {} name = floorPick(text, menu, pt); }
   const meta = name && menu.find((t) => t.name === name);
   if (!meta) return { tool: null };                         // nothing maps → converse
   if (!meta.gated) {                                        // READ → run ambiently, return for grounding
