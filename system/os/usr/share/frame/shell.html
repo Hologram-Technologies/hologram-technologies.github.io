@@ -1392,6 +1392,7 @@
                 // so any text input · the omni bar gets the near-invisible "+" → upload/link/holo-object-by-κ → a
                 // proactive, context-ranked, provenance-backed brief, fused into Q. One point, no per-app edit. Ephemeral (Law L5).
                 try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-plus-app")) { const _s = _d.createElement("script"); _s.id = "holo-plus-app"; _s.type = "module"; _s.setAttribute("data-holo-ephemeral", ""); _s.src = "/_shared/holo-plus-boot.mjs"; (_d.head || _d.documentElement).appendChild(_s); } } catch (e) {}
+                try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-proof-app")) { const _s = _d.createElement("script"); _s.id = "holo-proof-app"; _s.type = "module"; _s.setAttribute("data-holo-ephemeral", ""); _s.src = "/_shared/holo-proof.mjs"; (_d.head || _d.documentElement).appendChild(_s); } } catch (e) {}
                 // Mobile conformance (ADR-0057 · MD3/WCAG): mark this surface as the container-query host
                 // (data-holo-surface → the `holoapp` container, so the app reflows to its WINDOW width, not the
                 // device viewport — Compact whether maximized on a phone OR floated small on desktop) and ensure
@@ -6314,6 +6315,37 @@
           // surface shares EXACTLY the decision voice and the omnibar use; fall back to Q.intent if it's absent.
           const decided = (window.HoloResolve && typeof window.HoloResolve.decide === "function") ? window.HoloResolve.decide(text) : null;
           const it = decided ? { kind: decided.kind, target: decided.target } : ((window.Q && window.Q.intent) ? window.Q.intent(text) : { kind: isQuestion(text) ? "ask" : "build" });
+          // PROFILE GROUNDING for EVERY Q path (ask · build · converse): one preface from your learned profile
+          // (window.HoloProfile — derived from your encrypted local memory), folded into the context Q sees, so
+          // what Q ANSWERS and what it BUILDS both tailor to you. Guarded + fail-soft (no profile → no preface).
+          let youPreface = ""; try { const pt = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || []; if (pt.length) youPreface = "About the user (their interests, to tailor this): " + pt.slice(0, 12).join(", ") + ".\n\n"; } catch (e) {}
+          const groundedCtx = (base) => youPreface ? Object.assign({}, base || {}, { source: youPreface + (((base || {}).source) || "") }) : base;
+          // PROVE intent: "prove <X> [to/with <Y>]" → share a κ-PROOF of attribute X with audience Y, revealing
+          // NOTHING else. A consent card NAMES exactly what's shared; clicking Share is the per-action consent
+          // (best-effort step-up underneath); window.HoloProof assembles the proof + a self-contained link the
+          // recipient verifies. Plain language; no crypto jargon. (Profile-/self-asserted attribute tier.)
+          if (window.HoloProof && window.HoloProof.share && /^\s*prove\b/i.test(text)) {
+            const pm = text.match(/^\s*prove\b\s+(?:that\s+)?(?:i(?:['’]m| am)?\s+|i\s+)?(.+?)(?:\s+(?:to|with)\s+(.+?))?\s*$/i);
+            if (pm) {
+              const phrase = (pm[1] || "").trim().replace(/[.!?]+$/, ""), audience = (pm[2] || "this app").trim();
+              const interests = (window.HoloProfile && window.HoloProfile.profile && (window.HoloProfile.profile()["holo:interests"] || [])) || [];
+              const claims = {}; interests.forEach((t) => { claims["interest_" + t] = true; });
+              const low = phrase.toLowerCase(); let key, label = phrase;
+              const hit = interests.find((t) => low.indexOf(String(t).toLowerCase()) >= 0);
+              if (hit) { key = "interest_" + hit; label = "you’re into " + hit; }
+              else if (/develop|engineer|coder|programmer/.test(low)) { claims.role = "developer"; key = "role"; label = "you’re a developer"; }
+              else if (/over\s*18|adult|of age|18\+/.test(low)) { claims.adult = true; key = "adult"; label = "you’re over 18"; }
+              else { key = "interest_" + (low.replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "fact"); claims[key] = true; label = phrase; }
+              const m = addMsg("asst", "✦ Share a proof that <b>" + esc(label) + "</b> with <b>" + esc(audience) + "</b>? Nothing else is revealed. <button class=\"qchip\" data-proof=\"go\">Share proof</button>");
+              const btn = m.querySelector("[data-proof]");
+              if (btn) btn.onclick = async () => { btn.disabled = true; btn.textContent = "…"; try {
+                const r = await window.HoloProof.share({ claims, attributes: [key], audience, gate: async () => ({ ok: true }) });
+                if (r && r.ok) { const url = location.origin + location.pathname + r.link; try { navigator.clipboard && navigator.clipboard.writeText(url); } catch (e) {} m.innerHTML = "✦ Proof ready — <b>" + esc(label) + "</b>, shared with <b>" + esc(audience) + "</b>; nothing else revealed. Link copied."; }
+                else { m.innerHTML = "✦ " + esc((r && r.reason) || "couldn’t share that"); }
+              } catch (e) { btn.textContent = "failed"; } };
+              busy = false; thread.scrollTop = thread.scrollHeight; return;
+            }
+          }
           // TOOL-USE: an ask/build turn may map to a registered app tool (Files/Control/Inbox/Wallet…). Try it
           // BEFORE conversing — a READ runs ambiently + grounds the answer; a WRITE/DESTRUCTIVE surfaces a
           // step-up Approve (never auto-runs); no match falls through to normal converse/build (no regression).
@@ -6342,9 +6374,16 @@
             else if (it.kind === "ask") {
               const m = addMsg("asst", "…");
               const os = osScope();
-              const askCtx = { name: c.name, kappa: c.kappa, source: (os.summary ? "OS overview: " + os.summary + "\n\n" : "") + (c.source || "") };
+              // PROFILE GROUNDING (zero-config): Q answers AWARE of your interests — your learned profile
+              // (window.HoloProfile, distilled from your own encrypted local memory) prefaces the grounding so
+              // answers tailor to you. 100% local; nothing egresses. Guarded + fail-soft (no profile → no preface).
+              const askCtx = { name: c.name, kappa: c.kappa, source: youPreface + (os.summary ? "OS overview: " + os.summary + "\n\n" : "") + (c.source || "") };
               let ans = null; try { ans = await window.Q.ask(text, { context: askCtx }); } catch (e) {}
-              m.innerHTML = (ans && String(ans).trim()) ? esc(String(ans).trim()) : esc(factualAnswer(c, os));
+              const _reply = (ans && String(ans).trim()) ? String(ans).trim() : factualAnswer(c, os);
+              m.innerHTML = esc(_reply);
+              // REPLY-CAPTURE: a quiet 👍 — tapping it stores THIS (prompt, reply) as a liked example so Q
+              // learns from it (reply-SFT). One tap, no jargon; private (your encrypted memory), never shared.
+              try { if (window.HoloLearning && window.HoloLearning.captureUpvote) { const up = document.createElement("button"); up.className = "qchip"; up.title = "Good answer — Q learns from this"; up.textContent = "👍"; up.style.cssText = "margin-left:8px;opacity:.5"; up.onclick = async () => { up.disabled = true; up.style.opacity = "1"; up.textContent = "👍 learned"; try { await window.HoloLearning.captureUpvote(text, _reply); } catch (e) {} }; m.appendChild(up); } } catch (e) {}
               thread.scrollTop = thread.scrollHeight;
             } else if (window.__holoSurf && c.source == null) {
               // WARM-κ: a fresh build registers as a surface; re-asking the SAME prompt reopens it O(1)
@@ -6356,7 +6395,7 @@
               const nodeId = r.handle;
               if (r.reused) { m.innerHTML = "Reopened <b>" + esc(nm) + "</b> warm surface · O(1), no rebuild ✦"; close(); }
               else {
-                window.Q.create(text, { context: c, onPartial: function (pp) { if (pp && nodeId != null) try { applyEdit(nodeId, pp); } catch (e) {} } }).then(function (res) { if (res && res.value && nodeId != null) try { applyEdit(nodeId, res.value); } catch (e) {} }).catch(function () {});
+                window.Q.create(text, { context: groundedCtx(c), onPartial: function (pp) { if (pp && nodeId != null) try { applyEdit(nodeId, pp); } catch (e) {} } }).then(function (res) { if (res && res.value && nodeId != null) try { applyEdit(nodeId, res.value); } catch (e) {} }).catch(function () {});
                 m.innerHTML = "Built <b>" + esc(nm) + "</b> streaming onto your desktop ✦  ·  close &amp; re-ask to reopen warm"; close();
               }
             } else {
@@ -6370,7 +6409,7 @@
                 if (nodeId == null) { firstHtml = html; try { nodeId = addNode({ kind: "app", srcdoc: wrapDoc(html), sandbox: "allow-scripts allow-same-origin", content: html, editKind: "paste", name: nm, title: nm, w: 760, h: 540 }); } catch (e) {} }
                 else if (isFinal && html !== firstHtml) { try { applyEdit(nodeId, html); } catch (e) {} }
               };
-              const res = await window.Q.create(text, { context: c, onPartial: function (partial) { if (nodeId == null) paint(partial, false); } });
+              const res = await window.Q.create(text, { context: groundedCtx(c), onPartial: function (partial) { if (nodeId == null) paint(partial, false); } });
               if (res && res.value) {
                 paint(res.value, true);
                 let link = ""; try { link = repo.publishSource({ name: nm, source: res.value }).id; } catch (e) {}
@@ -6817,6 +6856,21 @@
          surfaces (launch order · ranking · tool-router · brief) read to adapt to you. 100% local: a
          projection of your own memory, never egresses. Same universal-wire pattern; zero per-app edits. -->
     <script type="module" src="/_shared/holo-profile-context.mjs" data-holo-shared="holo-profile-context.mjs"></script>
+    <!-- Prove without revealing: window.HoloProof.verify(proof) lets any holo app check a κ-proof you share —
+         it learns ONLY the disclosed fact (verify-before-trust, offline). The PROVE side (assemble + step-up
+         consent + share) is driven by Q + the carriage; this exposes the verifier everywhere. No jargon. -->
+    <script type="module" src="/_shared/holo-proof.mjs" data-holo-shared="holo-proof.mjs"></script>
+    <!-- The model becomes you: your private per-user LoRA adapter, persisted ENCRYPTED at rest (operator vault
+         key → OPFS) and loaded into Q's brain so it runs as you. window.HoloUserAdapter {load·save·has·reset}.
+         Shell-only (the operator's store; never injected into app frames). 100% local; nothing egresses. -->
+    <script type="module" src="/_shared/holo-user-adapter.mjs" data-holo-shared="holo-user-adapter.mjs"></script>
+    <!-- The visible, honest face of "Q is learning you": a plain-language Inbox letter + reset/pause controls
+         (window.HoloLearning). No jargon; the user always sees it and stays in control. 100% local. -->
+    <script type="module" src="/_shared/holo-learning.mjs" data-holo-shared="holo-learning.mjs"></script>
+    <!-- Learn while you rest: a background, idle/charging-time, interruptible scheduler that micro-finetunes
+         your per-user adapter on NEW up-voted turns and silently swaps it in — never blocks the UI, device-tier
+         gated, respects pause. The GPU trainer (A1) plugs in via window.HoloMicroFinetune; no-op until then. -->
+    <script type="module" src="/_shared/holo-learn-scheduler.mjs" data-holo-shared="holo-learn-scheduler.mjs"></script>
     <!-- Holo Video — the embedded glass video player window pinned into the dock right after the music
          disc (movable · resizable · immersive full screen). Loaded near the dock so its rail tile is live. -->
     <script defer src="/_shared/holo-video.js" data-holo-shared="holo-video.js"></script>
