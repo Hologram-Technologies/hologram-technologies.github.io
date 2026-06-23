@@ -1001,6 +1001,7 @@
       import { resolveAny, parseRef } from "/sbin/holo-omni-object.mjs";   // the discovery-backed κ-resolver (trustless gateways + Delegated Routing V1)
       import { record as omniRemember, search as omniRecent, recents as omniRecents } from "/sbin/holo-omni-index.mjs";   // the omnibar's MEMORY: it remembers + ranks everything you've opened (private, instant, holo-rank-aware)
       import { buildContinueModel, renderContinueRail } from "/_shared/holo-continue-ui.mjs";   // Continue watching — recent apps + spaces as a poster rail (the streaming front door)
+      import * as HoloRecommend from "/_shared/holo-recommend.mjs";   // "Because you've been exploring…" — recommendations row (private, on-device)
       import { makeOpen as makeHoloOpen, classifyOpen as classifyHoloOpen } from "/_shared/holo-open.mjs";   // S2: the ONE open path (press play) — wraps omniGo + the named app/space forms
       import { askPrivate as omniAsk, indexObject as omniIndexObject } from "/sbin/holo-omni-q.mjs";   // the omnibar's PRIVATE INTELLIGENCE: Q.recall (model-free BM25 ⊕ κ-graph) over your resolved corpus — ask a question, get YOUR stuff, on-device
       // PERF — the omnibar's HEAVY resolver legs are NOT loaded at boot. web3 (→ holo-eth · holo-solana ·
@@ -1058,6 +1059,7 @@
       import * as HoloRewind from "/_shared/holo-rewind-ui.mjs";   // Phase B: per-window "rewind" timeline (plain time) over its per-app chain
       import * as HoloWSwitch from "/_shared/holo-workspace-switcher-ui.mjs";   // Phase C: named desktop workspaces — one pill in the tab strip
       import * as HoloRoam from "/_shared/holo-roam-ui.mjs";   // Phase E: ⇄ Roam toggle — mirror open windows across tabs/devices (BroadcastChannel; WAN out-of-band)
+      import * as HoloRoamWan from "/_shared/holo-roam-wan.mjs";   // AMBIENT roam: auto-on at boot, tabs (BroadcastChannel) + devices (relay/WAN); seamless, no toggle
 
       // ── Holo Q Remote (ADR-0090): install the ONE host broker for the governed remote-model capability.
       // The key/URL live ONLY in this broker's vault (in its closure) — never in a κ, never posted to an
@@ -2022,7 +2024,7 @@
           .then(() => { try {   // Phase E: the ⇄ Roam toggle — mirror open windows across tabs/devices (verify-before-trust)
             const _roamApply = (appKappa, state) => { try { for (const n of desktop.doc().world) { if (n.kind === "app" && HoloWB.appKappaOf(n) === appKappa) { const el = mounted.get(n.id), f = el && el.querySelector("iframe"); if (f && f.contentWindow) f.contentWindow.postMessage({ t: "holo-session:restore", surfaceId: n.id, state: state }, "*"); } } } catch (e) {} };
             const _roamApps = () => desktop.doc().world.filter((n) => n.kind === "app").map((n) => ({ appKappa: HoloWB.appKappaOf(n) })).filter((x) => x.appKappa);
-            HoloRoam.mountRoamToggle(document.getElementById("tabstrip"), { getActiveHost: () => HoloWB.activeHost(), getOpenApps: _roamApps, applyAdopted: _roamApply });
+            HoloRoamWan.attach({ getActiveHost: () => HoloWB.activeHost(), getOpenApps: _roamApps, applyAdopted: _roamApply });   // EMBEDDED + SEAMLESS: roam is automatic (tabs now; devices when a relay is present)
           } catch (e) {} }).catch(() => {});
       } catch (e) {}
       // ONE-TIME REPAIR: a prior build's applyWidgets(home) could persist an EMPTY board over the seeded
@@ -3825,7 +3827,7 @@
           '</div>';
         [...host.querySelectorAll(".disc-card")].forEach((c) => c.onclick = () => { const t = templates[+c.dataset.i]; if (t) openHolospace(t); });
         const all = host.querySelector("#disc-all"); if (all) all.onclick = () => { try { openSpot(); } catch (e) {} };
-        try { const disc = host.querySelector(".disc"), rail = continueRail(); if (disc && rail) disc.insertBefore(rail, disc.firstChild); } catch (e) {}   // Continue watching, above Browse
+        try { const disc = host.querySelector(".disc"); if (disc) { const dr = discoverRail(); if (dr) disc.insertBefore(dr, disc.firstChild); const cr = continueRail(); if (cr) disc.insertBefore(cr, disc.firstChild); } } catch (e) {}   // Continue watching + Discover, above Browse
       }
       function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
       // paintEmpty — what the empty-canvas overlay shows for the ACTIVE tab: the full Start-here surface on
@@ -3846,6 +3848,15 @@
         } catch (e) {}
       }
       function continueRail() { try { const items = continueItems(); return items.length ? renderContinueRail({ items, onOpen: openRecent }) : null; } catch (e) { return null; } }
+      function discoverRail() {   // "Because you've been exploring…": apps you haven't opened, ranked to you (× holo-rank)
+        try {
+          let rank = null; try { rank = HOLO_RANK; } catch (e) {}
+          const terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || [];
+          const recentAddrs = (omniRecents({ limit: 50 }) || []).map((r) => r.addr);
+          const items = HoloRecommend.recommend(catalog, recentAddrs, { profileTerms: terms, rank, limit: 12 });
+          return items.length ? renderContinueRail({ items, onOpen: openRecent, title: HoloRecommend.titleFor(terms) }) : null;
+        } catch (e) { return null; }
+      }
       window.HoloContinue = { items: continueItems, open: openRecent };   // S6: "just ask" continue reaches the same resume seam as the rail
       function paintEmpty() {
         const host = $("#empty"); if (!host) return;
@@ -3855,11 +3866,11 @@
         if (t && t.forming) { host.classList.remove("starthere"); host.innerHTML = formingOverlayHTML(t.forming); host.dataset.mode = "forming"; return; }
         // cache by mode so switching tabs is a cheap class/flag flip — never a DOM rebuild (crisp nav)
         if (t && t.startHere) { if (host.dataset.mode !== "start") { host.classList.add("starthere"); renderDiscover(); host.dataset.mode = "start"; } }
-        else {   // Home: Continue watching is the front door when you have recents; a fresh user keeps the clean Welcome (widgets are a separate layer below)
+        else {   // Home: Continue watching + a recommendations row are the streaming front door (widgets are a separate layer below)
           host.classList.remove("starthere");
-          const rail = continueRail();
+          const rail = continueRail(), drail = discoverRail();
           host.innerHTML = "";
-          if (rail) { host.classList.add("cw-home"); host.style.placeContent = "start center"; host.style.paddingTop = "clamp(64px,11vh,132px)"; host.appendChild(rail); }
+          if (rail || drail) { host.classList.add("cw-home"); host.style.placeContent = "start center"; host.style.paddingTop = "clamp(64px,11vh,132px)"; if (rail) host.appendChild(rail); if (drail) host.appendChild(drail); }
           else { host.classList.remove("cw-home"); host.style.placeContent = ""; host.style.paddingTop = ""; }
           host.dataset.mode = "home";
         }

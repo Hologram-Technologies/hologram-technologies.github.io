@@ -91,4 +91,26 @@ export function decodeWorkspaceShare(token) {
   catch (e) { return null; }
 }
 
-if (typeof window !== "undefined") window.HoloWorkspaceShare = { shareWorkspace, openSharedWorkspace, shareLinkPayload, encodeWorkspaceShare, decodeWorkspaceShare };
+// ── large-share (#wsc=): when a snapshot is too big for a link, PUBLISH its bytes and carry a content id.
+// The pin/fetch transport is the same out-of-band IPFS leg the holospace #car= uses; the LOGIC here is the
+// content address + double verify-before-trust (the fetched bytes must re-hash to the cid, AND the chain
+// must admit). bundleBytes/bundleCid are pure; openSharedByBytes verifies both layers.
+async function sha256hex(bytes) {
+  const SUB = (globalThis.crypto && globalThis.crypto.subtle);
+  const h = await SUB.digest("SHA-256", bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+  return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+export function bundleBytes(bundle) { return new TextEncoder().encode(JSON.stringify({ h: bundle && bundle.head, e: (bundle && bundle.entries) || [] })); }
+export async function bundleCid(bundle) { return "did:holo:sha256:" + await sha256hex(bundleBytes(bundle)); }
+
+// openSharedByBytes(bytes, expectCid, opts) → like openSharedWorkspace, but FIRST re-derives the bytes' cid
+// and refuses a mismatch (Law L5 over the transport), then decodes + admits the chain. For the #wsc= leg.
+export async function openSharedByBytes(bytes, expectCid = null, opts = {}) {
+  const u8 = (bytes instanceof Uint8Array) ? bytes : new TextEncoder().encode(String(bytes));
+  if (expectCid) { const cid = "did:holo:sha256:" + await sha256hex(u8); if (cid !== expectCid) return { ok: false, why: "cid-mismatch" }; }
+  let o; try { o = JSON.parse(new TextDecoder().decode(u8)); } catch (e) { return { ok: false, why: "bad-bytes" }; }
+  const bundle = { head: o.h ?? o.head, entries: o.e ?? o.entries };
+  return openSharedWorkspace(bundle, opts);
+}
+
+if (typeof window !== "undefined") window.HoloWorkspaceShare = { shareWorkspace, openSharedWorkspace, shareLinkPayload, encodeWorkspaceShare, decodeWorkspaceShare, bundleBytes, bundleCid, openSharedByBytes };
