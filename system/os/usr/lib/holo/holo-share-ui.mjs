@@ -44,7 +44,7 @@ function travelLine(scope, manifest, sealerMod) {
 
 // mountShare(trigger, { getHolospace, getWorkspace, onImport, requireEverythingAuth }) — the trigger (the
 // ❤️ Share verb) toggles the carriage. Content renders into the shared aside's body.
-export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImport, requireEverythingAuth } = {}) {
+export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImport, requireEverythingAuth, onLinkDevice } = {}) {
   injectStyles();
   const aside = createAside({ id: "share", title: "Share", logo: HOLO_MARK });   // golden scale + collapse chevron from the shared template
   const body = aside.body;
@@ -72,7 +72,18 @@ export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImpo
         if (cap.kappa && /^did:holo:sha256:/.test(String(cap.kappa))) {
           try { const A = await import("./holo-attest.mjs"); link = await A.attestShareLink(cap.link, String(cap.kappa)); } catch (e) {}
         }
-        _sealed = { app: true, link, world: null, name: cap.name || "App", kappa: cap.kappa || "", travels: travelLine("app", cap, null) };
+        let travels = travelLine("app", cap, null);
+        // Phase D: fold THIS app's LIVE workspace (its current state, verified) into the link when it fits a
+        // QR — so the recipient opens it EXACTLY as you left it. Fail-soft: no live state ⇒ unchanged share-to-run.
+        try {
+          if (cap.appKappa && window.HoloWorkspaceBridge && window.HoloWorkspaceBridge.activeHost) {
+            const WS = await import("./holo-workspace-share.mjs");
+            const host = await window.HoloWorkspaceBridge.activeHost();
+            const wb = host && await WS.shareLinkPayload(cap.appKappa, host);
+            if (wb) { const enc = WS.encodeWorkspaceShare(wb); if (enc.qrFits) { link += (link.indexOf("#") >= 0 ? "&" : "#") + "ws=" + enc.token; travels = "Opens for them EXACTLY as you left it — your live window, verified. One tap remixes it into their desktop."; } }
+          }
+        } catch (e) {}
+        _sealed = { app: true, link, world: null, name: cap.name || "App", kappa: cap.kappa || "", travels };
         render(); paintCurrentQR(); return;
       }
       _scope = "holospace";   // nothing shareable focused → degrade gracefully
@@ -166,7 +177,7 @@ export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImpo
         <div class="shx-linkrow"><input class="shx-link" id="shx-link" readonly value="${esc(link)}" aria-label="Link" /><button class="shx-mini" data-act="copy">Copy</button></div>
         <button class="shx-primary" data-act="share"><span class="shx-pi">↗</span>Share link</button>
         <div class="shx-dests">${dests}</div>
-        <div class="shx-proof">${reach}${cid ? `<span class="shx-cid">${esc(cid)}</span>` : ``}<button class="shx-open" data-act="openview">Open a link</button></div>
+        <div class="shx-proof">${reach}${cid ? `<span class="shx-cid">${esc(cid)}</span>` : ``}<button class="shx-open" data-act="openview">Open a link</button><button class="shx-open" data-act="linkdevice" title="Add another device to your Hologram">Link a device</button></div>
       </div></div>`;
     _gated = false; bind();
   }
@@ -231,6 +242,7 @@ export function mountShare(trigger, { getHolospace, getWorkspace, getApp, onImpo
       else if (a === "openview") { _view = "open"; renderOpen(); } else if (a === "backshare") { _view = "share"; render(); paintCurrentQR(); }
       else if (a === "retry") seal(); else if (a === "pickfile") file.click();
       else if (a === "gopaste") { const inp = body.querySelector(".shx-paste"); doImport(null, inp && inp.value); }
+      else if (a === "linkdevice") { try { onLinkDevice ? onLinkDevice() : window.open(location.origin + "/pair.html", "_blank", "noopener"); } catch (e) {} }   // S4: scan a new device's QR to link it (verified, scoped, revocable — holo-pair)
     });
   }
 
