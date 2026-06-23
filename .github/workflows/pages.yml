@@ -124,7 +124,7 @@ jobs:
           node tools/vendor-esbuild-wasm.mjs || true
           node tools/vendor-interactjs.mjs || true
           node tools/vendor-chrome-devtools.mjs || true
-      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         with:
           enablement: true   # self-enable Pages (GitHub Actions source) on a fresh repo, so the first push deploys with no manual settings toggle
       # Stage a lean site from the new layout (everything lives under system/, except the gateway
