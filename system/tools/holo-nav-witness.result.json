@@ -1,0 +1,26 @@
+{
+  "spec": "One navigation model over the player: home(wall) ⇄ open(play) with back-history, continue resumes, home() always returns to the wall (guaranteed escape, no dead end). The three surfaces (mobile home, shell, app frame) become skins of this one model — each wires a back button, a home button, and a render to onChange. Fixes wall #4 (fragmented, dead-end navigation).",
+  "authority": "the friction audit (this session, wall #5/#4) · holo-player (committed) · consistent back/home UX",
+  "witnessed": true,
+  "covers": [
+    "one-nav-model",
+    "starts-home",
+    "open-plays",
+    "back-history",
+    "can-back",
+    "continue-resume",
+    "home-always-escapes",
+    "onchange",
+    "deterministic"
+  ],
+  "checks": {
+    "startsAtHome": true,
+    "openPlays": true,
+    "backReturns": true,
+    "canBackReflects": true,
+    "continueResumes": true,
+    "homeAlwaysEscapes": true,
+    "onChangeFires": true,
+    "deterministic": true
+  }
+}

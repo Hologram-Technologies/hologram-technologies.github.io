@@ -27,8 +27,8 @@ const main = async () => {
   r.breachedFlagged = find("1") && find("1").issues.includes("breached") && find("1").issues.includes("weak") && find("1").issues.includes("no2fa");
   r.reusedFlagged = find("2") && find("2").issues.includes("reused") && find("3").issues.includes("reused");
   r.oldFlagged = find("3").issues.includes("old");
-  r.no2faNudge = find("4").issues.includes("no2fa");          // d.com password lacks... wait it HAS totp →
-  r.twofaSatisfied = !find("4").issues.includes("no2fa");      // d.com HAS a totp entry → no 2fa nudge
+  r.no2faNudge = !!(find("2") && find("2").issues.includes("no2fa"));         // b.com password, no totp → nudge
+  r.twofaSatisfied = !rep.items.some((i) => i.id === "4" && i.issues.includes("no2fa")); // d.com HAS a totp → no nudge
   r.summary = rep.summary.total === 4 && rep.summary.breached === 1 && rep.summary.reused === 2 && rep.summary.old === 1;
   r.scoreLow = rep.score < 70;                                 // a breached+reused vault scores poorly
   r.worstFirst = rep.items[0].id === "1";                      // breached entry sorts to the top

@@ -23,6 +23,7 @@ regexes = [
   '''holo\.[a-z0-9.]+\.v[0-9]+''',     # holo localStorage key names
 ]
 paths = [
+  '''.*-witness\.mjs$''',              # node conformance witnesses: non-deployed test tooling with deliberate stand-in fixtures (cf. .result.json below)
   '''.*holospace\.lock\.json$''',
   '''.*\.holo$''',
   '''.*\.kappa$''',

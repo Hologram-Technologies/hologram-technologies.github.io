@@ -69,8 +69,20 @@ const admitted = new Map();   // κ → { extensionId, kappa, name, version, ver
 const $ = (id) => document.getElementById(id);
 const short = (k) => k.slice(0, 10) + "…" + k.slice(-6);
 
-// egress: route the CRX download through the OS web proxy when present, else direct (Node/dev).
+// egress: get the CRX bytes without tripping CORS.
+//  • Native CEF host: window.cefQuery('holo:crxfetch:<id>') — the BROWSER PROCESS fetches it (no CORS)
+//    and returns base64; we decode to a Response-like object installFromWebStore already understands.
+//  • Web build: the same-origin OS proxy (web?url=), with a direct fallback (Node/dev).
 function egressFetch(u, opts) {
+  if (typeof window.cefQuery === "function" && /clients2\.google\.com\/service\/update2\/crx/.test(u)) {
+    const m = u.match(/id%3D([a-p]{32})/i) || u.match(/id=([a-p]{32})/i);
+    const id = m && m[1];
+    if (id) return new Promise((res, rej) => {
+      window.cefQuery({ request: "holo:crxfetch:" + id, persistent: false,
+        onSuccess: (b64) => { try { const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); res({ ok: true, status: 200, arrayBuffer: async () => a.buffer }); } catch (e) { rej(e); } },
+        onFailure: (c, msg) => rej(new Error(msg || ("crxfetch failed " + c))) });
+    });
+  }
   if (typeof window.__holoEgressFetch === "function") return window.__holoEgressFetch(u, opts);
   return fetch("web?url=" + encodeURIComponent(u), opts).catch(() => fetch(u, opts));
 }
@@ -163,6 +175,9 @@ $("demo").onclick = async (e) => {
 };
 
 window.__holoExt = { mgr, admitted, add };   // test/automation hook
+
+// store-page deep link: the native "Add to Hologram" button opens us at #add=<id> → install immediately.
+(function(){ const m = (location.hash || "").match(/add=([a-p]{32})/); if (m) { $("q").value = m[1]; add(m[1]); } })();
 </script>
 </body>
 </html>
