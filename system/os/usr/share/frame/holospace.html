@@ -121,6 +121,12 @@
 </style>
 </head>
 <body>
+<!-- always-home escape (wall #4 / one nav model): from ANY app, back or home — no dead ends -->
+<div id="holo-esc" style="position:fixed;top:10px;left:10px;z-index:2147483646;display:flex;gap:6px;opacity:.32;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.32" aria-label="Navigation">
+  <button id="holo-back" title="Back" aria-label="Back" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(18,20,26,.72);color:#fff;font:600 17px system-ui;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">‹</button>
+  <button id="holo-home" title="Home" aria-label="Home" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(18,20,26,.72);color:#fff;font:15px system-ui;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">⌂</button>
+</div>
+<script>(function(){try{var H="/shell.html",b=document.getElementById("holo-back"),h=document.getElementById("holo-home");if(h)h.onclick=function(){try{location.assign(H)}catch(e){}};if(b)b.onclick=function(){try{history.length>1?history.back():location.assign(H)}catch(e){}};}catch(e){}})();</script>
 <!-- κ-Open splash: an immersive NASA Earth photo + the HOLOGRAM OS wordmark + a small Google-style spinner.
      Paints instantly (inline); the boot module cross-fades it into the mounted app. #msg hides beneath it. -->
 <div id="holo-loader" aria-hidden="true">
