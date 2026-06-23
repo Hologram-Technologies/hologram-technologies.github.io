@@ -1049,7 +1049,9 @@
       import * as HoloProv from "/_shared/holo-prov-ui.js";   // Holo Prov (ADR-0082): provenance hypergraph, binding on every holospace
       import * as HoloMind from "/_shared/holo-mind-ui.js";   // Holo Mind (ADR-0081): the live, gate-enforced ambient loop, exposed OS-wide as window.HoloMind
       import "/_shared/q/holo-q-trinity-ui.js";               // Holo Trinity (ADR-0087): the OS-wide create·exist·perceive loop, installed as window.HoloTrinity (invisible, self-improving)
+      import "/_shared/q/holo-q-vision-boot.mjs";             // Holo Vision (raster edge): ambient perception of non-κ pixels (canvas/img/video/cross-origin) → sealed κ; rides window.HoloAmbient, inert until an OCR engine is ready
       import "/_shared/devtools/holo-devtools-ui.js";         // Holo DevTools (ADR-0095): installs window.HoloDevToolsServe — the κ-CDP backend holo-gov.js routes the DevTools frame's CDP to (serverless, fail-closed)
+      import { installGlobalDevDock } from "/_shared/devtools/holo-devtools-dock.mjs";   // Holo DevTools (ADR-0095): GLOBAL F12 dock over the ACTIVE tab (Chrome-parity), built on the live κ-CDP backend
       import { createRemoteBroker as holoQCreateRemoteBroker, serveRpc as holoQServeRpc } from "/_shared/q/holo-q-remote.mjs";   // Holo Q Remote (ADR-0090): the ONE governed remote-model host broker
       import { roster as identRoster, unlock as identUnlock } from "/_shared/holo-identity.mjs";
       import * as HoloSession from "/_shared/holo-session.mjs";   // Holo Session (ADR-0104): per-operator, device-local experience continuity
@@ -3933,6 +3935,10 @@
       //   crossfade frame-over-frame at the display's native refresh — no server, no flash. (ADR-0055.)
       const CS_STARTER = '<!doctype html>\n<meta charset="utf-8">\n<style>\n  html,body{height:100%;margin:0}\n  body{display:grid;place-items:center;font:600 clamp(28px,7vw,72px)/1.1 ui-sans-serif,system-ui;\n    color:#eaf2ff;background:radial-gradient(120% 120% at 30% 0%,#1b2a4a,#0d1117 60%,#05070c);text-align:center}\n  .k{background:linear-gradient(90deg,#7c5cff,#2dd4bf);-webkit-background-clip:text;background-clip:text;color:transparent}\n  p{font-size:16px;font-weight:400;color:#9fb0c8;margin-top:14px}\n</style>\n<div>\n  Hello, <span class="k">holospace</span>\n  <p>Ask Holo to build, or open Code — the preview updates instantly. This is yours now.</p>\n</div>\n';
       let studio = null;
+      // GLOBAL F12 DevTools (ADR-0095): "F12, just like Chrome" for the CURRENTLY ACTIVE tab. Points the
+      // proven κ-CDP live backend at activeAppFrame() and docks the vendored Chrome devtools-frontend.
+      // Defers to the Create studio's own Dev tab when it is open. Additive + fail-safe (try/catch).
+      try { installGlobalDevDock({ activeFrame: activeAppFrame, activeKappa: () => { try { const t = tabs[activeTab]; return (t && (t.addr || ("holo:tab:" + t.id))) || null; } catch (e) { return null; } }, studioOpen: () => !!studio }); } catch (e) {}
       // Resolve what Create opens onto: the EXACT live source of the active holospace (so the preview
       // mirrors the tab), whether it is locally editable, and a display name. External pages mirror but
       // can't be edited; a non-app tab (home/desktop) scaffolds a fresh starter to build into.

@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "FORWARD — a device whose chain strictly extends the peer's fast-forwards it (adopt, verify-before-trust)",
+    "BOTHWAYS — after the peer appends, the first device fast-forwards the other way; the conversation converges",
+    "AHEAD — a stale remote (behind us) is local-ahead: we keep ours and push so it catches up",
+    "DIVERGED — concurrent appends after a shared ancestor keep BOTH lineages (append-only, never a destructive merge)",
+    "REJECTED — a tampered remote chain is refused verify-before-trust; the local chain is untouched",
+    "UNRELATED — a different conversation's chain is ignored",
+    "CHANNEL — over a real BroadcastChannel two peers converge a conversation, and re-advertising after convergence is a no-op (epidemic self-terminates)"
+  ],
+  "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+  "base": 2,
+  "checks": {
+    "forward-fast-forwards-peer": true,
+    "converges-both-directions": true,
+    "stale-remote-is-local-ahead": true,
+    "concurrent-edits-keep-both-lineages": true,
+    "tampered-remote-refused": true,
+    "unrelated-conversation-ignored": true,
+    "real-channel-converges-and-terminates": true
+  },
+  "failed": [],
+  "authority": "holo-workspace-roam (reconcile) · holo-strand-admit · holo-messenger-thread (adopt) · holospaces SEC-1 · Law L5"
+}

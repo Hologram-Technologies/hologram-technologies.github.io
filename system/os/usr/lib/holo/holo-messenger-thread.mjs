@@ -93,6 +93,15 @@ export function makeThread({ genesis = null, backend = null, now = () => "1970-0
     return appendObject(mounted.object, mounted.kappa);
   }
 
+  // appendNote(kind, payload) — record a NON-message event on the chain (e.g. a send-consent
+  // proof). It is signed + hash-linked like any entry (tamper-evident) but is NOT message content,
+  // so it never enters view() and never affects a message's content κ (dedup stays intact). This is
+  // where a TEE step-up attestation (holo-stepup) is durably bound to the send that produced it.
+  async function appendNote(kind, payload) {
+    await ready();
+    return strand.append({ kind: String(kind || "note"), payload });
+  }
+
   // view({ wordlist? }) — the REDUCER (§2.7): reduce the chain's message events to the ordered
   // bubble list the surface paints. Each row re-derives from its own object (verify-before-
   // trust); a row whose bytes don't re-derive to its κ is dropped (fail-closed, Law L5).
@@ -122,7 +131,7 @@ export function makeThread({ genesis = null, backend = null, now = () => "1970-0
   }
 
   return {
-    genesis, ready, setSigner, ingest, ingestObject, view, summarize,
+    genesis, ready, setSigner, ingest, ingestObject, appendNote, view, summarize,
     verify: () => strand.verify(),          // whole-history tamper-evidence (Law L5)
     adopt: (c) => strand.adopt(c),          // cross-device fast-forward (verify-before-adopt)
     head: () => strand.head(),

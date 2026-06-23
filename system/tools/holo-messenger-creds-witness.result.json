@@ -1,0 +1,32 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "ONCE — one vault unlock links many messenger platforms; linkedPlatforms lists them (metadata only)",
+    "METADATA — the linked list carries no session secret",
+    "SESSION — the warm session continuity is recoverable in-session; an unlinked platform is absent",
+    "OPAQUE — the at-rest credential chain leaks no session secret, account, or platform id in cleartext (SEC-5)",
+    "ONEKEY — one biometric covers all platforms (re-unlock recovers them); a wrong secret is refused fail-closed",
+    "REVEAL — surfacing a raw session is a payload-bound TEE step-up, fail-closed without a TEE (SEC-2 consent)",
+    "FORWARD — epoch rotation seals future sessions under a fresh key (holo-apps §2.8 forward secrecy)",
+    "UNLINK — disconnecting a platform removes it from the linked set"
+  ],
+  "operator": "did:holo:sha256:b3b467689c8081bc4e37a899a2915e6c2e844cc1a84f8730d77293bbf8eead3f",
+  "linked": [
+    "whatsapp",
+    "telegram",
+    "slack"
+  ],
+  "checks": {
+    "one-unlock-links-platforms": true,
+    "linked-list-metadata-only": true,
+    "session-recoverable-in-session": true,
+    "at-rest-opaque": true,
+    "one-biometric-covers-all": true,
+    "reveal-is-step-up-gated": true,
+    "forward-secrecy-rotation": true,
+    "unlink-removes-platform": true
+  },
+  "failed": [],
+  "authority": "holo-vault (Holo Pass) · holo-login · holo-stepup · holo-apps §2.8/§2.9 · holospaces SEC-1/2/4/5"
+}

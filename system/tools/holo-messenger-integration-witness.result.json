@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "SECURE — the live stream carries a ciphertext envelope (no plaintext on the wire); the inbox opens it under the PQ epoch key and re-verifies the content κ before ingest; a non-member key cannot open it (fail-closed)",
+    "NON-MEMBER — a wrong/other epoch key is refused fail-closed; the message is never ingested or rendered",
+    "CHANNEL — over a real BroadcastChannel (two independent peers), a sealed message published by A is received, opened and ingested by B — real cross-context delivery",
+    "CAPTURE — installBridgeCapture run over a rendered WhatsApp-shaped DOM lifts the bubble into a κ and drives it through the sealed stream into the inbox, end to end"
+  ],
+  "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+  "epoch": "did:holo:sha256:97807e8df123a7c4a7c4e2651114c2829991c2ad2e12cad8b251bd8d5251b9df",
+  "checks": {
+    "secure-stream-ciphertext-on-wire": true,
+    "non-member-cannot-open": true,
+    "real-broadcastchannel-converges": true,
+    "adapter-resolves-for-tab": true,
+    "installBridgeCapture-rendered-to-ingested": true
+  },
+  "failed": [],
+  "authority": "holo-apps §2.6/§2.8 · holospaces SEC-1/SEC-7 · holo-pqc (X25519‖ML-KEM-1024 + AES-256-GCM) · Law L5"
+}

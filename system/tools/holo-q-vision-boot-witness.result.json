@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "WIRED — wireAmbientPerception registers exactly one 'perceive-raster-edge' faculty on the real makeAmbient() loop (no private timer)",
+    "HEARTBEAT — notice() never runs the engine inline; a single ambient.tick() drains one island and promotes it to a κ",
+    "COHERENT — the promoted κ joins the live perception scene as a VISUAL face with no drift",
+    "INERT — with no specialist bound, the faculty exists but promotes nothing and never throws (fail-soft, Law L5)"
+  ],
+  "checks": {
+    "wires-one-faculty-on-the-real-loop": true,
+    "heartbeat-drains-noticed-island-zero-verb": true,
+    "promoted-kappa-is-visual-face-coherent": true,
+    "inert-without-engine-no-promotion-no-throw": true
+  },
+  "failed": [],
+  "authority": "ADR-0084 (one ambient loop) · ADR-0081 (perception) · holo-ambient · holospaces Law L5"
+}

@@ -1,0 +1,17 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "SELECT — crossOriginFrames walks Page.getFrameTree and returns only frames whose origin differs from the top page (nested included; same-origin + about:blank skipped)",
+    "CAPTURE — captureFrame issues Page.captureScreenshot (format png) for the named frameId and decodes the base64 to PNG bytes",
+    "SCAN — every cross-origin frame is noticed as a raster island with real bytes; same-origin/blank frames are never screenshotted"
+  ],
+  "checks": {
+    "selects-only-cross-origin-frames": true,
+    "screenshots-each-cross-origin-frame-by-id": true,
+    "notices-islands-with-real-png-bytes": true,
+    "same-origin-and-blank-frames-never-shot": true
+  },
+  "failed": [],
+  "authority": "ADR-0095 (κ-CDP backend) · ADR-0081 (perception) · holospaces Law L5"
+}

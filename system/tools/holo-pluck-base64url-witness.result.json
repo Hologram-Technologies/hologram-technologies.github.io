@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "REAL — with Node's real Buffer, encodePayload/decodePayload round-trips (fast base64url path)",
+    "POISONED — with a Buffer polyfill that lacks base64url (as ton-core installs), encode/decode STILL round-trips via the btoa/atob fallback",
+    "CROSS — a token produced on either path decodes on the other; the two encodings are byte-identical",
+    "MINT — mint() no longer throws under a poisoned global Buffer (the page-wide break is fixed)"
+  ],
+  "checks": {
+    "real-buffer-round-trips": true,
+    "poisoned-buffer-still-round-trips": true,
+    "encodings-cross-compatible": true,
+    "mint-survives-poisoned-buffer": true
+  },
+  "failed": [],
+  "authority": "holo-pluck.encodePayload base64url capability detection · RFC 4648 base64url"
+}

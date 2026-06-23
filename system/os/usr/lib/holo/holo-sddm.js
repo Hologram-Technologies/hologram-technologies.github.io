@@ -183,8 +183,22 @@ export async function createGreeter(params) {
   const handlers = { loginSucceeded: [], loginFailed: [], informationMessage: [], needName: [] };
   const emit = (sig, ...a) => handlers[sig].forEach((f) => { try { f(...a); } catch {} });
 
+  // On the native κ-host ONLY, eagerly open the operator's Holo Pass vault and publish its autofill
+  // subset to the browser's credential store, so web logins fill the instant the desktop opens. The
+  // greeter runs at holo://os, so the publish initiator is trusted; the process-singleton store survives
+  // the handoff navigation into the shell. Best-effort + non-blocking — never delays or fails sign-in.
+  // No-op on the web (publish requires the holo:// scheme; openVault is skipped to avoid wasted decrypt).
+  async function publishVault(principal, secret) {
+    try {
+      if (typeof location === "undefined" || location.protocol !== "holo:" || !secret) return;
+      const { hasVault, openVault } = await import("./holo-vault.mjs");
+      if (!(await hasVault(principal.kappa))) return;
+      await openVault(principal.kappa, secret);   // openVault auto-publishes the {origin->{u,p}} subset
+    } catch {}
+  }
+
   // establish(): bind operator ⊗ host, sign the loginctl-style session, hand off to the shell.
-  async function establish(principal, session, { guest = false } = {}) {
+  async function establish(principal, session, { guest = false, secret = null } = {}) {
     const token = await openSession(principal, { session: session.id, next: session.loader, host: host ? host.hostKappa : "", guest: guest || undefined });
     try { await persistSession(token, null); } catch {}   // display-split: presentation only (no operator secret on this path)
     // A guest is NON-PERSISTENT: skip the OPFS session mirror so nothing is written to the store.
@@ -199,6 +213,7 @@ export async function createGreeter(params) {
       }
     } catch {}
     emit("loginSucceeded");
+    if (secret) publishVault(principal, secret);   // native host: prime web autofill before the shell opens
     const sep = session.loader.includes("?") ? "&" : "?";
     const url = `${session.loader}${sep}operator=${encodeURIComponent(principal.kappa)}&host=${encodeURIComponent(host ? host.hostKappa : "")}&session=${encodeURIComponent(token.id)}`;
     return { url, token };
@@ -230,7 +245,7 @@ export async function createGreeter(params) {
         let principal;
         if (match) principal = await unlock(match.kappa, password);
         else principal = await enroll({ label: name, passphrase: password });   // first run / new identity
-        const { url } = await establish(principal, session);
+        const { url } = await establish(principal, session, { secret: password });
         enterShell(url);
       } catch (e) {
         emit("informationMessage", /passphrase/i.test(e.message || "") ? "Wrong passphrase" : (e.message || "Login failed"));
@@ -246,8 +261,8 @@ export async function createGreeter(params) {
       if (!name) { emit("informationMessage", "Enter your name"); emit("loginFailed"); return; }
       const match = users.find((u) => u.label === name || u.kappa === name || u.kappa.endsWith(name));
       const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
-      const finish = async (principal) => {
-        const { url } = await establish(principal, session);
+      const finish = async (principal, secret = null) => {
+        const { url } = await establish(principal, session, { secret });
         enterShell(url);
       };
       // BIOMETRIC-ONLY (no passcode). The secret that wraps the sovereign key is released ONLY by
@@ -262,13 +277,13 @@ export async function createGreeter(params) {
           if (match && match.cred) {
             emit("informationMessage", "Verifying with " + teeName() + "…");
             const { secret } = await teeAssert({ credentialId: match.cred });
-            return finish(await unlock(match.kappa, secret));
+            return finish(await unlock(match.kappa, secret), secret);
           }
           // brand-new operator → bind a sovereign key to this device's enclave. `secret` here is the
           // enclave-derived hardware secret (NOT a typed passcode); enroll's param name is legacy.
           emit("informationMessage", "Setting up " + teeName() + "…");
           const { credentialId, secret, credPub } = await teeEnroll({ name });
-          return finish(await enroll({ label: name, passphrase: secret, cred: credentialId, credPub }));
+          return finish(await enroll({ label: name, passphrase: secret, cred: credentialId, credPub }), secret);
         } catch (e) {
           // A real biometric cancel/timeout → report it. A capability gap (authenticator can't
           // derive a hardware secret) → steer to the phone's biometric; never to a passcode.

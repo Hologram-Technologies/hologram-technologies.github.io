@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "ZERO-VERB — notice() a raster island and do nothing; at idle it auto-promotes to a κ and the scene becomes coherent (no drift)",
+    "PRECEDENCE — a κ-native island is never enqueued and never OCR'd (the regression guard holds in the ambient layer)",
+    "FREE RE-SEE — identical pixels are an O(1) memo hit; the engine is not called again",
+    "IDLE-ONLY + PREEMPT — the cold lane never runs inline on notice(); a user interaction pauses it; resume() continues at idle",
+    "PHOTOGRAPHIC — a promoted κ is recorded in the real holo-omni-index and is found by a later text search (retroactive recall)",
+    "PROVENANCE — the promotion appends a signed, replayable ingest entry on the operator strand (holo-strand-provenance)",
+    "RANK — rank-to-you scoring promotes the important island before the trivial one"
+  ],
+  "checks": {
+    "zero-verb-promotes-at-idle": true,
+    "scene-becomes-coherent-no-drift": true,
+    "kappa-island-never-ocrd": true,
+    "identical-pixels-free-memo-hit": true,
+    "idle-only-and-preemptible": true,
+    "promoted-kappa-searchable-forever": true,
+    "promotion-recorded-on-operator-strand": true,
+    "rank-to-you-promotes-important-first": true
+  },
+  "failed": [],
+  "authority": "ADR-0081 (perception) · ADR-0084 (mux) · holo-omni-index · holo-strand-provenance · holospaces Law L5"
+}
