@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-pair — the self-sovereign 'Link a device' engine (WhatsApp-linked-devices model): a new device's QR offer round-trips and its κ re-derives from its pubkey (L5); the operator mints a scoped, time-boxed, E2E-encrypted UCAN-style grant the device decrypts + accepts; verify-before-trust refuses a tampered signature, wrong audience, expired window, capability escalation, or a forged issuer pubkey; and the operator can revoke per-device. The relay is never trusted. Powers login + the ♥ Share 'Link a device' surface.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L5 · UCAN attenuated delegation · rests on #holo-pair + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "offer-roundtrip",
+    "grant-accept-happy",
+    "tampered-sig-rejected",
+    "wrong-audience-rejected",
+    "expired-rejected",
+    "cap-escalation-rejected",
+    "forged-issuer-rejected",
+    "revocation-works"
+  ],
+  "checks": {
+    "offerRoundtrip": true,
+    "grantAcceptHappy": true,
+    "tamperedSigRejected": true,
+    "wrongAudienceRejected": true,
+    "expiredRejected": true,
+    "capEscalationRejected": true,
+    "forgedIssuerRejected": true,
+    "revocationWorks": true
+  },
+  "failed": []
+}
