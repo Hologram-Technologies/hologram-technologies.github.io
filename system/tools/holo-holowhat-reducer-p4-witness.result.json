@@ -1,0 +1,20 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "MESSAGES — our self-verifying message κ, authored by the operator κ and ordered by the strand Lamport clock, project as messages with bodies through holowhat's real messengerReducer",
+    "REACTION — a reaction event aggregates {symbol,count,authors} onto the target message",
+    "EDIT — an edit by the original author updates the visible body and records edit history; a non-author edit is refused (author-gated)",
+    "REPLY — a reply (parentId) is threaded under its parent; root messages exclude replies"
+  ],
+  "messages": 3,
+  "roots": 2,
+  "checks": {
+    "our-events-project-as-messages": true,
+    "reaction-aggregates-on-target": true,
+    "edit-by-author-only": true,
+    "reply-threaded-under-parent": true
+  },
+  "failed": [],
+  "authority": "holowhat messengerReducer (real, vendored) · holo-messenger-thread (signed §2.6 events) · holo-identity · Law L1"
+}

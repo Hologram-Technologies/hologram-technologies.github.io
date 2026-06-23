@@ -132,7 +132,7 @@
       @media (prefers-reduced-motion: reduce) { body { animation: none; } }
       /* ── chrome proportions — Chrome-standard stack: TAB STRIP on top (the frame), the address bar
          (toolbar) directly under it, so each tab shows its own address. tab strip ≈ 40, toolbar ≈ 44. ── */
-      html { --toolbar-h: 42px; --tabrow-h: 52px; --chrome-h: 94px; --gap: clamp(8px, 0.9vmin, 12px); --gap-b: 34px; --card-r: 22px; --holo-top-inset: 96px; --holo-aside-w: 0px; --holo-aside-l: 0px; }   /* tabrow + toolbar = chrome-h; --gap-b: a taller BOTTOM gutter; --holo-aside-w: the RIGHT-edge inset every right carriage (Play · Share · Notify · Create · Wallet) squeezes by; --holo-aside-l: the LEFT-edge inset, mirroring it */
+      html { --toolbar-h: 42px; --tabrow-h: 52px; --bookmark-h: 0px; --chrome-h: calc(94px + var(--bookmark-h)); --gap: clamp(8px, 0.9vmin, 12px); --gap-b: 34px; --card-r: 22px; --holo-top-inset: 96px; --holo-aside-w: 0px; --holo-aside-l: 0px; }   /* tabrow + toolbar = chrome-h; --gap-b: a taller BOTTOM gutter; --holo-aside-w: the RIGHT-edge inset every right carriage (Play · Share · Notify · Create · Wallet) squeezes by; --holo-aside-l: the LEFT-edge inset, mirroring it */
       /* the holospace's desktop — a self-contained, rounded RUNTIME CARD, inset from the shell frame on
          every side and lifted with a soft shadow, so each tab reads as its own isolated environment. */
       #world { position: fixed; top: var(--chrome-h); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); bottom: calc(var(--holo-dock-h, 0px) + var(--gap-b)); overflow: hidden; background-color: #0a0e16; transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1);
@@ -229,6 +229,23 @@
       #navbar .nav:active:not(:disabled) { transform: scale(.92); }
       #navbar .nav:disabled { opacity: .3; cursor: default; }
       #navbar .nav svg { width: var(--icon-md); height: var(--icon-md); }
+      /* ── κ-addressable chrome bars — bookmarks (under the toolbar) + action rail (right of the omnibox).
+         A bar is a κ-list; an item is a κ-reference; rendering is projection (holo-bar.mjs). ── */
+      #rail { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin: 0 var(--sp-1); }
+      #rail:empty { display: none; }
+      #rail .bi-label { display: none; }
+      #rail .holo-bar-item { max-width: none; padding: 0 6px; }
+      #bookmarkbar { position: fixed; top: calc(var(--tabrow-h) + var(--toolbar-h)); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); height: var(--bookmark-h); z-index: 59; display: flex; align-items: center; gap: 1px; padding: 0 var(--sp-2); overflow-x: auto; scrollbar-width: none; background: #1A1A1C; border-bottom: 1px solid var(--holo-border); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1); }
+      #bookmarkbar::-webkit-scrollbar { display: none; }
+      #bookmarkbar:empty { display: none; }
+      .holo-bar-item { display: inline-flex; align-items: center; gap: var(--sp-1); flex: 0 0 auto; max-width: 22ch; height: 26px; padding: 0 var(--sp-2); border: 0; border-radius: 8px; background: transparent; color: var(--holo-ink); cursor: pointer; font: 600 var(--holo-text-sm, .8125rem)/1 var(--holo-sans, ui-sans-serif, system-ui); letter-spacing: -.01em; transition: background .12s ease, transform .1s ease; }
+      .holo-bar-item:hover { background: color-mix(in srgb, var(--holo-ink) 10%, transparent); }
+      .holo-bar-item:active { transform: scale(.96); }
+      .holo-bar-item.dragging { opacity: .45; }
+      .holo-bar-item .bi-img { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; flex: 0 0 auto; }
+      .holo-bar-item .bi-glyph { font-size: 15px; line-height: 1; flex: 0 0 auto; }
+      .holo-bar-item .bi-chip { width: 16px; height: 16px; flex: 0 0 auto; border-radius: 4px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; background: hsl(var(--bi-hue,210), 52%, 46%); }
+      .holo-bar-item .bi-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       /* the holospace you're in — the active tab's app name, next to ⌂ (standardised across every tab) */
       #scope { flex: 0 0 auto; max-width: 26ch; margin: 0 var(--sp-1) 0 var(--sp-1); padding: var(--sp-1) var(--sp-3); border-radius: 999rem;
         font: 650 var(--holo-text-sm, 0.875rem)/1 var(--holo-sans, ui-sans-serif, system-ui); letter-spacing: -.01em; color: var(--holo-ink);
@@ -853,7 +870,7 @@
       @media (max-width: 600px) {
         /* taller touch chrome + notch clearance folded into the row-height vars → the canvas reflows for free */
         html { --tabrow-h: calc(56px + env(safe-area-inset-top, 0px)); --toolbar-h: 52px;
-               --chrome-h: calc(108px + env(safe-area-inset-top, 0px));
+               --chrome-h: calc(108px + env(safe-area-inset-top, 0px) + var(--bookmark-h));
                --gap-b: calc(34px + env(safe-area-inset-bottom, 0px)); }
         #tabstrip { padding-top: env(safe-area-inset-top, 0px); }              /* notch clearance; tabs sit flex-end below it */
         #tabstrip .tab { height: 48px; flex: 0 1 168px; }                     /* MD3 48dp tab */
@@ -907,12 +924,14 @@
       <button class="nav" id="nav-home" type="button" title="Home — this tab's original view" aria-label="Home — this tab's original view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg></button>
       <span id="scope" hidden aria-live="polite" title="the app you're in"></span>
       <div id="omni"><span class="sec" title="Hologram — one address for every object, verified by its fingerprint"><svg class="holomark" viewBox="-104 -104 208 208" width="19" height="19" role="img" aria-label="Hologram"><defs><linearGradient id="omniSpec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3b6b"/><stop offset="20%" stop-color="#ff9e2c"/><stop offset="40%" stop-color="#ffe24a"/><stop offset="58%" stop-color="#46e08a"/><stop offset="74%" stop-color="#2bd4ff"/><stop offset="88%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/></linearGradient></defs><g fill="url(#omniSpec)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Search anything" placeholder="Search anything" /><button class="omni-act" id="omni-copy" type="button" title="Copy this address" aria-label="Copy address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="omni-act" id="omni-reveal" type="button" title="Show the full address" aria-label="Show the full address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M11.4 11.6 21 2M17 6l3 3M15.5 7.5 18 10"/></svg></button><button class="go" id="omni-go" type="button" title="Open" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button></div>
+      <div id="rail" aria-label="Pinned actions"></div>
       <div id="verbs" aria-label="Create, Play, Share — the three things you can do">
         <button id="verb-build" type="button" title="Create — author a component into a verified object">✦ <span class="vl">Create</span></button>
         <button id="verb-run" type="button" title="Play — explore the Holo Hub, the store for every app">▶ <span class="vl">Play</span></button>
         <button id="share-btn" type="button" title="Share a link anyone can open instantly, no sign-in">♥ <span class="vl">Share</span></button>
       </div>
     </div>
+    <div id="bookmarkbar" aria-label="Bookmarks"></div>
     <div id="world">
       <div id="wallpaper" aria-hidden="true"></div>
       <!-- Immersive backdrop (ADR mobile-appearance): in Immersive mode this paints the chosen
@@ -3544,7 +3563,7 @@
       // ── spotlight ─────────────────────────────────────────────────────────────────────
       let catalog = [];
       try { const idx = await fetch("/apps/index.jsonld", { cache: "no-store" }).then((r) => r.json());
-        catalog = (idx["dcat:dataset"] || []).map((a) => ({ id: a["schema:identifier"], did: a["@id"], name: a["schema:name"], words: a["holo:words"] || null, kw: [].concat(a["schema:keywords"] || [], a["holo:categories"] || [], a["schema:applicationCategory"] || []).join(" ").toLowerCase(), landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/") })); } catch {}
+        catalog = (idx["dcat:dataset"] || []).map((a) => ({ id: a["schema:identifier"], did: a["@id"], name: a["schema:name"], words: a["holo:words"] || null, kw: [].concat(a["schema:keywords"] || [], a["holo:categories"] || [], a["schema:applicationCategory"] || []).join(" ").toLowerCase(), landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "/apps/"), icon: String(a["schema:image"] || "").replace(/^apps\//, "/apps/") })); } catch {}
       const spot = $("#spot"), q = $("#q"), results = $("#results");
       let spotList = [], selIdx = 0;
       const openSpot = () => { spot.classList.add("open"); q.value = ""; renderResults(""); q.focus(); };
@@ -5762,6 +5781,58 @@
         fallback: (ref) => omniGo(ref),
       });
       window.HoloClassifyOpen = classifyHoloOpen;
+      // ── κ-addressable chrome bars — bookmarks (under the address bar) + an icon-only action rail (right of
+      //    the omnibox). Each bar is a κ-list (holo-bar.mjs); an item is a κ-reference; opening routes through
+      //    the ONE open path (window.HoloOpen). Ordering persists and the bar has its own κ. Additive: any
+      //    failure is swallowed so the shell never breaks. See holo-bar-witness.
+      (async () => {
+        try {
+          const [BAR, STORE] = await Promise.all([import("/_shared/holo-bar.mjs"), import("/_shared/holo-bar-store.mjs")]);
+          const { buildBarModel, renderBar } = BAR; const { loadBar, saveBar, defaultBookmarks } = STORE;
+          const digest = async (str) => { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)); return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join(""); };
+          const bmEl = document.getElementById("bookmarkbar"), railEl = document.getElementById("rail");
+          const setH = () => document.documentElement.style.setProperty("--bookmark-h", (bmEl && bmEl.children.length) ? "34px" : "0px");
+          const openRow = (row) => { try { window.HoloOpen ? window.HoloOpen(row.open || row.ref) : omniGo(row.open || row.ref); } catch (e) {} };
+          // HTML5 drag-to-reorder shared by both bars; on drop, commit() persists the new κ.
+          const wireDrag = (el, list, commit) => { if (!el) return; let from = -1; [...el.querySelectorAll(".holo-bar-item")].forEach((b, i) => { b.draggable = true;
+            b.addEventListener("dragstart", () => { from = i; b.classList.add("dragging"); });
+            b.addEventListener("dragend", () => b.classList.remove("dragging"));
+            b.addEventListener("dragover", (ev) => ev.preventDefault());
+            b.addEventListener("drop", (ev) => { ev.preventDefault(); if (from < 0 || from === i) return; const next = list.slice(); const [m] = next.splice(from, 1); next.splice(i, 0, m); commit(next); }); }); };
+
+          // bookmarks — seed from the catalog (a curated set if present, else the first apps).
+          const PICK = ["Hologram Meet", "Holo Messenger", "Holo Q", "Holo Tube", "Holo Music", "Holo Files", "Holo Hub", "Holo Atlas", "Holo Browser", "Holo Code"];
+          const bm = await loadBar("bookmarks", { digest, seed: () => defaultBookmarks(catalog, { pick: PICK, topUp: 10 }) });
+          let bmItems = bm.items;
+          const drawBm = () => { renderBar(buildBarModel(bmItems, { catalog }), bmEl, { onOpen: openRow, onContext: (row, e) => showCtx(e.clientX, e.clientY, [{ label: "Remove from bookmarks", ic: "✕", danger: true, act: async () => { bmItems = bmItems.filter((x) => x.ref !== row.ref); await saveBar("bookmarks", bmItems, { digest }); drawBm(); } }, { label: "Share these bookmarks", ic: "♥", act: () => window.HoloBookmarks.shareLink() }]) }); wireDrag(bmEl, bmItems, async (next) => { bmItems = next; await saveBar("bookmarks", bmItems, { digest }); drawBm(); }); setH(); };
+          drawBm();
+          window.HoloBookmarks = { add: async (ref, opt = {}) => { ref = String(ref || ""); if (!ref || bmItems.some((x) => x.ref === ref)) return false; bmItems = bmItems.concat([{ ref, label: opt.label || "", words: opt.words || "", icon: opt.icon || "", open: opt.open || "" }]); await saveBar("bookmarks", bmItems, { digest }); drawBm(); return true; }, items: () => bmItems.slice() };
+          // share these bookmarks as a self-verifying link (the κ proves the carried items; no server).
+          window.HoloBookmarks.shareLink = async () => { try { const t = await BAR.barShareToken(bmItems, digest); const url = location.origin + "/shell.html?bar=" + t; try { await navigator.clipboard.writeText(url); toast("Bookmarks link copied"); } catch (e) { toast("Bookmarks link ready"); } return url; } catch (e) { return null; } };
+          // a shared bar arrived via ?bar=<token> — verify BEFORE trust (Law L5), then ask to adopt.
+          try {
+            const tok = new URLSearchParams(location.search).get("bar");
+            if (tok) {
+              history.replaceState(null, "", location.pathname + location.search.replace(/[?&]bar=[^&]*/, "").replace(/^&/, "?") + location.hash);
+              const v = await BAR.verifyBarToken(tok, digest);
+              if (v.ok && v.items.length) {
+                showCtx(Math.round(innerWidth / 2) - 120, 120, [
+                  { label: "Adopt " + v.items.length + " shared bookmarks", ic: "♥", act: async () => { const have = new Set(bmItems.map((x) => x.ref)); bmItems = v.items.concat(bmItems.filter((x) => !v.items.some((y) => y.ref === x.ref))); await saveBar("bookmarks", bmItems, { digest }); drawBm(); toast("Bookmarks adopted"); } },
+                  { label: "Keep mine", ic: "✕", act: () => {} },
+                ]);
+              } else { toast("Couldn't verify shared bookmarks"); }
+            }
+          } catch (e) {}
+
+          // rail — icon-only quick actions to the right of the omnibox (a κ-bar, kind "rail"). Empty by default
+          // (zero width); pin apps via window.HoloRail.add. Same mechanism, icon-only.
+          const rl = await loadBar("rail", { digest, seed: () => [] });
+          let rlItems = rl.items;
+          const drawRail = () => { renderBar(buildBarModel(rlItems, { catalog }), railEl, { onOpen: openRow, onContext: (row, e) => showCtx(e.clientX, e.clientY, [{ label: "Unpin", ic: "✕", danger: true, act: async () => { rlItems = rlItems.filter((x) => x.ref !== row.ref); await saveBar("rail", rlItems, { digest }); drawRail(); } }]) }); wireDrag(railEl, rlItems, async (next) => { rlItems = next; await saveBar("rail", rlItems, { digest }); drawRail(); }); };
+          drawRail();
+          window.HoloRail = { add: async (ref, opt = {}) => { ref = String(ref || ""); if (!ref || rlItems.some((x) => x.ref === ref)) return false; rlItems = rlItems.concat([{ ref, label: opt.label || "", words: opt.words || "", icon: opt.icon || "", open: opt.open || "" }]); await saveBar("rail", rlItems, { digest }); drawRail(); return true; }, items: () => rlItems.slice() };
+        } catch (e) { /* bars are additive — never break the shell */ }
+      })();
       // ── omnibox suggestions — Chrome-style. As you type, ONE ranked list fuses every corpus:
       //    an address (κ · ipfs · ENS · url) → "Open, verified"; holospace/app name matches → launch;
       //    free text → "Search" via Holo Find. Arrows move, Enter takes the highlighted row (default the

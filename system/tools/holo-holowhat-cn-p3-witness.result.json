@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "A→B — peer A publishes its signed conversation chain as an epoch-sealed bundle over the real holowhat CN; peer B fetches (verify-on-receipt), opens (PQ epoch), and adopts → converges to A's head",
+    "BLIND — the chain crosses the content network as ciphertext; no message plaintext on the wire (SEC-7)",
+    "B→A — B appends a message and republishes; A fast-forwards to B's head over the CN; the conversation converges both directions",
+    "L5 — adopt re-verifies every entry's signature + hash-linkage before replacing the local chain; both peers' chains verify after convergence"
+  ],
+  "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+  "head": "did:holo:sha256:b22d69d4a6f7ae689047a7059a479564e2aa5c2fad1fd55c7630cce9f28ceb87",
+  "length": 3,
+  "checks": {
+    "roam-A-to-B-over-real-cn": true,
+    "chain-crosses-cn-content-blind": true,
+    "roam-B-to-A-converges": true,
+    "both-peers-converged-and-verify": true
+  },
+  "failed": [],
+  "authority": "holowhat Console CN (real WASM) · holo-messenger-thread/adopt · holo-messenger-epoch (X25519‖ML-KEM-1024) · holo-strand · CC-38/CC-49 · Law L1/L5 · SEC-7"
+}

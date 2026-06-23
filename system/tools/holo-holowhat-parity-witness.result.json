@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "PARITY — the real holowhat WASM kappa(bytes) is byte-identical to our kappaBlake3(bytes) on KATs, text, and a real message envelope's wire bytes — so our CN κ IS holowhat's cn_put κ",
+    "VERIFY — holowhat's own verify_kappa accepts a matching κ and refuses forged bytes (Law L5, fail-closed)",
+    "CONSENSUS — our verifyReceipt and holowhat's verify_kappa return the same verdict on the same inputs — the two implementations agree on what to accept"
+  ],
+  "pkg": "C:\\Users\\pavel\\Desktop\\HOLOGRAM\\_vendor\\holowhat\\crates\\holospaces-web\\web\\pkg",
+  "wasmBytes": 2926068,
+  "checks": {
+    "holowhat-kappa-equals-ours": true,
+    "holowhat-verify-kappa-fail-closed": true,
+    "our-verify-agrees-with-holowhat": true
+  },
+  "failed": [],
+  "authority": "holowhat WASM (crates/holospaces-web: kappa, verify_kappa) · holo-blake3 (BLAKE3) · holospaces Law L1/L5"
+}
