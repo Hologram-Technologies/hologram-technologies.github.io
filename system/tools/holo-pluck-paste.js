@@ -34,7 +34,9 @@
   const quint = (h) => { const x = parseInt(h, 16); return C[(x >> 12) & 15] + V[(x >> 10) & 3] + C[(x >> 6) & 15] + V[(x >> 4) & 3] + C[x & 15]; };
   const slug = (t) => headline(t).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "holo";
   const truename = (hex, t) => slug(t) + "~" + [0, 1, 2].map((i) => quint(hex.substr(i * 4, 4))).join("-");
-  const pluck = async (input) => { const o = buildObj(input); const hex = await sha256hex(jcs(o)); o.id = "did:holo:sha256:" + hex; return { object: o, hex, kappa: o.id, truename: truename(hex, input.text), holoLink: "holo://" + hex }; };
+  const b64url = (s) => { const u = new TextEncoder().encode(s); let bin = ""; for (const b of u) bin += String.fromCharCode(b); return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+  const shareLink = (o) => "holo://os/usr/share/frame/holopluck.html#m=" + b64url(JSON.stringify({ kappa: o.id, object: o }));
+  const pluck = async (input) => { const o = buildObj(input); const hex = await sha256hex(jcs(o)); o.id = "did:holo:sha256:" + hex; return { object: o, hex, kappa: o.id, truename: truename(hex, input.text), holoLink: "holo://" + hex, shareLink: shareLink(o) }; };
 
   const readBubble = (row) => {
     const cap = row.querySelector("[data-pre-plain-text]");
@@ -48,10 +50,10 @@
   const STYLE = "position:absolute;top:4px;right:8px;font:11px/1.4 ui-monospace,monospace;background:#0b141a;color:#8696a0;border:1px solid #2a3942;border-radius:10px;padding:2px 8px;cursor:pointer;z-index:99999;opacity:.9;user-select:none";
   const chipFor = async (row) => {
     if (row.__holo) return; const input = readBubble(row); if (!input.text) return; row.__holo = 1;
-    const { kappa, hex, truename: tn, holoLink, object } = await pluck(input);
+    const { kappa, hex, truename: tn, holoLink, shareLink: link, object } = await pluck(input);
     const chip = document.createElement("div"); chip.setAttribute("style", STYLE);
-    chip.textContent = "κ " + hex.slice(0, 8) + " · " + tn; chip.title = "Pluck into eternity — copy " + holoLink;
-    chip.onclick = async (e) => { e.stopPropagation(); try { await navigator.clipboard.writeText(holoLink); } catch {} chip.textContent = "✓ minted · " + hex.slice(0, 8); console.log("[holo-pluck]", { kappa, truename: tn, holoLink, object }); };
+    chip.textContent = "κ " + hex.slice(0, 8) + " · " + tn; chip.title = "Pluck into eternity — copy the shareable link";
+    chip.onclick = async (e) => { e.stopPropagation(); try { await navigator.clipboard.writeText(link); } catch {} chip.textContent = "✓ minted · " + hex.slice(0, 8); console.log("[holo-pluck]", { kappa, truename: tn, holoLink, shareLink: link, object }); };
     if (getComputedStyle(row).position === "static") row.style.position = "relative";
     row.appendChild(chip);
   };

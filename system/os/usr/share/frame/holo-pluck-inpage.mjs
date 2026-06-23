@@ -80,7 +80,18 @@ export async function pluckKappa(input) {
     truename: truenameFromHex(hex, input.text),
     holoLink: "holo://" + hex,
     spaceLink: "/holospace.html?app=" + hex + "&bare=1",
+    shareLink: shareLinkFor(object),                       // self-contained — opens in any Hologram surface
   };
+}
+
+// the self-contained link: the message rides in the #fragment (base64url JSON), so it
+// never touches a server. Base is the Hologram-origin receiving surface.
+export function shareLinkFor(object, base = "holo://os/usr/share/frame/holopluck.html") {
+  const json = JSON.stringify({ kappa: object.id, object });
+  const bytes = new TextEncoder().encode(json);
+  let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+  const tok = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return base + "#m=" + tok;
 }
 
 // ── DOM capture for WhatsApp Web: read a rendered bubble's drawn fields ──
@@ -110,16 +121,16 @@ export function installPluck({ selector = "div.message-in, div.message-out, div[
     if (row.__holoChip) return;
     const input = readBubble(row);
     if (!input.text) return;
-    const { kappa, hex, truename, holoLink } = await pluckKappa(input);
+    const { kappa, hex, truename, holoLink, shareLink } = await pluckKappa(input);
     const chip = document.createElement("div");
     chip.setAttribute("style", STYLE);
     chip.textContent = "κ " + hex.slice(0, 8) + " · " + truename;
-    chip.title = "Pluck into eternity — click to copy " + holoLink;
+    chip.title = "Pluck into eternity — click to copy the shareable link";
     chip.onclick = async (e) => {
       e.stopPropagation();
-      try { await navigator.clipboard.writeText(holoLink); } catch {}
+      try { await navigator.clipboard.writeText(shareLink); } catch {}
       chip.textContent = "✓ minted · " + hex.slice(0, 8);
-      console.log("[holo-pluck]", { kappa, truename, holoLink, object: (await pluckKappa(input)).object });
+      console.log("[holo-pluck]", { kappa, truename, holoLink, shareLink, object: (await pluckKappa(input)).object });
     };
     if (getComputedStyle(row).position === "static") row.style.position = "relative";
     row.appendChild(chip);
