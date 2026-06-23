@@ -1,0 +1,24 @@
+{
+  "spec": "Streaming metric harness: FPS + frame p50/p99, GPU dispatches/frame, delta ratio (work ∝ novelty), tokens/s, resident MB, first-frame/first-token latency. Pure + injectable; the instrument that turns the high-FPS/throughput/low-memory gates into measured numbers.",
+  "authority": "holospaces V&V (witness against external authority) · nearest-rank percentile · standard rendering/throughput metrics",
+  "witnessed": true,
+  "covers": [
+    "metric-harness",
+    "percentiles",
+    "fps",
+    "delta-ratio",
+    "tokens-per-sec",
+    "latency-marks",
+    "bounded-ring"
+  ],
+  "checks": {
+    "percentilesCorrect": true,
+    "fpsFromMean": true,
+    "deltaRatioCorrect": true,
+    "gpuCounts": true,
+    "tokensPerSec": true,
+    "firstCapturedOnce": true,
+    "frameRingBounded": true,
+    "snapshotShape": true
+  }
+}

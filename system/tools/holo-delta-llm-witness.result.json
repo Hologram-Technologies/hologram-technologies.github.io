@@ -1,0 +1,33 @@
+{
+  "spec": "Delta LLM streaming: a token's KV is addressed by κ and memoized, so the KV-cache IS the delta — N tokens cost O(N) computes not O(N²); the prompt prefix is computed once and reused across generations (prompt/persona cache); KV window bounded (low memory); tokens re-derive to their κ (L5) and stream as refs on repeat. Same delta principle as render, applied to decoding.",
+  "authority": "holospaces Laws L1/L2/L3/L5 · transformer KV-cache (external) · prefix/prompt caching · content-addressed memoization",
+  "witnessed": true,
+  "covers": [
+    "delta-llm",
+    "kv-reuse-delta",
+    "throughput-on-vs-onsquared",
+    "prompt-cache",
+    "shared-prefix",
+    "bounded-kv",
+    "deterministic",
+    "token-stream-refs",
+    "tokens-per-sec"
+  ],
+  "model": {
+    "tokens": 64,
+    "deltaComputes": 64,
+    "naiveComputes": 2080,
+    "kvReuses": 2016,
+    "reduction": 32.5
+  },
+  "checks": {
+    "kvReuseIsDelta": true,
+    "throughputModel": true,
+    "promptCacheReuse": true,
+    "sharedPrefix": true,
+    "boundedKV": true,
+    "deterministic": true,
+    "tokenStreamRefs": true,
+    "meterTokensPerSec": true
+  }
+}

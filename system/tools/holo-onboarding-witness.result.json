@@ -1,0 +1,25 @@
+{
+  "spec": "Guest-first boot: first run lands straight in the experience on a silent guest — no name, biometric, sign-in, or jargon. Identity is deferred, surfaced only when an action benefits (keep across devices, spend, be 'from you'), in plain words — and those acts genuinely create real identity (defer, never deceive). Guests have the full local experience. Removes walls #2 and #6.",
+  "authority": "holospaces holo-identity (guest + sovereign enroll, unchanged) · just-in-time account upgrade UX (external)",
+  "witnessed": true,
+  "covers": [
+    "guest-first",
+    "no-boot-wall",
+    "everyday-no-identity",
+    "beneficial-only-prompt",
+    "plain-upgrade",
+    "guest-full-local",
+    "returning-resumes",
+    "deferred-not-removed"
+  ],
+  "checks": {
+    "firstRunIsGuestNoWall": true,
+    "everydayNoIdentity": true,
+    "onlyBeneficialPrompts": true,
+    "plainLanguageUpgrade": true,
+    "guestFullyCapableLocally": true,
+    "returningUserResumes": true,
+    "deferredNotRemoved": true,
+    "deterministic": true
+  }
+}

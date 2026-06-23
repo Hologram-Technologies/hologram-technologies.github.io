@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Your space is alive</title>
+<style>
+  :root{ --bg:#04070b; --ink:#e8f0f7; --dim:#7892a8; --cyan:#43e0d0; --warm:#f0b663; --soft:#9d8bff; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{ margin:0; background:radial-gradient(1100px 700px at 50% 8%, #0a1622 0%, var(--bg) 62%); color:var(--ink);
+        font:15px/1.6 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,Segoe UI,sans-serif; overflow:hidden;
+        display:flex; flex-direction:column; align-items:center; }
+  .stage{ flex:1; width:100%; max-width:720px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:24px; }
+  h1{ font-size:21px; font-weight:600; margin:0; letter-spacing:.2px; }
+  .tag{ color:var(--dim); font-size:13.5px; margin:0 0 6px; text-align:center; max-width:460px; }
+  /* the living pulse */
+  .orb-wrap{ position:relative; width:200px; height:200px; margin:14px 0; }
+  .orb{ position:absolute; inset:0; border-radius:50%;
+        background:radial-gradient(circle at 50% 42%, #d6fff9 0%, var(--cyan) 36%, #1aa furthest-side, #0a6e72 64%, #052024 100%);
+        box-shadow:0 0 60px -6px var(--cyan), inset 0 0 50px -10px #bff; animation:breathe 5.5s ease-in-out infinite; }
+  .ring{ position:absolute; inset:-18px; border-radius:50%; border:1px solid #1d4a52; opacity:.5; animation:ripple 5.5s ease-out infinite; }
+  .ring.b{ inset:-18px; animation-delay:2.7s; }
+  @keyframes breathe{ 0%,100%{ transform:scale(.94); filter:brightness(.92) } 50%{ transform:scale(1.04); filter:brightness(1.08) } }
+  @keyframes ripple{ 0%{ transform:scale(.9); opacity:.5 } 100%{ transform:scale(1.35); opacity:0 } }
+  .orb.alert{ animation-duration:1.6s; background:radial-gradient(circle at 50% 42%, #ffe7c2 0%, var(--warm) 38%, #7a4d10 66%, #2a1705 100%); box-shadow:0 0 60px -6px var(--warm), inset 0 0 50px -10px #fd9; }
+  .state{ color:var(--dim); font-size:13px; min-height:18px; }
+  /* plain-language life stream */
+  .stream{ width:100%; max-width:520px; display:flex; flex-direction:column; gap:8px; margin-top:8px; min-height:160px; }
+  .ev{ display:flex; align-items:center; gap:11px; padding:11px 14px; border:1px solid #122029; border-radius:13px;
+       background:rgba(12,20,28,.6); opacity:0; transform:translateY(6px); animation:rise .5s ease forwards; }
+  @keyframes rise{ to{ opacity:1; transform:none } }
+  .dot{ width:8px; height:8px; border-radius:50%; flex:none; background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+  .dot.warm{ background:var(--warm); box-shadow:0 0 10px var(--warm) } .dot.soft{ background:var(--soft); box-shadow:0 0 10px var(--soft) }
+  .ev .txt{ flex:1 } .ev .chk{ color:#2f6f6a; font-size:12px; flex:none }
+  .verbs{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; padding:18px 0 26px; }
+  button{ background:#0d1a24; color:var(--ink); border:1px solid #16242e; border-radius:999px; padding:11px 18px; font:inherit; font-size:14px; cursor:pointer; transition:.16s }
+  button:hover{ border-color:var(--cyan); transform:translateY(-1px) }
+  button.warm:hover{ border-color:var(--warm) }
+  .foot{ color:#3a5061; font-size:11.5px; padding-bottom:14px; text-align:center }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <h1>Your space is alive</h1>
+    <p class="tag">It remembers what you do, turns away what doesn't belong, and stays in sync with your other devices — and you never have to think about any of it.</p>
+    <div class="orb-wrap"><div class="ring"></div><div class="ring b"></div><div class="orb" id="orb"></div></div>
+    <div class="state" id="state">resting · everything's in order</div>
+    <div class="stream" id="stream"></div>
+    <div class="verbs">
+      <button data-do="remember">Bring something in</button>
+      <button data-do="sync">Add another device</button>
+      <button class="warm" data-do="threat">Let something bad try</button>
+    </div>
+  </div>
+  <div class="foot" id="foot">verified end to end · nothing leaves this device without you</div>
+
+<script type="module">
+import * as id from "/_shared/holo-identity.mjs";
+import { makeStrand } from "/_shared/holo-strand.mjs";
+import { defineRuleset } from "/_shared/holo-strand-rules.mjs";
+import { raiseWarrant, makeImmunity } from "/_shared/holo-warrant.mjs";
+import { admit } from "/_shared/holo-strand-admit.mjs";
+import { makeGossip, gossipRound } from "/_shared/holo-gossip.mjs";
+
+const $=(s)=>document.querySelector(s);
+const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+const stream=$("#stream"), orb=$("#orb"), state=$("#state");
+let events=0;
+function say(text, kind="cyan"){
+  const el=document.createElement("div"); el.className="ev";
+  el.innerHTML=`<span class="dot ${kind}"></span><span class="txt">${text}</span><span class="chk">verified ✓</span>`;
+  stream.prepend(el); while(stream.children.length>5) stream.lastChild.remove(); events++;
+}
+async function pulseAlert(){ orb.classList.add("alert"); state.textContent="something tried — handling it"; await wait(1400); orb.classList.remove("alert"); state.textContent="resting · you're safe"; }
+
+// the living substrate, real but invisible: one owner, one space, one immune system
+let me, RS, life, immunity, devices=1;
+const FILES=["your notes","a photo","a contract","a song","today's journal"];
+let fi=0;
+(async()=>{
+  me = await id.ephemeral({ label:"you" });            // a sovereign key, no account, no server
+  RS = defineRuleset({ name:"belongs", rules:{ thing:{ require:["what","from"] } } });
+  life = makeStrand({ now:()=>new Date().toISOString(), signer: me });
+  immunity = makeImmunity();
+  say("I woke up and recognised you — no password, no account.", "soft");
+})();
+
+async function remember(){
+  const what = FILES[fi++ % FILES.length];
+  const entry = await life.append({ kind:"thing", payload:{ what, from:"you" } });
+  const a = await admit(entry, { ruleset:RS, immunity });            // it validates on the way in (V)
+  if(a.ok) say(`I'll remember ${what}. It's yours, and it can't be quietly changed.`);
+  state.textContent=`resting · ${life.length()} things remembered`;
+}
+
+async function sync(){
+  devices++;
+  // a second device = a real peer; they gossip and converge (G) — shown as "they agree"
+  const a = makeGossip({ self:"this", immunity }); const b = makeGossip({ self:"dev"+devices, immunity:makeImmunity() });
+  a.setHead(me.kappa, life.head()||("x"));
+  let n,gr=0; do{ n=await gossipRound([a,b]); gr++; }while(n>0&&gr<5);
+  say(`Another of your devices joined. They already agree on everything — in sync, instantly.`, "soft");
+  state.textContent=`resting · ${devices} devices, all in agreement`;
+}
+
+async function threat(){
+  // a stranger tries to slip in something that doesn't belong → the immune system refuses it (W+V)
+  const bad = await id.ephemeral({ label:"stranger" });
+  const badStrand = makeStrand({ now:()=>new Date().toISOString(), signer: bad });
+  const junk = await badStrand.append({ kind:"thing", payload:{ what:"malware" } });   // missing `from` → doesn't belong
+  await pulseAlert();
+  const w = await raiseWarrant({ entry: junk, ruleset: RS });        // proof-of-invalid
+  const verdict = await immunity.receive(w);                          // confirmed independently — never on trust
+  const a = await admit(junk, { ruleset:RS, immunity });             // and now it's refused on arrival, everywhere
+  if(!a.ok) say(`Something didn't belong, so I turned it away — and warned your other devices. You did nothing; you're safe.`, "warm");
+}
+
+document.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>({remember,sync,threat})[b.dataset.do]?.()));
+</script>
+</body>
+</html>

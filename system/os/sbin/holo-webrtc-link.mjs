@@ -19,9 +19,9 @@ function gatherComplete(pc, ms = 4000) {
 }
 
 // createOfferer({onChannel}) → { offer, accept(answerSdp), close } — A: makes the channel + the offer SDP.
-export async function createOfferer({ onChannel, iceServers = ICE_SERVERS } = {}) {
+export async function createOfferer({ onChannel, iceServers = ICE_SERVERS, channel = { ordered: true } } = {}) {
   const pc = new RTCPeerConnection({ iceServers });
-  const dc = pc.createDataChannel("holo-mesh", { ordered: true });
+  const dc = pc.createDataChannel("holo-mesh", channel);
   dc.binaryType = "arraybuffer";
   dc.addEventListener("open", () => onChannel && onChannel(dc));
   await pc.setLocalDescription(await pc.createOffer());

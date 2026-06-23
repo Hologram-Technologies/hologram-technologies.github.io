@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand P1 — RESUME ON THE SPINE: each session resume point is mirrored as a hash-linked, operator-signed session.snapshot entry on the source chain, so the spine holds the true last point. The live last-write head is swappable; when it drifts from the spine the spine wins (continuity 'recovered'), a broken spine is never trusted ('chain-broken', fail-closed), and an empty spine falls back to the live head. Resume stops silently drifting — and can't be silently moved.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · holospaces Laws L1/L2/L5 · ADR-0104/0106 (Holo Session) · rests on #holo-session + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "resume-mirror",
+    "continuity-ok",
+    "drift-recovered",
+    "default-drift-bug",
+    "recovered-restores",
+    "broken-chain-fail-closed",
+    "empty-fallback",
+    "signed-snapshots"
+  ],
+  "sample": {
+    "trueLast": "did:holo:sha256:45cce88d103258ff7643f24367e8d8b469a773877ca7dc68f40e0e5260410a36",
+    "stale": "did:holo:sha256:4f1221779b41fd199c6eda4a5d020be803be076448e33dea98b02a0a2de394e8",
+    "snapshots": 3,
+    "strandHead": "did:holo:sha256:085ab06fb6915d9a57c344fd3df7b9ad005b155530070f6dc8b9c186b0bd9181"
+  },
+  "checks": {
+    "mirrorRecordsSnapshots": true,
+    "continuityOkWhenAligned": true,
+    "driftRecovered": true,
+    "defaultRestoresDrift": true,
+    "recoveredKappaRestores": true,
+    "brokenChainNotTrusted": true,
+    "emptyFallsBack": true,
+    "snapshotsAreSigned": true
+  },
+  "failed": []
+}

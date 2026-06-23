@@ -169,7 +169,7 @@
   setTimeout(revealAll, 2500);                             // safety: never hang on a pathologically slow image
 } catch (e) {} })();
 </script>
-<div id="msg" style="display:none; z-index:10000"><div id="bootfx">Resolving app…</div></div>
+<div id="msg" style="display:none; z-index:10000"><div id="bootfx">Opening…</div></div>
 <!-- Holo FX (the OS's faithful unicode-animations adoption): a sharp `scan` sweep replaces the
      static boot text. Classic script → window.HoloFX is ready before the deferred module runs. -->
 <script src="_shared/holo-fx.js"></script>
@@ -486,6 +486,22 @@ function restoreSharedWidgets() {
   s.onload = () => { let tries = 0; (function go() { const h = window.HoloWidgets; if (h && h.setBoard) return h.setBoard(board, { persist: false }); if (++tries < 60) setTimeout(go, 80); })(); };
   document.body.appendChild(s);
 }
+// Phase D: a shared app link can carry the sender's LIVE workspace (&ws=<token>) — their current window
+// state, re-sealed as a compact, self-verifying snapshot. Verify-before-trust, then hand it to the app over
+// the session handshake. Tampered/absent → the app simply runs fresh (it is already mounted). Fail-soft.
+function restoreSharedWorkspace() {
+  const tok = hashParams.get("ws"); if (!tok) return;
+  import("./_shared/holo-workspace-share.mjs").then(async (WS) => {
+    const bundle = WS.decodeWorkspaceShare(tok); if (!bundle) return;
+    const res = await WS.openSharedWorkspace(bundle);            // L5 verify-before-trust
+    if (!res || !res.ok || res.state == null) return;           // refused/empty → app stays fresh
+    const f = document.getElementById("frame"); if (!f) return;
+    const send = () => { try { f.contentWindow && f.contentWindow.postMessage({ t: "holo-session:restore", state: res.state }, "*"); } catch (e) {} };
+    window.addEventListener("message", (e) => { const m = e.data; if (m && m.t === "holo-session:ready" && e.source === f.contentWindow) send(); });
+    f.addEventListener("load", () => setTimeout(send, 60));
+    setTimeout(send, 700);
+  }).catch(() => {});
+}
 // κ-Open is the DEFAULT frame for opening a STANDALONE app: a shared link (#k= / ?shared=1), a kiosk
 // embed (?bare=1), OR a plain ?app=κ all land in the fullscreen splash → app. The editable DESKTOP is
 // shell.html, reached explicitly with ?shell=1 (or by opening holospace.html with no app). So a single κ
@@ -498,7 +514,7 @@ if (goShell) {
   if (params.get("sw")) p.set("sw", params.get("sw"));
   location.replace("/shell.html" + (p.toString() ? "?" + p : ""));
 } else {
-  boot().then((ctx) => { if (wantChrome) { const fr = document.getElementById("frame"); if (fr) fr.classList.add("holo-materialize"); } if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); restoreSharedWidgets(); })
+  boot().then((ctx) => { if (wantChrome) { const fr = document.getElementById("frame"); if (fr) fr.classList.add("holo-materialize"); } if (wantChrome && ctx && window.HoloShareChrome) window.HoloShareChrome.mount(ctx); restoreSharedWidgets(); restoreSharedWorkspace(); })
         .catch((e) => die("Boot failed: <code>" + (e && e.message || e) + "</code>"));
 }
 </script>

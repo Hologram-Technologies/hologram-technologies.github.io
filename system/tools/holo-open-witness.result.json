@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-open S2 — the one open path: a pure shape classifier (space/kappa/app/words/cid/onion/url/media/text) + a makeOpen seam that dispatches named forms (holo://<id>, holo://space/<id>) to handlers and delegates every other shape to one fallback resolver (the shell wires omniGo). Every surface and agent opens anything through ONE call, the same way. Fail-soft.",
+  "authority": "rests on #holo-open (+ shell omniGo fallback)",
+  "witnessed": true,
+  "covers": [
+    "classify-shapes",
+    "routes-named-forms",
+    "delegates-rest",
+    "id-strips-prefix",
+    "fail-soft-empty"
+  ],
+  "checks": {
+    "classifyShapes": true,
+    "routesNamedForms": true,
+    "delegatesRest": true,
+    "idStripsPrefix": true,
+    "failSoftEmpty": true
+  },
+  "failed": []
+}

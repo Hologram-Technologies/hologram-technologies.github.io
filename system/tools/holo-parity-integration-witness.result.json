@@ -1,0 +1,31 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-parity INTEGRATION — the full multi-agent flow composed end-to-end on κ: a membrane (M) gates entry; members author signed source-chain entries; honest data is sharded (D) and admitted on receipt by re-validation (V); a bad actor's violating entry is warranted (W), the warrant gossips + converges (G) and a false warrant dies, so the actor is ejected network-wide on receipt (V∘W) while honest data keeps flowing. Proves the phases interoperate — Holochain's whole model on the κ substrate, no server, no new crypto.",
+  "authority": "Holochain full model · UOR-ADDR · holospaces Laws L1/L2/L5 + SEC-4 · composes #holo-membrane + #holo-strand(+rules) + #holo-shard + #holo-warrant + #holo-strand-admit + #holo-gossip + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "membrane-gate",
+    "honest-admits",
+    "sharded-fetch-verifies",
+    "bad-warranted",
+    "immune-converges",
+    "actor-ejected",
+    "honest-keeps-flowing"
+  ],
+  "sample": {
+    "membrane": "did:holo:sha256:e639d22d5c3a30fb7102cffcbcbfa6bc0094733289a1175bd5da08bf10a6ec89",
+    "ruleset": "did:holo:sha256:a159baa53c80173b501e53e14b376266f3b72e340c06cea87b21f17ebde77316",
+    "gossipRounds": 2,
+    "shardHolders": 3
+  },
+  "checks": {
+    "membraneGates": true,
+    "honestDataAdmits": true,
+    "shardedFetchVerifies": true,
+    "badEntryWarranted": true,
+    "immuneConverges": true,
+    "actorEjectedOnReceipt": true,
+    "honestKeepsFlowing": true
+  },
+  "failed": []
+}

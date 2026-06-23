@@ -1,0 +1,55 @@
+// holo-stream-kit.mjs — the unified STREAMING TOOLKIT: one import that lights up the whole Hologram-native
+// streaming foundation for any surface or for Q. It barrels the witnessed primitives — the κ-stream
+// transport, the O(1) L1/L2 compute memo, the metric harness, the delta render loop, the delta LLM
+// decoder, the one unified scheduler, the adaptive-quality binder, the substrate fabric and its WebGPU
+// driver — behind a single namespace, and `mount()` publishes them as `window.HoloStream` so a surface can
+// stream apps and LLMs at high FPS with one line, no plumbing. Everything stays delta, content-addressed,
+// re-derived (Law L5), and silicon-default (WebGPU only when present). The deep render-loop wiring of a
+// specific surface is just: import this, build a loop + scheduler, pump. Abstract complexity, one seam.
+//
+// Browser-oriented (it references the sbin fabric by served path); each primitive is independently
+// node-witnessed (see tools/holo-*-witness.mjs).
+
+import { makeKappaStream, kappaOf } from "./holo-kappa-stream.mjs";
+import { makeComputeMemo } from "./holo-compute-memo.mjs";
+import { makeMeter } from "./holo-stream-meter.mjs";
+import { makeDeltaLoop } from "./holo-delta-render.mjs";
+import { makeDeltaDecoder } from "./holo-delta-llm.mjs";
+import { makeScheduler } from "./holo-scheduler.mjs";
+import { streamConfig, qualityOp, adaptiveCost } from "./holo-fidelity-stream.mjs";
+import { fidelity, current as currentFidelity, deviceProfile } from "./holo-fidelity.mjs";
+import * as fabric from "/holo-fabric.mjs";
+import * as webgpu from "/sbin/holo-fabric-webgpu.mjs";
+
+export {
+  makeKappaStream, kappaOf, makeComputeMemo, makeMeter, makeDeltaLoop, makeDeltaDecoder,
+  makeScheduler, streamConfig, qualityOp, adaptiveCost, fidelity, currentFidelity, deviceProfile, fabric, webgpu,
+};
+
+// build the one streaming context for a surface: a shared cache + memo + meter + scheduler, tuned to the
+// device's fidelity. Returns the pieces a surface uses to stream render frames AND LLM tokens under one budget.
+export function makeStreamContext({ profile = null } = {}) {
+  const f = profile ? fidelity(profile) : currentFidelity();
+  const cfg = streamConfig(f);
+  const cache = new Map();                                  // the shared κ-address space (Law L3)
+  const memo = makeComputeMemo({ cap: 8192 });
+  const meter = makeMeter({ window: 240 });
+  const scheduler = makeScheduler({ now: () => (typeof performance !== "undefined" ? performance.now() : Date.now()), budgetMs: cfg.budgetMs });
+  return { config: cfg, fidelity: f, cache, memo, meter, scheduler,
+    renderLoop: (opts) => makeDeltaLoop({ memo, meter, ...opts }),
+    decoder: (opts) => makeDeltaDecoder({ memo, meter, ...opts }),
+    stream: () => makeKappaStream(cache) };
+}
+
+// mount() — publish the toolkit as window.HoloStream so any surface/Q can stream with one line.
+export function mount(win) {
+  const w = win || (typeof window !== "undefined" ? window : globalThis);
+  w.HoloStream = {
+    makeKappaStream, kappaOf, makeComputeMemo, makeMeter, makeDeltaLoop, makeDeltaDecoder,
+    makeScheduler, streamConfig, qualityOp, adaptiveCost, fidelity, currentFidelity, deviceProfile,
+    fabric, webgpu, makeStreamContext,
+  };
+  return w.HoloStream;
+}
+
+export default { mount, makeStreamContext };

@@ -1,0 +1,25 @@
+{
+  "spec": "WebGPU substrate driver + PARITY GATE: a GPU result is admitted only if it re-derives to the CPU reference's κ (Law L5) — the guard that stops a wrong kernel (q8-LLM gibberish) reaching a user; mismatch falls back to CPU, never serves bad bytes. Fail-open: no WebGPU ⇒ CPU (any browser). Real-GPU parity verified in-page (preview).",
+  "authority": "holospaces Laws L1/L2/L5 · SD-native WebGPU exact-parity kernels (external oracle) · WebGPU/WGSL · IEEE-754 ULP tolerance for float",
+  "witnessed": true,
+  "covers": [
+    "webgpu-driver",
+    "parity-gate",
+    "anti-gibberish-fallback",
+    "cpu-reference",
+    "fail-open",
+    "content-addressed",
+    "deterministic"
+  ],
+  "checks": {
+    "cpuIaffine": true,
+    "cpuMatmul": true,
+    "gateExact": true,
+    "gateTolerance": true,
+    "driverFallsBackNoGpu": true,
+    "admitsGoodGpu": true,
+    "refusesBadGpu": true,
+    "deterministic": true
+  },
+  "note": "Real-GPU exact parity (iaffine) + float tolerance (matmul) verified in a browser with navigator.gpu; this Node witness proves the math + the gate with a mock GPU."
+}

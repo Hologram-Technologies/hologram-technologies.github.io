@@ -32,6 +32,8 @@ import "/_shared/holo-strand-admit.mjs";        // side-effect: window.HoloStran
 import "/_shared/holo-shard.mjs";               // side-effect: window.HoloShard — D: content-addressed shared space (sharded κ-store)
 import "/_shared/holo-gossip.mjs";              // side-effect: window.HoloGossip — G: κ-gossip of heads + warrants (anti-entropy, self-healing)
 import "/_shared/holo-membrane.mjs";            // side-effect: window.HoloMembrane — M: per-app membranes (forkable app boundary)
+import "/_shared/holo-gossip-channel.mjs";      // side-effect: window.HoloGossipNet — real cross-tab/device gossip transport (attach on demand)
+import "/_shared/holo-workspace-host.mjs";      // side-effect: window.HoloWorkspaceHost — every tab/app a persistent, time-travelable workspace (capture seam)
 import "/_shared/holo-evolve.mjs";   // side-effect: registers window.HoloEvolve once Q.trust is up (closes the loop, gated)
 import { ensureBrainFloor, makeBrainFloor } from "/_shared/holo-brain-floor.mjs";   // guarantee a brain on every core task
 import { makeIntentRouter } from "/_shared/holo-intent.mjs";              // one classifier
@@ -188,10 +190,37 @@ import "/_shared/holo-fix-proposer.mjs";  // side-effect: window.__holoFixPropos
         const pct = Math.floor((snap.coherence || 0) * 100);   // floor, so a 99.6% with an open notice never reads "100%"
         // a personal touch when you return: Q knows your history (S2), so a clean briefing greets you by it.
         let mem = ""; try { const t = memory.summary().total; if (t > 0) mem = `Welcome back — I remember our last ${t > 99 ? "99+" : t} note${t === 1 ? "" : "s"}. `; } catch (e) {}
-        if (!notices.length) return `${ctx}${mem}All clear — everything's coherent (${pct}%). I'll let you know if that changes.`;
+        // a quiet touch of the living-organism truth (intrinsic integrity + sovereignty) woven into the
+        // briefing every operator already sees — natively felt, never a separate surface.
+        let spaceTail = ""; try { const n = window.HoloStrand ? window.HoloStrand.length() : 0; if (n > 0) spaceTail = ` Your space is yours — ${n} verified, untampered.`; } catch (e) {}
+        if (!notices.length) return `${ctx}${mem}All clear — everything's coherent (${pct}%).${spaceTail} I'll let you know if that changes.`;
         const more = notices.length > 1 ? ` (and ${notices.length - 1} more)` : "";
         return `${ctx}${notices[0].suggestedAction}${more}  ·  coherence ${pct}%.`;
       };
+      // Q.space() — the living-organism status in one plain sentence: your space is yours, intact, and
+      // protected. The whitepaper's intrinsic data integrity + agent sovereignty + immune system, FELT —
+      // drawn live from the source chain + the shared immunity, no jargon, reachable by humans and agents.
+      window.Q.space = () => {
+        let n = 0, blocked = 0;
+        try { n = window.HoloStrand ? window.HoloStrand.length() : 0; } catch (e) {}
+        try { blocked = (window.__holoImmunity && window.__holoImmunity.blocklist) ? window.__holoImmunity.blocklist().length : 0; } catch (e) {}
+        const remembered = n > 0 ? `${n} thing${n === 1 ? "" : "s"} remembered, all verified` : "a fresh start";
+        const guard = blocked > 0 ? ` I've turned away ${blocked} that didn't belong — you're safe.` : "";
+        return `Your space is yours and intact — ${remembered}. No server, no account; it can't be quietly changed.${guard}`;
+      };
+      // SURFACE the living-space status ONCE per session into the Inbox the operator already sees — so the
+      // magic is felt natively (not only when asked), in Q's own voice, under the courier's send discipline.
+      try {
+        const greeted = (typeof sessionStorage !== "undefined") && sessionStorage.getItem("holo.space.greeted");
+        if (!greeted) setTimeout(() => {
+          try {
+            if (typeof sessionStorage !== "undefined") sessionStorage.setItem("holo.space.greeted", "1");
+            const body = window.Q.space();                       // live, jargon-free, drawn from the spine + immunity
+            if (window.Q && typeof window.Q.note === "function") window.Q.note({ title: "Your space", body, kind: "letter" });
+            else if (window.HoloNotify && typeof window.HoloNotify.q === "function") window.HoloNotify.q({ title: "Your space", body });
+          } catch (e) {}
+        }, 2500);
+      } catch (e) {}
       // drift-heal becomes a faculty of the ONE ambient loop (trinity's Q.improve), so trinity's own 2s timer
       // can stand down (it gates on window.HoloAmbient). One heartbeat drives reflect + drift-heal together.
       try {

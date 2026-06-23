@@ -1,0 +1,26 @@
+{
+  "spec": "The substrate FABRIC boundary (Law L4): holo-resolver's byte-sources typed as DRIVERS with capabilities (resolve·store·transform) and a tier (silicon·optical·photonic-net), selected by attestation, fed into resolveByKappa — so the same κ resolves and the same transform computes on whatever substrate is present, ZERO app change, every result re-derived to its κ (Law L5). The insertion point a photonic backend plugs into.",
+  "authority": "holospaces Laws L1/L2/L3/L4/L5 · ADR-026 Sovereign Delivery (cache → peers → origin, demoted) · RFC 9334 RATS · W3C DID Core · IETF RFC 8785 (JCS)",
+  "witnessed": true,
+  "covers": [
+    "substrate-fabric",
+    "driver-kappa",
+    "attested-selection",
+    "driver-swap-zero-diff",
+    "transform-parity",
+    "serverless-gate",
+    "fallback-never-blocks",
+    "law-l4",
+    "law-l5"
+  ],
+  "checks": {
+    "driverIsKappaAddressed": true,
+    "resolveThroughFabric": true,
+    "tamperRefusedAcrossTier": true,
+    "swapZeroDiff": true,
+    "attestSelectsSubstrate": true,
+    "transformParity": true,
+    "serverlessGate": true,
+    "fallbackNeverBlocks": true
+  }
+}

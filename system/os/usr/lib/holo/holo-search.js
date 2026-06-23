@@ -201,6 +201,21 @@ const globToRe = (g) => new RegExp("^" + g.replace(/[.+^${}()|[\]\\]/g, "\\$&").
 // ────────────────────────────────────────────────────────────────────────────────────────
 export const BM25 = { k1: 1.2, b: 0.75 };
 
+// Private-context personalization factor (presentation only). Given the operator's distilled interest
+// terms (window.HoloProfile.terms(), on-device, never egressed) and a document's _source, returns a
+// relevance MULTIPLIER ≥ 1 — 1.0 means "no personal signal". It only ever re-orders the default
+// relevance sort; reported _score/explain and the index's canonical κ are untouched (scores were never
+// part of the canonical). With no terms it returns 1, so search is the EXACT identity for a profile-less
+// operator. Pure + deterministic so it witnesses headless.
+export function personalBoost(source, terms, lambda = 0.35) {
+  if (!source || !Array.isArray(terms) || !terms.length) return 1;
+  let hay = "";
+  for (const k in source) { const v = source[k]; if (typeof v === "string") hay += " " + v; else if (Array.isArray(v)) hay += " " + v.filter((x) => typeof x === "string").join(" "); }
+  hay = hay.toLowerCase();
+  let m = 0; for (const w of terms) if (w && hay.includes(w)) m++;
+  return 1 + lambda * m;
+}
+
 export class Index {
   constructor(name, { settings = {}, mappings = {} } = {}) {
     this.name = name;
@@ -546,13 +561,19 @@ export class Index {
     let arr = [...this.evaluate(body.query || { match_all: {} })].map(([id, v]) => ({ _index: this.name, _id: id, _score: v.score, _source: this.docs.get(id), __terms: v.terms }));
     if (body.min_score != null) arr = arr.filter((h) => h._score >= body.min_score);                 // score threshold
     if (body.terminate_after) arr = arr.slice(0, body.terminate_after);
+    // Opt-in private-context personalization: the caller may pass the operator's interest terms as
+    // body.holoProfile. When present (and no explicit sort is requested) the DEFAULT relevance order is
+    // gently lifted toward what the user cares about. _score stays the transparent blended score; only the
+    // ORDER adapts. Absent/empty → exact identity (today's behavior).
+    const pterms = Array.isArray(body.holoProfile) ? body.holoProfile.map((t) => String(t).toLowerCase()).filter((w) => w.length > 2) : [];
+    if (pterms.length) for (const h of arr) h._pscore = h._score * personalBoost(h._source, pterms);
     const sorts = body.sort ? [].concat(body.sort).map((s) => typeof s === "string" ? { [s]: "asc" } : s) : null;
     const dirOf = (s) => { const [f] = Object.keys(s); return [f, ((s[f].order || s[f]) === "desc" ? -1 : 1)]; };
     const sortVals = (h) => sorts ? sorts.map((s) => { const [f] = dirOf(s); return f === "_score" ? h._score : (this._values(f, h._id)[0] ?? null); }) : null;
     if (sorts) arr.sort((a, b) => { for (const s of sorts) { const [f, dir] = dirOf(s);
         const av = f === "_score" ? a._score : this._values(f, a._id)[0], bv = f === "_score" ? b._score : this._values(f, b._id)[0];
         if (av < bv) return -1 * dir; if (av > bv) return 1 * dir; } return 0; });
-    else arr.sort((a, b) => b._score - a._score);
+    else arr.sort((a, b) => (pterms.length ? b._pscore - a._pscore : b._score - a._score));
     // aggregations run over the query result set (BEFORE post_filter) — OpenSearch semantics.
     const aggs = (body.aggs || body.aggregations) ? this._aggregate(body.aggs || body.aggregations, arr.map((h) => h._id)) : null;
     if (body.post_filter) { const pf = this.evaluate(body.post_filter); arr = arr.filter((h) => pf.has(h._id)); }   // narrows hits only

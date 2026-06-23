@@ -1,0 +1,30 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-gossip G — κ-gossip of heads + warrants converges (anti-entropy, self-healing) WITHOUT conferring trust: heads are pointers (trust on fetch+admit, V), warrants are confirmed independently on receipt (W) before they propagate or block — so confirmed warrants reach every peer and a false warrant dies at the first honest peer. Idempotent → converges regardless of order; a peer that knew nothing ends fully synced. Transport is the caller's; live gossip is a thin loop over advertise()/receive(). Pure assembly over holo-warrant; no new crypto. (Simulated peers; real multi-device propagation out-of-band.)",
+  "authority": "Holochain gossip/immune model · UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-warrant + #holo-strand + #holo-strand-rules + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "heads-converge",
+    "warrant-propagates",
+    "blocks-converge",
+    "false-warrant-dies",
+    "idempotent",
+    "self-heals"
+  ],
+  "sample": {
+    "rounds": 2,
+    "peers": 3,
+    "realWarrant": "did:holo:sha256:9cee09f4976f551d6f29625192271c35f3a4cce0680f7394e207ea441c88f6a4",
+    "falseWarrant": "did:holo:sha256:9752b0a56f2888d75c02afabbe844dd353e035566076cfdcf8b89fd60cef0c84"
+  },
+  "checks": {
+    "falseWarrantDies": true,
+    "headsConverge": true,
+    "warrantPropagates": true,
+    "blocksConverge": true,
+    "falseWarrantDies2": true,
+    "idempotentConverged": true,
+    "selfHeals": true
+  },
+  "failed": []
+}

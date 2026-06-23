@@ -1,0 +1,25 @@
+{
+  "spec": "Plain-words layer: maps every substrate noun to a plain word, strips raw κ/DID addresses, always shows a human name (truename/three-words) not a hash. The substrate keeps its precise vocabulary; the user sees only plain English. Removes wall #3 (crypto jargon in the default path).",
+  "authority": "holospaces truenames / three-words (existing) · plain-language UX",
+  "witnessed": true,
+  "covers": [
+    "plain-words",
+    "human-nouns",
+    "strip-kappa-did",
+    "map-jargon",
+    "names-not-hashes",
+    "passthrough",
+    "no-jargon-survives",
+    "displayname-never-hash"
+  ],
+  "checks": {
+    "nounsAreHuman": true,
+    "humanizeStripsKappa": true,
+    "humanizeMapsJargon": true,
+    "namesNotHashes": true,
+    "ordinaryPassthrough": true,
+    "noJargonSurvives": true,
+    "displayNameNeverHash": true,
+    "deterministicAndFlags": true
+  }
+}

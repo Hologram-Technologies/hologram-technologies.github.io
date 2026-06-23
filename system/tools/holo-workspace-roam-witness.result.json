@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-roam E — a window follows you across devices by carrying its source chain, verify-before-mount. The device-side reconcile fast-forwards when the remote extends local, keeps local when it's ahead, ignores a different-genesis or tampered remote (fail-closed), and on concurrent divergence KEEPS BOTH LINEAGES — never a destructive merge (monotonic law); the other device's history stays a rewind point and nothing local is lost. 'Following, not syncing.' Live WebRTC/IPFS transport is out-of-band; this is the witnessed decision core. Pure assembly over holo-strand + holo-strand-admit; no new crypto.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 (monotonic) · RFC 9334 (RATS) · rests on #holo-strand + #holo-strand-admit + #holo-workspace + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "fast-forward",
+    "adopted-verifies",
+    "in-sync",
+    "local-ahead",
+    "diverged-keeps-both",
+    "no-history-lost",
+    "rejected-tamper",
+    "unrelated"
+  ],
+  "checks": {
+    "fastForward": true,
+    "adoptedVerifies": true,
+    "inSync": true,
+    "localAhead": true,
+    "diverged": true,
+    "noHistoryLost": true,
+    "rejectedTamper": true,
+    "unrelated": true
+  },
+  "failed": []
+}

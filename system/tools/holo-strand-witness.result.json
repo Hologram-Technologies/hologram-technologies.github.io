@@ -1,0 +1,41 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand — THE OPERATOR'S SOURCE CHAIN: one hash-linked, operator-signed, append-only thread whose head κ attests the whole ordered history. Each entry is a UOR object addressed by its content (Law L1) that commits to the previous entry's κ (prev) and its seq, so drop/reorder/insert/content-tamper all break re-derivation (Law L5 over the sequence). An optional operator signature (the holo-identity Ed25519/ECDSA axis) binds authorship over the entry κ. Holochain's source-chain insight on the κ substrate — no DHT, no consensus. The store-fragmentation that makes resume/provenance drift collapses to ONE re-derivable spine.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C PROV-O · holospaces Laws L1/L2/L5 · rests on #holo-object + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "hash-linked-chain",
+    "head-attests-history",
+    "law-l5",
+    "operator-signed",
+    "tamper-refused",
+    "reorder-refused",
+    "drop-refused",
+    "forged-sig-refused",
+    "durable-reload",
+    "unsigned-content-chain"
+  ],
+  "sample": {
+    "head": "did:holo:sha256:c5b03dbda8d7d08b78911f4fafcd8880e6422482865a042c78dc1928c08053cc",
+    "length": 4,
+    "kinds": [
+      "session.open",
+      "ingest",
+      "q.action",
+      "wallet.approve"
+    ]
+  },
+  "checks": {
+    "genesisAndAppendChain": true,
+    "headAttestsHistory": true,
+    "everyEntryReDerives": true,
+    "operatorSigned": true,
+    "tamperContentRefused": true,
+    "reorderRefused": true,
+    "dropRefused": true,
+    "forgedSigRefused": true,
+    "durableReload": true,
+    "unsignedStillChained": true
+  },
+  "failed": []
+}

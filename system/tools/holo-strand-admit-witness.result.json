@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand V — PEER RE-VALIDATION ON RECEIPT: a receiving peer admits an incoming entry only if it re-derives (L5), its author isn't immune-blocked by a confirmed warrant (W), and it satisfies the governing content-addressed ruleset when the peer re-runs it (P4). Fail-closed per stage (integrity → immune → rules); deterministic (validate reads only entry+ruleset data). admitChain enforces segment linkage. The one verify-before-mount gate every transport routes through — Holochain's validation-authority behavior on the κ substrate. Pure assembly, additive.",
+  "authority": "Holochain peer-validation model · UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-strand + #holo-strand-rules + #holo-warrant + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "admit-valid",
+    "reject-invalid",
+    "reject-tampered",
+    "reject-blocked-actor",
+    "deterministic",
+    "chain-linkage"
+  ],
+  "checks": {
+    "admitValid": true,
+    "rejectInvalid": true,
+    "rejectTampered": true,
+    "rejectBlockedActor": true,
+    "deterministicVerdict": true,
+    "admitChainLinks": true
+  },
+  "failed": []
+}

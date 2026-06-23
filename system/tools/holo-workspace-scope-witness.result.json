@@ -1,0 +1,19 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-scope — the live capture bridge, pointed at a workspace's scoped host (what activeHost returns in the browser), isolates per-app STATE and per-app rewind HISTORY per workspace: the same app κ in two workspaces resumes different state, keeps independent version lineages, and never leaks across. Closes the gap where per-app capture was keyed by app κ alone. Monotonic; zero app code.",
+  "authority": "holospaces Laws L1/L2/L5 (monotonic) · rests on #holo-workspace-bridge + #holo-workspaces + #holo-workspace-host + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "state-isolated",
+    "history-isolated",
+    "no-cross-leak",
+    "reopen-scoped"
+  ],
+  "checks": {
+    "stateIsolated": true,
+    "historyIsolated": true,
+    "noCrossLeak": true,
+    "reopenScoped": true
+  },
+  "failed": []
+}

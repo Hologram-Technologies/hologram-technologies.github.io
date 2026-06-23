@@ -136,7 +136,7 @@
     // corroborates the answer; every result is a verified object. Complexity hidden — one clean list.
     import { find, browserFetchJson, screen } from "./_shared/holo-find.js";
     import { searchDirectory } from "./_shared/holo-dweb.js";          // curated dweb: knowledge · ENS · dapps · apps
-    import { Index } from "./_shared/holo-search.js";                  // the BM25 engine — the ranker
+    import { Index, personalBoost } from "./_shared/holo-search.js";   // the BM25 engine — the ranker (+ private-context boost)
     const $ = (s) => document.querySelector(s);
     const out = $("#out"), form = $("#f"), input = $("#q"), go = $("#go");
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -218,15 +218,19 @@
     //    per the engine) scores relevance; a per-corpus weight + cross-source agreement refine it. ──
     function rank(q, cands, hasAnswer) {
       if (!cands.length) return [];
+      // the operator's distilled interest terms (window.HoloProfile, on-device, never egressed) — the SAME
+      // one private-context seam the launcher + Inbox read. Lifts results toward what you care about;
+      // empty/absent → exact identity (today's order). Personalization is presentation-only.
+      const PT = (() => { try { const t = window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms(); return Array.isArray(t) ? t.map((x) => String(x).toLowerCase()).filter((w) => w.length > 2) : []; } catch { return []; } })();
       if (!hasAnswer) for (const c of cands) if (c.kind === "web") c._noise = true;   // no anchored answer → ALL web is supplementary ("More from the open web"); your local results lead
       try {
         const ix = new Index("results", { settings: { default_analyzer: "english" }, mappings: { properties: { text: { type: "text", analyzer: "english" } } } });
         const byId = new Map(); cands.forEach((c, i) => { byId.set(String(i), c); ix.index(String(i), { text: c.text || c.title }); });
-        const hits = ix.search({ query: { match: { text: q } }, size: cands.length }).hits.hits;
+        const hits = ix.search({ query: { match: { text: q } }, size: cands.length, holoProfile: PT }).hits.hits;
         const scored = [], seen = new Set();
         for (const h of hits) {
           const c = byId.get(h._id); if (!c) continue; seen.add(c.id);
-          let s = h._score * (c.weight || 1);
+          let s = h._score * (c.weight || 1) * personalBoost({ text: c.text || c.title }, PT);   // private-context lift
           if (c.kind === "object") s *= 1 + (RANK[c.hex] || 0) * 1.5;     // HoloRank authority — canonical (most-cited) objects rank above dupes
           else if (c.kind === "web") s *= (1 + Math.min(0.6, ((c.foundBy || 1) - 1) * 0.25)) * (hasAnswer ? 1 : 0.12);   // agreement boost when anchored; demoted when supplementary
           scored.push({ c, score: s });

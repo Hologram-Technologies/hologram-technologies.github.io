@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-continue — 'Continue watching': query-less recents ranked by recency × frequency × authority, filtered to streamable titles (apps + spaces), shaped into a poster-rail model with clean titles; empty when there's nothing recent (a new user sees the clean welcome). Pure over holo-omni-index + holo-continue-ui; the responsive rail DOM is browser-verified.",
+  "authority": "rests on #holo-omni-index + #holo-continue-ui",
+  "witnessed": true,
+  "covers": [
+    "recents-ranked",
+    "kinds-filter",
+    "limit-honored",
+    "model-shapes-cards",
+    "model-filters-titles",
+    "empty-when-none"
+  ],
+  "checks": {
+    "recentsRanked": true,
+    "kindsFilter": true,
+    "limitHonored": true,
+    "modelShapesCards": true,
+    "modelFiltersTitles": true,
+    "emptyWhenNone": true,
+    "rankedToYou": true,
+    "nudgeBounded": true
+  },
+  "failed": []
+}

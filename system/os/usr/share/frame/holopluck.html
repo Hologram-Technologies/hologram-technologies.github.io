@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holo · plucked message</title>
+<style>
+  :root { --bg:#0b141a; --panel:#111b21; --in:#202c33; --out:#005c4b; --txt:#e9edef; --dim:#8696a0; --line:#2a3942; --ok:#25d366; --bad:#f15c6d; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; min-height:100%; display:flex; flex-direction:column; }
+  header { padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  header .dot { width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#3a6,#063); flex:none; }
+  header b { font-size:15px; } header span { color:var(--dim); font-size:12.5px; display:block; }
+  main { flex:1; padding:22px 18px; display:flex; flex-direction:column; gap:18px; }
+  .stage { background:linear-gradient(0deg,#0b141a,#0b141a),repeating-linear-gradient(45deg,#0d171e 0 12px,#0b141a 12px 24px); border-radius:14px; padding:18px; }
+  .bubble { background:var(--in); border-radius:0 8px 8px 8px; padding:8px 10px 6px; max-width:88%; box-shadow:0 1px 1px rgba(0,0,0,.3); position:relative; }
+  .bubble.out { background:var(--out); margin-left:auto; border-radius:8px 0 8px 8px; }
+  .bubble .who { color:#53bdeb; font-size:12.5px; font-weight:600; margin-bottom:2px; }
+  .bubble .body { white-space:pre-wrap; word-wrap:break-word; }
+  .bubble .meta { text-align:right; color:var(--dim); font-size:11px; margin-top:2px; }
+  .verdict { display:flex; align-items:center; gap:9px; font-size:13.5px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--panel); }
+  .verdict .mk { width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;color:#000;flex:none; }
+  .verdict.ok .mk { background:var(--ok); } .verdict.bad .mk { background:var(--bad); }
+  .verdict.ok { border-color:#1f7a44; } .verdict.bad { border-color:#7a2530; color:#ffd7dc; }
+  .verdict small { color:var(--dim); display:block; font-size:12px; }
+  .prov { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .prov h3 { margin:0 0 10px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .row { display:flex; gap:10px; padding:5px 0; border-top:1px solid #1a2730; font-size:13px; }
+  .row:first-of-type { border-top:0; }
+  .row .k { color:var(--dim); width:96px; flex:none; }
+  .row .v { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; color:var(--txt); }
+  .row .v b { color:var(--ok); }
+  .controls { display:flex; gap:10px; flex-wrap:wrap; }
+  button { font:inherit; font-size:13px; padding:8px 14px; border-radius:9px; border:1px solid var(--line); background:#1d2b33; color:var(--txt); cursor:pointer; }
+  button:hover { border-color:#3a4a54; } button.warn { color:#ffd7dc; border-color:#7a2530; }
+  .hint { color:var(--dim); font-size:13px; text-align:center; padding:30px 10px; }
+  code { font-family:ui-monospace,monospace; background:#16222a; padding:1px 5px; border-radius:5px; }
+  footer { padding:14px 18px; color:var(--dim); font-size:12px; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="dot"></div>
+    <div><b>Hologram</b><span id="origin">resolving a κ-link…</span></div>
+  </header>
+  <main id="main"><div class="hint">Reading the link…</div></main>
+  <footer>This message resolved from the link’s own bytes — verified byte-identical (Law L5). WhatsApp was never loaded.</footer>
+</div>
+
+<script type="module">
+import { decodePayload, mountFromPayload, renderModel } from "../../lib/holo/holo-pluck.mjs";
+import { address } from "../../lib/holo/holo-object.mjs";
+import { defaultWordlist } from "../../lib/holo/holo-words.mjs";
+
+const main = document.getElementById("main");
+const originEl = document.getElementById("origin");
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function readToken() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  return h.get("m");
+}
+
+function refuse(why) {
+  originEl.textContent = "refused — fail-closed";
+  main.innerHTML = `
+    <div class="verdict bad"><span class="mk">✕</span>
+      <div><b>Refused.</b> This link does not verify.<small>${esc(why)}</small></div></div>
+    <div class="hint">A κ proves its own content. If a single byte was changed, the bytes no longer
+      re-derive to the κ they claim — so Hologram refuses to show it. Nothing is trusted on faith.</div>`;
+}
+
+async function show(payload) {
+  const wordlist = await defaultWordlist().catch(() => null);
+  let working = JSON.parse(JSON.stringify(payload));   // mutable copy for the tamper demo
+
+  function paint() {
+    const res = mountFromPayload(working);
+    const ok = res.ok;
+    // re-derive naming from the WORKING bytes so the κ shown is the bytes' REAL κ (not the
+    // stale claimed id baked into the object) — on a tamper it no longer equals the claimed
+    // κ, which is exactly why mount refuses.
+    const trueObj = { ...working.object, id: address(working.object) };
+    const m = renderModel(trueObj, { wordlist });
+    const claimed = String(working.kappa || "").split(":").pop();
+    originEl.textContent = ok ? `plucked from ${m.source || "the web"} · not loaded here` : "refused — fail-closed";
+    main.innerHTML = `
+      <div class="stage">
+        <div class="bubble">
+          ${m.sender ? `<div class="who">${esc(m.sender)}</div>` : ""}
+          <div class="body">${esc(m.text)}</div>
+          <div class="meta">${esc(m.sentAt)} ${ok ? "✓✓" : "⚠"}</div>
+        </div>
+      </div>
+      ${ok ? `
+      <div class="verdict ok"><span class="mk">✓</span>
+        <div><b>Verified — re-derived byte-identical.</b>
+          <small>The bytes in this link hash to exactly the κ they claim (Law L5). WhatsApp is not loaded.</small></div></div>`
+      : `
+      <div class="verdict bad"><span class="mk">✕</span>
+        <div><b>Refused — ${esc(res.why)}.</b>
+          <small>The bytes now hash to <code>${esc(m.short)}</code>, not the claimed <code>${esc(claimed.slice(0, 8))}</code>. A changed byte changes the κ — so Hologram refuses to show it. Nothing is trusted on faith.</small></div></div>`}
+      <div class="prov">
+        <h3>this message, as a κ-object</h3>
+        <div class="row"><span class="k">claimed κ</span><span class="v">${esc(claimed.slice(0, 8))}…</span></div>
+        <div class="row"><span class="k">bytes hash</span><span class="v">${ok ? `<b>${esc(m.short)}</b>` : `<span style="color:var(--bad)">${esc(m.short)}</span>`}${esc(m.hex.slice(8, 24))}…</span></div>
+        <div class="row"><span class="k">truename</span><span class="v">${esc(m.truename)}</span></div>
+        ${m.words ? `<div class="row"><span class="k">three words</span><span class="v">${esc(m.words)}</span></div>` : ""}
+        <div class="row"><span class="k">IPv6</span><span class="v">${esc(m.ipv6)}</span></div>
+        ${m.chat ? `<div class="row"><span class="k">chat</span><span class="v">${esc(m.chat)}</span></div>` : ""}
+        <div class="row"><span class="k">captured</span><span class="v">${esc(m.source)} — code untouched</span></div>
+      </div>
+      <div class="controls">
+        <button id="flip" class="warn">✎ Flip one byte</button>
+        <button id="restore">↺ Restore</button>
+        <button id="copy">⧉ Copy this link</button>
+      </div>
+      <div class="hint">${ok
+        ? "Flip a byte and watch Hologram refuse it. That refusal is the whole point: a κ-object cannot be forged or altered without the address changing."
+        : "↺ Restore the original bytes and it verifies again — the κ is the truth, not the text."}</div>`;
+    document.getElementById("flip").onclick = () => {
+      const t = working.object["schema:text"] || "x";
+      working.object["schema:text"] = t.slice(0, -1) + (t.slice(-1) === "." ? "!" : ".");  // one byte
+      paint();
+    };
+    document.getElementById("restore").onclick = () => { working = JSON.parse(JSON.stringify(payload)); paint(); };
+    document.getElementById("copy").onclick = async (e) => {
+      try { await navigator.clipboard.writeText(location.href); e.target.textContent = "✓ copied"; } catch {}
+    };
+  }
+  paint();
+}
+
+(async () => {
+  const tok = readToken();
+  if (!tok) {
+    originEl.textContent = "no message in this link";
+    main.innerHTML = `<div class="hint">Open a <code>holopluck.html#m=…</code> link — the message rides in the
+      fragment, so it never touches a server. Pluck one from a chat in the Hologram browser to make a link.</div>`;
+    return;
+  }
+  let payload;
+  try { payload = decodePayload(tok); } catch { return refuse("link payload is not decodable"); }
+  show(payload);
+})();
+</script>
+</body>
+</html>

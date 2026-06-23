@@ -1,0 +1,31 @@
+{
+  "spec": "Adaptive quality binder: maps holo-fidelity (tier·renderScale·effects·targetFps·gpu) onto streaming knobs (scheduler budget, WebGPU vs CPU substrate, quality passes, prefetch). Same κ stream reconstructs at different quality per device while FPS is held (work ∝ renderScale²). Quality degrades, the experience doesn't.",
+  "authority": "holospaces Law L4 · holo-fidelity (existing, witnessed) · adaptive rendering / dynamic resolution scaling",
+  "witnessed": true,
+  "covers": [
+    "adaptive-quality",
+    "per-tier-budget",
+    "gpu-vs-cpu-select",
+    "lean-effects",
+    "reduced-motion",
+    "same-stream-diff-quality",
+    "any-browser-floor",
+    "cost-scaling"
+  ],
+  "cost": {
+    "full": 180,
+    "lean": 113.4,
+    "ratio": 0.63
+  },
+  "checks": {
+    "configFromFidelity": true,
+    "perTierBudget": true,
+    "gpuTierSelectsWebGPU": true,
+    "leanDropsEffects": true,
+    "reducedMotion": true,
+    "sameContentDifferentQuality": true,
+    "anyBrowserFloor": true,
+    "costScalesWithQuality": true,
+    "deterministic": true
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-bridge — the live wiring: the bridge rides the shell's existing per-app state round-trip (collectAppState / holo-session:ready) to give every app its own source chain with ZERO app code. captureWorld lazily saves each rich-state app node to its per-app chain (skipping non-app + stateless nodes — cheap by construction); resumeFor restores the chain head on cold reopen; per-app isolation, dedup, and accruing time-travel history all hold. Coarse continuity for every window stays the session's job; this adds rich per-app history for participating apps.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-workspace-host + #holo-workspace + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "captures-rich-apps",
+    "skips-nonapp-and-null",
+    "reopen-resumes",
+    "per-app-isolation",
+    "dedup-no-churn",
+    "identity-prefers-did",
+    "history-accrues"
+  ],
+  "checks": {
+    "identityPrefersDid": true,
+    "capturesRichApps": true,
+    "skipsNonAppAndNull": true,
+    "reopenResumes": true,
+    "perAppIsolation": true,
+    "dedupNoChurn": true,
+    "historyAccrues": true
+  },
+  "failed": []
+}

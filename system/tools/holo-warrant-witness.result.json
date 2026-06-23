@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-warrant — the κ-immune system: a signed, content-addressed proof-of-invalid ('entry X is invalid under ruleset κR') that embeds the offending entry and its ruleset so a recipient verifies it standalone, RE-RUNNING validation itself — the accusation holds only if the entry truly violates. False accusations, forged evidence, and swapped rulesets are rejected; the verdict is independent of the issuer (signature = authorship, never authority). A confirmed warrant marks the actor blocked (immune memory; wire to holo-revocation). Pure assembly over holo-strand + holo-strand-rules + holo-identity; no new crypto.",
+  "authority": "Holochain warrant/immune model · UOR-ADDR (κ=H(canonical_form)) · holospaces Laws L1/L2/L5 · rests on #holo-strand + #holo-strand-rules + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "raise-confirm",
+    "no-false-accusation",
+    "forged-evidence-rejected",
+    "tampered-ruleset-rejected",
+    "verdict-independent-of-issuer",
+    "issuer-authorship",
+    "immune-memory"
+  ],
+  "sample": {
+    "warrant": "did:holo:sha256:4174fad9b21d6ee204d5bd9a63399bef139d285a0e676a8929a1ddd72b82d6c8",
+    "subject": "did:holo:sha256:6e29c8b9a542ac09381ee939c2568122edb3ec6788a4e4f44b4e67410d56e5cf",
+    "actor": "did:holo:sha256:ac2330c016ca00b44a3c493ad235a8b70cdaec457698e59171197e4077d56b71",
+    "violations": [
+      "missing:source"
+    ]
+  },
+  "checks": {
+    "raiseAndConfirm": true,
+    "falseAccusationRejected": true,
+    "forgedEvidenceRejected": true,
+    "tamperedRulesetRejected": true,
+    "verdictIndependentOfIssuer": true,
+    "issuerSignedAuthorship": true,
+    "immuneMemoryBlocksActor": true
+  },
+  "failed": []
+}

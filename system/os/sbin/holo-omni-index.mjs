@@ -46,5 +46,20 @@ export function search(q, { limit = 6, rank = null, store = defaultStore(), now 
   return out.sort((p, q2) => q2.score - p.score || (q2.t || 0) - (p.t || 0)).slice(0, limit);
 }
 
+// recents(opts) → ranked [{ addr, kind, title, kappa, n, t, score }] with NO query — your "Continue watching":
+// pure recency × frequency (× holo-rank authority when present). Optional `kinds` filter (e.g. ["app","holospace"]).
+export function recents({ limit = 12, kinds = null, rank = null, store = defaultStore(), now = null } = {}) {
+  const a = store.get(); const T = now || store.now(); const out = [];
+  for (const x of a) {
+    if (kinds && kinds.indexOf(x.kind) < 0) continue;
+    const ageH = Math.max(0, (T - (x.t || 0)) / 3.6e6);
+    const recency = 1 / (1 + ageH / 24);                           // ~halves per day
+    const freq = Math.log2(1 + (x.n || 1));
+    const auth = rank && x.kappa ? 1 + (rank[String(x.kappa).split(":").pop()] || 0) * 1.5 : 1;
+    out.push({ ...x, score: (1 + recency) * (1 + 0.4 * freq) * auth });
+  }
+  return out.sort((p, q) => q.score - p.score || (q.t || 0) - (p.t || 0)).slice(0, limit);
+}
+
 export function clear(store = defaultStore()) { store.set([]); }
-export default { record, search, clear };
+export default { record, search, recents, clear };

@@ -1,0 +1,19 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-rewind-ui — the per-app time-travel surface speaks plain time (relTime) and a newest-first timeline (describeVersions) over the real holo-workspace chain: reverts are marked honestly and each row's index addresses the chain for preview/revert. 'Rewind, not version control' — no κ, no version numbers shown. DOM browser-verified separately.",
+  "authority": "rests on #holo-workspace (versions/preview/revert) + #holo-rewind-ui",
+  "witnessed": true,
+  "covers": [
+    "rel-time-buckets",
+    "newest-first",
+    "marks-reverts",
+    "maps-to-chain"
+  ],
+  "checks": {
+    "relTimeBuckets": true,
+    "newestFirst": true,
+    "marksReverts": true,
+    "mapsToChain": true
+  },
+  "failed": []
+}

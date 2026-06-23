@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-gossip-channel — real transport for κ-gossip (same-origin leg): driving holo-gossip over an actual channel (BroadcastChannel across tabs/windows in-browser; a fake hub here) converges peers for real, bounded by idempotency (re-broadcast only on new facts → terminates, no storm). A confirmed warrant propagates to all; a false warrant to none (each re-confirms, W); own adverts are ignored. Cross-device transport (WebRTC/libp2p/IPFS pubsub) is the same shape behind the same seam — out-of-band. Pure assembly over holo-gossip; no new crypto.",
+  "authority": "Holochain gossip model · holospaces Laws L1/L2/L5 · rests on #holo-gossip + #holo-warrant + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "propagates-over-channel",
+    "bounded-no-storm",
+    "false-blocked",
+    "ignores-own"
+  ],
+  "sample": {
+    "warrant": "did:holo:sha256:bb73d6016ab8c7980e865ba86dfea80b8b016e9e5af146baa2db08d0a42a91d8",
+    "messages": 2
+  },
+  "checks": {
+    "warrantPropagates": true,
+    "boundedNoStorm": true,
+    "falseWarrantBlocked": true,
+    "ignoresOwnAdverts": true
+  },
+  "failed": []
+}

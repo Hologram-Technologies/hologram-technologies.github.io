@@ -1,0 +1,32 @@
+{
+  "spec": "O(1) L1/L2 compute memo: a computed result is addressed by its κ and memoized BEFORE the work, keyed by input identity (op κ + in κ); repeat ⇒ O(1) hit, no recompute/GPU dispatch; bounded resident L1 over durable L2 (low memory); delta compute (work ∝ novelty); outputs content-addressed (Law L5).",
+  "authority": "holospaces Laws L1/L2/L3/L5 · content-addressed memoization · CPU L1/L2 locality · HTTP ETag/304",
+  "witnessed": true,
+  "covers": [
+    "compute-memo",
+    "o1-replay",
+    "l2-eviction-recovery",
+    "resident-bounded",
+    "delta-compute",
+    "deterministic",
+    "content-addressed",
+    "law-l5"
+  ],
+  "delta": {
+    "computes": 115,
+    "expected": 115,
+    "l1Hits": 1485,
+    "naive": 1600,
+    "reduction": 13.9
+  },
+  "checks": {
+    "computesOnceReplays": true,
+    "outputIsContentAddressed": true,
+    "l2SurvivesEviction": true,
+    "residentBounded": true,
+    "deltaCompute": true,
+    "deterministic": true,
+    "distinctInputsDistinctKeys": true,
+    "noRecomputeAfterHit": true
+  }
+}

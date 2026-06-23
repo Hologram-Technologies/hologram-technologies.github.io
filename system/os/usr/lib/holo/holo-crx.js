@@ -73,15 +73,15 @@ export function parseCrx(bytes) {
   const archive = b.subarray(12 + headerSize);             // the ZIP payload
   let rsa = [], ecdsa = [], signedHeaderData = null;
   for (const f of pbFields(header)) {
-    if (f.field === 2 && f.wire === 2) rsa.push(proof(f.value));
-    else if (f.field === 3 && f.wire === 2) ecdsa.push(proof(f.value));
+    if (f.field === 2 && f.wire === 2) rsa.push({ alg: "rsa", ...proof(f.value) });
+    else if (f.field === 3 && f.wire === 2) ecdsa.push({ alg: "ecdsa", ...proof(f.value) });
     else if (f.field === 10000 && f.wire === 2) signedHeaderData = f.value;
   }
   let crxId = null;
   if (signedHeaderData) for (const g of pbFields(signedHeaderData)) if (g.field === 1 && g.wire === 2) crxId = g.value;
   const chosen = rsa[0] || ecdsa[0] || {};
   const alg = rsa[0] ? "rsa" : ecdsa[0] ? "ecdsa" : null;
-  return { version, alg, publicKey: chosen.publicKey || null, signature: chosen.signature || null, signedHeaderData, crxId, archive, header, kappa: kappaOf(b), bytes: b.length };
+  return { version, alg, publicKey: chosen.publicKey || null, signature: chosen.signature || null, signedHeaderData, crxId, archive, header, kappa: kappaOf(b), bytes: b.length, proofs: [...rsa, ...ecdsa] };
 }
 function proof(msg) { let publicKey = null, signature = null; for (const g of pbFields(msg)) { if (g.field === 1 && g.wire === 2) publicKey = g.value; else if (g.field === 2 && g.wire === 2) signature = g.value; } return { publicKey, signature }; }
 
@@ -92,21 +92,25 @@ export async function verifyCrx(bytes, expectedKappa = null) {
   let p; try { p = parseCrx(b); } catch (e) { return { ok: false, reason: String(e.message || e) }; }
   const kappa = p.kappa;
   const kappaMatches = expectedKappa ? kappa === String(expectedKappa).toLowerCase() : null;
-  const extensionId = p.publicKey ? await extensionIdFromKey(p.publicKey) : null;
-  // the id derived from the key must equal the crx_id the publisher signed into the header.
-  let idMatches = null;
-  if (p.publicKey && p.crxId) { const d = await sha256(p.publicKey); idMatches = toHex(d.subarray(0, 16)) === toHex(p.crxId); }
+  // IDENTITY = the crx_id the publisher SIGNED. A CWS CRX3 carries multiple key-proofs (incl. Google's),
+  // so rsa[0] is not necessarily the publisher. Derive the id from crx_id, then bind a matching proof.
+  const extensionId = p.crxId ? hexToExtId(toHex(p.crxId)) : (p.publicKey ? await extensionIdFromKey(p.publicKey) : null);
+  let publisher = null;
+  if (p.crxId && Array.isArray(p.proofs)) { const want = toHex(p.crxId); for (const pr of p.proofs) { if (!pr.publicKey) continue; if (toHex((await sha256(pr.publicKey)).subarray(0, 16)) === want) { publisher = pr; break; } } }
+  const idMatches = publisher !== null;
   // signature covers: SIG_CONTEXT ‖ LE32(len(signedHeaderData)) ‖ signedHeaderData ‖ archive
   let signatureOk = null;
-  if (p.alg === "rsa" && p.publicKey && p.signature && p.signedHeaderData && globalThis.crypto?.subtle) {
+  const sp = (publisher && publisher.alg === "rsa") ? publisher : (p.alg === "rsa" && p.publicKey ? { publicKey: p.publicKey, signature: p.signature } : null);
+  if (sp && sp.publicKey && sp.signature && p.signedHeaderData && globalThis.crypto?.subtle) {
     try {
-      const key = await crypto.subtle.importKey("spki", p.publicKey, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+      const key = await crypto.subtle.importKey("spki", sp.publicKey, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
       const payload = concat(SIG_CONTEXT, le32(p.signedHeaderData.length), p.signedHeaderData, p.archive);
-      signatureOk = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, p.signature, payload);
+      signatureOk = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sp.signature, payload);
     } catch { signatureOk = false; }
   }
-  const ok = (expectedKappa ? kappaMatches : true) && (signatureOk !== false);
-  return { ok, kappa, kappaMatches, extensionId, idMatches: idMatches !== false, alg: p.alg, signatureOk, did: "did:holo:blake3:" + kappa };
+  const publisherBound = !!publisher && signatureOk === true;
+  const ok = (expectedKappa ? kappaMatches : true) && (publisher ? publisherBound : signatureOk !== false);
+  return { ok, kappa, kappaMatches, extensionId, idMatches, alg: publisher ? publisher.alg : p.alg, signatureOk, publisherBound, did: "did:holo:blake3:" + kappa };
 }
 
 // ── read the extension's files + manifest from the ZIP payload ───────────────────────

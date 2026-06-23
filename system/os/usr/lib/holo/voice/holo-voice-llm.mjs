@@ -51,7 +51,14 @@ export function createLLM(opts = {}) {
         env.localModelPath = new URL(cfg.localPath, base).href;
         if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
           env.backends.onnx.wasm.wasmPaths = new URL(cfg.ortPath, base).href;
-          env.backends.onnx.wasm.proxy = !!cfg.proxy;                 // ORT in a Web Worker → UI never freezes
+          // Under the native κ-host (holo:// custom scheme), ORT's threaded-wasm pthread/proxy WORKERS
+          // fail to initialize ("no available backend / [wasm] [object Event]") — worker creation under
+          // the custom standard scheme + COEP is unsupported. Force single-thread + no-proxy there so the
+          // brain runs on the main thread (proven: real generation on the κ-host). On http(s) keep the
+          // faster threaded/proxy path. (Removing this once holo:// worker init is fixed restores threads.)
+          const holoHost = (typeof location !== "undefined" && location.protocol === "holo:");
+          env.backends.onnx.wasm.proxy = holoHost ? false : !!cfg.proxy;   // ORT in a Web Worker → UI never freezes (http only)
+          if (holoHost) env.backends.onnx.wasm.numThreads = 1;             // no pthread workers under holo://
         }
       }
       const prog = (p) => { try { onProgress && onProgress({ phase: p.status || "load", file: p.file, loaded: p.loaded, total: p.total }); } catch (e) {} };

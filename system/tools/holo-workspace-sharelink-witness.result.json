@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-share D1 — the share-link payload: an app's current live state is re-sealed as a compact one-entry, self-verifying snapshot that rides a link fragment (or, when large, a URL/published token), opens with verify-before-trust to the exact state, refuses tampering, returns null when there's nothing live (share fresh), and never ships the private history (privacy). Pure assembly over holo-workspace-host + holo-strand-admit; no new crypto.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · RFC 9334 (RATS) · rests on #holo-workspace-share + #holo-workspace-host + #holo-strand-admit",
+  "witnessed": true,
+  "covers": [
+    "payload-from-live-state",
+    "encode-decode-roundtrip",
+    "open-restores-exact",
+    "tamper-refused",
+    "no-live-state-null",
+    "compact-not-history",
+    "qr-fit-flags"
+  ],
+  "checks": {
+    "payloadFromLiveState": true,
+    "compactNotHistory": true,
+    "encodeDecodeRoundtrip": true,
+    "openRestoresExact": true,
+    "tamperRefused": true,
+    "noLiveStateNull": true,
+    "qrFitFlags": true
+  },
+  "failed": []
+}

@@ -233,20 +233,20 @@
       const card = el("div", "holo-terms-card");
       const name = (def && def.name) || idOf(def);
       const prompts = cls.prompt.map((r, i) => `<label class="ht-row"><input type="checkbox" data-i="${i}" ${r.type === "permission" ? "" : ""}><span class="ht-rl"><b>${esc(name)}</b> wants to ${esc(refLabel(r))}</span></label>`).join("");
-      const denies = cls.deny.length ? `<div class="ht-deny"><div class="ht-dh">Refused by your terms</div>${cls.deny.map((r) => `<div class="ht-drow">${esc(name)} asked to ${esc(refLabel(r))} — your <b>${esc(term.code)}</b> terms don’t allow this.${r.type === "purpose" ? " Add a data-contribution agreement in Holo Terms to permit it." : ""}</div>`).join("")}</div>` : "";
+      const denies = cls.deny.length ? `<div class="ht-deny"><div class="ht-dh">Not allowed</div>${cls.deny.map((r) => `<div class="ht-drow">${esc(name)} asked to ${esc(refLabel(r))} — your <b>${esc(term.code)}</b> terms don’t allow this.${r.type === "purpose" ? " Add a data-contribution agreement in Holo Terms to permit it." : ""}</div>`).join("")}</div>` : "";
       card.innerHTML = `
-        <div class="ht-hd"><span class="ht-shield">${SHIELD}</span><div><div class="ht-t">Your terms for ${esc(name)}</div>
-          <div class="ht-sub">You propose <b title="${esc(term["schema:description"] || "")}">${esc(term.code)} · ${esc(term["schema:name"] || "")}</b>. ${esc(name)} is the second party.</div></div></div>
+        <div class="ht-hd"><span class="ht-shield">${SHIELD}</span><div><div class="ht-t">${esc(name)} would like your OK</div>
+          <div class="ht-sub">A couple of things it would like to do.</div></div></div>
         <div class="ht-bd">
-          <p class="ht-lead">Granted automatically: its own storage and basic display. It additionally requests:</p>
+          <p class="ht-lead">It works on its own. It also wants to:</p>
           ${prompts || '<p class="ht-none">nothing beyond the basics.</p>'}
           ${denies}
         </div>
         <div class="ht-ft">
           <a class="ht-link" href="${TERMS_APP_URL}" target="_top">Holo Terms ↗</a>
           <span class="ht-sp"></span>
-          <button class="ht-btn" data-act="deny">Deny extras</button>
-          <button class="ht-btn cta" data-act="allow">Agree</button>
+          <button class="ht-btn" data-act="deny">Not now</button>
+          <button class="ht-btn cta" data-act="allow">Allow</button>
         </div>`;
       back.appendChild(card); document.body.appendChild(back);
       const close = (approved) => { back.remove(); resolve({ approved }); };
@@ -272,21 +272,21 @@
       const sections = pending.map((p, pi) => {
         const name = (p.def && p.def.name) || p.appId;
         const prompts = p.cls.prompt.map((r, i) => `<label class="ht-row"><input type="checkbox" data-p="${pi}" data-i="${i}" checked><span class="ht-rl"><b>${esc(name)}</b> wants to ${esc(refLabel(r))}</span></label>`).join("");
-        const denies = p.cls.deny.length ? `<div class="ht-deny"><div class="ht-dh">Refused by your terms</div>${p.cls.deny.map((r) => `<div class="ht-drow">${esc(name)} asked to ${esc(refLabel(r))} — your <b>${esc(term.code)}</b> terms don’t allow this.</div>`).join("")}</div>` : "";
+        const denies = p.cls.deny.length ? `<div class="ht-deny"><div class="ht-dh">Not allowed</div>${p.cls.deny.map((r) => `<div class="ht-drow">${esc(name)} asked to ${esc(refLabel(r))} — your <b>${esc(term.code)}</b> terms don’t allow this.</div>`).join("")}</div>` : "";
         return `<div class="ht-appsec"><div class="ht-appname">${esc(name)}</div>${prompts || '<p class="ht-none">nothing beyond the basics.</p>'}${denies}</div>`;
       }).join("");
       card.innerHTML = `
-        <div class="ht-hd"><span class="ht-shield">${SHIELD}</span><div><div class="ht-t">Your terms for this holospace</div>
-          <div class="ht-sub">You propose <b title="${esc(term["schema:description"] || "")}">${esc(term.code)} · ${esc(term["schema:name"] || "")}</b> for ${n} app${n === 1 ? "" : "s"} opening together. Each is the second party.</div></div></div>
+        <div class="ht-hd"><span class="ht-shield">${SHIELD}</span><div><div class="ht-t">A few apps would like your OK</div>
+          <div class="ht-sub">${n} app${n === 1 ? "" : "s"} opening together would like to do a few things.</div></div></div>
         <div class="ht-bd">
-          <p class="ht-lead">Granted automatically: each app’s own storage and basic display. They additionally request:</p>
+          <p class="ht-lead">They work on their own. They also want to:</p>
           ${sections}
         </div>
         <div class="ht-ft">
           <a class="ht-link" href="${TERMS_APP_URL}" target="_top">Holo Terms ↗</a>
           <span class="ht-sp"></span>
-          <button class="ht-btn" data-act="deny">Deny extras</button>
-          <button class="ht-btn cta" data-act="allow">Agree to all</button>
+          <button class="ht-btn" data-act="deny">Not now</button>
+          <button class="ht-btn cta" data-act="allow">Allow all</button>
         </div>`;
       back.appendChild(card); document.body.appendChild(back);
       const close = (approvedByApp) => { back.remove(); resolve({ approvedByApp }); };
