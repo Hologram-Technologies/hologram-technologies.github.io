@@ -8,8 +8,13 @@
     "REFUSE — a one-byte text edit, a forged κ, and a wrong expected-κ are each refused fail-closed (Law L5)",
     "STABLE — same message → same κ + same words (L2); a trailing space → a different κ (collision-honest); capture field order is irrelevant (JCS)",
     "MEDIA — a media leaf is a Merkle contentLink to the media's own κ; it changes the message κ and still verifies",
-    "BADGE — the minted chip (short κ · three words · truename) is a consistent projection of the object"
+    "BADGE — the minted chip (short κ · three words · truename) is a consistent projection of the object",
+    "IN-PAGE PARITY — the CEF render-hook (holo-pluck-inpage.mjs, WebCrypto + inlined proquint) mints a byte-identical κ + truename and mounts under the substrate's verify-before-trust",
+    "TRANSPORT — the message rides in the link #fragment (base64url JSON); decode → mount round-trips with no server/κ-store; encode/decode isomorphic",
+    "FRAGMENT TAMPER — editing one byte inside the link is refused fail-closed (the exact path holopluck.html guards)",
+    "RENDER MODEL — the pure view-model the receiving surface paints (text/sender/time/chat/source + κ short/truename/words/IPv6) is faithful"
   ],
+  "shareLink": "/usr/share/frame/holopluck.html#m=eyJrYXBwYSI6ImRpZDpob2xvOnNoYTI1Njo2YjExNzhiZWRjNjJjZWNjNzc2NzAyMzhkYzhkOTA3MGRmMDY2YzNiZTBmN2EzZDA5YmYwYzg3YTMwMGU1M2RlIiwib2JqZWN0Ijp7IkBjb250ZXh0IjpbImh0dHBzOi8vc2NoZW1hLm9yZy8iLHsiaG9sbyI6Imh0dHBzOi8vaG9sb2dyYW0ub3MvbnMjIn1dLCJAdHlwZSI6WyJzY2hlbWE6TWVzc2FnZSIsInNjaGVtYTpDb21tZW50Il0sInNjaGVtYTpuYW1lIjoiVGhlIGZ1dHVyZSBpcyBsaWdodCBwaG90b25pY3MuIEhPTE9HUkFNLiIsInNjaGVtYTp0ZXh0IjoiVGhlIGZ1dHVyZSBpcyBsaWdodCBwaG90b25pY3MuIEhPTE9HUkFNLiIsInNjaGVtYTpzZW5kZXIiOiJJbHlhIiwic2NoZW1hOmRhdGVTZW50IjoiMDg6MzEiLCJzY2hlbWE6aXNQYXJ0T2YiOiJJbHlhIiwiaG9sbzpjYXB0dXJlZEZyb20iOiJ3ZWIud2hhdHNhcHAuY29tIiwiaWQiOiJkaWQ6aG9sbzpzaGEyNTY6NmIxMTc4YmVkYzYyY2VjYzc3NjcwMjM4ZGM4ZDkwNzBkZjA2NmMzYmUwZjdhM2QwOWJmMGM4N2EzMDBlNTNkZSJ9fQ",
   "target": {
     "text": "The future is light photonics. HOLOGRAM.",
     "sender": "Ilya",
@@ -36,7 +41,13 @@
     "deterministic-and-collision-honest": true,
     "kappa-independent-of-capture-order": true,
     "media-leaf-merkle-linked-and-verifies": true,
-    "badge-glanceable-and-consistent": true
+    "badge-glanceable-and-consistent": true,
+    "inpage-hook-byte-identical-to-substrate": true,
+    "inpage-artifact-mounts-under-substrate-verify": true,
+    "fragment-link-round-trips-serverless": true,
+    "payload-encode-decode-is-isomorphic": true,
+    "fragment-tamper-refused": true,
+    "render-model-faithful": true
   },
   "failed": [],
   "authority": "UOR object envelope (ADR-025) · IETF RFC 8785 (JCS) · FIPS 180-4 (SHA-256) · RFC 4291/5952/4193/3972 · multiformats (CID) · holospaces Law L1/L2/L5 · schema.org"

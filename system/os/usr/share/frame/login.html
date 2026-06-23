@@ -417,16 +417,18 @@ function renderCenter(st, sddm) {
   const firstRun = !st.selected;
   const p = $("panel");
   // No biometric on this device → no passcode means the phone's biometric (or Guest) is the way in.
-  if (!st.hasBio) { renderPhoneGuest(st, sddm, firstRun ? "Sign in" : (st.selected.label || "Welcome")); return; }
+  if (!st.hasBio) { renderPhoneGuest(st, sddm, firstRun ? "Welcome" : (st.selected.label || "Welcome")); return; }
   if (firstRun) {
     p.innerHTML = `${avatarHtml(null, true)}
-      <h1 class="name">Set up this device</h1>
+      <h1 class="name">Welcome</h1>
       <div class="auth">
-        <div class="box"><input id="namein" type="text" autocomplete="name" placeholder="My name" /><button class="submit" id="go" title="Create">${I.arrow}</button></div>
-        <div class="sub">Secured by ${esc(st.bioName)}</div>
+        <button class="bio" id="juststart" title="Start now — nothing to set up">${I.fp || ""}Just start</button>
+        <div class="box"><input id="namein" type="text" autocomplete="name" placeholder="Or add your name (optional)" /><button class="submit" id="go" title="Create">${I.arrow}</button></div>
+        <div class="sub">No account needed — your name is optional</div>
         <div class="status"></div>
       </div>`;
-    const nameEl = p.querySelector("#namein"), go = p.querySelector("#go");
+    const nameEl = p.querySelector("#namein"), go = p.querySelector("#go"), js = p.querySelector("#juststart");
+    if (js) js.onclick = () => { try { js.disabled = true; sddm.guest(); } catch (e) {} };   // guest-first: just start, identity deferred
     const submit = () => { const n = (nameEl.value || "").trim(); if (!n) { nameEl.focus(); return; } go.disabled = true; sddm.access(n); };
     go.onclick = submit; nameEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
     setTimeout(() => nameEl.focus(), 40);

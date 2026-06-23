@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-holo-boot="off">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Extensions · Hologram</title>
+<meta name="theme-color" content="#05070f">
+<meta name="color-scheme" content="dark">
+<meta name="holo:app" content="extensions">
+<style>
+  :root{--bg:#05070f;--panel:#0c1020;--line:#ffffff14;--ink:#eef0fb;--dim:#9aa3c0;
+    --blue:hsl(210 70% 60%);--violet:hsl(250 70% 62%);--green:hsl(150 60% 55%);--amber:hsl(38 90% 62%)}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
+    font:400 15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 64px}
+  header h1{font-size:1.5rem;margin:0 0 2px;letter-spacing:-.01em}
+  header p{margin:0 0 22px;color:var(--dim);font-size:.92rem}
+  .add{display:flex;gap:8px;margin:0 0 8px}
+  .add input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    color:var(--ink);padding:11px 13px;font:inherit;outline:none}
+  .add input:focus{border-color:var(--blue)}
+  .add button{background:var(--blue);border:0;border-radius:10px;color:#04101f;font-weight:600;
+    padding:0 18px;cursor:pointer;font:inherit}
+  .add button:active{transform:translateY(1px)}
+  .status{min-height:20px;font-size:.85rem;color:var(--dim);margin:0 0 18px}
+  .status.err{color:var(--amber)}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:start}
+  .card .name{font-weight:600}
+  .card .meta{grid-column:1/2;color:var(--dim);font-size:.78rem;word-break:break-all;line-height:1.45}
+  .card .meta code{color:#c9d2f5}
+  .badge{justify-self:end;font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .badge.tab{background:hsl(150 60% 55% / .16);color:var(--green)}
+  .badge.native{background:hsl(38 90% 62% / .16);color:var(--amber)}
+  .row{grid-column:1/3;display:flex;gap:14px;align-items:center;margin-top:6px}
+  .row label{display:flex;gap:6px;align-items:center;font-size:.82rem;color:var(--dim);cursor:pointer}
+  .row .rm{margin-left:auto;background:none;border:0;color:var(--dim);cursor:pointer;font-size:.82rem}
+  .row .rm:hover{color:var(--amber)}
+  .empty{color:var(--dim);text-align:center;padding:38px 0;font-size:.9rem}
+  .foot{margin-top:26px;text-align:center}
+  .foot a{color:var(--dim);font-size:.8rem;text-decoration:none;border-bottom:1px dotted var(--line)}
+  .foot a:hover{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Extensions</h1>
+    <p>Add any Chrome extension. Each one is verified and pinned as a κ-addressable object.</p>
+  </header>
+  <div class="add">
+    <input id="q" type="text" placeholder="Paste a Chrome Web Store link or extension id" autocomplete="off" spellcheck="false">
+    <button id="add">Add</button>
+  </div>
+  <p class="status" id="status"></p>
+  <div class="list" id="list"><div class="empty">No extensions yet. Paste a Web Store link above.</div></div>
+  <div class="foot"><a id="demo" href="#">Add a demo ad-blocker (offline test)</a></div>
+</div>
+
+<script type="module">
+import { installFromWebStore, detectWebStore, verifyStrict } from "/usr/lib/holo/holo-ext-install.mjs";
+import { ExtensionManager } from "/usr/lib/holo/holo-ext.js";
+import { buildCrx3, readManifest, analyzeManifest } from "/usr/lib/holo/holo-crx.js";
+
+const mgr = new ExtensionManager();
+const admitted = new Map();   // κ → { extensionId, kappa, name, version, verdict, needsNative, enabled }
+const $ = (id) => document.getElementById(id);
+const short = (k) => k.slice(0, 10) + "…" + k.slice(-6);
+
+// egress: route the CRX download through the OS web proxy when present, else direct (Node/dev).
+function egressFetch(u, opts) {
+  if (typeof window.__holoEgressFetch === "function") return window.__holoEgressFetch(u, opts);
+  return fetch("web?url=" + encodeURIComponent(u), opts).catch(() => fetch(u, opts));
+}
+
+// push the enabled in-tab projection to the browser service worker (its `setext` handler enforces it).
+async function pushSeam() {
+  const ctrl = navigator.serviceWorker && navigator.serviceWorker.controller;
+  if (!ctrl) return null;
+  const bundle = mgr.seamBundle();
+  return new Promise((res) => {
+    const ch = new MessageChannel();
+    let done = false; const fin = (v) => { if (!done) { done = true; res(v); } };
+    ch.port1.onmessage = (e) => fin(e.data);
+    setTimeout(() => fin(null), 600);   // never block the UI: a controller that doesn't ack setext just returns null
+    ctrl.postMessage({ type: "setext", dnr: bundle.dnr, contentScripts: bundle.contentScripts }, [ch.port2]);
+  });
+}
+
+function setStatus(msg, err) { const s = $("status"); s.textContent = msg || ""; s.classList.toggle("err", !!err); }
+
+function render() {
+  const list = $("list");
+  if (!admitted.size) { list.innerHTML = '<div class="empty">No extensions yet. Paste a Web Store link above.</div>'; return; }
+  list.innerHTML = "";
+  for (const x of admitted.values()) {
+    const card = document.createElement("div"); card.className = "card";
+    const native = x.needsNative;
+    card.innerHTML =
+      '<div class="name">' + esc(x.name) + ' <span style="color:var(--dim);font-weight:400">' + esc(x.version) + '</span></div>' +
+      '<span class="badge ' + (native ? "native" : "tab") + '">' + (native ? "pinned · needs native engine" : "active · in-tab") + '</span>' +
+      '<div class="meta">id <code>' + esc(x.extensionId) + '</code><br>κ <code>' + esc(x.kappa) + '</code>' +
+      (native ? '<br>uses native-only APIs — runs in the native Chromium engine' : '') + '</div>' +
+      '<div class="row">' +
+        (native ? '' : '<label><input type="checkbox" data-k="' + x.kappa + '" ' + (x.enabled ? "checked" : "") + '> enabled</label>') +
+        '<button class="rm" data-rm="' + x.kappa + '">remove</button>' +
+      '</div>';
+    list.appendChild(card);
+  }
+  list.querySelectorAll("input[data-k]").forEach((cb) => cb.onchange = () => toggle(cb.dataset.k, cb.checked));
+  list.querySelectorAll("button[data-rm]").forEach((b) => b.onclick = () => remove(b.dataset.rm));
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function toggle(kappa, on) {
+  const x = admitted.get(kappa); if (!x) return;
+  x.enabled = on; mgr.setEnabled(x.extensionId, on); await pushSeam();
+}
+async function remove(kappa) {
+  const x = admitted.get(kappa); if (!x) return;
+  if (!x.needsNative) mgr.remove(x.extensionId);
+  admitted.delete(kappa); render(); await pushSeam();
+  setStatus("Removed " + x.name + ".");
+}
+
+async function add(input) {
+  const det = detectWebStore(input);
+  if (!det.isWebStore) { setStatus("That doesn't look like a Chrome Web Store link or id.", true); return; }
+  setStatus("Fetching and verifying " + det.extensionId + "…");
+  try {
+    const r = await installFromWebStore(input, { manager: mgr, fetchImpl: egressFetch });
+    admitted.set(r.kappa, { extensionId: r.extensionId, kappa: r.kappa, name: r.name, version: r.version, verdict: r.verdict, needsNative: r.needsNative, enabled: r.installed });
+    render();
+    const seam = await pushSeam();
+    setStatus("Added " + r.name + " — verified, pinned as κ " + short(r.kappa) +
+      (r.needsNative ? " (needs the native engine)." : (seam ? " and active." : ".")));
+  } catch (e) { setStatus(String(e.message || e), true); }
+}
+
+$("add").onclick = () => add($("q").value.trim());
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter") add($("q").value.trim()); });
+
+// offline demo: build + install a real κ-addressed ad-blocker (no network) — proves the whole loop in-browser.
+$("demo").onclick = async (e) => {
+  e.preventDefault();
+  setStatus("Building a demo κ-extension…");
+  try {
+    const manifest = { manifest_version: 3, name: "Holo Shield (demo)", version: "1.0", permissions: ["declarativeNetRequest"], host_permissions: ["<all_urls>"],
+      action: { default_title: "Holo Shield" }, declarative_net_request: { rule_resources: [{ id: "r1", enabled: true, path: "rules.json" }] },
+      content_scripts: [{ matches: ["*://*/*"], js: ["cs.js"], run_at: "document_idle" }] };
+    const rules = [{ id: 1, priority: 1, action: { type: "block" }, condition: { urlFilter: "||tracker.example.com^", resourceTypes: ["script", "image"] } }];
+    const { crx, kappa } = await buildCrx3({ "manifest.json": JSON.stringify(manifest), "rules.json": JSON.stringify(rules), "cs.js": "/* holo shield */" });
+    const v = await verifyStrict(crx, kappa);
+    const rec = await mgr.install(crx, { expectedKappa: kappa });
+    const a = analyzeManifest(await readManifest(crx));
+    admitted.set(kappa, { extensionId: rec.id, kappa, name: a.name, version: a.version, verdict: a.verdict, needsNative: a.verdict === "needs-native", enabled: true });
+    render();
+    const seam = await pushSeam();
+    setStatus("Demo ad-blocker installed — κ " + short(kappa) + (v.ok ? " (publisher-bound)" : "") + (seam ? ", projected onto the seam." : "."));
+  } catch (err) { setStatus(String(err.message || err), true); }
+};
+
+window.__holoExt = { mgr, admitted, add };   // test/automation hook
+</script>
+</body>
+</html>

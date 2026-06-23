@@ -18,11 +18,12 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mint, mountFromPayload, sharePayload, messageObject, badgeFor } from "../os/usr/lib/holo/holo-pluck.mjs";
+import { mint, mountFromPayload, sharePayload, messageObject, badgeFor, encodePayload, decodePayload, shareLinkFor, renderModel } from "../os/usr/lib/holo/holo-pluck.mjs";
 import { verify, address, contentLink } from "../os/usr/lib/holo/holo-object.mjs";
 import { defaultWordlist, looksLikeWords } from "../os/usr/lib/holo/holo-words.mjs";
 import { looksLikeTruename, matchesTruename } from "../os/usr/lib/holo/holo-truename.mjs";
 import { parseIPv6, formatIPv6, cidToKappaDid } from "../os/usr/lib/holo/holo-locator.mjs";
+import { pluckKappa as inPagePluck } from "../os/usr/share/frame/holo-pluck-inpage.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const checks = {}; const fail = [];
@@ -117,6 +118,51 @@ ok("badge-glanceable-and-consistent",
   b.words === m.words && b.truename === m.truename && b.short === hexOf(m.kappa).slice(0, 8),
   `${b.short} · ${b.words}`);
 
+// ── 8 · IN-PAGE PARITY — the CEF capture hook mints the SAME κ as the substrate ──
+// (proves the live-tab pluck and the Hologram-surface mount agree without a live tab)
+const inpage = await inPagePluck(TARGET);
+ok("inpage-hook-byte-identical-to-substrate",
+  inpage.kappa === m.kappa &&
+  inpage.truename === m.truename &&
+  inpage.holoLink === m.holoLink &&
+  JSON.stringify(inpage.object) === JSON.stringify(m.object),
+  inpage.kappa);
+
+// the in-page artifact mounts under the substrate's own verify-before-trust
+const crossMount = mountFromPayload(sharePayload(inpage.object));
+ok("inpage-artifact-mounts-under-substrate-verify", crossMount.ok && crossMount.kappa === m.kappa, crossMount.why || "");
+
+// ── 9 · TRANSPORT — the message rides in the link #fragment; decode → mount round-trips ──
+const link = shareLinkFor(m.object);                            // /usr/share/frame/holopluck.html#m=<token>
+const token = link.split("#m=")[1];
+const back = decodePayload(token);
+const linkMount = mountFromPayload(back);
+ok("fragment-link-round-trips-serverless",
+  link.includes("holopluck.html#m=") &&
+  linkMount.ok && linkMount.kappa === m.kappa &&
+  linkMount.object["schema:text"] === TARGET.text,
+  link.slice(0, 64) + "…");
+
+// the link is self-contained — decode never needed a network/κ-store for this text message
+ok("payload-encode-decode-is-isomorphic",
+  JSON.stringify(decodePayload(encodePayload(sharePayload(m.object)))) === JSON.stringify(sharePayload(m.object)));
+
+// ── 10 · FRAGMENT TAMPER — edit one byte inside the link → refused (what the page shows) ──
+const t = back.object["schema:text"];
+const tamperedPayload = { ...back, object: { ...back.object, "schema:text": t.slice(0, -1) + "!" } };
+const tamperedToken = encodePayload(tamperedPayload);
+const tamperedMount = mountFromPayload(decodePayload(tamperedToken));
+ok("fragment-tamper-refused", tamperedMount.ok === false, tamperedMount.why || "");
+
+// ── 11 · RENDER MODEL — the pure view-model the receiving surface paints ──
+const view = renderModel(linkMount.object, { wordlist });
+ok("render-model-faithful",
+  view.text === TARGET.text && view.sender === "Ilya" && view.sentAt === "08:31" &&
+  view.chat === "Ilya" && view.source === "web.whatsapp.com" &&
+  view.short === hexOf(m.kappa).slice(0, 8) && view.truename === m.truename &&
+  view.words === m.words && view.ipv6 === m.ipv6,
+  `${view.short} · ${view.words}`);
+
 const witnessed = Object.values(checks).every(Boolean);
 const result = {
   "@type": "earl:TestResult", witnessed,
@@ -128,7 +174,12 @@ const result = {
     "STABLE — same message → same κ + same words (L2); a trailing space → a different κ (collision-honest); capture field order is irrelevant (JCS)",
     "MEDIA — a media leaf is a Merkle contentLink to the media's own κ; it changes the message κ and still verifies",
     "BADGE — the minted chip (short κ · three words · truename) is a consistent projection of the object",
+    "IN-PAGE PARITY — the CEF render-hook (holo-pluck-inpage.mjs, WebCrypto + inlined proquint) mints a byte-identical κ + truename and mounts under the substrate's verify-before-trust",
+    "TRANSPORT — the message rides in the link #fragment (base64url JSON); decode → mount round-trips with no server/κ-store; encode/decode isomorphic",
+    "FRAGMENT TAMPER — editing one byte inside the link is refused fail-closed (the exact path holopluck.html guards)",
+    "RENDER MODEL — the pure view-model the receiving surface paints (text/sender/time/chat/source + κ short/truename/words/IPv6) is faithful",
   ],
+  shareLink: m.shareLink,
   target: TARGET,
   minted: { kappa: m.kappa, truename: m.truename, words: m.words, ipv6: m.ipv6, cid: m.cid, holoLink: m.holoLink, spaceLink: m.spaceLink },
   checks, failed: fail,

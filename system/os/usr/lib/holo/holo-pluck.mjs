@@ -28,6 +28,54 @@ import { kappaToWords } from "./holo-words.mjs";
 
 const hexOf = (k) => String(k).split(":").pop();
 
+// ── self-contained transport: the message rides in the link's #fragment ──
+// A plucked text message is a few hundred bytes; base64url-JSON of its share payload
+// fits in a URL fragment, which the browser NEVER sends to a server. So the link IS the
+// message: open it and it resolves from its own bytes — no WhatsApp, no κ-store, no
+// network. (Media leaves resolve by their own κ from the store; text needs nothing.)
+// Isomorphic: Buffer in Node, btoa/atob in the browser/Service Worker.
+export function encodePayload(payload) {
+  const json = JSON.stringify(payload);
+  if (typeof Buffer !== "undefined") return Buffer.from(json, "utf8").toString("base64url");
+  const bytes = new TextEncoder().encode(json);
+  let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+export function decodePayload(token) {
+  if (typeof Buffer !== "undefined") return JSON.parse(Buffer.from(String(token), "base64url").toString("utf8"));
+  const b64 = String(token).replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+// shareLinkFor(object, base) → a self-contained link the receiving surface mounts. The
+// payload is in the #fragment; the bytes never touch a server. base defaults to the
+// frame page so it works from any origin (file://, the Hologram gateway, anywhere).
+export function shareLinkFor(object, base = "/usr/share/frame/holopluck.html") {
+  return base + "#m=" + encodePayload(sharePayload(object));
+}
+
+// renderModel(object) → the pure view-model the receiving surface paints (a faithful
+// message bubble + verified provenance). No DOM here — Node can build + witness it.
+export function renderModel(object, { wordlist = null } = {}) {
+  const kappa = object.id || address(object);
+  return {
+    text: object["schema:text"] || "",
+    sender: object["schema:sender"] || "",
+    sentAt: object["schema:dateSent"] || "",
+    chat: object["schema:isPartOf"] || "",
+    source: object["holo:capturedFrom"] || "",
+    media: (object.links || []).map((l) => ({ kappa: l.id, type: l["@type"] })),
+    kappa,
+    hex: hexOf(kappa),
+    short: hexOf(kappa).slice(0, 8),
+    truename: truenameOf(object),
+    words: wordlist ? kappaToWords(kappa, wordlist) : null,
+    ipv6: kappaToIPv6(kappa),
+  };
+}
+
 // A short, stable headline re-projected from the message text — this becomes the
 // truename slug ("the-future-is-light~..."), so the name speaks the message. It is
 // part of the canonical content (it derives from the text), never a separate fact.
@@ -87,6 +135,7 @@ export function mint(input, { wordlist = null } = {}) {
     words: wordlist ? kappaToWords(kappa, wordlist) : null,
     holoLink: "holo://" + hex,
     spaceLink: "/holospace.html?app=" + hex + "&bare=1",
+    shareLink: shareLinkFor(object),     // self-contained, serverless — the demo link
     badge: badgeFor(object, wordlist),
   };
 }
@@ -136,6 +185,7 @@ if (typeof window !== "undefined" && !window.HoloPluck) {
     mint: async (input) => mint(input, { wordlist: await wl() }),
     badge: async (object) => badgeFor(object, await wl()),
     mount: (payload, opts) => mountFromPayload(payload, opts),
-    sharePayload,
+    render: async (object) => renderModel(object, { wordlist: await wl() }),
+    sharePayload, encodePayload, decodePayload, shareLinkFor,
   };
 }
