@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-switcher C — named desktop arrangements over holo-workspaces: each workspace stores its whole-desktop manifest on its own chain; ensureSeed names the current desktop, createWorkspace opens a fresh one, and switching auto-saves the arrangement you leave and restores the target's. Rename keeps identity + active; switching to the active workspace is a no-op. Monotonic; zero app code; no κ surfaced. DOM browser-verified separately.",
+  "authority": "holospaces Laws L1/L2/L5 (monotonic) · rests on #holo-workspaces + #holo-workspace-host + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "seed-names-current",
+    "create-switches-fresh",
+    "auto-save-on-switch",
+    "restores-target",
+    "rename-stable-active",
+    "noop-same-workspace"
+  ],
+  "checks": {
+    "seedNamesCurrent": true,
+    "createSwitchesFresh": true,
+    "restoresTarget": true,
+    "autoSaveOnSwitch": true,
+    "renameStableActive": true,
+    "noopSameWorkspace": true
+  },
+  "failed": []
+}

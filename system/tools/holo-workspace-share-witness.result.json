@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-share D — a tab/app is shared as a live κ-link: the bundle is that app's source chain + its head κ. The recipient re-validates on receipt (holo-strand-admit, verify-before-trust): a faithful bundle opens to the exact verified state and carries the operator's authorship; any tamper, drop, reorder, forged signature, or mismatched link κ is refused (fail-closed). 'Your live window, not a copy' — and one that can't be faked. Pure assembly over holo-strand + holo-strand-admit; no new crypto.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · RFC 9334 (RATS) · rests on #holo-strand + #holo-strand-admit + #holo-workspace + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "share-then-open",
+    "head-names-chain",
+    "authorship-carried",
+    "tamper-refused",
+    "drop-refused",
+    "reorder-refused",
+    "forged-sig-refused",
+    "head-mismatch-refused"
+  ],
+  "checks": {
+    "shareThenOpen": true,
+    "headNamesChain": true,
+    "authorshipCarried": true,
+    "tamperRefused": true,
+    "dropRefused": true,
+    "reorderRefused": true,
+    "forgedSigRefused": true,
+    "headMismatchRefused": true
+  },
+  "failed": []
+}

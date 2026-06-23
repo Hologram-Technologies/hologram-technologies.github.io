@@ -140,7 +140,27 @@ export function makeStrand({ backend = null, now = () => "1970-01-01T00:00:00Z",
     return { ok: true, length: entries.length, head: prev };
   }
 
-  return { ready, append, head, length, replay, verify, setSigner, resumePoint, reconcileResume };
+  // adopt(candidate) — replace the local chain with one RECEIVED from a peer (cross-device roam),
+  // VERIFY-BEFORE-ADOPT (fail-closed): the candidate must re-derive + link end-to-end (Law L5 over the
+  // sequence), else refuse and keep the local chain untouched. The caller decides WHEN to adopt (e.g. only
+  // on a fast-forward from holo-workspace-roam.reconcileRemote); this just makes adoption safe + atomic.
+  async function adopt(candidate) {
+    await ready();
+    if (!Array.isArray(candidate)) return { ok: false, why: "not-a-chain" };
+    let prev = null;
+    for (let i = 0; i < candidate.length; i++) {
+      const v = await verifyEntry(candidate[i]);
+      if (!v.ok) return { ok: false, why: v.why, brokeAt: i };
+      if (candidate[i]["holstr:seq"] !== i) return { ok: false, why: "seq-out-of-order", brokeAt: i };
+      if (candidate[i]["holstr:prev"] !== prev) return { ok: false, why: "prev-link-broken", brokeAt: i };
+      prev = candidate[i].id;
+    }
+    entries = candidate.slice();
+    await persist();
+    return { ok: true, length: entries.length, head: head() };
+  }
+
+  return { ready, append, head, length, replay, verify, setSigner, resumePoint, reconcileResume, adopt };
 }
 
 // ── browser binding: window.HoloStrand over an AES-GCM-encrypted IndexedDB backend (the SAME sovereign

@@ -1,0 +1,29 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace A+B — every holospace tab/app is its own persistent workspace on its own source chain, with ZERO app code: the OS host auto-captures + resumes (Phase A), and each app gets deterministic, atomic, never-destroyed history with read-only preview and append-restore revert (Phase B). Per-app isolation, lazy saves, plain-language diff. Monotonic (rollback never deletes). Pure assembly over holo-strand + holo-identity; browser host wires per-app encrypted κ-stores. No new crypto.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 (monotonic) · rests on #holo-strand + #holo-workspace + #holo-workspace-host + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "capture-resume",
+    "per-app-isolation",
+    "lazy",
+    "time-travel",
+    "preview-readonly",
+    "revert-keeps-history",
+    "diff",
+    "chain-verifies",
+    "auto-capture-zero-app-code"
+  ],
+  "checks": {
+    "captureAndResume": true,
+    "perAppIsolation": true,
+    "lazyNoChange": true,
+    "timeTravelVersions": true,
+    "previewReadOnly": true,
+    "revertKeepsHistory": true,
+    "diffReportsChanges": true,
+    "chainVerifies": true,
+    "autoCaptureNoAppCode": true
+  },
+  "failed": []
+}

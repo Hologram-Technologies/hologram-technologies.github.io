@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-roam-ui mirror — the ⇄ Roam toggle's core: open windows mirror across peers over a transport, verify-before-trust (tampered → not applied), with content dedup so applying a peer's state never echoes back into a loop; want pulls the latest; own adverts ignored. Same-origin tabs (BroadcastChannel) work now; WAN (WebRTC/IPFS) is the same seam. No new crypto.",
+  "authority": "holospaces Laws L1/L2/L5 · rests on #holo-roam-ui + #holo-workspace-share + #holo-workspace-host",
+  "witnessed": true,
+  "covers": [
+    "mirrors-apply",
+    "content-dedup-echo",
+    "tamper-rejected",
+    "want-pulls",
+    "own-ignored"
+  ],
+  "checks": {
+    "mirrorsApply": true,
+    "contentDedupEcho": true,
+    "tamperRejected": true,
+    "wantPulls": true,
+    "ownIgnored": true
+  },
+  "failed": []
+}

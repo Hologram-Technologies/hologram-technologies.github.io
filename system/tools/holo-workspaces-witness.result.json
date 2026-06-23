@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspaces C — the desktop is the SET of named workspaces. Each named workspace is a content-κ Space that scopes its own per-app source chains, so the same app κ in two workspaces keeps independent state and independent history. The set is a hash-linked, signed registry (create/rename/activate); rename keeps identity stable; switching auto-saves the current workspace and restores the target, each window resuming from its own chain. Built on the Phase A/B host; monotonic (never destroys history); zero app code; no κ surfaced to the user.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 (monotonic) · rests on #holo-strand + #holo-workspace-host + #holo-object + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "create-and-list",
+    "rename-stable-id",
+    "independent-state",
+    "independent-history",
+    "active-tracked",
+    "save-current-on-switch",
+    "clean-switch",
+    "registry-verifies"
+  ],
+  "checks": {
+    "createAndList": true,
+    "renameStableId": true,
+    "independentState": true,
+    "independentHistory": true,
+    "activeTracked": true,
+    "saveCurrentOnSwitch": true,
+    "cleanSwitch": true,
+    "registryVerifies": true
+  },
+  "failed": []
+}

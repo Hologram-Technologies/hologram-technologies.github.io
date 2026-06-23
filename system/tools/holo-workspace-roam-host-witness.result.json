@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-workspace-roam-host E — device-side roam over a pluggable transport: devices advertise their per-app chains; a peer reconciles (verify-before-trust) and fast-forwards when the remote is newer (the window follows you), re-advertises when it is newer (epidemic convergence), keeps both lineages on divergence (monotonic), rejects tampered/unrelated/older, and serves pull (want) requests. Transport-injected core proven with a simulated hub; BroadcastChannel is the same-origin leg, WebRTC/IPFS the out-of-band WAN leg behind the same seam. No new crypto.",
+  "authority": "holospaces Laws L1/L2/L5 (monotonic) · RFC 9334 (RATS) · rests on #holo-workspace-roam-host + #holo-workspace-roam + #holo-workspace-host + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "fast-forward-converges",
+    "apply-adopted-fired",
+    "epidemic-local-ahead",
+    "diverged-keeps-both",
+    "tamper-rejected",
+    "want-pulls-latest",
+    "own-ignored"
+  ],
+  "checks": {
+    "fastForwardConverges": true,
+    "applyAdoptedFired": true,
+    "epidemicLocalAhead": true,
+    "divergedKeepsBoth": true,
+    "tamperRejected": true,
+    "wantPullsLatest": true,
+    "ownIgnored": true
+  },
+  "failed": []
+}
