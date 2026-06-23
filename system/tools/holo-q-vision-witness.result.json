@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "PRECEDENCE — a κ target (or a scene-known code face) is read from the graph; the engine is never called (the regression guard)",
+    "PROMOTE — raster pixels → OCR → a self-verifying UOR κ-object (id = H(JCS)), joined to the perception scene as a VISUAL face",
+    "GROUND — the κ carries the OCR text and the exact-pixels capture hash; Q grounds on and cites the κ",
+    "STABLE — identical pixels → identical κ (deterministic seal); different pixels → a different κ (collision-honest)",
+    "HONEST — no engine, or no specialist, ⇒ an honest null / main fallback; the scene is untouched; never fakes (Law L5)",
+    "BIND — createVisionSpecialist binds the mux 'vision' slot; resolveModel('vision') + routeTask route to it; unbound → main"
+  ],
+  "checks": {
+    "kappa-target-reads-graph-no-engine": true,
+    "scene-known-code-target-reads-graph": true,
+    "raster-promotes-to-verifying-kappa": true,
+    "promoted-kappa-joins-scene-as-visual-face": true,
+    "kappa-grounds-on-text-and-pixels": true,
+    "deterministic-and-collision-honest": true,
+    "no-engine-honest-null-never-fakes": true,
+    "no-specialist-falls-back-to-main": true,
+    "vision-slot-unbound-falls-back-to-main": true,
+    "bound-specialist-routes-the-vision-slot": true
+  },
+  "failed": [],
+  "authority": "ADR-0081 (perception scene) · ADR-0084 (mux vision specialist) · UOR object envelope (holo-object) · holospaces Law L5"
+}

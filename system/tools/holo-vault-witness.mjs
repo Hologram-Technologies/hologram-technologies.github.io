@@ -32,6 +32,13 @@ const main = async () => {
   const g = v.get("https://mail.google.com");
   r.autofill = g && g.username === "ilya@uor.foundation" && g.secret === "hunter2-correct-horse";
 
+  // HOST-AUTOFILL SUBSET: only fillable kinds (password/web3) carry {u,p}; passkey/totp/note are NOT pushed
+  const am = v.autofillMap();
+  r.autofillSubsetKinds = !!am["https://mail.google.com"] && !!am["https://app.uniswap.org"] && !("https://www.linkedin.com" in am);
+  r.autofillSubsetShape = am["https://mail.google.com"].u === "ilya@uor.foundation" && am["https://mail.google.com"].p === "hunter2-correct-horse";
+  // publish is browser/holo:// only — under Node it is a guarded no-op (never leaks creds off-host)
+  r.publishGuardedOffHost = (await v.publishAutofill()) === false;
+
   // AT-REST OPACITY (SEC-5): the stored chain has NO cleartext origin or secret — only κs/sigs/sealed bytes
   const raw = await __rawChain(OP);
   const wire = JSON.stringify(raw);

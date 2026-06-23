@@ -1,0 +1,104 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "RESOLVE — each web-client host resolves to the right adapter; unknown host → null (SEC-6 name→parser binding never authenticates content)",
+    "CAPTURE — WhatsApp/Telegram/Discord/Slack adapters each extract {text,sender,sentAt,chat,source} from a rendered row via the standard querySelector surface",
+    "PARITY — the WhatsApp adapter reproduces the canonical pluck TARGET byte-for-byte (same messageObject, same κ)",
+    "KAPPA — every captured message mints a self-verifying did:holo:sha256 κ that re-derives (Law L1/L2/L5, SEC-1); four distinct messages → four distinct κ",
+    "DEDUP — the same content captured by two different adapters mints ONE κ (SEC-3: content, not codepath, is identity)",
+    "REFUSE — a one-byte edit to a captured message is refused fail-closed under verify-before-trust (Law L5)",
+    "LIVE SCAN — captureAll reads every rendered row and skips empty ones (the in-page observer's feed)",
+    "REGISTRY — every platform is a well-formed selector-map DATA entry (≥9 platforms); adding one is config, not protocol code"
+  ],
+  "adapters": [
+    {
+      "id": "whatsapp",
+      "label": "WhatsApp",
+      "hosts": [
+        "web.whatsapp.com"
+      ]
+    },
+    {
+      "id": "telegram",
+      "label": "Telegram",
+      "hosts": [
+        "web.telegram.org"
+      ]
+    },
+    {
+      "id": "discord",
+      "label": "Discord",
+      "hosts": [
+        "discord.com",
+        "discordapp.com"
+      ]
+    },
+    {
+      "id": "slack",
+      "label": "Slack",
+      "hosts": [
+        "app.slack.com"
+      ]
+    },
+    {
+      "id": "x",
+      "label": "X",
+      "hosts": [
+        "x.com",
+        "twitter.com",
+        "mobile.twitter.com"
+      ]
+    },
+    {
+      "id": "messenger",
+      "label": "Messenger",
+      "hosts": [
+        "www.messenger.com",
+        "messenger.com"
+      ]
+    },
+    {
+      "id": "instagram",
+      "label": "Instagram",
+      "hosts": [
+        "www.instagram.com",
+        "instagram.com"
+      ]
+    },
+    {
+      "id": "linkedin",
+      "label": "LinkedIn",
+      "hosts": [
+        "www.linkedin.com",
+        "linkedin.com"
+      ]
+    },
+    {
+      "id": "gmessages",
+      "label": "Google Messages",
+      "hosts": [
+        "messages.google.com"
+      ]
+    }
+  ],
+  "canonical": {
+    "kappa": "did:holo:sha256:6b1178bedc62cecc77670238dc8d9070df066c3be0f7a3d09bf0c87a300e53de",
+    "truename": "the-future-is-light-phot~kosid-lofuv-tudof"
+  },
+  "checks": {
+    "resolve-host-to-adapter": true,
+    "capture-whatsapp": true,
+    "capture-telegram": true,
+    "capture-discord": true,
+    "capture-slack": true,
+    "whatsapp-adapter-byte-identical-to-pluck-target": true,
+    "every-platform-mints-self-verifying-kappa": true,
+    "same-content-two-adapters-one-kappa": true,
+    "captured-kappa-obeys-verify-before-trust": true,
+    "capture-all-reads-feed-skips-empty": true,
+    "registry-entries-well-formed": true
+  },
+  "failed": [],
+  "authority": "holo-apps §2.6 · holospaces SEC-1/SEC-3/SEC-6 · Law L1/L2/L5 · RFC 8785 (JCS) · FIPS 180-4 · schema.org Message"
+}

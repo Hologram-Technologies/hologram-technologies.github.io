@@ -1,0 +1,34 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "GATED — an outbound message runs a TEE step-up bound to its own κ, delivers, then chains one verified κ",
+    "BIND — the step-up token re-derives (L5) and its payload commits to THIS message's κ (the human approved this exact send)",
+    "CONSENT — the step-up attestation is bound to the send as a sibling provenance note, not in the content κ",
+    "DENY — a denied/cancelled step-up is fail-closed: the message is neither delivered nor chained",
+    "UNBOUND — a valid step-up token that commits to a different κ is refused (binding is enforced at send)",
+    "WINDOW — the first send asks; a send within the trust window rides it; a stale one asks again (seamless yet secure)",
+    "HONEST — a platform delivery that doesn't land is never claimed as sent (no phantom sends)",
+    "PURE — the message content κ carries no consent data, so the same message still dedups across platforms (SEC-3)",
+    "L5 — after a gated send plus its consent note, the whole conversation chain still verifies"
+  ],
+  "operator": "did:holo:sha256:2c1be0e01bb7fa98a1504b07ddd64234078cffe8c36f550a4a0c134370e8106e",
+  "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+  "sample": {
+    "kappa": "did:holo:sha256:3a45530713bdadb56f641c5cfd68c848c75a8a59d302559305fb1c742272392c",
+    "consent": "did:holo:sha256:455bf4332c298db3d462e02c721fabc00dd10d24a96a60a2e4aa252206143dbd"
+  },
+  "checks": {
+    "gated-send-attests-and-chains": true,
+    "step-up-binds-the-message-kappa": true,
+    "consent-recorded-as-provenance-note": true,
+    "denied-step-up-fails-closed": true,
+    "mis-bound-consent-refused": true,
+    "trust-window-gates-once-then-rides": true,
+    "undelivered-never-claimed-sent": true,
+    "content-kappa-pure-no-consent": true,
+    "chain-verifies-after-gated-send": true
+  },
+  "failed": [],
+  "authority": "holo-stepup (payload-bound TEE step-up) · holo-apps explicit-consent · holospaces SEC-2 · Law L5"
+}

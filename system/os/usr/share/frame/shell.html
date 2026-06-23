@@ -1001,6 +1001,7 @@
       import { resolveAny, parseRef } from "/sbin/holo-omni-object.mjs";   // the discovery-backed κ-resolver (trustless gateways + Delegated Routing V1)
       import { record as omniRemember, search as omniRecent, recents as omniRecents } from "/sbin/holo-omni-index.mjs";   // the omnibar's MEMORY: it remembers + ranks everything you've opened (private, instant, holo-rank-aware)
       import { buildContinueModel, renderContinueRail } from "/_shared/holo-continue-ui.mjs";   // Continue watching — recent apps + spaces as a poster rail (the streaming front door)
+      import * as HoloRecommend from "/_shared/holo-recommend.mjs";   // "Because you've been exploring…" — recommendations row (private, on-device)
       import { makeOpen as makeHoloOpen, classifyOpen as classifyHoloOpen } from "/_shared/holo-open.mjs";   // S2: the ONE open path (press play) — wraps omniGo + the named app/space forms
       import { askPrivate as omniAsk, indexObject as omniIndexObject } from "/sbin/holo-omni-q.mjs";   // the omnibar's PRIVATE INTELLIGENCE: Q.recall (model-free BM25 ⊕ κ-graph) over your resolved corpus — ask a question, get YOUR stuff, on-device
       // PERF — the omnibar's HEAVY resolver legs are NOT loaded at boot. web3 (→ holo-eth · holo-solana ·
@@ -1048,7 +1049,9 @@
       import * as HoloProv from "/_shared/holo-prov-ui.js";   // Holo Prov (ADR-0082): provenance hypergraph, binding on every holospace
       import * as HoloMind from "/_shared/holo-mind-ui.js";   // Holo Mind (ADR-0081): the live, gate-enforced ambient loop, exposed OS-wide as window.HoloMind
       import "/_shared/q/holo-q-trinity-ui.js";               // Holo Trinity (ADR-0087): the OS-wide create·exist·perceive loop, installed as window.HoloTrinity (invisible, self-improving)
+      import "/_shared/q/holo-q-vision-boot.mjs";             // Holo Vision (raster edge): ambient perception of non-κ pixels (canvas/img/video/cross-origin) → sealed κ; rides window.HoloAmbient, inert until an OCR engine is ready
       import "/_shared/devtools/holo-devtools-ui.js";         // Holo DevTools (ADR-0095): installs window.HoloDevToolsServe — the κ-CDP backend holo-gov.js routes the DevTools frame's CDP to (serverless, fail-closed)
+      import { installGlobalDevDock } from "/_shared/devtools/holo-devtools-dock.mjs";   // Holo DevTools (ADR-0095): GLOBAL F12 dock over the ACTIVE tab (Chrome-parity), built on the live κ-CDP backend
       import { createRemoteBroker as holoQCreateRemoteBroker, serveRpc as holoQServeRpc } from "/_shared/q/holo-q-remote.mjs";   // Holo Q Remote (ADR-0090): the ONE governed remote-model host broker
       import { roster as identRoster, unlock as identUnlock } from "/_shared/holo-identity.mjs";
       import * as HoloSession from "/_shared/holo-session.mjs";   // Holo Session (ADR-0104): per-operator, device-local experience continuity
@@ -1058,6 +1061,7 @@
       import * as HoloRewind from "/_shared/holo-rewind-ui.mjs";   // Phase B: per-window "rewind" timeline (plain time) over its per-app chain
       import * as HoloWSwitch from "/_shared/holo-workspace-switcher-ui.mjs";   // Phase C: named desktop workspaces — one pill in the tab strip
       import * as HoloRoam from "/_shared/holo-roam-ui.mjs";   // Phase E: ⇄ Roam toggle — mirror open windows across tabs/devices (BroadcastChannel; WAN out-of-band)
+      import * as HoloRoamWan from "/_shared/holo-roam-wan.mjs";   // AMBIENT roam: auto-on at boot, tabs (BroadcastChannel) + devices (relay/WAN); seamless, no toggle
 
       // ── Holo Q Remote (ADR-0090): install the ONE host broker for the governed remote-model capability.
       // The key/URL live ONLY in this broker's vault (in its closure) — never in a κ, never posted to an
@@ -1779,7 +1783,7 @@
         tabs.forEach((t, i) => {
           const el = document.createElement("button"); el.type = "button"; el.className = "tab" + (i === activeTab ? " active" : "") + (t.pinned ? " pinned" : "") + (t.dev ? " dev" : ""); el.setAttribute("role", "tab");
           const title = dropHolo((t.title || "New Tab").replace(/^🌐\s*/, ""));
-          const fav = document.createElement("span"); fav.className = "t-fav"; fav.textContent = t.home ? "⌂" : (t.startHere ? "✦" : (t.dev ? "✦" : (t.addr ? schemeOf(t.addr).ic : "✦")));
+          const fav = document.createElement("span"); fav.className = "t-fav"; fav.textContent = t.home ? "⌂" : (t.play ? "▶" : (t.startHere ? "✦" : (t.dev ? "✦" : (t.addr ? schemeOf(t.addr).ic : "✦"))));
           el.append(fav); el.title = (t.dev ? "Dev — building, not yet published · " : "") + (t.addr ? t.addr + " " : "") + title;
           if (!t.pinned) { const ttl = document.createElement("span"); ttl.className = "t-ttl"; ttl.textContent = title; el.append(ttl); }   // pinned = favicon only
           if (t.group && tabGroups[t.group]) { el.classList.add("grouped"); el.style.setProperty("--tg", tabGroups[t.group].color); }   // a Chrome-style colored tab group
@@ -1863,7 +1867,7 @@
         const t = tabs[activeTab];
         // activeTab === 0 is the permanent Home base (never closed, never reordered before 0) — treat it as
         // Home even if the serializer stripped the flag, so a launch from Home ALWAYS opens its own tab.
-        return !!(activeTab === 0 || (t && (t.home || t.startHere)) || (desktop.doc().world || []).length > 0);
+        return !!(activeTab === 0 || (t && (t.home || t.startHere || t.play)) || (desktop.doc().world || []).length > 0);
       }
       function ensureStartHereTab() {
         if (!tabs.some((t) => t.home) && tabs[0]) tabs[0].home = true;   // re-stamp the `home` flag the serializer drops (else launches mount INTO Home instead of a new tab)
@@ -1879,6 +1883,17 @@
           const t = { id: "tstart" + Math.random().toString(36).slice(2, 5), title: "Start here", startHere: true, addr: "holo://start", snap: null };
           tabs.splice(1, 0, t);                                  // right after Home
           if (activeTab >= 1) activeTab++;                       // keep the restored selection pointing at the same tab (for now)
+        }
+        // ── pinned "Play" tab right after Start here: the streaming front door (Continue watching + Discover) ──
+        const isPlay = (t) => !!t && (t.play || t.addr === "holo://play" || t.title === "Play");
+        const pf = tabs.findIndex(isPlay);
+        if (pf >= 0) {
+          for (let i = tabs.length - 1; i > pf; i--) { if (isPlay(tabs[i])) { tabs.splice(i, 1); if (activeTab > i) activeTab--; else if (activeTab === i) activeTab = pf; } }
+          const t = tabs[pf]; t.play = true; t.title = "Play"; t.addr = "holo://play"; delete t.pinned;
+        } else {
+          const shIdx = tabs.findIndex(isSH); const at = shIdx >= 0 ? shIdx + 1 : 2;
+          tabs.splice(at, 0, { id: "tplay" + Math.random().toString(36).slice(2, 5), title: "Play", play: true, addr: "holo://play", snap: null });
+          if (activeTab >= at) activeTab++;
         }
         const homeIdx = tabs.findIndex((t) => t.home);           // ALWAYS land on Home at login (the user's home base)
         if (homeIdx >= 0 && activeTab !== homeIdx) {
@@ -2022,7 +2037,7 @@
           .then(() => { try {   // Phase E: the ⇄ Roam toggle — mirror open windows across tabs/devices (verify-before-trust)
             const _roamApply = (appKappa, state) => { try { for (const n of desktop.doc().world) { if (n.kind === "app" && HoloWB.appKappaOf(n) === appKappa) { const el = mounted.get(n.id), f = el && el.querySelector("iframe"); if (f && f.contentWindow) f.contentWindow.postMessage({ t: "holo-session:restore", surfaceId: n.id, state: state }, "*"); } } } catch (e) {} };
             const _roamApps = () => desktop.doc().world.filter((n) => n.kind === "app").map((n) => ({ appKappa: HoloWB.appKappaOf(n) })).filter((x) => x.appKappa);
-            HoloRoam.mountRoamToggle(document.getElementById("tabstrip"), { getActiveHost: () => HoloWB.activeHost(), getOpenApps: _roamApps, applyAdopted: _roamApply });
+            HoloRoamWan.attach({ getActiveHost: () => HoloWB.activeHost(), getOpenApps: _roamApps, applyAdopted: _roamApply });   // EMBEDDED + SEAMLESS: roam is automatic (tabs now; devices when a relay is present)
           } catch (e) {} }).catch(() => {});
       } catch (e) {}
       // ONE-TIME REPAIR: a prior build's applyWidgets(home) could persist an EMPTY board over the seeded
@@ -3825,7 +3840,7 @@
           '</div>';
         [...host.querySelectorAll(".disc-card")].forEach((c) => c.onclick = () => { const t = templates[+c.dataset.i]; if (t) openHolospace(t); });
         const all = host.querySelector("#disc-all"); if (all) all.onclick = () => { try { openSpot(); } catch (e) {} };
-        try { const disc = host.querySelector(".disc"), rail = continueRail(); if (disc && rail) disc.insertBefore(rail, disc.firstChild); } catch (e) {}   // Continue watching, above Browse
+        try { const disc = host.querySelector(".disc"); if (disc) { const dr = discoverRail(); if (dr) disc.insertBefore(dr, disc.firstChild); const cr = continueRail(); if (cr) disc.insertBefore(cr, disc.firstChild); } } catch (e) {}   // Continue watching + Discover, above Browse
       }
       function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
       // paintEmpty — what the empty-canvas overlay shows for the ACTIVE tab: the full Start-here surface on
@@ -3846,6 +3861,15 @@
         } catch (e) {}
       }
       function continueRail() { try { const items = continueItems(); return items.length ? renderContinueRail({ items, onOpen: openRecent }) : null; } catch (e) { return null; } }
+      function discoverRail() {   // "Because you've been exploring…": apps you haven't opened, ranked to you (× holo-rank)
+        try {
+          let rank = null; try { rank = HOLO_RANK; } catch (e) {}
+          const terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || [];
+          const recentAddrs = (omniRecents({ limit: 50 }) || []).map((r) => r.addr);
+          const items = HoloRecommend.recommend(catalog, recentAddrs, { profileTerms: terms, rank, limit: 12 });
+          return items.length ? renderContinueRail({ items, onOpen: openRecent, title: HoloRecommend.titleFor(terms) }) : null;
+        } catch (e) { return null; }
+      }
       window.HoloContinue = { items: continueItems, open: openRecent };   // S6: "just ask" continue reaches the same resume seam as the rail
       function paintEmpty() {
         const host = $("#empty"); if (!host) return;
@@ -3855,12 +3879,17 @@
         if (t && t.forming) { host.classList.remove("starthere"); host.innerHTML = formingOverlayHTML(t.forming); host.dataset.mode = "forming"; return; }
         // cache by mode so switching tabs is a cheap class/flag flip — never a DOM rebuild (crisp nav)
         if (t && t.startHere) { if (host.dataset.mode !== "start") { host.classList.add("starthere"); renderDiscover(); host.dataset.mode = "start"; } }
-        else {   // Home: Continue watching is the front door when you have recents; a fresh user keeps the clean Welcome (widgets are a separate layer below)
+        else if (t && t.play) {   // Play tab — the streaming front door (Continue watching + Discover), off Home
           host.classList.remove("starthere");
-          const rail = continueRail();
+          const rail = continueRail(), drail = discoverRail();
           host.innerHTML = "";
-          if (rail) { host.classList.add("cw-home"); host.style.placeContent = "start center"; host.style.paddingTop = "clamp(64px,11vh,132px)"; host.appendChild(rail); }
+          if (rail || drail) { host.classList.add("cw-home"); host.style.placeContent = "start center"; host.style.paddingTop = "clamp(64px,11vh,132px)"; if (rail) host.appendChild(rail); if (drail) host.appendChild(drail); }
           else { host.classList.remove("cw-home"); host.style.placeContent = ""; host.style.paddingTop = ""; }
+          host.dataset.mode = "play";
+        }
+        else {   // Home (and blank tabs): CLEAN — greeting + Q orb + widgets only, no rails
+          host.classList.remove("starthere", "cw-home"); host.style.placeContent = ""; host.style.paddingTop = "";
+          host.innerHTML = "";
           host.dataset.mode = "home";
         }
       }
@@ -3906,6 +3935,10 @@
       //   crossfade frame-over-frame at the display's native refresh — no server, no flash. (ADR-0055.)
       const CS_STARTER = '<!doctype html>\n<meta charset="utf-8">\n<style>\n  html,body{height:100%;margin:0}\n  body{display:grid;place-items:center;font:600 clamp(28px,7vw,72px)/1.1 ui-sans-serif,system-ui;\n    color:#eaf2ff;background:radial-gradient(120% 120% at 30% 0%,#1b2a4a,#0d1117 60%,#05070c);text-align:center}\n  .k{background:linear-gradient(90deg,#7c5cff,#2dd4bf);-webkit-background-clip:text;background-clip:text;color:transparent}\n  p{font-size:16px;font-weight:400;color:#9fb0c8;margin-top:14px}\n</style>\n<div>\n  Hello, <span class="k">holospace</span>\n  <p>Ask Holo to build, or open Code — the preview updates instantly. This is yours now.</p>\n</div>\n';
       let studio = null;
+      // GLOBAL F12 DevTools (ADR-0095): "F12, just like Chrome" for the CURRENTLY ACTIVE tab. Points the
+      // proven κ-CDP live backend at activeAppFrame() and docks the vendored Chrome devtools-frontend.
+      // Defers to the Create studio's own Dev tab when it is open. Additive + fail-safe (try/catch).
+      try { installGlobalDevDock({ activeFrame: activeAppFrame, activeKappa: () => { try { const t = tabs[activeTab]; return (t && (t.addr || ("holo:tab:" + t.id))) || null; } catch (e) { return null; } }, studioOpen: () => !!studio }); } catch (e) {}
       // Resolve what Create opens onto: the EXACT live source of the active holospace (so the preview
       // mirrors the tab), whether it is locally editable, and a display name. External pages mirror but
       // can't be edited; a non-app tab (home/desktop) scaffolds a fresh starter to build into.

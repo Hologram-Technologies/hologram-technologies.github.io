@@ -1,0 +1,29 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "ADDRESS — a conversation's genesis κ projects to three speakable words + an RFC-5952 IPv6 locator, both deterministic from the κ (no registry)",
+    "RESOLVE — typing a thread's words resolves to THAT thread, verified by exact re-derivation (Law L5); another thread's words resolve to it, gibberish resolves to nothing",
+    "SHARE — the share payload carries the verified message set + a read capability bound to exactly one collection (SEC-2 attenuation)",
+    "NOKEYS — the payload leaks no signing key, operator key, or account material — read of one thread, never the account",
+    "MOUNT — the recipient re-derives every message verify-before-trust and gets a read-only view with no signer (cannot append)",
+    "REJECT — a tampered message is dropped fail-closed while the rest stand; a capability that doesn't bind to its collection is refused entirely",
+    "LINK — the share link carries the κ in the query and the payload in the #fragment; it round-trips with no server and mounts byte-identical"
+  ],
+  "sample": {
+    "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+    "words": "fruit.beauty.repeat",
+    "ipv6": "fd85:6d44:eaee:b394:17db:f33b:adc8:fdf5"
+  },
+  "checks": {
+    "thread-address-words-and-ipv6": true,
+    "resolve-by-words-finds-the-thread": true,
+    "share-payload-attenuated-read-cap": true,
+    "share-leaks-no-signer-or-account": true,
+    "mount-verifies-read-only": true,
+    "tamper-and-cap-mismatch-refused": true,
+    "share-link-round-trips-serverless": true
+  },
+  "failed": [],
+  "authority": "holo-words · holo-locator · holo-pluck (verify-before-trust) · holospaces SEC-2 · Law L1/L2/L5"
+}

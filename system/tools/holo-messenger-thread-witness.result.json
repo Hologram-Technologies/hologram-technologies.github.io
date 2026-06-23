@@ -1,0 +1,35 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "GENESIS — a conversation's genesis κ is content-addressed (L2): same platform+chat → same κ, different → different, participant order irrelevant",
+    "EVENTS — each captured message becomes a signed, hash-linked event on a per-conversation strand; author = the operator's identity κ; seq 0..n",
+    "SCHEMA — each event carries the holo-apps §2.6 header by reuse (Lamport seq, parent prev, author op, collection genesis) + a verifiable signature axis",
+    "REDUCE — view() reduces the chain to the ordered bubble list a surface paints; each row re-derives verify-before-trust (drops any that don't)",
+    "DEDUP — re-ingesting the same rendered message is idempotent (SEC-3 one κ network-wide); a re-scan never double-appends",
+    "L5 — tampering, reordering, or dropping any message makes the whole-history verify() refuse at the break (Law L5 over the sequence)",
+    "DURABLE — a fresh thread over the same encrypted store recovers the conversation; length, view, head and verify all hold",
+    "ROAM — a peer device's longer chain fast-forwards via adopt under verify-before-adopt; a tampered candidate is refused, local kept",
+    "INBOX — summarize() yields a faithful unified-inbox row (platform, chat, last message text/time/sender, count) — the WhatsApp-style list entry"
+  ],
+  "conversation": {
+    "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+    "platform": "whatsapp",
+    "chat": "Ilya"
+  },
+  "head": "did:holo:sha256:5806fcec3ef88356dbace4e5a256357917b6f3c780c7500b1dfdc55c48bef806",
+  "length": 4,
+  "checks": {
+    "genesis-content-addressed": true,
+    "ingest-appends-signed-events": true,
+    "event-schema-2.6-conformant": true,
+    "view-reduces-ordered-faithful": true,
+    "idempotent-dedup-no-double-append": true,
+    "history-tamper-reorder-drop-refused": true,
+    "durable-reload-recovers-conversation": true,
+    "roam-fast-forward-adopt-verify-before-trust": true,
+    "inbox-row-faithful": true
+  },
+  "failed": [],
+  "authority": "holo-apps §2.6/§2.7/§2.8 · holospaces SEC-1/SEC-3 · Law L1/L2/L5 · RFC 8785 (JCS) · schema.org Conversation/Message"
+}

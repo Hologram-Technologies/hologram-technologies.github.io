@@ -1,0 +1,29 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "WRAP — a per-conversation epoch key is wrapped to each member via the hybrid KEM; a member unwraps it with its hybrid secret, a non-member is refused (fail-closed)",
+    "HYBRID — every wrap carries BOTH an X25519 and an ML-KEM-1024 ciphertext (a break in either family is not a break — harvest-now-decrypt-later resistant)",
+    "SEAL — the message body is AES-256-GCM-sealed under the epoch key (AAD = epoch κ); the envelope is its own content κ and leaks no plaintext to a relay or at-rest storage (SEC-5/SEC-7)",
+    "OPEN — a member opens the body and the recovered content κ re-verifies (Law L5) AND equals the plaintext mint κ — encryption never changed content identity, so dedup is preserved (SEC-3)",
+    "REFUSE — a tampered envelope (fails L5), a flipped ciphertext byte (AEAD), and a wrong epoch key are each refused fail-closed",
+    "FORWARD — rotating the epoch on membership change locks a removed member out of new-epoch messages while members keep old keys to read history (§2.8 forward secrecy)"
+  ],
+  "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+  "epoch": {
+    "id": "did:holo:sha256:9438dc8f1e1d41991d2f75efa4b768dc876c6bd5195005ae05105c18b3cf44b4",
+    "seq": 0
+  },
+  "envelope": "did:holo:sha256:970fad48a84c90f6aba1b2d2614d1c774f4469728f9b4941a3b5d261d9d52193",
+  "checks": {
+    "epoch-key-wrapped-to-members": true,
+    "wrap-is-pq-hybrid": true,
+    "body-aead-sealed-content-blind": true,
+    "open-recovers-and-verifies-content-kappa": true,
+    "encryption-preserves-dedup": true,
+    "tamper-and-wrong-key-refused": true,
+    "rotation-gives-forward-secrecy": true
+  },
+  "failed": [],
+  "authority": "holo-apps §2.8 · holo-pqc (X25519‖ML-KEM-1024 hybrid KEM + AES-256-GCM) · holospaces SEC-5/SEC-7 · Law L1/L5"
+}

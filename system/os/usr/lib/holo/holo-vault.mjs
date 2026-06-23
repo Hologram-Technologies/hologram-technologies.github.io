@@ -138,6 +138,14 @@ export async function openVault(operator, secret) {
     epoch() { return epoch; },
     list() { return [...proj.values()].map((e) => ({ id: e.id, origin: e.origin, kind: e.kind, username: e.username, label: e.label, updatedAt: e.updatedAt })); }, // metadata only — no secret
     get(idOrOrigin) { for (const e of proj.values()) if (e.id === idOrOrigin || e.origin === idOrOrigin) return { ...e }; return null; }, // full cred for host autofill
+    // host-autofill subset: { origin -> {u,p} } for fillable kinds only (password/web3); never totp/note/card/identity.
+    autofillMap() { const m = {}; for (const e of proj.values()) if ((e.kind === "password" || e.kind === "web3") && e.secret != null) m[e.origin] = { u: e.username || "", p: e.secret }; return m; },
+    // push the subset to the native κ-host credential store. Browser + holo:// only (the factory gates the
+    // endpoint to the holo://os initiator); no-op off-host (Node/witness/web). Auto-called on open/put/remove.
+    async publishAutofill() {
+      if (typeof location === "undefined" || location.protocol !== "holo:" || typeof fetch !== "function") return false;
+      try { const r = await fetch("holo://os/.pass/publish", { method: "POST", body: JSON.stringify(handle.autofillMap()) }); return r.ok; } catch { return false; }
+    },
     async put({ origin, kind = "password", username = null, secret: cred = null, label = null }) {
       if (!origin) throw new Error("vault.put: origin required");
       if (!CRED_KINDS.has(kind)) throw new Error("vault.put: bad kind " + kind);
@@ -145,11 +153,12 @@ export async function openVault(operator, secret) {
       const sealed = await (await ek(epoch)).seal(te.encode(JSON.stringify({ origin, ck: kind, username, label, secret: cred })));
       const ev = await append("credential.put", target, b64(sealed), epoch);
       proj.set(target, { id: target, origin, kind, username, label, secret: cred, updatedAt: ev.ts });
+      handle.publishAutofill();                                       // keep the host store current
       return { id: target, origin, kind, username, label, updatedAt: ev.ts };
     },
     async remove(idOrOrigin) {
       const e = handle.get(idOrOrigin); if (!e) return 0;
-      await append("credential.tombstone", e.id, null, epoch); proj.delete(e.id); return 1;
+      await append("credential.tombstone", e.id, null, epoch); proj.delete(e.id); handle.publishAutofill(); return 1;
     },
     // forward-secrecy rotation (holo-apps §2.8): bump the epoch; future seals use a fresh key. Old-epoch
     // ciphertext is unreadable with the new key and vice-versa (distinct PBKDF2 keys).
@@ -163,6 +172,7 @@ export async function openVault(operator, secret) {
       return { origin: e.origin, kind: e.kind, username: e.username, secret: e.secret, stepup: token.id };
     },
   };
+  handle.publishAutofill();                                          // publish on unlock (browser/holo:// only)
   return handle;
 }
 

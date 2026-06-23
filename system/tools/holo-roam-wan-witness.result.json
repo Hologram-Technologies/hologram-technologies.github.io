@@ -1,0 +1,19 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-roam-wan — roam embedded across two transports: BroadcastChannel (tabs) + a κ-keyed relay topic (devices, WAN). Verify-before-trust on receipt; one ambient handle fans an edit to every leg, deduped; fail-soft when a transport is absent. The relay leg rides the existing holo-pull-rendezvous rung; the real relay is injected in prod, faked here.",
+  "authority": "rests on #holo-roam-wan + #holo-roam-ui + #holo-pull-rendezvous + #holo-workspace-host",
+  "witnessed": true,
+  "covers": [
+    "relay-mirrors",
+    "relay-tamper",
+    "ambient-fanout",
+    "ambient-fail-soft"
+  ],
+  "checks": {
+    "relayMirrors": true,
+    "relayTamper": true,
+    "ambientFanout": true,
+    "ambientFailSoft": true
+  },
+  "failed": []
+}

@@ -1,0 +1,17 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "REQUEST — read() invokes the host verb 'vision.read' with the κ-addressed model (ADR-0052), a base64 PNG image, and the parsing prompt",
+    "GROUND — the native 3B's grounding coords flow through read() and are sealed into the perception κ (holo:coords), verifiable (the browser TrOCR lacks this)",
+    "HONEST — with no native transport the bridge returns null; it never fabricates a read; the mux falls back to the browser engine, then main (Law L5)"
+  ],
+  "checks": {
+    "request-shapes-host-call": true,
+    "maps-markdown-and-grounding-coords": true,
+    "specialist-seals-grounding-into-kappa": true,
+    "no-host-honest-null": true
+  },
+  "failed": [],
+  "authority": "ADR-0052 (κ-disk weights) · ADR-0084 (mux vision specialist) · UOR object envelope · holospaces Law L5"
+}

@@ -36,13 +36,13 @@ const hexOf = (k) => String(k).split(":").pop();
 // Isomorphic: Buffer in Node, btoa/atob in the browser/Service Worker.
 export function encodePayload(payload) {
   const json = JSON.stringify(payload);
-  if (typeof Buffer !== "undefined") return Buffer.from(json, "utf8").toString("base64url");
+  try { if (typeof Buffer !== "undefined" && Buffer.isEncoding && Buffer.isEncoding("base64url")) return Buffer.from(json, "utf8").toString("base64url"); } catch {}
   const bytes = new TextEncoder().encode(json);
   let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 export function decodePayload(token) {
-  if (typeof Buffer !== "undefined") return JSON.parse(Buffer.from(String(token), "base64url").toString("utf8"));
+  try { if (typeof Buffer !== "undefined" && Buffer.isEncoding && Buffer.isEncoding("base64url")) return JSON.parse(Buffer.from(String(token), "base64url").toString("utf8")); } catch {}
   const b64 = String(token).replace(/-/g, "+").replace(/_/g, "/");
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);

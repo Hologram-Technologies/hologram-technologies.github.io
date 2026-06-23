@@ -1,0 +1,17 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "ROUNDTRIP — a perceived object is stored in the κ-store by its κ (κ == object.id, content-addressed) and retrieved by its pixels' capture hash",
+    "L5 REFUSE — a tampered κ-store entry fails verify-before-trust and is refused (returns null → it will be re-perceived honestly, never silently trusted)",
+    "PERSIST — a brand-new session/watcher re-seeing the SAME pixels is an O(1) κ-store hit: the OCR engine is never called again, the scene re-coheres from the stored κ, and it stays searchable"
+  ],
+  "checks": {
+    "roundtrip-kappa-equals-object-id": true,
+    "tampered-store-entry-refused-L5": true,
+    "session-A-perceives-and-persists": true,
+    "session-B-is-a-kappa-store-hit-no-engine": true
+  },
+  "failed": [],
+  "authority": "ADR-0081 (perception) · UOR κ-store (holo-opfs-kappastore MemKappaStore / holo-object) · holospaces Law L5"
+}

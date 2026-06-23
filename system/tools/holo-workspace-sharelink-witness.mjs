@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { makeStrand } from "../os/usr/lib/holo/holo-strand.mjs";
 import { makeWorkspaceHost } from "../os/usr/lib/holo/holo-workspace-host.mjs";
-import { shareLinkPayload, encodeWorkspaceShare, decodeWorkspaceShare, openSharedWorkspace } from "../os/usr/lib/holo/holo-workspace-share.mjs";
+import { shareLinkPayload, encodeWorkspaceShare, decodeWorkspaceShare, openSharedWorkspace, bundleBytes, bundleCid, openSharedByBytes } from "../os/usr/lib/holo/holo-workspace-share.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const checks = {}; const fail = [];
@@ -82,6 +82,15 @@ ok("encodeDecodeRoundtrip", dec && JSON.stringify(dec.entries) === JSON.stringif
   const bigBundle = await shareLinkPayload(bigApp, host, { now });
   const big = encodeWorkspaceShare(bigBundle);
   ok("qrFitFlags", small.qrFits === true && small.fits === true && big.qrFits === false && big.fits === true, JSON.stringify({ small: small.len, big: big.len }));
+}
+
+// ── 8 · large-share (#wsc=): publish bytes + content-id, verify-before-trust on the transport ──────────
+{
+  const bytes = bundleBytes(bundle); const cid = await bundleCid(bundle);
+  const good = await openSharedByBytes(bytes, cid);
+  const tampered = new TextEncoder().encode(new TextDecoder().decode(bytes).replace("final", "HACKED"));
+  const bad = await openSharedByBytes(tampered, cid);   // bytes changed → cid no longer matches → refused
+  ok("largeShareCidVerify", good.ok === true && good.state && good.state.doc === "final" && bad.ok === false && bad.why === "cid-mismatch", JSON.stringify({ good: good.ok, bad: bad.why }));
 }
 
 const witnessed = Object.values(checks).every(Boolean);

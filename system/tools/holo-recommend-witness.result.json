@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-recommend — the recommendations row: κ apps you haven't opened, ranked by private interests (× holo-rank), excluding recents; only true interest-matches when there's a signal, a light popular fallback otherwise; honest heading. On-device; nothing egresses; renders through the Continue-watching rail.",
+  "authority": "rests on #holo-recommend + #holo-profile + #holo-rank",
+  "witnessed": true,
+  "covers": [
+    "excludes-recents",
+    "matches-interests",
+    "only-matches-when-signal",
+    "popular-fallback",
+    "honest-heading"
+  ],
+  "checks": {
+    "excludesRecents": true,
+    "matchesInterests": true,
+    "onlyMatchesWhenSignal": true,
+    "popularFallback": true,
+    "honestHeading": true
+  },
+  "failed": []
+}
