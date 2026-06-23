@@ -95,7 +95,7 @@ const mimeOf = (rel) => MIME[String(rel).split(".").pop().toLowerCase()] || "app
 // un-rewritten file). No-op at a root deploy (BASE === "/"), so dev + user-site boots are byte-unchanged.
 const HTMLISH = (rel) => rel === "" || rel.endsWith("/") || /\.html?$/i.test(rel);
 const SUBPATH_PREFIXES = ["_shared", "sbin", "usr", "lib", "lib64", "pkg", "apps", "etc", "var", "opt", "srv", "boot", "bin", "home", "root", "mnt", "media", ".well-known", ".holo", "ipfs", "ipns"];
-const TOPLEVEL_MODULES = ["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-wire.mjs", "holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "holo-heal-boot.mjs", "browser-sw.js"];   // OS modules imported as a bare-root specifier "/holo-*.mjs" (fhsMap routes them to sbin/ or lib/)
+const TOPLEVEL_MODULES = ["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-wire.mjs", "holo-fabric.mjs", "holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "holo-heal-boot.mjs", "browser-sw.js"];   // OS modules imported as a bare-root specifier "/holo-*.mjs" (fhsMap routes them to sbin/ or lib/)
 const FLAT_SRC = "^/(?:" + SUBPATH_PREFIXES.map((p) => p.replace(/[.]/g, "\\.")).join("|") + ")(?:/|$)";   // matches an origin-absolute OS-flat path "/usr/…", "/.holo/…" — NOT a BASE-rooted one
 const reroot = (v) => (typeof v === "string" && /^\/(?!\/)/.test(v)) ? BASE + v.slice(1) : v;   // origin-absolute "/x" → "BASE x"; leaves //, https://, bare, relative alone
 const rerootMap = (obj) => { const o = {}; for (const [k, v] of Object.entries(obj || {})) o[reroot(k)] = (v && typeof v === "object") ? rerootMap(v) : reroot(v); return o; };
@@ -242,7 +242,7 @@ const APPLOCK = new Set();   // app-ids whose lock closure has been folded into 
 // baked anchor — the ONE κ a tamperer cannot forge without also editing this worker, which the browser loads
 // out-of-band (SW registration / SRI), never through the handler it defines. Sealed by tools/holo-anchor-sw.mjs
 // on every reseal. Empty string ⇒ an unsealed dev tree → enforcement off (no false refusal before first seal).
-const CLOSURE_KAPPA = "6c09f157b758e2af5b48ab02bbdb4019b9ce9097ab7dc8b2f95c488863bc64fd";
+const CLOSURE_KAPPA = "b6b808ffb3ec968312c7e4a1d2d4c2ba1cc719a9309e418ee9df40edfd499020";
 let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {

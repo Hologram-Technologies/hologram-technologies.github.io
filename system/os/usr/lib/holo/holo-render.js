@@ -55,7 +55,12 @@ export const kappaOfObject = async (o) => kappaOfBytes(te.encode(canonicalize(o)
 // ── config / resolution surface ───────────────────────────────────────────────────────────────
 export async function configure({ importmap, base, resolver, route, bare, stream, media } = {}) {
   if (base) BASE = base.endsWith("/") ? base : base + "/";
-  if (resolver) RESOLVER = resolver;          // hand in holo-resolver.mjs's resolveByKappa to unify
+  if (resolver) {
+    RESOLVER = resolver;                       // default: the shell-injected resolveByKappa (silicon) — identical to today
+    // route resolution through the substrate FABRIC so an attested optical/photonic driver can be preferred ahead
+    // of silicon; dynamic + fail-open — if the fabric cannot load, the silicon resolver stays (render never breaks).
+    try { const fab = await import("/holo-fabric.mjs"); const f = fab.makeFabric({ drivers: [fab.siliconDriver(resolver)], attest: [] }); RESOLVER = (k) => f.resolve(k); } catch (e) {}
+  }          // hand in holo-resolver.mjs's resolveByKappa to unify
   if (route) ROUTE = route;                   // hand in the substrate κ-route (e.g. /.holo/sha256/<hex>)
   if (bare) Object.assign(BARE, bare);        // override/extend the shared-runtime bare→κ link map
   // an importmap is OPTIONAL — most apps have none; resolution rides ROUTE/RESOLVER. Never throw on a
@@ -66,7 +71,8 @@ export async function configure({ importmap, base, resolver, route, bare, stream
   // and 404). Fixed absolute path resolves identically in dev, the SW, and a dumb static host.
   else if (!IMPORTMAP) { try { const r = await fetch("/ui/vendor/importmap.json"); IMPORTMAP = r.ok ? await r.json() : { imports: {}, integrity: {} }; } catch { IMPORTMAP = { imports: {}, integrity: {} }; } }
   if (media !== false) { try { const m = await import(/* @vite-ignore */ "./holo-render-media.mjs"); (m.default || m).register({ register }); } catch (e) {} }   // register the builtin media kinds (holo:Video/Audio/Image) onto the registry (lazy, opt-out via media:false)
-  if (stream !== false) { try { autoStream(); } catch (e) {} }   // every configured surface streams the scene ahead (idle-time, deduped)
+  if (stream !== false) { try { autoStream(); } catch (e) {} }
+  try { if (typeof window !== "undefined" && !window.HoloStream) (await import("/_shared/holo-stream-kit.mjs")).mount(window); } catch (e) {}   // auto-mount the unified streaming toolkit (window.HoloStream) — fail-open   // every configured surface streams the scene ahead (idle-time, deduped)
   return IMPORTMAP;
 }
 function urlForKappa(k) {
