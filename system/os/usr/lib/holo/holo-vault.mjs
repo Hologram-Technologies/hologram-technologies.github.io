@@ -31,7 +31,7 @@ const concat = (a, b) => { const o = new Uint8Array(a.length + b.length); o.set(
 
 const MAX_EVENTS = 10000;            // SEC-8: per-operator chain length bound
 const MAX_SEALED = 64 * 1024;        // SEC-8: per-event sealed payload bound
-const CRED_KINDS = new Set(["password", "passkey", "web3"]);
+const CRED_KINDS = new Set(["password", "passkey", "web3", "totp", "note", "card", "identity"]); // full 1Password-class item types
 
 // ── epoch key: PBKDF2 from the enclave PRF secret, salted per operator + epoch + a VAULT domain label,
 //    so it is cryptographically distinct from the identity seed-wrap and the session key, and each epoch
