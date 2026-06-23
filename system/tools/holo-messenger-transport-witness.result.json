@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "FRAME — a captured message frames as a holo-wire PUT (op/topic=genesis/kappa/bytes) and round-trips byte-faithfully",
+    "STREAM — publish() delivers a verified message to a subscribed inbox in the SAME tick over one in-process hop (the low-latency same-device path)",
+    "VERIFY — a frame whose bytes don't re-derive to its claimed κ is refused verify-before-render; onMessage never fires (SEC-1, Law L5)",
+    "TOPIC — a subscriber ignores frames for conversations it isn't subscribed to",
+    "DEDUP — the same frame received twice delivers once; the seen-set makes re-delivery idempotent (SEC-3)",
+    "BOUND — the seen-set is capped by a fixed quota, not by any declared count (SEC-8 DoS resistance)",
+    "RELAY — a content-blind relay forwards frame bytes UNCHANGED and caches them opaquely; the EDGE (subscriber) refuses tampering — integrity at the edge, not the relay (SEC-7 + SEC-1)",
+    "FETCH — the relay answers GET with the cached frame (OBJ) or MISS, reading only the wire header, never parsing the payload",
+    "E2E — capture → thread.ingest → publish → subscriber verify-before-render → thread.ingestObject converges the inbox tab to the SAME message κ the platform tab captured, with no server in the path"
+  ],
+  "genesis": "did:holo:sha256:856d44eaeeb39417dbf33badc8fdf599c92e520918fbbdf768e7c422d5ae2ca1",
+  "sample": {
+    "kappa": "did:holo:sha256:6b1178bedc62cecc77670238dc8d9070df066c3be0f7a3d09bf0c87a300e53de",
+    "frameBytes": 595
+  },
+  "checks": {
+    "frame-roundtrips-as-wire-put": true,
+    "stream-delivers-verified-same-tick": true,
+    "tampered-frame-refused-fail-closed": true,
+    "topic-filtering": true,
+    "idempotent-delivers-once": true,
+    "seen-set-bounded": true,
+    "relay-content-blind-edge-enforces": true,
+    "relay-get-obj-or-miss": true,
+    "e2e-realtime-cross-tab-convergence": true
+  },
+  "failed": [],
+  "authority": "holo-wire (κ pub/sub) · holo-gossip-channel (BroadcastChannel) · holospaces SEC-1/SEC-3/SEC-7/SEC-8 · Law L5"
+}

@@ -1781,7 +1781,7 @@
         tabs.forEach((t, i) => {
           const el = document.createElement("button"); el.type = "button"; el.className = "tab" + (i === activeTab ? " active" : "") + (t.pinned ? " pinned" : "") + (t.dev ? " dev" : ""); el.setAttribute("role", "tab");
           const title = dropHolo((t.title || "New Tab").replace(/^🌐\s*/, ""));
-          const fav = document.createElement("span"); fav.className = "t-fav"; fav.textContent = t.home ? "⌂" : (t.startHere ? "✦" : (t.dev ? "✦" : (t.addr ? schemeOf(t.addr).ic : "✦")));
+          const fav = document.createElement("span"); fav.className = "t-fav"; fav.textContent = t.home ? "⌂" : (t.play ? "▶" : (t.startHere ? "✦" : (t.dev ? "✦" : (t.addr ? schemeOf(t.addr).ic : "✦"))));
           el.append(fav); el.title = (t.dev ? "Dev — building, not yet published · " : "") + (t.addr ? t.addr + " " : "") + title;
           if (!t.pinned) { const ttl = document.createElement("span"); ttl.className = "t-ttl"; ttl.textContent = title; el.append(ttl); }   // pinned = favicon only
           if (t.group && tabGroups[t.group]) { el.classList.add("grouped"); el.style.setProperty("--tg", tabGroups[t.group].color); }   // a Chrome-style colored tab group
@@ -1865,7 +1865,7 @@
         const t = tabs[activeTab];
         // activeTab === 0 is the permanent Home base (never closed, never reordered before 0) — treat it as
         // Home even if the serializer stripped the flag, so a launch from Home ALWAYS opens its own tab.
-        return !!(activeTab === 0 || (t && (t.home || t.startHere)) || (desktop.doc().world || []).length > 0);
+        return !!(activeTab === 0 || (t && (t.home || t.startHere || t.play)) || (desktop.doc().world || []).length > 0);
       }
       function ensureStartHereTab() {
         if (!tabs.some((t) => t.home) && tabs[0]) tabs[0].home = true;   // re-stamp the `home` flag the serializer drops (else launches mount INTO Home instead of a new tab)
@@ -1881,6 +1881,17 @@
           const t = { id: "tstart" + Math.random().toString(36).slice(2, 5), title: "Start here", startHere: true, addr: "holo://start", snap: null };
           tabs.splice(1, 0, t);                                  // right after Home
           if (activeTab >= 1) activeTab++;                       // keep the restored selection pointing at the same tab (for now)
+        }
+        // ── pinned "Play" tab right after Start here: the streaming front door (Continue watching + Discover) ──
+        const isPlay = (t) => !!t && (t.play || t.addr === "holo://play" || t.title === "Play");
+        const pf = tabs.findIndex(isPlay);
+        if (pf >= 0) {
+          for (let i = tabs.length - 1; i > pf; i--) { if (isPlay(tabs[i])) { tabs.splice(i, 1); if (activeTab > i) activeTab--; else if (activeTab === i) activeTab = pf; } }
+          const t = tabs[pf]; t.play = true; t.title = "Play"; t.addr = "holo://play"; delete t.pinned;
+        } else {
+          const shIdx = tabs.findIndex(isSH); const at = shIdx >= 0 ? shIdx + 1 : 2;
+          tabs.splice(at, 0, { id: "tplay" + Math.random().toString(36).slice(2, 5), title: "Play", play: true, addr: "holo://play", snap: null });
+          if (activeTab >= at) activeTab++;
         }
         const homeIdx = tabs.findIndex((t) => t.home);           // ALWAYS land on Home at login (the user's home base)
         if (homeIdx >= 0 && activeTab !== homeIdx) {
@@ -3866,12 +3877,17 @@
         if (t && t.forming) { host.classList.remove("starthere"); host.innerHTML = formingOverlayHTML(t.forming); host.dataset.mode = "forming"; return; }
         // cache by mode so switching tabs is a cheap class/flag flip — never a DOM rebuild (crisp nav)
         if (t && t.startHere) { if (host.dataset.mode !== "start") { host.classList.add("starthere"); renderDiscover(); host.dataset.mode = "start"; } }
-        else {   // Home: Continue watching + a recommendations row are the streaming front door (widgets are a separate layer below)
+        else if (t && t.play) {   // Play tab — the streaming front door (Continue watching + Discover), off Home
           host.classList.remove("starthere");
           const rail = continueRail(), drail = discoverRail();
           host.innerHTML = "";
           if (rail || drail) { host.classList.add("cw-home"); host.style.placeContent = "start center"; host.style.paddingTop = "clamp(64px,11vh,132px)"; if (rail) host.appendChild(rail); if (drail) host.appendChild(drail); }
           else { host.classList.remove("cw-home"); host.style.placeContent = ""; host.style.paddingTop = ""; }
+          host.dataset.mode = "play";
+        }
+        else {   // Home (and blank tabs): CLEAN — greeting + Q orb + widgets only, no rails
+          host.classList.remove("starthere", "cw-home"); host.style.placeContent = ""; host.style.paddingTop = "";
+          host.innerHTML = "";
           host.dataset.mode = "home";
         }
       }
