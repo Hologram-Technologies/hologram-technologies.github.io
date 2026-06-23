@@ -1,0 +1,145 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand P5 — OLD STORES BECOME PROJECTIONS OF THE ONE SPINE: strandBackend gives the {load,save} contract the old stores already accept, but persists THROUGH the source chain (`store.<ns>` snapshot entries). A real holo-memory runs unmodified on it; a fresh store over the same spine recovers its state (reload proof); many stores coexist on one spine; projectStores reconstructs every store's state from the chain alone — the proof that the spine is a sufficient single backend (precondition for retiring the separate stores). Drop-in, reversible, projection-only.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-memory + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "store-on-spine",
+    "projection-survives-reload",
+    "data-on-chain",
+    "many-stores-one-spine"
+  ],
+  "sample": {
+    "stores": {
+      "memory": {
+        "records": [
+          {
+            "@context": [
+              "https://www.w3.org/ns/did/v1",
+              "https://w3id.org/security/data-integrity/v2",
+              {
+                "schema": "https://schema.org/",
+                "prov": "http://www.w3.org/ns/prov#",
+                "dcterms": "http://purl.org/dc/terms/",
+                "rel": "schema:additionalType",
+                "links": {
+                  "@id": "schema:hasPart",
+                  "@container": "@set"
+                }
+              },
+              {
+                "holmem": "https://hologram.os/ns/memory#"
+              }
+            ],
+            "@type": [
+              "prov:Entity",
+              "holmem:Record"
+            ],
+            "holmem:kind": "intent",
+            "holmem:text": "open the wallet",
+            "prov:generatedAtTime": "2026-06-22T00:00:00.000Z",
+            "id": "did:holo:sha256:4e583a2fa89db3ccc00582145bf818c8c84b1c8572550fba380bb6b28be4e55a"
+          },
+          {
+            "@context": [
+              "https://www.w3.org/ns/did/v1",
+              "https://w3id.org/security/data-integrity/v2",
+              {
+                "schema": "https://schema.org/",
+                "prov": "http://www.w3.org/ns/prov#",
+                "dcterms": "http://purl.org/dc/terms/",
+                "rel": "schema:additionalType",
+                "links": {
+                  "@id": "schema:hasPart",
+                  "@container": "@set"
+                }
+              },
+              {
+                "holmem": "https://hologram.os/ns/memory#"
+              }
+            ],
+            "@type": [
+              "prov:Entity",
+              "holmem:Record"
+            ],
+            "holmem:kind": "feedback",
+            "holmem:text": "great answer",
+            "holmem:vote": "up",
+            "prov:generatedAtTime": "2026-06-22T00:00:02.000Z",
+            "id": "did:holo:sha256:f56591a4f1340cffda2c534d75a388f9d2fb2ec7a599dfaff2988b0e59d1b07d"
+          },
+          {
+            "@context": [
+              "https://www.w3.org/ns/did/v1",
+              "https://w3id.org/security/data-integrity/v2",
+              {
+                "schema": "https://schema.org/",
+                "prov": "http://www.w3.org/ns/prov#",
+                "dcterms": "http://purl.org/dc/terms/",
+                "rel": "schema:additionalType",
+                "links": {
+                  "@id": "schema:hasPart",
+                  "@container": "@set"
+                }
+              },
+              {
+                "holmem": "https://hologram.os/ns/memory#"
+              }
+            ],
+            "@type": [
+              "prov:Entity",
+              "holmem:Record"
+            ],
+            "holmem:kind": "intent",
+            "holmem:text": "summarize my notes",
+            "prov:generatedAtTime": "2026-06-22T00:00:04.000Z",
+            "id": "did:holo:sha256:0943d0dbcd09b74b2e665c12f33c6a5745a398cbdb13d6eeff4f3b760938cf50"
+          }
+        ],
+        "n": 3,
+        "atSeq": 2
+      },
+      "session": {
+        "records": [
+          {
+            "@context": [
+              "https://www.w3.org/ns/did/v1",
+              "https://w3id.org/security/data-integrity/v2",
+              {
+                "schema": "https://schema.org/",
+                "prov": "http://www.w3.org/ns/prov#",
+                "dcterms": "http://purl.org/dc/terms/",
+                "rel": "schema:additionalType",
+                "links": {
+                  "@id": "schema:hasPart",
+                  "@container": "@set"
+                }
+              },
+              {
+                "holmem": "https://hologram.os/ns/memory#"
+              }
+            ],
+            "@type": [
+              "prov:Entity",
+              "holmem:Record"
+            ],
+            "holmem:kind": "artifact",
+            "holmem:text": "tabs:home,wallet",
+            "prov:generatedAtTime": "2026-06-22T00:00:06.000Z",
+            "id": "did:holo:sha256:8b2d4123a26216bb2a10ec9b5c7202852033f795f4a461d83bf33680521f6d9f"
+          }
+        ],
+        "n": 1,
+        "atSeq": 3
+      }
+    },
+    "head": "did:holo:sha256:c05ab3ff1efd6ab1a8a95e1c5ce3803d44b3315048ba4ab19fc2dd5744b02c60"
+  },
+  "checks": {
+    "storeRunsOnSpine": true,
+    "projectionSurvives": true,
+    "dataIsOnTheChain": true,
+    "manyStoresOneSpine": true
+  },
+  "failed": []
+}

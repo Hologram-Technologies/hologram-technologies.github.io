@@ -1,0 +1,26 @@
+{
+  "spec": "Human-layer consent policy: ambient caps auto-granted silently (no card on open); sensitive acts asked ONLY at use, in one plain jargon-free sentence; unknown/prohibited refused. The substrate keeps default-deny + cryptographic proof (holo-admit/holo-stepup) unchanged — only the surface stops interrupting. Removes the #1 non-technical-user wall.",
+  "authority": "holospaces default-deny (holo-admit) · holo-stepup (proof for sensitive acts) · iOS/Android just-in-time permission UX (external)",
+  "witnessed": true,
+  "covers": [
+    "consent-policy",
+    "ambient-auto-grant",
+    "no-card-on-open",
+    "use-time-deferral",
+    "plain-language",
+    "prohibited-refused",
+    "default-deny",
+    "money-per-use"
+  ],
+  "checks": {
+    "ambientAutoGranted": true,
+    "noCardOnOpen": true,
+    "sensitiveDeferredToUse": true,
+    "plainLanguageNoJargon": true,
+    "prohibitedRefused": true,
+    "defaultDenyPreserved": true,
+    "crossAppDataSensitive": true,
+    "moneyPerUseConfirm": true,
+    "deterministic": true
+  }
+}

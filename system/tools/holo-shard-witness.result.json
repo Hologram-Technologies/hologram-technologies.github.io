@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-shard D — the content-addressed shared space (sharded κ-store): for a content κ the responsible peers are the R smallest-ticket peers under the holo-swarm κ-VRF seeded by that κ — deterministic, verifiable from public κs (L5), redundant (R replicas not full replication). put() stores only on responsible holders; get() fetches from a holder and VERIFIES-ON-RECEIPT (fetched bytes must re-derive to κ) before trusting/caching, so a holder cannot serve tampered data. Transport is injected (real gossip = phase G); IPFS is the durability floor. Pure assembly over holo-swarm + holo-uor.",
+  "authority": "Holochain DHT/sharding model · UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-swarm (κ-VRF) + #holo-uor",
+  "witnessed": true,
+  "covers": [
+    "deterministic-placement",
+    "redundant-not-full",
+    "distributes",
+    "put-on-holders",
+    "get-fetch-verify",
+    "tampered-refused"
+  ],
+  "sample": {
+    "K": "did:holo:sha256:ab78c563d91b59b83d534106056221a796dc1d463f6d1a6d41bcc9b716fa3ce3",
+    "holders": [
+      "did:holo:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "did:holo:sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "did:holo:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    ],
+    "replicas": 3,
+    "peers": 5
+  },
+  "checks": {
+    "placementDeterministic": true,
+    "redundantNotFull": true,
+    "distributesAcrossKs": true,
+    "putStoresOnHolders": true,
+    "getFetchesAndVerifies": true,
+    "tamperedFetchRefused": true
+  },
+  "failed": []
+}

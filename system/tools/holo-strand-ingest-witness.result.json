@@ -1,0 +1,32 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand P2 — THE '+' PROVENANCE DERIVES FROM THE SPINE: ingestion is recorded as signed, hash-linked `ingest` entries on the operator source chain, and the holo-map hypergraph's provenance edges reconcile against it — every source κ a claim cites must trace to a signed ingest entry, else it is unprovenanced and refused (fail-closed). A tampered ingest log breaks the chain (Law L5). The Port and Map are unchanged; the ingest log is one projection of the single spine.",
+  "authority": "UOR-ADDR (κ=H(canonical_form)) · W3C PROV-O · IETF RFC 8785 (JCS) · holospaces Laws L1/L2/L5 · rests on #holo-ingest + #holo-map + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "ingest-on-spine",
+    "provenance-resolves",
+    "graph-reconciles",
+    "foreign-unprovenanced",
+    "tamper-refused",
+    "ingest-signed"
+  ],
+  "sample": {
+    "sources": [
+      "did:holo:sha256:eb13…",
+      "did:holo:sha256:69c7…",
+      "did:holo:sha256:f82f…"
+    ],
+    "graphProv": 3,
+    "strandHead": "did:holo:sha256:adec9058febc8a2f14a04264b68493142b589221146810ef98a327e5d82c6502"
+  },
+  "checks": {
+    "ingestRecordedOnSpine": true,
+    "provenanceResolves": true,
+    "graphProvenanceReconciles": true,
+    "foreignSourceUnprovenanced": true,
+    "tamperedIngestRefused": true,
+    "ingestEntriesSigned": true
+  },
+  "failed": []
+}

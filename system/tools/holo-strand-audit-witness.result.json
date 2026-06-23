@@ -1,0 +1,33 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand P3 — ONE SIGNED AUDIT SOURCE: consent (terms.grantSensitive), delegation (delegation.issue) and value transfer (wallet.*) acts are recorded as signed `audit` entries on the operator source chain, each referencing a payload-bound, operator-signed StepUp attestation (holo-stepup). Inbox/Control read ONE ordered, tamper-evident audit log; a forged act cannot present a verifying step-up; a tampered log breaks the chain (Law L5). The step-up seam, Terms, delegation and wallet are unchanged; the audit log is one projection of the single spine.",
+  "authority": "holo-apps explicit-consent standard · UOR-ADDR (κ=H(canonical_form)) · IETF RFC 8785 (JCS) · holospaces Laws L1/L2/L5 · rests on #holo-stepup + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "acts-on-spine",
+    "one-unified-source",
+    "level-filter",
+    "references-stepup",
+    "forged-refused",
+    "tamper-refused",
+    "audit-signed"
+  ],
+  "sample": {
+    "acts": [
+      "authority:terms.grantSensitive",
+      "authority:delegation.issue",
+      "value:wallet.send"
+    ],
+    "strandHead": "did:holo:sha256:5aeb6c087c545d9f6f1590df910b8db8851f237b8771cab9babeb1499fec422b"
+  },
+  "checks": {
+    "actsRecordedOnSpine": true,
+    "oneUnifiedSource": true,
+    "levelFilterWorks": true,
+    "actReferencesStepUp": true,
+    "forgedActRefused": true,
+    "tamperedLogRefused": true,
+    "auditEntriesSigned": true
+  },
+  "failed": []
+}

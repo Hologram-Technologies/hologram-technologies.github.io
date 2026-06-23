@@ -1,0 +1,25 @@
+{
+  "spec": "One unified scheduler (Law L4): a single budgeted tick drives the render-delta loop AND the LLM token stream by priority — frame rate protected (render pumps every tick), LLM fills the remaining budget (not starved), finished tasks drop. The orb renders while Q generates, one runtime.",
+  "authority": "holospaces Law L4 (everything through one substrate/runtime) · frame-budget scheduling · priority scheduling with fairness",
+  "witnessed": true,
+  "covers": [
+    "unified-scheduler",
+    "budget-honored",
+    "priority-order",
+    "render-every-tick",
+    "llm-not-starved",
+    "both-progress",
+    "task-done-drops",
+    "deterministic"
+  ],
+  "checks": {
+    "budgetHonored": true,
+    "priorityOrder": true,
+    "renderEveryTick": true,
+    "llmNotStarved": true,
+    "bothProgress": true,
+    "doneDrops": true,
+    "deterministic": true,
+    "tightBudgetRenderFirst": true
+  }
+}

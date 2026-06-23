@@ -1,0 +1,19 @@
+{
+  "@type": "holo:WitnessResult",
+  "witness": "holo-pull-consume",
+  "phase": "C",
+  "pass": 8,
+  "fail": 0,
+  "total": 8,
+  "ok": true,
+  "checks": {
+    "every-frame-delivered-in-order-verified-1": true,
+    "ttff-lands-within-one-round-trip-2": true,
+    "no-stalls-when-the-pipe-keeps-up-3": true,
+    "the-loop-runs-at-the-target-cadence-not-faster-4": true,
+    "paced-playback-has-no-stalls-on-a-fast-network-5": true,
+    "blocks-are-prefetched-ahead-of-the-playhead-6": true,
+    "swarm-streamed-model-is-byte-identical-to-a-local-read-7": true,
+    "every-shard-was-present-and-verified-8": true
+  }
+}

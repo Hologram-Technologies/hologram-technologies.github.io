@@ -1,0 +1,19 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand signer-at-unlock — holo-session.unlockOperatorKey attaches the unlocked operator principal as the strand signer (id.unlock → setSigner), so spine entries gain authorship (Ed25519/ECDSA over the entry κ, op κ == operator); lock detaches it. Fail-soft: without a signer, entries stay content-linked (still tamper-evident). The chain verifies whether or not individual entries are signed.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L5 · rests on #holo-identity + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "before-unsigned",
+    "unlock-attaches",
+    "binds-operator",
+    "lock-detaches"
+  ],
+  "checks": {
+    "beforeUnlockUnsigned": true,
+    "unlockAttachesSigner": true,
+    "signatureBindsOperator": true,
+    "lockDetaches": true
+  },
+  "failed": []
+}

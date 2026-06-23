@@ -1,0 +1,34 @@
+{
+  "spec": "The κ-stream spine: the whole experience (frame · token · UI subtree · model layer) is a stream of κ-objects against a local κ-cache; held κ ⇒ ref (≈0 bytes, O(1) reconstruct), novel κ ⇒ bytes (re-derived, Law L5). What travels is novelty not resolution (high FPS on any device); render and LLM share one transport (Law L4); personalization is a κ-delta over shared κ-objects.",
+  "authority": "holospaces Laws L1/L2/L3/L4/L5 · W3C Subresource Integrity · IPFS Trustless Gateways (κ = CIDv1 sha2-256) · HTTP ETag/304 delta precedent",
+  "witnessed": true,
+  "covers": [
+    "kappa-stream",
+    "bandwidth-is-novelty",
+    "tamper-refused",
+    "personalization-delta",
+    "render-llm-unified",
+    "deterministic",
+    "high-fps-model",
+    "law-l3",
+    "law-l5"
+  ],
+  "fps": {
+    "objs": 139,
+    "refs": 2261,
+    "objsExpected": 139,
+    "wireBytes": 8896,
+    "naiveBytes": 153600,
+    "reduction": 17.3
+  },
+  "checks": {
+    "spineReconstructs": true,
+    "bandwidthIsNovelty": true,
+    "tamperRefused": true,
+    "refToUnheldRefused": true,
+    "personalizationDelta": true,
+    "unifiesRenderAndLLM": true,
+    "deterministic": true,
+    "highFpsModel": true
+  }
+}

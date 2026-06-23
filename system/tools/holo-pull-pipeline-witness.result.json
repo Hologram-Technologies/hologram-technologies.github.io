@@ -1,0 +1,27 @@
+{
+  "@type": "holo:WitnessResult",
+  "witness": "holo-pull-pipeline",
+  "phase": "A",
+  "speedup": 8.25,
+  "inflightMax": 7,
+  "pass": 14,
+  "fail": 0,
+  "total": 14,
+  "ok": true,
+  "checks": {
+    "sequential-picks-manifest-order-1": true,
+    "streaming-picks-the-window-head-2": true,
+    "a-deadline-front-runs-the-window-3": true,
+    "rarest-picks-the-least-available-block-4": true,
+    "endgame-returns-the-stragglers-5": true,
+    "pipeline-8-is-3-faster-than-pipeline-1-6": true,
+    "never-more-than-pipeline-requests-in-flight-7": true,
+    "the-deadline-d-block-is-fetched-first-8": true,
+    "a-tampered-block-resolves-to-null-l5-9": true,
+    "an-honest-block-from-the-same-source-verifies-10": true,
+    "the-driver-never-surfaces-a-tampered-block-to-a-consumer-11": true,
+    "streaming-delivers-every-playhead-block-verified-no-stal-12": true,
+    "the-picker-prefetches-ahead-of-the-playhead-13": true,
+    "ttff-lands-within-one-round-trip-14": true
+  }
+}

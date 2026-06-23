@@ -1,0 +1,26 @@
+{
+  "spec": "The one player: everything is a κ that plays. One play() path for app/chat/doc/space (only the delta producer differs); cheap content-derived posters; verify-before-play (L5); instant replay from cache; app+chat coexist on one scheduler; continue resumes exact state; personalized wall. Netflix-grade browse→play→continue over the one self-verifying substrate, composing the committed streaming foundation.",
+  "authority": "holospaces Laws L1/L3/L4/L5 · the committed streaming primitives (cac7848) · Netflix-grade continuous playback UX",
+  "witnessed": true,
+  "covers": [
+    "one-player",
+    "everything-plays",
+    "cheap-poster",
+    "verify-before-play",
+    "instant-replay",
+    "one-scheduler-coexist",
+    "continue-resume",
+    "personalized-wall",
+    "stop-unregister"
+  ],
+  "checks": {
+    "everythingPlaysOnePath": true,
+    "posterCheapDeterministic": true,
+    "verifyBeforePlay": true,
+    "instantReplayCached": true,
+    "oneSchedulerCoexist": true,
+    "continueResumesState": true,
+    "wallPersonalizes": true,
+    "stopUnregisters": true
+  }
+}

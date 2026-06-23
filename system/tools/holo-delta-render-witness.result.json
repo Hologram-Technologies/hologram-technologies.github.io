@@ -1,0 +1,31 @@
+{
+  "spec": "Delta render loop: per frame, only NOVEL regions recompute/dispatch (compute-memo), everything else reconstructs O(1); a per-frame compute budget bounds work so FPS holds; paint fires only on κ-change. Work ∝ novelty on screen. Pure + injectable; real FPS measured in-page.",
+  "authority": "holospaces Laws L1/L2/L3/L5 · damage/dirty-region rendering · frame-budget scheduling · content-addressed memoization",
+  "witnessed": true,
+  "covers": [
+    "delta-render-loop",
+    "zero-work-static",
+    "one-region-delta",
+    "compute-budget",
+    "paint-on-change",
+    "metered",
+    "deterministic",
+    "throughput-model"
+  ],
+  "model": {
+    "computed": 115,
+    "expected": 115,
+    "naive": 1600,
+    "reduction": 13.9
+  },
+  "checks": {
+    "firstFrameAllNovel": true,
+    "identicalFrameZeroWork": true,
+    "oneRegionDelta": true,
+    "budgetDefers": true,
+    "paintOnlyOnChange": true,
+    "meterReflects": true,
+    "deterministic": true,
+    "throughputModel": true
+  }
+}

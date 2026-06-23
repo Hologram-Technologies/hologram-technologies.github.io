@@ -1,0 +1,27 @@
+{
+  "@type": "holo:WitnessResult",
+  "witness": "holo-swarm-fetch",
+  "phase": "B",
+  "scaling": {
+    "t1": 483,
+    "t2": 261,
+    "t4": 125,
+    "speedup4": 3.86
+  },
+  "pass": 10,
+  "fail": 0,
+  "total": 10,
+  "ok": true,
+  "checks": {
+    "completion-time-falls-as-peers-are-added-1": true,
+    "4-peers-are-2-5-faster-than-1-2": true,
+    "the-stream-completes-despite-a-10-slow-peer-3": true,
+    "the-slow-peer-serves-less-than-its-fair-share-4": true,
+    "every-block-completes-despite-a-lying-peer-5": true,
+    "the-liar-s-bytes-never-count-honest-peer-carries-it-l5-6": true,
+    "rarest-completes-from-partial-overlapping-have-maps-7": true,
+    "the-scheduler-never-asked-a-peer-for-a-block-it-lacks-8": true,
+    "a-joiner-learns-all-holders-transitively-pex-9": true,
+    "learning-is-idempotent-re-announce-adds-no-duplicates-10": true
+  }
+}

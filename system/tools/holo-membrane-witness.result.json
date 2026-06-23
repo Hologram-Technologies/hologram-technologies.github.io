@@ -1,0 +1,30 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-membrane M — per-app membranes: a content-addressed, forkable app boundary (governing ruleset κ + join predicate + operator authority). Entry is deterministic + fail-closed (open / operator-signed invite / closed); forged or mis-targeted invites are refused (L5 on the invite + CC-1 issuer binding + signature). Membership is a SEC-4 content-addressed roster bound to the membrane + operator (re-derives; moves with membership and membrane). The membrane scopes validation — members' entries are governed by membrane.rulesetKappa (V). Holochain's hApp/DNA boundary on the κ substrate. Pure assembly over holo-object + holo-identity; no new crypto.",
+  "authority": "Holochain hApp/DNA membrane model · UOR-ADDR · holospaces Laws L1/L2/L5 + SEC-4 · rests on #holo-object + #holo-identity + #holo-strand-rules",
+  "witnessed": true,
+  "covers": [
+    "content-addressed-forkable",
+    "open-admits",
+    "closed-refuses",
+    "invite-admits",
+    "forged-invite-refused",
+    "sec4-roster-binds",
+    "scopes-ruleset"
+  ],
+  "sample": {
+    "membrane": "did:holo:sha256:0e4bd7deae23b9d5439abb3b2208c53bbdb356e7a02558ce911ce915e26efd6f",
+    "ruleset": "did:holo:sha256:63b1cdfae1c649f32dc144cf5de5f677001a6eb955c984a2f1da50bce9536eb0",
+    "roster": "did:holo:sha256:112ec80ae64654c311fd3666d25130857810fc021ba1f5cd14c7464b378fc4f6"
+  },
+  "checks": {
+    "membraneContentAddressed": true,
+    "openAdmitsAnyone": true,
+    "closedRefuses": true,
+    "inviteAdmits": true,
+    "forgedInviteRefused": true,
+    "rosterBindsMembrane": true,
+    "membraneScopesRuleset": true
+  },
+  "failed": []
+}

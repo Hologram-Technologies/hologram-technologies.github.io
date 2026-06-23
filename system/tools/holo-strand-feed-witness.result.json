@@ -1,0 +1,32 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand feed — the human-readable view of the ONE spine: a single most-recent-first feed across resume/ingest/audit/rules, each row a plain summary plus provenance (entry κ, signed, seq), and a one-sentence digest. Makes 'one spine' felt — Q answers 'what did I do?' from the single chain. Pure, additive, projection-only.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "spans-all-kinds",
+    "recent-first",
+    "human-summaries",
+    "kind-filter",
+    "digest",
+    "empty-honest"
+  ],
+  "sample": {
+    "digest": "4 things on your spine — last: Adopted the rules “base”.",
+    "feed": [
+      "3 Adopted the rules “base”",
+      "2 Approved: Send 0.4 ETH on base to 0xabc",
+      "1 Brought in acme.txt (text)",
+      "0 Opened your session on primeos"
+    ]
+  },
+  "checks": {
+    "feedSpansAllKinds": true,
+    "mostRecentFirst": true,
+    "humanSummaries": true,
+    "kindFilter": true,
+    "digestHeadline": true,
+    "emptyIsHonest": true
+  },
+  "failed": []
+}

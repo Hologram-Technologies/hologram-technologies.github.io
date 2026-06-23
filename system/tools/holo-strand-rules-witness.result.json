@@ -1,0 +1,28 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-strand P4 — VALIDATION RULES AS CHAIN-REFERENCED κ: a ruleset is a content-addressed, forkable κ-object; adoption is an ordered `ruleset` entry on the source chain; every governed entry is provably validated under the ruleset in force; a tampered adopted ruleset stops re-deriving to its recorded κ (Law L5). Holochain's integrity-zome model on the spine — 'what counts as valid' is explicit, versioned, provable, and openly forkable. holo-strand is unchanged; rules ride as ordinary entries and validation is a pure read.",
+  "authority": "UOR-ADDR (κ=H(canonical_form)) · IETF RFC 8785 (JCS) · Holochain integrity-zome model · holospaces Laws L1/L2/L5 · rests on #holo-object + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "ruleset-content-addressed",
+    "conforming-validates",
+    "violation-caught",
+    "fork-governs",
+    "governing-by-seq",
+    "tamper-caught"
+  ],
+  "sample": {
+    "R1": "did:holo:sha256:79962e8e1090a6e830ae218c29ee39add2b8164a83c4daad272d515255a3b1d7",
+    "R2": "did:holo:sha256:a21699e6b4a551d232479d61ca473100819ea59633968cffe67b9d4143fc0779",
+    "head": "did:holo:sha256:2e7e4b8f96d4291373529a95a54bb671f0150635864892e3efe04e3f0066225e"
+  },
+  "checks": {
+    "rulesetIsContentAddressed": true,
+    "conformingChainValidates": true,
+    "violationCaught": true,
+    "forkGovernsFromAdoption": true,
+    "governingBySeq": true,
+    "tamperedRulesetCaught": true
+  },
+  "failed": []
+}

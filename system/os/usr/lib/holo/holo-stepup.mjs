@@ -41,7 +41,7 @@ const hex = (u) => [...u].map((b) => b.toString(16).padStart(2, "0")).join("");
 // recent one for the SAME kind may stand. "low" never steps up. Unknown kinds default to "authority"
 // (fail-safe: a kind nobody classified is treated as sensitive, never silently waved through).
 const VALUE = new Set(["wallet.send", "wallet.swap", "wallet.swapEvm", "wallet.bridge", "wallet.lending", "wallet.fiat", "wallet.signTypedData", "wallet.sign", "tx.send"]);
-const REVEAL = new Set(["identity.revealMnemonic", "identity.exportKey", "backup.export"]);
+const REVEAL = new Set(["identity.revealMnemonic", "identity.exportKey", "backup.export", "vault.reveal", "vault.export"]);
 const AUTHORITY = new Set(["delegation.issue", "delegation.attenuate", "space.membership", "space.epoch", "terms.grantSensitive", "everything.open"]);
 const LOW = new Set(["app.open", "file.read", "ui.navigate"]);
 
