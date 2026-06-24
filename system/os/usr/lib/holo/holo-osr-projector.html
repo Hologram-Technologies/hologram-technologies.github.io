@@ -23,6 +23,14 @@ const screen = document.getElementById("screen");
 const ctx = screen.getContext("2d");
 let lens = null, W = 0, H = 0, TILE = 256, fb = null;
 
+// PRESENT-SIDE substrate (decoupled present + scroll reproject). The producer (off-screen) produces frames at
+// its own rate; this lens PRESENTS at the panel's rAF rate (the present-mailbox idea), holding the last
+// composited frame. Between produced frames it REPROJECTS the held frame by the pending scroll delta — so a
+// scroll feels instant (the frame shifts immediately, before the producer's scrolled frame arrives ~1 frame
+// later). Integer scroll = a fast native putImageData offset (the JS per-pixel reproject is the sub-pixel/MV
+// oracle; its production form is a WebGPU warp). On a new composite the delta resets — the frame caught up.
+let scrollAccum = 0, baseScroll = 0;
+
 // fetch a tile's bytes by content address; the κ scheme verifies (L5) on the wire. Late-bound to
 // window.__holoOsrFetch each call so the host (or a test) can inject the transport.
 // tiles are addressed on the BLAKE3 σ-axis (fast, ~3.2 GB/s producer) → fetch + verify on .holo/blake3/.
@@ -48,9 +56,30 @@ window.__holoOsrFrame = async (manifest) => {
     lens = makeOsrLens({ tile: TILE, paint: blit, fetchTile, digestHex });
   }
   await lens.frame(manifest);                      // fetch novel tiles (L5), ref held ones, paint changed
-  ctx.putImageData(new ImageData(new Uint8ClampedArray(fb), W, H), 0, 0);   // present the composited frame
-  window.__holoOsrSeq = manifest.seq;
+  baseScroll = scrollAccum;                         // this composite reflects scroll up to now → reset the warp
+  window.__holoOsrSeq = manifest.seq;               // the present loop (below) shows fb, reprojected by pending scroll
 };
+
+// the PRESENT loop — runs at the panel's refresh, decoupled from produce; reprojects the held frame by the
+// scroll pending since it was produced (present-side negative latency for scroll).
+function presentLoop() {
+  if (fb && W) {
+    const dy = Math.round(scrollAccum - baseScroll);   // px scrolled since the held frame was produced
+    const img = new ImageData(new Uint8ClampedArray(fb), W, H);
+    if (dy !== 0) {
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+      ctx.putImageData(img, 0, -dy);                   // shift the held frame to pre-empt the scroll (fast native warp)
+      window.__holoReprojDy = -dy;
+      const a = Math.abs(dy); if (a > (window.__holoReprojMax || 0)) window.__holoReprojMax = a;
+    } else {
+      ctx.putImageData(img, 0, 0);
+      window.__holoReprojDy = 0;
+    }
+    window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
+  }
+  requestAnimationFrame(presentLoop);
+}
+requestAnimationFrame(presentLoop);
 // SCREENCAST path (100% Chromium + ALL extensions): the host runs a FULL Chrome-runtime engine (feature-
 // complete, every extension loads natively) and streams its frames via CDP Page.startScreencast. Each frame
 // is a full image; the LENS tiles + content-addresses it (raster-ingest) and projects only the changed tiles.
@@ -87,7 +116,7 @@ const viewXY = (e) => {
 screen.addEventListener("mousemove", (e) => sendInput({ t: "move", ...viewXY(e) }));
 screen.addEventListener("mousedown", (e) => sendInput({ t: "down", ...viewXY(e), b: e.button }));
 screen.addEventListener("mouseup", (e) => sendInput({ t: "up", ...viewXY(e), b: e.button }));
-screen.addEventListener("wheel", (e) => { sendInput({ t: "wheel", ...viewXY(e), dy: -Math.round(e.deltaY) }); e.preventDefault(); }, { passive: false });
+screen.addEventListener("wheel", (e) => { scrollAccum += e.deltaY; sendInput({ t: "wheel", ...viewXY(e), dy: -Math.round(e.deltaY) }); e.preventDefault(); }, { passive: false }); // accumulate for present-side scroll reproject
 window.addEventListener("keydown", (e) => sendInput({ t: "keydown", k: e.keyCode }));
 window.addEventListener("keypress", (e) => sendInput({ t: "char", c: e.charCode || e.keyCode }));
 
