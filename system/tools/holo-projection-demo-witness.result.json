@@ -1,0 +1,18 @@
+{
+  "spec": "The live projection demo loads, composes the substrate (run-ahead → ingest → projector → present → reproject), animates a producer to a canvas, reports novelty per frame, and survives run-ahead/super-res toggles — a user-openable, any-device artifact.",
+  "authority": "Chromium (Playwright) real DOM/Canvas · the served substrate modules",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "fps1": "57",
+    "fps2": "40",
+    "tiles": "4 / 4",
+    "novel": "512 KB  (of 1024 KB)"
+  },
+  "checks": {
+    "loadedNoErrors": true,
+    "animates": true,
+    "noveltyReported": true,
+    "togglesKeepRunning": true
+  }
+}

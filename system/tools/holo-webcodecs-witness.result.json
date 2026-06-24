@@ -1,0 +1,18 @@
+{
+  "spec": "Full-motion κ path: a rendered frame encodes via WebCodecs VideoEncoder (VP8) to a small EncodedVideoChunk that is content-addressed (κ) and decodes back via VideoDecoder. The path for high-churn regions where raw-tile streaming collapses — order-of-magnitude smaller, still κ-addressable, still projected.",
+  "authority": "W3C WebCodecs (VideoEncoder/VideoDecoder/VideoFrame) · VP8 · real browser",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "encodedBytes": 3503,
+    "rawBytes": 1048576,
+    "compression": 299.3
+  },
+  "checks": {
+    "hasWebCodecs": true,
+    "encoded": true,
+    "muchSmaller": true,
+    "chunkKappa": true,
+    "decoded": true
+  }
+}

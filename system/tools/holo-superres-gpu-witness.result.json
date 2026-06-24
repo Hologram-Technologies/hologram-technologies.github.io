@@ -1,0 +1,16 @@
+{
+  "spec": "GPU super-res matches the CPU bilinear oracle within unorm rounding on a real WebGPU device (hardware linear-sampled render pass). The 8K sharpness lever on the metal.",
+  "authority": "WebGPU linear sampler · D3D12/Vulkan/Metal · validated against upscaleBilinear",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "maxDiff": 1,
+    "meanDiff": 0.064,
+    "within2pct": 100
+  },
+  "checks": {
+    "dims": true,
+    "matchesOracle": true,
+    "flatStaysFlat": true
+  }
+}

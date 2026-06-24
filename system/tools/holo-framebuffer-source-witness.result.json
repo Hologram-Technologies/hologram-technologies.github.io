@@ -1,0 +1,20 @@
+{
+  "spec": "The QEMU / passive-framebuffer leg: a VM display (no deterministic input sim → no sim-side run-ahead) becomes a stream of κ tiles via sample → raster-ingest → projector → lens, with super-res at the lens. An idle VM (unchanged framebuffer) streams zero bytes; a boot step streams only the changed tile; uniform background dedups; a console tile upscales sharp and is κ-cached. The only thing that differs for real qemu-wasm is getFrame().",
+  "authority": "holospaces Laws L1/L3/L5 · QEMU live-display capture · content-addressed tile compositing · work ∝ novelty",
+  "witnessed": true,
+  "covers": [
+    "framebuffer-source",
+    "lossless-projection",
+    "idle-zero-bandwidth",
+    "novelty-only-boot",
+    "spatial-dedup",
+    "super-res-lens"
+  ],
+  "checks": {
+    "losslessProjection": true,
+    "idleZeroBandwidth": true,
+    "noveltyOnlyBoot": true,
+    "spatialDedup": true,
+    "superResSharp": true
+  }
+}

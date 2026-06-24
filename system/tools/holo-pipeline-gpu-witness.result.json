@@ -1,0 +1,16 @@
+{
+  "spec": "The whole projection pipeline composed on a real WebGPU device: an animated producer → run-ahead → raster-ingest → kappa-stream → projector → holo-webgpu-lens, painting to the metal. The GPU composite is pixel-identical to the produced frame; the determinism fence holds; full-stack throughput measured.",
+  "authority": "Chromium (Playwright) real WebGPU (D3D12/Vulkan/Metal) · the served substrate modules · holospaces Laws L1/L3/L5",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "fps": 284.2,
+    "via": "chrome"
+  },
+  "checks": {
+    "modulesLoaded": true,
+    "pixelIdenticalGPU": true,
+    "determinismFence": true,
+    "throughput": true
+  }
+}

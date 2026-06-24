@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hologram — projected tab</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; image-rendering: auto; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script type="module">
+// The LENS SURFACE for the native off-screen browser producer (holo_osr.cc). The host renders a real web
+// page off-screen, tiles + content-addresses each frame, writes novel tiles to the κ-store (served at
+// holo://os/cache/sha256/<hex>), and calls window.__holoOsrFrame(manifest) with the changed tiles. This page
+// composites them via the proven projection path — so the tab is 100% projected from κ-addressable objects.
+import { makeOsrLens } from "./holo-osr-lens.mjs";
+import { makeFramebufferPipeline } from "./holo-framebuffer-source.mjs";
+import { blake3hex } from "./holo-blake3.mjs";   // the substrate σ-axis hash — the producer addresses tiles on it
+
+const screen = document.getElementById("screen");
+const ctx = screen.getContext("2d");
+let lens = null, W = 0, H = 0, TILE = 256, fb = null;
+
+// fetch a tile's bytes by content address; the κ scheme verifies (L5) on the wire. Late-bound to
+// window.__holoOsrFetch each call so the host (or a test) can inject the transport.
+// tiles are addressed on the BLAKE3 σ-axis (fast, ~3.2 GB/s producer) → fetch + verify on .holo/blake3/.
+const defaultFetch = async (hex) => {
+  const r = await fetch("holo://os/cache/blake3/" + hex);
+  if (!r.ok) throw new Error("osr: tile fetch " + hex + " → " + r.status);
+  return new Uint8Array(await r.arrayBuffer());
+};
+const fetchTile = (hex) => (window.__holoOsrFetch || defaultFetch)(hex);
+const digestHex = async (b) => blake3hex(b);   // L5 re-derive on the same axis the producer hashed
+
+const blit = (id, bytes) => {
+  const m = /^t(\d+)_(\d+)$/.exec(id); const x0 = +m[1] * TILE, y0 = +m[2] * TILE;
+  const tw = Math.min(TILE, W - x0), th = Math.min(TILE, H - y0);
+  for (let r = 0; r < th; r++) fb.set(bytes.subarray(r * tw * 4, (r + 1) * tw * 4), ((y0 + r) * W + x0) * 4);
+};
+
+// the one entry the native producer calls each frame
+window.__holoOsrFrame = async (manifest) => {
+  if (!lens || manifest.w !== W || manifest.h !== H) {
+    W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
+    screen.width = W; screen.height = H; fb = new Uint8Array(W * H * 4);
+    lens = makeOsrLens({ tile: TILE, paint: blit, fetchTile, digestHex });
+  }
+  await lens.frame(manifest);                      // fetch novel tiles (L5), ref held ones, paint changed
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(fb), W, H), 0, 0);   // present the composited frame
+  window.__holoOsrSeq = manifest.seq;
+};
+// SCREENCAST path (100% Chromium + ALL extensions): the host runs a FULL Chrome-runtime engine (feature-
+// complete, every extension loads natively) and streams its frames via CDP Page.startScreencast. Each frame
+// is a full image; the LENS tiles + content-addresses it (raster-ingest) and projects only the changed tiles.
+// So extension-modified, feature-complete Chrome content becomes a κ-tile projection — the path OSR/Alloy
+// cannot take (Alloy ≠ full Chrome extensions). The host acks each frame via CDP Page.screencastFrameAck.
+let scPipe = null, scCtx = null, scCur = null, scW = 0, scH = 0;
+window.__holoScreencastFrame = async (dataUrl, seq) => {
+  const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
+  if (!scPipe || bmp.width !== scW) {
+    scW = bmp.width; scH = bmp.height; screen.width = scW; screen.height = scH; W = scW; H = scH;
+    const off = new OffscreenCanvas(scW, scH); scCtx = off.getContext("2d", { willReadFrequently: true });
+    scPipe = makeFramebufferPipeline({ getFrame: () => scCur, width: scW, height: scH, tile: TILE });
+  }
+  scCtx.drawImage(bmp, 0, 0);
+  scCur = new Uint8Array(scCtx.getImageData(0, 0, scW, scH).data);
+  const r = await scPipe.present();                  // tile + project only the CHANGED tiles
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(scPipe.framebuffer()), scW, scH), 0, 0);
+  window.__holoOsrSeq = seq; window.__holoScLast = { changed: r.changed, emitted: r.emitted };
+  return r;
+};
+
+// INPUT (feature-complete to Chrome): capture DOM input on the canvas, map to the off-screen view's pixel
+// space, and forward to the host via the bridge. The host (holo_osr.cc DispatchOsrInput) replays it on the
+// off-screen browser, so a projected tab clicks/scrolls/types exactly like a real Chrome tab.
+const sendInput = (o) => {
+  window.__holoLastInput = o;
+  if (window.cefQuery) window.cefQuery({ request: "holo:osrinput:" + JSON.stringify(o), onSuccess() {}, onFailure() {} });
+};
+const viewXY = (e) => {
+  if (!W) return { x: 0, y: 0 };
+  const r = screen.getBoundingClientRect();
+  return { x: Math.round((e.clientX - r.left) * (W / r.width)), y: Math.round((e.clientY - r.top) * (H / r.height)) };
+};
+screen.addEventListener("mousemove", (e) => sendInput({ t: "move", ...viewXY(e) }));
+screen.addEventListener("mousedown", (e) => sendInput({ t: "down", ...viewXY(e), b: e.button }));
+screen.addEventListener("mouseup", (e) => sendInput({ t: "up", ...viewXY(e), b: e.button }));
+screen.addEventListener("wheel", (e) => { sendInput({ t: "wheel", ...viewXY(e), dy: -Math.round(e.deltaY) }); e.preventDefault(); }, { passive: false });
+window.addEventListener("keydown", (e) => sendInput({ t: "keydown", k: e.keyCode }));
+window.addEventListener("keypress", (e) => sendInput({ t: "char", c: e.charCode || e.keyCode }));
+
+window.__holoOsrReady = true;                      // host waits on this before opening the OSR producer
+// handshake: tell the host this lens is ready so it spawns the off-screen producer at the pending URL.
+if (window.cefQuery) window.cefQuery({ request: "holo:osrready:", onSuccess() {}, onFailure() {} });
+</script>
+</body>
+</html>

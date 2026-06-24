@@ -1,0 +1,29 @@
+{
+  "spec": "Lens super-resolution: a low-res κ tile upscales to the device resolution AT THE LENS (sharpness from the projector, not the producer); the upscaled tile is content-addressed and κ-cached (re-seen ⇒ O(1), no re-upscale); one low-res source κ projects sharp at ×2/×4/×8 (resolution independence). Bilinear is the baseline + the CPU oracle the GPU path is validated against; a learned kernel drops into the same seam.",
+  "authority": "bilinear resampling · content-addressed memoization (Laws L1/L3/L5) · super-resolution as a present-side pass",
+  "witnessed": true,
+  "covers": [
+    "superres",
+    "dimensions",
+    "bilinear-correct",
+    "kappa-cache-o1",
+    "resolution-independence",
+    "content-addressed-deterministic"
+  ],
+  "model": {
+    "sourcePx": "64×64",
+    "scales": [
+      2,
+      4,
+      8
+    ],
+    "to8k": "512×512 tile from one 64×64 κ"
+  },
+  "checks": {
+    "dimensions": true,
+    "bilinearCorrect": true,
+    "cacheHitO1": true,
+    "resolutionIndependence": true,
+    "contentAddressedDeterministic": true
+  }
+}
