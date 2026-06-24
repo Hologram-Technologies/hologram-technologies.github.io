@@ -20,8 +20,13 @@ import { makeFramebufferPipeline } from "./holo-framebuffer-source.mjs";
 import { blake3hex } from "./holo-blake3.mjs";   // the substrate σ-axis hash — the producer addresses tiles on it
 
 const screen = document.getElementById("screen");
-const ctx = screen.getContext("2d");
-let lens = null, W = 0, H = 0, TILE = 256, fb = null;
+const ctx = screen.getContext("2d", { alpha: false });
+let lens = null, W = 0, H = 0, TILE = 256;
+// GPU path (no WebGPU adapter on this host → use GPU-accelerated Canvas2D). The composited frame lives in a
+// GPU-backed OffscreenCanvas; only CHANGED tiles are written (O(1), work ∝ novelty). The present loop draws it
+// with drawImage — which scales (super-res to the native display resolution) + translates (sub-pixel scroll
+// reproject) on the GPU in ONE call, every panel refresh. High quality, high FPS, native hardware.
+let base = null, bctx = null;
 
 // PRESENT-SIDE substrate (decoupled present + scroll reproject). The producer (off-screen) produces frames at
 // its own rate; this lens PRESENTS at the panel's rAF rate (the present-mailbox idea), holding the last
@@ -42,39 +47,47 @@ const defaultFetch = async (hex) => {
 const fetchTile = (hex) => (window.__holoOsrFetch || defaultFetch)(hex);
 const digestHex = async (b) => blake3hex(b);   // L5 re-derive on the same axis the producer hashed
 
+// write ONE changed tile into the GPU-backed offscreen base (only changed tiles reach here — O(1)).
 const blit = (id, bytes) => {
   const m = /^t(\d+)_(\d+)$/.exec(id); const x0 = +m[1] * TILE, y0 = +m[2] * TILE;
   const tw = Math.min(TILE, W - x0), th = Math.min(TILE, H - y0);
-  for (let r = 0; r < th; r++) fb.set(bytes.subarray(r * tw * 4, (r + 1) * tw * 4), ((y0 + r) * W + x0) * 4);
+  const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  bctx.putImageData(new ImageData(new Uint8ClampedArray(u.subarray(0, tw * th * 4)), tw, th), x0, y0);
 };
 
 // the one entry the native producer calls each frame
 window.__holoOsrFrame = async (manifest) => {
   if (!lens || manifest.w !== W || manifest.h !== H) {
     W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
-    screen.width = W; screen.height = H; fb = new Uint8Array(W * H * 4);
+    base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
+    sizeScreen();
     lens = makeOsrLens({ tile: TILE, paint: blit, fetchTile, digestHex });
   }
-  await lens.frame(manifest);                      // fetch novel tiles (L5), ref held ones, paint changed
+  await lens.frame(manifest);                      // fetch novel tiles (L5), ref held ones, composite changed
   baseScroll = scrollAccum;                         // this composite reflects scroll up to now → reset the warp
-  window.__holoOsrSeq = manifest.seq;               // the present loop (below) shows fb, reprojected by pending scroll
+  window.__holoOsrSeq = manifest.seq;               // the present loop shows base, super-res'd + reprojected, on the GPU
 };
 
-// the PRESENT loop — runs at the panel's refresh, decoupled from produce; reprojects the held frame by the
-// scroll pending since it was produced (present-side negative latency for scroll).
+// the visible canvas backs the NATIVE display resolution (super-res target); drawImage upscales the producer
+// frame to it with high-quality sampling.
+function sizeScreen() {
+  const dpr = window.devicePixelRatio || 1;
+  screen.width = Math.max(W, Math.round(window.innerWidth * dpr));
+  screen.height = Math.max(H, Math.round(window.innerHeight * dpr));
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+}
+window.addEventListener("resize", () => { if (W) sizeScreen(); });
+
+// the PRESENT loop — runs at the panel refresh, decoupled from produce. ONE GPU drawImage: scale (super-res to
+// the display resolution) + translate (sub-pixel scroll reproject = present-side negative latency).
 function presentLoop() {
-  if (fb && W) {
-    const dy = Math.round(scrollAccum - baseScroll);   // px scrolled since the held frame was produced
-    const img = new ImageData(new Uint8ClampedArray(fb), W, H);
-    if (dy !== 0) {
-      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
-      ctx.putImageData(img, 0, -dy);                   // shift the held frame to pre-empt the scroll (fast native warp)
-      window.__holoReprojDy = -dy;
-      const a = Math.abs(dy); if (a > (window.__holoReprojMax || 0)) window.__holoReprojMax = a;
-    } else {
-      ctx.putImageData(img, 0, 0);
-      window.__holoReprojDy = 0;
-    }
+  if (base && W) {
+    const sy = scrollAccum - baseScroll;             // px scrolled (producer space) since the held frame
+    const scaleY = screen.height / H;
+    if (sy !== 0) ctx.clearRect(0, 0, screen.width, screen.height);
+    ctx.drawImage(base, 0, 0, W, H, 0, -sy * scaleY, screen.width, screen.height);   // GPU: super-res + reproject
+    window.__holoReprojDy = -sy;
+    const a = Math.abs(sy); if (a > (window.__holoReprojMax || 0)) window.__holoReprojMax = a;
     window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
   }
   requestAnimationFrame(presentLoop);
