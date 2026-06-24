@@ -1,0 +1,26 @@
+{
+  "spec": "Run-ahead as a κ-snapshot substrate primitive (generalized from holo-retro-runahead to any producer with snapshot/restore/advance — game core, QEMU, deterministic app). The committed trajectory is bit-identical to a plain run (determinism fence); the presented frame is L steps ahead (negative latency); checkpoints are content-addressed so cost is ∝ changed pages, not memory size (the snapshot-is-near-free property QEMU resume relies on).",
+  "authority": "RetroArch run-ahead algorithm · holospaces Laws L1/L3/L5 · content-addressed paged snapshots (QEMU live-migration dirty-page model)",
+  "witnessed": true,
+  "covers": [
+    "runahead",
+    "determinism-fence",
+    "negative-latency-lookahead",
+    "incremental-page-dedup",
+    "idle-near-free",
+    "snapshot-rederive-l5"
+  ],
+  "model": {
+    "novelPages": 39,
+    "heldPages": 39,
+    "naiveFullSnapshots": 1300,
+    "reduction": 33.3
+  },
+  "checks": {
+    "determinismFence": true,
+    "lookaheadIsLAhead": true,
+    "incrementalDedup": true,
+    "idleNearFree": true,
+    "snapshotRederive": true
+  }
+}

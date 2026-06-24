@@ -1,0 +1,16 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "LOCAL — the HoloNet interface over the in-process makeContentPeer: cnPut+cnAnnounce → cnFetch → open a PQ-sealed envelope; κ == kappa(bytes)",
+    "HOLOWHAT — the SAME interface over two REAL Console WASM peers (frames shuttled = cn_pump over WebRTC): cnPut+cnAnnounce → cnFetch (discover→fetch_start→poll) → open",
+    "PARITY — the identical publish→cnFetch→open sequence yields the original message over both implementations; the surface targets one interface and swaps carriers with no code change"
+  ],
+  "checks": {
+    "local-impl-publish-fetch-open": true,
+    "holowhat-impl-publish-fetch-open": true,
+    "both-impls-same-uniform-interface": true
+  },
+  "failed": [],
+  "authority": "holo-net · holowhat Console CN (real WASM) · holo-messenger-cn (local) · holo-messenger-epoch (X25519‖ML-KEM-1024) · Law L1/L5"
+}

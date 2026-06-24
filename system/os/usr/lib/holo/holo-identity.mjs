@@ -159,6 +159,27 @@ export async function verifyRoster(roster) {
   } catch { return null; }
 }
 
+// UNIFIED IDENTITY → MESH: at login (where the sovereign key is briefly available), issue a DELEGATION binding
+// the local mesh node's per-node key to this operator, so the node proves — trustlessly — that it serves on
+// behalf of did:holo:<operator>. The sovereign private key NEVER leaves here: we ask the host for the node's
+// public key, sign a short delegation message, and hand back only the signature. Best-effort + silent (no host,
+// no node key yet, or a guest → skipped; the mesh just stays anonymous). The native host relays + persists it.
+async function issueMeshDelegation(principal, opDid) {
+  if (typeof window === "undefined" || !window.cefQuery || !principal || !principal.sign) return;
+  const meshPub = await new Promise((res) => {
+    try {
+      window.cefQuery({ request: "holo:meshpub", persistent: false,
+        onSuccess: (r) => { try { res((JSON.parse(r).meshPub) || ""); } catch { res(""); } },
+        onFailure: () => res("") });
+    } catch { res(""); }
+  });
+  if (!/^[0-9a-f]{64}$/.test(meshPub)) return;                  // node not up / no key yet → try again next login
+  // ONE canonical issuer (holo-grant.mjs) signs both this and capability grants — no duplicated signing path.
+  const { issueMeshDelegation: signDelegation } = await import("./holo-grant.mjs");
+  const line = await signDelegation(principal, opDid, meshPub);
+  try { window.cefQuery({ request: "holo:delegation:" + line, persistent: false, onSuccess() {}, onFailure() {} }); } catch {}
+}
+
 // ── a session assertion: a content-addressed, signed claim "this operator opened this
 //    session" — the handoff token the greeter writes and the shell verifies (Law L5).
 // A session carries subjectType (pc = human player · npc = agent) and, when the principal has a
@@ -174,6 +195,7 @@ export async function openSession(principal, { session, next, host, guest, subje
   const id = await addressOf(te.encode(c));
   const token = { id, ...body, alg: principal.alg, pub: principal.pub, sig: await principal.sign(c) };
   if (principal.pqSign && principal.pqPub) token.pqSig = await principal.pqSign(c);   // hybrid co-signature (Ed25519 ‖ ML-DSA)
+  if (!guest) issueMeshDelegation(principal, token.operator).catch(() => {});         // delegate the mesh node to this operator (non-blocking)
   return token;
 }
 // Verify a session token end-to-end: re-derive its id, re-derive the operator κ from the
@@ -229,6 +251,17 @@ export async function unwrapSession(blob, secret) {
 export async function persistSession(token, secret = null) {
   if (!hasSS) return;
   try { sessionStorage.setItem(SESSION_KEYS.pres, JSON.stringify(presentationOf(token))); } catch {}
+  // UNIFIED IDENTITY: tell the native host who just authenticated (this runs after the TEE-secured login gate)
+  // so its W3C peer/mesh/agent DID (/.well-known/did.json) IS this operator — one identity, every surface.
+  // Only a real operator (not a guest) with a public key; the host accepts it solely from the holo://os shell.
+  // Best-effort + silent: no host (web build) or a guest just leaves the host's provisional identity in place.
+  try {
+    if (token && token.operator && token.pub && typeof window !== "undefined" && window.cefQuery) {
+      const raw = atob(token.pub);
+      let h = ""; for (let i = 0; i < raw.length; i++) h += raw.charCodeAt(i).toString(16).padStart(2, "0");
+      window.cefQuery({ request: "holo:identity:" + token.operator + "|" + h, persistent: false, onSuccess() {}, onFailure() {} });
+    }
+  } catch {}
   try { sessionStorage.removeItem(SESSION_KEYS.legacy); } catch {}                 // evict any legacy cleartext token
   if (secret) { try { sessionStorage.setItem(SESSION_KEYS.wrapped, JSON.stringify(await wrapSession(token, secret))); } catch {} }
   else { try { sessionStorage.removeItem(SESSION_KEYS.wrapped); } catch {} }       // guest / no-secret → presentation only

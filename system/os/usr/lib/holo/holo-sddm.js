@@ -17,7 +17,8 @@ import { openSession, ephemeral, persistSession } from "./holo-identity.mjs";
 // canonical login identity is now the seed's did:key (the SAME key Holo Wallet/Privacy use), its
 // session κ the content address of that key (Law L1, verifySession-compatible). enroll/unlock/roster
 // come from here; openSession + guest (ephemeral, non-persistent) stay on holo-identity.
-import { enroll as enrollRoot, unlock, roster } from "./holo-login.mjs";
+import { enroll as enrollRoot, unlock, roster, relabel } from "./holo-login.mjs";
+import { provisionWallet, isPresentationSafe } from "./holo-wallet-provision.mjs";   // auto-provision + surface the wallet on first tap (GAP-2)
 // enroll() returns just the principal (the 12-word phrase stays inside the content-addressed vault,
 // retrievable later for backup); accepts the old `passphrase` param name as the unlock `secret`.
 const enroll = async (o = {}) => (await enrollRoot({ label: o.label, secret: o.passphrase ?? o.secret, cred: o.cred, credPub: o.credPub })).principal;
@@ -180,22 +181,8 @@ export async function createGreeter(params) {
   const host = await measure().catch(() => null);
   const hostName = host ? "holo-" + host.hostKappa.split(":").pop().slice(0, 4) : "hologram";
 
-  const handlers = { loginSucceeded: [], loginFailed: [], informationMessage: [], needName: [] };
+  const handlers = { loginSucceeded: [], loginFailed: [], informationMessage: [], needName: [], needGreetingName: [] };
   const emit = (sig, ...a) => handlers[sig].forEach((f) => { try { f(...a); } catch {} });
-
-  // On the native κ-host ONLY, eagerly open the operator's Holo Pass vault and publish its autofill
-  // subset to the browser's credential store, so web logins fill the instant the desktop opens. The
-  // greeter runs at holo://os, so the publish initiator is trusted; the process-singleton store survives
-  // the handoff navigation into the shell. Best-effort + non-blocking — never delays or fails sign-in.
-  // No-op on the web (publish requires the holo:// scheme; openVault is skipped to avoid wasted decrypt).
-  async function publishVault(principal, secret) {
-    try {
-      if (typeof location === "undefined" || location.protocol !== "holo:" || !secret) return;
-      const { hasVault, openVault } = await import("./holo-vault.mjs");
-      if (!(await hasVault(principal.kappa))) return;
-      await openVault(principal.kappa, secret);   // openVault auto-publishes the {origin->{u,p}} subset
-    } catch {}
-  }
 
   // establish(): bind operator ⊗ host, sign the loginctl-style session, hand off to the shell.
   async function establish(principal, session, { guest = false, secret = null } = {}) {
@@ -210,10 +197,21 @@ export async function createGreeter(params) {
         const h = await run.getDirectoryHandle("holo", { create: true });
         const f = await h.getFileHandle("session.json", { create: true });
         const w = await f.createWritable(); await w.write(JSON.stringify(token)); await w.close();
+        // Auto-provision + surface the omni-chain wallet on first tap (GAP-2). The wallet PROJECTS from
+        // the same seed (principal.addresses), so this is just the PUBLIC address presentation — no secret,
+        // no second unlock. The shell reads it for the Home "Wallet" affordance. Guests get none (above).
+        try {
+          const wal = provisionWallet(principal);
+          if (wal.provisioned && isPresentationSafe(wal)) {
+            const wf = await h.getFileHandle("wallet.json", { create: true });
+            const ww = await wf.createWritable(); await ww.write(JSON.stringify(wal)); await ww.close();
+          }
+        } catch {}
       }
     } catch {}
     emit("loginSucceeded");
-    if (secret) publishVault(principal, secret);   // native host: prime web autofill before the shell opens
+    // Vault stays closed here (display-split): the shell opens it lazily on first credential use, gated by
+    // the broker biometric (typically silent within the OS Hello trust window). No secret crosses to the shell.
     const sep = session.loader.includes("?") ? "&" : "?";
     const url = `${session.loader}${sep}operator=${encodeURIComponent(principal.kappa)}&host=${encodeURIComponent(host ? host.hostKappa : "")}&session=${encodeURIComponent(token.id)}`;
     return { url, token };
@@ -391,6 +389,45 @@ export async function createGreeter(params) {
       } catch (e) {
         emit("informationMessage", /wrong|passphrase|decrypt|aead|tag|secret/i.test((e && e.message) || "") ? "That passphrase didn't work" : ((e && e.message) || "Sign-in failed"));
         emit("loginFailed");
+      }
+    },
+    // sddm.firstRun() — Windows-style "name after auth". A brand-new operator AUTHENTICATES FIRST:
+    // we bind a sovereign key to this device's enclave (Windows Hello / Touch ID) with NO name typed,
+    // using a neutral default label. On success we DON'T enter yet — we stash the principal and emit
+    // needGreetingName so the greeter can ask "what should I call you?". completeFirstRun() then names
+    // and enters. No biometric here → steer to the phone / Guest, exactly like access().
+    async firstRun() {
+      const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
+      try {
+        const reason = await teeReason();
+        if (reason) { emit("informationMessage", (reason || "No biometric on this device") + " — sign in with your phone or continue as Guest"); emit("loginFailed"); return; }
+        emit("informationMessage", "Setting up " + teeName() + "…");
+        const { credentialId, secret, credPub } = await teeEnroll({ name: "Hologram" });
+        const principal = await enroll({ label: "You", passphrase: secret, cred: credentialId, credPub });   // default label; renamed in completeFirstRun
+        sddm.__pendingEnrol = { principal, secret, session };
+        emit("needGreetingName");
+      } catch (e) {
+        if (/NotAllowed/i.test((e && e.name) || "")) { emit("informationMessage", teeError(e)); emit("loginFailed"); return; }
+        if (/PRF|hardware secret|WebAuthn unavailable/i.test((e && e.message) || "")) {
+          emit("informationMessage", "Biometric unavailable here — sign in with your phone or continue as Guest"); emit("loginFailed"); return;
+        }
+        emit("informationMessage", teeError(e)); emit("loginFailed");
+      }
+    },
+    // sddm.completeFirstRun(name) — finish the paused first run: set the chosen display name (optional —
+    // a blank keeps the default), persist it as the operator's label (κ is unchanged), then establish the
+    // session and enter the desktop. The name is the ONLY thing ever typed, and only after authentication.
+    async completeFirstRun(name) {
+      const pend = sddm.__pendingEnrol;
+      if (!pend) { emit("informationMessage", "Sign-in expired — start again"); emit("loginFailed"); return; }
+      sddm.__pendingEnrol = null;
+      try {
+        const label = (name || "").trim();
+        if (label) { try { await relabel(pend.principal.kappa, label); } catch {} pend.principal.label = label; }
+        const { url } = await establish(pend.principal, pend.session, { secret: pend.secret });
+        enterShell(url);
+      } catch (e) {
+        emit("informationMessage", teeError(e)); emit("loginFailed");
       }
     },
     powerOff() { document.documentElement.innerHTML = '<div style="position:fixed;inset:0;background:#000"></div>'; },

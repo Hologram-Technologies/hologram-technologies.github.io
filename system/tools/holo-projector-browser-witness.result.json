@@ -1,0 +1,23 @@
+{
+  "spec": "Browser proof of the projection lens: REAL canvas pixels flow origin-canvas → holo-raster-ingest → holo-projector → lens-canvas and land pixel-identical, using the browser's real WebCrypto SHA-256 for κ addresses. A one-tile change re-extracts/streams/repaints exactly one tile; a static frame crosses zero bytes and repaints nothing.",
+  "authority": "Chromium (Playwright) real DOM/Canvas2D/WebCrypto · the served holo-projector.mjs + holo-raster-ingest.mjs · holospaces Laws L1/L3/L5",
+  "witnessed": true,
+  "lane": "browser",
+  "covers": [
+    "projection-lens",
+    "real-canvas-pixels",
+    "real-webcrypto",
+    "pixel-identical",
+    "one-tile-delta",
+    "static-zero-wire"
+  ],
+  "checks": {
+    "modulesLoaded": true,
+    "realWebCrypto": true,
+    "keyframePainted": true,
+    "pixelIdenticalKeyframe": true,
+    "oneTileDelta": true,
+    "pixelIdenticalAfterDelta": true,
+    "staticZeroWire": true
+  }
+}

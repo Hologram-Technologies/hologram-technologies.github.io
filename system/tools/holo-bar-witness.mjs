@@ -98,13 +98,41 @@ ok("emptyIsEmpty", buildBarModel([], { catalog }).length === 0 && canonicalBar([
   ok("tokenTamperRejected", v.ok === false && v.items.length === 0);
 }
 
+// ── 11 · kind is carried through the model (app | ext | bar | action) ────────────────────────────────
+{
+  const exts = [{ ref: "a".repeat(32), kind: "ext", label: "uBlock" }, { ref: catalog[0].did }];
+  const m = buildBarModel(exts, { catalog });
+  ok("kindRoundTrip", m[0].kind === "ext" && m[1].kind === "app", JSON.stringify(m.map((r) => r.kind)));
+}
+// ── 12 · a kind change mints a different bar κ (kind is part of identity for non-default kinds) ───────
+{
+  const asApp = [{ ref: "a".repeat(32) }];
+  const asExt = [{ ref: "a".repeat(32), kind: "ext" }];
+  const kApp = await barKappa(asApp, digest);
+  const kExt = await barKappa(asExt, digest);
+  ok("kindMintsKappa", canonicalBar(asApp) !== canonicalBar(asExt) && kApp !== kExt, kExt);
+}
+// ── 13 · backward compat: a pre-kind bar (and its P4 token) still hashes/verifies identically ─────────
+{
+  // Bytes a P4 bar would have produced before the kind field existed (no kind anywhere).
+  const legacy = [{ ref: catalog[0].did, label: "Meet", icon: "x.svg", words: "a.b.c", open: "" }];
+  const expected = JSON.stringify(legacy.map((it) => ({
+    ref: it.ref, label: it.label, icon: it.icon, words: it.words, open: it.open,
+  })));
+  const token = await barShareToken(legacy, digest);
+  const v = await verifyBarToken(token, digest);
+  // canonicalBar must STILL emit the legacy byte layout (no "kind" key) so old κ/tokens verify.
+  ok("legacyBytesUnchanged", canonicalBar(legacy) === expected && v.ok === true,
+     canonicalBar(legacy) === expected ? "bytes match" : "BYTES DRIFTED");
+}
+
 const witnessed = Object.values(checks).every(Boolean);
 const result = {
   "@type": "earl:TestResult",
   spec: "holo-bar — the κ-addressable chrome bar: bookmarks bar + action rail as ONE schema (an ordered κ-list of κ-references) and ONE renderer. Identity follows bytes (Law L1); a reorder mints a new κ; a tampered list fails verify-before-trust (Law L5). Display (label/icon/words) is a projection resolved against the app catalog; seeds from the catalog so a new user opens to a populated bar. Pure over holo-bar + holo-bar-store; the DOM is browser-verified.",
   authority: "rests on #holo-bar + #holo-bar-store",
   witnessed,
-  covers: witnessed ? ["model-deterministic", "reorder-mints-kappa", "verify-l5", "empty-safe", "label-not-identity", "seed-from-catalog", "store-round-trip", "open-target", "token-round-trip", "token-tamper-rejected"] : [],
+  covers: witnessed ? ["model-deterministic", "reorder-mints-kappa", "verify-l5", "empty-safe", "label-not-identity", "seed-from-catalog", "store-round-trip", "open-target", "token-round-trip", "token-tamper-rejected", "kind-round-trip", "kind-mints-kappa", "legacy-bytes-unchanged"] : [],
   checks, failed: fail,
 };
 writeFileSync(join(here, "holo-bar-witness.result.json"), JSON.stringify(result, null, 2) + "\n");

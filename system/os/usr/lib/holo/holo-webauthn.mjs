@@ -41,7 +41,15 @@ export function teeSupported() {
 // spec forbids IPs as RP IDs, so http://127.0.0.1 throws SecurityError; http://localhost and any
 // https:// host work). This is why the dev preview must be opened on localhost, not 127.0.0.1.
 function host() { return (globalThis.location && location.hostname) || ""; }
+// The native Hologram host (CEF/Tauri) serves the OS over the first-party `holo://` κ-scheme — a secure,
+// registered origin whose PLATFORM authenticator (Windows Hello / Touch ID / Secure Enclave) is reachable
+// exactly as on an https page (measured: navigator.credentials.create invokes the real OS biometric
+// ceremony over holo://). Its host label (e.g. "os") is single-label by design, which the dotted-domain
+// rule below would otherwise reject — so on the κ-scheme we treat the origin as a valid relying party and
+// OFFER the on-device TEE, instead of falling back to phone/guest. On the web (https) nothing changes.
+function nativeHost() { return typeof location !== "undefined" && location.protocol === "holo:"; }
 function rpIdValid() {
+  if (nativeHost()) return true;                               // κ-scheme is a verified first-party RP
   const h = host();
   if (h === "localhost") return true;
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return false;          // IPv4 literal
@@ -56,8 +64,19 @@ export async function teeReason() {
   if (!teeSupported()) return "This browser has no WebAuthn / passkey support";
   if (!secureOk()) return "Biometrics need a secure page (https or localhost)";
   if (!rpIdValid()) return "Open this on https or localhost (not an IP) for biometrics";
-  try { if (!(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())) return "No device biometric is set up (Face ID / Touch ID / Windows Hello / fingerprint)"; }
-  catch { return "Could not query the device authenticator"; }
+  // isUserVerifyingPlatformAuthenticatorAvailable() can hang or be unimplemented over the native κ-scheme,
+  // so bound it. A DEFINITIVE false means no biometric is enrolled → say so (web and native alike). But a
+  // timeout/error is NOT proof of absence on the native host (the platform ceremony is reachable there
+  // regardless), so assume available and let the real biometric prompt be the source of truth.
+  let uvpa;
+  try {
+    uvpa = await Promise.race([
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(),
+      new Promise((res) => setTimeout(() => res(nativeHost() ? true : "timeout"), 1500)),
+    ]);
+  } catch { uvpa = nativeHost() ? true : "error"; }
+  if (uvpa === false) return "No device biometric is set up (Face ID / Touch ID / Windows Hello / fingerprint)";
+  if (uvpa !== true && !nativeHost()) return "Could not query the device authenticator";
   return "";
 }
 

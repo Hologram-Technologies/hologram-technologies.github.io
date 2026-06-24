@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-home-guard — IDENTITY WITHOUT ACCOUNTS: Home has no passwords and no user-service; the key that owns the manifest is the only authority. Most of Home is ambient (browse/open/pin), but the verbs that change WHO can reach your cloud (pair/revoke a device) or EXPOSE it (export) pass a sovereign step-up first, reusing holo-stepup — authority verbs ride a fresh window so repeats feel effortless, while reveal verbs always ask and tampered tokens fail closed. A verb nobody classified as ambient is sensitive by default.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L5 · WebAuthn UV · rests on #holo-home-guard + #holo-stepup + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "ambient-no-stepup",
+    "sensitive-steps-up",
+    "window-suppresses-repeat",
+    "reveal-never-suppressed",
+    "forged-token-refused",
+    "no-signer-refused"
+  ],
+  "checks": {
+    "ambientNoStepUp": true,
+    "sensitiveStepsUp": true,
+    "windowSuppressesRepeat": true,
+    "revealNeverSuppressed": true,
+    "forgedTokenRefused": true,
+    "noSignerRefused": true
+  },
+  "failed": []
+}

@@ -167,6 +167,15 @@ export async function roster() {
   return (await store.all()).map((r) => ({ kappa: r.kappa, did: r.did, label: r.label, alg: r.alg, cred: r.cred || null, wrap: wrapOf(r), avatar: r.avatar || avatarFor(r.kappa), createdAt: r.createdAt }));
 }
 export async function forget(kappa) { return store.del(kappa); }
+// relabel — rename an operator's display name. Metadata only: κ is the content address of the pubkey
+// (Law L1) and never changes, so a rename can't break re-derivation. Drives the greeter's name-after-
+// auth first run (authenticate first, name second). A blank label is ignored (keeps the default).
+export async function relabel(kappa, label) {
+  const r = await store.get(kappa);
+  const next = String(label || "").trim();
+  if (r && next) { r.label = next; await store.put(r); }
+  return r ? r.label : null;
+}
 // attach the WebAuthn credential (id + pubkey + alg) to an operator after a biometric is enrolled
 export async function attachCred(kappa, cred, credPub, credAlg) { const r = await store.get(kappa); if (r) { r.cred = cred; if (credPub !== undefined) r.credPub = credPub; if (credAlg !== undefined) r.credAlg = credAlg; await store.put(r); } }
 

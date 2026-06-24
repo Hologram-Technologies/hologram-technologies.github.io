@@ -15,11 +15,13 @@
 import { readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fhsMap } from "../os/lib/holo-fhs-map.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OS = join(here, "../os");
+// Target the source os/ by default; HOLO_RESEAL_DIR points it at a mirror (the tauri dist) so the SAME
+// dual-axis drift logic reseals that tree against ITS OWN bytes — used by reseal.mjs's dist-mirror phase.
+const OS = process.env.HOLO_RESEAL_DIR ? resolve(process.env.HOLO_RESEAL_DIR) : join(here, "../os");
 const CLOSURE = join(OS, "etc/os-closure.json");
 const checkOnly = process.argv.includes("--check");
 // the substrate σ-axis + finite-torus coordinate, so a reseal PRESERVES the dual-axis anchoring

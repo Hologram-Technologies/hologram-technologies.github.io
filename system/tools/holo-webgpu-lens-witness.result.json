@@ -1,0 +1,21 @@
+{
+  "spec": "Browser proof of the GPU projection surface: real canvas pixels flow origin → holo-raster-ingest → holo-projector → holo-webgpu-lens (queue.writeTexture per κ tile, copyTextureToTexture present); the composed GPU texture reads back pixel-identical to the origin. A one-tile change writes only that tile to the GPU.",
+  "authority": "Chromium (Playwright) real WebGPU device · the served holo-webgpu-lens.mjs + projector + raster-ingest · WebGPU → Vulkan/Metal/D3D12",
+  "witnessed": true,
+  "lane": "browser",
+  "covers": [
+    "webgpu-lens",
+    "gpu-texture-blit",
+    "pixel-identical",
+    "one-tile-delta",
+    "real-gpu-device"
+  ],
+  "checks": {
+    "gpuDevice": true,
+    "modulesLoaded": true,
+    "keyframePainted": true,
+    "pixelIdenticalKeyframe": true,
+    "oneTileDelta": true,
+    "pixelIdenticalAfterDelta": true
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-home — THE PERSONAL CLOUD MANIFEST: your files, apps, LLM context, named spaces and paired devices as ONE owner-signed, append-only κ you carry, not a server you reach. Home is a projection of a signed source chain (holo-strand); the head κ attests the whole Home so any tamper/reorder/drop fails closed (Law L5 over the sequence), and a peer's Home is taken only via verify-before-adopt (cross-device roam). The CasaOS experience with the box deleted: no origin, no IP, no port — reuse of the existing spine, no new store and no new crypto.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C PROV-O · holospaces Laws L1/L2/L5 · rests on #holo-strand + #holo-object + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "manifest-projection",
+    "append-only-mutation",
+    "head-attests-home",
+    "only-listed-items",
+    "tamper-fail-closed",
+    "durable-reload",
+    "adopt-verifies-peer",
+    "adopt-refuses-tampered-peer"
+  ],
+  "sample": {
+    "head": "did:holo:sha256:c45f6165579a7e1d58cd75daf759385f2676a729a9b45031df8e573484cd925a",
+    "kinds": [
+      "home.init",
+      "home.files.add",
+      "home.files.add",
+      "home.app.pin",
+      "home.app.pin",
+      "home.space.add",
+      "home.device.pair",
+      "home.files.unlink",
+      "home.app.unpin"
+    ]
+  },
+  "checks": {
+    "projectsTheManifest": true,
+    "removeShrinksHome": true,
+    "headAttestsHome": true,
+    "onlyListedItems": true,
+    "tamperRefusedFailClosed": true,
+    "durableReload": true,
+    "adoptVerifiesPeerHome": true,
+    "adoptRefusesTamperedPeer": true
+  },
+  "failed": []
+}

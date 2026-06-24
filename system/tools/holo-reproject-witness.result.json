@@ -1,0 +1,25 @@
+{
+  "spec": "Present-side reprojection (async timewarp), lifted from the game emulator to the substrate and generalized to a per-pixel motion-vector warp. Presentation-only (determinism fence: never mutates the producer); zero-delta passthrough; integer shift = edge-clamped copy; 0.5-pixel = honest bilinear average; edge clamp (no wrap). A uniform MV field reduces byte-identically to the 2D shift; a non-uniform field warps each region (scroll/parallax/3D). The CPU reference oracle for a WebGPU warp shader.",
+  "authority": "VR async timewarp / async reprojection · bilinear resampling · holo-retro-engine/holo-reproject.js · the determinism fence (Law L1)",
+  "witnessed": true,
+  "covers": [
+    "reproject",
+    "determinism-fence",
+    "zero-delta-identity",
+    "integer-shift",
+    "subpixel-bilinear",
+    "edge-clamp",
+    "mv-uniform-parity",
+    "mv-per-pixel"
+  ],
+  "checks": {
+    "determinismFence": true,
+    "zeroDeltaIdentity": true,
+    "integerShift": true,
+    "subpixelBilinear": true,
+    "edgeClamp": true,
+    "mvUniformEqualsShift": true,
+    "mvPerPixel": true,
+    "trackerDelta": true
+  }
+}

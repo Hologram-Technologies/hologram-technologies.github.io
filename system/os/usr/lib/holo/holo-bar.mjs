@@ -10,13 +10,20 @@ export const BAR_KINDS = ["bookmarks", "rail"];
 // ordering); per item we keep only identity + display, in a fixed key order, so the same list always hashes
 // the same and a reorder mints a different κ.
 export function canonicalBar(items = []) {
-  const norm = (it) => ({
-    ref: String((it && it.ref) || ""),
-    label: String((it && it.label) || ""),
-    icon: String((it && it.icon) || ""),
-    words: String((it && it.words) || ""),
-    open: String((it && it.open) || ""),
-  });
+  const norm = (it) => {
+    const o = {
+      ref: String((it && it.ref) || ""),
+      label: String((it && it.label) || ""),
+      icon: String((it && it.icon) || ""),
+      words: String((it && it.words) || ""),
+      open: String((it && it.open) || ""),
+    };
+    // kind is appended ONLY when meaningful: absent / "" / "app" keep the original byte layout, so bars
+    // (and shared P4 tokens) minted before this field still hash to the SAME κ and still verify (Law L5).
+    const kind = String((it && it.kind) || "");
+    if (kind && kind !== "app") o.kind = kind;
+    return o;
+  };
   return JSON.stringify((Array.isArray(items) ? items : []).map(norm));
 }
 
@@ -78,6 +85,7 @@ export function buildBarModel(items = [], { catalog = [] } = {}) {
     const hit = byDid.get(ref) || byId.get(ref) || byId.get(ref.replace(/^holo:\/\//, "")) || null;
     rows.push({
       ref,
+      kind: String(it.kind || "app"),       // app | ext | bar | action — branches OPEN behavior, not render
       label: it.label || (hit && hit.name) || ref,
       words: it.words || (hit && hit.words) || "",
       icon: it.icon || (hit && hit.icon) || "",

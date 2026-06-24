@@ -235,6 +235,12 @@
       #rail:empty { display: none; }
       #rail .bi-label { display: none; }
       #rail .holo-bar-item { max-width: none; padding: 0 6px; }
+      /* P2 — the always-present Extensions affordance (Chrome's puzzle): the rail region never collapses to
+         an invisible zero-width strip; pinned extensions render in #rail to its LEFT. */
+      #rail-ext { display: inline-grid; place-items: center; width: var(--icon-tap, 32px); height: var(--icon-tap, 32px); flex: 0 0 auto; border: 0; border-radius: 8px; background: transparent; color: var(--holo-ink); cursor: pointer; transition: background .12s ease, transform .1s ease; }
+      #rail-ext:hover { background: color-mix(in srgb, var(--holo-ink) 12%, transparent); }
+      #rail-ext:active { transform: scale(.92); }
+      #rail-ext svg { width: var(--icon-md, 18px); height: var(--icon-md, 18px); }
       #bookmarkbar { position: fixed; top: calc(var(--tabrow-h) + var(--toolbar-h)); left: calc(var(--holo-dock-w, 0px) + var(--holo-aside-l, 0px) + var(--gap)); right: calc(var(--gap) + var(--holo-aside-w, 0px)); height: var(--bookmark-h); z-index: 59; display: flex; align-items: center; gap: 1px; padding: 0 var(--sp-2); overflow-x: auto; scrollbar-width: none; background: #1A1A1C; border-bottom: 1px solid var(--holo-border); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); transition: right .34s cubic-bezier(.2,.8,.2,1), left .34s cubic-bezier(.2,.8,.2,1); }
       #bookmarkbar::-webkit-scrollbar { display: none; }
       #bookmarkbar:empty { display: none; }
@@ -925,6 +931,7 @@
       <span id="scope" hidden aria-live="polite" title="the app you're in"></span>
       <div id="omni"><span class="sec" title="Hologram — one address for every object, verified by its fingerprint"><svg class="holomark" viewBox="-104 -104 208 208" width="19" height="19" role="img" aria-label="Hologram"><defs><linearGradient id="omniSpec" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff3b6b"/><stop offset="20%" stop-color="#ff9e2c"/><stop offset="40%" stop-color="#ffe24a"/><stop offset="58%" stop-color="#46e08a"/><stop offset="74%" stop-color="#2bd4ff"/><stop offset="88%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c77bff"/></linearGradient></defs><g fill="url(#omniSpec)"><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg></span><input id="omni-addr" type="text" spellcheck="false" autocomplete="off" aria-label="Search anything" placeholder="Search anything" /><button class="omni-act" id="omni-copy" type="button" title="Copy this address" aria-label="Copy address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="omni-act" id="omni-reveal" type="button" title="Show the full address" aria-label="Show the full address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M11.4 11.6 21 2M17 6l3 3M15.5 7.5 18 10"/></svg></button><button class="go" id="omni-go" type="button" title="Open" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button></div>
       <div id="rail" aria-label="Pinned actions"></div>
+      <button id="rail-ext" type="button" title="Extensions" aria-label="Extensions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3a2 2 0 0 1 4 0v1.5a1 1 0 0 0 1 1h2.5a1.5 1.5 0 0 1 1.5 1.5V11h-1.5a2 2 0 1 0 0 4H19v3.5a1.5 1.5 0 0 1-1.5 1.5H14v-1.5a2 2 0 1 0-4 0V20H6.5A1.5 1.5 0 0 1 5 18.5V15h1.5a2 2 0 1 0 0-4H5V7a2 2 0 0 1 2-2h2.5a1 1 0 0 0 1-1V3z"/></svg></button>
       <div id="verbs" aria-label="Create, Play, Share — the three things you can do">
         <button id="verb-build" type="button" title="Create — author a component into a verified object">✦ <span class="vl">Create</span></button>
         <button id="verb-run" type="button" title="Play — explore the Holo Hub, the store for every app">▶ <span class="vl">Play</span></button>
@@ -5749,6 +5756,8 @@
         // (holo://<hex> · did:holo:sha256:<hex> · bare 64-hex). Checked first so a shared app link always
         // opens the running app, never a search or a raw object viewer.
         { const app = appByKappa(v); if (app) return launch(app); }
+        // A NAVIGABLE chrome-bar κ (holo://bar/<κ>) → resolve its items off the verified bar history; preview + adopt.
+        if (/^holo:\/\/bar\/[0-9a-f]{64}$/i.test(v) && window.HoloBars) { if (await window.HoloBars.open(v)) return; }
         // HOLO NAMES (holo-zone / holo-root) — an owned, mutable name. A fully-qualified holo://zone/<owner>/<label>
         // or, via a pinned anchor, a bare name → resolve to its content κ and open THAT (verify-before-trust, L5).
         // Additive + fail-soft: only fires when HoloRoot is wired; a miss falls through to the legs below.
@@ -5816,11 +5825,31 @@
       (async () => {
         try {
           const [BAR, STORE] = await Promise.all([import("/_shared/holo-bar.mjs"), import("/_shared/holo-bar-store.mjs")]);
-          const { buildBarModel, renderBar } = BAR; const { loadBar, saveBar, defaultBookmarks } = STORE;
+          const { buildBarModel, renderBar } = BAR; const { loadBar, defaultBookmarks } = STORE; const _saveBar = STORE.saveBar;
           const digest = async (str) => { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)); return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join(""); };
+          // E4 — every bar edit also appends to a holo-strand, so the bar gains a NAVIGABLE κ (holo://bar/<κ>),
+          // an attested edit history (head κ over the whole sequence, Law L5) + cross-device roam
+          // (holo-bar-strand.mjs). Uses the operator's live source chain when unlocked, else a session-local
+          // strand. Fail-soft: a strand failure NEVER blocks the durable localStorage save.
+          let barStrand = null;
+          try { const ST = await import("/_shared/holo-bar-strand.mjs"); const o = { digest }; if (window.HoloStrand) o.strand = window.HoloStrand; barStrand = ST.makeBarStrand(o); } catch (e) { barStrand = null; }
+          const saveBar = async (kind, items, opt) => { const r = await _saveBar(kind, items, opt || { digest }); try { if (barStrand) await barStrand.commit(kind, items); } catch (e) {} return r; };
           const bmEl = document.getElementById("bookmarkbar"), railEl = document.getElementById("rail");
           const setH = () => document.documentElement.style.setProperty("--bookmark-h", (bmEl && bmEl.children.length) ? "34px" : "0px");
-          const openRow = (row) => { try { window.HoloOpen ? window.HoloOpen(row.open || row.ref) : omniGo(row.open || row.ref); } catch (e) {} };
+          const openRow = (row) => { try {
+            // A pinned EXTENSION (kind "ext"): the native Chromium toolbar is suppressed, so the rail icon IS
+            // the extension's button. Proxy to its real action through the host (holo:extaction → popup overlay
+            // / action click). Same cefQuery transport as holo:installext; web build falls back to a hint.
+            if (row.kind === "ext" && /^[a-p]{32}$/.test(String(row.ref))) {
+              // open the extension's popup page (from the manifest at pin time → row.open), else the MV3
+              // default popup.html. The host validates the URL and opens it; the Chrome runtime renders it.
+              const tgt = /^chrome-extension:\/\//.test(String(row.open || "")) ? row.open : ("chrome-extension://" + row.ref + "/popup.html");
+              if (window.cefQuery) window.cefQuery({ request: "holo:extaction:" + tgt, persistent: false, onSuccess: function () {}, onFailure: function () { toast("Extension action unavailable"); } });
+              else toast((row.label || "Extension") + " — available in the native browser");
+              return;
+            }
+            window.HoloOpen ? window.HoloOpen(row.open || row.ref) : omniGo(row.open || row.ref);
+          } catch (e) {} };
           // HTML5 drag-to-reorder shared by both bars; on drop, commit() persists the new κ.
           const wireDrag = (el, list, commit) => { if (!el) return; let from = -1; [...el.querySelectorAll(".holo-bar-item")].forEach((b, i) => { b.draggable = true;
             b.addEventListener("dragstart", () => { from = i; b.classList.add("dragging"); });
@@ -5832,9 +5861,9 @@
           const PICK = ["Hologram Meet", "Holo Messenger", "Holo Q", "Holo Tube", "Holo Music", "Holo Files", "Holo Hub", "Holo Atlas", "Holo Browser", "Holo Code"];
           const bm = await loadBar("bookmarks", { digest, seed: () => defaultBookmarks(catalog, { pick: PICK, topUp: 10 }) });
           let bmItems = bm.items;
-          const drawBm = () => { renderBar(buildBarModel(bmItems, { catalog }), bmEl, { onOpen: openRow, onContext: (row, e) => showCtx(e.clientX, e.clientY, [{ label: "Remove from bookmarks", ic: "✕", danger: true, act: async () => { bmItems = bmItems.filter((x) => x.ref !== row.ref); await saveBar("bookmarks", bmItems, { digest }); drawBm(); } }, { label: "Share these bookmarks", ic: "♥", act: () => window.HoloBookmarks.shareLink() }]) }); wireDrag(bmEl, bmItems, async (next) => { bmItems = next; await saveBar("bookmarks", bmItems, { digest }); drawBm(); }); setH(); };
+          const drawBm = () => { renderBar(buildBarModel(bmItems, { catalog }), bmEl, { onOpen: openRow, onContext: (row, e) => showCtx(e.clientX, e.clientY, [{ label: "Remove from bookmarks", ic: "✕", danger: true, act: async () => { bmItems = bmItems.filter((x) => x.ref !== row.ref); await saveBar("bookmarks", bmItems, { digest }); drawBm(); } }, { label: "Share these bookmarks", ic: "♥", act: () => window.HoloBookmarks.shareLink() }]) }); wireDrag(bmEl, bmItems, async (next) => { bmItems = next; await saveBar("bookmarks", bmItems, { digest }); drawBm(); }); setH(); try { if (window.cefQuery) window.cefQuery({ request: "holo:bar:push:" + JSON.stringify(bmItems), persistent: false, onSuccess: function () {}, onFailure: function () {} }); } catch (e) {} };
           drawBm();
-          window.HoloBookmarks = { add: async (ref, opt = {}) => { ref = String(ref || ""); if (!ref || bmItems.some((x) => x.ref === ref)) return false; bmItems = bmItems.concat([{ ref, label: opt.label || "", words: opt.words || "", icon: opt.icon || "", open: opt.open || "" }]); await saveBar("bookmarks", bmItems, { digest }); drawBm(); return true; }, items: () => bmItems.slice() };
+          window.HoloBookmarks = { add: async (ref, opt = {}) => { ref = String(ref || ""); if (!ref || bmItems.some((x) => x.ref === ref)) return false; bmItems = bmItems.concat([{ ref, kind: opt.kind || "", label: opt.label || "", words: opt.words || "", icon: opt.icon || "", open: opt.open || "" }]); await saveBar("bookmarks", bmItems, { digest }); drawBm(); return true; }, items: () => bmItems.slice() };
           // share these bookmarks as a self-verifying link (the κ proves the carried items; no server).
           window.HoloBookmarks.shareLink = async () => { try { const t = await BAR.barShareToken(bmItems, digest); const url = location.origin + "/shell.html?bar=" + t; try { await navigator.clipboard.writeText(url); toast("Bookmarks link copied"); } catch (e) { toast("Bookmarks link ready"); } return url; } catch (e) { return null; } };
           // a shared bar arrived via ?bar=<token> — verify BEFORE trust (Law L5), then ask to adopt.
@@ -5858,7 +5887,34 @@
           let rlItems = rl.items;
           const drawRail = () => { renderBar(buildBarModel(rlItems, { catalog }), railEl, { onOpen: openRow, onContext: (row, e) => showCtx(e.clientX, e.clientY, [{ label: "Unpin", ic: "✕", danger: true, act: async () => { rlItems = rlItems.filter((x) => x.ref !== row.ref); await saveBar("rail", rlItems, { digest }); drawRail(); } }]) }); wireDrag(railEl, rlItems, async (next) => { rlItems = next; await saveBar("rail", rlItems, { digest }); drawRail(); }); };
           drawRail();
-          window.HoloRail = { add: async (ref, opt = {}) => { ref = String(ref || ""); if (!ref || rlItems.some((x) => x.ref === ref)) return false; rlItems = rlItems.concat([{ ref, label: opt.label || "", words: opt.words || "", icon: opt.icon || "", open: opt.open || "" }]); await saveBar("rail", rlItems, { digest }); drawRail(); return true; }, items: () => rlItems.slice() };
+          // P2 — the persistent Extensions affordance opens the manager (pin/discovery path). Always present
+          // even with an empty rail, so the "icons to the right of the address bar" region never vanishes.
+          try { const xb = document.getElementById("rail-ext"); if (xb && !xb.__wired) { xb.__wired = 1; xb.addEventListener("click", () => { try { if (typeof needNewTab !== "function" || needNewTab()) newTab("Extensions"); addNode({ kind: "app", title: "Extensions", src: "/usr/share/frame/extensions.html", sandbox: "allow-scripts allow-same-origin", allow: "", state: "max" }); } catch (e) { try { (window.HoloOpen || omniGo)("holo://os/usr/share/frame/extensions.html"); } catch (x) {} } }); } } catch (e) {}
+          window.HoloRail = { add: async (ref, opt = {}) => { ref = String(ref || ""); if (!ref || rlItems.some((x) => x.ref === ref)) return false; rlItems = rlItems.concat([{ ref, kind: opt.kind || "", label: opt.label || "", words: opt.words || "", icon: opt.icon || "", open: opt.open || "" }]); await saveBar("rail", rlItems, { digest }); drawRail(); return true; }, items: () => rlItems.slice() };
+          // E3 — a pinned extension arriving from the Extensions manager iframe (cross-frame, possibly sandboxed):
+          // accept holo:rail:pin ONLY from one of our own app iframes, then add it to the rail.
+          addEventListener("message", (e) => { try { const d = e.data; if (!d || d.type !== "holo:rail:pin" || !d.ref) return; if (![...document.querySelectorAll("iframe")].some((fr) => fr.contentWindow === e.source)) return; window.HoloRail && window.HoloRail.add(String(d.ref), d.opt || {}); } catch (x) {} });
+          // E4 — the bar as a navigable, roaming κ-object. address()/current() expose the live bar κ; open()
+          // resolves holo://bar/<κ> off the VERIFIED history and offers to adopt (verify-before-trust, L5).
+          window.HoloBars = {
+            address: async () => { try { const c = barStrand ? await barStrand.current("bookmarks") : null; return c ? c.address : ""; } catch (e) { return ""; } },
+            current: (kind = "bookmarks") => (barStrand ? barStrand.current(kind) : Promise.resolve({ items: [], kappa: null, address: "" })),
+            resolve: (addr, kind) => (barStrand ? barStrand.resolve(addr, kind) : Promise.resolve(null)),
+            bundle: () => (barStrand ? barStrand.bundle() : { head: null, entries: [] }),
+            roam: (b) => (barStrand ? barStrand.roam(b) : Promise.resolve({ outcome: "in-sync" })),
+            open: async (addr) => {
+              try {
+                if (!barStrand) return false;
+                const hit = (await barStrand.resolve(addr, "bookmarks")) || (await barStrand.resolve(addr, "rail"));
+                if (!hit) { toast("Couldn't locate that bar"); return true; }
+                showCtx(Math.round(innerWidth / 2) - 120, 120, [
+                  { label: "Adopt " + hit.items.length + " from this bar", ic: "♥", act: async () => { bmItems = hit.items.concat(bmItems.filter((x) => !hit.items.some((y) => y.ref === x.ref))); await saveBar("bookmarks", bmItems, { digest }); drawBm(); toast("Bar adopted"); } },
+                  { label: "Keep mine", ic: "✕", act: () => {} },
+                ]);
+                return true;
+              } catch (e) { return false; }
+            },
+          };
         } catch (e) { /* bars are additive — never break the shell */ }
       })();
       // ── omnibox suggestions — Chrome-style. As you type, ONE ranked list fuses every corpus:
@@ -7085,6 +7141,8 @@
          your per-user adapter on NEW up-voted turns and silently swaps it in — never blocks the UI, device-tier
          gated, respects pause. Calls the A1 trainer above (window.HoloMicroFinetune); skips if no model yet. -->
     <script type="module" src="/_shared/holo-learn-scheduler.mjs" data-holo-shared="holo-learn-scheduler.mjs"></script>
+    <!-- Holo Home: personal-cloud front door (Files · Apps · Ask · Spaces) -->
+    <script type="module" src="/usr/lib/holo/holo-home-boot.mjs"></script>
     <!-- Holo Video — the embedded glass video player window pinned into the dock right after the music
          disc (movable · resizable · immersive full screen). Loaded near the dock so its rail tile is live. -->
     <script defer src="/_shared/holo-video.js" data-holo-shared="holo-video.js"></script>
@@ -7505,5 +7563,208 @@
          κ-object from a NON-origin source (IPFS Trustless Gateways · mesh) re-derived (Law L5), and keeps
          the OS whole on idle. The sealed anchor is never auto-healed. Guarded — can never break boot. -->
     <script type="module" src="./holo-heal-boot.mjs"></script>
+  <!-- Holo Pass production hooks (+ step-up broker). The native passkey relay reads window.__holoPassVault
+       (the unlocked vault) and window.__holoStepUp (the biometric gate). Under holo://os, WebAuthn rejects the
+       rpId "os", so the biometric ceremony is run in a hidden iframe at http://localhost/.../stepup-broker.html
+       (rpId "localhost" is valid) — driven by postMessage from this trusted shell. The vault opens LAZILY on
+       first use (one biometric, cached for the session); the gate runs a fresh ceremony per sensitive op.
+       Fail-closed for guests / no-TEE / no broker. -->
+  <script type="module">
+    import * as HoloSession from "/_shared/holo-session.mjs";
+    function operator() { try { return HoloSession.signedInOperator(); } catch (e) { return null; } }
+    const u2bytes = (str) => { let t = String(str).replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; const b = atob(t); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+
+    // ── localhost step-up broker (B1–B4): a hidden iframe at a valid WebAuthn origin runs the real ceremony ──
+    const BROKER_URL = window.__holoBrokerUrl || "http://localhost:8495/usr/share/frame/stepup-broker.html";
+    let _brokerReady = null, _reqId = 0;
+    function brokerFrame() {
+      if (_brokerReady) return _brokerReady;
+      _brokerReady = new Promise((resolve, reject) => {
+        let f; try { f = document.createElement("iframe"); } catch (e) { return reject(e); }
+        f.setAttribute("aria-hidden", "true"); f.style.cssText = "position:fixed;width:1px;height:1px;border:0;left:-9999px;top:-9999px";
+        const onReady = (e) => { if (e.source === f.contentWindow && e.data && e.data.__holoBroker && e.data.ready) { window.removeEventListener("message", onReady); resolve(f); } };
+        window.addEventListener("message", onReady);
+        f.addEventListener("error", () => { window.removeEventListener("message", onReady); reject(new Error("broker iframe failed to load")); });
+        document.body.appendChild(f); f.src = BROKER_URL;
+        setTimeout(() => { window.removeEventListener("message", onReady); reject(new Error("broker not reachable (is the localhost broker server running?)")); }, 12000);
+      });
+      _brokerReady.catch(() => { _brokerReady = null; });   // allow retry if the broker wasn't up yet
+      return _brokerReady;
+    }
+    async function brokerCall(op, params) {
+      const f = await brokerFrame();
+      const origin = new URL(BROKER_URL).origin;
+      return new Promise((resolve, reject) => {
+        const id = "b" + (++_reqId);
+        const onMsg = (e) => { if (e.source !== f.contentWindow) return; const m = e.data; if (!m || !m.__holoBroker || m.id !== id) return; window.removeEventListener("message", onMsg); if (m.ok) resolve(m); else reject(new Error(m.err || "broker denied")); };
+        window.addEventListener("message", onMsg);
+        f.contentWindow.postMessage(Object.assign({ __holoBrokerReq: 1, id, op }, params), origin);
+        setTimeout(() => { window.removeEventListener("message", onMsg); reject(new Error("broker request timeout")); }, 60000);
+      });
+    }
+    // a real local ceremony only runs when the page origin is already WebAuthn-valid (https/localhost);
+    // under holo://os it never is, so we ALWAYS broker — but keep the direct path for completeness.
+    async function originIsWebAuthnValid() { try { const { teeReason } = await import("/_shared/holo-webauthn.mjs"); return (await teeReason()) === ""; } catch (e) { return false; } }
+
+    // ── THE ONE biometric ceremony (shared by the unified gate, the vault, and the wallet). Runs Windows
+    // Hello / Touch ID once and returns the released PRF secret. A trust-window cache means a burst of
+    // authorizations is ONE tap; `force` (set for value/reveal acts) always runs a fresh ceremony. This is
+    // why the whole stack feels like a single fingerprint. -->
+    let _secretCache = { secret: null, atMs: 0 };
+    const STEPUP_WINDOW_MS = 120000;
+    async function runCeremony(op) {
+      if (await originIsWebAuthnValid()) { const { teeAssert } = await import("/_shared/holo-webauthn.mjs"); return (await teeAssert({ credentialId: op.cred })).secret; }
+      const r = await brokerCall("assert", { credentialId: op.cred });    // the ONE biometric, run at localhost
+      if (!r.secret) throw new Error("broker returned no PRF secret (needs a real authenticator with PRF)");
+      return u2bytes(r.secret);
+    }
+    async function currentSecret(op, force = false) {
+      if (!force && _secretCache.secret && (Date.now() - _secretCache.atMs) < STEPUP_WINDOW_MS) return _secretCache.secret;
+      const secret = await runCeremony(op);
+      _secretCache = { secret, atMs: Date.now() };
+      return secret;
+    }
+    async function unlockSecret(op) { return currentSecret(op, false); }   // vault/wallet share the cached tap
+
+    // ════════════════════════════════════════════════════════════════════════════════════════════════════
+    //  window.HoloAuth — THE single authentication/authorization seam for the ENTIRE OS and every holo app.
+    //  Every login, signature, secret release, and proof in Hologram flows through this one verb (holo-auth's
+    //  `authorize`): SIGN | RELEASE | PROVE, plus the SIWE and OIDC ("Sign in with Hologram") adapters. ONE
+    //  root (the operator seed), ONE gate (the device-TEE biometric below), payload-bound, PQ, L5-verifiable.
+    //  The legacy handles (__holoStepUp / __holoPassVault / __holoWallet) are now thin views over this seam.
+    // ════════════════════════════════════════════════════════════════════════════════════════════════════
+    let _ceremony = { secret: null, principal: null };                    // per-authorize material (gate → handlers)
+    // The ONE gate: a real holo-stepup token, signed by the freshly re-derived operator principal, over the
+    // exact action. Value/reveal acts force a fresh tap; others may ride the trust window. Returns null = denied.
+    async function holoGate(action) {
+      const op = operator();
+      if (!op || !op.kappa) return null;                                  // guest → fail closed
+      try {
+        const [{ buildStepUp, needsStepUp }, login] = await Promise.all([import("/_shared/holo-stepup.mjs"), import("/_shared/holo-login.mjs")]);
+        const force = needsStepUp(action.kind, { last: _secretCache.secret ? { kind: action.kind, atMs: _secretCache.atMs } : null, nowMs: Date.now(), windowMs: STEPUP_WINDOW_MS });
+        const secret = await currentSecret(op, force);                    // the ONE biometric (cached per window)
+        const principal = await login.unlock(op.kappa, secret);          // re-derive the sovereign signer
+        _ceremony = { secret, principal };                               // hand to the adapter (no second tap)
+        return await buildStepUp(action, principal);                     // real, L5-verifiable authorization κ
+      } catch (e) { return null; }                                        // any failure → denied (fail closed)
+    }
+    // The adapters (SIGN/RELEASE/PROVE) — wired to the live spine, reusing the ceremony's principal so a
+    // single tap both authorizes AND produces the disclosure. ethereum routes through the WDK wallet.
+    const holoHandlers = {
+      async SIGN(spec) {
+        const dom = spec.keyDomain || "operator";
+        if (dom === "ethereum") {
+          const w = await ensureWcWallet();
+          let td = spec.typedData; if (td == null && typeof spec.payload === "string" && /^[\[{]/.test(spec.payload.trim())) { try { td = JSON.parse(spec.payload); } catch (e) {} }
+          const signature = td != null ? await w.signTypedData({ chain: "ethereum", typedData: td }) : await w.signMessage({ chain: "ethereum", message: spec.payload });
+          return { keyDomain: "ethereum", signature };                       // covers personal_sign / eth_sign / signTypedData
+        }
+        const p = _ceremony.principal; if (!p) throw new Error("authorize.SIGN: no ceremony principal");
+        return { keyDomain: "operator", alg: p.alg, pub: p.pub, signature: await p.sign(typeof spec.payload === "string" ? spec.payload : new Uint8Array(spec.payload)) };
+      },
+      async RELEASE(spec, ctx) {
+        const v = await ensureVault();
+        const hit = (await v.list()).find((x) => x.origin === ctx.context && x.kind === (spec.kind || "password"));
+        if (!hit) return null;                                            // no credential for this verified origin → nothing (anti-phishing)
+        const f = await v.get(hit.id);
+        return { kind: f.kind, username: f.username, secret: f.secret };
+      },
+      async PROVE(spec, ctx) {
+        const p = _ceremony.principal; if (!p) throw new Error("authorize.PROVE: no ceremony principal");
+        const core = await import("/_shared/holo-auth.mjs");
+        // resolve the operator's claim value/VC from the vault so a numeric predicate ("age>=18") becomes a
+        // REAL zero-knowledge range proof (holo-zk-range) instead of an attestation. Falls back to spec.value.
+        const getCredential = async (key) => {
+          try { const v = await ensureVault(); const list = await v.list();
+            const idc = list.find((x) => x.kind === "identity");
+            if (idc) { const f = await v.get(idc.id); let claims = f.claims; if (!claims && f.secret) { try { claims = JSON.parse(f.secret).claims; } catch (e) {} }
+              if (claims && key in claims) return { value: claims[key] }; }
+          } catch (e) {} return null;
+        };
+        return core.makeProver({ principal: p, getCredential })(spec, ctx);
+      },
+    };
+    window.HoloAuth = {
+      MODES: Object.freeze({ SIGN: "SIGN", RELEASE: "RELEASE", PROVE: "PROVE" }),
+      get operatorKappa() { const op = operator(); return op && op.kappa || null; },
+      async authorize(request) { const core = await import("/_shared/holo-auth.mjs"); return core.authorize(request, { gate: holoGate, handlers: holoHandlers }); },
+      async sign(context, spec) { return this.authorize({ subject: this.operatorKappa, context, mode: "SIGN", spec: spec || {} }); },
+      async release(context, spec) { return this.authorize({ subject: this.operatorKappa, context, mode: "RELEASE", spec: spec || {} }); },
+      async prove(context, spec) { return this.authorize({ subject: this.operatorKappa, context, mode: "PROVE", spec: spec || {} }); },
+      async siwe({ origin, siweMessage }) { const core = await import("/_shared/holo-auth.mjs"); return this.authorize(core.siweRequest({ subject: this.operatorKappa, origin, siweMessage })); },
+      // "Sign in with Hologram" — issue a standards OIDC ID Token (the RP verifies it against jwks) under one tap.
+      async signIn({ audience, nonce = null, claims = {}, ttlSec = 300 } = {}) {
+        const core = await import("/_shared/holo-auth.mjs");
+        const op = operator(); const pub = op && op.pub || (_ceremony.principal && _ceremony.principal.pub) || null;
+        return core.issueIdToken({ subject: this.operatorKappa, audience, nonce, claims, ttlSec, pub }, (req) => this.authorize(req));
+      },
+      async verify(authorization) { const core = await import("/_shared/holo-auth.mjs"); return core.verifyAuth(authorization); },
+    };
+
+    // window.__holoStepUp — legacy gate handle, now a thin view over the ONE gate (single implementation).
+    window.__holoStepUp = async (action) => holoGate({ kind: (action && action.kind) || "passkey.assert", payload: (action && action.payload) || null, appId: (action && action.appId) || "holo://os", operator: (operator() || {}).kappa, reason: (action && action.reason) || "" });
+
+    // window.__holoPassVault — opened lazily on first use (one TEE unlock, via the broker under holo://).
+    let _vaultP = null;
+    async function ensureVault() {
+      if (_vaultP) return _vaultP;
+      const op = operator();
+      if (!op || !op.kappa) throw new Error("vault: no operator (guest)");
+      _vaultP = (async () => {
+        const { openVault } = await import("/_shared/holo-vault.mjs");
+        return openVault(op.kappa, await unlockSecret(op));
+      })();
+      _vaultP.catch(() => { _vaultP = null; });
+      return _vaultP;
+    }
+    window.__holoPassVault = {
+      get: async (rp) => (await ensureVault()).get(rp),
+      put: async (rec) => (await ensureVault()).put(rec),
+      list: async () => (await ensureVault()).list(),
+      lock: () => { _vaultP = null; },
+    };
+
+    // ── web3 wallet handle (GAP-4 prod): the relay's op:web3 reads this. accounts = the PUBLIC wallet
+    // presentation written at sign-in (instant, no biometric); sign/send lazily open the REAL WDK wallet
+    // from the seed (one broker biometric) and route through HoloWallet's gate. Presence is already proven
+    // upstream by __holoStepUp, so the wallet's own gate is permissive here (no double prompt). Guest → none.
+    let _wcAccounts = [];
+    (async () => { try {
+      const root = await navigator.storage.getDirectory();
+      const h = await (await (await root.getDirectoryHandle("var")).getDirectoryHandle("run")).getDirectoryHandle("holo");
+      const w = JSON.parse(await (await (await h.getFileHandle("wallet.json")).getFile()).text());
+      if (w && w.addresses && w.addresses.ethereum) _wcAccounts = [w.addresses.ethereum];
+    } catch (e) {} })();
+    let _wcP = null;
+    async function ensureWcWallet() {
+      if (_wcP) return _wcP;
+      const op = operator();
+      if (!op || !op.kappa) throw new Error("wallet: no operator (guest)");
+      _wcP = (async () => {
+        const [{ HoloWallet }, login] = await Promise.all([import("/_shared/holo-wdk.js"), import("/_shared/holo-login.mjs")]);
+        const wallet = new HoloWallet({ gate: async () => true });        // upstream __holoStepUp is the real gate
+        await wallet.openSeed(await login.unlockSeed(op.kappa, await unlockSecret(op)));   // one biometric (broker)
+        if (!_wcAccounts.length) { try { _wcAccounts = [(await wallet.addresses(0)).ethereum]; } catch (e) {} }
+        return wallet;
+      })();
+      _wcP.catch(() => { _wcP = null; });
+      return _wcP;
+    }
+    window.__holoWallet = {
+      get accounts() { return _wcAccounts; },
+      chainId: "0x1",
+      sign: async (params) => {                                           // personal_sign [msg,addr] | typedData [addr,td]
+        const w = await ensureWcWallet(); const p = params || [];
+        if (typeof p[1] === "string" && /^[\[{]/.test(String(p[1]).trim())) { let td; try { td = JSON.parse(p[1]); } catch { td = p[1]; } return w.signTypedData({ chain: "ethereum", typedData: td }); }
+        return w.signMessage({ chain: "ethereum", message: p[0] });
+      },
+      send: async (tx) => {                                               // eth_sendTransaction {to,value(hex wei)}
+        const w = await ensureWcWallet(); tx = tx || {};
+        const amount = (Number(tx.value ? BigInt(tx.value) : 0n) / 1e18).toString();
+        return w.send({ chain: "ethereum", to: tx.to, amount });
+      },
+      lock: () => { _wcP = null; },
+    };
+  </script>
   </body>
 </html>

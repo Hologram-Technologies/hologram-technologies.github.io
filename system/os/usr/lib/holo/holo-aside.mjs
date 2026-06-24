@@ -32,12 +32,34 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": 
 // dispatched here, so there is no feedback loop.
 export function syncDockWidth() {
   try {
-    const openEl = document.querySelector(".holo-aside.on");
-    if (openEl) { document.documentElement.style.setProperty(ASIDE_W, openEl.offsetWidth + "px"); document.documentElement.classList.add("aside-open"); }
-    else { document.documentElement.style.removeProperty(ASIDE_W); document.documentElement.classList.remove("aside-open"); }
+    const root = document.documentElement;
+    // ONLY an aside that is genuinely on screen (attached, visible, painting, with width) may reserve the
+    // right inset. A carriage that was torn down, detached, or hidden without a resync must NOT strand
+    // --holo-aside-w: a stale value leaves the whole desktop permanently squeezed left — a phantom dark
+    // band on the right that reads as "the canvas doesn't cover the screen", and it grows as the window is
+    // widened. Querying `.holo-aside.on` alone trusted the class; we now verify the element actually paints,
+    // so syncDockWidth is self-healing — the next resize (e.g. expanding the window) clears any phantom inset.
+    let reserve = 0;
+    for (const a of document.querySelectorAll(".holo-aside.on")) {
+      if (a.offsetParent === null) continue;                       // detached / display:none ancestor → not on screen
+      const cs = getComputedStyle(a);
+      if (cs.visibility === "hidden" || parseFloat(cs.opacity) === 0) continue;
+      const w = a.getBoundingClientRect().width;
+      if (w >= 1) reserve = Math.max(reserve, Math.round(w));
+    }
+    if (reserve > 0) { root.style.setProperty(ASIDE_W, reserve + "px"); root.classList.add("aside-open"); }
+    else { root.style.removeProperty(ASIDE_W); root.classList.remove("aside-open"); }
   } catch (e) {}
 }
-if (typeof window !== "undefined") window.addEventListener("resize", syncDockWidth);
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", syncDockWidth);
+  // Self-heal any inset that was stranded before this listener existed (or by a torn-down carriage): reconcile
+  // once the layout settles, and whenever the tab returns to the foreground. Cheap, idempotent, no resize needed.
+  const reconcile = () => { try { syncDockWidth(); } catch (e) {} };
+  if (document.readyState === "complete") requestAnimationFrame(reconcile);
+  else window.addEventListener("load", () => requestAnimationFrame(reconcile), { once: true });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) reconcile(); });
+}
 
 // reflowGlide() — nudge the floating widgets + Q orb to re-anchor IN LOCKSTEP with the carriage glide.
 // The holospace squeezes via --holo-aside-w (CSS), which does NOT change innerWidth, so holo-widgets'

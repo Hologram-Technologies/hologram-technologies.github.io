@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-home-reach — ZERO-CONFIG REACH: a new device pairs (a scoped, operator-signed, revocable grant — holo-pair) and reconciles the owner's Home chain into its own, with no box, no origin, no port. Two decisions: the TRUST gate (no valid delegation ⇒ no Home, even for a chain that would fast-forward) and the RECONCILE policy (adopt fast-forward / in-sync / behind keep-local / diverged keep-both / refuse on a chain that doesn't verify), with adopt() being the strand's verify-before-adopt. The transport is injected; this owns when to trust and when to take.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L5 · UCAN attenuated delegation · rests on #holo-home-reach + #holo-home + #holo-strand + #holo-pair",
+  "witnessed": true,
+  "covers": [
+    "fast-forward-adopt",
+    "behind-keep-local",
+    "diverged-keep-both",
+    "in-sync-noop",
+    "refuse-tampered-peer",
+    "ungranted-refused"
+  ],
+  "checks": {
+    "fastForwardAdopts": true,
+    "behindKeepsLocal": true,
+    "divergedKeepsBoth": true,
+    "inSyncNoop": true,
+    "refusesTamperedPeer": true,
+    "ungrantedRefused": true
+  },
+  "failed": []
+}

@@ -13,7 +13,10 @@
     "store-round-trip",
     "open-target",
     "token-round-trip",
-    "token-tamper-rejected"
+    "token-tamper-rejected",
+    "kind-round-trip",
+    "kind-mints-kappa",
+    "legacy-bytes-unchanged"
   ],
   "checks": {
     "modelDeterministic": true,
@@ -25,7 +28,10 @@
     "storeRoundTrip": true,
     "openTarget": true,
     "tokenRoundTrip": true,
-    "tokenTamperRejected": true
+    "tokenTamperRejected": true,
+    "kindRoundTrip": true,
+    "kindMintsKappa": true,
+    "legacyBytesUnchanged": true
   },
   "failed": []
 }
