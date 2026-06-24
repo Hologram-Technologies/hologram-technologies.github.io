@@ -71,12 +71,17 @@ window.__holoOsrFrame = async (manifest) => {
 // the visible canvas backs the NATIVE display resolution (super-res target); drawImage upscales the producer
 // frame to it with high-quality sampling.
 function sizeScreen() {
-  const dpr = window.devicePixelRatio || 1;
-  screen.width = Math.max(W, Math.round(window.innerWidth * dpr));
-  screen.height = Math.max(H, Math.round(window.innerHeight * dpr));
+  // the producer renders at the display res we requested (W×H from the manifest), so the canvas backing store
+  // matches it → drawImage is 1:1, PIXEL-NATIVE (no upscale). CSS maps it to the window at 1 device pixel each.
+  screen.width = W; screen.height = H;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
 }
-window.addEventListener("resize", () => { if (W) sizeScreen(); });
+// the native display resolution we ask the producer to render at (pixel-native; super-res only if it can't).
+function reqRes() {
+  const dpr = window.devicePixelRatio || 1;
+  return { w: Math.min(3840, Math.max(640, Math.round(window.innerWidth * dpr))),
+           h: Math.min(2400, Math.max(480, Math.round(window.innerHeight * dpr))) };
+}
 
 // the PRESENT loop — runs at the panel refresh, decoupled from produce. ONE GPU drawImage: scale (super-res to
 // the display resolution) + translate (sub-pixel scroll reproject = present-side negative latency).
@@ -134,8 +139,9 @@ window.addEventListener("keydown", (e) => sendInput({ t: "keydown", k: e.keyCode
 window.addEventListener("keypress", (e) => sendInput({ t: "char", c: e.charCode || e.keyCode }));
 
 window.__holoOsrReady = true;                      // host waits on this before opening the OSR producer
-// handshake: tell the host this lens is ready so it spawns the off-screen producer at the pending URL.
-if (window.cefQuery) window.cefQuery({ request: "holo:osrready:", onSuccess() {}, onFailure() {} });
+// handshake: tell the host this lens is ready + the resolution to render the producer at (pixel-native).
+const _rr = reqRes();
+if (window.cefQuery) window.cefQuery({ request: "holo:osrready:" + _rr.w + ":" + _rr.h, onSuccess() {}, onFailure() {} });
 </script>
 </body>
 </html>
