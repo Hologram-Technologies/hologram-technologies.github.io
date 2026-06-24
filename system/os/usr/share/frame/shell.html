@@ -5749,6 +5749,12 @@
         // (holo://<hex> · did:holo:sha256:<hex> · bare 64-hex). Checked first so a shared app link always
         // opens the running app, never a search or a raw object viewer.
         { const app = appByKappa(v); if (app) return launch(app); }
+        // HOLO NAMES (holo-zone / holo-root) — an owned, mutable name. A fully-qualified holo://zone/<owner>/<label>
+        // or, via a pinned anchor, a bare name → resolve to its content κ and open THAT (verify-before-trust, L5).
+        // Additive + fail-soft: only fires when HoloRoot is wired; a miss falls through to the legs below.
+        if (window.HoloRoot && (/^holo:\/\/zone\//i.test(v) || (window.HoloRoot.anchors && window.HoloRoot.anchors().length && /^[a-z0-9][a-z0-9.-]*$/i.test(v) && !appByKappa(v)))) {
+          try { const rr = await window.HoloRoot.resolveName(v); if (rr && rr.ok && rr.kappa) return omniGo(rr.kappa); } catch (e) {}
+        }
         // THREE WORDS (brass.junior.quiz) — a κ's speakable address. Resolve to its app HERE, before the
         // web3/onion/media legs, which would otherwise claim a dotted name. classify matches the app's
         // precomputed three-word address in the catalog (derived from the app's κ at build, Law L1/L5).
@@ -5781,6 +5787,28 @@
         fallback: (ref) => omniGo(ref),
       });
       window.HoloClassifyOpen = classifyHoloOpen;
+      // ── κ-Roots: owned, mutable names native to the substrate (holo-zone) + a pluralistic root (holo-root).
+      //    No registrar, no DNS root, no KSK. A name is a signed binding on the operator's ONE source chain;
+      //    resolution re-derives (Law L5). HoloZone self-wires off HoloStrand; here we build HoloRoot over it
+      //    and bind the unlocked operator as the zone owner (writable) when identity arrives. Additive + fail-soft.
+      (async () => {
+        try {
+          await import("/_shared/holo-zone.mjs");                          // self-wires window.HoloZone off HoloStrand
+          await import("/_shared/holo-zone-net.mjs");                      // registers window.HoloZoneNet (BroadcastChannel transport)
+          const { makeRoot } = await import("/_shared/holo-root.mjs");
+          // openZone(ownerHex): the operator's OWN zone is local; ANY other owner's zone is fetched over the
+          // zone-net (BroadcastChannel today, WebRTC/IPFS same seam), verify-before-adopt — so a name owned by
+          // anyone resolves through the one door, and a lying peer is refused (the answer is the math).
+          const openLocal = async (hex) => { try { const z = window.HoloZone; return (z && z.ownerKappa && z.ownerKappa.split(":").pop() === hex) ? z : null; } catch (e) { return null; } };
+          let openZone = openLocal;
+          try { if (window.HoloZoneNet) { const net = window.HoloZoneNet.attach(openLocal); openZone = net.openZone; window.__holoZoneNet = net; } } catch (e) {}
+          window.HoloRoot = makeRoot({ anchors: [], openZone });
+          // bind the unlocked operator as the zone owner so names become writable (signing rides the live key).
+          const bindOwner = async () => { try { const op = (window.HoloSession && window.HoloSession.activePrincipal) ? await window.HoloSession.activePrincipal() : null; if (op && window.HoloZone && window.HoloZone.setOwner) { window.HoloZone.setOwner(op); window.HoloRoot.pin(window.HoloZone); } } catch (e) {} };
+          window.addEventListener("holo-identity", bindOwner);
+          if (window.HoloIdentity) bindOwner();
+        } catch (e) { /* κ-Roots stays dormant; the shell never breaks */ }
+      })();
       // ── κ-addressable chrome bars — bookmarks (under the address bar) + an icon-only action rail (right of
       //    the omnibox). Each bar is a κ-list (holo-bar.mjs); an item is a κ-reference; opening routes through
       //    the ONE open path (window.HoloOpen). Ordering persists and the bar has its own κ. Additive: any
