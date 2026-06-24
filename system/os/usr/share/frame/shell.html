@@ -5795,7 +5795,7 @@
         try {
           await import("/_shared/holo-zone.mjs");                          // self-wires window.HoloZone off HoloStrand
           await import("/_shared/holo-zone-net.mjs");                      // registers window.HoloZoneNet (BroadcastChannel transport)
-          const { makeRoot } = await import("/_shared/holo-root.mjs");
+          const { makeRoot } = await import("/sbin/holo-root.mjs");        // sbin resolver (FHS path; dist serves /sbin/* by κ)
           // openZone(ownerHex): the operator's OWN zone is local; ANY other owner's zone is fetched over the
           // zone-net (BroadcastChannel today, WebRTC/IPFS same seam), verify-before-adopt — so a name owned by
           // anyone resolves through the one door, and a lying peer is refused (the answer is the math).
