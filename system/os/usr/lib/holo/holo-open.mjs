@@ -10,6 +10,7 @@
 
 // classifyOpen(ref) → { kind } — the open taxonomy, by shape alone:
 //   space   holo://space/<id>            → a holospace/room
+//   zone    holo://zone/<owner>/<label>  → an owned, mutable Holo name (holo-zone)
 //   kappa   did:holo:sha256:<hex> | <64hex> | holo://<hex>   → a content address (an app or object)
 //   app     holo://<id>                  → a named app (non-hash holo:// ref, e.g. holo://org.hologram.X)
 //   words   a.b.c                        → a three-word κ-name
@@ -22,6 +23,8 @@ export function classifyOpen(ref) {
   const v = String(ref == null ? "" : ref).trim();
   if (!v) return { kind: "empty" };
   if (/^holo:\/\/space\//i.test(v)) return { kind: "space" };
+  if (/^holo:\/\/zone\/[0-9a-f]{64}\//i.test(v)) return { kind: "zone" };   // an owned, mutable Holo name (holo-zone)
+  if (/^holo:\/\/zone\//i.test(v)) return { kind: "zone" };
   if (/^did:holo:sha256:[0-9a-f]{64}$/i.test(v) || /^[0-9a-f]{64}$/i.test(v) || /^holo:\/\/[0-9a-f]{64}$/i.test(v)) return { kind: "kappa" };
   if (/^holo:\/\//i.test(v)) return { kind: "app" };                 // holo://<appid> (non-hash)
   // a bare domain (no scheme) ending in a known TLD → the web. Checked BEFORE three-words so

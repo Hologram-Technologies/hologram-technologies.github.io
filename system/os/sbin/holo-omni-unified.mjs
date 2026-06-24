@@ -14,12 +14,17 @@
 import { resolveAny, parseRef } from "./holo-omni-object.mjs";
 import { parseWeb3Ref, resolveWeb3 } from "./holo-omni-web3.mjs";
 import { parseOnionRef, resolveOnion } from "./holo-omni-onion.mjs";
+import { classifyZone, resolveZone } from "./holo-zone-lane.mjs";
 
 // classifyUnified(input) → { lane, kind, label } — instant, no network.
 //   lane: "onion" | "web3" | "object" | "nl" | "unknown"
 export function classifyUnified(input) {
   const s = String(input || "").trim();
   if (!s) return { lane: "unknown", kind: "empty", label: "—" };
+  // Zone first: a holo://zone/<owner>/<label> Holo name is unambiguous and owned — an OWNED, MUTABLE name
+  // on the operator's source chain (holo-zone), the registrar-free replacement for a DNS zone.
+  const z = classifyZone(s);
+  if (z) return z;
   // Onion first: the .onion suffix is unambiguous, and a v3 host is 56 base32 chars that no other parser
   // would claim (parseRef would fall through to "unknown"). Validation happens in resolveOnion, not here.
   if (parseOnionRef(s)) return { lane: "onion", kind: "onion", label: "Tor onion service" };
@@ -48,6 +53,12 @@ export async function resolveUnified(input, cfg = {}) {
   const ms = () => (t0 ? Math.round((performance.now ? performance.now() : 0) - t0) : 0);
   const cls = classifyUnified(input);
 
+  if (cls.lane === "zone") {
+    // The owner's zone (its spine / κ-store / gossip) is supplied by the caller via cfg.openZone(ownerHex)
+    // or cfg.zones. The zone verifies its whole chain before answering (Law L5); fail-closed otherwise.
+    const r = await resolveZone(input, cfg);
+    return { ...r, label: cls.label, ms: r.ms != null ? r.ms : ms() };
+  }
   if (cls.lane === "onion") {
     const r = await resolveOnion(input, cfg);
     return { ...r, lane: "onion", kind: cls.kind, label: cls.label, ms: r.ms != null ? r.ms : ms() };
@@ -78,6 +89,13 @@ export async function resolveUnified(input, cfg = {}) {
       }
     }
     return { ok: true, lane: "nl", kind: "nl", label: cls.label, query: String(input).trim(), ms: ms() };
+  }
+  // A bare name no address-parser claims MAY be a Holo name in a pinned anchor (holo-root). ADDITIVE +
+  // fail-closed: only attempted when the caller wired a root (cfg.root); the prior unknown behavior stands
+  // otherwise. The root re-derives every anchor it reads, so a hit is verify-before-trust by construction.
+  if (cfg.root && typeof cfg.root.resolveName === "function") {
+    const r = await cfg.root.resolveName(input);
+    if (r && r.ok) return { ok: true, lane: "name", kind: "name", label: "Holo name", kappa: r.kappa, target: r.kappa, via: r.via, hops: r.hops, ms: ms() };
   }
   return { ok: false, lane: "unknown", kind: "unknown", reason: "unrecognised address: " + String(input).trim(), ms: ms() };
 }
