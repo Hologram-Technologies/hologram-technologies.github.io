@@ -110,7 +110,7 @@ const _enc = (obj) => { const u = _te.encode(JSON.stringify(obj)); let s = ""; f
 const _dec = (frag) => { const b = String(frag).replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(b + "===".slice((b.length + 3) % 4)); return JSON.parse(_td.decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))); };
 const _linkFrag = (url, key) => { const m = String(url).match(new RegExp("[#&]" + key + "=([A-Za-z0-9\\-_]+)")); return m ? _dec(m[1]) : null; };
 
-async function _loadWebrtc(injected) { return injected || import("../../sbin/holo-webrtc-link.mjs"); }
+async function _loadWebrtc(injected) { return injected || import("../../../sbin/holo-webrtc-link.mjs"); }
 async function _loadPair(injected) { return injected || import("./holo-pair.mjs"); }
 
 // _mintMembership(operator, audKappa, spaceId, pair) — an operator-signed UCAN-style membership delegation

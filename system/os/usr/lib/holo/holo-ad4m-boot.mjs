@@ -125,8 +125,8 @@ export function makeHoloWeb({ signer = null, store = new Map(), now = () => "197
     if (transport && transport.joinInvite && /#i=/.test(t)) {
       try {
         const j = await transport.joinInvite(t);
-        const s = ensureSpace(j.spaceName || j.spaceId); s.gated = true;
-        const accept = async (grant) => { const r = await j.accept(grant); if (r && r.operator) s.members.add(r.operator); return r; };
+        const s = ensureSpace(j.spaceName || j.spaceId); s._pendingJoin = j;   // deliver() auto-accepts the grant over the channel (which gates)
+        const accept = async (grant) => { const r = await j.accept(grant); if (r && r.operator) { s.members.add(r.operator); s.gated = true; } s._pendingJoin = null; return r; };
         return { ok: true, opened: "invite", space: { id: s.id, name: s.name }, answer: j.answerLink, answerBlob: j.answerBlob, accept, posts: postsOf(s) };
       } catch (e) { return { ok: false, reason: (e && e.message) || "invite invalid" }; }
     }
@@ -168,8 +168,14 @@ export function makeHoloWeb({ signer = null, store = new Map(), now = () => "197
       try {
         const r = await transport.createInvite({ id: s.id, name: s.name });
         if (r && r.link && typeof r.complete === "function") {        // WAN: a real rendezvous link + the handshake completion
-          s.gated = true;                                            // an invited Space is membership-gated
-          const complete = async (answerBlob) => { const out = await r.complete(answerBlob); if (out && out.joiner) s.members.add(out.joiner); return out; };
+          s.gated = !!signer;                                        // gate only if we can sign grants (a guest invite stays open)
+          const complete = async (answerBlob) => {
+            const out = await r.complete(answerBlob);
+            if (out && out.joiner) s.members.add(out.joiner);
+            // send the membership grant to the joiner over the now-open channel; their deliver() auto-accepts it.
+            if (out && out.grant && transport.spacePost) { try { transport.spacePost(s.id, { t: "space:grant", grant: out.grant }); } catch (e) {} }
+            return out;
+          };
           return { ok: true, link: r.link, complete };
         }
         if (typeof r === "string") return { ok: true, link: r };      // legacy string-returning transport
@@ -225,6 +231,13 @@ export function makeHoloWeb({ signer = null, store = new Map(), now = () => "197
       emit("sync", { space: { id: s.id, name: s.name } });
       return;
     }
+    // a membership grant arriving over the open channel: the joiner auto-accepts it (verify-before-trust) and
+    // records the operator as a member, so an invited Space becomes mutually gated with no manual step.
+    if (msg.t === "space:grant") {
+      try { if (s._pendingJoin && msg.grant) { const r = await s._pendingJoin.accept(msg.grant); if (r && r.operator) { s.members.add(r.operator); s.gated = true; } s._pendingJoin = null; } } catch (e) {}
+      emit("sync", { space: { id: s.id, name: s.name } });
+      return;
+    }
     // a peer asking for history (want): the Neighbourhood publishes my Links; I also re-ship my bodies.
     if (msg.t === "ad4m:want") { try { await s.neighbourhood.onMessage(msg); } catch (e) {} shipBodies(s); emit("sync", { space: { id: s.id, name: s.name } }); return; }
     try { await s.neighbourhood.onMessage(msg); emit("sync", { space: { id: s.id, name: s.name } }); } catch (e) {}
@@ -237,19 +250,19 @@ export function makeHoloWeb({ signer = null, store = new Map(), now = () => "197
 
 // ── browser binding: build the one front door on the live operator + the OS heartbeat, expose window.HoloWeb.
 if (typeof window !== "undefined") {
-  const wire = () => {
+  const wire = async () => {
     try {
       if (window.HoloWeb) return;
       const signer = window.HoloPrincipal || null;
-      // a serverless local transport: separate tabs/windows are real peers over one BroadcastChannel. Each
-      // message is tagged with its Space id; inbound is routed to deliver() (verify-before-adopt). This is the
-      // WAN-less leg — a real κ-DHT/WebRTC relay swaps in behind the same spacePost/deliver seam, no UI change.
-      let transport = null, bc = null;
-      if (typeof BroadcastChannel !== "undefined") {
-        bc = new BroadcastChannel("holo-flux-net");
-        transport = { spacePost: (spaceId, m) => { try { bc.postMessage({ spaceId, m }); } catch (e) {} } };
-      }
-      const web = makeHoloWeb({
+      // ONE unified serverless transport (holo-ad4m-wan): a BroadcastChannel is just a local peer on the bus
+      // (separate tabs/windows converge), and WebRTC invite channels attach to the SAME bus — so a Space spans
+      // this machine AND the open internet through a single seam. Inbound is routed to deliver (verify-before-
+      // adopt); the operator signs invite membership grants. Loaded lazily so node stays free of this module.
+      let web;
+      const { makeWanTransport } = await import("./holo-ad4m-wan.mjs");
+      const transport = makeWanTransport({ deliver: (s, m) => web && web._internal.deliver(s, m), operator: signer });
+      if (typeof BroadcastChannel !== "undefined") { try { transport.attach(new BroadcastChannel("holo-flux-net")); } catch (e) {} }
+      web = makeHoloWeb({
         signer,
         now: () => new Date().toISOString(),
         ambient: window.HoloAmbient || null,
@@ -257,7 +270,6 @@ if (typeof window !== "undefined") {
         opener: (t) => (window.HoloOpen ? window.HoloOpen(t) : Promise.resolve()),
         displayName: (signer && signer.label) || "You",
       });
-      if (bc) bc.onmessage = (e) => { try { const d = e.data || {}; if (d.spaceId) web._internal.deliver(d.spaceId, d.m); } catch (err) {} };
       window.HoloWeb = web;
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-web-ready"));
     } catch (e) { /* leave unset; the app falls back to guest */ }
