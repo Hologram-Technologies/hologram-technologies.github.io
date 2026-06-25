@@ -73,6 +73,36 @@ const sha256digest = async (b) => {
 };
 let remoteLens = null;
 
+// WAN: carry the per-frame manifest over a REAL WebRTC datachannel (SCTP/DTLS) instead of the file channel —
+// proving the projection runs over a genuine network transport. ?wan=offer (the producer's lens, sends each
+// manifest) | ?wan=answer (the remote lens, receives → __holoOsrFrame). Non-trickle ICE: publish the SDP only
+// after gathering completes, so signaling is one offer + one answer (the harness/holo-dial shuttles them; tiles
+// still arrive by κ over the shared transport). {ordered:false,maxRetransmits:0} ⇒ a late frame is dropped, not
+// queued (the present-loop reproject hides the gap — present-side negative latency, now over the network).
+const WAN = new URLSearchParams(location.search).get("wan");
+let wanChan = null; window.__wanRecv = 0; window.__wanOpen = false;
+if (WAN && window.RTCPeerConnection) {
+  const pc = new RTCPeerConnection({ iceServers: [] });
+  const gathered = () => new Promise((res) => {
+    if (pc.iceGatheringState === "complete") return res();
+    pc.addEventListener("icegatheringstatechange", () => { if (pc.iceGatheringState === "complete") res(); });
+  });
+  const wire = (ch) => { wanChan = ch; ch.onopen = () => { window.__wanOpen = true; };
+    ch.onmessage = (e) => { window.__wanRecv++; try { window.__holoOsrFrame(JSON.parse(e.data)); } catch (err) {} }; };
+  if (WAN === "offer") {
+    wanChan = pc.createDataChannel("manifest", { ordered: false, maxRetransmits: 0 });
+    wanChan.onopen = () => { window.__wanOpen = true; };
+    pc.createOffer().then((o) => pc.setLocalDescription(o)).then(gathered)
+      .then(() => { window.__wanOffer = JSON.stringify(pc.localDescription); });
+    window.__wanSetAnswer = (a) => pc.setRemoteDescription(JSON.parse(a));
+  } else {  // answer (the remote lens)
+    pc.ondatachannel = (e) => wire(e.channel);
+    window.__wanSetOffer = (o) => pc.setRemoteDescription(JSON.parse(o))
+      .then(() => pc.createAnswer()).then((a) => pc.setLocalDescription(a)).then(gathered)
+      .then(() => { window.__wanAnswer = JSON.stringify(pc.localDescription); });
+  }
+}
+
 // write ONE tile into the GPU-backed offscreen base. Content-space tiles ("c{cx}_{prow}") are placed by their
 // document row, offset by the frame's scrollY; legacy screen-space tiles ("t{cx}_{ry}") by their fixed grid
 // slot. putImageData clips to the canvas, so a margin tile's off-screen (zero-padded) rows are simply dropped.
@@ -90,6 +120,9 @@ const blit = (id, bytes) => {
 
 // the one entry the native producer calls each frame
 window.__holoOsrFrame = async (manifest) => {
+  // WAN producer lens: forward this frame's manifest to the remote node over the datachannel (then composite
+  // locally too). The remote lens uses the "s" (sha256) refs; this local lens uses "k" (blake3). κ refs only.
+  if (WAN === "offer" && wanChan && wanChan.readyState === "open") { try { wanChan.send(JSON.stringify(manifest)); } catch (e) {} }
   window.__holoScLast = null;                        // a tile manifest arrived ⇒ we are in (or back to) crisp tile mode
   window.__holoFirstFrame = true;                    // a frame composited ⇒ projection is live (cancels the Phase-C fallback)
 
