@@ -1,0 +1,16 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-dna — AD4M's Social DNA as forkable, content-addressed validation rules (Holochain's integrity zome) on the spine: a ruleset κ adopted onto the Perspective's strand governs every later Link. A valid Link is admitted; rule/enum/membership violations are refused at add AND at adopt (fail-closed); a fork is a new ruleset κ producing a divergent but verifiable Neighbourhood; governingAt + conformance prove which rules validated which act (Law L5).",
+  "authority": "AD4M LinkLanguage validation / Holochain integrity zome · holospaces Laws L1/L3/L5 · reuses #holo-strand-rules · rests on #holo-ad4m",
+  "witnessed": true,
+  "checks": {
+    "validLinkAdmitted": true,
+    "missingFieldRefused": true,
+    "enumViolationRefused": true,
+    "nonMemberRefused": true,
+    "violatingChainRefusedAtAdopt": true,
+    "forkIsNewKappa": true,
+    "governedAndConformant": true
+  },
+  "failed": []
+}

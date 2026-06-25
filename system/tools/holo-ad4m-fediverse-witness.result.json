@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-fediverse — the sovereign Spaces federate with the open fediverse, serverless. A WebFinger handle resolves to an actor; signed public Notes ingest as verifying Expressions (AS2 + UOR on one content-addressed κ) carrying actor provenance; unsigned/forged activities are refused (verify-before-adopt, Law L5); polling dedups; a Space post builds a valid AS2 Create{Note} posted to the user's OWN account. Read by polling, write as the user — we host nothing. An AP Note IS an Expression: a mapping, not a protocol reimplementation.",
+  "authority": "W3C ActivityStreams 2.0 / ActivityPub · WebFinger RFC 7033 · holospaces Laws L1/L5 · composes #holo-ad4m + #holo-object + #holo-identity",
+  "witnessed": true,
+  "checks": {
+    "webfingerResolves": true,
+    "verifyBeforeAdopt": true,
+    "unsignedAndForgedRefused": true,
+    "signatureVerifier": true,
+    "noteIsExpression": true,
+    "actorProvenance": true,
+    "dedupIdempotent": true,
+    "postToFediverse": true,
+    "clientOnlyNoServer": true
+  },
+  "failed": []
+}

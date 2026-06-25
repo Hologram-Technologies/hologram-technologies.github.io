@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-wan — a Neighbourhood over real point-to-point transport (WebRTC DataChannels), serverless: two then three agents converge a shared graph over the wire; a late joiner catches up via want/have; a dropped peer doesn't stall the rest; a tampered or forged-author chain on the wire is refused (the adapter is dumb plumbing — verifyAuthoredChain is the only gate, Law L5); longest-valid-per-author still wins; and two full Flux webs over makeWanTransport converge a post with its real text — WAN is a drop-in for the local bus. No signaling server, no relay, no TURN.",
+  "authority": "AD4M Neighbourhood / perspective-diff-sync over real transport · holospaces L5 · composes holo-ad4m-neighbourhood + holo-ad4m-boot + holo-ad4m-wan",
+  "witnessed": true,
+  "checks": {
+    "twoConverge": true,
+    "multiPeerFanout": true,
+    "lateJoinerCatchesUp": true,
+    "droppedPeerNoStall": true,
+    "tamperedRefusedOnWire": true,
+    "forgedAuthorRefusedOnWire": true,
+    "longestValidWins": true,
+    "wireIsDumbPlumbing": true,
+    "fluxConvergesOverWan": true
+  },
+  "failed": []
+}
