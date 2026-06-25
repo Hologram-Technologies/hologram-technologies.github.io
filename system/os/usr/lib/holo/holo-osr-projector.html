@@ -57,6 +57,7 @@ const blit = (id, bytes) => {
 
 // the one entry the native producer calls each frame
 window.__holoOsrFrame = async (manifest) => {
+  window.__holoScLast = null;                        // a tile manifest arrived ⇒ we are in (or back to) crisp tile mode
   if (!lens || manifest.w !== W || manifest.h !== H) {
     W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
     base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
