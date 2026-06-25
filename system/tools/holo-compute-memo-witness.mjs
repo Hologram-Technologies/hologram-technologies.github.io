@@ -101,7 +101,7 @@ let delta = null;
   const m1 = makeComputeMemo({ l2: makeL2(), cap: 64 }), m2 = makeComputeMemo({ l2: makeL2(), cap: 64 });
   const k1 = [], k2 = [];
   for (const i of ins) { k1.push((await m1.compute(opK, i, makeProducer())).kappa); k2.push((await m2.compute(opK, i, makeProducer())).kappa); }
-  checks.deterministic = k1.every((k, i) => k === k2[i]) && k1[0].startsWith("did:holo:sha256:");
+  checks.deterministic = k1.every((k, i) => k === k2[i]) && k1[0].startsWith("did:holo:blake3:");
 }
 
 // ── 7 · distinct inputs never collide ────────────────────────────────────────────────────────────

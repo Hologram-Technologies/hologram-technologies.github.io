@@ -18,8 +18,14 @@
 
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join, relative } from "node:path";
+import { join, relative, dirname } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { OS_DIR } from "./holo-paths.mjs";
+// The canonical κ axis is BLAKE3 (kappo). The served-set manifest now carries it as the PRIMARY pin on
+// every file, with sha256 demoted to a re-derivable bridge alias (so legacy .holo/sha256 links resolve).
+// Import the ONE blake3 implementation (Law L2 — no second hash); its bytes are identical regardless of
+// which tree we're sealing, so resolve it from the tool's own checkout, not the (env-overridable) OS_DIR.
+const { blake3hex } = await import(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "../os/usr/lib/holo/holo-blake3.mjs")));
 
 const OUT = join(OS_DIR, "etc/os-served.json");
 const EXCLUDE = /(^|[\\/])(\.git|node_modules)([\\/]|$)/;
@@ -44,7 +50,8 @@ for (const abs of walk(OS_DIR)) {
   if (abs === OUT) continue;
   const rel = relative(OS_DIR, abs).split("\\").join("/");   // serve-rel path = exactly the SW's `rel`
   const buf = readFileSync(abs);
-  closure[rel] = `did:holo:sha256:${sha256hex(buf)}`;
+  // Canonical κ = blake3 (PRIMARY); sha256 = re-derivable bridge alias. foldClosure reads both axes.
+  closure[rel] = { blake3: `did:holo:blake3:${blake3hex(buf)}`, kappa: `did:holo:sha256:${sha256hex(buf)}` };
   n++; bytes += buf.length;
 }
 
@@ -52,7 +59,7 @@ const sorted = {}; for (const k of Object.keys(closure).sort()) sorted[k] = clos
 const doc = {
   "@context": { "dcterms": "http://purl.org/dc/terms/" },
   "dcterms:title": "Hologram OS — the SERVED-set closure (every served first-party byte, Law L5)",
-  "spec": "A serve-rel → did:holo:sha256 pin for EVERY file the Service Worker serves from the os/ tree, so re-derivation (Law L5) covers the whole OS — not only the boot closure (os-closure.json). Folded by holo-fhs-sw.js with the same foldClosure() as os-closure; identity is content, not location (Law L1). Gitignored/undeployed heavy blobs heal by κ via their own manifests and are out of scope here.",
+  "spec": "A serve-rel → {blake3 (canonical κ), kappa (sha256 bridge alias)} pin for EVERY file the Service Worker serves from the os/ tree, so re-derivation (Law L5) covers the whole OS — not only the boot closure (os-closure.json). BLAKE3 is the substrate's kappo() (the one canonical address); sha256 is kept as a re-derivable bridge alias for legacy .holo/sha256 links and foreign-protocol interop. Folded by holo-fhs-sw.js with the same foldClosure() as os-closure; identity is content, not location (Law L1). Gitignored/undeployed heavy blobs heal by κ via their own manifests and are out of scope here.",
   "count": n, "bytes": bytes,
   "closure": sorted,
 };

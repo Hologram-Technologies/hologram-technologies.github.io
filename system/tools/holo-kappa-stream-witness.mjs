@@ -117,7 +117,7 @@ const checks = {};
   const s1 = makeKappaStream(), s2 = makeKappaStream();
   const k1 = (await emitFrame(s1, R)).map((e) => e.kappa);
   const k2 = (await emitFrame(s2, R)).map((e) => e.kappa);
-  checks.deterministic = k1.length === 2 && k1.every((k, i) => k === k2[i]) && k1[0].startsWith("did:holo:sha256:");
+  checks.deterministic = k1.length === 2 && k1.every((k, i) => k === k2[i]) && k1[0].startsWith("did:holo:blake3:");
 }
 
 // ── 8 · the high-FPS model: 120 frames, M regions, ONE changes per frame — wire ≈ (M + 120), not 120·M ──

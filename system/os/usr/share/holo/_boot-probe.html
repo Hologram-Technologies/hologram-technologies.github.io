@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>booting</title>
+<!--
+  _boot-probe.html — a RELIABLE, CDP-free boot-speed probe. It loads the real OS shell in an iframe, reads
+  the iframe's own Performance timing (same-origin holo://os), and writes the result into its OWN <title>.
+  A harness reads that title back over plain HTTP (/json/list) — no WebSocket, no eval, no flaky CDP. The
+  shell's top-level-gated redirects don't fire in a sub-frame, but the load/paint timing is representative.
+-->
+<body style="margin:0;background:#04060a;color:#5fd08a;font:13px ui-monospace,monospace">
+<iframe id="f" src="/shell.html" style="width:100vw;height:92vh;border:0"></iframe>
+<div id="out" style="padding:6px 10px">measuring the shell boot…</div>
+<script>
+  const f = document.getElementById("f"), out = document.getElementById("out");
+  let reported = false;
+  function report(tag) {
+    if (reported) return; reported = true;
+    try {
+      const p = f.contentWindow.performance;
+      const n = p.getEntriesByType("navigation")[0] || {};
+      const pa = p.getEntriesByType("paint");
+      const fcp = (pa.find(x => x.name === "first-contentful-paint") || {}).startTime || 0;
+      const r = { FCP: Math.round(fcp), DCL: Math.round(n.domContentLoadedEventEnd || 0), load: Math.round(n.loadEventEnd || 0), res: p.getEntriesByType("resource").length, via: tag };
+      document.title = "SPEED:" + JSON.stringify(r);
+      out.textContent = "shell boot — FCP " + r.FCP + "ms · DCL " + r.DCL + "ms · load " + r.load + "ms · " + r.res + " resources";
+    } catch (e) { document.title = "SPEED:err:" + e.message; out.textContent = "probe err: " + e.message; }
+  }
+  f.addEventListener("load", () => setTimeout(() => report("load"), 1500));   // shell's own load + settle
+  setTimeout(() => report("timeout"), 9000);                                   // fallback if load never fires
+</script>

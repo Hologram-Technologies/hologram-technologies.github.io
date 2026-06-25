@@ -13,23 +13,22 @@
 // digest the consumer advertises, or simply the same device's persistent κ-store across sessions; here
 // that shared knowledge is the `cache` the consumer fills and the producer consults.
 //
-// Pure + self-contained (one canonical hash, Law L2): node-, Service-Worker- and DOM-safe; no imports.
+// One canonical hash (Law L2): the κ axis is BLAKE3 — the substrate's kappo() — so a stream object's κ
+// IS its Bao root (holo-bao), letting the SAME object stream with O(log n) PER-CHUNK verification, not
+// just whole-object re-derivation. Routes through the canonical seam (holo-kappa → holo-blake3); both are
+// pure and node-, Service-Worker- and DOM-safe. (Was SHA-256 — the one stream island left after the
+// canonical-κ cutover, ADR-0115; flipped here so the streaming subsystem joins the blake3 substrate.)
+
+import { kappoHex, KAPPA_PREFIX } from "./holo-kappa.mjs";
 
 const hexOf = (k) => String(k).split(":").pop();
 
-// reDerive(bytes) → sha-256 hex — WebCrypto in browser/SW, node:crypto in node; the same digest either way.
-async function reDerive(bytes) {
-  const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  if (globalThis.crypto && globalThis.crypto.subtle) {
-    const d = await crypto.subtle.digest("SHA-256", u);
-    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  }
-  const { createHash } = await import("node:crypto");
-  return createHash("sha256").update(u).digest("hex");
-}
+// reDerive(bytes) → blake3 hex (the canonical κ axis = kappo). Sync under the hood; kept async-shaped so
+// every existing `await kappaOf(...)` / `await frame(...)` caller is unchanged (await on a value is a no-op).
+async function reDerive(bytes) { return kappoHex(bytes); }
 
-// kappaOf(bytes) → did:holo:sha256:… — the content address of an object's bytes (Law L1).
-export const kappaOf = async (bytes) => "did:holo:sha256:" + (await reDerive(bytes));
+// kappaOf(bytes) → did:holo:blake3:… — the content address of an object's bytes (Law L1), == its Bao root.
+export const kappaOf = async (bytes) => KAPPA_PREFIX + (await reDerive(bytes));
 
 // makeKappaStream(cache?) — one channel. `cache` is the consumer's local κ-store (Map hex → bytes): the
 // address space (Law L3). Share one cache across many streams on a device and novelty dedupes globally.
@@ -45,7 +44,7 @@ export function makeKappaStream(cache = new Map()) {
   async function frame(bytes) {
     const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     const hex = await reDerive(u);
-    const kappa = "did:holo:sha256:" + hex;
+    const kappa = KAPPA_PREFIX + hex;
     if (cache.has(hex)) { stats.refs++; return { kind: "ref", kappa }; }          // held ⇒ ≈0 bytes on the wire
     stats.objs++; stats.novelBytes += u.length;
     return { kind: "obj", kappa, payload: u };                                     // novel ⇒ the delta travels once

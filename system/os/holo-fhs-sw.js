@@ -191,7 +191,10 @@ async function fetchT(url, opts, ms = HEAL_MS) {
   finally { clearTimeout(t); }
 }
 async function heal(rel, hex, axis, resp) {
-  if (axis !== "sha256" || !/^[0-9a-f]{64}$/.test(hex)) return null;   // IPFS/mesh κ are sha2-256 (the open-web axis)
+  // BRIDGE: IPFS CIDv1 (sha2-256 multihash) + GitHub Release asset-name (the asset name IS its sha256). The
+  // open-web heal sources key on sha256 by foreign spec, so healing runs on the sha bridge axis only. Files
+  // pinned on the canonical blake3 axis are the sealed OS tree (origin-served), not healed from these sources.
+  if (axis !== "sha256" || !/^[0-9a-f]{64}$/.test(hex)) return null;
   let bytes = null, src = "mesh";
   // FAST content source: the apps-holo repo serves app files WHOLE by path (GitHub CDN — no IPFS
   // chunking/propagation lag, large files included). Try it first for app bytes and VERIFY the whole-file
@@ -229,11 +232,12 @@ async function heal(rel, hex, axis, resp) {
   return new Response(bytes, { status: 200, headers: h });
 }
 
-let BYHEX = null;     // sha256 hex → os-relative path (the OS serving κ-route)
-let BYBLAKE = null;   // blake3 hex → os-relative path (the unified-substrate σ-axis route)
+let BYHEX = null;     // sha256 hex → os-relative path (the sha256 BRIDGE-alias route, legacy .holo/sha256)
+let BYBLAKE = null;   // blake3 hex → os-relative path (the CANONICAL κ route, .holo/blake3)
 let ARCHIVES = null;  // lazy .holo κ-store (ADR-0101): content-addressed models in IndexedDB, not the OS closure
 const archiveStore = () => (ARCHIVES ||= makeArchiveStore());   // shares db/store names with the page's ingest
-let BYPATH = null;    // os-relative path → sha256 hex (the verification pins)
+let BYPATH = null;    // os-relative path → sha256 hex (the sha256 bridge-alias pins, legacy/fallback)
+let BYPATH_B3 = null; // os-relative path → blake3 hex (the CANONICAL verification pins — the trust check)
 let CSPRO = null;     // serve-rel HTML name → strict CSP, served Report-Only (etc/boot-csp.json, tools/csp-hashes.mjs)
 const APPLOCK = new Set();   // app-ids whose lock closure has been folded into the pins (lazy, L5 for app bytes)
 // ── G1 / SEC-1 — the TRUST ROOT. etc/os-closure.json carries every per-path κ pin; were the origin able to
@@ -242,22 +246,36 @@ const APPLOCK = new Set();   // app-ids whose lock closure has been folded into 
 // baked anchor — the ONE κ a tamperer cannot forge without also editing this worker, which the browser loads
 // out-of-band (SW registration / SRI), never through the handler it defines. Sealed by tools/holo-anchor-sw.mjs
 // on every reseal. Empty string ⇒ an unsealed dev tree → enforcement off (no false refusal before first seal).
-const CLOSURE_KAPPA = "1caead7a9b8d44896b3d93a809f94e0e18699d8f9f80dbdecf778e27d9e3fcdd";
+// CANONICAL-κ cutover (P4): the anchor is now blake3(os-closure.json) — the substrate's kappo over the pin
+// set. The check below re-derives blake3 FIRST (canonical) and accepts the sha256 bridge value as a fallback,
+// so the flip is atomic-safe: a stale sha-baked anchor still validates its own closure, a tampered closure
+// matches NEITHER axis → fail closed (invariant: never half-flip the trust root).
+const CLOSURE_KAPPA = "f484cb2853dc96d7068f76ae168350a655f4965ff5744fa58b9beb1a5f86a622";
 let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {
+    // sha256 = the BRIDGE alias (kappa/did/@id, or a bare string for legacy entries) → BYHEX/BYPATH.
     const k = typeof v === "string" ? v : (v.kappa || v.did || v["@id"] || "");
     const hex = String(k).split(":").pop().toLowerCase();
     if (/^[0-9a-f]{64}$/.test(hex)) { BYHEX.set(hex, p); if (!BYPATH.has(p)) BYPATH.set(p, hex); }
-    if (v && typeof v === "object") for (const aka of (v.alsoKnownAs || [])) { const b = /^did:holo:blake3:([0-9a-f]{64})$/.exec(String(aka)); if (b) BYBLAKE.set(b[1].toLowerCase(), p); }
+    // CANONICAL κ axis = blake3: the top-level `blake3` field (primary) OR a W3C alsoKnownAs alias (legacy).
+    // BYPATH_B3 is the trust check the path-request branch prefers; BYBLAKE serves the .holo/blake3 route.
+    if (v && typeof v === "object") {
+      for (const cand of [v.blake3, ...(v.alsoKnownAs || [])]) {
+        const b = /^did:holo:blake3:([0-9a-f]{64})$/.exec(String(cand));
+        if (b) { const bh = b[1].toLowerCase(); BYBLAKE.set(bh, p); if (!BYPATH_B3.has(p)) BYPATH_B3.set(p, bh); }
+      }
+    }
   }
 }
 async function loadClosure() {
   if (BYPATH) return;
-  BYHEX = new Map(); BYBLAKE = new Map(); BYPATH = new Map(); CSPRO = new Map();
+  BYHEX = new Map(); BYBLAKE = new Map(); BYPATH = new Map(); BYPATH_B3 = new Map(); CSPRO = new Map();
   try {
     const buf = await (await fetch(BASE + "etc/os-closure.json", { cache: "no-store" })).arrayBuffer();
-    if (CLOSURE_KAPPA && !DEV && (await sha256hex(buf)) !== CLOSURE_KAPPA) { CLOSURE_TRUSTED = false; return; }   // G1/SEC-1: tampered pin set → fail CLOSED (handler refuses every request)
+    // G1/SEC-1: re-derive the pin set against the baked anchor — CANONICAL blake3 first, sha256 bridge value
+    // accepted as fallback (atomic-safe flip). Match neither ⇒ tampered/mis-sealed → fail CLOSED.
+    if (CLOSURE_KAPPA && !DEV && blake3hex(new Uint8Array(buf)) !== CLOSURE_KAPPA && (await sha256hex(buf)) !== CLOSURE_KAPPA) { CLOSURE_TRUSTED = false; return; }
     foldClosure(JSON.parse(new TextDecoder().decode(buf)).closure);
   }
   catch { /* no closure → serve unverified (flat mapping still works) */ }
@@ -271,6 +289,8 @@ async function loadClosure() {
   // policy's script-src so the SW's own injection never trips its own CSP. No-op at a root deploy.
   if (BASE !== "/" && CSPRO.size) {
     try {
+      // BRIDGE: CSP source-hash (`'sha256-…'`) — the algorithm is mandated by the Content-Security-Policy
+      // spec the browser enforces, so this stays sha256 (NOT a κ).
       const sha = async (s) => "'sha256-" + btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))))) + "'";
       const inj = (await sha(subpathBootBody())) + " " + (await sha(freshImportmapBody()));
       for (const [k, v] of CSPRO) CSPRO.set(k, v.replace(/(script-src [^;]*)/, "$1 " + inj));
@@ -464,7 +484,7 @@ const refuse = (rel, want, got, axis = "sha256") => { reportRefusal("path", rel,
 // expect a 404 are untouched. Keeps the 404 status (honest), just replaces the body + look.
 const notFound = (rel) => { try { console.info("[holo-sw] not found: " + rel); } catch {} return new Response(refuseHtml(rel, "", "", "sha256", "notfound"), { status: 404, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
 // G1/SEC-1: the pin set itself failed to re-derive against the baked anchor → the whole boot is untrusted. Fail closed.
-const refuseClosure = () => { reportRefusal("closure", "etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256"); return new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "sha256", "closure"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
+const refuseClosure = () => { reportRefusal("closure", "etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "blake3"); return new Response(refuseHtml("etc/os-closure.json", CLOSURE_KAPPA, "re-derivation failed (untrusted pin set)", "blake3", "closure"), { status: 409, headers: { ...COI, "content-type": "text/html; charset=utf-8" } }); };
 
 // ── SERVERLESS MCP — the SW answers the Model Context Protocol with NO origin server (Law L1/L4).
 // Discovery (GET .well-known/mcp.json + /~<app>/.well-known/mcp.json) and JSON-RPC (POST /mcp +
@@ -653,7 +673,12 @@ self.addEventListener("fetch", (event) => {
       await ensureAppLock(rel);                               // app bytes are verified too (lazy lock fold) — not just OS bytes
       await ensureVoiceManifest(rel);                         // voice weights heal by κ (gitignored, never deployed)
       await ensureServed();                                   // fold the SERVED-set closure → re-derive EVERY served byte, not just boot (Law L5)
-      expect = BYPATH.get(rel) || BYPATH.get(fhsMap(rel) || rel) || null;   // pin by the request path OR its FHS-mapped disk path (os-served is disk-keyed; flat aliases like _shared/* route through fhsMap)
+      // CANONICAL κ axis = blake3: verify the path by its blake3 pin (the trust check) when present, else
+      // fall back to the sha256 bridge alias for legacy entries not yet re-sealed on the canonical axis.
+      // (os-served/boot are disk-keyed; flat aliases like _shared/* route through fhsMap.)
+      const b3 = BYPATH_B3.get(rel) || BYPATH_B3.get(fhsMap(rel) || rel) || null;
+      if (b3) { axis = "blake3"; expect = b3; }
+      else { expect = BYPATH.get(rel) || BYPATH.get(fhsMap(rel) || rel) || null; }
     }
 
     // κ-routes are content-addressed (immutable) → cacheable + verified. PATH requests bypass the by-κ

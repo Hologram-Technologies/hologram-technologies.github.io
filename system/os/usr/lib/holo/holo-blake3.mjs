@@ -87,6 +87,13 @@ export function blake3hex(bytes) {
 // the hologram σ-axis κ-label: "blake3:" + 64 hex (the 71-byte ContentLabel).
 export function kappaBlake3(bytes) { return "blake3:" + blake3hex(bytes); }
 
+// ── tree internals (the σ-axis Merkle structure) ─────────────────────────────────────
+// Exposed so holo-bao.mjs can build verified-streaming (Bao) proofs against the SAME ONE
+// implementation (Law L2 — no second hash). These are the standard BLAKE3 tree pieces:
+// a chunk → output node, two CVs → parent node, a node → its chaining value or ROOT bytes.
+export const CHUNK_BYTES = CHUNK;
+export { chunkNode, parentNode, nodeChainingValue, nodeRootBytes, subtree };
+
 // ── incremental hasher (stream-mint without a tail pass) ─────────────────────────────
 // BLAKE3's streaming Hasher: feed chunks via update(), get the SAME digest as one-shot blake3() at
 // digest()/hex(). Buffers at most ONE 1024-byte chunk; each completed chunk's CV folds into a stack via the

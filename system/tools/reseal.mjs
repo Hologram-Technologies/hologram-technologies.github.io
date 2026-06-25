@@ -28,12 +28,15 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, statSync, copyFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { fhsMap } from "../os/lib/holo-fhs-map.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SYSTEM = join(here, "..");
+// The canonical κ axis is BLAKE3 (kappo). "Sealed" = every served byte re-derives to its blake3 κ AND
+// its sha256 bridge alias (Law L5 on both axes). The one blake3 implementation, resolved from this checkout.
+const { blake3hex } = await import(pathToFileURL(join(here, "../os/usr/lib/holo/holo-blake3.mjs")));
 const checkOnly = process.argv.includes("--check");
 // --check (read-only) MAY target a STAGED ARTIFACT via HOLO_OS_DIR — e.g. the deploy's _site/os — so CI
 // verifies the bytes it ACTUALLY uploads, not just the source tree (the source gate runs pre-staging). A
@@ -58,21 +61,31 @@ function verifyManifest(file, dir = OS) {
   const doc = JSON.parse(readFileSync(path, "utf8"));
   const map = doc.closure || doc;
   let clean = 0; const mism = [], miss = [];
+  const isHex = (h) => /^[0-9a-f]{64}$/.test(h);
   for (const [k, v] of Object.entries(map)) {
     if (typeof k !== "string" || k.endsWith("/") || k.startsWith("@")) continue;
-    const want = hexOf(typeof v === "string" ? v : (v && (v.kappa || v.did || v["@id"])));
-    if (!/^[0-9a-f]{64}$/.test(want)) continue;
+    // canonical κ = blake3 (top-level field or W3C alsoKnownAs); sha256 = the bridge alias (kappa/did/@id).
+    const wantBlake = (v && typeof v === "object") ? hexOf(v.blake3 || (v.alsoKnownAs || []).find((a) => /blake3/.test(String(a)))) : "";
+    const wantSha = hexOf(typeof v === "string" ? v : (v && (v.kappa || v.did || v["@id"])));
+    if (!isHex(wantBlake) && !isHex(wantSha)) continue;
     const phys = fhsMap(k) || k;
     const abs = join(dir, phys);
     if (!existsSync(abs) || statSync(abs).isDirectory()) { miss.push(k); continue; }   // absent → 404/heal-by-κ, never 409
-    if (sha(readFileSync(abs)) === want) clean++; else mism.push(k);
+    const buf = readFileSync(abs);
+    // re-derive every present axis (Law L5); a mismatch on EITHER refuses. blake3 is the canonical one.
+    const okBlake = !isHex(wantBlake) || blake3hex(buf) === wantBlake;
+    const okSha = !isHex(wantSha) || sha(buf) === wantSha;
+    if (okBlake && okSha) clean++; else mism.push(k);
   }
   return { file, ok: mism.length === 0, clean, mism, miss };
 }
 function anchorCurrent(dir = OS) {
-  const anchor = sha(readFileSync(join(dir, "etc/os-closure.json")));
+  const buf = readFileSync(join(dir, "etc/os-closure.json"));
+  const anchor = blake3hex(buf);   // canonical κ of the pin set (P4)
+  const shaAnchor = sha(buf);       // legacy bridge value (accepted during the flip)
   const m = readFileSync(join(dir, "holo-fhs-sw.js"), "utf8").match(/CLOSURE_KAPPA = "([0-9a-f]{0,64})"/);
-  return { ok: !!m && m[1] === anchor, anchor, baked: m && m[1] };
+  const baked = m && m[1];
+  return { ok: !!baked && (baked === anchor || baked === shaAnchor), anchor, baked };
 }
 function verifyAll(dir = OS) {
   const closure = verifyManifest("os-closure.json", dir);
@@ -92,9 +105,11 @@ function refreshServedPins(dir) {
     if (typeof k !== "string" || k.endsWith("/") || k.startsWith("@")) continue;
     const abs = join(dir, k);
     if (!existsSync(abs) || statSync(abs).isDirectory()) continue;   // absent → heal-by-κ, leave the pin
-    const hex = sha(readFileSync(abs));
-    const cur = hexOf(typeof map[k] === "string" ? map[k] : (map[k] && map[k].kappa));
-    if (cur !== hex) { map[k] = (typeof map[k] === "string") ? ("did:holo:sha256:" + hex) : { ...map[k], kappa: "did:holo:sha256:" + hex }; changed++; }
+    const buf = readFileSync(abs);
+    const wantBlake = blake3hex(buf), wantSha = sha(buf);
+    const curBlake = hexOf(map[k] && map[k].blake3), curSha = hexOf(typeof map[k] === "string" ? map[k] : (map[k] && map[k].kappa));
+    // re-pin BOTH axes (canonical blake3 + sha bridge alias) when either diverges from the host's bytes.
+    if (curBlake !== wantBlake || curSha !== wantSha) { map[k] = { blake3: "did:holo:blake3:" + wantBlake, kappa: "did:holo:sha256:" + wantSha }; changed++; }
   }
   if (changed) writeFileSync(p, JSON.stringify(doc, null, 2) + "\n");
   return changed;
@@ -104,7 +119,7 @@ function refreshServedPins(dir) {
 function rebakeAnchor(dir) {
   const f = join(dir, "holo-fhs-sw.js");
   if (!existsSync(f)) return null;
-  const anchor = sha(readFileSync(join(dir, "etc/os-closure.json")));
+  const anchor = blake3hex(readFileSync(join(dir, "etc/os-closure.json")));   // canonical κ (P4)
   const src = readFileSync(f, "utf8");
   const next = src.replace(/const CLOSURE_KAPPA = "[0-9a-f]{0,64}"/, `const CLOSURE_KAPPA = "${anchor}"`);
   if (next !== src) writeFileSync(f, next);
