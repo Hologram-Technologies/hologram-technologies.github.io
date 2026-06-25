@@ -41,16 +41,20 @@ export function classifyOpen(ref) {
 // idOf(ref) — the bare id for the app/space forms (strip the holo:// or holo://space/ prefix).
 export const idOf = (ref) => String(ref || "").replace(/^holo:\/\/space\//i, "").replace(/^holo:\/\//i, "");
 
-// makeOpen({ space, app, fallback }) → open(ref). space(id)/app(id) handle the named forms; fallback(ref)
-// is the full resolver (the shell wires omniGo) for every other shape. ONE call opens anything, the same way.
-export function makeOpen({ space = null, app = null, fallback = null } = {}) {
+// makeOpen({ space, app, web, fallback }) → open(ref). space(id)/app(id) handle the named forms; web(url)
+// handles a live web page (the shell wires it to PROJECTION in native CEF — a projected tab — and to the plain
+// in-OS web view otherwise); fallback(ref) is the full resolver (the shell wires omniGo) for every other shape.
+// ONE call opens anything, the same way. `web` is additive: with no web handler, a url falls through to
+// fallback unchanged (today's behavior), so this seam is behavior-preserving until the shell wires `web`.
+export function makeOpen({ space = null, app = null, web = null, fallback = null } = {}) {
   return async function open(ref) {
     const v = String(ref == null ? "" : ref).trim(); if (!v) return null;
     const { kind } = classifyOpen(v);
     try {
       if (kind === "space" && space) return await space(idOf(v));
       if (kind === "app" && app) return await app(idOf(v));
-      if (fallback) return await fallback(v);     // kappa · words · cid · onion · url · media · text
+      if (kind === "url" && web) return await web(v);   // a live web page → projected tab (native CEF) / web view
+      if (fallback) return await fallback(v);     // kappa · words · cid · onion · url (no web) · media · text
     } catch (e) { /* fail-soft */ }
     return null;
   };
