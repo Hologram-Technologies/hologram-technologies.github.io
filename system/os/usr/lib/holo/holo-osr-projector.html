@@ -58,6 +58,7 @@ const blit = (id, bytes) => {
 // the one entry the native producer calls each frame
 window.__holoOsrFrame = async (manifest) => {
   window.__holoScLast = null;                        // a tile manifest arrived ⇒ we are in (or back to) crisp tile mode
+  window.__holoFirstFrame = true;                    // a frame composited ⇒ projection is live (cancels the Phase-C fallback)
   if (!lens || manifest.w !== W || manifest.h !== H) {
     W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
     base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
@@ -106,6 +107,7 @@ requestAnimationFrame(presentLoop);
 // cannot take (Alloy ≠ full Chrome extensions). The host acks each frame via CDP Page.screencastFrameAck.
 let scPipe = null, scCtx = null, scCur = null, scW = 0, scH = 0;
 window.__holoScreencastFrame = async (dataUrl, seq) => {
+  window.__holoFirstFrame = true;                    // projection is live (cancels the Phase-C fallback)
   const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
   if (!scPipe || bmp.width !== scW) {
     scW = bmp.width; scH = bmp.height; screen.width = scW; screen.height = scH; W = scW; H = scH;
@@ -140,9 +142,25 @@ window.addEventListener("keydown", (e) => sendInput({ t: "keydown", k: e.keyCode
 window.addEventListener("keypress", (e) => sendInput({ t: "char", c: e.charCode || e.keyCode }));
 
 window.__holoOsrReady = true;                      // host waits on this before opening the OSR producer
-// handshake: tell the host this lens is ready + the resolution to render the producer at (pixel-native).
+// handshake: tell the host this lens is ready + the resolution to render the producer at (pixel-native). When
+// this lens is an in-OS holospace NODE (an iframe with ?target=<web url>), it carries its OWN target inline
+// (URI-encoded → no ':' to break the host's colon-split), so the producer is per-lens — no shared pending-url
+// race across multiple projected tabs. With no ?target we are the legacy popup lens (host holds the pending url).
+const TARGET = new URLSearchParams(location.search).get("target") || "";   // the web URL to project, if a node
 const _rr = reqRes();
-if (window.cefQuery) window.cefQuery({ request: "holo:osrready:" + _rr.w + ":" + _rr.h, onSuccess() {}, onFailure() {} });
+if (window.cefQuery) window.cefQuery({ request: "holo:osrready:" + _rr.w + ":" + _rr.h + (TARGET ? ":" + encodeURIComponent(TARGET) : ""), onSuccess() {}, onFailure() {} });
+
+// PHASE C — safe fallback: if no frame composites within the grace window (DRM/Widevine can't be captured, a
+// producer error, or a dead page), tell the host shell to swap this projected node for the plain in-OS web view.
+// The default is projection; the floor is always a working page. Only armed in node mode (we have a target + a
+// parent shell to message); the popup lens has no shell to fall back into.
+if (TARGET && window.parent && window.parent !== window) {
+  setTimeout(() => {
+    if (!window.__holoFirstFrame) {
+      try { window.parent.postMessage({ type: "holo-project:noframe", url: TARGET }, "*"); } catch (e) {}
+    }
+  }, 3000);
+}
 </script>
 </body>
 </html>
