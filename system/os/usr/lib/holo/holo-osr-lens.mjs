@@ -5,7 +5,8 @@
 // holo://os/cache/sha256/<hex>, L5-verified by the κ scheme) and the host calls window.__holoOsrFrame(manifest)
 // with a COMPACT per-frame manifest of only the CHANGED tiles:
 //
-//   manifest = { w, h, tile, seq, tiles: [ { id:"t{cx}_{ry}", k:"did:holo:sha256:…", novel:bool } ] }
+//   manifest = { w, h, tile, seq, scrollY?, phaseY?, tiles: [ { id, k:"did:holo:blake3:…", prow?, cx?, edge? } ] }
+// where id is "c{cx}_{prow}" (content-space, document rows; scrollY present) or legacy "t{cx}_{ry}" (screen-space).
 //
 // This module turns that manifest into the proven projection path: fetch novel tiles over holo:// (re-derive
 // to enforce L5 at the lens too), reconstruct held tiles from cache, composite via the injected lens
@@ -65,7 +66,26 @@ export function makeOsrLens({ tile = 256, paint, fetchTile, verify = true, decod
     return { painted: recv.painted + vpainted, vpainted, fetched, refs, novelBytes: recv.novelBytes };
   }
 
-  return { frame, store, stats: () => ({ ...stats }), projector };
+  // ensure(manifest) — fetch + L5-verify + cache every tile's bytes (the novelty-only wire), WITHOUT placing
+  // them. Content-space tiling places tiles itself (the caller blits each at prow·TILE − scrollY, and a tile
+  // whose κ is unchanged but whose SCREEN row shifted on scroll must still be re-placed — which the projector's
+  // κ-keyed delta would skip). So the producer's manifest already decided what to send; the lens just makes the
+  // bytes resident here and the projector page composites by document position.
+  async function ensure(manifest) {
+    let fetched = 0, refs = 0;
+    for (const t of manifest.tiles) {
+      const hex = hexOf(t.k);
+      if (!store.has(hex)) {
+        const bytes = await fetchTile(hex);                  // holo://os/cache/blake3/<hex> (κ scheme = L5)
+        if (verify && (await digest(bytes)) !== hex) { stats.refused++; throw new Error(`osr-lens: tile ${t.k} failed L5 — refused`); }
+        store.set(hex, bytes); fetched++;
+      } else refs++;
+    }
+    stats.frames++; stats.fetched += fetched; stats.refs += refs; stats.lastSeq = manifest.seq;
+    return { fetched, refs };
+  }
+
+  return { frame, ensure, store, stats: () => ({ ...stats }), projector };
 }
 
 export default { makeOsrLens };

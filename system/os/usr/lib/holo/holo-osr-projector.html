@@ -35,6 +35,14 @@ let base = null, bctx = null;
 // later). Integer scroll = a fast native putImageData offset (the JS per-pixel reproject is the sub-pixel/MV
 // oracle; its production form is a WebGPU warp). On a new composite the delta resets — the frame caught up.
 let scrollAccum = 0, baseScroll = 0;
+// curScrollY = the producer's document scrollY for the frame currently being composited (content-space tiling).
+// Content tiles carry their document row (prow) in their id; the lens places each at screen y = prow·TILE −
+// curScrollY, so the same content row keeps the same κ across scroll (recurrence) while the row simply moves.
+let curScrollY = 0;
+// This lens is a CROSS-DEVICE remote lens (driven by another node's manifest channel) iff opened with ?remote=1.
+// Then it fetches tiles on the sha256 WIRE axis from the shared-κ transport. A LOCAL lens (no ?remote) keeps the
+// fast blake3 path even though the producer's manifest also carries "s" (for remote consumers).
+const REMOTE = new URLSearchParams(location.search).get("remote") === "1";
 
 // fetch a tile's bytes by content address; the κ scheme verifies (L5) on the wire. Late-bound to
 // window.__holoOsrFetch each call so the host (or a test) can inject the transport.
@@ -47,10 +55,35 @@ const defaultFetch = async (hex) => {
 const fetchTile = (hex) => (window.__holoOsrFetch || defaultFetch)(hex);
 const digestHex = async (b) => blake3hex(b);   // L5 re-derive on the same axis the producer hashed
 
-// write ONE changed tile into the GPU-backed offscreen base (only changed tiles reach here — O(1)).
+// CROSS-DEVICE remote mode: a manifest whose tiles carry "s" (the canonical sha256) is projected from ANOTHER
+// node. Its tile BYTES were never produced here — fetch each on the sha256 WIRE axis (the shared-κ transport
+// serves it via the kr_shared_get fallback) and re-derive sha256 to verify (L5 at the lens too — an untrusted
+// relay can't slip a bad tile past). blake3 stays the LOCAL fast axis; sha256 is the canonical cross-node one.
+const sha256Fetch = async (hex) => {
+  const r = await fetch("holo://os/cache/sha256/" + hex);
+  if (!r.ok) throw new Error("osr: remote tile " + hex + " → " + r.status);
+  const u = new Uint8Array(await r.arrayBuffer());
+  window.__holoWireBytes = (window.__holoWireBytes || 0) + u.length;   // bandwidth-∝-novelty: only NOVEL tiles fetch; resident ones never cross the wire
+  return u;
+};
+const sha256digest = async (b) => {
+  const u = b instanceof Uint8Array ? b : new Uint8Array(b);
+  const h = await crypto.subtle.digest("SHA-256", u);
+  return Array.from(new Uint8Array(h)).map((x) => x.toString(16).padStart(2, "0")).join("");
+};
+let remoteLens = null;
+
+// write ONE tile into the GPU-backed offscreen base. Content-space tiles ("c{cx}_{prow}") are placed by their
+// document row, offset by the frame's scrollY; legacy screen-space tiles ("t{cx}_{ry}") by their fixed grid
+// slot. putImageData clips to the canvas, so a margin tile's off-screen (zero-padded) rows are simply dropped.
 const blit = (id, bytes) => {
-  const m = /^t(\d+)_(\d+)$/.exec(id); const x0 = +m[1] * TILE, y0 = +m[2] * TILE;
-  const tw = Math.min(TILE, W - x0), th = Math.min(TILE, H - y0);
+  let x0, y0, tw, th;
+  let m = /^c(\d+)_(-?\d+)$/.exec(id);
+  if (m) {                                         // content-space: place by document row − scrollY (TILE-high, padded)
+    x0 = +m[1] * TILE; y0 = +m[2] * TILE - curScrollY; tw = Math.min(TILE, W - x0); th = TILE;
+  } else {                                         // legacy screen-space grid slot
+    m = /^t(\d+)_(\d+)$/.exec(id); x0 = +m[1] * TILE; y0 = +m[2] * TILE; tw = Math.min(TILE, W - x0); th = Math.min(TILE, H - y0);
+  }
   const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   bctx.putImageData(new ImageData(new Uint8ClampedArray(u.subarray(0, tw * th * 4)), tw, th), x0, y0);
 };
@@ -59,13 +92,44 @@ const blit = (id, bytes) => {
 window.__holoOsrFrame = async (manifest) => {
   window.__holoScLast = null;                        // a tile manifest arrived ⇒ we are in (or back to) crisp tile mode
   window.__holoFirstFrame = true;                    // a frame composited ⇒ projection is live (cancels the Phase-C fallback)
+
+  // CROSS-DEVICE: tiles carry "s" ⇒ this scene is produced on a REMOTE node; composite from the shared-κ
+  // transport on the sha256 wire axis (same content-space placement, just a different fetch+verify axis).
+  if (REMOTE && manifest.tiles && manifest.tiles[0] && manifest.tiles[0].s) {
+    if (!remoteLens || manifest.w !== W || manifest.h !== H) {
+      W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
+      base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
+      sizeScreen();
+      remoteLens = makeOsrLens({ tile: TILE, paint: blit, fetchTile: sha256Fetch, digestHex: sha256digest });
+    }
+    curScrollY = typeof manifest.scrollY === "number" ? manifest.scrollY : 0;
+    const m2 = { ...manifest, tiles: manifest.tiles.map((t) => ({ ...t, k: "did:holo:sha256:" + t.s })) };
+    window.__holoTilesSeen = (window.__holoTilesSeen || 0) + m2.tiles.length;   // every tile REF seen (cheap); vs __holoWireBytes (only novel)
+    await remoteLens.ensure(m2);                      // novelty-only: fetch new tiles over the wire, ref resident ones
+    for (const t of m2.tiles) { const bytes = remoteLens.store.get(t.s); if (bytes) blit(t.id, bytes); }
+    baseScroll = scrollAccum; window.__holoOsrSeq = manifest.seq;
+    return;
+  }
+
   if (!lens || manifest.w !== W || manifest.h !== H) {
     W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
     base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
     sizeScreen();
     lens = makeOsrLens({ tile: TILE, paint: blit, fetchTile, digestHex });
   }
-  await lens.frame(manifest);                      // fetch novel tiles (L5), ref held ones, composite changed
+  const content = typeof manifest.scrollY === "number";   // content-space frame (carries the producer's scrollY)
+  curScrollY = content ? manifest.scrollY : 0;
+  if (content) {
+    // Make every tile's bytes resident (novelty-only fetch + L5), then place each by document row. On scroll the
+    // producer re-emits all visible tiles (their screen rows moved); resident κ are refs, not re-fetches.
+    await lens.ensure(manifest);
+    for (const t of manifest.tiles) {
+      const bytes = lens.store.get(String(t.k).split(":").pop());
+      if (bytes) blit(t.id, bytes);
+    }
+  } else {
+    await lens.frame(manifest);                    // legacy screen-space: fetch novel, ref held, delta-composite
+  }
   baseScroll = scrollAccum;                         // this composite reflects scroll up to now → reset the warp
   window.__holoOsrSeq = manifest.seq;               // the present loop shows base, super-res'd + reprojected, on the GPU
 };
