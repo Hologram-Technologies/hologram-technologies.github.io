@@ -12,6 +12,7 @@ import { makeHome } from "./holo-home.mjs";
 import { homeView, openHomeItem } from "./holo-home-front.mjs";
 import { appsModel } from "./holo-home-apps.mjs";
 import { makeHomeAsk } from "./holo-home-ask.mjs";
+import { route as resolveRoute } from "./holo-omni-resolve.mjs";   // the hero omnibox resolves locally — self-sufficient even before shell-main wires window.HoloResolve
 
 // All user-facing copy in ONE place — plain words only, jargon-gated by holo-home-journey-witness.
 // "open" not "install", "your stuff" not "manifest"/"κ". If a line here trips the gate, the gate wins.
@@ -117,6 +118,26 @@ const STYLE = `
 #holo-home-root .holo-home-ask .hh-ask .hh-dot{width:9px;height:9px;border-radius:50%;background:var(--hh-accent);
   box-shadow:0 0 0 4px color-mix(in oklab,var(--hh-accent) 22%,transparent);}
 #holo-home-root .hh-hint{opacity:.65;margin:0;}
+@property --hh-spin{syntax:"<angle>";inherits:false;initial-value:0deg;}
+@keyframes hh-spin{to{--hh-spin:360deg;}}
+#holo-home-root .hh-hero{margin:0 0 6px;}
+#holo-home-root .hh-omni{position:relative;display:flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 16px;
+  border:1.5px solid transparent;border-radius:999rem;
+  background:linear-gradient(color-mix(in oklab,canvas 92%,canvastext),color-mix(in oklab,canvas 92%,canvastext)) padding-box,
+   conic-gradient(from var(--hh-spin),#ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b) border-box;
+  transition:box-shadow .2s ease;}
+#holo-home-root .hh-omni:focus-within{box-shadow:0 0 28px -8px color-mix(in oklab,#5b8cff 65%,transparent);animation:hh-spin 7s linear infinite;}
+#holo-home-root .hh-omni-mark{flex:0 0 auto;width:18px;height:18px;border-radius:5px;opacity:.9;
+  background:conic-gradient(from var(--hh-spin),#ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b);}
+#holo-home-root .hh-omni-in{flex:1;min-width:0;background:none;border:0;outline:0;color:inherit;font:15px/1.4 inherit;}
+#holo-home-root .hh-omni-go{flex:0 0 auto;width:32px;height:32px;border:0;border-radius:50%;cursor:pointer;color:#fff;
+  display:grid;place-items:center;font-size:15px;line-height:1;
+  background:radial-gradient(130% 130% at 32% 22%,rgba(255,255,255,.5),rgba(255,255,255,0) 46%),
+   conic-gradient(from var(--hh-spin),#ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b);
+  box-shadow:0 2px 9px rgba(120,140,255,.42),inset 0 0 0 1px rgba(255,255,255,.24);transition:filter .14s ease,transform .12s ease;}
+#holo-home-root .hh-omni-go:hover{filter:saturate(1.14) brightness(1.06);transform:translateY(-1px);}
+#holo-home-root .hh-omni-go:active{transform:translateY(0) scale(.92);}
+#holo-home-root .hh-omni-hint{min-height:15px;margin:6px 0 0 18px;font-size:12px;opacity:.55;}
 #holo-home-root .holo-home-empty{opacity:.6;}
 @media (prefers-reduced-motion:reduce){#holo-home-root .holo-home-tile{transition:none;}}
 `;
@@ -143,11 +164,45 @@ function mountRoot() {
   return root;
 }
 
+// The home hero: the signature spectrum omnibox, as page content (Strategy A — it lives on the home surface,
+// not the native toolbar). Submit goes through the ONE open path (window.HoloOpen → omniGo), so every input
+// class works on web + native unchanged; a live preview reflects the resolver's destination NAME as you type.
+// Plain words only (the home surface is jargon-gated — no κ/manifest/anchor/strand on screen).
+function heroOmni() {
+  const input = el("input", { class: "hh-omni-in", type: "text", placeholder: "Search the web, or open your stuff", autocomplete: "off", spellcheck: "false", "aria-label": "Search" });
+  const go = el("button", { class: "hh-omni-go", type: "submit", "aria-label": "Go", text: "→" });
+  const omni = el("div", { class: "hh-omni" }, [el("span", { class: "hh-omni-mark" }), input, go]);
+  const hint = el("div", { class: "hh-omni-hint" });
+  const form = el("form", { class: "hh-hero", role: "search" }, [omni, hint]);
+  // Name/three-word resolution needs the RAW catalog doc (dcat:landingPage). Fetch it once; until it lands,
+  // web/κ/text still resolve. Post-login, window.HoloResolve already holds the raw catalog (shell-main fed it).
+  let rawCat = [];
+  (async () => { try { rawCat = await (await fetch("/apps/index.jsonld", { cache: "no-store" })).json(); } catch (e) {} })();
+  const decide = (v) => { try { return (window.HoloResolve && window.HoloResolve.route) ? window.HoloResolve.route(v) : resolveRoute(v, { catalog: rawCat }); } catch (e) { return null; } };
+  input.addEventListener("input", () => {
+    const v = input.value.trim();
+    const a = v ? decide(v) : null;
+    hint.textContent = a ? (a.action === "open" ? "look it up" : (a.name ? "→ " + a.name : "")) : "";
+  });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = input.value.trim(); if (!v) return;
+    try {
+      if (window.HoloOpen) { window.HoloOpen(v); return; }                 // the ONE open path (omniGo) when the shell is wired — web + native
+      const a = decide(v);                                                 // else navigate by the resolver's own decision (pre-login / standalone)
+      if (a && a.action === "navigate") location.href = a.url;
+      else location.href = "holo://os/find.html?q=" + encodeURIComponent(v);
+    } catch (err) {}
+  });
+  return form;
+}
+
 async function render(home, catalog) {
   injectStyles();
   const root = mountRoot();
   const view = await homeView(home);
   root.textContent = "";
+  root.appendChild(heroOmni());   // the search hero is always present — independent of whether the personal-cloud manifest is ready
   if (!view.ok) { root.appendChild(el("p", { class: "holo-home-empty", text: BOOT_COPY.notReady })); return; }
 
   const openOne = async (item) => { const open = (typeof window !== "undefined" && window.HoloOpen) ? window.HoloOpen : null; return openHomeItem(item, open); };
@@ -161,6 +216,7 @@ async function render(home, catalog) {
   ];
 
   for (const sec of sections) {
+    if (!sec.items.length) continue;   // never render a lonely section header (FILES/APPS/SPACES) over an empty section
     const list = el("div", { class: "holo-home-grid" });
     for (const it of sec.items) {
       const btn = el("button", { class: "holo-home-tile", type: "button", title: it.label || it.ref });
@@ -172,9 +228,7 @@ async function render(home, catalog) {
     }
     root.appendChild(el("div", { class: "holo-home-section" }, [el("h2", { text: sec.title }), list]));
   }
-  // Ask is the assistant surface (registered below); show its entry point.
-  const askBar = el("div", { class: "hh-ask" }, [el("span", { class: "hh-dot" }), el("p", { class: "hh-hint", text: BOOT_COPY.askHint })]);
-  root.appendChild(el("div", { class: "holo-home-section holo-home-ask" }, [el("h2", { text: BOOT_COPY.ask }), askBar]));
+  // Ask remains registered into the agent registry below; its on-screen entry point is intentionally not rendered.
 }
 
 async function boot() {

@@ -24,7 +24,7 @@
 export const TASKS = [
   // ── CORE I/O — Q's senses (pinned κ .holo, precompiled, content-addressed; not HF-discovered) ──
   { id: "respond",        label: "Respond",       job: "Main chat / reasoning", pipeline: "text-generation",  need: "generative", maxParams: "1.5B", pinned: true },
-  { id: "listen",         label: "Listen",        job: "Speech → text (ASR)",  pipeline: "automatic-speech-recognition", need: "asr", maxParams: "200M", pinned: true },
+  { id: "listen",         label: "Listen",        job: "Speech → text (ASR)",  pipeline: "automatic-speech-recognition", need: "asr", maxParams: "700M", pinned: true },
   { id: "speak",          label: "Speak",         job: "Text → speech (TTS)",  pipeline: "text-to-speech",    need: "tts",        maxParams: "100M", pinned: true },
   { id: "code",           label: "Code",          job: "Agentic coding",       pipeline: "text-generation",   need: "generative", maxParams: "3B",   pinned: true },
   // ── HELPER tasks — each discovers + binds the best browser-runnable small specialist (or main) ──

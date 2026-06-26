@@ -149,6 +149,26 @@ fn srSample(uv: vec2f) -> vec3f {
     const format = navigator.gpu.getPreferredCanvasFormat();
     ctx.configure({ device, format, alphaMode: "opaque" });
 
+    // Robustness: a heavy super-res frame can lose the device (Dawn/D3D12 TDR). Catch it so it
+    // DEGRADES instead of crashing — the caller's onLost falls back to the plain <video>. Errors are
+    // also stashed on window so a poll can read the cause even if the host dies before console flushes.
+    let lost = false;
+    try {
+      device.lost.then((info) => {
+        lost = true;
+        try { W.__holoGpuLost = { reason: (info && info.reason) || "unknown", message: (info && info.message) || "" }; } catch {}
+        console.error("[holo-gpu] DEVICE LOST:", info && info.reason, info && info.message);
+        try { opts.onLost && opts.onLost(info); } catch {}
+      });
+    } catch {}
+    try {
+      device.addEventListener("uncapturederror", (e) => {
+        const msg = (e && e.error && e.error.message) || String(e);
+        try { W.__holoGpuErr = msg; } catch {}
+        console.error("[holo-gpu] uncaptured GPU error:", msg);
+      });
+    } catch {}
+
     const module = device.createShaderModule({ code: WGSL });
     const pipeline = device.createRenderPipeline({
       layout: "auto",
@@ -180,22 +200,48 @@ fn srSample(uv: vec2f) -> vec3f {
     let maxDpr = Math.max(1, opts.maxDpr || 3);
     let scale = 1;                                     // adaptive 0.5..1, driven by measured fps
     const targetDpr = () => Math.min(window.devicePixelRatio || 1, maxDpr) * scale;
+    // Super-res is a 16-tap external-texture reconstruction PER output pixel; at a large backing it can
+    // exceed the GPU's frame-time budget and trigger a TDR/device-loss that takes the process down. Cap
+    // the super-res OUTPUT to a safe pixel budget (≈1920×1200; tune via opts.srMaxPx) so the cost stays
+    // bounded regardless of window/display size. Without super-res the fragment is one fetch → no cap.
+    const SR_MAX_PX = Math.max(262144, +opts.srMaxPx || 2304000);
     function size() {
-      const w = Math.max(1, Math.round(canvas.clientWidth * targetDpr()));
-      const h = Math.max(1, Math.round(canvas.clientHeight * targetDpr()));
+      let w = Math.max(1, Math.round(canvas.clientWidth * targetDpr()));
+      let h = Math.max(1, Math.round(canvas.clientHeight * targetDpr()));
+      if (state.sr && w * h > SR_MAX_PX) {
+        const k = Math.sqrt(SR_MAX_PX / (w * h));      // scale both dims to fit the budget
+        w = Math.max(1, Math.round(w * k));
+        h = Math.max(1, Math.round(h * k));
+      }
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
     }
     const ro = new ResizeObserver(size); ro.observe(canvas); size();
-    let winF = 0, winT = performance.now(), winFps = 60;
-    function throttle() {                              // rolling-fps adaptive resolution
+    let winF = 0, winT = performance.now(), winFps = 60, lowSecs = 0, srEased = false;
+    function throttle() {                              // rolling-fps adaptive resolution + escalating fallback
       winF++; const now = performance.now(), dt = now - winT;
       if (dt < 1000) return;
       winFps = winF * 1000 / dt; winF = 0; winT = now;
       if (winFps < 45 && scale > 0.5) scale = Math.max(0.5, scale * 0.85);
       else if (winFps > 57 && scale < 1) scale = Math.min(1, scale * 1.08);
+      // Escalating fallback: scaling the backing isn't enough if the GPU can't sustain the 16-tap super-res loop
+      // — a stuttering enhanced canvas over a SMOOTH <video> reads as "laggy". So when fps stays low at the scale
+      // floor, EASE OFF super-res (the fragment becomes a single fetch — cheap), and if it is STILL low, hand back
+      // to the plain <video> entirely. Persist the ease-off PER GPU (holo.sr.laggy) so the NEXT play starts smooth
+      // — exactly one laggy play on a weak GPU, then never again. A capable GPU never trips this and keeps super-res.
+      if (winFps < 42) {
+        lowSecs++;
+        if (state.sr && !srEased && lowSecs >= 3) {
+          state.sr = 0; srEased = true; scale = 1;
+          try { localStorage.setItem("holo.sr.laggy", "1"); } catch {}
+          if (opts.onSrEased) try { opts.onSrEased(); } catch {}
+        } else if (lowSecs >= 7 && opts.onLost) {
+          try { opts.onLost(); } catch {}
+        }
+      } else if (winFps > 50) { lowSecs = 0; }
     }
 
     function drawFrame() {
+      if (lost) return false;                           // device gone → the caller's <video> plays on
       size();                                           // self-heal backing ↔ CSS each frame
       if (video.readyState < 2) return false;           // no frame to import yet
       let ext;

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Holo Canvas — native projection</title>
+<style>
+  html,body{margin:0;height:100%;background:#05080f;color:#cfe8ff;font:13px/1.5 ui-monospace,Menlo,monospace;overflow:hidden}
+  canvas.sr{position:fixed;inset:0;width:100vw;height:100vh;z-index:1;background:#05080f}
+  #app{position:fixed;inset:0;width:100vw;height:100vh;border:0;display:block;background:#05080f;z-index:2}
+  #hud{position:fixed;top:46px;left:10px;z-index:5;padding:9px 13px;background:rgba(6,12,22,.6);border:1px solid rgba(120,200,255,.18);border-radius:11px;backdrop-filter:blur(8px);white-space:pre;pointer-events:none;min-width:260px}
+  #back{position:fixed;top:10px;left:10px;z-index:6;padding:6px 12px;background:rgba(6,12,22,.62);border:1px solid rgba(120,200,255,.28);border-radius:9px;color:#cfe8ff;font:inherit;text-decoration:none;backdrop-filter:blur(8px)}
+  #back:hover{border-color:#7fd6c0;color:#7fd6c0}
+  #back .k{opacity:.5;margin-left:8px;font-size:11px}
+  #hud b{color:#7fd6c0}
+  #err{position:fixed;inset:24px;z-index:9;padding:18px;background:rgba(40,8,8,.92);border:1px solid #ff6b6b;border-radius:12px;color:#ffd9d9;white-space:pre-wrap;overflow:auto;display:none}
+  #gallery{position:fixed;inset:0;z-index:6;overflow:auto;background:radial-gradient(1200px 600px at 50% -10%, #0c1830, #05080f)}
+  .gwrap{max-width:920px;margin:0 auto;padding:52px 24px}
+  #gallery h1{margin:0 0 4px;font:600 28px/1.2 ui-sans-serif,system-ui;color:#dff1ff;letter-spacing:.4px}
+  #gallery .sub{margin:0 0 28px;opacity:.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+  .card{display:block;text-decoration:none;color:inherit;border:1px solid rgba(120,200,255,.16);border-radius:14px;overflow:hidden;background:rgba(10,18,30,.6);transition:transform .12s ease,border-color .12s ease}
+  .card:hover{transform:translateY(-3px);border-color:#7fd6c0}
+  .thumb{position:relative;height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+  .thumb span{position:relative;z-index:1;font-size:26px;color:rgba(255,255,255,.95);background:rgba(0,0,0,.34);width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding-left:4px}
+  .card .meta{padding:13px 15px}
+  .card .t{font:600 15px/1.3 ui-sans-serif,system-ui;color:#eaf6ff}
+  .card .d{margin-top:4px;font-size:12px;opacity:.66;line-height:1.5}
+  #share{position:fixed;top:10px;right:12px;z-index:6;padding:6px 12px;background:rgba(6,12,22,.62);border:1px solid rgba(120,200,255,.28);border-radius:9px;color:#cfe8ff;font:inherit;cursor:pointer;backdrop-filter:blur(8px)}
+  #share:hover,#share[data-on="1"]{border-color:#7fd6c0;color:#7fd6c0}
+  #dialbox{position:fixed;top:48px;right:12px;z-index:7;width:340px;max-width:82vw;padding:12px;background:rgba(6,12,22,.93);border:1px solid rgba(120,200,255,.28);border-radius:11px;backdrop-filter:blur(8px);display:none}
+  #dialbox h4{margin:0 0 6px;color:#7fd6c0;font-size:12px}
+  #dialbox p{margin:6px 0;opacity:.75;font-size:11px}
+  #dialbox textarea{width:100%;height:46px;box-sizing:border-box;background:#0a1322;border:1px solid rgba(120,200,255,.2);border-radius:7px;color:#bfe6ff;font:11px ui-monospace,monospace;resize:vertical}
+  #dialbox button{margin-top:6px;padding:6px 10px;background:rgba(120,200,255,.12);border:1px solid rgba(120,200,255,.3);border-radius:7px;color:#cfe8ff;font:inherit;cursor:pointer}
+  #dialbox button:hover{border-color:#7fd6c0;color:#7fd6c0}
+  #dialbox .ok{color:#7fd6c0}
+</style>
+</head>
+<body>
+<div id="hud">booting…</div>
+<iframe id="app" referrerpolicy="no-referrer"></iframe>
+<div id="err"></div>
+<script type="module">
+// Native Holo Canvas runner — the OS host serves everything as sealed κ static files, so there is NO service
+// worker and NO pack to mount (the dev server's job). The dpr-shim the dev SW injects is baked inline into the
+// sealed app instead. We: detect the GPU, iframe the sealed app at internal-res, and project it sharp with the
+// same envelope (WebGPU super-res; WebGL2 fallback). Dawn's adapter can warm up a few seconds after a fresh
+// navigation, so we render instantly with whatever is ready and UPGRADE WebGL2→WebGPU the moment it appears.
+import { detectGPU, mountEnvelope } from "holo://os/usr/lib/holo/holo-canvas.mjs";
+import { detectGL, mountEnvelopeGL } from "holo://os/usr/lib/holo/holo-canvas-gl.mjs";
+import { makeShareHost } from "holo://os/usr/lib/holo/holo-canvas-share.mjs";   // κ frame-tile second-viewer share
+import { makeBroadcastTransport, makeDialHost } from "holo://os/usr/lib/holo/holo-canvas-transport.mjs";  // cross-tab | cross-device dial-link
+import { mountProjectionHUD } from "holo://os/usr/lib/holo/holo-projection-hud.mjs";  // the ONE projection HUD (same as the web lens)
+
+const Q = new URLSearchParams(location.search);
+const requested = Q.get("app");
+const APP = (requested || "").replace(/[^a-z0-9-]/gi, "");
+const app = document.getElementById("app"), hud = document.getElementById("hud"), errBox = document.getElementById("err");
+const H = window.HoloRun = { app: APP || null, engine: null, tier: null, upgraded: false, gallery: !requested };
+
+// The gallery: opened with no ?app, run.html is a launcher of sealed GPU experiences. Each card links to
+// ?app=<name>, which reloads run.html in app mode and projects that experience through the envelope.
+// The app list is DATA-DRIVEN — fetched from the sealed ./apps.json, so adding an experience is a manifest
+// edit + reseal, never a run.html edit. APPS_FALLBACK is the built-in list used only if the fetch fails.
+const APPS_FALLBACK = [
+  { name: "threejs-water", title: "Hyper-Real Water", desc: "Raytraced reflections, refractions & caustics — Evan Wallace's classic, drawn cheap and projected sharp.", hue: 205 },
+  { name: "raymarch", title: "Raymarch", desc: "Orbiting spheres, soft shadows, an infinite reflective plane — a hand-written GPU shader.", hue: 158 },
+];
+async function showGallery() {
+  hud.style.display = "none";
+  let APPS = APPS_FALLBACK;
+  try { const r = await fetch("./apps.json", { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (Array.isArray(j) && j.length) APPS = j; } } catch (e) {}
+  const g = document.createElement("div"); g.id = "gallery";
+  g.innerHTML = `<div class="gwrap"><h1>Holo Canvas</h1><p class="sub">GPU experiences — each drawn cheap at internal-res, projected sharp on the native GPU.</p><div class="grid"></div></div>`;
+  document.body.appendChild(g);
+  const grid = g.querySelector(".grid");
+  for (const a of APPS) {
+    if (!a || !a.name) continue;
+    const hue = typeof a.hue === "number" ? a.hue : 200;
+    const card = document.createElement("a");
+    card.className = "card"; card.href = "?app=" + encodeURIComponent(a.name);
+    const t = document.createElement("div"); t.className = "thumb"; t.style.background = `linear-gradient(135deg,hsl(${hue},70%,30%),hsl(${hue + 40},75%,15%))`;
+    const poster = document.createElement("img"); poster.alt = ""; poster.loading = "lazy"; poster.src = "./" + a.name + "/poster.png"; poster.onerror = () => poster.remove();   // real first-frame thumb; falls back to the gradient
+    const play = document.createElement("span"); play.textContent = "▶"; t.append(poster, play);
+    const meta = document.createElement("div"); meta.className = "meta";
+    const tt = document.createElement("div"); tt.className = "t"; tt.textContent = a.title || a.name;
+    const dd = document.createElement("div"); dd.className = "d"; dd.textContent = a.desc || "";
+    meta.append(tt, dd); card.append(t, meta); grid.appendChild(card);
+  }
+}
+
+const fail = (m) => { errBox.style.display = "block"; errBox.textContent = "Holo Canvas: " + m; H.err = m; };
+const mkCanvas = () => { const c = document.createElement("canvas"); c.className = "sr"; document.body.insertBefore(c, app); return c; };
+const status = (extra) => { hud.innerHTML = `<b>Holo Canvas — native</b>  ${APP}\nengine    ${H.engine} · ${H.tier || "?"} tier · scale ${H.scale}${H.upgraded ? " · upgraded↑" : ""}\n` + extra; };
+const onStats = (stats, tier, mode) => {
+  if (!stats) return; H.stats = stats;
+  status(`internal  ${stats.srcW}×${stats.srcH}  (the app draws this)\nprojected ${stats.outW}×${stats.outH}${stats.ssaa > 1 ? `  (${stats.ssaa.toFixed(2)}× SSAA → window)` : "  (super-res to the window)"}\nmode      ${mode} · ${Math.round(stats.fps || 0)} fps (vsync-capped) · ${stats.presented || 0} drawn / ${stats.skipped || 0} idle-skipped`);
+};
+const mount = (engine, SR, outCanvas) => engine === "webgpu"
+  ? mountEnvelope({ iframe: app, outCanvas, gpu: SR, query: Q, onStats })
+  : mountEnvelopeGL({ iframe: app, outCanvas, gl: SR, query: Q, onStats });
+
+if (!requested) { showGallery(); }
+else {
+// app-mode chrome: a back-to-gallery affordance. THE ONE HUD (same component the web lens shows) replaces the
+// bespoke dev panel — projection is one concept, one readout. Alt+H toggles it (unified across web · app · video).
+const back = document.createElement("a"); back.id = "back"; back.href = "./run.html"; back.innerHTML = `‹ Gallery<span class="k">alt+h: HUD</span>`; document.body.appendChild(back);
+mountProjectionHUD(() => ({
+  kind: "3d", treatment: "super-res", engine: H.engine || "webgpu",
+  internalScale: H.scale, ssaa: H.stats && H.stats.ssaa, l5: true, label: APP,
+}), { startHidden: false });
+hud.style.display = "none";   // the bespoke boot/status div hands off to the unified HUD (errBox still handles errors)
+
+// ── share the live scene to a SECOND VIEWER as a κ frame-tile stream. Cross-tab via BroadcastChannel (open
+//    view.html in another tab); cross-device via a holo-dial WebRTC link (?share=link). Unchanged tiles cross
+//    at ~0 bytes; the viewer L5-verifies each tile before paint. Source = the envelope's per-frame capture. ──
+const shareBtn = document.createElement("button"); shareBtn.id = "share"; shareBtn.textContent = "⇲ Share"; document.body.appendChild(shareBtn);
+const dialbox = document.createElement("div"); dialbox.id = "dialbox";
+dialbox.innerHTML = `<h4>Share to another device</h4><p>1 · Copy this link to the other device:</p><textarea id="dialLink" readonly></textarea><button id="dialCopy">Copy link</button><p>2 · Paste the reply code it gives back:</p><textarea id="dialAnswer" placeholder="reply code…"></textarea><button id="dialConnect">Connect</button><p id="dialStatus"></p>`;
+document.body.appendChild(dialbox);
+let shareHost = null, shareTx = null, shareTimer = null, viewers = 0, keyframeNext = true, cumNovel = 0, cumFull = 0;
+const onJoin = () => { viewers++; shareHost && shareHost.reset(); keyframeNext = true; };   // a fresh lens ⇒ keyframe next
+function runShareLoop() {
+  const tick = async () => {
+    try {
+      const cap = H.ctl && H.ctl.capture && H.ctl.capture(720);
+      if (cap) {
+        const f = await shareHost.frame(cap.rgba, cap.w, cap.h, { keyframe: keyframeNext }); keyframeNext = false;
+        shareTx.send({ type: "frame", wire: f.wire, layout: f.layout });
+        cumNovel += f.novelBytes; cumFull += cap.w * cap.h * 4;
+        H.share = { viewers, tilesSent: f.emitted, novelBytes: f.novelBytes, savedPct: cumFull ? Math.round(100 * (1 - cumNovel / cumFull)) : 0 };
+      }
+    } catch (e) { H.shareErr = String(e && e.message || e).slice(0, 80); }
+    shareTimer = setTimeout(tick, 80);   // ~12 fps co-presence
+  };
+  tick();
+}
+// PUBLIC_VIEWER — a self-contained viewer on the open web so ANY device (no Hologram) can join. Set this to
+// your deployed site (the viewer lives at <site>/holo-canvas/view.html). Default = the canonical site domain.
+const PUBLIC_VIEWER = "https://hologram.os/holo-canvas/view.html";
+async function startDialShare() {   // cross-device: mint an offer link, accept the viewer's reply code
+  shareHost = makeShareHost({ tw: 128, th: 128 });
+  const dh = await makeDialHost();
+  shareTx = dh.channel;
+  const viewUrl = PUBLIC_VIEWER + "#" + dh.offerBlob;   // any-device link; the offer rides in the hash
+  document.getElementById("dialLink").value = viewUrl; dialbox.style.display = "block";
+  document.getElementById("dialCopy").onclick = () => navigator.clipboard && navigator.clipboard.writeText(viewUrl);
+  document.getElementById("dialConnect").onclick = async () => {
+    const code = document.getElementById("dialAnswer").value.trim(); if (!code) return;
+    document.getElementById("dialStatus").textContent = "connecting…";
+    try { await dh.accept(code); } catch (e) { document.getElementById("dialStatus").textContent = "bad reply code"; }
+  };
+  shareTx.ready.then(() => { document.getElementById("dialStatus").innerHTML = '<span class="ok">connected — streaming</span>'; onJoin(); runShareLoop(); });
+}
+function startShare() {
+  if (shareHost || !(H.ctl && H.ctl.active)) return;
+  if (Q.get("share") === "link") { startDialShare(); shareBtn.dataset.on = "1"; shareBtn.textContent = "⇲ Sharing (dial)"; return; }
+  shareHost = makeShareHost({ tw: 128, th: 128 });
+  shareTx = makeBroadcastTransport("holo-share-" + APP);   // cross-tab co-view (open view.html?app=<name>)
+  shareTx.onMessage((m) => { if (m && m.type === "hello") onJoin(); });
+  runShareLoop();
+  shareBtn.dataset.on = "1"; shareBtn.textContent = "⇲ Sharing — open view.html";
+  navigator.clipboard && navigator.clipboard.writeText("holo://os/apps/holo-import/view.html?app=" + encodeURIComponent(APP));
+}
+function stopShare() { if (shareTimer) clearTimeout(shareTimer); shareTx && shareTx.close(); shareHost = null; shareTx = null; shareTimer = null; dialbox.style.display = "none"; shareBtn.dataset.on = "0"; shareBtn.textContent = "⇲ Share"; }
+shareBtn.addEventListener("click", () => (shareHost ? stopShare() : startShare()));
+// Warm the GPU process BEFORE detecting: Dawn enumerates its WebGPU adapter only once the render path is
+// active (a cold first request can miss → wrong WebGL2 fallback). A throwaway WebGL2 context + an early
+// fire-and-forget requestAdapter() kicks Dawn's init so detectGPU (with its retry) reliably lands on WebGPU.
+try {
+  const wc = document.createElement("canvas"); wc.width = wc.height = 64;
+  const wg = wc.getContext("webgl2"); if (wg) { wg.clear(wg.COLOR_BUFFER_BIT); wg.finish(); }
+  if (typeof navigator !== "undefined" && navigator.gpu) navigator.gpu.requestAdapter({ powerPreference: "high-performance" }).catch(() => {});
+} catch (e) {}
+
+(async () => {
+  let gpu = null; try { gpu = await detectGPU(); } catch (e) { gpu = { ok: false, reason: "detect-threw" }; }
+  let SR = null;
+  if (gpu.ok) { SR = gpu; H.engine = "webgpu"; }
+  else { let gl; try { gl = detectGL(); } catch (e) { gl = { ok: false }; } if (gl?.ok) { SR = gl; H.engine = "webgl2"; } }
+  H.tier = SR?.tier?.name || null;
+  H.scale = SR?.tier?.internalScale ?? 0.85;
+  app.src = `./${APP}/index.html?__hsr=${H.scale}`;   // tell the app's inline shim what internal-res to draw at
+
+  if (!SR) { fail("no GPU path (WebGPU adapter absent and WebGL2 unavailable). Launch with HOLO_WEBGPU=1 for hardware WebGPU."); app.style.zIndex = "3"; return; }
+
+  let curCanvas = mkCanvas();
+  H.ctl = mount(H.engine, SR, curCanvas);
+  status(`status    ${H.ctl.active ? "projecting…" : H.ctl.reason}`);
+
+  // Instant render now; if we fell back to WebGL2 only because Dawn wasn't ready yet, upgrade to WebGPU (the
+  // higher-quality path) as soon as its adapter warms up. A canvas can't change context type, so the upgrade
+  // mounts a fresh canvas and swaps. No boot delay; the best engine wins within a few seconds.
+  if (H.engine !== "webgpu" && typeof navigator !== "undefined" && navigator.gpu) {
+    for (let i = 0; i < 100 && H.engine !== "webgpu"; i++) {   // ~30s window: Dawn's first init on a freshly
+      await new Promise((r) => setTimeout(r, 300));            // navigated doc can be slow + high-variance
+      if (!H.ctl?.active) break;
+      let a = null; try { a = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" }); } catch (e) {}
+      if (!a) continue;
+      const g = await detectGPU();
+      if (!g.ok) continue;
+      const newCanvas = mkCanvas();
+      const newCtl = mount("webgpu", g, newCanvas);
+      // flicker-free swap: let the new WebGPU compositor render a few frames BEFORE tearing down the old one.
+      await new Promise((r) => setTimeout(r, 400));
+      H.ctl.stop(); curCanvas.remove();
+      H.ctl = newCtl; curCanvas = newCanvas;
+      H.engine = "webgpu"; H.tier = g.tier?.name || H.tier; H.upgraded = true;
+      status("status    upgraded to WebGPU");
+    }
+  }
+})().catch((e) => fail(String(e?.message || e)));
+}
+</script>
+</body>
+</html>

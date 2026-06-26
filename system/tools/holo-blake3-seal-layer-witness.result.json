@@ -1,0 +1,30 @@
+{
+  "spec": "P5 — the seal layer gains the canonical κ axis (kappaOf = kappo = blake3) at its keystone (holo-identity), additively beside the sha256 CC-1 persistence/interop bridge. The minted object resolves on the canonical substrate; persisted chains are untouched (no flag-day re-mint). Keystone module witnesses stay green; SD-JWT-VC disclosure leaves stay labeled bridges.",
+  "witnessed": true,
+  "covers": [
+    "seal-layer",
+    "identity",
+    "kappo",
+    "canonical-kappa",
+    "additive",
+    "sd-jwt-bridge",
+    "law-l5"
+  ],
+  "checks": {
+    "kappaOf mints a canonical did:holo:blake3 κ": true,
+    "kappaOf ≡ the substrate's blake3 (kappo)": true,
+    "kappaVerify accepts the true bytes (Law L5)": true,
+    "kappaVerify refuses a tampered seal": true,
+    "addressOf still mints the sha256 CC-1 bridge id (unchanged, persisted chains intact)": true,
+    "the two axes are DISTINCT (blake3 κ ≠ sha256 id)": true,
+    "both axes re-derive from the same canonical bytes (resolvable + reversible)": true,
+    "seal-layer witness still GREEN after the canonical seam: holo-strand-witness.mjs": true,
+    "seal-layer witness still GREEN after the canonical seam: holo-vault-witness.mjs": true,
+    "seal-layer witness still GREEN after the canonical seam: holo-credential-witness.mjs": true,
+    "seal-layer witness still GREEN after the canonical seam: holo-present-witness.mjs": true,
+    "credential disclosure leaf marked // BRIDGE: SD-JWT-VC": true,
+    "presentation disclosure leaf marked // BRIDGE: SD-JWT-VC": true
+  },
+  "passed": 13,
+  "failed": 0
+}

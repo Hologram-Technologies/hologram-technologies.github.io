@@ -250,7 +250,7 @@ const APPLOCK = new Set();   // app-ids whose lock closure has been folded into 
 // set. The check below re-derives blake3 FIRST (canonical) and accepts the sha256 bridge value as a fallback,
 // so the flip is atomic-safe: a stale sha-baked anchor still validates its own closure, a tampered closure
 // matches NEITHER axis → fail closed (invariant: never half-flip the trust root).
-const CLOSURE_KAPPA = "f484cb2853dc96d7068f76ae168350a655f4965ff5744fa58b9beb1a5f86a622";
+const CLOSURE_KAPPA = "655496d4ca14e9005210bf70811cc150c676db78cf7ca0a8e336765f15cc9fa0";
 let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {
@@ -602,6 +602,9 @@ self.addEventListener("fetch", (event) => {
   {
     const relDyn = url.pathname.slice(BASE.length).replace(/^\/+/, "");
     if (/^sc\//.test(relDyn) || relDyn === "audio-proxy" || relDyn === "weather" ||
+        /^holospaces\//.test(relDyn) ||                        // dev-seam: the holospaces VM runtime + kernels are served
+                                                               // by the native scheme handler (HOLO_HOLOSPACES_DIR), not the
+                                                               // sealed closure — let them hit it untouched (else SW 404s them).
         ((relDyn === "web" || relDyn.endsWith("/web")) && /[?&]url=/.test(url.search))) return;
   }
   const relMcp = decodeURIComponent(url.pathname.slice(BASE.length)).replace(/^\/+/, "");

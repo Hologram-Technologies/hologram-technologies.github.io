@@ -35,19 +35,32 @@
     confirmActions: true,   // converse first; PROPOSE every action and wait for your OK before doing it
     karaoke: true, clauseCache: true,   // karaoke caption + clause-grained κ-cache (higher hit-rate)
     gpuBrain: false,   // OPT-IN: prefer the ternary qwen-coder-7b GPU brain (ADR-0096) when WebGPU works; WASM Coder-1.5B is the any-browser floor
+    seedFirstResponder: true,   // the ~7MB SEED speaks an instant qwen-aligned opener on a COLD miss (brain not warm + L0 memo miss) instead of the static "almost ready" floor. Lazy-loaded on first cold-miss (keeps boot lean), fail-soft to the floor. ON: live handoff proven in CEF (fr-prove GREEN, seed-handoff 586ms load / 448ms turn).
     holoUpgrade: true,   // SILENT 0.5B→1.5B .holo upgrade: ON — the 1.5B is forged + κ-wired (ea732336…) + chunked-warm (body-async load, lm_head chunked); guarded WebGPU-only + non-metered + tier-2 background (0.5B stays bound until 1.5B is ready, never blocks a turn)
     // κ-native Holo GGUF "ear": when WebGPU works, run Moonshine 100% on the κ-substrate — weights κ-streamed
     // from the .holo (HTTP-Range + per-block L5 + OPFS), GPU encoder-decoder forward, no ONNX. Same cross-mount
     // pattern as Q's .holo brain (/apps/q/forge/*). Self-gates on WebGPU and transparently falls back to the
     // transformers/ONNX ear; set to null to force ONNX. κ = sha256 of the .holo (for the static/IPFS κ-route).
-    knativeEar: { module: "/apps/q/forge/gpu/holo-moonshine-ear.mjs",
+    knativeEar: { module: "/apps/q/forge/gpu/holo-moonshine-ear.mjs", pack: true,   // stream int8+f16 from the ONE q-models pack (fail-soft → these standalone URLs)
       holoUrl: "/apps/q/forge/.models/moonshine-tiny-int8.holo", kappa: "bbd89df22c86fc54455779be070395cc8dab0c3438cbe85974c9f02d2a291780", release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-int8.holo",
       upgradeUrl: "/apps/q/forge/.models/moonshine-tiny-f16.holo", upgradeKappa: "ff7e1c8b3c9e360ab062ce96a297e6f2467608c634f2e4b171078180056a72d8", upgradeRelease: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/moonshine-tiny-f16.holo" },   // resolve: path(dev) → Release asset(prod) → κ-route(IPFS), all per-block L5-verified
+    // listen 0.6B upgrade (OPT-IN, WebGPU): the κ-native FastConformer-TDT ear (Parakeet-TDT-0.6B). Encoder +
+    // joint stream from their .holo BY κ; decode is κ-native. A COMPLETE alternate config (module + URLs + κ
+    // travel together — they must, since the ear engine and its weights are coupled). Enabled via window
+    // .HOLO_LISTEN_PARAKEET / CFG.listenParakeet. DEFAULT OFF: needs the mel+stem front-end live before it can
+    // transcribe mic audio, so Moonshine stays the default until then (wire-then-retire). κ verified bytes:
+    // encoder 4b6c6982…, joint aed30df9…. Small files (rescale/vocab) ship beside the .holo (synced at reseal).
+    knativeEarParakeet: { module: "/apps/q/forge/gpu/holo-parakeet-ear.mjs", pack: true,   // stream encoder/joint/loose-files from the ONE q-models pack (fail-soft → these standalone URLs)
+      holoUrl: "/apps/q/forge/.models/parakeet-tdt-0.6b-v2-stream.holo", kappa: "4b6c6982354bd0c428919f8f6526d182c8e0001de5b61f56ade53a0eeb52f519",
+      jointUrl: "/apps/q/forge/.models/parakeet-tdt-0.6b-v2-joint.holo", jointKappa: "aed30df9a795beba3bb5f4828718116b90e43d85bc7689fd2e9cf431d274732c",
+      rescaleUrl: "/apps/q/forge/.models/parakeet-encoder-rescale.json", rescaleBinUrl: "/apps/q/forge/.models/parakeet-encoder-rescale.bin", vocabUrl: "/apps/q/forge/.models/parakeet-vocab.txt",
+      nemoUrl: "/apps/q/forge/.models/parakeet-nemo128.onnx",   // mel front-end (ort-web) → κ-native stem → encoder; stem validated to real pre_encode (cosine 0.9987)
+      release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/parakeet-tdt-0.6b-v2-stream.holo" },
     // κ-served voice: serve Kokoro's ONNX files from kokoro-82m.holo (Range + per-block L5 + OPFS + serverless
     // multi-source) into the same engine — content-addressed delivery, no engine change. Transparently falls
     // back to the vendored ONNX on any failure; set to null to force the vendored path. Resolved via the one
     // mux/faculty bridge below (κ unchanged when unbound), exactly like the "listen" ear.
-    knativeVoice: { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs",
+    knativeVoice: { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", pack: true,   // serve Kokoro from the ONE q-models pack (fail-soft → this standalone .holo)
       holoUrl: "/apps/q/forge/.models/kokoro-82m.holo", kappa: "a528332cbe262333c3eef76f581add5de8cd2d54b81c7685914353ad016ff1e5", release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/kokoro-82m.holo" } },
     W.HOLO_VOICE_CONFIG || {});   // turn-taking + barge-in (tune on real HW)
   // persisted user toggles override config: the agent brain runs on WebGPU (1.5B, fast on a real GPU)
@@ -159,6 +172,15 @@
     var m = String(w).toLowerCase().replace(/[^a-z]+/g, "").match(/[aeiouy]+/g);
     return Math.max(1, m ? m.length : 1);
   }
+  // a word's share of the spoken timeline: its syllables PLUS the pause the voice takes at its trailing
+  // punctuation. Kokoro lingers at commas (~a beat) and sentence ends (~two) — folding that in makes the
+  // caption playhead linger there too, so word + phrase onsets track the real cadence instead of a flat rate.
+  function wordWeight(w) {
+    var s = karaSyll(w);
+    if (/[.!?]["')\]]*$/.test(w)) s += 2.4;                            // end-of-sentence breath
+    else if (/[,;:—–]["')\]]*$/.test(w)) s += 1.3;                     // clause breath
+    return s;
+  }
   function karaStop() { if (_karaRaf) { cancelAnimationFrame(_karaRaf); _karaRaf = 0; } }   // halt the scroll loop
   function ensureTrack() {
     if (!capQ) return null;
@@ -236,26 +258,67 @@
     var parts = String(text == null ? "" : text).match(/[^.!?]+[.!?]*/g);   // keep each sentence WITH its ender
     return (parts || [String(text || "")]).map(function (s) { return s.trim(); }).filter(Boolean);
   }
-  function karaSentences(text, startAtSec, durSec) {
+  // Break a line into SMALL one-row phrases for the calm caption: a few words at a time, broken on natural
+  // clause boundaries first, then packed to a comfortable single-row width. A tiny trailing scrap folds back
+  // into the line before it so nothing reads as an orphan — the rhythm of someone speaking in short, calm breaths.
+  function splitPhrases(text) {
+    var MAXW = 5, MAXC = 30, out = [];                                  // ~a glance's worth of words, always one row
+    var sents = splitSentences(text);
+    for (var s = 0; s < sents.length; s++) {
+      var clauses = sents[s].match(/[^,;:—–]+[,;:—–]*/g) || [sents[s]];   // split on clause punctuation, keeping it attached
+      for (var c = 0; c < clauses.length; c++) {
+        var words = clauses[c].trim().split(/\s+/).filter(Boolean), cur = [];
+        for (var i = 0; i < words.length; i++) {
+          cur.push(words[i]);
+          if (cur.length >= MAXW || cur.join(" ").length >= MAXC) { out.push(cur.join(" ")); cur = []; }   // line is full → ship it
+        }
+        if (cur.length) {
+          var frag = cur.join(" ");
+          if (out.length && cur.length <= 2 && (out[out.length - 1].length + 1 + frag.length) <= MAXC + 4) out[out.length - 1] += " " + frag;   // fold a 1–2 word scrap back so it isn't an orphan
+          else out.push(frag);
+        }
+      }
+    }
+    return out.filter(Boolean);
+  }
+  // align (optional): exact per-word onset seconds RELATIVE to the clip, one per word of captionText(text)
+  // .split(/\s+/), produced by the baker's forced alignment (Whisper on the rendered audio). When present and
+  // 1:1 with the caption words, the playhead rides the REAL word onsets — frame-exact to the voice. Absent or
+  // mismatched (live synth, drift) → the speech-shaped estimate below, scaled to the clip's real duration.
+  function karaSentences(text, startAtSec, durSec, align) {
     if (!capQ || !_ttsAC) return;
     capSpeakerAttr("q"); capQ.style.opacity = "1";
-    var sents = splitSentences(captionText(text)); if (!sents.length) return;
-    var syl = function (s) { return s.split(/\s+/).filter(Boolean).reduce(function (a, w) { return a + karaSyll(w); }, 0); };
-    var sw = sents.map(syl), total = 0, i; for (i = 0; i < sw.length; i++) total += sw[i]; if (!(total > 0)) total = 1;
-    var dur = durSec > 0 ? durSec : sents.join(" ").split(/\s+/).filter(Boolean).length * 0.32;
-    _sentClipEnd = startAtSec + dur;
-    var acc = 0, list = [];
-    for (i = 0; i < sents.length; i++) {
-      var st = startAtSec + (acc / total) * dur; acc += sw[i]; var en = startAtSec + (acc / total) * dur;   // this sentence's audio window
-      var words = sents[i].split(/\s+/).filter(Boolean);
-      var ws = words.map(karaSyll), wt = 0, j; for (j = 0; j < ws.length; j++) wt += ws[j]; if (!(wt > 0)) wt = 1;
-      var wacc = 0, wtimes = []; for (j = 0; j < words.length; j++) { wtimes.push(st + (wacc / wt) * (en - st)); wacc += ws[j]; }   // per-word onset within the sentence
-      list.push({ start: st, words: words, wtimes: wtimes });
+    var sents = splitPhrases(captionText(text)); if (!sents.length) return;   // small one-row phrases, not whole sentences
+    var phrases = sents.map(function (s) { return s.split(/\s+/).filter(Boolean); });
+    var nWords = 0, i, j; for (i = 0; i < phrases.length; i++) nWords += phrases[i].length;
+    var exact = !!(align && align.length === nWords);                 // forced-alignment times, 1:1 with the caption words → use verbatim
+    var list = [], k = 0;
+    if (exact) {
+      for (i = 0; i < phrases.length; i++) {
+        var ws = phrases[i], wt = [];
+        for (j = 0; j < ws.length; j++) wt.push(startAtSec + Math.max(0, align[k++]));   // the word's REAL onset, straight from the bake
+        list.push({ start: wt[0], words: ws, wtimes: wt });
+      }
+      _sentClipEnd = startAtSec + (durSec > 0 ? durSec : (list.length ? list[list.length - 1].wtimes.slice(-1)[0] - startAtSec + 0.6 : 0));
+    } else {
+      // ONE continuous, speech-shaped timeline: weight = syllables + punctuation pause, scaled to the clip's REAL
+      // duration. Phrase + word onsets fall out of the same accumulator, so the playhead lingers where the voice does.
+      var weights = phrases.map(function (a) { return a.map(wordWeight); });
+      var total = 0; for (i = 0; i < weights.length; i++) for (j = 0; j < weights[i].length; j++) total += weights[i][j];
+      if (!(total > 0)) total = 1;
+      var dur = durSec > 0 ? durSec : total * 0.2;                     // no clock → fall back to the weighted estimate
+      _sentClipEnd = startAtSec + dur;
+      var acc = 0;
+      for (i = 0; i < phrases.length; i++) {
+        var w2 = phrases[i], t2 = [];
+        for (j = 0; j < w2.length; j++) { t2.push(startAtSec + (acc / total) * dur); acc += weights[i][j]; }   // onset = start of the word's slice (never ahead of the audio)
+        list.push({ start: t2[0], words: w2, wtimes: t2 });
+      }
     }
     _sentences = list; _sentIdx = -1; sentPump();
   }
   function mountSentence(idx) {                                         // dissolve the current sentence, build + fade in the next (centred, wrapped, still)
-    if (_track) { var old = _track; old.style.animation = "none"; old.classList.add("hl-leave"); setTimeout(function () { if (old.parentNode) old.parentNode.removeChild(old); }, 360); }
+    if (_track) { var old = _track; old.classList.add("hl-leave"); setTimeout(function () { if (old.parentNode) old.parentNode.removeChild(old); }, 520); }   // hl-leave runs the hlSentOut dissolve; remove once it has finished (.46s)
     _capCur = null;
     var tr = DOC.createElement("div"); tr.className = "hl-track"; var words = _sentences[idx].words, els = [];
     for (var i = 0; i < words.length; i++) { var sp = DOC.createElement("span"); sp.className = "hl-w"; sp.textContent = words[i]; tr.appendChild(sp); els.push(sp); }
@@ -263,11 +326,12 @@
   }
   function sentPump() {
     _sentRaf = 0; if (!capQ || !_sentences.length || !_ttsAC) return;
-    var now = _ttsAC.currentTime, idx = 0, i;
-    for (i = 0; i < _sentences.length; i++) { if (_sentences[i].start <= now) idx = i; else break; }   // the sentence the voice is in
+    var now = _ttsAC.currentTime, LEAD = 0.18, idx = 0, i;
+    for (i = 0; i < _sentences.length; i++) { if (_sentences[i].start <= now + LEAD) idx = i; else break; }   // bring the phrase in a beat early so its fade-in completes exactly as the voice reaches it
     if (idx !== _sentIdx) { mountSentence(idx); _sentIdx = idx; }
-    var s = _sentences[idx], wi = 0; for (i = 0; i < s.wtimes.length; i++) { if (s.wtimes[i] <= now) wi = i; else break; }   // light the word under the playhead
-    if (_sentEls && _sentEls[wi]) capHighlight(_sentEls[wi]);
+    var s = _sentences[idx], wi = -1; for (i = 0; i < s.wtimes.length; i++) { if (s.wtimes[i] <= now) wi = i; else break; }   // light the word under the playhead (none yet during the lead-in)
+    if (wi >= 0 && _sentEls && _sentEls[wi]) capHighlight(_sentEls[wi]);
+    if (_sentEls) for (i = 0; i < _sentEls.length; i++) _sentEls[i].classList.toggle("hl-done", wi >= 0 && i < wi);   // already-spoken words settle to a soft, readable glow (present, not gone) — the line feels alive + considered
     if (_ttsAC.currentTime < _sentClipEnd + 0.05) _sentRaf = requestAnimationFrame(sentPump);   // keep ticking while this clip still plays
   }
   // STATIC render (no audio clock): the speechSynth floor + one-off captions lay the cleaned line on the row,
@@ -305,14 +369,14 @@
   function capBargeAck() { if (_track) _track.classList.add("hl-yield"); }
   // schedule a clip to play immediately AFTER whatever is already queued (gapless). Resolves on its end.
   // `text` (optional) is revealed in capQ in sync with THIS clip's playback (karaoke).
-  function enqueuePCM(float32, rate, text) {
+  function enqueuePCM(float32, rate, text, align) {
     try {
       var ac = ensureAC(); if (ac.state === "suspended" && ac.resume) ac.resume();
       var b = ac.createBuffer(1, float32.length, rate); b.getChannelData(0).set(float32);
       var s = ac.createBufferSource(); s.buffer = b; s.connect(_ttsAn);
       var startAt = Math.max(ac.currentTime + 0.01, _playCursor || 0);
       s.start(startAt); _playCursor = startAt + b.duration; _queueSrcs.push(s); startMeter(); tmark("firstAudio");
-      if (text) { if (_calmCaption) karaSentences(text, startAt, b.duration); else karaChunk(text, startAt, b.duration); }   // caption follows the audio, never races ahead (calm = one sentence at a time)
+      if (text) { if (_calmCaption) karaSentences(text, startAt, b.duration, align); else karaChunk(text, startAt, b.duration); }   // caption follows the audio, never races ahead (calm = exact per-word onsets when baked, else estimate)
       return new Promise(function (res) { s.onended = function () { var i = _queueSrcs.indexOf(s); if (i >= 0) _queueSrcs.splice(i, 1); res(); }; });
     } catch (e) { return Promise.reject(e); }
   }
@@ -515,14 +579,22 @@
           // active model via the holo-q-mux bridge — honor a pinned/override choice, fail SAFE to the hardcoded
           // knativeEar default (κ unchanged when unbound). Lazy + off the boot path (runs on first listen).
           var ear = CFG.knativeEar;
-          try {
-            var fm = await import(BASE + "voice/holo-q-faculty-models.mjs");
-            var rf = fm.resolveFacultyModel && fm.resolveFacultyModel("listen");
-            if (rf && rf.instant && ear) {   // pinned default OR a user/steer override that resolves to OS-pinned bytes
-              ear = Object.assign({}, ear, { holoUrl: rf.instant.url, kappa: rf.instant.kappa, release: rf.instant.release });
-              if (rf.upgrade) { ear.upgradeUrl = rf.upgrade.url; ear.upgradeKappa = rf.upgrade.kappa; ear.upgradeRelease = rf.upgrade.release; }
-            }
-          } catch (e) {}
+          // OPT-IN: the κ-native 0.6B FastConformer-TDT ear (Parakeet). A COMPLETE alternate config (module+URLs+κ
+          // coupled), so it BYPASSES the PINNED/faculty-models URL rewrite below (which targets Moonshine). Default
+          // off; enabled by window.HOLO_LISTEN_PARAKEET / CFG.listenParakeet. holo-voice-asr still falls back to the
+          // transformers/Moonshine path on any load/WebGPU failure, so turning this on can't strand listening.
+          if ((CFG.listenParakeet || (typeof W !== "undefined" && W.HOLO_LISTEN_PARAKEET)) && CFG.knativeEarParakeet) {
+            ear = CFG.knativeEarParakeet;
+          } else {
+            try {
+              var fm = await import(BASE + "voice/holo-q-faculty-models.mjs");
+              var rf = fm.resolveFacultyModel && fm.resolveFacultyModel("listen");
+              if (rf && rf.instant && ear) {   // pinned default OR a user/steer override that resolves to OS-pinned bytes
+                ear = Object.assign({}, ear, { holoUrl: rf.instant.url, kappa: rf.instant.kappa, release: rf.instant.release });
+                if (rf.upgrade) { ear.upgradeUrl = rf.upgrade.url; ear.upgradeKappa = rf.upgrade.kappa; ear.upgradeRelease = rf.upgrade.release; }
+              }
+            } catch (e) {}
+          }
           var mod = await import(BASE + "voice/holo-voice-asr.mjs");
           // κ-served WASM fallback: when there's no WebGPU (κ-native ear off), serve Whisper's ONNX from its
           // .holo so the any-browser floor is ALSO content-addressed/warm/serverless (falls back to vendored ONNX).
@@ -786,9 +858,18 @@
     if (_turnTried && !_turnLoading) return Promise.resolve(null);
     if (!_turnLoading) {
       _turnTried = true;
-      _turnLoading = import(BASE + "voice/holo-voice-turn.mjs")
-        .then(function (m) { var e = (m.createTurnDetector || m.default)({}); return e.load().then(function () { _turnEng = e; return e; }); })
-        .catch(function (e) { console.warn("[HoloVoice] turn-detector model unavailable (vendor it: tools/vendor-voice-model.mjs --turn) — using heuristic:", e && e.message || e); return null; })
+      // the VERIFIED turn-detector: κ-served LiveKit model (ort-web) → predict(text)→P(complete). Recipe proven
+      // on real hw (separation +0.723; 82% early-fire / 0% false-fire) — quality/turn-detector-live.html. predict()
+      // normalizes internally (a trailing "." otherwise collapses P→0). Returns {predict}; null falls back to heuristic.
+      _turnLoading = import("/apps/q/forge/gpu/holo-voice-turn-detector-web.mjs")
+        .then(async function (m) {
+          // serve the turn-detector's onnx+tokenizer from the ONE q-models pack (fail-soft → holoUrl/release standalone)
+          let openFiles = null;
+          try { const pp = await import("/apps/q/forge/gpu/holo-q-pack-provider.mjs"); const fm = await import(BASE + "voice/holo-q-faculty-models.mjs"); openFiles = pp.makePackOpenFiles("turn-detector", { packSpec: fm.packSpec }); } catch (_) {}
+          return (m.createTurnDetectorWeb || m.default)({ holoUrl: "/apps/q/forge/.models/turn-detector/turn-detector.holo", modelsBase: "/apps/q/forge/.models/", release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/turn-detector.holo", openFiles: openFiles });
+        })
+        .then(function (e) { if (e && e.predict) { _turnEng = e; return e; } return null; })
+        .catch(function (e) { console.warn("[HoloVoice] turn-detector unavailable — using heuristic:", e && e.message || e); return null; })
         .finally(function () { _turnLoading = null; });
     }
     return _turnLoading;
@@ -1264,6 +1345,31 @@
   }
   function brainTier() { return _boundTier; }
 
+  // ── SEED first-responder (cold-start instant opener). A ~7MB int8 ONNX seed (q-seed.holo) that speaks a qwen-
+  //    aligned opener the instant the brain ISN'T warm yet. Loaded LAZILY on the first cold miss — NEVER at boot
+  //    (ort-web is ~11MB; the lean-boot rule keeps it off the boot path). Fail-soft at every step: any failure →
+  //    null → the honest static floor. Gated by CFG.seedFirstResponder (OFF until the live handoff is proven).
+  var _seedFR = undefined, _seedFRP = null;             // undefined=untried · null=unavailable · obj=runner
+  function ensureSeedFR() {
+    if (CFG.seedFirstResponder === false) return Promise.resolve(null);
+    if (_seedFR !== undefined) return Promise.resolve(_seedFR);
+    if (_seedFRP) return _seedFRP;
+    _seedFRP = (async function () {
+      try {
+        var fr = await import(BASE + "voice/holo-voice-first-responder.mjs");
+        var VEN = "holo://os/vendor/onnxruntime-web/";
+        var om = await import(VEN + "ort.webgpu.bundle.min.mjs"); var ort = om.default || om;
+        try { ort.env.wasm.wasmPaths = VEN; ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false; } catch (e) {}
+        var tm = await import("holo://os/apps/q/forge/gguf-forge-tokenizer.mjs");
+        var hdr = new Uint8Array(await (await fetch("holo://os/apps/q/forge/.models/qwen-header.bin")).arrayBuffer());
+        var tok = tm.makeTokenizer(hdr);
+        _seedFR = await fr.loadFirstResponder({ ort: ort, tokenizer: { encode: function (t, o) { return tok.encode(t, o || {}); }, decode: function (ids) { return tok.decode(ids); } } }) || null;
+      } catch (e) { _seedFR = null; }
+      return _seedFR;
+    })();
+    return _seedFRP;
+  }
+
   // ── L0 SEED κ-MEMO (cold-start) — a tiny, SHIPPED table of pre-sealed canonical answers for the handful of
   //    things a brand-new user predictably asks first (hello · who are you · what can you do · is this private
   //    · what is this). Checked BEFORE any model, so the very first turn returns in O(1) with ZERO model and
@@ -1668,7 +1774,16 @@
     if (!reply && brain && brain.engine) {
       try { for await (var d of brain.engine.generate(_history, {})) { if (ctl && ctl.aborted) break; emit(d); } reply = reply.trim(); } catch (e) {}
     }
-    // 3. no model is warm yet (the starter is still waking, or this device can't run one) — be HONEST, never
+    // 3a. COLD: brain not warm + the L0 memo missed. Before the static floor, let the SEED first-responder speak an
+    //     instant qwen-aligned opener (~7MB, loads in ~2s) so a brand-new user hears Q the moment they ask, while the
+    //     brain streams in. Gated by CFG.seedFirstResponder (ensureSeedFR → null when OFF) and fully fail-soft.
+    if (!reply && _boundTier === 0 && !(ctl && ctl.aborted)) {
+      try {
+        var fr = await ensureSeedFR();
+        if (fr && fr.respond) { for await (var sd of fr.respond(_history)) { if (ctl && ctl.aborted) break; emit(sd); } reply = reply.trim(); }
+      } catch (e) {}
+    }
+    // 3b. no model is warm yet (the starter is still waking, or this device can't run one) — be HONEST, never
     //    word-salad. DO still works (commands route without a model); only free-form chat waits for the brain.
     if (!reply) {
       reply = _boundTier === 0
@@ -2226,13 +2341,19 @@
       // returns to its lower-third karaoke role the instant Q starts speaking (data-mode is cleared in runWelcome).
       "#holo-live[data-mode=\"welcome\"] .hl-q{position:static;left:auto;bottom:auto;transform:none;margin:1.618rem 0 0;height:auto;min-height:1.2em;width:auto;max-width:min(720px,86vw);display:block;overflow:visible;white-space:normal;text-align:center;font-size:clamp(26px,4.2vmin,40px);-webkit-mask:none;mask:none}" +
       "#holo-live[data-mode=\"welcome\"] .hl-track{position:static;display:inline;white-space:normal;transform:none!important}" +
-      // CALM caption (welcome speech): ONE sentence at a time — centred, wrapped, still; no scroll, no mask,
-      // no upcoming text. Each sentence fades up; the previous dissolves (hl-leave). Unhurried + delightful.
-      "#holo-live .hl-q.hl-calm{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);height:auto;min-height:2.4em;width:min(760px,86vw);display:block;overflow:visible;white-space:normal;text-align:center;font-weight:300;font-size:clamp(21px,3.4vmin,31px);line-height:1.5;-webkit-mask:none;mask:none}" +
-      "#holo-live .hl-q.hl-calm .hl-track{position:relative;display:block;white-space:normal;animation:hlSentIn .55s cubic-bezier(.22,.61,.36,1) both}" +
-      "#holo-live .hl-q.hl-calm .hl-track.hl-leave{position:absolute;left:0;right:0}" +
-      "@keyframes hlSentIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}" +
-      "@media (prefers-reduced-motion: reduce){#holo-live .hl-q.hl-calm .hl-track{animation-duration:.001s}}" +
+      // CALM caption (welcome speech): ONE short phrase at a time — centred, a SINGLE row, still; no scroll, no
+      // mask, no upcoming text. Each phrase fades up; the previous dissolves (hl-leave). Unhurried + delightful.
+      "#holo-live .hl-q.hl-calm{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);height:1.9em;width:min(760px,90vw);display:block;overflow:visible;white-space:nowrap;text-align:center;font-weight:300;font-size:clamp(21px,3.4vmin,31px);line-height:1.5;-webkit-mask:none;mask:none}" +
+      // both phrases share ONE centred slot (absolute, stacked) so they never reflow or sit on two lines. The
+      // outgoing sinks + fades; the incoming waits a beat, then rises + fades in — a clean dissolve, never overlapping.
+      "#holo-live .hl-q.hl-calm .hl-track{position:absolute;left:0;right:0;top:50%;display:block;white-space:nowrap;transform:translateY(-50%);animation:hlSentIn .8s cubic-bezier(.22,.61,.36,1) .16s both}" +
+      "#holo-live .hl-q.hl-calm .hl-track.hl-leave{animation:hlSentOut .46s cubic-bezier(.4,0,1,1) both}" +
+      // calm = unhurried: slower word fades, and spoken words SETTLE to a soft readable glow (not back to dim) — present + alive
+      "#holo-live .hl-q.hl-calm .hl-w{opacity:.3;transition:opacity .55s ease,transform .55s ease,text-shadow .55s ease}" +
+      "#holo-live .hl-q.hl-calm .hl-w.hl-done{opacity:.5}" +
+      "@keyframes hlSentIn{from{opacity:0;transform:translateY(calc(-50% + 11px))}to{opacity:1;transform:translateY(-50%)}}" +
+      "@keyframes hlSentOut{from{opacity:1;transform:translateY(-50%)}to{opacity:0;transform:translateY(calc(-50% - 9px))}}" +
+      "@media (prefers-reduced-motion: reduce){#holo-live .hl-q.hl-calm .hl-track{animation-duration:.001s;animation-delay:0s}}" +
       "#holo-live .hl-begin{margin-top:1.6rem;padding:.72rem 2.3rem;border-radius:999px;cursor:pointer;display:none;letter-spacing:.02em;" +
       "border:1px solid color-mix(in srgb,var(--holo-accent,#5b8cff) 60%,transparent);background:color-mix(in srgb,var(--holo-accent,#5b8cff) 22%,rgba(255,255,255,.04));color:var(--holo-ink,#eef2fb);" +
       "font:600 var(--holo-text-sm, 0.938rem)/1 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',sans-serif);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .15s,background .2s,box-shadow .2s}" +
@@ -2999,7 +3120,7 @@
     if (baked && baked.lines && baked.lines.length) {
       for (var i = 0; i < baked.lines.length && STATE.liveOn; i++) {
         var ln = baked.lines[i];
-        try { var dec = await decodeWavB64(ln.wav); karaReset(); await enqueuePCM(dec.pcm, dec.rate, ln.text); }   // play instantly + karaoke caption
+        try { var dec = await decodeWavB64(ln.wav); karaReset(); await enqueuePCM(dec.pcm, dec.rate, ln.text, ln.wtimes); }   // play instantly + karaoke caption locked to the baked per-word onsets
         catch (e) { await speakNatural(ln.text); }
         if (!STATE.liveOn) return;
         await new Promise(function (r) { setTimeout(r, 220); });

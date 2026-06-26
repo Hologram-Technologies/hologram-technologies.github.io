@@ -1,0 +1,33 @@
+{
+  "spec": "S0–S2 live verified streaming (consumer): render-on-first-chunk, verify-before-use, bounded residency (one chunk + proof, not the object), fail-closed tamper refusal — on host(Rust)-produced chunks (cross-impl). The felt-experience half of the BLAKE3 dividend; the native host serve verb is the relink-gated other half.",
+  "witnessed": true,
+  "covers": [
+    "verified-streaming",
+    "render-on-first-chunk",
+    "bounded-residency",
+    "cross-impl",
+    "law-l5",
+    "live-experience"
+  ],
+  "tuple": {
+    "firstChunkMs": 2.215,
+    "peakResidentBytes": 1255,
+    "objectBytes": 70000,
+    "residencyRatio": 56,
+    "perChunkMs": 0.1989,
+    "delivered": 69
+  },
+  "checks": {
+    "stream delivered all 69 verified chunks (70000 bytes)": true,
+    "render-on-first-chunk: chunk 0 delivered first, the instant it verified": true,
+    "bounded residency: held ≤ one chunk + proof (1255 B) ≪ object (70000 B)": true,
+    "cross-impl: host(Rust)-produced chunks verify in the JS consumer": true,
+    "tampered chunk 34 REFUSED (fail-closed, L5)": true,
+    "chunks before the bad one were already delivered (34); the rest stop": true,
+    "native host-verb packed proofs unpack + verify in the JS consumer (the live seam)": true,
+    "unpackPackedProof round-trips one sibling correctly": true,
+    "a stream against the WRONG root κ is refused": true
+  },
+  "passed": 9,
+  "failed": 0
+}

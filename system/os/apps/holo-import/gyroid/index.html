@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+    <script>(function(){try{var s=parseFloat(new URLSearchParams(location.search).get('__hsr'));if(!(s>0))return;var b=window.devicePixelRatio||1,t=b*Math.max(0.3,Math.min(1,s));Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:function(){return t;}});window.__holoMemoReady=new Promise(function(r){window.__holoMemoResolve=r;});var gc=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(ty,at){if(/webgl/i.test(ty)){at=Object.assign({},at,{preserveDrawingBuffer:true});}var c=gc.call(this,ty,at);try{if(c&&/webgl/i.test(ty)){['drawArrays','drawElements','drawArraysInstanced','drawElementsInstanced'].forEach(function(m){var o=c[m];if(o){c[m]=function(){window.__holoSeq=(window.__holoSeq||0)+1;return o.apply(c,arguments);};}});}}catch(e){}return c;};window.__HOLO_SR__={base:b,scale:t};}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Iridescent Gyroid — WebGL2</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#03040a;font:13px ui-monospace,Menlo,monospace;color:#dfe8ff}
+  #c{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;cursor:grab}
+  #t{position:fixed;right:14px;top:12px;text-align:right;opacity:.82;pointer-events:none;text-shadow:0 1px 4px #000}
+  #t b{color:#bfe0ff;font-size:15px}
+  #t small{opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="t"><b>Iridescent Gyroid · WebGL2</b><br/>a flowing minimal surface — orbit it<br/><small>drag to orbit</small></div>
+<script>
+const cv=document.getElementById("c");
+const gl=cv.getContext("webgl2",{antialias:false});
+if(!gl) document.body.innerHTML="<p style='padding:20px'>WebGL2 unavailable</p>";
+
+const VS=`#version 300 es
+void main(){ vec2 p=vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position=vec4(p*2.0-1.0,0.,1.); }`;
+
+const FS=`#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 R; uniform float T; uniform vec2 M;
+mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c); }
+// gyroid field — a triply-periodic minimal surface; |g|<thick is the shell
+float gyr(vec3 p){ return dot(sin(p), cos(p.yzx)); }
+float map(vec3 p, float sc){ float g=abs(gyr(p*sc))/sc - 0.035; float b=length(p)-1.6; return max(g, b); }
+vec3 nrm(vec3 p, float sc){ vec2 e=vec2(0.0015,0.0);
+  return normalize(vec3(map(p+e.xyy,sc)-map(p-e.xyy,sc), map(p+e.yxy,sc)-map(p-e.yxy,sc), map(p+e.yyx,sc)-map(p-e.yyx,sc))); }
+// iridescent thin-film-ish tint from angle
+vec3 iris(float x){ return 0.55+0.45*cos(6.28318*(vec3(1.0,1.0,1.0)*x + vec3(0.0,0.33,0.66))); }
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.0-R)/R.y;
+  float sc=3.0+0.5*sin(T*0.2);
+  float ay=(M.x*2.0-1.0)*3.1415+T*0.06, ax=0.2+(M.y*1.2);
+  vec3 ro=vec3(0.0,0.0,3.4); ro.yz*=rot(ax); ro.xz*=rot(ay);
+  vec3 ww=normalize(-ro), uu=normalize(cross(ww,vec3(0,1,0))), vv=cross(uu,ww);
+  vec3 rd=normalize(uv.x*uu+uv.y*vv+1.7*ww);
+  float t=0.0; float d; vec3 p; bool hit=false;
+  for(int i=0;i<90;i++){ p=ro+rd*t; d=map(p,sc); if(d<0.001){hit=true;break;} t+=d*0.6; if(t>6.0)break; }
+  vec3 col;
+  if(hit){
+    vec3 n=nrm(p,sc);
+    vec3 lig=normalize(vec3(0.6,0.8,0.5));
+    float dif=clamp(dot(n,lig),0.0,1.0);
+    float fres=pow(1.0-clamp(dot(n,-rd),0.0,1.0),3.0);
+    vec3 r=reflect(rd,n);
+    float spec=pow(clamp(dot(r,lig),0.0,1.0),48.0);
+    // iridescence keyed on view/normal + a band on world position (oil-on-metal look)
+    float band=0.5+0.5*sin(gyr(p*sc)*3.0+T*0.4);
+    vec3 tint=iris(fres*1.2+band*0.4+0.1*T);
+    col = tint*(0.18+0.9*dif) + vec3(1.0)*spec*0.9 + tint*fres*0.8;
+    col*= 0.5+0.5*clamp(p.y*0.5+0.6,0.0,1.0);     // soft top light gradient
+    col = mix(col, vec3(0.02,0.03,0.08), 1.0-exp(-0.05*t*t)); // depth fade
+  } else {
+    col = mix(vec3(0.02,0.03,0.09), vec3(0.06,0.05,0.13), clamp(rd.y*0.7+0.4,0.0,1.0));
+    col += vec3(0.25,0.2,0.35)*pow(clamp(dot(rd,normalize(vec3(0.6,0.8,0.5))),0.0,1.0),40.0);
+  }
+  col=pow(max(col,0.0),vec3(0.85));
+  o=vec4(col,1.0);
+}`;
+
+function sh(ty,src){const s=gl.createShader(ty);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const uR=gl.getUniformLocation(prog,"R"),uT=gl.getUniformLocation(prog,"T"),uM=gl.getUniformLocation(prog,"M");
+gl.bindVertexArray(gl.createVertexArray());
+
+let mouse=[0.5,0.4],dragging=false,last=[0,0];
+cv.addEventListener("pointerdown",e=>{dragging=true;last=[e.clientX,e.clientY];cv.style.cursor="grabbing";});
+addEventListener("pointerup",()=>{dragging=false;cv.style.cursor="grab";});
+addEventListener("pointermove",e=>{if(!dragging)return;mouse[0]=Math.min(1,Math.max(0,mouse[0]+(e.clientX-last[0])/window.innerWidth));mouse[1]=Math.min(1,Math.max(0,mouse[1]-(e.clientY-last[1])/window.innerHeight));last=[e.clientX,e.clientY];});
+function resize(){const dpr=window.devicePixelRatio||1;cv.width=Math.round(window.innerWidth*dpr);cv.height=Math.round(window.innerHeight*dpr);gl.viewport(0,0,cv.width,cv.height);}
+addEventListener("resize",resize);resize();
+
+const t0=performance.now();
+function frame(){
+  gl.uniform2f(uR,cv.width,cv.height);
+  gl.uniform1f(uT,(performance.now()-t0)/1000);
+  gl.uniform2f(uM,mouse[0],mouse[1]);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.GYROID={gl,draw:()=>gl.drawArrays(gl.TRIANGLES,0,3)};
+</script>
+</body>
+</html>

@@ -8,6 +8,11 @@
      (The theme is chosen in the desktop; the lock screen only honours it, never switches it.) -->
 <script src="./_shared/holo-appearance-boot.js"></script>
 <title>Hologram OS Sign in</title>
+<link rel="icon" type="image/svg+xml" href="/usr/share/icons/holo-favicon.svg">
+<link rel="mask-icon" href="/usr/share/icons/holo-glyph.svg" color="#3b82f6">
+<script type="module" src="/usr/lib/holo/holo-immersive.mjs"></script>
+<!-- Appearance toggle — a matched glass tile just LEFT of the Immersive button: one tap cycles Immersive → Dark → Light. -->
+<script type="module" src="/usr/lib/holo/holo-theme-toggle.mjs"></script>
 <!-- AI agents: machine-readable sign-in instructions live in <script id="holo-agent-login"> (JSON) and on
      window.HoloLogin. Guest = act now (or load ?guest=1). Ask Human = request the person to approve.
      The human chrome is deliberately quiet — agents never needed the visible door. -->
@@ -159,13 +164,16 @@
   /* GLASS UNFOGGING — on sign-in the frost clears (blur 80→0, tint → transparent) and the lock UI lifts
      away while the aurora gently pushes in, as if you step through the clearing glass into your space.
      The desktop wears the same aurora + fades in (see the shell), so the redirect lands without a seam. */
-  body.unfog .frost { animation: defog .8s cubic-bezier(.4,0,.2,1) forwards; }
-  body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: lift .72s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; }
-  body.unfog .wall { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; }
-  @keyframes defog { to { background: rgba(7,11,22,0); -webkit-backdrop-filter: blur(0) saturate(1) brightness(1); backdrop-filter: blur(0) saturate(1) brightness(1); } }
-  @keyframes lift { to { opacity: 0; transform: translateY(-10px) scale(1.03); filter: blur(3px); } }
+  /* CRISP: the frost is a STATIC blur layer — dissolve it by fading OPACITY (a cached, fully GPU-composited
+     op) rather than animating the 80px blur radius (a full-screen per-frame recompute = the jank). Same "fog
+     lifts to reveal the sharp aurora" look, a fraction of the GPU cost. will-change promotes its own layer. */
+  body.unfog .frost { animation: defog .8s cubic-bezier(.4,0,.2,1) forwards; will-change: opacity; }
+  body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: lift .72s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; will-change: transform, opacity; }
+  body.unfog .wall { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; will-change: transform; }
+  @keyframes defog { to { opacity: 0; } }
+  @keyframes lift { to { opacity: 0; transform: translateY(-10px) scale(1.03); } }
   @keyframes pushin { to { transform: scale(1.08); } }
-  @keyframes defogRM { to { background: rgba(7,11,22,0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+  @keyframes defogRM { to { opacity: 0; } }
   @keyframes liftRM { to { opacity: 0; } }
 
   @media (prefers-reduced-motion: reduce) {
@@ -228,6 +236,30 @@
   :root[data-holo-palette="light"] .chip .lab, :root[data-holo-palette="light"] .chip .pic { color: #1a1d24; }
   :root[data-holo-palette="light"] .ctl { background: rgba(0,0,0,.06); color: #1a1d24; } :root[data-holo-palette="light"] .ctl:hover { background: rgba(0,0,0,.12); color: #000; }
   :root[data-holo-palette="light"] .alt:hover { color: #000; }
+
+  /* ── IMMERSIVE BACKDROP on the lock screen ──────────────────────────────────────────────────────
+     "Immersive" is the third appearance mode (Immersive · Dark · Light; toggled top-right). On the
+     desktop it publishes a κ-sealed wallpaper behind translucent surfaces; the lock screen now honours
+     it too — the chosen wallpaper (set as --holo-wallpaper by holo-appearance-boot.js) sits under the
+     frost, so Immersive reads as a distinct, photographic mode rather than the flat Dark gradient. Falls
+     back to the navy aurora gradient when no wallpaper is pinned. */
+  :root[data-holo-immersive="on"] .wall {
+    background-image: var(--holo-wallpaper, none),
+      radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%);
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+
+  /* ── CONTRAST (WCAG AA across Dark · Light) ─────────────────────────────────────────────────────
+     Every element kept ≥4.5:1 for text and ≥3:1 for UI furniture in both palettes. */
+  /* white initials must stay legible on the mid-tone hue avatar / chip in BOTH palettes */
+  .avatar, .chip .pic { text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  /* Light fixes — translucent-white furniture turns near-invisible on a bright surface; re-ink it. */
+  :root[data-holo-palette="light"] .status { color: #0a6048; }                       /* green, ≥4.5:1 on light frost */
+  :root[data-holo-palette="light"] .box input::placeholder { color: rgba(26,29,36,.62); }
+  :root[data-holo-palette="light"] .session { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.16); color: #1a1d24; }
+  :root[data-holo-palette="light"] .pop { background: rgba(252,251,248,.96); border-color: rgba(0,0,0,.12); }
+  :root[data-holo-palette="light"] .pop button { color: #1a1d24; }
+  :root[data-holo-palette="light"] .pop button:hover { background: rgba(0,0,0,.06); }
 </style>
 </head>
 <body>
@@ -409,7 +441,7 @@ function renderCenter(st, sddm) {
   const bio = p.querySelector("#bio");
   bio.onclick = () => { bio.disabled = true; sddm.unlockDevice(); };
   wireOptions(p, sddm);
-  setTimeout(() => bio.focus(), 40);
+  setTimeout(() => bio.focus(), 40);   // focus the button so Enter/Space starts it — but the user initiates
 }
 
 // renderNameStep — the ONE place a name is ever typed, shown only AFTER a first-time person has

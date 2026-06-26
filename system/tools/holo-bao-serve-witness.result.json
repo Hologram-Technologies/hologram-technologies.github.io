@@ -1,0 +1,26 @@
+{
+  "spec": "S2 — verified-slice serving: outboard (proof tree, cached by root κ) + sliceFromOutboard serve any chunk proven against the single root, bytes paged on demand, peak residency bounded to one chunk + its O(log n) proof. Render-on-chunk-0; a tampered slice refused while earlier slices already streamed. The BLAKE3 dividend made concrete — what SHA-256 (linear) cannot do.",
+  "witnessed": true,
+  "objectBytes": 3145728,
+  "chunks": 3072,
+  "covers": [
+    "bao",
+    "outboard",
+    "verified-slice",
+    "bounded-residency",
+    "render-on-chunk-0",
+    "law-l5"
+  ],
+  "checks": {
+    "outboard root == object's canonical stream κ (same axis as S1)": true,
+    "outboard carries one proof per chunk (3072 chunks)": true,
+    "chunk 0 serves immediately, verified (render-on-first-chunk)": true,
+    "every chunk served + verified against the root": true,
+    "PEAK RESIDENCY ≪ object size (one chunk window, not the whole object)": true,
+    "chunks 0..1999 served, then a tampered chunk 2000 is REFUSED (Law L5, stream survives)": true,
+    "the clean chunk k still serves after the tampered attempt": true,
+    "verifiedChunks streams a lazy source, ≤1 chunk live at a time (whole object never resident)": true
+  },
+  "passed": 8,
+  "failed": 0
+}

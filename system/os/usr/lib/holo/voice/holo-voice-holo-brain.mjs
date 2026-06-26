@@ -29,7 +29,7 @@ const MODELS = {
   "qwen2.5-1.5b": specFor(PINNED.respond.upgrade),   // silent upgrade tier
   "qwen-coder-3b": specFor(PINNED.code.instant),     // AGENTIC-CODING tier (strong-WebGPU only); request via createHoloModelBrain({model:"qwen-coder-3b"})
 };
-const DEFAULTS = { model: "qwen2.5-0.5b", maxTokens: 512 };
+const DEFAULTS = { model: "qwen2.5-0.5b", maxTokens: 512, pack: true };   // pack: stream weights from the ONE q-models pack (fail-soft → per-model .holo)
 
 // faculty → the model key this brain should load RIGHT NOW, honoring a settings-picker override on that
 // faculty (resolveModel: override → pinned). Returns a known MODELS key, or null when the override is a
@@ -66,7 +66,11 @@ export function createHoloModelBrain(opts = {}) {
         const ab = await fetch("/.holo/sha256/" + cfg.adapter).then((r) => { if (!r.ok) throw new Error("adapter κ " + cfg.adapter + " → " + r.status); return r.arrayBuffer(); });
         adapter = lora.openAdapterHolo(new Uint8Array(ab));
       }
-      brain = (mod.createHoloBrain || mod.default)({ holoUrl: spec.url, releaseUrl: spec.release, kappa: spec.kappa, maxTokens: cfg.maxTokens, adapter });
+      // UNIFIED PACK (opt-in via cfg.pack): stream this model's weights from the ONE q-models pack when it lives there;
+      // fail-soft (makePackGgufStream → null → the engine uses spec.url/release). The brain runs byte-identically.
+      let openGgufStream = null;
+      if (cfg.pack) { try { const pp = await import(/* @vite-ignore */ FORGE + "gpu/holo-q-pack-provider.mjs"); const fm = await import(/* @vite-ignore */ new URL("./holo-q-faculty-models.mjs", import.meta.url).href); const e = pp.packEntryForUrl(spec.url); if (e && e.kind === "gguf") openGgufStream = pp.makePackGgufStream(e.model, { packSpec: fm.packSpec }); } catch (_) {} }
+      brain = (mod.createHoloBrain || mod.default)({ holoUrl: spec.url, releaseUrl: spec.release, kappa: spec.kappa, maxTokens: cfg.maxTokens, adapter, openGgufStream });
       return brain;
     })().catch((e) => { loadingP = null; throw e; });
     return loadingP;

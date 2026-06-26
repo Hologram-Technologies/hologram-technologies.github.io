@@ -56,11 +56,72 @@ function rpIdValid() {
   if (h.includes(":")) return false;                            // IPv6 literal
   return h.includes(".");                                       // a real domain (has a dot)
 }
+
+// ── localhost WebAuthn broker (native κ-scheme only) ─────────────────────────────────────────────
+// Under holo://os the RP ID is "os" — a single-label id Chromium's WebAuthn REJECTS, so navigator.credentials
+// .{create,get} fail there (this is why "Sign in" did nothing). The ceremony therefore runs in a hidden iframe
+// served from http://localhost (rpId "localhost" is valid + a secure context); we drive it by postMessage and
+// receive the FULL teeEnroll/teeAssert result (all base64url, JSON-safe). The PRF secret + private key never
+// leave the device. teeEnroll/teeAssert auto-route here when location.protocol === "holo:" — so the greeter's
+// firstRun()/unlockDevice() and the shell's step-up all work through the SAME path, with no caller changes.
+const BROKER_URL = () => (globalThis.__holoBrokerUrl || "http://localhost:8495/usr/share/frame/stepup-broker.html");
+let _brokerFrame = null, _brokerReq = 0;
+function brokerFrame() {
+  if (_brokerFrame) return _brokerFrame;
+  _brokerFrame = new Promise((resolve, reject) => {
+    let f; try { f = document.createElement("iframe"); } catch (e) { return reject(e); }
+    f.setAttribute("aria-hidden", "true");
+    // CRITICAL: a cross-origin iframe may not call navigator.credentials.{create,get} unless the parent
+    // DELEGATES the WebAuthn Permissions-Policy features to it. Without this the OS biometric prompt never
+    // appears (the ceremony hangs). Delegate both to the broker's exact origin.
+    try { const bo = new URL(BROKER_URL()).origin; f.setAttribute("allow", "publickey-credentials-create " + bo + "; publickey-credentials-get " + bo); } catch (e) {}
+    f.style.cssText = "position:fixed;width:1px;height:1px;border:0;left:-9999px;top:-9999px";
+    const onReady = (e) => { if (e.source === f.contentWindow && e.data && e.data.__holoBroker && e.data.ready) { window.removeEventListener("message", onReady); resolve(f); } };
+    window.addEventListener("message", onReady);
+    f.addEventListener("error", () => { window.removeEventListener("message", onReady); reject(new Error("biometric broker iframe failed to load")); });
+    document.body.appendChild(f); f.src = BROKER_URL();
+    setTimeout(() => { window.removeEventListener("message", onReady); reject(new Error("biometric broker not reachable (is the localhost broker server up?)")); }, 12000);
+  });
+  _brokerFrame.catch(() => { _brokerFrame = null; });            // allow retry if the broker wasn't up yet
+  return _brokerFrame;
+}
+async function brokerCall(op, params) {
+  const f = await brokerFrame();
+  const origin = new URL(BROKER_URL()).origin;
+  return new Promise((resolve, reject) => {
+    const id = "w" + (++_brokerReq);
+    const onMsg = (e) => { if (e.source !== f.contentWindow) return; const m = e.data; if (!m || !m.__holoBroker || m.id !== id) return; window.removeEventListener("message", onMsg); if (m.ok) { const { __holoBroker, id: _i, ok, ...rest } = m; resolve(rest); } else reject(new Error(m.err || "broker denied")); };
+    window.addEventListener("message", onMsg);
+    f.contentWindow.postMessage(Object.assign({ __holoBrokerReq: 1, id, op }, params), origin);
+    setTimeout(() => { window.removeEventListener("message", onMsg); reject(new Error("biometric broker request timeout")); }, 60000);
+  });
+}
+
+// ── NATIVE platform authenticator (preferred) ────────────────────────────────────────────────────
+// On the native host the C++ runs the OS biometric (Windows Hello / Touch ID) DIRECTLY via webauthn.dll
+// over the `holo:hello:` cefQuery — the real dialog, no iframe, no localhost, no permission prompt. This
+// is the fast, clean path; the localhost broker is only the fallback for hosts without the native verb.
+const RP_ID_NATIVE = "hologram.os";
+function nativeHello() { return typeof window !== "undefined" && typeof window.cefQuery === "function" && nativeHost(); }
+function helloCall(op, params = {}) {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    try {
+      window.cefQuery({
+        request: "holo:hello:" + JSON.stringify({ op, ...params }),
+        persistent: false,
+        onSuccess: (r) => { if (done) return; done = true; try { const j = JSON.parse(r); j && j.ok === false ? reject(new Error(j.error || "biometric failed")) : resolve(j); } catch (e) { reject(e); } },
+        onFailure: (code, msg) => { if (done) return; done = true; reject(new Error(msg || ("biometric error " + code))); },
+      });
+    } catch (e) { reject(e); }
+  });
+}
 function secureOk() { return typeof window === "undefined" ? false : (window.isSecureContext === true); }
 
 // Why a biometric prompt is not available right now — drives the greeter's fallback messaging.
 // Returns "" when biometrics ARE available. Async because it probes the platform authenticator.
 export async function teeReason() {
+  if (nativeHello()) return "";                                   // the native host runs the OS biometric directly — always available
   if (!teeSupported()) return "This browser has no WebAuthn / passkey support";
   if (!secureOk()) return "Biometrics need a secure page (https or localhost)";
   if (!rpIdValid()) return "Open this on https or localhost (not an IP) for biometrics";
@@ -111,7 +172,12 @@ export function teeError(e) {
 
 // ── enrol: mint a platform passkey bound to the TEE; return {credentialId, secret} ──
 // `secret` (base64url) becomes the wrapping passphrase for the sovereign key.
-export async function teeEnroll({ name, userId } = {}) {
+export async function teeEnroll(args = {}) {
+  if (nativeHello()) return helloCall("enroll", { name: args.name, rpId: RP_ID_NATIVE });      // native OS dialog (no iframe)
+  if (nativeHost()) return brokerCall("enroll", { name: args.name, userId: args.userId });     // holo:// → localhost fallback
+  return _teeEnrollDirect(args);
+}
+async function _teeEnrollDirect({ name, userId } = {}) {
   if (!teeSupported()) throw new Error("WebAuthn unavailable");
   const uid = userId ? te.encode(String(userId)) : rand(16);
   const cred = await navigator.credentials.create({
@@ -151,7 +217,13 @@ export async function teeEnroll({ name, userId } = {}) {
 // unlock and a fresh random challenge is used. The raw assertion bytes (clientDataJSON,
 // authenticatorData, signature — all base64url) are returned so the caller can carry the second,
 // authenticator-signed axis; the PRF `secret` is returned exactly as before (unlock path unchanged).
-export async function teeAssert({ credentialId, allowCredentials, challenge } = {}) {
+export async function teeAssert(args = {}) {
+  const challengeB64 = args.challenge && args.challenge.byteLength ? b64u(args.challenge) : undefined;
+  if (nativeHello()) { const cid = args.credentialId || (args.allowCredentials && args.allowCredentials[0]) || ""; return helloCall("assert", { credentialId: cid, rpId: RP_ID_NATIVE, challenge: challengeB64 }); }
+  if (nativeHost()) return brokerCall("assert", { credentialId: args.credentialId, allowCredentials: args.allowCredentials, challenge: challengeB64 });
+  return _teeAssertDirect(args);
+}
+async function _teeAssertDirect({ credentialId, allowCredentials, challenge } = {}) {
   if (!teeSupported()) throw new Error("WebAuthn unavailable");
   const ids = (allowCredentials && allowCredentials.length) ? allowCredentials : (credentialId ? [credentialId] : []);
   const ch = (challenge && challenge.byteLength) ? new Uint8Array(challenge) : rand(32);

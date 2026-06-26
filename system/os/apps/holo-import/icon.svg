@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d6fe0"/>
+      <stop offset="1" stop-color="#0a1530"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fe3ff" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#g)"/>
+  <!-- projection beam: a small source casting a larger sharp frame (render cheap -> project sharp) -->
+  <path d="M26 22 L38 22 L50 46 L14 46 Z" fill="url(#beam)" opacity=".5"/>
+  <rect x="24" y="18" width="16" height="10" rx="2" fill="none" stroke="#bfe6ff" stroke-width="1.6" opacity=".8"/>
+  <rect x="12" y="40" width="40" height="12" rx="2.5" fill="none" stroke="#eaf6ff" stroke-width="2.2"/>
+  <circle cx="32" cy="46" r="3.4" fill="#7fd6c0"/>
+  <path d="M30.8 44.2 L34.4 46 L30.8 47.8 Z" fill="#05101f"/>
+</svg>

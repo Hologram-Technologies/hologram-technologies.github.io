@@ -99,6 +99,8 @@ export async function verifyPresentation(resp, ch, { now = null, expectedAudienc
 }
 
 // one leaf hash — re-imported so verifyPresentation re-derives by the SAME path issuance committed to.
+// BRIDGE: SD-JWT-VC (IETF) — must match the credential's issuance leaf (holo-credential leafOf), whose
+// disclosure-hash is fixed by the selective-disclosure spec, so this stays sha256 (NOT a κ).
 async function leaf(disclosure) { const { sha256Hex } = await import("./holo-identity.mjs"); return sha256Hex(te.encode(canon(disclosure))); }
 
 // ── self-test (node): the full magical loop, plus every refusal. ──

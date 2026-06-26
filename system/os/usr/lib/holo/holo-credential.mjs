@@ -50,6 +50,8 @@ export async function verifySig(pubB64, alg, sigB64, bytes) {
 }
 
 // a salted leaf for one claim — sha256 over the canonical [salt,key,value] triple (SD-JWT shape).
+// BRIDGE: SD-JWT-VC (IETF) — the disclosure-hash algorithm is fixed by the selective-disclosure spec a
+// foreign verifier checks, so this stays sha256 (NOT a κ). The credential's own id IS a canonical κ.
 async function leafOf(disclosure) { return sha256Hex(te.encode(canon(disclosure))); }
 
 // ── ISSUE (the Attestor → Holder act). `issuer` is a holo-identity/passport principal

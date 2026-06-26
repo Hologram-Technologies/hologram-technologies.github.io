@@ -1,0 +1,26 @@
+{
+  "spec": "P3 (web SW half) — the Service Worker serve authority verifies the canonical BLAKE3 axis first, with the sha256 bridge alias as legacy fallback. Functional fold/select/verify on real bytes + structural assertions on the live holo-fhs-sw.js. Native half: cargo test -p kappa-route.",
+  "witnessed": true,
+  "covers": [
+    "service-worker",
+    "blake3-first",
+    "law-l5",
+    "dual-axis",
+    "serve-authority"
+  ],
+  "checks": {
+    "served path with a blake3 pin selects the CANONICAL (blake3) axis": true,
+    "canonical axis verifies the true bytes (kappo trust check)": true,
+    "canonical axis REFUSES a flipped byte (Law L5)": true,
+    "legacy sha-only entry falls back to the sha256 bridge alias": true,
+    "bridge alias still verifies (additive cutover, nothing breaks)": true,
+    "bridge alias REFUSES a flipped byte": true,
+    "alsoKnownAs blake3 is honored as the canonical axis": true,
+    "SW declares BYPATH_B3 (canonical verification pins)": true,
+    "SW foldClosure reads the canonical top-level blake3 field": true,
+    "SW path branch prefers the blake3 axis": true,
+    "SW L5 verify re-derives on the blake3 axis": true
+  },
+  "passed": 11,
+  "failed": 0
+}

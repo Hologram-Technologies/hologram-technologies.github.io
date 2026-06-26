@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Holo Canvas — second viewer (κ projection)</title>
+<style>
+  html,body{margin:0;height:100%;background:#05080f;color:#cfe8ff;font:13px/1.5 ui-monospace,Menlo,monospace;overflow:hidden}
+  #screen{position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;background:#05080f;z-index:1;image-rendering:auto}
+  #hud{position:fixed;top:10px;left:10px;z-index:5;padding:9px 13px;background:rgba(6,12,22,.6);border:1px solid rgba(120,200,255,.18);border-radius:11px;backdrop-filter:blur(8px);white-space:pre;pointer-events:none;min-width:260px}
+  #hud b{color:#7fd6c0}
+  #wait{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;opacity:.7;padding:24px;text-align:center}
+  #reply{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;width:380px;max-width:84vw;padding:16px;background:rgba(6,12,22,.95);border:1px solid rgba(120,200,255,.3);border-radius:12px;backdrop-filter:blur(8px);display:none}
+  #reply h4{margin:0 0 8px;color:#7fd6c0;font-size:13px}
+  #reply p{margin:6px 0;opacity:.78;font-size:11px}
+  #reply textarea{width:100%;height:74px;box-sizing:border-box;background:#0a1322;border:1px solid rgba(120,200,255,.2);border-radius:7px;color:#bfe6ff;font:11px ui-monospace,monospace;resize:vertical}
+  #reply button{margin-top:8px;padding:7px 12px;background:rgba(120,200,255,.12);border:1px solid rgba(120,200,255,.3);border-radius:7px;color:#cfe8ff;font:inherit;cursor:pointer}
+  #reply button:hover{border-color:#7fd6c0;color:#7fd6c0}
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="hud">joining…</div>
+<div id="wait">waiting for a host to Share this scene…</div>
+<div id="reply">
+  <h4>Almost connected</h4>
+  <p>Copy this reply code and paste it back on the sharing device:</p>
+  <textarea id="replyCode" readonly></textarea>
+  <button id="replyCopy">Copy reply code</button>
+</div>
+<script type="module">
+// The second-viewer LENS: receives the host's scene as a κ frame-tile stream and reconstructs it. Only NOVEL
+// tiles ever arrive (unchanged regions cross at ~0 bytes); each is L5-verified before paint. Same sealed
+// modules as the host — cross-tab via BroadcastChannel, cross-device via the holo-dial WebRTC DataChannel.
+import { makeShareViewer } from "holo://os/usr/lib/holo/holo-canvas-share.mjs";
+import { makeBroadcastTransport, makeRTCTransport, makeBroadcastSignaling, joinDial } from "holo://os/usr/lib/holo/holo-canvas-transport.mjs";
+import { admitOsrManifest } from "holo://os/usr/lib/holo/holo-osr-admit.mjs";   // ONE reconstruction for a projected WEB tab (content-space tiles)
+import { blake3hex } from "holo://os/usr/lib/holo/holo-blake3.mjs";              // L5 re-derive on the substrate σ-axis
+const Q = new URLSearchParams(location.search);
+const NAME = (Q.get("app") || "raymarch").replace(/[^a-z0-9-]/gi, "");
+const OSRKEY = (Q.get("osr") || "").replace(/[^a-z0-9]/gi, "");   // co-view a projected WEB tab (its SHARE_KEY) — one viewer, both kinds
+const WANV = Q.get("wan");   // "1" ⇒ WebRTC over broadcast-signaling · "link" ⇒ holo-dial (offer in URL hash) · else cross-tab
+const WAN = WANV === "1";
+const screen = document.getElementById("screen"), hud = document.getElementById("hud"), wait = document.getElementById("wait");
+const ctx = screen.getContext("2d");
+const H = window.HoloView = { name: NAME, frames: 0, novelBytes: 0, fullBytes: 0, refused: 0 };
+
+const viewer = makeShareViewer({
+  paintTile: (id, bytes, t) => { try { ctx.putImageData(new ImageData(new Uint8ClampedArray(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)), t.w, t.h), t.x, t.y); } catch (e) { H.paintErr = String(e?.message || e).slice(0, 80); } },
+});
+const label = WANV === "link" ? "WebRTC DataChannel (holo-dial, cross-device)" : WAN ? "WebRTC DataChannel (P2P)" : "BroadcastChannel (cross-tab)";
+
+// ── ONE VIEWER, two manifest shapes. A projected WEB tab arrives as an OSR content-space manifest
+//    ({w,h,tile,scrollY?,tiles:[{id,k}]}); reconstruct it with the shared admit (same placement + L5 as the lens).
+//    Tiles are fetched by blake3 from the κ-cache (shared-κ on a remote device). ──
+const osrStore = new Map();
+async function onOsrFrame(m) {
+  if (screen.width !== m.w || screen.height !== m.h) { screen.width = m.w; screen.height = m.h; }
+  wait.style.display = "none";
+  const r = await admitOsrManifest(m, {
+    getTile: async (b3) => { const res = await fetch("holo://os/cache/blake3/" + b3); if (!res.ok) throw new Error("tile " + res.status); return new Uint8Array(await res.arrayBuffer()); },
+    digestHex: async (b) => blake3hex(b),
+    paint: (id, bytes, p) => { try { ctx.putImageData(new ImageData(new Uint8ClampedArray(bytes.subarray(0, p.w * p.h * 4)), p.w, p.h), p.x, p.y); } catch (e) { H.paintErr = String(e?.message || e).slice(0, 80); } },
+    store: osrStore,
+  });
+  H.frames++; H.novelBytes += r.novelBytes; H.refused += r.refused;
+  hud.innerHTML = `<b>Holo Canvas — viewer</b>  projected web tab\n` +
+    `source    κ content-tiles over ${label}\n` +
+    `frame     ${H.frames} · ${r.painted} tiles painted · ${r.refused} refused\n` +
+    `wire      ${(r.novelBytes / 1024).toFixed(0)} KB this frame (novelty only)\n` +
+    `held      ${osrStore.size} κ tiles · L5 verify-before-paint`;
+}
+
+async function onFrame(d) {
+  if (d && Array.isArray(d.tiles) && typeof d.w === "number") return onOsrFrame(d);   // a projected WEB tab
+  if (d?.type !== "frame") return;                                                    // else: an app frame-tile stream
+  if (d.layout && (screen.width !== d.layout.w || screen.height !== d.layout.h)) { screen.width = d.layout.w; screen.height = d.layout.h; }
+  wait.style.display = "none";
+  const r = await viewer.receive({ wire: d.wire, layout: d.layout });
+  H.frames++; H.novelBytes += r.novelBytes; H.refused += r.refused;
+  H.fullBytes += (d.layout?.w || 0) * (d.layout?.h || 0) * 4;
+  hud.innerHTML = `<b>Holo Canvas — viewer</b>  ${NAME}\n` +
+    `source    κ frame-tiles over ${label}\n` +
+    `frame     ${H.frames} · ${r.painted} tiles painted · ${r.refused} refused\n` +
+    `wire      ${(r.novelBytes / 1024).toFixed(0)} KB this frame (novelty only)\n` +
+    `saved     ${H.fullBytes ? Math.round(100 * (1 - H.novelBytes / H.fullBytes)) : 0}% vs sending every pixel\n` +
+    `held      ${viewer.held().size} κ tiles · L5 verify-before-paint`;
+}
+
+if (WANV === "link") {
+  (async () => {
+    const offer = decodeURIComponent(location.hash.slice(1));
+    if (!offer) { wait.textContent = "no dial offer in link"; return; }
+    const j = await joinDial(offer);
+    document.getElementById("replyCode").value = j.answerBlob;
+    document.getElementById("reply").style.display = "block";
+    document.getElementById("replyCopy").onclick = () => navigator.clipboard?.writeText(j.answerBlob).catch(() => {});
+    const chan = await j.channel;
+    chan.onMessage(onFrame);
+    chan.ready.then(() => { document.getElementById("reply").style.display = "none"; });
+  })();
+} else {
+  const tx = WAN
+    ? makeRTCTransport({ initiator: true, signaling: makeBroadcastSignaling("holo-sig-" + NAME) })
+    : makeBroadcastTransport(OSRKEY ? "holo-osr-" + OSRKEY : "holo-share-" + NAME);   // OSR web tab OR app, one viewer
+  tx.onMessage(onFrame);
+  const hello = () => tx.send({ type: "hello" });
+  tx.ready.then(hello);
+  setTimeout(() => { if (!H.frames) hello(); }, 1500);
+}
+</script>
+</body>
+</html>

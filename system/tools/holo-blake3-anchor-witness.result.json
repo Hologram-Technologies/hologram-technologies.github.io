@@ -1,0 +1,29 @@
+{
+  "spec": "P4 — the atomic anchor flip: the trust root is blake3(os-closure.json). Proven on a throwaway image with the real tools; consumers (SW, reseal, CEF HotStore, Rust load_store) carry the blake3-first wiring with a sha256 fallback so the flip is atomic-safe and tamper fail-closes. Native :9333 prove-boot is the user's host relink step.",
+  "witnessed": true,
+  "covers": [
+    "anchor",
+    "trust-root",
+    "blake3",
+    "fail-closed",
+    "atomic-flip",
+    "G1",
+    "SEC-1"
+  ],
+  "checks": {
+    "reseal-drift sealed the scratch closure": true,
+    "holo-anchor-sw ran on the scratch tree": true,
+    "manifest stamped anchorAxis: \"blake3\"": true,
+    "SW CLOSURE_KAPPA == blake3(os-closure.json) (canonical trust root)": true,
+    "baked anchor is NOT the sha256 value (axis truly flipped)": true,
+    "SW admits the true manifest on the canonical blake3 axis": true,
+    "SW refuses a tampered manifest (matches NEITHER axis → fail closed)": true,
+    "reseal --check: SW anchor current ✓ (blake3 anchor recognized)": true,
+    "reseal --check: scratch image SEALED ✓": true,
+    "holo-anchor-sw computes blake3 + stamps anchorAxis": true,
+    "CEF HotStore::AnchorOf computes the canonical blake3 anchor": true,
+    "Rust load_store matches the blake3 anchor first": true
+  },
+  "passed": 12,
+  "failed": 0
+}

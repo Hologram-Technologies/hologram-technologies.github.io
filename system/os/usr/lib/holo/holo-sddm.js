@@ -13,6 +13,7 @@
 // content-addressed under /usr/share/sddm/ — this runtime renders that real theme.
 
 import { openSession, ephemeral, persistSession } from "./holo-identity.mjs";
+import { packHandoff, HANDOFF_KEY } from "./holo-handoff.mjs";   // carry the session handoff in storage, not the URL query → a clean holo://os/home bar
 // Holo Login: the operator's identity AND omni-chain wallet derive from ONE BIP-39 seed — the
 // canonical login identity is now the seed's did:key (the SAME key Holo Wallet/Privacy use), its
 // session κ the content address of that key (Law L1, verifySession-compatible). enroll/unlock/roster
@@ -223,8 +224,29 @@ export async function createGreeter(params) {
   // so the seam is invisible. Guarded so repeated taps can't double-navigate.
   function enterShell(url, delay = 850) {
     if (sddm.__entering) return; sddm.__entering = true;
+    // CLEAN ADDRESS: carry the session handoff in same-origin sessionStorage, not the URL query — so the bar
+    // reads a bare holo://os/home, no ?operator=…&session=…. Both pages share the OS origin (host "os"), so
+    // storage crosses the navigation; the query was only ever there to survive it. The shell rehydrates once.
+    try { const h = packHandoff(url); if (h.handoff) { sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(h.handoff)); url = h.path; } } catch (e) {}
+    // native: holo://os/home canonicalizes to shell.html; web/dev keeps shell.html (no canonicalizer).
+    if (location.protocol === "holo:") url = String(url).replace(/^(?:.?/)?shell.html(?=[?#]|$)/, "home");
     sddm.__pendingUrl = url;
     setTimeout(() => { location.href = url; }, delay);
+  }
+
+  // prewarmShell() — LATENCY: the biometric tap is ~1-2s of otherwise-idle time. The instant a sign-in path
+  // commits, start pulling the desktop's bytes into cache (and let the browser pre-parse the HTML) so the
+  // post-auth navigation is cache-hot and the desktop paints almost immediately. Pure overlap with the human
+  // tap — touches nothing secret, can't fail the login (best-effort, idempotent). The 850ms unfog then hides
+  // whatever boot remains.
+  let _prewarmed = false;
+  function prewarmShell() {
+    if (_prewarmed) return; _prewarmed = true;
+    try {
+      const loader = (SESSIONS[CANONICAL_SESSION] && SESSIONS[CANONICAL_SESSION].loader) || "shell.html";
+      try { fetch(loader, { cache: "force-cache" }).then((r) => r && r.text()).catch(() => {}); } catch (e) {}
+      try { const l = document.createElement("link"); l.rel = "prefetch"; l.as = "document"; l.href = loader; document.head.appendChild(l); } catch (e) {}
+    } catch (e) {}
   }
 
   const sddm = {
@@ -310,6 +332,7 @@ export async function createGreeter(params) {
       if (!known.length) { emit("needName"); return; }              // nothing enrolled → enrol path
       if (reason) { emit("informationMessage", reason); emit("needName"); return; }   // no biometric → name/passphrase
       try {
+        prewarmShell();                                            // pull the desktop into cache during the tap
         emit("informationMessage", "Verifying with " + teeName() + "…");
         const { secret, credentialId } = await teeAssert({ allowCredentials: known.map((u) => u.cred) });
         const op = known.find((u) => u.cred === credentialId);
@@ -402,6 +425,7 @@ export async function createGreeter(params) {
         const reason = await teeReason();
         if (reason) { emit("informationMessage", (reason || "No biometric on this device") + " — sign in with your phone or continue as Guest"); emit("loginFailed"); return; }
         emit("informationMessage", "Setting up " + teeName() + "…");
+        prewarmShell();                                            // warm the desktop while the enclave enrols
         const { credentialId, secret, credPub } = await teeEnroll({ name: "Hologram" });
         const principal = await enroll({ label: "You", passphrase: secret, cred: credentialId, credPub });   // default label; renamed in completeFirstRun
         sddm.__pendingEnrol = { principal, secret, session };

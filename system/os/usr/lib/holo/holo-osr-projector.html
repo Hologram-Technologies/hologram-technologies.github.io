@@ -18,10 +18,22 @@
 import { makeOsrLens } from "./holo-osr-lens.mjs";
 import { makeFramebufferPipeline } from "./holo-framebuffer-source.mjs";
 import { blake3hex } from "./holo-blake3.mjs";   // the substrate σ-axis hash — the producer addresses tiles on it
+import { classify } from "./holo-projection-policy.mjs";   // the ONE projection policy (doc=pixel-native · media=super-res)
+import { mountProjectionHUD } from "./holo-projection-hud.mjs";   // the ONE projection HUD (same readout web · app · video)
+import { makeBroadcastTransport, makeDialHost } from "./holo-canvas-transport.mjs";   // the ONE share wire (same as the app)
 
 const screen = document.getElementById("screen");
 const ctx = screen.getContext("2d", { alpha: false });
 let lens = null, W = 0, H = 0, TILE = 256;
+
+// THE UNIFIED POLICY applied to THIS surface: a web document projects PIXEL-NATIVE (crisp text); a video/GPU
+// target renders CHEAP and the lens super-res's it. One decision, shared with the app path (run.html). The
+// target URL is the surface signal; an app/holospace could declare ?kind=app|3d|video to override.
+const TARGET = new URLSearchParams(location.search).get("target") || "";
+const KIND_HINT = new URLSearchParams(location.search).get("kind") || "";
+const POLICY = classify({ url: TARGET, surfaceKind: KIND_HINT });
+let NATIVE = null;                                  // the display res (super-res target); set when reqRes runs
+window.HoloProjection = POLICY;                      // exposed for the unified HUD + verification
 // GPU path (no WebGPU adapter on this host → use GPU-accelerated Canvas2D). The composited frame lives in a
 // GPU-backed OffscreenCanvas; only CHANGED tiles are written (O(1), work ∝ novelty). The present loop draws it
 // with drawImage — which scales (super-res to the native display resolution) + translates (sub-pixel scroll
@@ -39,10 +51,6 @@ let scrollAccum = 0, baseScroll = 0;
 // Content tiles carry their document row (prow) in their id; the lens places each at screen y = prow·TILE −
 // curScrollY, so the same content row keeps the same κ across scroll (recurrence) while the row simply moves.
 let curScrollY = 0;
-// This lens is a CROSS-DEVICE remote lens (driven by another node's manifest channel) iff opened with ?remote=1.
-// Then it fetches tiles on the sha256 WIRE axis from the shared-κ transport. A LOCAL lens (no ?remote) keeps the
-// fast blake3 path even though the producer's manifest also carries "s" (for remote consumers).
-const REMOTE = new URLSearchParams(location.search).get("remote") === "1";
 
 // fetch a tile's bytes by content address; the κ scheme verifies (L5) on the wire. Late-bound to
 // window.__holoOsrFetch each call so the host (or a test) can inject the transport.
@@ -50,58 +58,37 @@ const REMOTE = new URLSearchParams(location.search).get("remote") === "1";
 const defaultFetch = async (hex) => {
   const r = await fetch("holo://os/cache/blake3/" + hex);
   if (!r.ok) throw new Error("osr: tile fetch " + hex + " → " + r.status);
-  return new Uint8Array(await r.arrayBuffer());
-};
-const fetchTile = (hex) => (window.__holoOsrFetch || defaultFetch)(hex);
-const digestHex = async (b) => blake3hex(b);   // L5 re-derive on the same axis the producer hashed
-
-// CROSS-DEVICE remote mode: a manifest whose tiles carry "s" (the canonical sha256) is projected from ANOTHER
-// node. Its tile BYTES were never produced here — fetch each on the sha256 WIRE axis (the shared-κ transport
-// serves it via the kr_shared_get fallback) and re-derive sha256 to verify (L5 at the lens too — an untrusted
-// relay can't slip a bad tile past). blake3 stays the LOCAL fast axis; sha256 is the canonical cross-node one.
-const sha256Fetch = async (hex) => {
-  const r = await fetch("holo://os/cache/sha256/" + hex);
-  if (!r.ok) throw new Error("osr: remote tile " + hex + " → " + r.status);
   const u = new Uint8Array(await r.arrayBuffer());
-  window.__holoWireBytes = (window.__holoWireBytes || 0) + u.length;   // bandwidth-∝-novelty: only NOVEL tiles fetch; resident ones never cross the wire
+  window.__holoWireBytes = (window.__holoWireBytes || 0) + u.length;   // bandwidth-∝-novelty: only NOVEL tiles fetch (resident ones never cross)
   return u;
 };
-const sha256digest = async (b) => {
-  const u = b instanceof Uint8Array ? b : new Uint8Array(b);
-  const h = await crypto.subtle.digest("SHA-256", u);
-  return Array.from(new Uint8Array(h)).map((x) => x.toString(16).padStart(2, "0")).join("");
-};
-let remoteLens = null;
+const fetchTile = (hex) => (window.__holoOsrFetch || defaultFetch)(hex);
+const digestHex = async (b) => blake3hex(b);   // L5 re-derive on the same (blake3) axis the producer hashed
 
-// WAN: carry the per-frame manifest over a REAL WebRTC datachannel (SCTP/DTLS) instead of the file channel —
-// proving the projection runs over a genuine network transport. ?wan=offer (the producer's lens, sends each
-// manifest) | ?wan=answer (the remote lens, receives → __holoOsrFrame). Non-trickle ICE: publish the SDP only
-// after gathering completes, so signaling is one offer + one answer (the harness/holo-dial shuttles them; tiles
-// still arrive by κ over the shared transport). {ordered:false,maxRetransmits:0} ⇒ a late frame is dropped, not
-// queued (the present-loop reproject hides the gap — present-side negative latency, now over the network).
-const WAN = new URLSearchParams(location.search).get("wan");
-let wanChan = null; window.__wanRecv = 0; window.__wanOpen = false;
-if (WAN && window.RTCPeerConnection) {
-  const pc = new RTCPeerConnection({ iceServers: [] });
-  const gathered = () => new Promise((res) => {
-    if (pc.iceGatheringState === "complete") return res();
-    pc.addEventListener("icegatheringstatechange", () => { if (pc.iceGatheringState === "complete") res(); });
-  });
-  const wire = (ch) => { wanChan = ch; ch.onopen = () => { window.__wanOpen = true; };
-    ch.onmessage = (e) => { window.__wanRecv++; try { window.__holoOsrFrame(JSON.parse(e.data)); } catch (err) {} }; };
-  if (WAN === "offer") {
-    wanChan = pc.createDataChannel("manifest", { ordered: false, maxRetransmits: 0 });
-    wanChan.onopen = () => { window.__wanOpen = true; };
-    pc.createOffer().then((o) => pc.setLocalDescription(o)).then(gathered)
-      .then(() => { window.__wanOffer = JSON.stringify(pc.localDescription); });
-    window.__wanSetAnswer = (a) => pc.setRemoteDescription(JSON.parse(a));
-  } else {  // answer (the remote lens)
-    pc.ondatachannel = (e) => wire(e.channel);
-    window.__wanSetOffer = (o) => pc.setRemoteDescription(JSON.parse(o))
-      .then(() => pc.createAnswer()).then((a) => pc.setLocalDescription(a)).then(gathered)
-      .then(() => { window.__wanAnswer = JSON.stringify(pc.localDescription); });
+// SHARE this projected tab to the ONE viewer (view.html) over the SAME transport the app share uses — one wire,
+// not two. The OSR manifest (blake3 refs, tiny) crosses the channel each frame; the tiles themselves cross by κ
+// over shared-κ (a remote device fetches them by address, L5-verified). Retires the bespoke ?wan datachannel:
+// projection has ONE share path. ?share=tab → cross-tab BroadcastChannel · ?share=link → holo-dial cross-device.
+// SHARE_KEY is derived from the target so a viewer can join the same channel by url, no out-of-band coordination.
+const SHARE_KEY = TARGET ? blake3hex(new TextEncoder().encode(TARGET)).slice(0, 16) : "popup";
+let shareTx = null, lastManifest = null;
+window.__holoOsrShareKey = SHARE_KEY;
+window.__holoShareOsr = async (mode) => {
+  if (mode === "link") {                                   // cross-device: mint a dial offer the shell surfaces
+    const host = await makeDialHost();
+    shareTx = host.channel;                                // wrapped DataChannel { send, onMessage, ready, close }
+    window.__holoOsrDialOffer = host.offerBlob;
+    window.__holoOsrDialAccept = (ans) => host.accept(ans);
+  } else {
+    shareTx = makeBroadcastTransport("holo-osr-" + SHARE_KEY);   // cross-tab co-view (default)
   }
-}
+  // keyframe heartbeat: re-send the LAST manifest every 500ms so a viewer that joins AFTER the last produced
+  // frame catches up (a static page emits few frames; broadcast doesn't replay). Resident κ ⇒ the catch-up is refs.
+  if (!window.__holoShareHb) window.__holoShareHb = setInterval(() => { if (shareTx && lastManifest) { try { shareTx.send(lastManifest); } catch (e) {} } }, 500);
+  return mode === "link" ? window.__holoOsrDialOffer : SHARE_KEY;
+};
+const _share = new URLSearchParams(location.search).get("share");
+if (_share) window.__holoShareOsr(_share === "link" ? "link" : "tab");
 
 // write ONE tile into the GPU-backed offscreen base. Content-space tiles ("c{cx}_{prow}") are placed by their
 // document row, offset by the frame's scrollY; legacy screen-space tiles ("t{cx}_{ry}") by their fixed grid
@@ -120,30 +107,17 @@ const blit = (id, bytes) => {
 
 // the one entry the native producer calls each frame
 window.__holoOsrFrame = async (manifest) => {
-  // WAN producer lens: forward this frame's manifest to the remote node over the datachannel (then composite
-  // locally too). The remote lens uses the "s" (sha256) refs; this local lens uses "k" (blake3). κ refs only.
-  if (WAN === "offer" && wanChan && wanChan.readyState === "open") { try { wanChan.send(JSON.stringify(manifest)); } catch (e) {} }
+  // SHARING: forward this frame's manifest (blake3 "k" refs, tiny) to the ONE viewer over the shared transport,
+  // then composite locally too. The viewer (view.html) fetches the tiles by blake3 from the shared-κ + L5-verifies.
+  lastManifest = manifest;   // always hold the latest frame, so when sharing STARTS the heartbeat can replay it
+  if (shareTx) { try { shareTx.send(manifest); } catch (e) {} }
   window.__holoScLast = null;                        // a tile manifest arrived ⇒ we are in (or back to) crisp tile mode
   window.__holoFirstFrame = true;                    // a frame composited ⇒ projection is live (cancels the Phase-C fallback)
 
-  // CROSS-DEVICE: tiles carry "s" ⇒ this scene is produced on a REMOTE node; composite from the shared-κ
-  // transport on the sha256 wire axis (same content-space placement, just a different fetch+verify axis).
-  if (REMOTE && manifest.tiles && manifest.tiles[0] && manifest.tiles[0].s) {
-    if (!remoteLens || manifest.w !== W || manifest.h !== H) {
-      W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
-      base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
-      sizeScreen();
-      remoteLens = makeOsrLens({ tile: TILE, paint: blit, fetchTile: sha256Fetch, digestHex: sha256digest });
-    }
-    curScrollY = typeof manifest.scrollY === "number" ? manifest.scrollY : 0;
-    const m2 = { ...manifest, tiles: manifest.tiles.map((t) => ({ ...t, k: "did:holo:sha256:" + t.s })) };
-    window.__holoTilesSeen = (window.__holoTilesSeen || 0) + m2.tiles.length;   // every tile REF seen (cheap); vs __holoWireBytes (only novel)
-    await remoteLens.ensure(m2);                      // novelty-only: fetch new tiles over the wire, ref resident ones
-    for (const t of m2.tiles) { const bytes = remoteLens.store.get(t.s); if (bytes) blit(t.id, bytes); }
-    baseScroll = scrollAccum; window.__holoOsrSeq = manifest.seq;
-    return;
-  }
-
+  // CROSS-DEVICE is the SAME blake3 path: a remote lens (no producer, fed by the channel) composites the
+  // manifest's blake3 "k" tiles exactly like a local lens — fetched from holo://os/cache/blake3/<b3>, which on a
+  // remote node falls back to the shared-κ transport (kr_shared_get_b3, L5). The substrate is blake3-canonical;
+  // there is no separate sha256/remote branch.
   if (!lens || manifest.w !== W || manifest.h !== H) {
     W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
     base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
@@ -155,6 +129,7 @@ window.__holoOsrFrame = async (manifest) => {
   if (content) {
     // Make every tile's bytes resident (novelty-only fetch + L5), then place each by document row. On scroll the
     // producer re-emits all visible tiles (their screen rows moved); resident κ are refs, not re-fetches.
+    window.__holoTilesSeen = (window.__holoTilesSeen || 0) + manifest.tiles.length;   // refs seen (cheap) vs __holoWireBytes (only novel)
     await lens.ensure(manifest);
     for (const t of manifest.tiles) {
       const bytes = lens.store.get(String(t.k).split(":").pop());
@@ -170,16 +145,21 @@ window.__holoOsrFrame = async (manifest) => {
 // the visible canvas backs the NATIVE display resolution (super-res target); drawImage upscales the producer
 // frame to it with high-quality sampling.
 function sizeScreen() {
-  // the producer renders at the display res we requested (W×H from the manifest), so the canvas backing store
-  // matches it → drawImage is 1:1, PIXEL-NATIVE (no upscale). CSS maps it to the window at 1 device pixel each.
-  screen.width = W; screen.height = H;
+  // PIXEL-NATIVE (doc): producer renders at display res (W×H from the manifest) → backing matches → drawImage 1:1,
+  // crisp text, no upscale. SUPER-RES (media/3d/video): producer renders CHEAP (W×H < display), so the visible
+  // canvas backs the full NATIVE display res and the present-loop drawImage upscales the cheap frame to it.
+  if (POLICY.treatment === "super-res" && NATIVE) { screen.width = NATIVE.w; screen.height = NATIVE.h; }
+  else { screen.width = W; screen.height = H; }
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
 }
-// the native display resolution we ask the producer to render at (pixel-native; super-res only if it can't).
+// the resolution we ask the producer to render at. doc ⇒ native (pixel-native); media/3d/video ⇒ native ×
+// internalScale (render cheap → the lens super-res's it). NATIVE (the display res) is the super-res target.
 function reqRes() {
   const dpr = window.devicePixelRatio || 1;
-  return { w: Math.min(3840, Math.max(640, Math.round(window.innerWidth * dpr))),
-           h: Math.min(2400, Math.max(480, Math.round(window.innerHeight * dpr))) };
+  NATIVE = { w: Math.min(3840, Math.max(640, Math.round(window.innerWidth * dpr))),
+             h: Math.min(2400, Math.max(480, Math.round(window.innerHeight * dpr))) };
+  const s = POLICY.internalScale || 1.0;            // doc=1.0 (no cut); media<1 (cheap render)
+  return { w: Math.max(320, Math.round(NATIVE.w * s)), h: Math.max(240, Math.round(NATIVE.h * s)) };
 }
 
 // the PRESENT loop — runs at the panel refresh, decoupled from produce. ONE GPU drawImage: scale (super-res to
@@ -243,9 +223,19 @@ window.__holoOsrReady = true;                      // host waits on this before 
 // this lens is an in-OS holospace NODE (an iframe with ?target=<web url>), it carries its OWN target inline
 // (URI-encoded → no ':' to break the host's colon-split), so the producer is per-lens — no shared pending-url
 // race across multiple projected tabs. With no ?target we are the legacy popup lens (host holds the pending url).
-const TARGET = new URLSearchParams(location.search).get("target") || "";   // the web URL to project, if a node
+// TARGET + POLICY are computed at the top of the module (the lens classifies its own surface).
 const _rr = reqRes();
 if (window.cefQuery) window.cefQuery({ request: "holo:osrready:" + _rr.w + ":" + _rr.h + (TARGET ? ":" + encodeURIComponent(TARGET) : ""), onSuccess() {}, onFailure() {} });
+
+// THE ONE HUD — same readout the app envelope + video path show. Reads this lens's live κ globals; Alt+H toggles.
+mountProjectionHUD(() => ({
+  kind: POLICY.kind, treatment: POLICY.treatment,
+  engine: window.__holoScLast ? "screencast" : "canvas2d",   // the path actually projecting this frame
+  refs: window.__holoTilesSeen || 0,                         // tiles referenced (resident κ never re-cross)
+  novelBytes: window.__holoWireBytes || 0,                   // bytes that ACTUALLY crossed (∝ novelty — the κ win)
+  tileBytes: TILE * TILE * 4,
+  internalScale: POLICY.internalScale, ssaa: POLICY.ssaa, l5: true, label: TARGET,
+}), { startHidden: true });
 
 // PHASE C — safe fallback: if no frame composites within the grace window (DRM/Widevine can't be captured, a
 // producer error, or a dead page), tell the host shell to swap this projected node for the plain in-OS web view.

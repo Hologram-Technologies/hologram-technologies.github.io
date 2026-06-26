@@ -32,8 +32,18 @@ export async function sha256Hex(u8) {
   const d = await SUB.digest("SHA-256", u8 instanceof Uint8Array ? u8 : new Uint8Array(u8));
   return hex(d);
 }
-// did:holo:sha256:H(bytes) — the same self-verifying address the substrate uses (CC-1).
+// did:holo:sha256:H(bytes) — the CC-1 identity address. CANONICAL-κ cutover: this sha256 axis is the
+// PERSISTENCE/INTEROP BRIDGE for the identity layer — every operator id, vault chain, strand head and
+// credential already minted is addressed by it, and it is published/shared with peers, so it is kept
+// re-derivable (flipping it in place is a data migration, not a code swap — out of scope here, invariant
+// #4 "additive then cut over"). The canonical κ axis is kappaOf() below (blake3 = the substrate's kappo).
 export async function addressOf(u8) { return "did:holo:sha256:" + await sha256Hex(u8); }
+
+// kappaOf(bytes) → did:holo:blake3:H(bytes) — the CANONICAL κ (the substrate's kappo, Law L1). The seal
+// layer's content address on the one canonical axis, available alongside the sha256 CC-1 bridge above so a
+// minted object RESOLVES on the canonical substrate (like holo-object's blakeDid) while its persisted sha
+// id is untouched. Additive + reversible. kappaVerify() is the Law-L5 admission check on the canonical axis.
+export { kappo as kappaOf, kappoVerify as kappaVerify } from "./holo-kappa.mjs";
 
 // ── the signing axis: prefer Ed25519 (modern Chromium / node ≥18); fall back to ECDSA P-256.
 let _axis = null;

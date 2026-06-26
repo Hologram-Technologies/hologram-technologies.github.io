@@ -1,0 +1,38 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-deliver — nameless, verified delivery past a name-shaped ISP filter (Virgin Media WebSafe). The filter reads names (DNS/SNI) and lands the browser on a block page; the substrate detects that landing, resolves the wanted host to a content κ with ZERO plaintext DNS (κ-roots math / encrypted DoH bridge), and pulls the bytes peer-to-peer addressed by hash and Bao-verified per chunk (Law L5). The carrying peer is UNTRUSTED: a tampered or substituted byte is refused by BLAKE3 math, not by trusting the messenger — the guarantee a VPN/Tor exit cannot give. Honest boundary: cold first-contact still touches the origin from an UNFILTERED relay's vantage (who-wanted-it is hidden from the ISP; the relay sees the fetch), and a fully severed link is not defeated — this routes around name-filtering, it does not beat the wire.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · BLAKE3 tree hash + Bao verified streaming · W3C PROV-O · holospaces Laws L1/L2/L5 · rests on #holo-zone #holo-root #holo-bao #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "block-detect-landing",
+    "block-detect-redirect",
+    "false-positive-guard",
+    "nameless-resolve-no-dns",
+    "unbound-fail-closed",
+    "verified-peer-pull",
+    "tamper-refused-L5",
+    "untrusted-relay",
+    "cold-then-warm",
+    "end-to-end-zero-isp-dns"
+  ],
+  "sample": {
+    "wanted": "https://blocked.example/article",
+    "host": "blocked.example",
+    "kappa": "275c25db61ad5d6ea2c64ba7185f87246bbb5d2c2db47cfc3f90c84adf5ee634",
+    "len": 4673,
+    "chunks": 5
+  },
+  "checks": {
+    "detectBlockPage": true,
+    "detectRedirect": true,
+    "falsePositiveGuard": true,
+    "namelessNoDns": true,
+    "unboundFailsClosed": true,
+    "verifiedPull": true,
+    "tamperRefused": true,
+    "relayUntrusted": true,
+    "coldThenWarm": true,
+    "endToEnd": true
+  },
+  "failed": []
+}

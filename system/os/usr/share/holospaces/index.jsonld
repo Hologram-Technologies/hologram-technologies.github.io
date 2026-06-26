@@ -1031,6 +1031,45 @@
       "schema:image": "apps/holo-3d/icon.svg"
     },
     {
+      "@id": "did:holo:sha256:95f78bb07a0b97f95faf299f722d8134130a37f63289550c2f71defdc91f8f18",
+      "holo:root": "did:holo:sha256:95f78bb07a0b97f95faf299f722d8134130a37f63289550c2f71defdc91f8f18",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication",
+        "schema:GameApplication"
+      ],
+      "schema:name": "Holo Games",
+      "schema:identifier": "org.hologram.HoloGames",
+      "holo:words": "aunt.conduct.wink",
+      "schema:alternateName": "aunt.conduct.wink",
+      "schema:description": "Play real retro consoles as streaming κ-addressable content. Five real emulators (Game Boy, NES, GBA, SNES, Genesis) behind one engine-agnostic frontend — drop a ROM, it streams through the κ-ROM seam (verify-on-read) and plays, super-res'd to your display via WebGPU.",
+      "schema:applicationCategory": "GameApplication",
+      "holo:categories": [
+        "Games",
+        "Emulator",
+        "Entertainment"
+      ],
+      "schema:keywords": [
+        "games",
+        "emulator",
+        "retro",
+        "libretro",
+        "game boy",
+        "gba",
+        "nes",
+        "gambatte",
+        "mgba",
+        "quicknes",
+        "super-resolution",
+        "webgpu",
+        "content-addressing",
+        "kappa",
+        "law-l5"
+      ],
+      "dcat:landingPage": "apps/holo-games/index.html",
+      "schema:image": "apps/holo-games/icon.svg"
+    },
+    {
       "@id": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f",
       "holo:root": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f",
       "@type": [
@@ -2112,6 +2151,22 @@
         "videojs/video-js.min.css",
         "videojs/video.min.js"
       ]
+    },
+    {
+      "@id": "did:holo:sha256:499ae7dec1be371380d2924b8b7f625e19508e307419ad4d017437629373bccb",
+      "holo:root": "did:holo:sha256:499ae7dec1be371380d2924b8b7f625e19508e307419ad4d017437629373bccb",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo",
+      "schema:identifier": "org.hologram.HoloWeb",
+      "holo:words": "subway.panda.sniff",
+      "schema:alternateName": "subway.panda.sniff",
+      "schema:description": "One door to your whole web: Spaces you share with people and agents, Posts you can trust, private search that cites where it came from. No accounts, no servers, no setup — it just works. The entire agent-centric web (Coasys/AD4M) on the κ substrate, behind eight plain words.",
+      "schema:applicationCategory": "SocialNetworkingApplication",
+      "dcat:landingPage": "apps/web/index.html",
+      "schema:image": "apps/web/icon.svg"
     },
     {
       "@id": "did:holo:sha256:a756ea95f4ca624f7a7de66e26708ab07b10cdf8180d742feffe3035673abb1c",

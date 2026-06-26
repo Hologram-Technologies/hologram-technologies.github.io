@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Holospace</title>
+<style>html,body{margin:0;height:100%;background:#07070c;color:#e8e8f0;color-scheme:dark}#surface{position:fixed;inset:0}</style>
+</head>
+<body>
+<div id="surface"></div>
+<!-- The unified holospace surface: one tab = one holospace via ONE verb. mount(κ) resolves the manifest (L5),
+     the registry picks the machine (web | holospaces-x64 | compositor), the machine realizes into #surface.
+     No shell chrome, no branching on kind. (Named holo-mount.html: holospace.html = the κ-Open single-app
+     projection, holospace-host.html = the compositor host — both pre-exist; this is the mount dispatcher.) -->
+<script type="module">
+import { mount, makeResolver, kappaOf, serialize } from "/usr/lib/holo/holospace.mjs";
+import { HOLOSPACES_X64 } from "/usr/lib/holo/machine-holospaces-x64.mjs"; // importing registers the x64 adapter
+
+const surface = document.getElementById("surface");
+const q = new URLSearchParams(location.search);
+
+// MILESTONE M1 — a holospaces-x64 dev container (a REAL x86-64 Alpine). The adapter streams the kernel + rootfs
+// layer from /os/holospaces/* and boots over an OPFS κ-disk. A self-contained demo manifest proves the
+// mount → registry → machine → boot path end-to-end; real κ-store resolve (?ref=<κ>) lands when the manifest
+// store is wired.
+const demo = {
+  "@type": "holospace.v1",
+  name: "alpine-dev",
+  accent: "#5b8cff",
+  machine: HOLOSPACES_X64,
+  image: "did:holo:blake3:" + "a".repeat(64),   // placeholder rootfs identity (the layer's κ once pinned)
+  params: { diskMiB: 256 },
+};
+
+const demoKappa = kappaOf(demo);
+const resolve = makeResolver(async (k) => (k === demoKappa ? serialize(demo) : null));
+const ref = q.get("ref") || demoKappa;
+
+mount(ref, surface, { resolve }).then((r) => {
+  if (!r.ok) surface.textContent = "Couldn't open this holospace (" + r.reason + ").";
+});
+</script>
+</body>
+</html>

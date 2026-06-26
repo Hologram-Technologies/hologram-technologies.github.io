@@ -1,0 +1,27 @@
+{
+  "spec": "S1 — the κ-stream primitive (and compute-memo) mint the canonical BLAKE3 κ, so a stream object's κ IS its Bao root. Small objects stream whole-verified; large objects stream the SAME κ's chunks per-chunk-verified (holo-bao). The SHA-256 stream island is retired.",
+  "witnessed": true,
+  "covers": [
+    "kappa-stream",
+    "bao",
+    "blake3-canonical",
+    "verified-streaming",
+    "compute-memo",
+    "law-l5"
+  ],
+  "checks": {
+    "stream kappaOf mints did:holo:blake3": true,
+    "stream κ == canonical kappo(bytes)": true,
+    "stream κ tail == Bao rootHex (the chunk proofs verify against THIS κ)": true,
+    "frame(novel) emits an obj event with the blake3 κ": true,
+    "admit(obj) verifies by blake3 re-derivation + returns the bytes": true,
+    "frame(held) collapses to a ref (≈0 bytes)": true,
+    "admit refuses a payload that doesn't re-derive to the blake3 κ (Law L5)": true,
+    "a large object's stream κ == its Bao root": true,
+    "whole-object verify (kappoVerify) holds on the stream κ": true,
+    "every chunk verifies against the stream κ (98 chunks, none held whole)": true,
+    "compute-memo output κ is canonical blake3": true
+  },
+  "passed": 11,
+  "failed": 0
+}
