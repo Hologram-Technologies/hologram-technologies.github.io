@@ -73,6 +73,37 @@ import { detectGL, HoloCanvasGL } from "./holo-canvas-gl.mjs";
   }
   function hideFluid() { if (fluidEl) { fluidEl.remove(); fluidEl = null; } }   // tear down → stop its rAF loop
 
+  // HoloBackdrop.burst() — the MAGICAL SEND-OFF. On a successful sign-in the login calls this; the live fluid
+  // blooms outward from centre in escalating rings (full bloom + sunrays for the finale), playing during the
+  // ~850ms glass-unfog right before the desktop loads. No-op unless the live fluid backdrop is the active one
+  // (a photo backdrop just does the normal unfog). Drives the sim's global splat() in normalized [0,1] coords.
+  function burst() {
+    try {
+      if (!fluidEl || !fluidEl.contentWindow) return false;
+      const w = fluidEl.contentWindow;
+      if (!w.splat || !w.config) return false;
+      const c = w.config;
+      c.BLOOM = true; c.SUNRAYS = true;                          // finale quality regardless of the idle tier
+      const savedR = c.SPLAT_RADIUS; c.SPLAT_RADIUS = Math.max(savedR, 0.4);
+      if (w.updateKeywords) w.updateKeywords();
+      // vivid HSV → the sim's dye color scale (≈ generateColor()*10), self-contained so we depend on nothing.
+      const hsv = (h) => { const i = Math.floor(h * 6), f = h * 6 - i, q = 1 - f, t = f; let r, g, b;
+        switch (i % 6) { case 0: r = 1; g = t; b = 0; break; case 1: r = q; g = 1; b = 0; break; case 2: r = 0; g = 1; b = t; break;
+          case 3: r = 0; g = q; b = 1; break; case 4: r = t; g = 0; b = 1; break; default: r = 1; g = 0; b = q; }
+        return { r: r * 0.15, g: g * 0.15, b: b * 0.15 }; };
+      const vivid = () => { const col = hsv(Math.random()); col.r *= 12; col.g *= 12; col.b *= 12; return col; };
+      const ring = (count, speed, rad) => { for (let i = 0; i < count; i++) { const a = (i / count) * Math.PI * 2 + Math.random() * 0.25;
+        try { w.splat(0.5 + Math.cos(a) * rad, 0.5 + Math.sin(a) * rad, Math.cos(a) * speed, Math.sin(a) * speed, vivid()); } catch (e) {} } };
+      ring(10, 1400, 0.02);                                       // bright core
+      setTimeout(() => ring(14, 2600, 0.06), 110);                // escalating rings, outward
+      setTimeout(() => ring(18, 3800, 0.12), 240);
+      setTimeout(() => { ring(22, 5200, 0.18); if (w.multipleSplats) w.multipleSplats(10); }, 400);
+      setTimeout(() => { try { c.SPLAT_RADIUS = savedR; } catch (e) {} }, 950);
+      return true;
+    } catch (e) { return false; }
+  }
+  window.HoloBackdrop = Object.assign(window.HoloBackdrop || {}, { burst: burst });
+
   function ensureCanvas() {
     if (canvas) return canvas;
     canvas = document.createElement("canvas");

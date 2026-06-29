@@ -109,6 +109,10 @@
     if (!window.config) { return void setTimeout(run, 60); }   // wait for the sim's globals
     var p = probe();
     apply(startLevel(p));
+    // CALM IDLE: the vendored sim auto-seeds a splat burst at startup (script.js line ~712). On a LOCK SCREEN
+    // we don't want motion before the user asks for it — clear it so the backdrop sits still (pure black) and
+    // only comes alive on click / tap. The sim loop keeps running, so pointer input still splats instantly.
+    if (window.initFramebuffers) window.initFramebuffers();
 
     // measured-fps governor with hysteresis + cooldown (no flapping). Down fast (protect smoothness),
     // up slow (only after sustained headroom). A separate rAF that only times — negligible cost.

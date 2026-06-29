@@ -173,6 +173,9 @@
   body.unfog .frost { animation: defog .8s cubic-bezier(.4,0,.2,1) forwards; will-change: opacity; }
   body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: lift .72s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; will-change: transform, opacity; }
   body.unfog .wall { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; will-change: transform; }
+  /* the backdrop (super-res photo OR live fluid) rushes gently toward you as the glass clears — the bloom
+     finale feels like stepping INTO the light, then through it to the desktop. */
+  body.unfog .sr-wall, body.unfog .sr-fluid { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; will-change: transform; }
   @keyframes defog { to { opacity: 0; } }
   @keyframes lift { to { opacity: 0; transform: translateY(-10px) scale(1.03); } }
   @keyframes pushin { to { transform: scale(1.08); } }
@@ -184,7 +187,7 @@
     .wall, .frost, .panel, .users, .controls, .session { animation: none; }   /* no power-on motion */
     body.unfog .frost { animation: defogRM .45s ease forwards; }
     body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: liftRM .45s ease forwards; }
-    body.unfog .wall { animation: none; }
+    body.unfog .wall, body.unfog .sr-wall, body.unfog .sr-fluid { animation: none; }
   }
   #fallback { position: fixed; inset: 0; display: none; place-items: center; color: #cbd5e1; z-index: 9;
     font: var(--fs-meta)/1.6 ui-monospace, monospace; text-align: center; padding: 24px; }
@@ -438,7 +441,7 @@ try {
     const armVerify = () => { clearVerify(); _verifyT = setTimeout(() => { _verifyT = null; renderVerifyStuck(st, sddm); }, 12000); };
     sddm.connect("informationMessage", (m) => { setBusy(m); if (/Verifying|Setting up/i.test(m || "")) armVerify(); else clearVerify(); });
     sddm.connect("loginFailed", () => { clearVerify(); setStatus(window.__lastErr || "Try again", true); });
-    sddm.connect("loginSucceeded", () => { clearVerify(); cacheOperator(st.selected || st.users[0]); setStatus("Opening my space…"); document.body.classList.add("unfog"); });
+    sddm.connect("loginSucceeded", () => { clearVerify(); cacheOperator(st.selected || st.users[0]); setStatus("Opening my space…"); try { window.HoloBackdrop && window.HoloBackdrop.burst && window.HoloBackdrop.burst(); } catch (e) {} document.body.classList.add("unfog"); });
     // Biometric-only: nothing this device can verify (no passkey enrolled here) → don't ask for a
     // passcode (there isn't one). Offer the phone's biometric or Guest instead.
     sddm.connect("needName", () => renderCenter({ ...st, hasBio: false }, sddm));

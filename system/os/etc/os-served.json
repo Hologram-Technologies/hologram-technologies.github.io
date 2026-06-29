@@ -4,8 +4,8 @@
   },
   "dcterms:title": "Hologram OS — the SERVED-set closure (every served first-party byte, Law L5)",
   "spec": "A serve-rel → {blake3 (canonical κ), kappa (sha256 bridge alias)} pin for EVERY file the Service Worker serves from the os/ tree, so re-derivation (Law L5) covers the whole OS — not only the boot closure (os-closure.json). BLAKE3 is the substrate's kappo() (the one canonical address); sha256 is kept as a re-derivable bridge alias for legacy .holo/sha256 links and foreign-protocol interop. Folded by holo-fhs-sw.js with the same foldClosure() as os-closure; identity is content, not location (Law L1). Gitignored/undeployed heavy blobs heal by κ via their own manifests and are out of scope here.",
-  "count": 7217,
-  "bytes": 3778174786,
+  "count": 7219,
+  "bytes": 3775695357,
   "closure": {
     ".well-known/agent-card.json": {
       "blake3": "did:holo:blake3:6d2318d602f69bffcca3b68a76877386ef9ba16b1e4ed08fc02c35a0a15261fa",
@@ -424,8 +424,8 @@
       "kappa": "did:holo:sha256:bdb7fee16d37632c6b21af40477a0d910a8e5028387a1575a6c6c2105d964f1f"
     },
     "etc/os-closure.json": {
-      "blake3": "did:holo:blake3:aaf9a73df07145ccd45ddfcdaec430776a0603291a19821bba43d7875d77ec83",
-      "kappa": "did:holo:sha256:8d1353747ef787cf2a18b3a631934ce68569814430864b11151fa488ad8720d6"
+      "blake3": "did:holo:blake3:0a7b6bd130e86ef2e59209402cc197bb9590dfe40638d2750e8db779973940ba",
+      "kappa": "did:holo:sha256:bc74a65109de5f740e3fb15c2db7436176ddf9ac219719745c1f440957c4f5cf"
     },
     "etc/privacy/policies.json": {
       "blake3": "did:holo:blake3:e80cad66fb96e5ec0792b36ab7df0533ace721b06f58e65d4fc63416d2620f78",
@@ -444,8 +444,8 @@
       "kappa": "did:holo:sha256:eca88a456d15c4ac7316a08cd81eb1e77dc000a5a102e8b3a24796fb26bf17b6"
     },
     "holo-fhs-sw.js": {
-      "blake3": "did:holo:blake3:e5f476f87d6115782f3d3de4835e52a777d81d330df683f4081e651d567c9465",
-      "kappa": "did:holo:sha256:25796d2548299d9ae4f8f5786a4399b66a4a9cf88421e94c9132fd98a3d1f419"
+      "blake3": "did:holo:blake3:e0e6172c87c3003ccf21766ab071cf82545be9d3650844f890e308803e7ea825",
+      "kappa": "did:holo:sha256:ba9f039a3f6cea66e392a3688dd0dfdffb1947c9b76f878444b275faf6489faa"
     },
     "home/index.jsonld": {
       "blake3": "did:holo:blake3:b461269a262aafd7bed7ec90b30dba31ad7f87c2e9d2ecbbe79e5ffc95da7e4e",
@@ -22427,6 +22427,10 @@
       "blake3": "did:holo:blake3:eb3e369ec8fc3292f40de2e723c54bf7dfc0b8bea844e2a2920820e91f83e39a",
       "kappa": "did:holo:sha256:ee3f3e5209b675af04c08c97f6f3ed2915d779af20a4873392d8d3d6c5877b5b"
     },
+    "usr/lib/holo/holo-hypercore-stream.js": {
+      "blake3": "did:holo:blake3:0c26ed1b4dc1b8136ee4aaeb0fd97bb81fb23e2d2b31b01ae057873d69d953c3",
+      "kappa": "did:holo:sha256:84785e4ceded415610a9e1bcb0d64027cb4367629e8e7668387ce16ef4821e22"
+    },
     "usr/lib/holo/holo-hypercore.js": {
       "blake3": "did:holo:blake3:208713588ffa9389fbf053b2aa5d5d3c0ffb09661a7c6e68603c83ee532ea62b",
       "kappa": "did:holo:sha256:657a7c8cdf1b425702ac067f49bfb4fb34b851a09ee501a1700e472dca93b5a7"
@@ -22444,8 +22448,8 @@
       "kappa": "did:holo:sha256:0206ad239076af380818870878908f65be66a47705421818f42f832875d8f27f"
     },
     "usr/lib/holo/holo-immersive-backdrop.mjs": {
-      "blake3": "did:holo:blake3:c038de1309006b824e617f11561e2343fffce977eb394a97e3c352c4a833158f",
-      "kappa": "did:holo:sha256:7dba320f5986472dae9a9a2880517f5a78dac9360ad3a22558a2c6ef26ed0e7d"
+      "blake3": "did:holo:blake3:f59e89902a1beaaa3e53c71d45c04f6486cab37fed44f8d47f7816e586252b10",
+      "kappa": "did:holo:sha256:ac1b7f177dae935cc2423e93dd6d356768460c97b6adb5d6d595829161e051ed"
     },
     "usr/lib/holo/holo-immersive.mjs": {
       "blake3": "did:holo:blake3:c1709eb06f0df9b4066c6691973d7b16e6bb78a91b4d9b9d7f67b27f43c7e36d",
@@ -22810,6 +22814,10 @@
     "usr/lib/holo/holo-platform.js": {
       "blake3": "did:holo:blake3:229edfbb3b30740d581f73d2ed9b723fe3a28e9ca2ff9eb3e91a3d2c0c9685dc",
       "kappa": "did:holo:sha256:2da3162efae729bb147fb855d23a2e3339ef40836a6c9f0d9a1f3dc1868a7110"
+    },
+    "usr/lib/holo/holo-play-gpu.js": {
+      "blake3": "did:holo:blake3:28521dd2dcf28c139f67facd871c70e92a95fa5b7c8a085eeb8f622748a8ace4",
+      "kappa": "did:holo:sha256:de96beefa84c105cf9fe93a5fe9928fa1588c5f89e13fded13086a8b23381a06"
     },
     "usr/lib/holo/holo-player.mjs": {
       "blake3": "did:holo:blake3:88a721b0aefe77e1ced422397ce061e23ff06570414c3774afb9445300621599",
@@ -26976,8 +26984,8 @@
       "kappa": "did:holo:sha256:55b14afbb94195bfb2e321727013c50eddb03d0b3aad5039b8a52b4f6df0d3c0"
     },
     "usr/share/frame/fluid/vendor/index.html": {
-      "blake3": "did:holo:blake3:7ad09cfebd23ca942993e960a5c39a893f5ec4d0ee096d9f4bbdf70a2211fca2",
-      "kappa": "did:holo:sha256:f41114fbb74519e721d1d360c7830153d01c6088270ca3042d485a5cd84344b6"
+      "blake3": "did:holo:blake3:99f6fd61f3ab144ef2c374ed8c19ec53a8d12c4eff128c7e42fe7bb3e7d6e960",
+      "kappa": "did:holo:sha256:e6ebf64de9d9250cb6dc3a3eaa2dd1c4a35316479c73afabd0777fa4056d95b3"
     },
     "usr/share/frame/fluid/vendor/script.js": {
       "blake3": "did:holo:blake3:ae09aa1ce27241f6d74888e1a81541b5479ab5466e9d85622483e0ef2b2c4798",
@@ -27072,8 +27080,8 @@
       "kappa": "did:holo:sha256:2a71c2991df660c071e21074a636b7c2862d662e7b3ac80c2935e3567f0a772f"
     },
     "usr/share/frame/login.html": {
-      "blake3": "did:holo:blake3:f5f9f70badb4bbb96704a9dd4e3e842d33ad521ea978db726634442b040e8c35",
-      "kappa": "did:holo:sha256:e6f74cf4b8394728a8e09f5db1d64af7cc65a6c6e9b77c83bd3584cb1fafb923"
+      "blake3": "did:holo:blake3:81e99d1f0419bbc52ebff9725237ac2602e26e58a62ad7723fe697b229ab4801",
+      "kappa": "did:holo:sha256:79c65f48e0d19adaecb09c785dec04eadd5cfe8fb1d92065f7867d778513b06e"
     },
     "usr/share/frame/media-player.html": {
       "blake3": "did:holo:blake3:f42a67f2e18ec4ff696b1b23c0386ce4a13abec9a41b07b1fc4aba601983b87d",
@@ -27228,8 +27236,8 @@
       "kappa": "did:holo:sha256:26b3d10c3018cbe57d0b48a2331fb6f3202dbc7143ffa0689597a8f8998c1a5a"
     },
     "usr/share/holospaces/browser/holospace.lock.json": {
-      "blake3": "did:holo:blake3:9064f23b5a01d2d7271f78667b76b81349db16c4c965b218ad220300a9e162dd",
-      "kappa": "did:holo:sha256:e6fef9e2a397d517df62ca39404c6448597e090ec8ecb8518450a2fa54cac55d"
+      "blake3": "did:holo:blake3:6820534488dc13beff12625862ef4471c6d10c6f5aa7a57be104809c6935df74",
+      "kappa": "did:holo:sha256:00d4831439c9a7fa58537cdc1e825cd495cb8df511228c27d93361ee984f92ce"
     },
     "usr/share/holospaces/btc/holospace.lock.json": {
       "blake3": "did:holo:blake3:881763f4f851f43690d2fe0e402ee6792094e75c3a5372fc46948f1faae627f9",
@@ -27376,20 +27384,20 @@
       "kappa": "did:holo:sha256:038aba37057eaf0ab36b191e6468fa2749497ad71b3bec368c9db484a34b9051"
     },
     "usr/share/holospaces/holospaces.jsonld": {
-      "blake3": "did:holo:blake3:7091ff0947dca4083aeb8c4a379b819ebb168059d5321df776eaa273ce8f4dca",
-      "kappa": "did:holo:sha256:6628db3b4102daf670990b0dbb2ba0e98f6571b446a14d516f7bc446fbb6d441"
+      "blake3": "did:holo:blake3:91bebfd87d0599b1dd4fb7b5a55e812752aecad32a304cebc0874368d634d4eb",
+      "kappa": "did:holo:sha256:41104900e97f22d16ac15bc155e6dbb1cd0aa849b827ac6cbdadb12d29e3e14e"
     },
     "usr/share/holospaces/hub/holospace.lock.json": {
-      "blake3": "did:holo:blake3:53e088e4cc3767a0c984d4434429be69b9e38e9c458ab959ac47200663691771",
-      "kappa": "did:holo:sha256:7087ca9863a73d67c81e4c6d077d17789b31841d1469aa0b0c5be9e2dc48529b"
+      "blake3": "did:holo:blake3:59445f720e6b6f1e7b19f52e14074d2e212b3682d9f18a7f911687269f29fa91",
+      "kappa": "did:holo:sha256:7b257065db996fa6872c936abf3c3092e2e83a2c5e64eeb97abaab97017579ca"
     },
     "usr/share/holospaces/hub/icon.svg": {
       "blake3": "did:holo:blake3:75091c38a023a6450e4f5067f6d60903d10bee0ee5293187747cb80c711207ed",
       "kappa": "did:holo:sha256:df7c890a0a046be04a4c9e88dd4bd7c072081ae7c6d33ff3741893672aab12c2"
     },
     "usr/share/holospaces/index.jsonld": {
-      "blake3": "did:holo:blake3:97eeed6ab7940f95320386d417b0637351a980fa616e908ff73ff75086e21f08",
-      "kappa": "did:holo:sha256:025f4b6566ed6b7812008612b775f83f35c876395e3e88438de27d51f7a834f0"
+      "blake3": "did:holo:blake3:f4fba9a7b973006eabca7d23dfead49223b83c18e86f98b4a4af0b129597ef35",
+      "kappa": "did:holo:sha256:f9ffb3a9447866dfd04c1eaa73bc577df0b4d742a4ff8b4e7b160c2c7b4f4451"
     },
     "usr/share/holospaces/ipfs/holospace.lock.json": {
       "blake3": "did:holo:blake3:c71db2fed25d9ff2388bca1978906808eab8a4c6de9b0b33f91141e530196fd2",
@@ -27400,12 +27408,12 @@
       "kappa": "did:holo:sha256:2d8e88f6193526cdefb38b1f29ffd6c099761c6e4a8e1684a2185fe7174db454"
     },
     "usr/share/holospaces/jypyter/holospace.lock.json": {
-      "blake3": "did:holo:blake3:f6f4d0650a31b05f2ab0b70901ea8ccc73add5b167b3587ad2fb37f17a9b0908",
-      "kappa": "did:holo:sha256:ca81ddcfa2309b464275710b4ca3e71c611ffec53878fdd88cd30b201d40aaa8"
+      "blake3": "did:holo:blake3:276aac1b5c3c1a9a8359ac558767ad8500da601c59066134f1f215b8a9618df4",
+      "kappa": "did:holo:sha256:aaf20cec8fced88ae4ddcc8207af927ce372ab3324448faa54846e865706a1c4"
     },
     "usr/share/holospaces/liberty/holospace.lock.json": {
-      "blake3": "did:holo:blake3:77fa56b7a9d5912b59325788bd24c06d63d7fdda727471a6b362adb484f60bbb",
-      "kappa": "did:holo:sha256:851837226db373476ce8f33ca2578a98b69acb46bbe7d50d3a4cc24c916ae803"
+      "blake3": "did:holo:blake3:f92721f48378fa199ec5d382ea9c6898b2a4338c0bf8d03cb3e372ceafaf3636",
+      "kappa": "did:holo:sha256:f9f0e7a2b4a65b9bddf2d6f02a6cbdb0f3e0efcb0ba376194321d46a0da63913"
     },
     "usr/share/holospaces/liberty/icon.svg": {
       "blake3": "did:holo:blake3:2d539e2f8b81b412e724585f2ce416b927aea0057603ef380904b62d0adcef0b",
@@ -27424,8 +27432,8 @@
       "kappa": "did:holo:sha256:d9b3da7a9efad74b556f473a7de698538c0f00ab7838674bf322aaebc8ecaf0e"
     },
     "usr/share/holospaces/music/holospace.lock.json": {
-      "blake3": "did:holo:blake3:9785ea69ddd549e87c03dde9090bbd0cc61213bb90127cc882b35ef4a877dc01",
-      "kappa": "did:holo:sha256:b7d9dedaa8e4bb138e6c0ec038037ba2a35bcb47a0709fe4ac984c40897147b0"
+      "blake3": "did:holo:blake3:ce6be343827d5150ee26b5bd998b2b2ddfb07a7187cbcafd88ce9843c477464e",
+      "kappa": "did:holo:sha256:949716bc392bf8e5e6be0411aa808f09c75114707882f42510b7c2bb210820a4"
     },
     "usr/share/holospaces/music/icon.svg": {
       "blake3": "did:holo:blake3:e104e556d1a2357d4c4b4d900ef3c957c582f0684e220eae8c11efed74ae233d",
@@ -27480,8 +27488,8 @@
       "kappa": "did:holo:sha256:aa7d12d6242dea7b2967c015a7249c8380626be08c91e7c319eb997704cdf0ae"
     },
     "usr/share/holospaces/q/holospace.lock.json": {
-      "blake3": "did:holo:blake3:c24cbed6974cc8651f224c2b1bfbd735778e5eec3ee2a1c94ef61bd695718bfc",
-      "kappa": "did:holo:sha256:ed55ae6abe810d3f9e5b1342376f4954eba27038a07564c3120987782a0f1ce4"
+      "blake3": "did:holo:blake3:fe35370e7dd8e2978957f25594f24615c2a7d1c9bcf635fc6b8dcc4a50ce2227",
+      "kappa": "did:holo:sha256:ec19ef0d972dac7a42604bce626ae1660eb8d5e7eab300532b1f0f3186fa6384"
     },
     "usr/share/holospaces/q/icon.svg": {
       "blake3": "did:holo:blake3:4bdaceb3a7bb0cd44c18c64adc6b222605883e1929043ff79916c4b69747584d",
@@ -27524,8 +27532,8 @@
       "kappa": "did:holo:sha256:ee3c64bec06a4626842b6a5a2c6e51a5269c6c696a41e929e452adb63e83763d"
     },
     "usr/share/holospaces/stream/holospace.lock.json": {
-      "blake3": "did:holo:blake3:4d63c18dbccfb4cabbeba15bf0d42bf4decf77a2042ca426ca91e07fea2885b3",
-      "kappa": "did:holo:sha256:5726a3086bafdc1befade40d966af7e2fd5dc6663c5598da9e86027a808a88e0"
+      "blake3": "did:holo:blake3:29adf4324a940ef8c60c4412caa1bd850f41e2531f0b1cdb60f8ea6f3870d96f",
+      "kappa": "did:holo:sha256:0467f33831b5f9da88b833dfdb7e6634f9c7f9ae5a8757cab9a4c8f42003befb"
     },
     "usr/share/holospaces/stream/icon.svg": {
       "blake3": "did:holo:blake3:d7c1a6291bad99a95b13466831ea6f721ba7fb428a3a411726cac3c31ce59cfc",
@@ -27556,8 +27564,8 @@
       "kappa": "did:holo:sha256:f483a48b90dcb89584cdd9210562ef41dac257f8c726bc390dd192e757834bcc"
     },
     "usr/share/holospaces/video/holospace.lock.json": {
-      "blake3": "did:holo:blake3:b44c8785d5b0bd8709b2d60c396b9ec2f51546fbc6d3b5f785ef755772251afc",
-      "kappa": "did:holo:sha256:2cf2abf629930095cb370bf3e6aecc0972110ee5e290d9e19cbc321d82c15be1"
+      "blake3": "did:holo:blake3:ef8595ba677c29afe65be8369065648a2aad5feb05efaf7b45fba418031ba421",
+      "kappa": "did:holo:sha256:867b9de448a4f19660cd74352fa363ca8c5d332bd9cb7e0c6146316e5196b8f0"
     },
     "usr/share/holospaces/video/icon.svg": {
       "blake3": "did:holo:blake3:9a9c309bfdb2c4792eb598870d3eba8cd22d6704d6240a0993fab28c34aa0e79",
@@ -27568,8 +27576,8 @@
       "kappa": "did:holo:sha256:8e4ee22ee5b49abe1472cb73ed29545fd6a086d10e0cf715cef965062a7371b1"
     },
     "usr/share/holospaces/workspace/holospace.lock.json": {
-      "blake3": "did:holo:blake3:a6836729595805df5c64e516513952c12ae4344f648eb7acc09aa717f4763740",
-      "kappa": "did:holo:sha256:426692dbfa0cca44bc7065bf4f5e83c09f36102449b17c9365b1e1a0a317f9ea"
+      "blake3": "did:holo:blake3:753a1c6cdc585c14b85e574548631591e38bb283fe5579884a83a1392f3c2a0f",
+      "kappa": "did:holo:sha256:753526ce0e01688378e2df782281b3619ef03306a6fb1dbd2ef1a20c50d54d96"
     },
     "usr/share/holospaces/workspace/icon.svg": {
       "blake3": "did:holo:blake3:34d298f217489cc8c7be60f6034c3e60197bc0001f12235e7232e02fed16800a",
@@ -28476,12 +28484,12 @@
       "kappa": "did:holo:sha256:cc48edc4a85c047a7f286ddcce9c6b64ec40ccf45872cd4cda691d72441e3508"
     },
     "~browser/index.html": {
-      "blake3": "did:holo:blake3:d5fd59c9e2c5981d844af6093dfc562d2a32d76facf78ae6e67d785ef3b3969e",
-      "kappa": "did:holo:sha256:93081a2020edb6bd319dbfb004c59cece123df211d49ae4cd834d12eb29c8a1f"
+      "blake3": "did:holo:blake3:c49f68df4f289f7517301a451cede87db6aa2d4f8d34016e368486dba2b4ab9e",
+      "kappa": "did:holo:sha256:7844436f2a6271fa0052010f9a88e5b7e3c32caff066f8f4f3a248ce07446d80"
     },
     "~browser/og.svg": {
-      "blake3": "did:holo:blake3:e6335acab8b2eaafe6afda0bb4bee63dfba119ec1882f4d8a9b79d9764afbf84",
-      "kappa": "did:holo:sha256:8e2402d564c44525f918787329bf4976094f01f8fc74355ac2053c75464fa90c"
+      "blake3": "did:holo:blake3:e9bb17a2b6860225ae25619118526e5c2b9e0384df8b2c6c0ba5b4572ace0d26",
+      "kappa": "did:holo:sha256:0cbd1e0462284eee39c1796099f1b6868b82d6f57bf8e36abc7b7246a4053717"
     },
     "~btc/index.html": {
       "blake3": "did:holo:blake3:ad7725597f573feb8fa36f59f1094b39e2239d2df2e463d4c73780def3c4af56",
@@ -28660,12 +28668,12 @@
       "kappa": "did:holo:sha256:34279f4e4b202679d030bf8bf40520c4e5199268286b34915c4000d458bb9385"
     },
     "~hub/index.html": {
-      "blake3": "did:holo:blake3:b362f30a9a2e0018bad63c395384a2939c9777f5b90492665a707fdfe99ff5c4",
-      "kappa": "did:holo:sha256:73c06327d1cd43eb881b143a7922c4ea11c036794c9d5b81add9c162c4443ae6"
+      "blake3": "did:holo:blake3:14684e7c24c3652b2b54a1fe0da8808edf991425b19ee78fff1c82b3fd9237d7",
+      "kappa": "did:holo:sha256:85987c9f52b6adef5e761fad3779d5d4b2d08c4b980f030c10ab175c4a7ee903"
     },
     "~hub/og.svg": {
-      "blake3": "did:holo:blake3:de6cccf1a6b2c2481c7f000e7c2e9baaef85bf7e89a5a91afd12c15e339fd2e5",
-      "kappa": "did:holo:sha256:8f5c0a65823eaafe04ec0925850093e3c96a78773f31b76eb208b74df3aceefe"
+      "blake3": "did:holo:blake3:58ba0cc403c6baec24abdb69d47a3b75dec1d4c4913b149c46f8999776b1d4a4",
+      "kappa": "did:holo:sha256:5438d6bfdbd4943aa6561121f5faefc22ea4eaffc568a0004a8f6ca079ccad79"
     },
     "~ipfs/index.html": {
       "blake3": "did:holo:blake3:24317c84436f3a0fd43baa00698b2f2e8f0d9505ca87bbd55e52269f6693d92c",
@@ -28676,20 +28684,20 @@
       "kappa": "did:holo:sha256:ad773bd189f67727ec81798364d9ea51da06afdbe0990c660369286cfe5942cd"
     },
     "~jypyter/index.html": {
-      "blake3": "did:holo:blake3:844ac1ae117a7f7fc739352373df6a2271d1d9de97c5289e7e9888c05a56b8f5",
-      "kappa": "did:holo:sha256:618cb9bd107e6647b4f1c10675e1ecaa7d06a040f6801c80ce55227910a3c3d8"
+      "blake3": "did:holo:blake3:e0b503d7bc870af07854ccca3b9df2dadb63f96387e7baa6452b6836fb5ce8b8",
+      "kappa": "did:holo:sha256:90ffbb428d49ce1cf12470a3c08d8d057c6375a1742429b63cdfe7b12f4d1c05"
     },
     "~jypyter/og.svg": {
-      "blake3": "did:holo:blake3:17cacc40afd352a7fb6b47c1f02686bc621a1bc4740fae2767cc7e8a86ae2057",
-      "kappa": "did:holo:sha256:6ecd9b859f768caacc80b12ac3f3e698081132cfd6f7b2210c00a122062d6944"
+      "blake3": "did:holo:blake3:63a4460f95a924e2d7840fc03903237a4310ba1baefc1af78adf1c24a90d4e2b",
+      "kappa": "did:holo:sha256:ec7b3f5068a2c037bfb5b30d6c5166b47ce2abd6eaac0c04a5faef4988a82935"
     },
     "~liberty/index.html": {
-      "blake3": "did:holo:blake3:36c04fb0f7c2963ceb8109bdfdc287661b6bb92340e4573915cfb1bce514fda1",
-      "kappa": "did:holo:sha256:19eb14f74672797ae2d7082823660e4527a32753f626abab3a4d9672fc610b14"
+      "blake3": "did:holo:blake3:67814ae74ed9e30ca57dce7d66d900e68a8fe53372f1c68b3ba6dbe256195e53",
+      "kappa": "did:holo:sha256:a4f412e06151a4498e1dd429df111cfe70afa665c67bda8c9b552f57337770f8"
     },
     "~liberty/og.svg": {
-      "blake3": "did:holo:blake3:747585f6bdd11962478b9f74cb92de2ff53025a1a7b0e5a28b4ae858403038b0",
-      "kappa": "did:holo:sha256:f8f669ec570cd29de567fca8126b353d17c13899fa1bcdb098461a035fdabea3"
+      "blake3": "did:holo:blake3:4bd7ea39694371d5b6a111c629e2c117fe6548dc95bdae8440dccd97de7b0a1d",
+      "kappa": "did:holo:sha256:738a9d6ac10f49ce5a27162e8164e1908a714cd4a9c15f7ca3a8265658ec2d71"
     },
     "~library/index.html": {
       "blake3": "did:holo:blake3:1423cd5bf646adfd69eac2107a5be3c13ff614495a1d3f7fc508593365326cd9",
@@ -28708,12 +28716,12 @@
       "kappa": "did:holo:sha256:4ec01bca33d45cf11fe9f92c73d5785ec156f228ff2940a373079e0f584fec7d"
     },
     "~music/index.html": {
-      "blake3": "did:holo:blake3:82bac170f0142e82326a9d7bd6d2343eee543ebfe6bf3b588ff0070f1b3b1a33",
-      "kappa": "did:holo:sha256:cb297b71594ef7481fe80efa8eeb487ebc152350cd085e0be817817129e53ca3"
+      "blake3": "did:holo:blake3:2e259ba86d319f5d7beb008168e2a08dc4e1ebf95eda318999bdc76bda8c525f",
+      "kappa": "did:holo:sha256:69dd809b38b89aeb92fa054b344e4cc30a36fc9f7992e2b6d1b966e34b31bb3a"
     },
     "~music/og.svg": {
-      "blake3": "did:holo:blake3:0df133bdfc1dcbb9f364fea976378c23c044e87c05eb61395bef93bc6c4fc1d5",
-      "kappa": "did:holo:sha256:f1bf3face418509e53e1c4db984db7b18b3283e91878fc8a84579819a718305c"
+      "blake3": "did:holo:blake3:7136cb6108c8465f81b080b953eecb181f9974d68d2f0515acddaf01d0c444fe",
+      "kappa": "did:holo:sha256:02e0ff10a8e37de1a7be01b116a2cb72e0ab26fc8ff651e93fc5ad11eda56573"
     },
     "~notepad/index.html": {
       "blake3": "did:holo:blake3:e96ac653dc222b757c40ea3afbc4fe7d11b900882434975054298c40700b5f7b",
@@ -28764,12 +28772,12 @@
       "kappa": "did:holo:sha256:705791b9058c6c0d80e7d470e4723857ce2c977372b83b92c046c0c47b5c4e7c"
     },
     "~q/index.html": {
-      "blake3": "did:holo:blake3:0ac4c65d8d824efad26fec381df44b79220b74e2e449b87c7fc8075524a9034f",
-      "kappa": "did:holo:sha256:aaba1c01cf9c290d62023218f238a56aae4c7f6447840305f929b930aaf2812f"
+      "blake3": "did:holo:blake3:316a9ee60e5b8b9ac4caffb43b07aac86fffbf0a3400e442b2d239a90bbd0269",
+      "kappa": "did:holo:sha256:d3f8d35017035bd9ee41d759d3d9543127ebc9d1b0ee2af8eefc27bb98d8a3a9"
     },
     "~q/og.svg": {
-      "blake3": "did:holo:blake3:e2e276a69e23e4c829b1628017cec52d5571d345505a587d15ee395ba2e1a57a",
-      "kappa": "did:holo:sha256:933d02f2b62b74a52c2795c6fb927fa61839874405036ff8767457479d8e302b"
+      "blake3": "did:holo:blake3:b294a19b33a44075b5ac6db53253216dd1bc98b86eed770ef40d8a66b8503a69",
+      "kappa": "did:holo:sha256:88b335d4bc348cebb30f179b05d3f553df5cac1d338ee19e558d6247d6c2d1f6"
     },
     "~qemu/index.html": {
       "blake3": "did:holo:blake3:69bcc04dc99db5effdf0c39fd4229d0918d9d125cef1d866dd0bcd7ced3c168f",
@@ -28820,12 +28828,12 @@
       "kappa": "did:holo:sha256:9ea6cde5477920cc1872350ef82cb0c2a9c5b1c221b27b6e7f77d3ae6a1a5b14"
     },
     "~stream/index.html": {
-      "blake3": "did:holo:blake3:a57eb6f1017576d55591e193caf733b548a38617d3f38c309c63d5ea077cb191",
-      "kappa": "did:holo:sha256:ea3408d4f51522e37a4908f9461278fd7f5f92dbbc5b61bf339cb3db6e9be9e4"
+      "blake3": "did:holo:blake3:d4efed8bb221ae81c17bebc31aa3823319bb2a1b685144b7ddf09f6f372fffd4",
+      "kappa": "did:holo:sha256:e7995ed37d7de4f1704cb0fbbcd49f2c6c63c1c50fda5c190c6a79d4487ae52a"
     },
     "~stream/og.svg": {
-      "blake3": "did:holo:blake3:25912651131cbe91ee21f4b9f2440d61749808aee5db8fded80398bf96f3e5e7",
-      "kappa": "did:holo:sha256:d9f930f6e13167fadb26e4255120f1b062244d1b8b4cc68008b0d823b198bf0d"
+      "blake3": "did:holo:blake3:fc7fc717c96066f5a6a995a27ed1c31abd45147cccde60a43b9502df6901d2a2",
+      "kappa": "did:holo:sha256:d28bddfe7dae2ccf061586dc9fae04a28024b568d59b88312b63684884f54f09"
     },
     "~terms/index.html": {
       "blake3": "did:holo:blake3:42e5f4a2f2680d1bc75cd9df0487e2b95814c55ae52f74c873608ade04c10d55",
@@ -28852,12 +28860,12 @@
       "kappa": "did:holo:sha256:c28ef8611ec00fa4f1a3a4c1c38157e57ff962dbe6cc61cdcf541601470383be"
     },
     "~video/index.html": {
-      "blake3": "did:holo:blake3:5680ef7a1518d9e541e45406abbb2f25919cac0b657d67aff046f7f1928b6ebb",
-      "kappa": "did:holo:sha256:236af408ac971929ac7751c39eb62c1ee0abd7fa53ea599151d4ec5145ac449c"
+      "blake3": "did:holo:blake3:dcf08d6efce5160d075b5bd10133713efb25d8e53834a134121cff1e48ac9803",
+      "kappa": "did:holo:sha256:0e825bd73f5df6e5dc3bd9e9c29c482ee7fb8576fd72b6d234837cef8e4e3d4d"
     },
     "~video/og.svg": {
-      "blake3": "did:holo:blake3:edf4c0d0b693254d625edeb2e72f0aa7e2db1d96fff1c26c38c9a7f74ad95ef5",
-      "kappa": "did:holo:sha256:d38c83f4cc8734771c2fe7e73565e8bda49250e7cb876cb4ef97c51f571c05fd"
+      "blake3": "did:holo:blake3:6adf4f14053d505ac0761f9c244f18c43f9023f8840047ea8497c5c63fafd444",
+      "kappa": "did:holo:sha256:e064daff9fea229ac22a251b53344afa8f9bbce44c76c1422f38f069b6ad96e9"
     },
     "~web/index.html": {
       "blake3": "did:holo:blake3:805bb4bc1ae78136a4bb4e8b215d0524474dfad9e738a1a287806c3be4c4a8a9",
@@ -28868,12 +28876,12 @@
       "kappa": "did:holo:sha256:5feb4707f4c13f0f91d08627eab1f2bbadf3d2073072819491755311e955585f"
     },
     "~workspace/index.html": {
-      "blake3": "did:holo:blake3:a5f6c6c5525ce90e7696da79f962875e477da4a220f928296c6bb6acbe23bb91",
-      "kappa": "did:holo:sha256:87eebb462506c85c0f2be06a7d7e96b9ceeb3a4c1fe4863fd701d5cd6f76c892"
+      "blake3": "did:holo:blake3:339b02a73f3615cf0ea47f533ded1fb25fbec5c9845c0fc5201f22ed27f0cb10",
+      "kappa": "did:holo:sha256:6523fa1b7d80a3e6c556954689c518d65bfc0a38adc31d1a2b0918b68ba4f18c"
     },
     "~workspace/og.svg": {
-      "blake3": "did:holo:blake3:3d0abefa0fca49f179c3daea36cf0af53c420ab25c7da3a8712b100a3110fcd0",
-      "kappa": "did:holo:sha256:e5b50daa61b6ae0ac79ca89975cfcc8226e573c015b004636bcb436e2c719a9b"
+      "blake3": "did:holo:blake3:e025d3b7c00bb5211206970e9cff844ae0bb7748e1ffd567a0bfc7735c28bc36",
+      "kappa": "did:holo:sha256:3488aff2ac9b7ca3adf9e5d199f82a7ef741086b6c42bd69af26281a519d981e"
     }
   }
 }
