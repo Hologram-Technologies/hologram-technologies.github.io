@@ -1,0 +1,24 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "PUT — peer A cn_put(envelope bytes) returns a κ byte-identical to our cnKappaOf (P0 parity on real wire bytes)",
+    "DISCOVER — A cn_announce(κ); after pumping CC-49 frames both ways, B's cn_discover() lists the κ (CC-38 round-trip)",
+    "FETCH — B cn_fetch_start(κ) + pump + cn_fetch_poll returns the exact bytes; holowhat verifies on receipt (Law L5)",
+    "OPEN — B opens the fetched envelope with the per-conversation PQ epoch key (X25519‖ML-KEM-1024) → the original message",
+    "BLIND — only ciphertext crosses the content network; no plaintext (SEC-7 content-blind carrier)",
+    "IDENTITY — the real Console.sign_in(key) returns a content-addressed self-sovereign identity κ"
+  ],
+  "kappa": "blake3:aeeab1713be8e300a40d49cd3b3fe9677d34305658e7bd608ac09f05912fabbc",
+  "plaintextRecovered": true,
+  "checks": {
+    "cn-put-kappa-matches-ours": true,
+    "cn-discover-finds-announced-kappa": true,
+    "cn-fetch-returns-exact-bytes": true,
+    "fetched-envelope-opens-to-message": true,
+    "content-network-is-content-blind": true,
+    "signin-returns-identity-kappa": true
+  },
+  "failed": [],
+  "authority": "holowhat Console CN (real WASM) · holo-messenger-epoch (PQ E2EE) · holospaces CC-38/CC-49 · Law L1/L5 · SEC-1/SEC-7"
+}

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+    <script>(function(){try{var s=parseFloat(new URLSearchParams(location.search).get('__hsr'));if(!(s>0))return;var b=window.devicePixelRatio||1,t=b*Math.max(0.3,Math.min(1,s));Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:function(){return t;}});window.__holoMemoReady=new Promise(function(r){window.__holoMemoResolve=r;});var gc=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(ty,at){if(/webgl/i.test(ty)){at=Object.assign({},at,{preserveDrawingBuffer:true});}var c=gc.call(this,ty,at);try{if(c&&/webgl/i.test(ty)){['drawArrays','drawElements','drawArraysInstanced','drawElementsInstanced'].forEach(function(m){var o=c[m];if(o){c[m]=function(){window.__holoSeq=(window.__holoSeq||0)+1;return o.apply(c,arguments);};}});}}catch(e){}return c;};window.__HOLO_SR__={base:b,scale:t};}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cosmic Flow — WebGL2</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#02030a;font:13px ui-monospace,Menlo,monospace;color:#cfe0ff}
+  #c{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;cursor:crosshair}
+  #t{position:fixed;right:14px;top:12px;text-align:right;opacity:.82;pointer-events:none;text-shadow:0 1px 4px #000}
+  #t b{color:#a9c7ff;font-size:15px}
+  #t small{opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="t"><b>Cosmic Flow · WebGL2</b><br/>domain-warped nebula — drift through it<br/><small>move to steer</small></div>
+<script>
+const cv = document.getElementById("c");
+const gl = cv.getContext("webgl2", { antialias: false });
+if (!gl) document.body.innerHTML = "<p style='padding:20px'>WebGL2 unavailable</p>";
+
+const VS = `#version 300 es
+void main(){ vec2 p=vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position=vec4(p*2.0-1.0,0.,1.); }`;
+
+const FS = `#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 R; uniform float T; uniform vec2 M;
+float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+  float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
+float fbm(vec2 p){ float s=0.0,a=0.5; mat2 m=mat2(1.6,1.2,-1.2,1.6);
+  for(int i=0;i<6;i++){ s+=a*noise(p); p=m*p; a*=0.5; } return s; }
+vec3 cosmic(float t){ t=clamp(t,0.0,1.0);
+  vec3 a=vec3(0.03,0.05,0.18);   // deep-blue void
+  vec3 b=vec3(0.30,0.12,0.55);   // violet
+  vec3 c=vec3(0.85,0.25,0.62);   // magenta
+  vec3 d=vec3(1.0,0.82,0.92);    // hot pink-white core
+  return t<0.34 ? mix(a,b,t/0.34) : t<0.67 ? mix(b,c,(t-0.34)/0.33) : mix(c,d,(t-0.67)/0.33); }
+void main(){
+  vec2 uv=(gl_FragCoord.xy*2.0-R)/R.y;
+  vec2 mo=(M*2.0-1.0);
+  uv*=1.35;
+  uv += mo*0.45;                                  // steer
+  float t=T*0.06;
+  vec2 p=uv;
+  // iq domain warping → organic flowing cloud structure
+  vec2 q=vec2(fbm(p+vec2(0.0,0.0)+0.10*t), fbm(p+vec2(5.2,1.3)));
+  vec2 r=vec2(fbm(p+3.5*q+vec2(1.7,9.2)+0.13*t), fbm(p+3.5*q+vec2(8.3,2.8)-0.11*t));
+  float f=fbm(p+4.0*r);
+  float dens=clamp(f*1.2,0.0,1.0);
+  vec3 col=cosmic(dens);
+  col=mix(col, vec3(1.0,0.78,0.9), clamp(length(r)-0.6,0.0,1.0)*0.7);  // hot folded cores
+  col*=0.28+1.25*dens*dens;                       // emission
+  col+=vec3(0.06,0.10,0.28)*(1.0-dens)*0.5;       // cold void glow
+  // starfield (parallax twinkle), brightest where the cloud is thin
+  vec2 sg=floor((uv*1.0+vec2(13.0,7.0))*48.0);
+  float st=hash(sg);
+  if(st>0.985){ float tw=0.6+0.4*sin(T*3.0+st*60.0); col+=vec3(0.9,0.95,1.0)*(st-0.985)*60.0*tw*(1.0-dens*0.7); }
+  // subtle vignette for depth
+  col*=1.0-0.25*dot(uv*0.6,uv*0.6);
+  col=pow(max(col,0.0), vec3(0.85));
+  o=vec4(col,1.0);
+}`;
+
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const uR=gl.getUniformLocation(prog,"R"),uT=gl.getUniformLocation(prog,"T"),uM=gl.getUniformLocation(prog,"M");
+gl.bindVertexArray(gl.createVertexArray());
+
+let target=[0.5,0.5], cur=[0.5,0.5];
+addEventListener("pointermove",e=>{ target=[e.clientX/window.innerWidth, 1.0-e.clientY/window.innerHeight]; });
+function resize(){const dpr=window.devicePixelRatio||1;cv.width=Math.round(window.innerWidth*dpr);cv.height=Math.round(window.innerHeight*dpr);gl.viewport(0,0,cv.width,cv.height);}
+addEventListener("resize",resize);resize();
+
+const t0=performance.now();
+function frame(){
+  cur[0]+=(target[0]-cur[0])*0.04; cur[1]+=(target[1]-cur[1])*0.04;
+  gl.uniform2f(uR,cv.width,cv.height);
+  gl.uniform1f(uT,(performance.now()-t0)/1000);
+  gl.uniform2f(uM,cur[0],cur[1]);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.NEBULA={gl,draw:()=>gl.drawArrays(gl.TRIANGLES,0,3)};
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-bar — the κ-addressable chrome bar: bookmarks bar + action rail as ONE schema (an ordered κ-list of κ-references) and ONE renderer. Identity follows bytes (Law L1); a reorder mints a new κ; a tampered list fails verify-before-trust (Law L5). Display (label/icon/words) is a projection resolved against the app catalog; seeds from the catalog so a new user opens to a populated bar. Pure over holo-bar + holo-bar-store; the DOM is browser-verified.",
+  "authority": "rests on #holo-bar + #holo-bar-store",
+  "witnessed": true,
+  "covers": [
+    "model-deterministic",
+    "reorder-mints-kappa",
+    "verify-l5",
+    "empty-safe",
+    "label-not-identity",
+    "seed-from-catalog",
+    "store-round-trip",
+    "open-target",
+    "token-round-trip",
+    "token-tamper-rejected",
+    "kind-round-trip",
+    "kind-mints-kappa",
+    "legacy-bytes-unchanged"
+  ],
+  "checks": {
+    "modelDeterministic": true,
+    "reorderMintsKappa": true,
+    "verifyL5": true,
+    "emptyIsEmpty": true,
+    "labelNotIdentity": true,
+    "seedFromCatalog": true,
+    "storeRoundTrip": true,
+    "openTarget": true,
+    "tokenRoundTrip": true,
+    "tokenTamperRejected": true,
+    "kindRoundTrip": true,
+    "kindMintsKappa": true,
+    "legacyBytesUnchanged": true
+  },
+  "failed": []
+}

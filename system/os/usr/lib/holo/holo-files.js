@@ -18,6 +18,7 @@
 // Nautilus/Dolphin on Linux — same model, host-matched chrome.
 
 import { profileFor } from "./holo-platform.js";
+import { blake3hex } from "./holo-blake3.mjs";
 
 const W = typeof window !== "undefined" ? window : globalThis;
 const enc = new TextEncoder();
@@ -258,6 +259,71 @@ async function listOSRuntime(prefix) {
   const lock = await getJSON("/etc/os-closure.json");
   return treeFromClosure(lock.closure || {}, "os:", prefix);
 }
+// This Device — the user's whole local disk, navigated LIVE per-directory. The top level lists the
+// mounted volumes (/device/roots — instant, built from the configured roots, no scan needed); each
+// folder is one readdir on demand (/device/ls/<abs>), so navigation is instant and a deep tree never
+// loads more than the folder in view. Content κ is filled lazily (null until a file is first opened).
+// The background sweep + Tier-A search ride the SEPARATE /device/closure manifest (search corpus +
+// dedup index). Empty list while the host is absent/starting → the location stays; re-opening retries.
+async function listDevice() {
+  let doc; try { doc = await getJSON("/device/roots"); } catch { return []; }
+  return sortNodes((doc.entries || []).map((e) => node({
+    name: e.name, path: "device:" + e.path, kind: "dir", source: "device-dir", role: "volume", _absPath: e.path,
+  })));
+}
+// The user's STANDARD folders (Desktop/Downloads/Documents/Pictures/Music/Videos) + home — the "places"
+// a native file manager leads with (Native first-run). Each is a device-dir node (drills via /device/ls)
+// carrying a sidebar glyph hint. Returns [] if the host route is absent (older host) so callers degrade.
+const PLACE_GLYPH = { Home: "home", Desktop: "desktop", Downloads: "downloads", Documents: "documents", Pictures: "image", Music: "audio", Videos: "video" };
+export async function knownFolders() {
+  let doc; try { doc = await getJSON("/device/userdirs"); } catch { return []; }
+  return (doc.entries || []).map((e) => node({
+    name: e.home ? "Home" : e.name, path: "device:" + e.path, kind: "dir", source: "device-dir",
+    glyph: PLACE_GLYPH[e.home ? "Home" : e.name] || "folder", _absPath: e.path, _home: !!e.home,
+  }));
+}
+// One LIVE directory level — a real readdir of exactly this folder, κ-stamped where already known.
+// O(one directory): files carry their content κ (did) when the index knows it, else "" (lazy → the
+// /device/path read stamps it on first open). Off-volume/unreadable → [] so the pane never crashes.
+async function listDeviceDir(absPath) {
+  let doc; try { doc = await getJSON("/device/ls/" + encodeURIComponent(absPath)); } catch { return []; }
+  const out = (doc.entries || []).map((e) => e.kind === "dir"
+    ? node({ name: e.name, path: "device:" + e.path, kind: "dir", source: "device-dir", role: "", mtime: e.mtime || 0, _absPath: e.path })
+    : node({ name: e.name, path: "device:" + e.path, kind: "file", source: "closure", did: e.kappa || "", bytes: e.bytes != null ? e.bytes : null, mtime: e.mtime || 0, mime: mimeOf(e.name), _absPath: e.path }));
+  return sortNodes(out);
+}
+// κ-ON-GLANCE — content-address a device file the moment it's observed (select/preview). Reads its
+// bytes by path (which ALSO stamps the κ host-side) and derives blake3 locally, so the node carries its
+// content address immediately — no waiting on the background sweep. Idempotent; capped (huge files defer
+// to the progressive Bao κ); only device files (others already have their κ or aren't addressable here).
+export async function ensureKappa(node, cap = 8 * 1024 * 1024) {
+  if (!node || node.did) return node && node.did || "";
+  if (node.source !== "closure" || !String(node.path).startsWith("device:")) return "";
+  if (node.bytes != null && node.bytes > cap) return "";   // too big to hash inline → progressive κ (host, later)
+  try {
+    const { bytes } = await read(node, cap);
+    node.did = "did:holo:blake3:" + blake3hex(bytes);
+    return node.did;
+  } catch { return ""; }
+}
+// κ-NATIVE DEVICE WRITES — new folder/file · rename · move · copy · delete→trash, performed on the real
+// device by the host (CoW; the new path is content-addressed + the index re-addressed immediately). The
+// host REFUSES (403) unless the write capability is granted (keys-not-prompts). Returns {ok, op, path}.
+export async function deviceOp(op, { src, dst } = {}) {
+  const body = JSON.stringify(Object.assign({ op }, src ? { src } : {}, dst ? { dst } : {}));
+  const r = await fetch("/device/op/" + encodeURIComponent(body), noStore);
+  if (!r.ok) throw new Error(op + " refused (" + r.status + ")");
+  return r.json();
+}
+const _dirOf = (abs) => { const i = String(abs).replace(/\/+$/, "").lastIndexOf("/"); return i > 0 ? abs.slice(0, i) : abs; };
+const _join = (dir, name) => String(dir).replace(/\/+$/, "") + "/" + name;
+// convenience wrappers over deviceOp, keyed off a device node's absolute path (n._absPath).
+export const deviceMkdir = (parentAbs, name) => deviceOp("mkdir", { dst: _join(parentAbs, name) });
+export const deviceNewFile = (parentAbs, name) => deviceOp("newfile", { dst: _join(parentAbs, name) });
+export const deviceRename = (abs, newName) => deviceOp("rename", { src: abs, dst: _join(_dirOf(abs), newName) });
+export const deviceDelete = (abs) => deviceOp("delete", { src: abs });
+export const deviceCopy = (abs, destDirAbs) => deviceOp("copy", { src: abs, dst: _join(destDirAbs, abs.split("/").pop()) });
+export const deviceMove = (abs, destDirAbs) => deviceOp("move", { src: abs, dst: _join(destDirAbs, abs.split("/").pop()) });
 // Build ONE directory level from a flat {path → {kappa,bytes}} closure (a real path tree). At a
 // given prefix, fold deeper paths into sub-dirs and surface the files at this level.
 function treeFromClosure(closure, scheme, prefix = "") {
@@ -267,7 +333,7 @@ function treeFromClosure(closure, scheme, prefix = "") {
     if (pre && !p.startsWith(pre)) continue;
     const rest = p.slice(pre.length); const slash = rest.indexOf("/");
     if (slash === -1) {
-      const kappa = typeof v === "string" ? v : (v.kappa || v.did || v["@id"] || "");
+      const kappa = typeof v === "string" ? v : (v.kappa || v.blake3 || v.did || v["@id"] || "");
       files.push(node({ name: rest, path: scheme + p, kind: "file", source: "closure", did: kappa, bytes: typeof v === "object" ? v.bytes : null, mime: mimeOf(rest), _realPath: "/" + p }));
     } else { const seg = rest.slice(0, slash); if (!dirs.has(seg)) dirs.set(seg, 0); dirs.set(seg, dirs.get(seg) + 1); }
   }
@@ -291,6 +357,9 @@ export const ROOTS = () => [
   node({ name: "Holo Cloud", path: "cloud:", kind: "location", source: "cloud", writable: true, role: "my private, end-to-end-encrypted cloud · synced with Holo Cloud", glyph: "cloud", _cloudPath: "/" }),
   node({ name: "Desktop", path: "desktop:", kind: "location", source: "desktop", writable: true, role: "my holospace desktop — folders · apps · objects (the SAME model the shell shows)", glyph: "desktop" }),
   node({ name: "Recycle Bin", path: "trash:", kind: "location", source: "trash", role: "deleted Home items — restore or empty (nothing leaves my device)", glyph: "trash" }),
+  // This Device — the whole local disk as self-verifying κ-objects, mapped automatically on boot.
+  // APPENDED (index 7) to keep the chrome's stable indices (0..4 deep-links, holospaces count) intact.
+  node({ name: "This Device", path: "device:", kind: "location", source: "device", role: "my whole disk — every file a self-verifying κ, mapped on boot", glyph: "drive" }),
 ];
 
 // ── DESKTOP unification — the explorer and the shell's desktop are ONE model ─────────────────
@@ -347,6 +416,8 @@ export async function list(n) {
     case "holospaces": return listHolospaces();
     case "catalog": return n._appId ? listHolospaceFiles(n._appId) : [];
     case "osruntime": return listOSRuntime("");
+    case "device": return listDevice();
+    case "device-dir": return listDeviceDir(n._absPath);
     case "closure-dir": return treeFromClosure(await loadClosureFor(n._scheme), n._scheme, n._prefix);
     case "cloud": return listCloud(n._cloudPath || "/");
     default: return [];
@@ -356,12 +427,20 @@ const _closureCache = {};
 async function loadClosureFor(scheme) {
   if (_closureCache[scheme]) return _closureCache[scheme];
   if (scheme === "os:") { const l = await getJSON("/etc/os-closure.json"); return (_closureCache[scheme] = l.closure || {}); }
+  if (scheme === "device:") { const l = await getJSON("/device/closure"); return (_closureCache[scheme] = l.closure || {}); }
   if (scheme.startsWith("holospace:")) { const id = scheme.slice("holospace:".length).replace(/[:/]+$/, ""); const l = await getJSON(`/apps/${id}/holospace.lock.json`); return (_closureCache[scheme] = l.closure || {}); }
   return {};
 }
 
 // realPath(node) — the fetchable os-relative URL whose bytes ARE this node (for read + verify).
 export function realPath(n) {
+  // This Device: fetch by κ over the native device route (holo://device/blake3/<hex>). The host
+  // re-derives blake3 and refuses a stale κ (410), so a successful read IS the L5 proof. Checked
+  // BEFORE _realPath because treeFromClosure stamps a generic _realPath that doesn't apply here.
+  if (n.source === "closure" && String(n.path).startsWith("device:")) {
+    const h = hexOf(n.did);                                              // known κ → L5-verified read by content address
+    return h ? "/device/blake3/" + h : "/device/path/" + encodeURIComponent(n._absPath); // else lazy: host stamps κ on read
+  }
   if (n._realPath) return n._realPath;
   if (n.source === "opfs") return null;                                  // OPFS handled separately
   if (n.source === "closure" && n.path.startsWith("holospace:")) return "/" + n.path.slice("holospace:".length);
@@ -391,6 +470,18 @@ export async function read(n, max = 512 * 1024) {
 // A tampered byte yields a different κ ⇒ ok:false. The heart of "trust by re-derivation".
 export async function verify(n) {
   let bytes, expected = hexOf(n.did);
+  // This Device: the κ axis is blake3, and the native device route re-derives it before serving
+  // (410 on a stale κ). So fetching by κ IS the verification — a 200 proves the bytes hash to the
+  // pinned blake3 at the trust boundary; a 410 proves the on-disk file changed since the scan.
+  if (n.source === "closure" && String(n.path).startsWith("device:")) {
+    if (!expected) return { ok: null, reason: "κ not stamped yet — open once to content-address it" }; // lazy κ: first read defines it
+    try {
+      const r = await fetch(realPath(n), noStore);
+      if (r.status === 410) return { ok: false, expected, reason: "file changed since scan — κ stale" };
+      if (!r.ok) return { ok: null, reason: "not resolvable (" + r.status + ")" };
+      return { ok: true, derived: expected, expected, kind: "blake3 · re-derived at the native κ-route" };
+    } catch (e) { return { ok: null, reason: String(e && e.message || e) }; }
+  }
   if (n.source === "cloud") { const cw = await cloud(); bytes = await cw.fs.get(n._cloudPath); if (!bytes) return { ok: false, reason: "not resolvable in cloud store (or refused — tampered)" }; const derived = await sha256hex(bytes); return { ok: expected ? derived === expected : true, derived, expected }; }
   if (n.source === "opfs") { const parts = homeParts(n.path); const name = parts.pop(); const f = await readHome(parts, name); bytes = new Uint8Array(await f.arrayBuffer()); }
   else { const rp = realPath(n); if (!rp) { // a dir/jsonld node: re-derive its object address
@@ -460,6 +551,11 @@ export async function searchAll(query, { limit = 80 } = {}) {
   try { await walkHome("/home/user", (n) => { if (n.name.toLowerCase().includes(q)) add(n, "Home"); }); } catch {}
   try { for (const a of await listHolospaces()) if (a.name.toLowerCase().includes(q) || (a.role || "").toLowerCase().includes(q)) add(a, "Holospaces"); } catch {}
   try { const cl = await loadClosureFor("os:"); for (const p of Object.keys(cl)) { if (out.length >= limit) break; if (p.toLowerCase().includes(q)) { const v = cl[p]; add(node({ name: p.split("/").pop(), path: "os:" + p, kind: "file", source: "closure", did: typeof v === "object" ? v.kappa : v, bytes: typeof v === "object" ? v.bytes : null, mime: mimeOf(p), _realPath: "/" + p }), "OS Runtime"); } } } catch {}
+  // This Device — Tier A keyword search over the WHOLE-disk κ-index (no LLM; the always-works floor).
+  // The device closure is the pin set; each hit opens/verifies by its content κ via the device route.
+  try { const dcl = await loadClosureFor("device:"); const { searchDevice } = await import("./holo-device-graph.mjs");
+    for (const h of searchDevice(q, dcl, { limit })) { if (out.length >= limit) break;
+      add(node({ name: h.path.split("/").pop(), path: "device:" + h.path, kind: "file", source: "closure", did: h.kappa, bytes: h.bytes != null ? h.bytes : null, mime: mimeOf(h.path) }), "This Device"); } } catch {}
   try { if (W.HoloWebDAV) await walkCloud("/", (n) => { if (n.kind === "file" && n.name.toLowerCase().includes(q)) add(n, "Holo Cloud"); }); } catch {}
   return out;
 }
@@ -565,7 +661,7 @@ export async function compressToZip(nodes, destDirPath = "/home/user", zipName =
   return { name: zipName, count: entries.length, bytes: z.length };
 }
 
-export const HoloFiles = { ROOTS, list, read, verify, realPath, platform, skinFor, mkdir, createFile, writeFile, rename, remove, moveHome, copyHome, fmtBytes, mimeOf, kindOf, extOf, FHS,
+export const HoloFiles = { ROOTS, knownFolders, ensureKappa, deviceOp, deviceMkdir, deviceNewFile, deviceRename, deviceDelete, deviceCopy, deviceMove, list, read, verify, realPath, platform, skinFor, mkdir, createFile, writeFile, rename, remove, moveHome, copyHome, fmtBytes, mimeOf, kindOf, extOf, FHS,
   sendToCloud, cloudShareLink, searchAll, resolveInput, materialize, webSearch, freeSpace, extractZip, compressToZip,
   deskMkdir, deskRename, deskRemove, deskMove, deskCopy, deskUndo, deskRedo, onDesktopChange,
   recycle, restoreTrash, removeTrash, emptyTrash, trashCount };

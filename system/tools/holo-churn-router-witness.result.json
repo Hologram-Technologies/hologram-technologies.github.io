@@ -1,0 +1,22 @@
+{
+  "spec": "Full-motion churn router: classify each tile slot as a raw κ tile (low churn — lossless/sharp) or a κ video chunk (high churn — WebCodecs, ~300× smaller), with hysteretic promote/demote so a paused video demotes to a free raw tile and regions don't flap. Pure; the producer ports it over its per-slot delta state.",
+  "authority": "damage/dirty-region rendering · adaptive codec selection · hysteresis (Schmitt-trigger) · the full-motion prompt",
+  "witnessed": true,
+  "covers": [
+    "churn-router",
+    "starts-tile",
+    "promote-on-churn",
+    "stay-tile-low-churn",
+    "demote-when-static",
+    "hysteresis-no-flap",
+    "per-slot-independent"
+  ],
+  "checks": {
+    "startsAsTile": true,
+    "promotesOnSustainedChange": true,
+    "staysTileIfLowChurn": true,
+    "demotesWhenStatic": true,
+    "hysteresisNoFlap": true,
+    "perSlotIndependent": true
+  }
+}

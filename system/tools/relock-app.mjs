@@ -42,8 +42,10 @@ const prev = existsSync(join(APP_DIR, "holospace.lock.json")) ? JSON.parse(readF
 const closure = {}, links = [];
 const add = (abs, rel) => {
   if (closure[rel]) return;
-  const bytes = readFileSync(abs), hex = sha256hex(bytes);
-  closure[rel] = { kappa: `did:holo:sha256:${hex}`, sri: sriOf(bytes), multibase: mbSha256(bytes), bytes: bytes.length, alsoKnownAs: [`did:holo:blake3:${blake3hex(bytes)}`] };
+  const bytes = readFileSync(abs), hex = sha256hex(bytes), b3 = blake3hex(bytes);
+  // canonical κ = blake3 (top-level, PRIMARY — same shape the OS closures use post-cutover); sha256 = the
+  // re-derivable bridge alias (kappa/sri/multibase); alsoKnownAs keeps the blake3 κ for legacy readers.
+  closure[rel] = { blake3: `did:holo:blake3:${b3}`, kappa: `did:holo:sha256:${hex}`, sri: sriOf(bytes), multibase: mbSha256(bytes), bytes: bytes.length, alsoKnownAs: [`did:holo:blake3:${b3}`] };
   links.push({ ...contentLink("schema:hasPart", `sha256:${hex}`, typeOf(rel)), "schema:name": rel });
 };
 

@@ -1,0 +1,17 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-lang — three Languages (web/HTTP-ActivityPub, web3/IPFS-EVM-CAIP, AI/model output) behind ONE { name, create, get } seam. Whatever the source protocol, an Expression's address is did:holo:sha256(content) from the one substrate hasher (Law L4) — a Language never re-hashes — so a single Perspective holds Links to all three with an identical address-derivation path. Provenance is provable on the operator's strand; tampered content fails closed (L5). This is web/web3/AI interoperability made mechanical.",
+  "authority": "AD4M Language / Expression-Language (docs.ad4m.dev) · holospaces Laws L1/L3/L4/L5 · rests on #holo-ad4m + #holo-strand-provenance",
+  "witnessed": true,
+  "checks": {
+    "webRoundTrip": true,
+    "web3ReDerives": true,
+    "aiCreate": true,
+    "onePerspectiveAllThree": true,
+    "identicalAddressPath": true,
+    "provenanceProvable": true,
+    "tamperedAiRefused": true,
+    "contentAddressed": true
+  },
+  "failed": []
+}

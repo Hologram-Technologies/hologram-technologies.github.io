@@ -27,15 +27,17 @@ function mkEl(tag) {
 function mkDoc() {
   const byId = {};
   const body = mkEl("body");
+  const head = mkEl("head");
   return {
-    _byId: byId, body,
+    _byId: byId, body, head, documentElement: mkEl("html"),
     createElement: (t) => mkEl(t),
     getElementById: (id) => byId[id] || null,
     _register(el) { if (el.id) byId[el.id] = el; (el.children || []).forEach((c) => this._register(c)); },
   };
 }
 function mkWin(over = {}) {
-  const w = { _keys: [], addEventListener(t, fn) { if (t === "keydown") w._keys.push(fn); }, Date: { now: () => 12345 } };
+  const w = { _keys: [], addEventListener(t, fn) { if (t === "keydown") w._keys.push(fn); }, Date: { now: () => 12345 },
+    requestAnimationFrame: (cb) => { cb(); return 0; } };   // synchronous so the slide transform commits in-test
   return Object.assign(w, over);
 }
 
@@ -74,16 +76,17 @@ function index(doc) { const root = doc.body.children[0]; if (root) doc._register
   ok("F12 opened the dock", api.isOpen() === true);
 
   const dock = index(doc);
-  ok("dock element exists and is shown (display:block)", !!dock && dock.style.display === "block");
+  ok("dock width is golden-ratio (38.2vw)", !!dock && dock.style.cssText.includes("38.2vw"));
+  ok("dock open: visible (display:block) + slide-in entrance animation", !!dock && dock.style.display === "block" && /holo-dock-in/.test(dock.style.animation || ""));
   ok("HoloDevToolsServe pointed via installLive", typeof win.HoloDevToolsServe === "function" && !!installLiveArgs);
   const tgt = installLiveArgs && installLiveArgs.target && installLiveArgs.target();
   ok("live target = the ACTIVE tab's doc/win/κ", !!tgt && tgt.doc && tgt.win && tgt.kappa === "did:holo:sha256:abc123");
   ok("conscience passed to the backend (L4 gate)", installLiveArgs && installLiveArgs.conscience === win.HoloConscience);
   ok("DevTools frame registered on the holo-gov bus", registered && registered.id === "org.hologram.HoloDevTools");
 
-  // press F12 again → closes
+  // press F12 again → closes (hidden)
   win._keys[0]({ key: "F12", preventDefault() {}, stopPropagation() {} });
-  ok("second F12 closes the dock", api.isOpen() === false);
+  ok("second F12 closes the dock (display:none)", api.isOpen() === false && dock.style.display === "none");
 }
 
 // ── 3: cross-origin active tab → live doc is null (backend falls back to scene), no throw ─────────

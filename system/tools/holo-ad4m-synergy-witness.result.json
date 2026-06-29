@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-synergy — Coasys Synergy on κ, serverless: a privacy-preserving distributed search whose corpus is sealed (the worker's host sees only ciphertext, holo-swarm) and accepted only after verify-before-accept (Law L5); results ranked by holo-rank's re-derivable personalized PageRank; each carries provable provenance (holo-strand-provenance); and use mints κ-native mutual credit (Synergy Fuel) to the data owner — an append-only ledger strand, no token deploy, no chain. A forged result is refused; the raw corpus never leaks.",
+  "authority": "Coasys Synergy (privacy-preserving search · provenance-as-asset · Synergy Fuel) · holospaces Laws L4/L5 · composes #holo-swarm + #holo-rank + #holo-strand-provenance + #holo-strand",
+  "witnessed": true,
+  "checks": {
+    "privateSearchReturns": true,
+    "rankedByPageRank": true,
+    "provenancePerResult": true,
+    "corpusSealed": true,
+    "verifyBeforeAccept": true,
+    "forgedResultRefused": true,
+    "creditMinted": true,
+    "ledgerBalances": true,
+    "noOvershare": true
+  },
+  "failed": []
+}

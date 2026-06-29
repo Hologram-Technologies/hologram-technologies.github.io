@@ -1,0 +1,24 @@
+{
+  "spec": "P2 — the sealer mints BLAKE3 as the primary κ (dual-axis, sha256 demoted to a re-derivable bridge alias) on the boot closure AND the served set. Proven on a throwaway image with the real sub-tools; the production manifests are left to the user's seal flow.",
+  "witnessed": true,
+  "covers": [
+    "sealer",
+    "blake3-primary",
+    "sha-alias",
+    "dual-axis",
+    "law-l5"
+  ],
+  "checks": {
+    "reseal-drift ran on the scratch image": true,
+    "seal-served ran on the scratch image": true,
+    "every boot entry now carries a canonical blake3 κ (incl. the old sha-only & string entries)": true,
+    "sha256 bridge alias is kept on every boot entry": true,
+    "canonical blake3 κ re-derives from the bytes (Law L5)": true,
+    "sha256 bridge alias re-derives from the bytes": true,
+    "served-set manifest carries {blake3, kappa} on every file (was sha-only strings)": true,
+    "a flipped byte breaks the canonical blake3 κ (Law L5 refusal)": true,
+    "reseal --check reports the scratch image SEALED ✓ (both axes re-derive)": true
+  },
+  "passed": 9,
+  "failed": 0
+}

@@ -47,7 +47,11 @@
   // First-run default — a brand-new operator (no saved choice, no legacy key) lands on the immersive
   // galaxy backdrop (the curated Milky Way, attributed Unsplash). Seeded ONCE into the canonical state
   // so the async engine (holo-theme.js) reads it as the saved choice and never overrides this frame.
-  var FIRST_RUN = { palette: "dark", immersive: true, wallpaper: "/usr/share/wallpapers/galaxy.jpg" };
+  // The default is the LIVE interactive Fluid backdrop (sentinel "live:<scene>"), rendered by
+  // holo-immersive-backdrop.mjs in its own isolated iframe. It is not a κ/path wallpaper, so we do NOT
+  // set --holo-wallpaper for it (that would be a broken url()); instead we mark data-holo-live so the
+  // pre-fluid first frame paints pure black to match the sim, then the iframe reveals over it.
+  var FIRST_RUN = { palette: "dark", immersive: true, wallpaper: "live:fluid" };
 
   var s = readState();
   if (!s) {
@@ -76,5 +80,9 @@
   }
   root.setAttribute("data-holo-presentation", s.presentation || "standard");
   root.setAttribute("data-holo-immersive", s.immersive ? "on" : "off");
-  if (s.wallpaper) root.style.setProperty("--holo-wallpaper", 'url("' + wallUrl(s.wallpaper) + '")');
+  // A "live:<scene>" sentinel is a live backdrop (e.g. the Fluid sim), not an image: mark data-holo-live
+  // (drives the pure-black baseline) and skip --holo-wallpaper. A real κ/path wallpaper sets the var.
+  var liveM = String(s.wallpaper || "").match(/^live:([a-z0-9-]+)/i);
+  if (liveM) { root.setAttribute("data-holo-live", liveM[1].toLowerCase()); }
+  else if (s.wallpaper) { root.removeAttribute("data-holo-live"); root.style.setProperty("--holo-wallpaper", 'url("' + wallUrl(s.wallpaper) + '")'); }
 })();

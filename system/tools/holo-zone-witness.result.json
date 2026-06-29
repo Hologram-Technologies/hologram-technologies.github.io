@@ -1,0 +1,37 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-zone — a MUTABLE NAME OWNED BY A KEY ON THE OPERATOR'S SOURCE CHAIN: the registrar-free, root-free, KSK-free, blockchain-free replacement for a DNS zone. A name is a zone.bind entry on holo-strand; resolution verifies the whole chain then reads the latest binding (Law L5, fail-closed); mutation appends (old target kept, rewindable); ownership is the operator signature (only the owner changes a name, no foreign-owner hijack). It rides the SAME spine as the rest of history (Law L2), resolves fully offline (Law L3), roams cross-device verify-before-adopt, and resolves through the SAME one omni door as κ/ENS/CID/web (holo-zone-lane).",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C PROV-O · holospaces Laws L1/L2/L3/L5 · rests on #holo-strand + #holo-identity + #holo-object",
+  "witnessed": true,
+  "covers": [
+    "owned-mutable-name",
+    "resolve-by-rederivation",
+    "mutate-keeps-history",
+    "revoke",
+    "head-attests-zone",
+    "tamper-refused",
+    "foreign-owner-refused",
+    "cross-device-adopt",
+    "offline-resolve",
+    "one-omni-door"
+  ],
+  "sample": {
+    "name": "holo://zone/f7a5142b03d1612f89bc9165979d2fa99c89ba15475f545054b98af23c1a7519/ilya.deck",
+    "target": "did:holo:sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+    "head": "did:holo:sha256:1538d972f3626c36c1504bab1c796aabc9d73d49406ef50f97014e1839603fba",
+    "owner": "did:holo:sha256:f7a5142b03d1612f89bc9165979d2fa99c89ba15475f545054b98af23c1a7519"
+  },
+  "checks": {
+    "bindAndResolve": true,
+    "mutableRebind": true,
+    "independentLabels": true,
+    "revokeUnbinds": true,
+    "headAttestsZone": true,
+    "tamperRefused": true,
+    "foreignOwnerRefused": true,
+    "crossDeviceAdopt": true,
+    "laneResolves": true,
+    "laneFailsClosed": true
+  },
+  "failed": []
+}

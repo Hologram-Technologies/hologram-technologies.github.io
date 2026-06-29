@@ -11,6 +11,7 @@
 // node-witnessed (see tools/holo-*-witness.mjs).
 
 import { makeKappaStream, kappaOf } from "./holo-kappa-stream.mjs";
+import * as bao from "./holo-bao.mjs";                      // verified streaming: per-chunk proofs over the canonical κ
 import { makeComputeMemo } from "./holo-compute-memo.mjs";
 import { makeMeter } from "./holo-stream-meter.mjs";
 import { makeDeltaLoop } from "./holo-delta-render.mjs";
@@ -22,9 +23,20 @@ import * as fabric from "/holo-fabric.mjs";
 import * as webgpu from "/sbin/holo-fabric-webgpu.mjs";
 
 export {
-  makeKappaStream, kappaOf, makeComputeMemo, makeMeter, makeDeltaLoop, makeDeltaDecoder,
+  makeKappaStream, kappaOf, bao, makeComputeMemo, makeMeter, makeDeltaLoop, makeDeltaDecoder,
   makeScheduler, streamConfig, qualityOp, adaptiveCost, fidelity, currentFidelity, deviceProfile, fabric, webgpu,
 };
+
+// streamObject(root, source, onChunk) — the BLAKE3 dividend for a surface: consume a LARGE κ-object's
+// chunks each PROVEN against its single root κ (== the object's stream κ), calling onChunk(bytes, index)
+// the instant each verified chunk arrives — render frame 0 / play second 0 / run layer 0 before the
+// object is whole, holding at most one chunk + its O(log n) proof. A bad chunk throws (Law L5); earlier
+// chunks already rendered are unaffected. `source` is any (async) iterable of { index, bytes, proof }.
+export async function streamObject(root, source, onChunk) {
+  let n = 0;
+  for await (const ev of bao.verifiedChunks(root, source)) { await onChunk(ev.bytes, ev.index); n++; }
+  return n;
+}
 
 // build the one streaming context for a surface: a shared cache + memo + meter + scheduler, tuned to the
 // device's fidelity. Returns the pieces a surface uses to stream render frames AND LLM tokens under one budget.
@@ -45,7 +57,7 @@ export function makeStreamContext({ profile = null } = {}) {
 export function mount(win) {
   const w = win || (typeof window !== "undefined" ? window : globalThis);
   w.HoloStream = {
-    makeKappaStream, kappaOf, makeComputeMemo, makeMeter, makeDeltaLoop, makeDeltaDecoder,
+    makeKappaStream, kappaOf, bao, streamObject, makeComputeMemo, makeMeter, makeDeltaLoop, makeDeltaDecoder,
     makeScheduler, streamConfig, qualityOp, adaptiveCost, fidelity, currentFidelity, deviceProfile,
     fabric, webgpu, makeStreamContext,
   };

@@ -1,0 +1,13 @@
+{
+  "spec": "The lens surface (holo-osr-projector.html) exposes window.__holoOsrFrame and composites a fed manifest of κ tiles onto the canvas via holo-osr-lens — the endpoint the native off-screen producer drives.",
+  "authority": "Chromium (Playwright) real DOM/Canvas/WebCrypto · the served holo-osr-projector.html + holo-osr-lens.mjs",
+  "witnessed": true,
+  "lane": "browser",
+  "checks": {
+    "loadedNoErrors": true,
+    "hasEntry": true,
+    "composited": true,
+    "inputForwarded": true,
+    "inputMapped": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m — Coasys/AD4M's agent-centric meta-ontology as a thin facade over the κ substrate: Agent (operator κ), Expression (sealed UOR value resolved + re-verified from a content store), Language (swappable {create,get} resolver that never re-hashes — Law L4), Perspective (a holo-strand of signed Link triples whose head κ attests the whole graph — Law L5). No daemon, no conductor: the substrate is the executor.",
+  "authority": "AD4M core ontology (docs.ad4m.dev) · holospaces Laws L1/L2/L3/L4/L5 · rests on #holo-object + #holo-identity + #holo-strand",
+  "witnessed": true,
+  "checks": {
+    "agentMe": true,
+    "expressionRoundTrip": true,
+    "tamperedExpressionRefused": true,
+    "addAndListLinks": true,
+    "queryByPredicate": true,
+    "removeLinkTombstone": true,
+    "reorderRefused": true,
+    "languageSwapZeroDiff": true,
+    "idempotentExpression": true,
+    "headAdvances": true,
+    "unknownLanguageRefused": true,
+    "durableReload": true
+  },
+  "failed": []
+}

@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-bar-strand (E4) — a chrome bar is a NAVIGABLE, ROAMING κ-object. Each edit appends to a holo-strand (append-only, hash-linked); the head κ attests the whole edit history (Law L5 over the sequence). The current bar, and any past bar state, resolve from holo://bar/<κ> ONLY on a verified strand with items that re-derive to that κ. Two devices converge by comparing histories — fast-forward or keep-both, never destructive. Pure assembly over holo-strand + holo-workspace-roam + holo-bar; no new crypto, no new transport.",
+  "authority": "rests on #holo-strand + #holo-workspace-roam + #holo-bar",
+  "witnessed": true,
+  "covers": [
+    "address-round-trip",
+    "commit-then-current",
+    "navigable-resolve",
+    "history-attested",
+    "tampered-current-skip",
+    "resolve-unknown-null",
+    "roam-fast-forward",
+    "roam-diverged"
+  ],
+  "checks": {
+    "addressRoundTrip": true,
+    "commitThenCurrent": true,
+    "navigableResolve": true,
+    "historyAttested": true,
+    "tamperedCurrentSkip": true,
+    "resolveUnknownNull": true,
+    "roamFastForward": true,
+    "roamDiverged": true
+  },
+  "failed": []
+}

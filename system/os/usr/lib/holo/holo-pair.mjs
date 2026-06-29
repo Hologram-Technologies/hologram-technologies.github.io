@@ -26,6 +26,15 @@ const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, 
 const rand = (n) => RNG.getRandomValues(new Uint8Array(n));
 const PAIR_V = "holo-pair:v1";
 
+// deriveRoamKey(shared, channel) — both devices independently derive the SAME 32-byte SESSION ROAM key from
+// the pairing's ECDH shared secret (HKDF, distinct `info` from the grant cipher so the keys never alias).
+// This is the E2E key holo-session-roam encrypts the manifest under — never on the wire, per-pairing. (See
+// [[holo-session-roam]].) `shared` is the raw ECDH output present on BOTH sides of mint/accept.
+async function deriveRoamKey(shared, channelB64u) {
+  const hk = await SUB.importKey("raw", shared, "HKDF", false, ["deriveBits"]);
+  return new Uint8Array(await SUB.deriveBits({ name: "HKDF", hash: "SHA-256", salt: unb64u(channelB64u), info: te.encode("holo-roam:v1") }, hk, 256));
+}
+
 // ── canonical form + content address (byte-identical to holo-identity's, so κ's match) ──
 export function canon(o) {
   if (Array.isArray(o)) return "[" + o.map(canon).join(",") + "]";
@@ -139,7 +148,8 @@ export async function mintDeviceGrant(operator, offer, { caps = DEFAULT_CAPS, tt
   const iv = rand(12);
   const ct = new Uint8Array(await SUB.encrypt({ name: "AES-GCM", iv }, aes, te.encode(JSON.stringify(grant))));
   const blob = { v: PAIR_V, channel: offer.channel, epk: b64u(ephPub), iv: b64u(iv), ct: b64u(ct) };
-  return { blob, grantId };
+  const roamKey = b64(await deriveRoamKey(shared, offer.channel));         // shared E2E session-roam key (both devices derive this)
+  return { blob, grantId, roamKey };
 }
 
 // ── 3 · the desktop decrypts + VERIFIES the grant (re-derive κ, check sig/aud/window) ──
@@ -157,7 +167,8 @@ export async function acceptGrant(secrets, blob, { nowMs, revoked = [] } = {}) {
   if (grant.channel !== secrets.channel) throw new Error("grant bound to a different pairing");
   const v = await verifyDelegation(grant, { nowMs, revoked, expectAud: secrets.deviceKappa });
   if (!v.ok) throw new Error("grant rejected: " + v.reason);
-  return { operator: grant.iss, label: grant.issLabel, can: grant.can, exp: grant.exp, grant };
+  const roamKey = b64(await deriveRoamKey(shared, secrets.channel));       // same E2E session-roam key as the granting device
+  return { operator: grant.iss, label: grant.issLabel, can: grant.can, exp: grant.exp, grant, roamKey };
 }
 
 // Standalone verifier — re-derive the issuer κ, check the signature, audience, time window, caps.

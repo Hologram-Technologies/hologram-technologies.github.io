@@ -61,12 +61,22 @@ export function installGlobalDevDock(env = {}) {
 
   function ensure() {
     if (dock) return;
+    // The slide is a one-shot ENTRANCE keyframe (injected once). The RESTING open state has NO transform —
+    // it just sits at right:0, so it can never get "stuck" translated off-screen (a transform-as-resting-
+    // state hit a compositor quirk where the inline translateX(0) didn't paint). Closed = display:none.
+    if (!doc.getElementById("holo-devdock-style")) {
+      const st = doc.createElement("style"); st.id = "holo-devdock-style";
+      st.textContent = "@keyframes holo-dock-in{from{transform:translateX(100%)}to{transform:translateX(0)}}";
+      (doc.head || doc.documentElement).appendChild(st);
+    }
     dock = doc.createElement("div");
     dock.id = "holo-devdock";
+    // GOLDEN-RATIO width: page : devtools = φ : 1, so the dock takes 1/(1+φ) = 38.2% of the viewport
+    // (the page keeps the golden major 61.8%). Docked hard to the right edge, pixel-crisp (no scaling).
     dock.style.cssText =
-      "position:fixed;top:0;right:0;width:42vw;min-width:360px;max-width:920px;height:100vh;" +
-      "z-index:2147482000;display:none;background:#0b0d10;box-shadow:-2px 0 22px rgba(0,0,0,.5);" +
-      "border-left:1px solid rgba(255,255,255,.08)";
+      "position:fixed;top:0;right:0;width:38.2vw;min-width:420px;max-width:1100px;height:100vh;" +
+      "z-index:2147482000;background:#0b0d10;box-shadow:-8px 0 28px rgba(0,0,0,.55);" +
+      "border-left:1px solid rgba(255,255,255,.08);display:none";
     const bar = doc.createElement("div");
     bar.style.cssText =
       "height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;font:12px system-ui;" +
@@ -113,8 +123,16 @@ export function installGlobalDevDock(env = {}) {
     // Defer to the Create studio's own tested Dev tab when it is open (avoid two inspector surfaces).
     try { if (studioOpen()) { const t = doc.getElementById("cs-tab-dev"); if (t) { t.click(); return; } } } catch (e) {}
     const show = (typeof want === "boolean") ? want : !open;
-    if (show) { mount(); point(); label(); ensure(); dock.style.display = "block"; open = true; }
-    else if (dock) { dock.style.display = "none"; open = false; }
+    if (show) {
+      mount(); point(); label(); ensure();
+      dock.style.display = "block";        // resting open state: visible at right:0, NO transform (can't stick)
+      dock.style.animation = "holo-dock-in 220ms cubic-bezier(.16,.84,.44,1)";  // one-shot slide-in entrance
+      open = true;
+    } else if (dock) {
+      dock.style.animation = "";
+      dock.style.display = "none";
+      open = false;
+    }
   }
 
   function onKey(e) {

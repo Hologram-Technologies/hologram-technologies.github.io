@@ -24,7 +24,7 @@
 export const TASKS = [
   // ── CORE I/O — Q's senses (pinned κ .holo, precompiled, content-addressed; not HF-discovered) ──
   { id: "respond",        label: "Respond",       job: "Main chat / reasoning", pipeline: "text-generation",  need: "generative", maxParams: "1.5B", pinned: true },
-  { id: "listen",         label: "Listen",        job: "Speech → text (ASR)",  pipeline: "automatic-speech-recognition", need: "asr", maxParams: "200M", pinned: true },
+  { id: "listen",         label: "Listen",        job: "Speech → text (ASR)",  pipeline: "automatic-speech-recognition", need: "asr", maxParams: "700M", pinned: true },
   { id: "speak",          label: "Speak",         job: "Text → speech (TTS)",  pipeline: "text-to-speech",    need: "tts",        maxParams: "100M", pinned: true },
   { id: "code",           label: "Code",          job: "Agentic coding",       pipeline: "text-generation",   need: "generative", maxParams: "3B",   pinned: true },
   // ── HELPER tasks — each discovers + binds the best browser-runnable small specialist (or main) ──
@@ -54,7 +54,7 @@ export const PINNED = {
   respond: { faculty: "respond", instant: { id: "qwen2.5-0.5b",      kappa: "41a930c07450623751f84af6a55bbecd54fe608ad6e94adf17f83c712aaf1b91", bytesMB: 491.4 },  upgrade: { id: "qwen2.5-1.5b", kappa: "ea7323369bfeebb344c9d0b6252de485e2b9833784405678f910a16cd7746202", bytesMB: 1117.4 } },
   code:    { faculty: "code",    instant: { id: "qwen-coder-3b",     kappa: "33ca24ae50bf5649b4c431817ebf15924b8aa929ab87868c33abeeeb8f695a17", bytesMB: 2105.0 } },
   listen:  { faculty: "listen",  instant: { id: "moonshine-tiny-int8", kappa: "bbd89df22c86fc54455779be070395cc8dab0c3438cbe85974c9f02d2a291780", bytesMB: 29.5 }, upgrade: { id: "moonshine-tiny-f16", kappa: "ff7e1c8b3c9e360ab062ce96a297e6f2467608c634f2e4b171078180056a72d8", bytesMB: 56.2 } },
-  speak:   { faculty: "speak",   instant: { id: "kokoro-82m",        kappa: "a528332cbe262333c3eef76f581add5de8cd2d54b81c7685914353ad016ff1e5", bytesMB: 96.5 } },
+  speak:   { faculty: "speak",   instant: { id: "kokoro-82m",        kappa: "5beb3c2171121fc7afa10a6325e45ed540147a4ed54157a01020409ca8694124", bytesMB: 96.5 } },
 };
 
 // markers (in a model's tags/library) that say "this can run IN A TAB" — the hard gate on selection.

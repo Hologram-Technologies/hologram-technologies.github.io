@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hologram — Speed</title>
+<!--
+  speed.html — FEEL the substrate. Three fast paths, live, measured in the native CEF host:
+    1. O(1) compute   — the upstream Hologram engine (holo:compute:o1demo): a compute keyed by its κ runs
+                        ONCE, then every repeat is a memo lookup (~100 ns). "Compute once, instant forever."
+    2. Verified stream — a large κ-object reveals band-by-band the instant each BLAKE3 chunk verifies
+                        (holo-bao): usable on chunk 0, never fully resident. "Starts before it's whole."
+    3. κ-cache        — a held κ resolves at memory speed: the 2nd open is network-free. "Repeats are free."
+  Each uses the NATIVE engine when present (badge), else an in-page fallback, so the numbers are real either
+  way. Open in the Hologram browser and feel it.
+-->
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #07090d; color: #e8eef5; font: 13px/1.55 ui-monospace, "Cascadia Code", monospace; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 26px 22px 40px; }
+  h1 { font-size: 19px; font-weight: 650; margin: 0 0 2px; letter-spacing: .2px; }
+  .sub { color: #7a8699; margin: 0 0 22px; }
+  .card { border: 1px solid #1a2230; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; background: #0a0e14; }
+  .card h2 { font-size: 14px; margin: 0 0 4px; font-weight: 600; }
+  .card .why { color: #7a8699; margin: 0 0 12px; font-size: 12px; }
+  .big { font-size: 30px; font-weight: 700; letter-spacing: -.5px; }
+  .big .unit { font-size: 14px; color: #8aa0bd; font-weight: 500; }
+  .good { color: #5fd08a; } .hot { color: #6fb4ff; } .dim { color: #6b7689; }
+  .rowg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 6px; }
+  .stat .k { color: #7a8699; font-size: 11px; } .stat .v { font-size: 18px; font-weight: 650; }
+  button { background: #14202f; color: #cfe3ff; border: 1px solid #26384c; border-radius: 7px; padding: 8px 15px; font: inherit; cursor: pointer; }
+  button:hover { background: #1b2c40; } button:disabled { opacity: .5; cursor: default; }
+  canvas { width: 320px; height: 180px; background: #04060a; border: 1px solid #1a2230; border-radius: 7px; image-rendering: pixelated; }
+  .bar { height: 4px; background: #10151d; border-radius: 3px; overflow: hidden; margin: 9px 0 3px; }
+  .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg,#3b82f6,#5fd08a); transition: width .04s linear; }
+  .tag { font-size: 10.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid #26384c; color: #9fb3cc; vertical-align: middle; }
+  .note { color: #67718a; font-size: 11px; margin-top: 12px; }
+</style>
+<div class="wrap">
+  <h1>Hologram — Speed</h1>
+  <p class="sub">Three fast paths, measured live. Press the buttons. Feel it.</p>
+
+  <div class="card">
+    <h2>1 · O(1) compute <span class="tag" id="c-mode">checking…</span></h2>
+    <p class="why">The Hologram engine addresses a computation by its content. Run it once — then every identical run is a memo lookup, not a recompute. Compute once, instant forever.</p>
+    <div class="rowg">
+      <div class="stat"><div class="k">first run (novel compute)</div><div class="v" id="c-novel">—</div></div>
+      <div class="stat"><div class="k">every run after (memo hit)</div><div class="v good" id="c-hit">—</div></div>
+      <div class="stat"><div class="k">speedup</div><div class="v hot" id="c-ratio">—</div></div>
+    </div>
+    <div style="margin-top:12px"><button id="c-run">▶ Run compute</button> <span class="note" id="c-status"></span></div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Verified streaming <span class="tag" id="s-mode">in-page</span></h2>
+    <p class="why">A large κ-object reveals the instant each BLAKE3 chunk verifies — usable on chunk 0, the whole never resident, each chunk proven. Starts before it's whole.</p>
+    <div style="display:flex; gap:18px; align-items:flex-start">
+      <canvas id="s-cv" width="320" height="180"></canvas>
+      <div style="flex:1">
+        <div class="bar"><i id="s-fill"></i></div>
+        <div class="rowg" style="grid-template-columns:1fr 1fr">
+          <div class="stat"><div class="k">time to first verified chunk</div><div class="v good" id="s-ttfc">—</div></div>
+          <div class="stat"><div class="k">held at once</div><div class="v" id="s-resid">—</div></div>
+        </div>
+        <div style="margin-top:12px"><button id="s-run">▶ Stream</button></div>
+        <div class="note" id="s-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3 · κ-cache (repeats are free)</h2>
+    <p class="why">A held κ resolves at memory speed — the second open of anything (an app, a page, an asset) is network-free. This page measures its own re-fetch.</p>
+    <div class="rowg">
+      <div class="stat"><div class="k">cold fetch</div><div class="v" id="k-cold">—</div></div>
+      <div class="stat"><div class="k">warm (κ-cache)</div><div class="v good" id="k-warm">—</div></div>
+      <div class="stat"><div class="k">speedup</div><div class="v hot" id="k-ratio">—</div></div>
+    </div>
+    <div style="margin-top:12px"><button id="k-run">▶ Measure</button> <span class="note" id="k-status"></span></div>
+  </div>
+</div>
+<script type="module" src="/usr/share/holo/speed.js"></script>

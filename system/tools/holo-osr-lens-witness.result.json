@@ -1,0 +1,20 @@
+{
+  "spec": "Lens-receiver contract for the native off-screen browser producer: a real Chrome-rendered page is tiled + content-addressed natively, novel tiles go to the κ-store, and a per-frame changed-tile manifest drives the lens. The lens fetches novel tiles (L5-verified), refs held ones, and composites losslessly. Scrolling sends only content tiles; revisiting fetches nothing; a tampered tile is refused; a static page sends nothing.",
+  "authority": "holospaces Laws L1/L3/L5 · CEF OSR OnPaint damage · content-addressed tile streaming · holo:// κ scheme serving /os/cache/sha256",
+  "witnessed": true,
+  "covers": [
+    "osr-lens",
+    "composite",
+    "scroll-delta",
+    "fetch-once",
+    "static-zero-wire",
+    "l5-refused"
+  ],
+  "checks": {
+    "firstFrameComposites": true,
+    "scrollDeltaOnly": true,
+    "fetchOnce": true,
+    "staticZeroWire": true,
+    "l5Refused": true
+  }
+}

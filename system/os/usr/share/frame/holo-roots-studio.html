@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>κ-Roots Studio — real, interactive</title>
+<style>
+  :root { color-scheme: dark; --line:#1b212c; --mut:#8a93a6; --ok:#46d18b; --bad:#ff6b6b; --accent:#7aa2ff; --card:#11151c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0a0c11; color:#e8edf6; font:14px/1.55 ui-monospace,"SF Mono",Menlo,monospace; padding:24px 20px 80px; max-width:980px; margin:0 auto; }
+  h1 { font-size:19px; margin:0 0 2px; } .sub { color:var(--mut); margin:0 0 18px; font-size:12.5px; }
+  .status { display:flex; gap:18px; flex-wrap:wrap; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:18px; font-size:12.5px; }
+  .status b { color:var(--accent); font-weight:600; } .status .k { color:var(--mut); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:760px){ .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .card h2 { font-size:13px; margin:0 0 10px; letter-spacing:.3px; text-transform:uppercase; color:#c4cfe2; }
+  .card p.hint { color:var(--mut); font-size:12px; margin:0 0 10px; }
+  label { display:block; color:var(--mut); font-size:11.5px; margin:8px 0 3px; }
+  input,textarea { width:100%; background:#0a0d13; border:1px solid var(--line); color:#e8edf6; border-radius:7px; padding:8px 10px; font:13px ui-monospace,Menlo,monospace; }
+  textarea { resize:vertical; min-height:54px; }
+  button { background:#1a2740; color:#cfe0ff; border:1px solid #2a3d63; border-radius:7px; padding:8px 12px; font:600 12.5px ui-monospace,Menlo,monospace; cursor:pointer; margin-top:8px; }
+  button:hover { background:#22335a; } button.ghost { background:transparent; border-color:var(--line); color:var(--mut); padding:4px 8px; margin:0; }
+  button.danger { background:#2a1620; border-color:#5a2a3a; color:#ffb4c4; }
+  .full { grid-column:1 / -1; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px; }
+  th,td { text-align:left; padding:6px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mut); font-weight:500; font-size:11px; text-transform:uppercase; }
+  .mono { font-family:ui-monospace,Menlo,monospace; } .dim { color:var(--mut); } .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .pill { display:inline-block; background:#0e1b14; border:1px solid #1e3a2a; color:var(--ok); border-radius:20px; padding:1px 9px; font-size:11px; }
+  .pill.b { background:#1b0e14; border-color:#3a1e2a; color:var(--bad); }
+  #result { background:#0a0d13; border:1px solid var(--line); border-radius:8px; padding:12px; margin-top:10px; min-height:54px; font-size:12.5px; white-space:pre-wrap; word-break:break-all; }
+  #log { background:#080a0e; border:1px solid var(--line); border-radius:8px; padding:10px 12px; height:150px; overflow:auto; font-size:11.5px; color:var(--mut); }
+  #log .e { padding:2px 0; border-bottom:1px solid #0f131a; } #log .e b { color:#9db4e6; font-weight:600; }
+  .row2 { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; }
+  a.share { color:var(--accent); cursor:pointer; text-decoration:underline; }
+  code { color:#b8c4dc; }
+</style>
+</head>
+<body>
+  <h1>κ-Roots Studio</h1>
+  <p class="sub">100% real: every action below drives the production modules (holo-identity · holo-zone · holo-root · holo-zone-net · holo-object) with real WebCrypto. No network, no mocks. Resolution is re-derivation.</p>
+
+  <div class="status">
+    <div><span class="k">your key</span> <b id="s-owner">minting…</b></div>
+    <div><span class="k">zone head κ</span> <b id="s-head">—</b></div>
+    <div><span class="k">names</span> <b id="s-count">0</b></div>
+    <div><span class="k">peers (other tabs)</span> <b id="s-peers">0</b></div>
+  </div>
+
+  <div class="grid">
+    <!-- MINT + BIND -->
+    <div class="card">
+      <h2>1 · Make something, give it a name</h2>
+      <p class="hint">Type content → mint a real content address (κ). Then bind a human name to it on your own signed source chain. No registrar, no fee.</p>
+      <label>content (becomes a real κ object)</label>
+      <textarea id="content">Hello from a name I own.</textarea>
+      <button id="mint">Mint κ from content</button>
+      <div id="minted" class="dim" style="margin-top:8px;font-size:12px"></div>
+      <div class="row2" style="margin-top:10px">
+        <div><label>name (e.g. my.first.page)</label><input id="bindName" value="my.first.page" /></div>
+        <button id="bind">Bind name → κ</button>
+      </div>
+      <label style="margin-top:8px">…or bind to any κ / did:holo / 64-hex you paste</label>
+      <input id="bindKappa" placeholder="leave empty to use the last minted κ" />
+    </div>
+
+    <!-- YOUR NAMES -->
+    <div class="card">
+      <h2>2 · Your names <span class="dim" style="text-transform:none">(live zone)</span></h2>
+      <p class="hint">Each row is a signed entry on your chain. Re-bind to point elsewhere (old target stays in history). Revoke to unbind.</p>
+      <table><thead><tr><th>name</th><th>→ target</th><th></th></tr></thead><tbody id="names"><tr><td colspan="3" class="dim">no names yet — mint + bind on the left</td></tr></tbody></table>
+    </div>
+
+    <!-- RESOLVE -->
+    <div class="card full">
+      <h2>3 · Resolve (the one box)</h2>
+      <p class="hint">Type a bare name (<code>my.first.page</code>), a full Holo name (<code>holo://zone/&lt;owner&gt;/&lt;label&gt;</code>), or a κ. It resolves through the real holo-root — re-derived, offline, fail-closed. If it points to content you minted, you'll see the content.</p>
+      <div class="row2">
+        <div><input id="q" placeholder="my.first.page" /></div>
+        <button id="resolve">Resolve</button>
+      </div>
+      <div id="result" class="dim">…</div>
+    </div>
+
+    <!-- SECOND DEVICE -->
+    <div class="card">
+      <h2>4 · Another device (real transport)</h2>
+      <p class="hint">Open this page in a <b>second browser tab</b>. That tab is a different peer with its own key. Paste one tab's full name into the other tab's Resolve box — it fetches the zone over a real BroadcastChannel and verifies it before trusting a byte.</p>
+      <label>your full name to share (after you bind one)</label>
+      <input id="shareName" readonly placeholder="bind a name first" />
+      <div class="dim" style="font-size:11.5px;margin-top:6px">Peers currently on the channel: <b id="s-peers2" class="ok">0</b></div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="card">
+      <h2>5 · Try to break it (real)</h2>
+      <p class="hint">These run the actual verify-before-trust path against your real zone. Both must be refused.</p>
+      <button id="forge" class="danger">Forge: redirect one of my names</button>
+      <button id="imp" class="danger">Impersonate: open my zone as someone else</button>
+      <div id="sec" class="dim" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+
+    <!-- LOG -->
+    <div class="card full">
+      <h2>activity log <span class="dim" style="text-transform:none">— every real op, with its κ</span></h2>
+      <div id="log"></div>
+    </div>
+  </div>
+
+<script type="module">
+import { enroll } from "/usr/lib/holo/holo-identity.mjs";
+import { makeZone, normTarget } from "/usr/lib/holo/holo-zone.mjs";
+import { makeRoot } from "/sbin/holo-root.mjs";
+import { makeZoneNet } from "/usr/lib/holo/holo-zone-net.mjs";
+import { seal, verify as verifyObj, UOR_CONTEXT } from "/usr/lib/holo/holo-object.mjs";
+
+const $ = (s) => document.querySelector(s);
+const short = (k) => { const h = String(k).split(":").pop(); return h.length > 16 ? h.slice(0, 10) + "…" + h.slice(-4) : h; };
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const arrayBackend = (init = []) => { let s = clone(init); return { load: async () => clone(s), save: async (r) => { s = clone(r); } }; };
+const logEl = $("#log");
+const log = (label, detail) => { const d = document.createElement("div"); d.className = "e"; d.innerHTML = `<b>${label}</b> ${detail || ""}`; logEl.prepend(d); };
+
+const contentStore = new Map();             // hex → sealed UOR content object (real content addressing)
+let owner, myZone, root, chanNet, ownerHex, lastMinted = null;
+
+function mintContent(text) {
+  const obj = seal({ "@context": [...UOR_CONTEXT], "@type": ["schema:CreativeWork"], "schema:text": String(text), "dcterms:created": new Date().toISOString() });
+  contentStore.set(obj.id.split(":").pop(), obj);
+  return obj.id;
+}
+function readContent(kappa) { const o = contentStore.get(String(kappa).split(":").pop()); if (!o) return null; return verifyObj(o) ? o["schema:text"] : "[content failed re-derivation — refused]"; }
+
+async function refresh() {
+  $("#s-head").textContent = short(myZone.head() || "—");
+  const l = await myZone.list();
+  const names = (l.ok && l.names) ? l.names : {};
+  const keys = Object.keys(names);
+  $("#s-count").textContent = keys.length;
+  const tb = $("#names");
+  if (!keys.length) { tb.innerHTML = `<tr><td colspan="3" class="dim">no names yet — mint + bind on the left</td></tr>`; }
+  else {
+    tb.innerHTML = "";
+    for (const name of keys) {
+      const target = names[name];
+      const hasContent = contentStore.has(String(target).split(":").pop());
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="mono">${name}</td><td class="mono dim">${short(target)}${hasContent ? ' <span class="pill">content</span>' : ''}</td>
+        <td><button class="ghost" data-re="${name}">rebind</button> <button class="ghost" data-rev="${name}">revoke</button> <button class="ghost" data-hist="${name}">history</button></td>`;
+      tb.appendChild(tr);
+    }
+    tb.querySelectorAll("[data-re]").forEach((b) => b.onclick = () => doBind(b.dataset.re));
+    tb.querySelectorAll("[data-rev]").forEach((b) => b.onclick = () => doRevoke(b.dataset.rev));
+    tb.querySelectorAll("[data-hist]").forEach((b) => b.onclick = () => showHistory(b.dataset.hist));
+    $("#shareName").value = myZone.qualified(keys[0]);
+  }
+}
+
+async function doMint() {
+  lastMinted = mintContent($("#content").value);
+  $("#minted").innerHTML = `minted κ <span class="mono ok">${short(lastMinted)}</span> — a content address anyone can re-derive`;
+  log("mint κ", `<span class="mono">${short(lastMinted)}</span> from ${$("#content").value.length} bytes`);
+}
+async function doBind(name) {
+  name = (name || $("#bindName").value || "").trim();
+  let target = ($("#bindKappa").value || "").trim() || lastMinted;
+  if (!target) { target = mintContent($("#content").value); lastMinted = target; }
+  const r = await myZone.bind(name, target);
+  if (!r.ok) { log("bind ✗", `<span class="bad">${name} — ${r.why}</span>`); return; }
+  log("bind ✓ (signed)", `<span class="mono">${name}</span> → ${short(r.target)} · entry ${short(r.entry)}`);
+  $("#bindKappa").value = "";
+  await refresh();
+}
+async function doRevoke(name) { const r = await myZone.revoke(name); log(r.ok ? "revoke ✓" : "revoke ✗", `<span class="mono">${name}</span>`); await refresh(); }
+async function showHistory(name) {
+  const hist = myZone.entries().filter((e) => (e["holstr:payload"] || {}).label === name)
+    .map((e, i) => `${i + 1}. ${e["holstr:kind"] === "zone.revoke" ? "REVOKED" : "→ " + short((e["holstr:payload"] || {}).target)}`);
+  $("#result").innerHTML = `<b>history of ${name}</b> (oldest → newest, all on your signed chain):\n` + hist.join("\n");
+  log("history", `${name} · ${hist.length} entries`);
+}
+
+async function doResolve() {
+  const q = ($("#q").value || "").trim(); if (!q) return;
+  const t0 = performance.now();
+  const r = await root.resolveName(q);
+  const ms = Math.round(performance.now() - t0);
+  if (!r.ok) { $("#result").innerHTML = `<span class="pill b">REFUSED</span> ${q}\nreason: ${r.why}  ·  ${ms}ms  ·  no network touched`; log("resolve ✗", `${q} — ${r.why}`); return; }
+  const via = r.via === "math" ? "math (the name carries its own owner)" : r.via === "content-address" ? "content address (already a κ)" : "anchor " + short(r.via);
+  const content = readContent(r.kappa);
+  $("#result").innerHTML = `<span class="pill">RESOLVED</span> ${q}\n` +
+    `κ:        ${r.kappa}\n` +
+    `via:      ${via}\n` +
+    `hops:     ${(r.hops || []).length}  ·  ${ms}ms  ·  re-derived, no network\n` +
+    (content != null ? `content:  ${content}` : `content:  (not held on this device — name verified; content would fetch over the channel)`);
+  log("resolve ✓", `${q} → ${short(r.kappa)} via ${r.via === "math" || r.via === "content-address" ? r.via : short(r.via)}`);
+}
+
+async function forge() {
+  const dump = myZone.entries();
+  const i = dump.findIndex((e) => e["holstr:kind"] === "zone.bind");
+  if (i < 0) { $("#sec").innerHTML = `<span class="dim">bind a name first.</span>`; return; }
+  const bad = clone(dump); const label = bad[i]["holstr:payload"].label;
+  bad[i]["holstr:payload"].target = normTarget("dead".padEnd(64, "0"));   // redirect the name on disk
+  const evil = makeZone({ owner: owner.kappa, backend: arrayBackend(bad) });
+  const g = await evil.resolve(label);
+  const refused = g.ok === false;
+  $("#sec").innerHTML = `Forge "${label}" → ${refused ? `<span class="pill">REFUSED ✓</span> ${g.why}` : `<span class="pill b">accepted ✗</span>`}`;
+  log("forge attempt", refused ? `<span class="ok">refused — ${g.why}</span>` : `<span class="bad">ACCEPTED</span>`);
+}
+async function impersonate() {
+  const other = await enroll({ label: "impostor", passphrase: "x x x" });
+  const claimed = makeZone({ owner: other.kappa, backend: arrayBackend(myZone.entries()) });
+  const v = await claimed.verifyZone();
+  const refused = v.ok === false;
+  $("#sec").innerHTML = `Open my zone as a different owner → ${refused ? `<span class="pill">REFUSED ✓</span> ${v.why}` : `<span class="pill b">accepted ✗</span>`}`;
+  log("impersonate attempt", refused ? `<span class="ok">refused — ${v.why}</span>` : `<span class="bad">ACCEPTED</span>`);
+}
+
+(async () => {
+  owner = await enroll({ label: "studio-you", passphrase: "studio-" + Math.floor(performance.now()) });
+  ownerHex = owner.kappa.split(":").pop();
+  myZone = makeZone({ owner, backend: arrayBackend(), now: () => new Date().toISOString() });
+  $("#s-owner").textContent = short(owner.kappa);
+  log("key minted", `<span class="mono">${short(owner.kappa)}</span> — device-held, real WebCrypto`);
+
+  // real cross-tab transport: a zone-net over a BroadcastChannel. openLocal serves THIS tab's zone;
+  // other tabs fetch it (verify-before-adopt). root resolves local first, else over the channel.
+  const bc = new BroadcastChannel("holo-roots-studio");
+  const peers = new Set();
+  chanNet = makeZoneNet({ self: ownerHex, openLocal: async (h) => (h === ownerHex ? myZone : null), post: (m) => bc.postMessage(m), timeoutMs: 1500 });
+  bc.onmessage = (e) => { if (e.data && e.data.from && e.data.from !== ownerHex) { peers.add(e.data.from); $("#s-peers").textContent = peers.size; $("#s-peers2").textContent = peers.size; } chanNet.onMessage(e.data); };
+  root = makeRoot({ anchors: [myZone], openZone: chanNet.openZone });   // bare names via this zone; qualified/foreign via the channel
+
+  $("#mint").onclick = doMint;
+  $("#bind").onclick = () => doBind();
+  $("#resolve").onclick = doResolve;
+  $("#q").addEventListener("keydown", (e) => { if (e.key === "Enter") doResolve(); });
+  $("#forge").onclick = forge;
+  $("#imp").onclick = impersonate;
+  window.__studio = { owner, myZone, root, chanNet, resolve: (q) => root.resolveName(q), doMint, doBind, contentStore };
+  await refresh();
+  log("ready", "mint → bind → resolve. Open a 2nd tab to resolve across a real channel.");
+})();
+</script>
+</body>
+</html>

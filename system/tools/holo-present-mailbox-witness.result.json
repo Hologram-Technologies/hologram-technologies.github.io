@@ -1,0 +1,29 @@
+{
+  "spec": "Lock-free triple-buffer PRODUCE→PRESENT handoff (lifted from the game emulator to the projection substrate). Latest-wins, no-tear (producer write slot and consumer read slot always distinct), present can out-pace produce (fresh-once-then-null → re-present held front), produce can out-pace present (drops, never stale/torn), never-blocks. The structural reason present runs at the panel refresh (240–500 Hz) over a slower deterministic producer.",
+  "authority": "lock-free triple buffer / swap chain · SPSC mailbox (latest-wins, not FIFO) · holo-retro-engine/holo-present-mailbox.js",
+  "witnessed": true,
+  "covers": [
+    "present-mailbox",
+    "latest-wins",
+    "no-tear",
+    "present-outpaces-produce",
+    "produce-outpaces-present",
+    "never-blocks",
+    "integrity"
+  ],
+  "model": {
+    "presentHz": 480,
+    "produceHz": 60,
+    "ratio": 8,
+    "freshAcquires": 10,
+    "reprojectSlots": 70
+  },
+  "checks": {
+    "latestWins": true,
+    "integrity": true,
+    "noTear": true,
+    "presentOutpacesProduce": true,
+    "produceOutpacesPresent": true,
+    "neverBlocks": true
+  }
+}

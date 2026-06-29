@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "AD4M's meta-ontology is mechanically satisfied by the existing κ substrate: an Agent IS an operator κ (holo-identity), an Expression IS a sealed UOR object (holo-object), a Perspective IS a holo-strand of Link entries whose head κ attests the whole ordered graph (Law L5 over the sequence). No port, no daemon — a vocabulary mapped onto what the substrate already is.",
+  "authority": "AD4M meta-ontology (docs.ad4m.dev — Agent/Expression/Perspective/Link) · holospaces Laws L1/L2/L5 · rests on #holo-object + #holo-identity + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "expression-is-kappa",
+    "agent-is-kappa",
+    "perspective-is-strand",
+    "reorder-refused",
+    "tamper-refused",
+    "unsigned-chains"
+  ],
+  "checks": {
+    "expressionIsKappa": true,
+    "agentIsKappa": true,
+    "perspectiveIsStrand": true,
+    "reorderRefused": true,
+    "tamperRefused": true,
+    "unsignedPerspectiveChains": true
+  },
+  "failed": []
+}

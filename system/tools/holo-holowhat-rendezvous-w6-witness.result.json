@@ -1,0 +1,20 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "PAIR — the real holo-pair handshake (createPairOffer → QR → mintDeviceGrant → postGrant → pollGrant → acceptGrant) links a device over a content-blind relay, verify-before-trust",
+    "SCOPED — the grant is attenuated (session/open only, no identity/export) and verifyDelegation passes, bound to the device audience (SEC-2)",
+    "SDP — the same paired channel carries the WebRTC offer → answer, so holo-pair (not a BroadcastChannel stand-in) is the rendezvous that bootstraps the WebRTC link",
+    "BLIND — the rendezvous relay only ever holds opaque blobs (E2E-encrypted grant + content-blind SDP); no operator secret crosses it (SEC-7)"
+  ],
+  "operator": "did:holo:sha256:03782a72b38c1d0d7d72bb787d1281f2a27ccedc9f3ac2db469c012c1f877dcf",
+  "grantId": "did:holo:sha256:5c953b4510f0afb2179ebcd33a21ef510943d3b1258596be2bc817f1b243c8de",
+  "checks": {
+    "pair-handshake-links-device": true,
+    "grant-scoped-and-verified": true,
+    "sdp-rides-the-paired-channel": true,
+    "rendezvous-relay-content-blind": true
+  },
+  "failed": [],
+  "authority": "holo-pair (linked-device UCAN delegation) · holo-identity · holospaces L1/L5 · SEC-2/SEC-7 · P5 WebRTC mechanism"
+}

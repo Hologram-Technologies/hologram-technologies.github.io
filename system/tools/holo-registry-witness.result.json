@@ -1,0 +1,36 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-registry — IANA'S REGISTRIES AS κ: ports/media-types/schemes/number-space mirrored as content-addressed UOR records on a holo-zone spine. Imported verify-before-trust with IANA provenance, re-derivable offline, pinnable; SILENT central edits are DETECTABLE by diffing snapshots (divergence). Native allocation is a signed owner-only claim; lookup re-derives the record before answering (Law L5, fail-closed). A registry IS a zone — no new store, no new crypto. Global uniqueness is holo-root's per-anchor scarcity, not a central allocator.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C PROV-O · IANA registries (mirrored, not authored) · holospaces Laws L1/L2/L3/L5 · rests on #holo-zone + #holo-object",
+  "witnessed": true,
+  "covers": [
+    "import-verify-before-trust",
+    "record-content-addressed",
+    "provenance",
+    "root-attests-registry",
+    "tamper-refused",
+    "unknown-key-fail-closed",
+    "native-allocation",
+    "multi-registry-one-spine",
+    "divergence-silent-edit",
+    "divergence-add-remove"
+  ],
+  "sample": {
+    "registry": "iana:service-port-numbers",
+    "lookup443": "https",
+    "root": "did:holo:sha256:1f858d6215622c2f3a4e5738fbaa1cefb1402cf8d852fa314b1abf6ef09bc4cc"
+  },
+  "checks": {
+    "importAndLookup": true,
+    "recordContentAddressed": true,
+    "rootAttestsRegistry": true,
+    "tamperRecordRefused": true,
+    "unknownKeyFailsClosed": true,
+    "nativeAllocation": true,
+    "multiRegistryOneSpine": true,
+    "divergenceSilentEdit": true,
+    "divergenceAddRemove": true,
+    "deterministicSnapshot": true
+  },
+  "failed": []
+}

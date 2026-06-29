@@ -75,7 +75,19 @@ export function createASR(opts = {}) {
       if (cfg.knativeEar && cfg.knativeEar.module && (await hasWebGPU())) {
         try {
           const mod = await import(/* @vite-ignore */ new URL(cfg.knativeEar.module, base).href);
-          const ear = (mod.createWhisperEar || mod.default)({ holoUrl: new URL(cfg.knativeEar.holoUrl, base).href, upgradeUrl: cfg.knativeEar.upgradeUrl ? new URL(cfg.knativeEar.upgradeUrl, base).href : null, kappa: cfg.knativeEar.kappa, release: cfg.knativeEar.release || "", upgradeKappa: cfg.knativeEar.upgradeKappa || "", upgradeRelease: cfg.knativeEar.upgradeRelease || "", language: cfg.lang });
+          // UNIFIED PACK (opt-in via cfg.knativeEar.pack): stream the encoder/joint/loose-files from the ONE q-models
+          // pack instead of per-model .holo. makePackEarDeps maps the ear's URLs → pack views and is FAIL-SOFT (pack
+          // unreachable → the ear's own standalone url/release), and this whole block already falls back to
+          // transformers on any error — so enabling the pack can never strand listening.
+          let earDeps;
+          if (cfg.knativeEar.pack) { try {
+            const pp = await import(/* @vite-ignore */ new URL("../../q/forge/gpu/holo-q-pack-provider.mjs", base).href);
+            const fm = await import(/* @vite-ignore */ new URL("./holo-q-faculty-models.mjs", base).href);
+            // parakeet ear wants the raw openHoloStream views (+ loose files); the moonshine ear wants the whisper-shaped
+            // view (getF32/getQuant). Pick by module — both fail-soft to standalone inside the loaders.
+            earDeps = /parakeet/.test(cfg.knativeEar.module) ? pp.makePackEarDeps({ packSpec: fm.packSpec }) : { openStream: pp.makePackOpenStream({ packSpec: fm.packSpec }) };
+          } catch (_) { earDeps = undefined; } }
+          const ear = (mod.createWhisperEar || mod.default)({ holoUrl: new URL(cfg.knativeEar.holoUrl, base).href, upgradeUrl: cfg.knativeEar.upgradeUrl ? new URL(cfg.knativeEar.upgradeUrl, base).href : null, kappa: cfg.knativeEar.kappa, release: cfg.knativeEar.release || "", upgradeKappa: cfg.knativeEar.upgradeKappa || "", upgradeRelease: cfg.knativeEar.upgradeRelease || "", language: cfg.lang }, earDeps);
           await ear.load(onProgress);
           knative = ear; info = Object.assign({ ready: true, engine: "holo-gguf-κnative" }, ear.info());
           return info;

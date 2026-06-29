@@ -1014,7 +1014,7 @@
         mode: (m) => { eng.setMode(m); reflectState(); toast("change-mode · " + m); },
         quit: () => { eng.quit(); reflectState(); toast("quit"); },
         pause: () => { eng.paused ? eng.resume() : eng.pause(); reflectState(); },
-        replay: () => loadTheme(curTheme.id, { keepProgress: false }),
+        replay: () => curTheme && loadTheme(curTheme.id, { keepProgress: false }),   // guard: replay() before a theme loads → curTheme null (was an uncaught TypeError the boot-smoke flagged)
       };
 
       // ── password entry: keystrokes → bullets, Enter resolves (ask-for-password) ──────

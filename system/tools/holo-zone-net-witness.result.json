@@ -1,0 +1,40 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-zone-net — RESOLVE OTHER PEOPLE'S NAMES, VERIFY-BEFORE-TRUST: a peer fetches another owner's zone over a dumb untrusted transport and resolves a name they own, adopting the signed strand entries only if they re-derive end-to-end and are signed by exactly that owner κ (Law L5). Tampered-in-flight and foreign-owner chains are refused; the answer is the math, not the messenger. Cached zones are re-served (self-healing). This is the seam holo-root's openZone plugs into so anyone's names resolve through the one door. Loopback hub here; BroadcastChannel/WebRTC is the same shape behind the same seam.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L2/L3/L5 · rests on #holo-zone (adopt/verifyZone) + #holo-identity + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "remote-open-zone",
+    "cross-owner-name",
+    "signed-authorship",
+    "local-first",
+    "cache-heal",
+    "miss-fail-closed",
+    "tamper-in-flight-refused",
+    "foreign-owner-refused",
+    "fresh-device-latest",
+    "one-door-gossip-fed"
+  ],
+  "sample": {
+    "ownerA": "did:holo:sha256:702d61babce2268298c1346ada4c20375192bf0d0e7099313e3256cda5dbf786",
+    "name": "holo://zone/702d61babce2268298c1346ada4c20375192bf0d0e7099313e3256cda5dbf786/ilya.deck",
+    "latest": "did:holo:sha256:c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
+  },
+  "checks": {
+    "remoteOpenZone": true,
+    "crossOwnerNameThroughRoot": true,
+    "signedAuthorshipPreserved": true,
+    "localFirst": true,
+    "cached": true,
+    "missTimeoutNull": true,
+    "tamperInFlightRefused": true,
+    "foreignOwnerRefused": true,
+    "freshDeviceGetsLatest": true,
+    "oneDoorGossipFed": true,
+    "channelAdapterResolves": true,
+    "channelThroughRoot": true,
+    "channelTamperRefused": true,
+    "channelGarbageIgnored": true
+  },
+  "failed": []
+}

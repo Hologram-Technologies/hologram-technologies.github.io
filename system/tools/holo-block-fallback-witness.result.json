@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-block-fallback — the faculty the native host delegates to when an ISP filter blocks a page and no peer holds that exact URL's κ: resolveForBlock(url) resolves the wanted host to a content κ NAMELESS (κ-roots math / encrypted DoH; the ISP resolver is never queried) and fails closed when unbound. The single seam between the C++ redirect-intercept and the JS κ-roots/DoH name-resolve.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L5 · rests on #holo-root #holo-deliver #holo-block-detect",
+  "witnessed": true,
+  "covers": [
+    "nameless-resolve-no-dns",
+    "url-to-host",
+    "unbound-fail-closed",
+    "classify-wired"
+  ],
+  "sample": {
+    "host": "blocked.example",
+    "kappa": "9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f"
+  },
+  "checks": {
+    "resolvesNameless": true,
+    "stripsUrlToHost": true,
+    "unboundFailsClosed": true,
+    "classifyWired": true
+  },
+  "failed": []
+}

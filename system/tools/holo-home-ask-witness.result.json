@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-home-ask — ASK: the 'just ask' surface for the personal cloud, following the unified agent-registry contract and routing through the same seams the taps use (the manifest + the one open path). Bounded to YOUR manifest (find lists only your files; open opens only a pinned app — Q cannot conjure a file you don't have or open what isn't yours) and grounding is references, never bytes (your data never leaves the device to answer). All tools are ambient; a broken manifest fails soft.",
+  "authority": "holospaces Laws L1/L2/L5 · rests on #holo-home-ask + #holo-home + #holo-open + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "tools-advertised",
+    "find-files-bounded",
+    "open-app-one-path",
+    "refuse-unpinned-app",
+    "grounding-refs-only",
+    "fail-soft-broken-manifest"
+  ],
+  "checks": {
+    "toolsAdvertised": true,
+    "findFilesBounded": true,
+    "openAppRoutesOnePath": true,
+    "refusesUnpinnedApp": true,
+    "groundingRefsOnly": true,
+    "failSoftBrokenManifest": true
+  },
+  "failed": []
+}

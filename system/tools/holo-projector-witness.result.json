@@ -1,0 +1,31 @@
+{
+  "spec": "Projection browser channel: a rendered scene streams as κ-objects from an origin (scene producer) to a lens (the projector on any device). Composes compute-memo (O(1) region reconstruct) + delta-render (emit/paint only κ-changes, unchanged = pointer-compare) + kappa-stream (ref vs bytes, verify-before-paint L5). What crosses the wire is novelty, not pixels; a fresh device reconstructs pixel-identical from cache with zero novel bytes; a tampered region is refused before paint.",
+  "authority": "holospaces Laws L1/L2/L3/L4/L5 · damage/dirty-region rendering · content-addressed memoization · thin-client scene streaming",
+  "witnessed": true,
+  "covers": [
+    "projection-channel",
+    "novelty-only-wire",
+    "static-pointer-compare",
+    "one-region-delta",
+    "scroll-back-ref",
+    "cross-device-from-cache",
+    "verify-before-project",
+    "pixel-identical",
+    "deterministic"
+  ],
+  "model": {
+    "regions": 4,
+    "wireKeyframeBytes": 0,
+    "note": "second device: full scene, zero bytes on the wire — what travels is novelty, not resolution"
+  },
+  "checks": {
+    "coldFrameStreamsNovelty": true,
+    "staticFrameZeroWire": true,
+    "oneRegionDelta": true,
+    "scrollBackIsRef": true,
+    "crossDeviceFromCache": true,
+    "tamperRefusedBeforePaint": true,
+    "pixelIdentical": true,
+    "deterministic": true
+  }
+}

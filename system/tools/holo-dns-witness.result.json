@@ -1,0 +1,36 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-dns — THE WEB2 DNS BRIDGE, BOTH WAYS: inbound, a real DoH answer is DNSSEC-gated (AD bit, fail-closed), its delegation re-derived on substrate (DS digest = SHA-256(owner-wire ‖ DNSKEY-RDATA), Law L5), and sealed as a κ (verify-before-trust; tamper-after-fetch caught; silent authority change caught by divergence). Outbound, a κ binding is published as _holo TXT + .well-known/holo + a did:web alias so legacy clients reach κ content, and the κ round-trips back out of the TXT. We conform to DNS, we do not reauthor it. Full RRSIG asymmetric validation is a deeper seam; the DS-digest linkage and immutable re-anchor are real.",
+  "authority": "IETF RFC 8484 (DoH) · RFC 4034/4509 (DNSSEC DS SHA-256) · W3C did:web · UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L2/L3/L5 · rests on #holo-object + #holo-identity + #holo-registry",
+  "witnessed": true,
+  "covers": [
+    "parse-doh",
+    "bridge-in-seals",
+    "dnssec-insecure-refused",
+    "tamper-after-fetch-refused",
+    "delegation-ds-rederives",
+    "divergence-silent-change",
+    "publish-txt",
+    "well-known-did-web",
+    "reverse-roundtrip",
+    "full-circle"
+  ],
+  "sample": {
+    "name": "example.com",
+    "kappa": "did:holo:sha256:415023ad123fb6170462f4fd4c11230b60a13bf638747081643bffc5c42ee446",
+    "txt": "_holo.example.com. IN TXT \"holo=did:holo:sha256:415023ad123fb6170462f4fd4c11230b60a13bf638747081643bffc5c42ee446\""
+  },
+  "checks": {
+    "parseDoH": true,
+    "bridgeInSeals": true,
+    "insecureRefused": true,
+    "tamperAfterFetchRefused": true,
+    "delegationReDerives": true,
+    "divergenceDetectsChange": true,
+    "publishTXT": true,
+    "publishWellKnownDidWeb": true,
+    "reverseRoundTrip": true,
+    "fullCircle": true
+  },
+  "failed": []
+}

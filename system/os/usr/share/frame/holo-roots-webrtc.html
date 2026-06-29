@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>κ-Roots — real WebRTC</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0b0d12; color: #e8edf6; font: 15px/1.5 ui-monospace, Menlo, monospace; padding: 28px 22px 60px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #8a93a6; margin: 0 0 22px; font-size: 13px; }
+  .row { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid #161a22; }
+  .ok .mark { color: #46d18b; } .bad .mark { color: #ff6b6b; }
+  .name { font-weight: 600; } .detail { color: #8a93a6; font-size: 12.5px; word-break: break-all; }
+  #verdict { margin-top: 22px; font-size: 16px; font-weight: 700; }
+  #verdict.ok { color: #46d18b; } #verdict.bad { color: #ff6b6b; } #verdict.pend { color: #6b7488; }
+</style>
+</head>
+<body>
+  <h1>κ-Roots — a name resolved over a REAL WebRTC DataChannel</h1>
+  <p class="sub">Two real RTCPeerConnections, SCTP DataChannel, real WebCrypto. Peer B fetches peer A's zone over WebRTC and resolves a name A owns — verify-before-trust. (In-page loopback trades SDP locally; a WAN deployment swaps in a signaling exchange — same channel.)</p>
+  <div id="list"></div>
+  <div id="verdict" class="pend">running…</div>
+
+<script type="module">
+import { makeZone, normTarget } from "/usr/lib/holo/holo-zone.mjs";
+import { attachChannel } from "/usr/lib/holo/holo-zone-net.mjs";
+import { makeRoot } from "/sbin/holo-root.mjs";
+import { enroll } from "/usr/lib/holo/holo-identity.mjs";
+
+const checks = [];
+const list = document.getElementById("list");
+const add = (name, ok, detail) => {
+  checks.push({ name, ok: !!ok, detail: String(detail || "") });
+  const el = document.createElement("div"); el.className = "row " + (ok ? "ok" : "bad");
+  el.innerHTML = `<div class="mark">${ok ? "✓" : "✗"}</div><div><div class="name">${name}</div><div class="detail">${detail || ""}</div></div>`;
+  list.appendChild(el);
+};
+const arrayBackend = () => { let s = []; return { load: async () => JSON.parse(JSON.stringify(s)), save: async (r) => { s = JSON.parse(JSON.stringify(r)); } }; };
+const hexOf = (k) => k.split(":").pop();
+const kY = "b2".repeat(32), tY = normTarget(kY);
+
+try {
+  add("RTCPeerConnection available", typeof RTCPeerConnection === "function", "");
+
+  // owner A mints a key and binds a name (real WebCrypto)
+  const owner = await enroll({ label: "webrtc-A", passphrase: "real datachannel 7" });
+  const zone = makeZone({ owner, backend: arrayBackend(), now: () => new Date().toISOString() });
+  await zone.bind("ilya.deck", kY);
+  add("owner A: enroll + bind a name", !!owner.kappa && /^did:holo:sha256:/.test(owner.kappa), owner.kappa.slice(0, 30) + "…");
+
+  // stand up a REAL WebRTC connection between two peers, in-page (host ICE candidates, no STUN needed)
+  const pcA = new RTCPeerConnection(), pcB = new RTCPeerConnection();
+  pcA.onicecandidate = (e) => { if (e.candidate) pcB.addIceCandidate(e.candidate).catch(() => {}); };
+  pcB.onicecandidate = (e) => { if (e.candidate) pcA.addIceCandidate(e.candidate).catch(() => {}); };
+  const dcA = pcA.createDataChannel("zone");
+  const dcBReady = new Promise((res) => { pcB.ondatachannel = (e) => res(e.channel); });
+  await pcA.setLocalDescription(await pcA.createOffer());
+  await pcB.setRemoteDescription(pcA.localDescription);
+  await pcB.setLocalDescription(await pcB.createAnswer());
+  await pcA.setRemoteDescription(pcB.localDescription);
+  const dcB = await dcBReady;
+  const open = (dc) => dc.readyState === "open" ? Promise.resolve() : new Promise((r) => dc.addEventListener("open", r, { once: true }));
+  await Promise.all([open(dcA), open(dcB)]);
+  add("real WebRTC DataChannel open (SCTP, ICE-connected)", dcA.readyState === "open" && dcB.readyState === "open", `A=${dcA.readyState} B=${dcB.readyState} · iceA=${pcA.iceConnectionState}`);
+
+  // attach a zone-net to each end of the real channel
+  const A = attachChannel(async (h) => (h === hexOf(owner.kappa) ? zone : null), dcA, { self: "A", timeoutMs: 2000 });
+  const B = attachChannel(async () => null, dcB, { self: "B", timeoutMs: 2000 });
+
+  // peer B fetches A's zone over WebRTC and resolves the name — verify-before-trust
+  const zB = await B.openZone(hexOf(owner.kappa));
+  const gB = zB ? await zB.resolve("ilya.deck") : { ok: false };
+  add("peer B fetches A's zone over WebRTC + resolves the name", !!zB && gB.ok && gB.target === tY, `ilya.deck → ${gB.target}`);
+
+  // the adopted chain still carries A's signature (B verified authorship over the wire)
+  add("authorship verified over the wire (A-signed)", zB && zB.entries().every((e) => e["holstr:op"] === owner.kappa && e["holstr:sig"]), "every entry signed by A");
+
+  // through holo-root, over WebRTC
+  const root = makeRoot({ openZone: B.openZone });
+  const rr = await root.resolveName("holo://zone/" + hexOf(owner.kappa) + "/ilya.deck");
+  add("holo-root resolves A's name via the WebRTC openZone", rr.ok && rr.kappa === tY, `→ ${rr.kappa}`);
+
+  try { pcA.close(); pcB.close(); } catch (e) {}
+} catch (e) {
+  add("fatal", false, String(e && e.stack || e));
+}
+
+const passed = checks.filter((c) => c.ok).length;
+const allGreen = passed === checks.length && checks.length >= 6;
+const v = document.getElementById("verdict");
+v.className = allGreen ? "ok" : "bad";
+v.textContent = `${allGreen ? "WITNESSED ✓" : "FAILED"}  ${passed}/${checks.length} over real WebRTC`;
+window.__webrtcResult = { passed, total: checks.length, allGreen, checks };
+console.log("[κ-Roots WebRTC]", JSON.stringify(window.__webrtcResult));
+</script>
+</body>
+</html>

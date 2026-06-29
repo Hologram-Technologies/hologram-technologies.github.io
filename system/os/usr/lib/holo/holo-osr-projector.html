@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hologram — projected tab</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; image-rendering: auto; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script type="module">
+// The LENS SURFACE for the native off-screen browser producer (holo_osr.cc). The host renders a real web
+// page off-screen, tiles + content-addresses each frame, writes novel tiles to the κ-store (served at
+// holo://os/cache/sha256/<hex>), and calls window.__holoOsrFrame(manifest) with the changed tiles. This page
+// composites them via the proven projection path — so the tab is 100% projected from κ-addressable objects.
+import { makeOsrLens } from "./holo-osr-lens.mjs";
+import { makeFramebufferPipeline } from "./holo-framebuffer-source.mjs";
+import { blake3hex } from "./holo-blake3.mjs";   // the substrate σ-axis hash — the producer addresses tiles on it
+import { classify } from "./holo-projection-policy.mjs";   // the ONE projection policy (doc=pixel-native · media=super-res)
+import { mountProjectionHUD } from "./holo-projection-hud.mjs";   // the ONE projection HUD (same readout web · app · video)
+import { makeBroadcastTransport, makeDialHost } from "./holo-canvas-transport.mjs";   // the ONE share wire (same as the app)
+import { tilePlacement } from "./holo-osr-admit.mjs";   // the ONE tile-placement source (shared with view.html)
+import { HoloCanvas, detectGPU } from "./holo-canvas.mjs";   // WebGPU super-res (Catmull-Rom + CAS) — the SAME kernel as the app
+
+const screen = document.getElementById("screen");
+let lens = null, W = 0, H = 0, TILE = 256;
+
+// THE UNIFIED POLICY applied to THIS surface: a web document projects PIXEL-NATIVE (crisp text); a video/GPU
+// target renders CHEAP and the lens super-res's it. One decision, shared with the app path (run.html). The
+// target URL is the surface signal; an app/holospace could declare ?kind=app|3d|video to override.
+const TARGET = new URLSearchParams(location.search).get("target") || "";
+const KIND_HINT = new URLSearchParams(location.search).get("kind") || "";
+const POLICY = classify({ url: TARGET, surfaceKind: KIND_HINT });
+let NATIVE = null;                                  // the display res (super-res target); set when reqRes runs
+window.HoloProjection = POLICY;                      // exposed for the unified HUD + verification
+
+// PRESENT PATH (from the policy + WebGPU availability):
+//   doc / pixel-native → a 2D context, drawImage 1:1 (crisp text — the proven path, byte-identical).
+//   super-res + WebGPU → HoloCanvas (Catmull-Rom upscale + CAS sharpen) on the reconstructed frame: the REAL
+//   quality super-res, not bilinear. No WebGPU ⇒ fall back to the 2D bilinear path. NEVER blank.
+const SR_WANTED = POLICY.treatment === "super-res" && typeof navigator !== "undefined" && !!navigator.gpu;
+let ctx = SR_WANTED ? null : screen.getContext("2d", { alpha: false });   // doc: synchronous 2D, UNCHANGED
+let holoComp = null, SR = false, srReady = false;
+window.__holoLensPresent = SR_WANTED ? "webgpu-pending" : "canvas2d";
+if (SR_WANTED) (async () => {
+  try {
+    const gpu = await detectGPU();                   // confirm an adapter BEFORE touching the canvas (never-blank)
+    if (gpu && gpu.ok) {
+      holoComp = new HoloCanvas(screen, { sharpen: 0.55 });
+      await holoComp.init(gpu.adapter);              // adapter may be undefined → init requests its own
+      SR = true; srReady = true; window.__holoLensPresent = "webgpu-superres";
+      if (W) sizeScreen();
+      return;
+    }
+  } catch (e) { window.__holoLensSRErr = String(e && e.message || e).slice(0, 80); }
+  ctx = screen.getContext("2d", { alpha: false });   // no adapter / init failed → proven 2D bilinear (never blank)
+  window.__holoLensPresent = "canvas2d-fallback";
+})();
+// GPU path (no WebGPU adapter on this host → use GPU-accelerated Canvas2D). The composited frame lives in a
+// GPU-backed OffscreenCanvas; only CHANGED tiles are written (O(1), work ∝ novelty). The present loop draws it
+// with drawImage — which scales (super-res to the native display resolution) + translates (sub-pixel scroll
+// reproject) on the GPU in ONE call, every panel refresh. High quality, high FPS, native hardware.
+let base = null, bctx = null;
+
+// PRESENT-SIDE substrate (decoupled present + scroll reproject). The producer (off-screen) produces frames at
+// its own rate; this lens PRESENTS at the panel's rAF rate (the present-mailbox idea), holding the last
+// composited frame. Between produced frames it REPROJECTS the held frame by the pending scroll delta — so a
+// scroll feels instant (the frame shifts immediately, before the producer's scrolled frame arrives ~1 frame
+// later). Integer scroll = a fast native putImageData offset (the JS per-pixel reproject is the sub-pixel/MV
+// oracle; its production form is a WebGPU warp). On a new composite the delta resets — the frame caught up.
+let scrollAccum = 0, baseScroll = 0;
+// curScrollY = the producer's document scrollY for the frame currently being composited (content-space tiling).
+// Content tiles carry their document row (prow) in their id; the lens places each at screen y = prow·TILE −
+// curScrollY, so the same content row keeps the same κ across scroll (recurrence) while the row simply moves.
+let curScrollY = 0;
+
+// fetch a tile's bytes by content address; the κ scheme verifies (L5) on the wire. Late-bound to
+// window.__holoOsrFetch each call so the host (or a test) can inject the transport.
+// tiles are addressed on the BLAKE3 σ-axis (fast, ~3.2 GB/s producer) → fetch + verify on .holo/blake3/.
+const defaultFetch = async (hex) => {
+  const r = await fetch("holo://os/cache/blake3/" + hex);
+  if (!r.ok) throw new Error("osr: tile fetch " + hex + " → " + r.status);
+  const u = new Uint8Array(await r.arrayBuffer());
+  window.__holoWireBytes = (window.__holoWireBytes || 0) + u.length;   // bandwidth-∝-novelty: only NOVEL tiles fetch (resident ones never cross)
+  return u;
+};
+const fetchTile = (hex) => (window.__holoOsrFetch || defaultFetch)(hex);
+const digestHex = async (b) => blake3hex(b);   // L5 re-derive on the same (blake3) axis the producer hashed
+
+// SHARE this projected tab to the ONE viewer (view.html) over the SAME transport the app share uses — one wire,
+// not two. The OSR manifest (blake3 refs, tiny) crosses the channel each frame; the tiles themselves cross by κ
+// over shared-κ (a remote device fetches them by address, L5-verified). Retires the bespoke ?wan datachannel:
+// projection has ONE share path. ?share=tab → cross-tab BroadcastChannel · ?share=link → holo-dial cross-device.
+// SHARE_KEY is derived from the target so a viewer can join the same channel by url, no out-of-band coordination.
+const SHARE_KEY = TARGET ? blake3hex(new TextEncoder().encode(TARGET)).slice(0, 16) : "popup";
+let shareTx = null, lastManifest = null;
+window.__holoOsrShareKey = SHARE_KEY;
+window.__holoShareOsr = async (mode) => {
+  if (mode === "link") {                                   // cross-device: mint a dial offer the shell surfaces
+    const host = await makeDialHost();
+    shareTx = host.channel;                                // wrapped DataChannel { send, onMessage, ready, close }
+    window.__holoOsrDialOffer = host.offerBlob;
+    window.__holoOsrDialAccept = (ans) => host.accept(ans);
+  } else {
+    shareTx = makeBroadcastTransport("holo-osr-" + SHARE_KEY);   // cross-tab co-view (default)
+  }
+  // keyframe heartbeat: re-send the LAST manifest every 500ms so a viewer that joins AFTER the last produced
+  // frame catches up (a static page emits few frames; broadcast doesn't replay). Resident κ ⇒ the catch-up is refs.
+  if (!window.__holoShareHb) window.__holoShareHb = setInterval(() => { if (shareTx && lastManifest) { try { shareTx.send(lastManifest); } catch (e) {} } }, 500);
+  return mode === "link" ? window.__holoOsrDialOffer : SHARE_KEY;
+};
+const _share = new URLSearchParams(location.search).get("share");
+if (_share) window.__holoShareOsr(_share === "link" ? "link" : "tab");
+
+// write ONE tile into the GPU-backed offscreen base. Placement is the SHARED tilePlacement (the same source
+// view.html uses) — content-space ("c{cx}_{prow}") by document row − scrollY, legacy screen-space ("t{cx}_{ry}")
+// by grid slot. putImageData clips to the canvas, so a margin tile's off-screen (zero-padded) rows are dropped.
+const blit = (id, bytes) => {
+  const p = tilePlacement(id, TILE, W, curScrollY, H);   // ONE placement path (no per-surface re-implementation)
+  if (!p) return;
+  const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  bctx.putImageData(new ImageData(new Uint8ClampedArray(u.subarray(0, p.w * p.h * 4)), p.w, p.h), p.x, p.y);
+};
+
+// the one entry the native producer calls each frame
+window.__holoOsrFrame = async (manifest) => {
+  // SHARING: forward this frame's manifest (blake3 "k" refs, tiny) to the ONE viewer over the shared transport,
+  // then composite locally too. The viewer (view.html) fetches the tiles by blake3 from the shared-κ + L5-verifies.
+  lastManifest = manifest;   // always hold the latest frame, so when sharing STARTS the heartbeat can replay it
+  if (shareTx) { try { shareTx.send(manifest); } catch (e) {} }
+  window.__holoScLast = null;                        // a tile manifest arrived ⇒ we are in (or back to) crisp tile mode
+  window.__holoFirstFrame = true;                    // a frame composited ⇒ projection is live (cancels the Phase-C fallback)
+
+  // CROSS-DEVICE is the SAME blake3 path: a remote lens (no producer, fed by the channel) composites the
+  // manifest's blake3 "k" tiles exactly like a local lens — fetched from holo://os/cache/blake3/<b3>, which on a
+  // remote node falls back to the shared-κ transport (kr_shared_get_b3, L5). The substrate is blake3-canonical;
+  // there is no separate sha256/remote branch.
+  if (!lens || manifest.w !== W || manifest.h !== H) {
+    W = manifest.w; H = manifest.h; TILE = manifest.tile || 256;
+    base = new OffscreenCanvas(W, H); bctx = base.getContext("2d", { alpha: false });
+    sizeScreen();
+    lens = makeOsrLens({ tile: TILE, paint: blit, fetchTile, digestHex });
+  }
+  const content = typeof manifest.scrollY === "number";   // content-space frame (carries the producer's scrollY)
+  curScrollY = content ? manifest.scrollY : 0;
+  if (content) {
+    // Make every tile's bytes resident (novelty-only fetch + L5), then place each by document row. On scroll the
+    // producer re-emits all visible tiles (their screen rows moved); resident κ are refs, not re-fetches.
+    window.__holoTilesSeen = (window.__holoTilesSeen || 0) + manifest.tiles.length;   // refs seen (cheap) vs __holoWireBytes (only novel)
+    await lens.ensure(manifest);
+    for (const t of manifest.tiles) {
+      const bytes = lens.store.get(String(t.k).split(":").pop());
+      if (bytes) blit(t.id, bytes);
+    }
+  } else {
+    await lens.frame(manifest);                    // legacy screen-space: fetch novel, ref held, delta-composite
+  }
+  baseScroll = scrollAccum;                         // this composite reflects scroll up to now → reset the warp
+  window.__holoOsrSeq = manifest.seq;               // the present loop shows base, super-res'd + reprojected, on the GPU
+};
+
+// the visible canvas backs the NATIVE display resolution (super-res target); drawImage upscales the producer
+// frame to it with high-quality sampling.
+function sizeScreen() {
+  // WebGPU super-res: HoloCanvas owns the canvas backing (setOutput = the NATIVE super-res target); the producer's
+  // cheap W×H frame is upscaled by the Catmull-Rom + CAS kernel. NO WebGPU: the 2D path — doc backs producer res
+  // (1:1 crisp text, UNCHANGED); super-res-fallback backs NATIVE so the present-loop drawImage upscales.
+  if (SR && holoComp) { if (NATIVE) holoComp.setOutput(NATIVE.w, NATIVE.h); return; }
+  if (POLICY.treatment === "super-res" && NATIVE) { screen.width = NATIVE.w; screen.height = NATIVE.h; }
+  else { screen.width = W; screen.height = H; }
+  if (ctx) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; }
+}
+// the resolution we ask the producer to render at. doc ⇒ native (pixel-native); media/3d/video ⇒ native ×
+// internalScale (render cheap → the lens super-res's it). NATIVE (the display res) is the super-res target.
+function reqRes() {
+  const dpr = window.devicePixelRatio || 1;
+  NATIVE = { w: Math.min(3840, Math.max(640, Math.round(window.innerWidth * dpr))),
+             h: Math.min(2400, Math.max(480, Math.round(window.innerHeight * dpr))) };
+  const s = POLICY.internalScale || 1.0;            // doc=1.0 (no cut); media<1 (cheap render)
+  return { w: Math.max(320, Math.round(NATIVE.w * s)), h: Math.max(240, Math.round(NATIVE.h * s)) };
+}
+
+// the PRESENT loop — runs at the panel refresh, decoupled from produce. ONE GPU drawImage: scale (super-res to
+// the display resolution) + translate (sub-pixel scroll reproject = present-side negative latency).
+function presentLoop() {
+  if (base && W) {
+    if (SR && holoComp && srReady) {
+      try { holoComp.present(base, "sr"); } catch (e) {}   // WebGPU Catmull-Rom upscale + CAS sharpen (real super-res)
+      window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
+    } else if (ctx) {
+      const sy = scrollAccum - baseScroll;           // px scrolled (producer space) since the held frame
+      const scaleY = screen.height / H;
+      if (sy !== 0) ctx.clearRect(0, 0, screen.width, screen.height);
+      ctx.drawImage(base, 0, 0, W, H, 0, -sy * scaleY, screen.width, screen.height);   // 2D: bilinear scale + reproject
+      window.__holoReprojDy = -sy;
+      const a = Math.abs(sy); if (a > (window.__holoReprojMax || 0)) window.__holoReprojMax = a;
+      window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
+    }
+  }
+  requestAnimationFrame(presentLoop);
+}
+requestAnimationFrame(presentLoop);
+// SCREENCAST path (100% Chromium + ALL extensions): the host runs a FULL Chrome-runtime engine (feature-
+// complete, every extension loads natively) and streams its frames via CDP Page.startScreencast. Each frame
+// is a full image; the LENS tiles + content-addresses it (raster-ingest) and projects only the changed tiles.
+// So extension-modified, feature-complete Chrome content becomes a κ-tile projection — the path OSR/Alloy
+// cannot take (Alloy ≠ full Chrome extensions). The host acks each frame via CDP Page.screencastFrameAck.
+let scPipe = null, scCtx = null, scCur = null, scW = 0, scH = 0;
+window.__holoScreencastFrame = async (dataUrl, seq) => {
+  window.__holoFirstFrame = true;                    // projection is live (cancels the Phase-C fallback)
+  const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
+  if (!scPipe || bmp.width !== scW) {
+    scW = bmp.width; scH = bmp.height; if (ctx) { screen.width = scW; screen.height = scH; } W = scW; H = scH;
+    const off = new OffscreenCanvas(scW, scH); scCtx = off.getContext("2d", { willReadFrequently: true });
+    scPipe = makeFramebufferPipeline({ getFrame: () => scCur, width: scW, height: scH, tile: TILE });
+  }
+  scCtx.drawImage(bmp, 0, 0);
+  scCur = new Uint8Array(scCtx.getImageData(0, 0, scW, scH).data);
+  const r = await scPipe.present();                  // tile + project only the CHANGED tiles
+  if (ctx) ctx.putImageData(new ImageData(new Uint8ClampedArray(scPipe.framebuffer()), scW, scH), 0, 0);
+  else if (SR && holoComp && srReady) { const o = new OffscreenCanvas(scW, scH); o.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(scPipe.framebuffer()), scW, scH), 0, 0); try { holoComp.present(o, "sr"); } catch (e) {} }
+  window.__holoOsrSeq = seq; window.__holoScLast = { changed: r.changed, emitted: r.emitted };
+  return r;
+};
+
+// INPUT (feature-complete to Chrome): capture DOM input on the canvas, map to the off-screen view's pixel
+// space, and forward to the host via the bridge. The host (holo_osr.cc DispatchOsrInput) replays it on the
+// off-screen browser, so a projected tab clicks/scrolls/types exactly like a real Chrome tab.
+const sendInput = (o) => {
+  window.__holoLastInput = o;
+  if (window.cefQuery) window.cefQuery({ request: "holo:osrinput:" + JSON.stringify(o), onSuccess() {}, onFailure() {} });
+};
+const viewXY = (e) => {
+  if (!W) return { x: 0, y: 0 };
+  const r = screen.getBoundingClientRect();
+  return { x: Math.round((e.clientX - r.left) * (W / r.width)), y: Math.round((e.clientY - r.top) * (H / r.height)) };
+};
+screen.addEventListener("mousemove", (e) => sendInput({ t: "move", ...viewXY(e) }));
+screen.addEventListener("mousedown", (e) => sendInput({ t: "down", ...viewXY(e), b: e.button }));
+screen.addEventListener("mouseup", (e) => sendInput({ t: "up", ...viewXY(e), b: e.button }));
+screen.addEventListener("wheel", (e) => { scrollAccum += e.deltaY; sendInput({ t: "wheel", ...viewXY(e), dy: -Math.round(e.deltaY) }); e.preventDefault(); }, { passive: false }); // accumulate for present-side scroll reproject
+window.addEventListener("keydown", (e) => sendInput({ t: "keydown", k: e.keyCode }));
+window.addEventListener("keypress", (e) => sendInput({ t: "char", c: e.charCode || e.keyCode }));
+
+window.__holoOsrReady = true;                      // host waits on this before opening the OSR producer
+// handshake: tell the host this lens is ready + the resolution to render the producer at (pixel-native). When
+// this lens is an in-OS holospace NODE (an iframe with ?target=<web url>), it carries its OWN target inline
+// (URI-encoded → no ':' to break the host's colon-split), so the producer is per-lens — no shared pending-url
+// race across multiple projected tabs. With no ?target we are the legacy popup lens (host holds the pending url).
+// TARGET + POLICY are computed at the top of the module (the lens classifies its own surface).
+const _rr = reqRes();
+if (window.cefQuery) window.cefQuery({ request: "holo:osrready:" + _rr.w + ":" + _rr.h + (TARGET ? ":" + encodeURIComponent(TARGET) : ""), onSuccess() {}, onFailure() {} });
+
+// THE ONE HUD — same readout the app envelope + video path show. Reads this lens's live κ globals; Alt+H toggles.
+mountProjectionHUD(() => ({
+  kind: POLICY.kind, treatment: POLICY.treatment,
+  engine: SR ? "webgpu" : (window.__holoScLast ? "screencast" : "canvas2d"),   // the path actually projecting this frame
+  refs: window.__holoTilesSeen || 0,                         // tiles referenced (resident κ never re-cross)
+  novelBytes: window.__holoWireBytes || 0,                   // bytes that ACTUALLY crossed (∝ novelty — the κ win)
+  tileBytes: TILE * TILE * 4,
+  internalScale: POLICY.internalScale, ssaa: POLICY.ssaa, l5: true, label: TARGET,
+}), { startHidden: true });
+
+// PHASE C — safe fallback: if no frame composites within the grace window (DRM/Widevine can't be captured, a
+// producer error, or a dead page), tell the host shell to swap this projected node for the plain in-OS web view.
+// The default is projection; the floor is always a working page. Only armed in node mode (we have a target + a
+// parent shell to message); the popup lens has no shell to fall back into.
+if (TARGET && window.parent && window.parent !== window) {
+  setTimeout(() => {
+    if (!window.__holoFirstFrame) {
+      try { window.parent.postMessage({ type: "holo-project:noframe", url: TARGET }, "*"); } catch (e) {}
+    }
+  }, 3000);
+}
+</script>
+</body>
+</html>

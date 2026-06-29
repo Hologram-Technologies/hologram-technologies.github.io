@@ -1,0 +1,27 @@
+{
+  "spec": "Raster edge of the projection browser: an engine's painted BGRA framebuffer + dirty rects become a κ region-scene (fixed tile grid, content-addressed tiles, damage-driven re-extraction) that drives holo-projector. Temporal reuse (untouched tile keeps its κ) + spatial dedup (identical tiles collapse to one κ) fall out of content addressing. This is the CPU step CefRenderHandler::OnPaint calls.",
+  "authority": "holospaces Laws L1/L2/L3/L5 · Chromium damage/dirty-rect tracking · tile-based content-addressed compositing",
+  "witnessed": true,
+  "covers": [
+    "raster-ingest",
+    "tile-grid",
+    "damage-driven-extraction",
+    "spatial-dedup",
+    "temporal-reuse",
+    "novelty-only-wire",
+    "cross-device-from-cache"
+  ],
+  "model": {
+    "frameBytes": 1048576,
+    "oneTileDeltaBytes": 262144,
+    "reduction": 4
+  },
+  "checks": {
+    "keyframeTilesScene": true,
+    "oneDirtyTile": true,
+    "spatialDedup": true,
+    "temporalReuse": true,
+    "noveltyOnlyDelta": true,
+    "crossDeviceFromCache": true
+  }
+}

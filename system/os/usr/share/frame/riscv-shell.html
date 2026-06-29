@@ -1,0 +1,13 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><title>riscv shell</title>
+<style>html,body{margin:0;height:100%;background:#07070c;color:#cfe}#t{margin:0;padding:10px;white-space:pre-wrap;font:12px ui-monospace,monospace}</style></head>
+<body><pre id=t>booting…</pre>
+<script type=module>
+const t=document.getElementById('t');
+const w=new Worker('/usr/lib/holo/riscv-worker.mjs',{type:'module'});
+w.onmessage=e=>{const m=e.data;
+ if(m.kind==='term'){t.textContent=m.text;window.__term=m.text;t.scrollTop=t.scrollHeight;}
+ else if(m.kind==='stage'){window.__stage=m.s;t.textContent='['+m.s+']';}
+ else if(m.kind==='error'){window.__err=m.error;t.textContent+='\n[error] '+m.error;}};
+window.__feed=s=>w.postMessage({kind:'input',data:s});
+w.postMessage({kind:'boot'});
+</script></body></html>

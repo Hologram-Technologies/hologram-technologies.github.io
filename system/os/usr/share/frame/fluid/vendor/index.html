@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Fluid</title>
+<!-- Headless host for Pavel Dobryakov's WebGL-Fluid-Simulation (MIT, vendored verbatim under /vendor/).
+     This wrapper runs the sim as a pure, fullscreen, interactive backdrop: NO dat.GUI panel, NO promo
+     popup, NO badges or links, NO analytics — just the fluid on black. The original script.js expects a
+     handful of DOM nodes (promo popup, store links) and a global ga() at load; we provide hidden stubs so
+     it runs unmodified (editing it would break its content-address κ). dat.gui.min.js is included so
+     startGUI() works, then the whole .dg panel is hidden. The canvas fills the viewport and renders at
+     devicePixelRatio (the sim's own scaleByPixelRatio), so it is crisp at retina / 8K. -->
+<style>
+  html, body { margin: 0; height: 100%; width: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  /* hide EVERY piece of the sim's chrome — the dat.GUI panel, the promo popup, the badges/links */
+  .dg, .dg.ac, .promo, #apple_link, #google_link, .promo-close { display: none !important; }
+</style>
+</head>
+<body>
+<canvas></canvas>
+
+<!-- hidden stubs the vendored script.js references at load (so it runs verbatim, never throws) -->
+<div class="promo" style="display:none"><span class="promo-close"></span>
+  <a id="apple_link" href="#"></a><a id="google_link" href="#"></a>
+</div>
+<script>window.ga = window.ga || function () {};</script>
+
+<script src="dat.gui.min.js"></script>
+<script src="script.js"></script>
+
+<!-- ADAPTIVE QUALITY CONTROLLER — "smooth on any machine", in the spirit of holo-canvas.mjs: tier the work
+     to the GPU, then MEASURE fps and self-correct (the win is a number, not a claim). The vendored script.js
+     is left byte-identical (its κ is sealed); we only mutate its GLOBAL `config` + call its global
+     initFramebuffers/multipleSplats — all real globals because it is a classic script.
+
+     The art is the ORDER of degradation: BLOOM / SUNRAYS / PRESSURE_ITERATIONS are read LIVE every frame, so
+     turning them down is free and causes NO visible clear. DYE/SIM resolution and the device-pixel cap need
+     a framebuffer re-alloc (a momentary clear), so those are the LAST resort and we re-seed a few splats so
+     the canvas is never empty. Result: under load the backdrop quietly sheds glow and pressure precision long
+     before it ever touches resolution — it just stays at 60. With headroom it climbs back to full ultra. -->
+<script>
+(function () {
+  // 8 quality levels, 0 (eco) → 7 (ultra). Adjacent levels above L4 differ only by a LIVE knob (no clear);
+  // L4↓ also vary DYE/SIM/dpr (a re-alloc). dpr = device-pixel cap (the only knob that trades raw sharpness).
+  var L = [
+    { DYE: 256,  SIM: 64,  PI: 10, BLOOM: false, SUN: false, dpr: 1.0  }, // 0 eco
+    { DYE: 384,  SIM: 80,  PI: 12, BLOOM: false, SUN: false, dpr: 1.25 }, // 1
+    { DYE: 512,  SIM: 96,  PI: 14, BLOOM: false, SUN: false, dpr: 1.5  }, // 2
+    { DYE: 768,  SIM: 110, PI: 16, BLOOM: false, SUN: false, dpr: 2.0  }, // 3
+    { DYE: 1024, SIM: 128, PI: 16, BLOOM: false, SUN: false, dpr: 4.0  }, // 4  (full dpr from here up)
+    { DYE: 1024, SIM: 128, PI: 18, BLOOM: true,  SUN: false, dpr: 4.0  }, // 5  +bloom (live)
+    { DYE: 1024, SIM: 128, PI: 20, BLOOM: true,  SUN: false, dpr: 4.0  }, // 6  +pressure (live)
+    { DYE: 1024, SIM: 128, PI: 20, BLOOM: true,  SUN: true,  dpr: 4.0  }  // 7 ultra +sunrays (live)
+  ];
+
+  var dprCap = 4.0;
+  // override the (reassignable) global so the device-pixel cap takes effect; the sim's per-frame
+  // resizeCanvas() picks it up and re-inits itself. Pointers use the same fn, so input stays aligned.
+  window.scaleByPixelRatio = function (input) {
+    var r = Math.max(1, window.devicePixelRatio || 1);
+    return Math.floor(input * Math.min(r, dprCap));
+  };
+
+  function probe() {
+    try {
+      var cv = document.createElement("canvas");
+      var gl = cv.getContext("webgl2") || cv.getContext("webgl");
+      if (!gl) return { soft: true, maxTex: 0, r: "" };
+      var dbg = gl.getExtension("WEBGL_debug_renderer_info");
+      var r = (dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : "") + "";
+      var maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 0;
+      var soft = /swiftshader|software|llvmpipe|basic render|microsoft basic/i.test(r);
+      return { soft: soft, maxTex: maxTex, r: r };
+    } catch (e) { return { soft: false, maxTex: 8192, r: "" }; }
+  }
+  function startLevel(p) {
+    if (p.soft) return 1;
+    if (p.maxTex < 8192) return 2;
+    if (/(rtx|radeon rx|geforce|quadro|arc a[0-9]|apple m[0-9]|radeon pro)/i.test(p.r)) return 7; // strong discrete
+    if (/(nvidia|amd|radeon|apple|adreno 7|mali-g7)/i.test(p.r)) return 6;
+    return 4; // unknown / integrated → sharp but unadorned; climbs if there's headroom
+  }
+
+  var cur = -1;
+  function apply(i) {
+    var c = window.config; if (!c) return;
+    i = Math.max(0, Math.min(L.length - 1, i));
+    var lv = L[i];
+    var reinit = (c.DYE_RESOLUTION !== lv.DYE) || (c.SIM_RESOLUTION !== lv.SIM);
+    var dprChanged = dprCap !== lv.dpr;
+    c.DYE_RESOLUTION = lv.DYE; c.SIM_RESOLUTION = lv.SIM; c.PRESSURE_ITERATIONS = lv.PI;
+    c.BLOOM = lv.BLOOM; c.SUNRAYS = lv.SUN; dprCap = lv.dpr;
+    // BLOOM/SUNRAYS are compiled into the display shader as keywords (#ifdef) — toggling the config flag
+    // alone silently no-ops; rebuild the display material's keyword variant so the change actually takes.
+    if (window.updateKeywords) window.updateKeywords();
+    if (reinit && window.initFramebuffers) {
+      window.initFramebuffers();
+      if (window.multipleSplats) window.multipleSplats(6);   // never leave the canvas empty after a re-alloc
+    }
+    // a dpr change clears via the sim's own resize→initFramebuffers next frame; re-seed then too
+    else if (dprChanged && window.multipleSplats) setTimeout(function () { window.multipleSplats(5); }, 40);
+    cur = i;
+    window.__fluidQuality = { level: i, name: ["eco","low","mid","high","full","bloom","pressure","ultra"][i] };
+  }
+
+  function run() {
+    if (!window.config) { return void setTimeout(run, 60); }   // wait for the sim's globals
+    var p = probe();
+    apply(startLevel(p));
+    // CALM IDLE: the vendored sim auto-seeds a splat burst at startup (script.js line ~712). On a LOCK SCREEN
+    // we don't want motion before the user asks for it — clear it so the backdrop sits still (pure black) and
+    // only comes alive on click / tap. The sim loop keeps running, so pointer input still splats instantly.
+    if (window.initFramebuffers) window.initFramebuffers();
+
+    // measured-fps governor with hysteresis + cooldown (no flapping). Down fast (protect smoothness),
+    // up slow (only after sustained headroom). A separate rAF that only times — negligible cost.
+    var ema = 60, last = 0, cooldown = 0, upHold = 0;
+    function tick(now) {
+      if (last) {
+        var dt = now - last;
+        if (dt > 0) { var fps = 1000 / dt; ema = ema * 0.9 + fps * 0.1; }
+        cooldown -= dt;
+        if (cooldown <= 0) {
+          if (ema < 48 && cur > 0) { apply(cur - 1); ema = 54; cooldown = 1200; upHold = 0; }
+          else if (ema >= 57 && cur < L.length - 1) {
+            upHold += dt;
+            if (upHold > 4000) { apply(cur + 1); ema = 57; cooldown = 2200; upHold = 0; }
+          } else { upHold = 0; }
+        }
+      }
+      last = now;
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  try { run(); } catch (e) { /* sim runs at its own defaults if the governor can't start */ }
+})();
+</script>
+</body>
+</html>

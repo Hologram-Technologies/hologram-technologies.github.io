@@ -1,0 +1,17 @@
+{
+  "spec": "Screencast→projection: a full rendered frame (extension-modified Chrome content, produced by a real Chrome-runtime engine + CDP screencast) decodes, tiles + content-addresses at the lens, and projects only changed tiles. The path that delivers 100% Chromium parity + all extensions, 100% projected.",
+  "authority": "Chromium (Playwright) real DOM/Canvas/createImageBitmap · the served holo-osr-projector.html + holo-framebuffer-source.mjs · CDP Page.startScreencast model",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "firstFrameTiles": 4
+  },
+  "checks": {
+    "loadedNoErrors": true,
+    "hasScreencast": true,
+    "composited": true,
+    "extensionBannerShows": true,
+    "toolbarStatic": true,
+    "deltaOnly": true
+  }
+}

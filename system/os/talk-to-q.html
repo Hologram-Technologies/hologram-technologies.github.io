@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Q</title>
+<!-- Bare-specifier map the voice stack needs: kokoro-js + transformers.js + phonemizer + the orb noise lib.
+     Must precede holo-voice.js so its dynamic imports resolve to the vendored copies (serverless). -->
+<script type="importmap">
+{ "imports": {
+  "@huggingface/transformers": "/_shared/voice/vendor/kokoro/transformers/transformers.js",
+  "phonemizer": "/_shared/voice/vendor/kokoro/phonemizer.js",
+  "path": "/_shared/voice/vendor/kokoro/stub.js",
+  "fs": "/_shared/voice/vendor/kokoro/stub.js",
+  "fs/promises": "/_shared/voice/vendor/kokoro/stub.js",
+  "simplex-noise": "/_shared/voice/lib/simplex-noise.js"
+}}
+</script>
+<style>
+  :root { color-scheme: dark; --holo-aside-w: 0px !important; }
+  html, body { height:100%; margin:0; background:#0b141a; overflow:hidden; }
+  html.q-panel-open { margin:0 !important; }
+
+  /* ── Q panel → a full-window WhatsApp conversation ───────────────────────────── */
+  #q-panel {
+    position:fixed !important; inset:0 !important; width:100% !important; max-width:none !important;
+    height:100% !important; margin:0 !important; border:0 !important; border-radius:0 !important;
+    box-shadow:none !important; background:#0b141a !important; transform:none !important; opacity:1 !important;
+    display:flex !important; flex-direction:column !important;
+  }
+  /* WhatsApp chat texture: faint warm dots over the dark teal */
+  #q-panel::before {
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.045;
+    background-image:radial-gradient(#ffffff 1px, transparent 1.4px); background-size:22px 22px;
+  }
+
+  /* ── Header (top bar) ─────────────────────────────────────────────────────────── */
+  #q-panel .qp-head {
+    background:#202c33 !important; border:0 !important; box-shadow:none !important;
+    padding:9px 16px !important; min-height:42px !important; gap:12px !important; align-items:center !important; z-index:2;
+  }
+  #q-panel .qp-orb { width:40px !important; height:40px !important; border-radius:50% !important; overflow:hidden !important; flex:0 0 auto !important; }
+  #q-panel .qp-id { gap:1px !important; }
+  #q-panel .qp-title { font-size:16px !important; font-weight:600 !important; color:#e9edef !important; letter-spacing:0 !important; }
+  #q-panel .qp-sub { font-size:12.5px !important; color:#8696a0 !important; }
+  /* redundant chrome — gone */
+  #q-panel .qp-scope, #q-panel .qp-share, #q-panel .qp-immersive, #q-panel .qp-close { display:none !important; }
+
+  /* ── Thread (messages) ────────────────────────────────────────────────────────── */
+  #q-panel .qp-thread {
+    flex:1 1 auto !important; background:transparent !important; padding:16px 9% 18px !important;
+    display:flex !important; flex-direction:column !important; gap:2px !important; z-index:1;
+  }
+  #q-panel .qp-msg {
+    max-width:64% !important; width:fit-content !important; padding:6px 10px 7px !important; margin:2px 0 !important;
+    border-radius:9px !important; font-size:14.6px !important; line-height:1.36 !important; white-space:pre-wrap !important;
+    box-shadow:0 1px .5px rgba(0,0,0,.2) !important; border:0 !important; color:#e9edef !important;
+  }
+  #q-panel .qp-msg.you { background:#005c4b !important; align-self:flex-end !important; border-top-right-radius:2px !important; }
+  #q-panel .qp-msg.q   { background:#202c33 !important; align-self:flex-start !important; border-top-left-radius:2px !important; }
+  #q-panel .qp-act { align-self:center !important; color:#8696a0 !important; background:#182229 !important; font-size:12px !important; padding:3px 10px !important; border-radius:7px !important; margin:6px 0 !important; }
+  #q-panel .qp-act::before { content:"" !important; }
+  #q-panel .qp-empty {
+    align-self:center !important; margin:auto !important; color:#8696a0 !important; background:#182229cc !important;
+    font-size:12.5px !important; padding:6px 13px !important; border-radius:8px !important; text-align:center !important; max-width:none !important; line-height:1 !important;
+  }
+
+  /* ── Composer (bottom bar) ────────────────────────────────────────────────────── */
+  #q-panel .qp-compose { background:#202c33 !important; border:0 !important; box-shadow:none !important; padding:8px 14px !important; gap:8px !important; align-items:center !important; z-index:2; }
+  #q-panel .qp-in {
+    background:#2a3942 !important; color:#e9edef !important; border:0 !important; border-radius:21px !important;
+    padding:10px 16px !important; font-size:15px !important; min-height:22px !important;
+  }
+  #q-panel .qp-in::placeholder { color:#8696a0 !important; }
+  #q-panel .qp-mic, #q-panel .qp-send {
+    background:transparent !important; color:#8696a0 !important; border:0 !important;
+    width:44px !important; height:44px !important; min-width:44px !important; border-radius:50% !important; font-size:20px !important;
+  }
+  #q-panel .qp-mic:hover, #q-panel .qp-send:hover { color:#e9edef !important; background:#2a3942 !important; }
+  #q-panel .qp-mic[data-on="1"] { color:#00a884 !important; }
+
+  /* the panel IS the app here — hide every ambient HoloVoice element: the floating launcher orb/button,
+     the standalone orb canvas/disc, and the "whisper" welcome bubble. Only the conversation remains. */
+  #holo-voice-btn, #holo-voice-menu, .hv-btn-orb,
+  #hv-whisper, .hv-whisper,
+  body > canvas, body > div[aria-hidden="true"] { display:none !important; }
+</style>
+</head>
+<body>
+  <script>window.HOLO_WEBGPU = 1;</script>
+  <script src="holo://os/_shared/holo-voice.js" defer></script>
+  <script>
+    (function () {
+      var tries = 0;
+      function ready() {
+        if (window.HoloVoice && window.HoloVoice.openPanel) {
+          try { window.HoloVoice.setEngine && window.HoloVoice.setEngine(true); } catch (e) {}
+          try { window.HoloVoice.openPanel(); } catch (e) {}
+          // trim the verbose empty-state to one quiet WhatsApp-style line
+          setTimeout(function () {
+            var e = document.querySelector('#q-panel .qp-empty');
+            if (e) e.textContent = '🔒 Private · on-device';
+            var sub = document.querySelector('#q-panel .qp-sub');
+            if (sub) sub.textContent = 'on-device · private';
+          }, 120);
+          return;
+        }
+        if (tries++ > 100) return;
+        setTimeout(ready, 150);
+      }
+      window.addEventListener('load', ready);
+    })();
+  </script>
+</body>
+</html>

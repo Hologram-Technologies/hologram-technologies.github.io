@@ -1,0 +1,42 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><title>alpine holospace</title>
+<style>html,body{margin:0;height:100%;background:#07070c;color:#cfe}
+#t{margin:0;padding:10px;white-space:pre-wrap;font:12px ui-monospace,monospace}
+#bar{position:fixed;top:0;right:0;padding:6px 10px;font:11px ui-monospace;color:#7cc4ff;background:#0b0b12cc}</style></head>
+<body><div id=bar></div><pre id=t>booting full Alpine devcontainer…</pre>
+<script type=module>
+// The sovereign Alpine holospace surface: boots the devcontainer machine, and exposes the snapshot/resume lifecycle
+// (sealed to the TEE owner) so the live witness can drive it against the REAL engine.
+import { snapshot, resume } from "/usr/lib/holo/holospace-lifecycle.mjs";
+const t = document.getElementById('t'), bar = document.getElementById('bar');
+const w = new Worker('/usr/lib/holo/alpine-worker.mjs', { type: 'module' });
+
+// the worker-machine adapter the lifecycle expects: suspend()→bytes (await the worker), resume(bytes)→post
+let suspendWaiters = [];
+const machine = {
+  suspend: () => new Promise(res => { suspendWaiters.push(res); w.postMessage({ kind: "suspend" }); }),
+  resume:  (bytes) => w.postMessage({ kind: "resume", bytes }, [bytes.buffer]),
+};
+
+w.onmessage = e => { const m = e.data;
+  if (m.kind === 'term') { t.textContent = m.text; window.__term = m.text; t.scrollTop = t.scrollHeight; }
+  else if (m.kind === 'stage') { window.__stage = m.s; bar.textContent = '[' + m.s + ']'; }
+  else if (m.kind === 'booted') { window.__booted = true; bar.textContent = m.resumed ? 'RESUMED' : 'BOOTED'; }
+  else if (m.kind === 'suspended') { const r = suspendWaiters.shift(); if (r) r(new Uint8Array(m.bytes)); }
+  else if (m.kind === 'error') { window.__err = m.error; t.textContent += '\n[error] ' + m.error; }
+};
+window.__feed = s => w.postMessage({ kind: 'input', data: s });
+
+// an in-page κ-store (the witness drives this; production uses the OPFS κ-store + holo-home)
+const store = (() => { const m = new Map(); return {
+  put: async (k, v) => void m.set(k, v.slice()), get: async (k) => m.get(k) || null, has: (k) => m.has(k), _m: m }; })();
+const spec = { "@type": "holospace.v1", name: "alpine-dev", machine: "did:holo:blake3:" + "a".repeat(64) };
+
+// SOVEREIGN HOOKS — snapshot seals the live machine under the owner's TEE key; open resumes (owner+TEE only).
+window.__snapshot = async (owner, secret, deviceSalt) =>
+  (await snapshot({ machine, spec, owner, secret, deviceSalt }, { store, name: "alpine" })).kappa;
+window.__open = async (kappa, owner, secret, deviceSalt) =>
+  resume({ kappa, machine, owner, secret, deviceSalt }, { store });
+window.__tamper = (kappa) => { const b = store._m.get(kappa); if (b) b[b.length - 1] ^= 0xff; return !!b; };
+
+w.postMessage({ kind: 'boot' });
+</script></body></html>

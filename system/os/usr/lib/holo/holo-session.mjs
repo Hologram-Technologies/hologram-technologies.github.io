@@ -272,6 +272,52 @@ export function lockOperator() {
 }
 export function operatorLocked() { const op = signedInOperator(); return !!op && !(_opKey && _opKey.operator === op); }
 
+// roamKeyBytes — a 32-byte SESSION ROAM key for THIS operator's OWN devices/windows, derived (HKDF) from the
+// in-memory vault key. Two surfaces of the same unlocked operator derive the IDENTICAL key (same _opKey),
+// without ever exposing the vault key. Null when locked/guest (no roam). Cross-DEVICE roam uses the pairing's
+// ECDH roam key (holo-pair) instead; this is the same-operator (other window / same machine) leg. See
+// [[holo-session-roam]].
+export async function roamKeyBytes() {
+  if (!_opKey || !_opKey.bytes) return null;
+  try {
+    const hk = await SUB().importKey("raw", _opKey.bytes, "HKDF", false, ["deriveBits"]);
+    const salt = await sha256bytes(te.encode("holo-roam|" + (_opKey.operator || "")));
+    return new Uint8Array(await SUB().deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("holo-roam:v1") }, hk, 256));
+  } catch (e) { return null; }
+}
+
+// ── auth ⊗ restore, ONE motion (the login→shell bridge) ──────────────────────────────────────────
+// The lock screen has the biometric PRF secret in hand for a single instant. The shell is a SEPARATE
+// navigation, so it can't see that secret — which is why, historically, a returning operator's vault
+// realm could not be unwrapped at boot and the desktop fell back to the device/guest realm (auth and
+// restore were two motions). We bridge it WITHOUT crossing the PRF secret or the sovereign key: derive
+// the session-at-rest VAULT KEY here (it can only decrypt the session manifest — not the identity key,
+// not the wallet), hand it to the shell consume-once over same-origin sessionStorage, and clear it on the
+// first read. Strictly more sovereign than the device-realm fallback it replaces (which was device-key
+// only); honestly NOT confidential vs this origin's own devtools, same caveat as the device key.
+const UNLOCK_HANDOFF = "holo.session.unlock";
+export async function stashUnlock({ operator, secret } = {}) {
+  if (!operator || !secret) return false;
+  try {
+    const dev = await deviceId();
+    const bytes = await deriveOperatorKeyBytes(operator, secret, dev);   // session vault key (scoped to manifest-at-rest)
+    globalThis.sessionStorage.setItem(UNLOCK_HANDOFF, JSON.stringify({ operator, k: b64e(bytes) }));
+    return true;
+  } catch { return false; }
+}
+// takeUnlock — the shell calls this ONCE at boot, BEFORE restoreSnapshot. If the lock screen left a vault
+// key, adopt it so activeRealm() resolves to the operator's sovereign realm (restore AND subsequent saves
+// stay in the vault realm, no second biometric). Consume-once: a refresh can't replay it.
+export async function takeUnlock() {
+  try {
+    const ss = globalThis.sessionStorage; const raw = ss.getItem(UNLOCK_HANDOFF);
+    if (!raw) return null; ss.removeItem(UNLOCK_HANDOFF);
+    const o = JSON.parse(raw); if (!o || !o.operator || !o.k) return null;
+    _opKey = { operator: o.operator, bytes: b64d(o.k) };   // adopt the vault key → operator realm active
+    return o.operator;
+  } catch { return null; }
+}
+
 // activeRealm — an UNLOCKED operator → their κ realm (vault cipher); a guest OR a signed-in-but-locked
 // session → the device realm (device cipher). So work is NEVER lost while locked, and a sign-in CLAIMS it.
 async function activeRealm() {

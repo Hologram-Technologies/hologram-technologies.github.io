@@ -19,6 +19,7 @@
 // code = the agentic-coding tier (Coder-3B).
 import { specFor } from "./holo-q-faculty-models.mjs";
 import { PINNED, resolveModel } from "../q/holo-q-mux.js";
+import { resolveAdapter } from "../q/holo-q-adapters.mjs";   // skill → adapter-κ routing (the model-zoo selector)
 // the canonical served mount for the forge engine + .holo weights (same value faculty-models uses to build
 // the specs). Used to import the GPU engine below. Declared here because ESM scopes are isolated — without
 // it both ensure() and prefetchHoloBrain() throw a ReferenceError, silently dropping the .holo brain to the
@@ -29,7 +30,7 @@ const MODELS = {
   "qwen2.5-1.5b": specFor(PINNED.respond.upgrade),   // silent upgrade tier
   "qwen-coder-3b": specFor(PINNED.code.instant),     // AGENTIC-CODING tier (strong-WebGPU only); request via createHoloModelBrain({model:"qwen-coder-3b"})
 };
-const DEFAULTS = { model: "qwen2.5-0.5b", maxTokens: 512 };
+const DEFAULTS = { model: "qwen2.5-0.5b", maxTokens: 512, pack: true };   // pack: stream weights from the ONE q-models pack (fail-soft → per-model .holo)
 
 // faculty → the model key this brain should load RIGHT NOW, honoring a settings-picker override on that
 // faculty (resolveModel: override → pinned). Returns a known MODELS key, or null when the override is a
@@ -44,6 +45,15 @@ export function modelKeyForFaculty(faculty) {
 export function createHoloModelBrain(opts = {}) {
   const cfg = Object.assign({}, DEFAULTS, opts);
   let brain = null, loadingP = null, info = { ready: false, model: cfg.model, device: null };
+
+  // fetch an adapter .holo by κ via the serverless κ-route and L5-open it (footer-verified bodies). Accepts a
+  // "did:holo:sha256:<hex>" or a bare hex. Never trusts the host: openAdapterHolo re-derives every body's κ.
+  async function openAdapterByKappa(k) {
+    const hex = String(k).split(":").pop();
+    const lora = await import(/* @vite-ignore */ FORGE + "gpu/holo-lora.mjs");
+    const ab = await fetch("/.holo/sha256/" + hex).then((r) => { if (!r.ok) throw new Error("adapter κ " + hex + " → " + r.status); return r.arrayBuffer(); });
+    return lora.openAdapterHolo(new Uint8Array(ab));
+  }
 
   async function ensure() {
     if (brain) return brain;
@@ -62,11 +72,38 @@ export function createHoloModelBrain(opts = {}) {
         const lora = await import(/* @vite-ignore */ FORGE + "gpu/holo-lora.mjs");
         adapter = lora.openAdapterHolo(cfg.adapterBytes instanceof Uint8Array ? cfg.adapterBytes : new Uint8Array(cfg.adapterBytes));
       } else if (cfg.adapter) {
-        const lora = await import(/* @vite-ignore */ FORGE + "gpu/holo-lora.mjs");
-        const ab = await fetch("/.holo/sha256/" + cfg.adapter).then((r) => { if (!r.ok) throw new Error("adapter κ " + cfg.adapter + " → " + r.status); return r.arrayBuffer(); });
-        adapter = lora.openAdapterHolo(new Uint8Array(ab));
+        adapter = await openAdapterByKappa(cfg.adapter);
+      } else if (cfg.skill) {
+        // AUTO-ROUTE (the zoo's "magic"): no explicit adapter, but a skill is named → ask the catalog for the
+        // specialist κ bound to this skill on THIS base. resolveAdapter is pure + frame-gated: a wrong/absent
+        // base or empty catalog returns null ⇒ no adapter ⇒ exact base behavior (never apply an incompatible one).
+        const k = resolveAdapter(cfg.skill, { baseModel: cfg.model });
+        if (k) { try { adapter = await openAdapterByKappa(k); } catch (_) { adapter = null; } }   // fail-soft to base
       }
-      brain = (mod.createHoloBrain || mod.default)({ holoUrl: spec.url, releaseUrl: spec.release, kappa: spec.kappa, maxTokens: cfg.maxTokens, adapter });
+      let openGgufStream = null;
+      // SHARDED κ-STREAM (priority): when a per-model shard manifest exists (≤24MB κ-addressable parts), stream the
+      // weights by fetching each WHOLE shard via its κ-route. This is the ONLY big-model load path that survives the
+      // native holo:// host — a monolithic 491MB whole-load crashes the network service (Range isn't honored for
+      // fetch/XHR). brain-shard-test proves it loads + generates coherently. Manifest is a .mjs module (.parts.json
+      // can 403). Fail-soft → unified pack / monolithic below. Same {plan,store,headerBytes} → byte-identical brain.
+      if (spec.url && /\.holo$/.test(spec.url)) {
+        try {
+          const manUrl = spec.url.replace(/([^/]+)\.holo$/, (_m, b) => b + "-shards/" + b + ".parts.mjs");
+          const { default: manifest } = await import(/* @vite-ignore */ manUrl);
+          if (manifest && Array.isArray(manifest.parts) && manifest.parts.length) {
+            const ps = await import(/* @vite-ignore */ FORGE + "gpu/holo-pack-shards.mjs");
+            const ks = await import(/* @vite-ignore */ FORGE + "gguf-forge-kstream.mjs");
+            const range = ps.makeRangeFetcher({});   // caches a 200-whole ≤24MB shard and slices — no Range needed
+            const fetchPart = (i, off, len) => range("/.holo/sha256/" + manifest.parts[i].sha256, off, len);
+            const rangeReader = ps.makeShardedRangeReader({ parts: manifest.parts, fetchPart });
+            openGgufStream = ({ persist }) => ks.openGgufHoloStream(rangeReader, { persist, urlHint: spec.url, rootKappa: "did:holo:sha256:" + manifest.packKappa });
+          }
+        } catch (_) { openGgufStream = null; }
+      }
+      // UNIFIED PACK (fallback, opt-in via cfg.pack): stream this model's weights from the ONE q-models pack when it
+      // lives there; fail-soft (makePackGgufStream → null → the engine uses spec.url/release). Byte-identical brain.
+      if (!openGgufStream && cfg.pack) { try { const pp = await import(/* @vite-ignore */ FORGE + "gpu/holo-q-pack-provider.mjs"); const fm = await import(/* @vite-ignore */ new URL("./holo-q-faculty-models.mjs", import.meta.url).href); const e = pp.packEntryForUrl(spec.url); if (e && e.kind === "gguf") openGgufStream = pp.makePackGgufStream(e.model, { packSpec: fm.packSpec }); } catch (_) {} }
+      brain = (mod.createHoloBrain || mod.default)({ holoUrl: spec.url, releaseUrl: spec.release, kappa: spec.kappa, maxTokens: cfg.maxTokens, adapter, openGgufStream });
       return brain;
     })().catch((e) => { loadingP = null; throw e; });
     return loadingP;
@@ -76,7 +113,20 @@ export function createHoloModelBrain(opts = {}) {
   async function* generate(history, o = {}) { const b = await ensure(); if (!info.ready) await load(o.onProgress); yield* b.generate(history, o); }
   async function chat(history, o = {}) { const b = await ensure(); if (!info.ready) await load(o.onProgress); return b.chat(history, o); }
 
-  return { id: "holo-q-brain-" + cfg.model, load, generate, chat, info: () => info };
+  // ── PER-TASK HOT-SWAP (the zoo, live): switch the specialist on the WARM base with no reload + no re-stream.
+  //    setSkill(skill) asks the catalog for this skill's adapter κ (frame-gated) and binds it; an unknown skill or
+  //    empty catalog reverts to base-only — never blocks, never applies an incompatible delta (Law L5). setAdapter
+  //    takes an already-decoded adapter (or null) directly. Both require the engine to expose setAdapter (it does). ──
+  async function setSkill(skill) {
+    const b = await ensure(); if (!info.ready) await load();
+    if (!b.setAdapter) return { adapter: false, unsupported: true };
+    const k = resolveAdapter(skill, { baseModel: cfg.model });
+    if (!k) return b.setAdapter(null);                 // no specialist for this skill → base-only
+    try { return b.setAdapter(await openAdapterByKappa(k)); } catch (e) { return b.setAdapter(null); }   // fail-soft to base
+  }
+  async function setAdapter(ad) { const b = await ensure(); if (!info.ready) await load(); return b.setAdapter ? b.setAdapter(ad) : { adapter: false, unsupported: true }; }
+
+  return { id: "holo-q-brain-" + cfg.model, load, generate, chat, setSkill, setAdapter, info: () => info };
 }
 
 // Prefetch a model's .holo into the OPFS κ-cache WITHOUT building the GPU engine — warms the bytes so the

@@ -1,0 +1,26 @@
+{
+  "@type": "earl:TestResult",
+  "witnessed": true,
+  "covers": [
+    "PARITY — our blake3 matches the official BLAKE3 known-answer tests (empty + 'abc'), so kappaBlake3 == holowhat kappa(); κ format is 'blake3:<64hex>'",
+    "DUALAXIS — a sealed message carries both our sha256 identity (verify) and a blake3 substrate axis (verifyDualAxis / blakeDid)",
+    "DETERMIN — cnKappaOf is deterministic and collision-honest (same bytes → same κ everywhere = holowhat content-dedup); verifyReceipt accepts matching, refuses mismatching",
+    "IDENTITY — the operator κ equals the content address of the public key (== holowhat sign_in identity model)",
+    "CN-ROUND — two content peers carry a PQ-sealed envelope: publish (cn_put+announce) → learn → fetch → verify-on-receipt (L5) → open (PQ epoch) → original message; the wire carries only ciphertext (content-blind, SEC-7)",
+    "REFUSE — a forged frame whose bytes don't re-derive to its κ is refused on receipt (holowhat verify_kappa / new_forging), nothing stored"
+  ],
+  "sample": {
+    "cnKappa": "blake3:b72a6553f46ed90eca8480b7e110d344ae3ab2a691768b7757da0398a404417e",
+    "operator": "did:holo:sha256:4cdf5e79921e99ab64feb8396c126432efada92943122ac3c5b3bf11dae244a1"
+  },
+  "checks": {
+    "blake3-kat-parity-with-holowhat-kappa": true,
+    "dual-axis-sha256-and-blake3": true,
+    "cn-kappa-deterministic-and-honest": true,
+    "identity-is-content-address-of-pubkey": true,
+    "cn-roundtrip-sealed-and-opened": true,
+    "forged-frame-refused-on-receipt": true
+  },
+  "failed": [],
+  "authority": "holowhat Console CN (cn_put/announce/discover/fetch, verify_kappa) · holo-blake3 (BLAKE3 KAT) · holo-object dual-axis · holo-identity · holo-messenger-epoch (X25519‖ML-KEM-1024) · holospaces L1/L3/L5/SEC-1/SEC-7"
+}

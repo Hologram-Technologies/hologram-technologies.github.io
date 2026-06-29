@@ -1,0 +1,18 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-move-migrate (M1) — a REAL mover (wan-bus) migrated into the MOVE registry, delivering a κ-message byte-identical to a peer over a real channel. FINDING: MOVE is three interfaces — bus {send,subscribe} (this registry), content-peer {put,fetch,announce,discover} (net/swarm), gossip {advertise,receive}. holo-transport is the bus registry; the other modalities are distinct and are NOT forced into {send,subscribe}.",
+  "authority": "holospaces hash-agnostic transport law · the grammar's MOVE verb · honest-cut (no fake fold)",
+  "witnessed": true,
+  "finding": {
+    "busModality": "send/subscribe (holo-transport)",
+    "contentPeer": "put/fetch/announce/discover (net,swarm)",
+    "gossip": "advertise/receive (gossip)"
+  },
+  "checks": {
+    "realMoverRegistered": true,
+    "deliversByteIdenticalOverChannel": true,
+    "busModalityFitsRegistry": true,
+    "capabilityTyped": true
+  },
+  "failed": []
+}

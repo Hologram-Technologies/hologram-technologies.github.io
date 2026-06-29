@@ -1,0 +1,24 @@
+{
+  "spec": "Content-space tile addressing (holo_osr.cc OnPaint): tiles addressed by document row at a scrollY phase offset keep one BLAKE3 κ across scroll, so a scrolled page reuses content O(1) instead of re-hashing it as novel. Models the native producer's exact extraction geometry + κ-LUT accounting; the host-only scroll-acquisition accuracy is instrumented live (scroll-acq resid).",
+  "authority": "Node + the substrate's own pure-JS BLAKE3 (holo-blake3.mjs, the σ-axis the lens verifies on)",
+  "witnessed": true,
+  "lane": "deterministic",
+  "metrics": {
+    "midContentReuse": 96.3,
+    "midScreenReuse": 0,
+    "contentReuse": 97.5,
+    "screenReuse": 60.7,
+    "backReuse": 100,
+    "fullTileChanges": 360,
+    "recurrences": 351,
+    "marginTiles": 348,
+    "frames": 97
+  },
+  "checks": {
+    "midScrollReuseAtLeast70": true,
+    "screenGridFailsMidScroll": true,
+    "scrollBackNearTotal": true,
+    "fullTilesStable": true,
+    "lensPlacementRoundTrips": true
+  }
+}

@@ -10,6 +10,7 @@
 
 // classifyOpen(ref) → { kind } — the open taxonomy, by shape alone:
 //   space   holo://space/<id>            → a holospace/room
+//   zone    holo://zone/<owner>/<label>  → an owned, mutable Holo name (holo-zone)
 //   kappa   did:holo:sha256:<hex> | <64hex> | holo://<hex>   → a content address (an app or object)
 //   app     holo://<id>                  → a named app (non-hash holo:// ref, e.g. holo://org.hologram.X)
 //   words   a.b.c                        → a three-word κ-name
@@ -22,6 +23,8 @@ export function classifyOpen(ref) {
   const v = String(ref == null ? "" : ref).trim();
   if (!v) return { kind: "empty" };
   if (/^holo:\/\/space\//i.test(v)) return { kind: "space" };
+  if (/^holo:\/\/zone\/[0-9a-f]{64}\//i.test(v)) return { kind: "zone" };   // an owned, mutable Holo name (holo-zone)
+  if (/^holo:\/\/zone\//i.test(v)) return { kind: "zone" };
   if (/^did:holo:sha256:[0-9a-f]{64}$/i.test(v) || /^[0-9a-f]{64}$/i.test(v) || /^holo:\/\/[0-9a-f]{64}$/i.test(v)) return { kind: "kappa" };
   if (/^holo:\/\//i.test(v)) return { kind: "app" };                 // holo://<appid> (non-hash)
   // a bare domain (no scheme) ending in a known TLD → the web. Checked BEFORE three-words so
@@ -38,16 +41,20 @@ export function classifyOpen(ref) {
 // idOf(ref) — the bare id for the app/space forms (strip the holo:// or holo://space/ prefix).
 export const idOf = (ref) => String(ref || "").replace(/^holo:\/\/space\//i, "").replace(/^holo:\/\//i, "");
 
-// makeOpen({ space, app, fallback }) → open(ref). space(id)/app(id) handle the named forms; fallback(ref)
-// is the full resolver (the shell wires omniGo) for every other shape. ONE call opens anything, the same way.
-export function makeOpen({ space = null, app = null, fallback = null } = {}) {
+// makeOpen({ space, app, web, fallback }) → open(ref). space(id)/app(id) handle the named forms; web(url)
+// handles a live web page (the shell wires it to PROJECTION in native CEF — a projected tab — and to the plain
+// in-OS web view otherwise); fallback(ref) is the full resolver (the shell wires omniGo) for every other shape.
+// ONE call opens anything, the same way. `web` is additive: with no web handler, a url falls through to
+// fallback unchanged (today's behavior), so this seam is behavior-preserving until the shell wires `web`.
+export function makeOpen({ space = null, app = null, web = null, fallback = null } = {}) {
   return async function open(ref) {
     const v = String(ref == null ? "" : ref).trim(); if (!v) return null;
     const { kind } = classifyOpen(v);
     try {
       if (kind === "space" && space) return await space(idOf(v));
       if (kind === "app" && app) return await app(idOf(v));
-      if (fallback) return await fallback(v);     // kappa · words · cid · onion · url · media · text
+      if (kind === "url" && web) return await web(v);   // a live web page → projected tab (native CEF) / web view
+      if (fallback) return await fallback(v);     // kappa · words · cid · onion · url (no web) · media · text
     } catch (e) { /* fail-soft */ }
     return null;
   };

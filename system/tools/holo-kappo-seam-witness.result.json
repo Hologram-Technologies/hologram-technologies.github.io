@@ -1,0 +1,32 @@
+{
+  "spec": "P1 — the ONE canonical κ seam (holo-kappa.mjs kappo()) is the substrate's BLAKE3, with a real L5 verify and a distinct, named shaBridge() for foreign-protocol boundaries. Agrees with the sealer's blake3 alias on the live boot closure.",
+  "witnessed": true,
+  "covers": [
+    "kappo",
+    "kappoVerify",
+    "shaBridge",
+    "canonical-kappa",
+    "law-l5",
+    "seam"
+  ],
+  "realClosureFilesChecked": 496,
+  "agree": 496,
+  "absent": 0,
+  "checks": {
+    "KAPPA_PREFIX is the blake3 DID": true,
+    "kappoHex ≡ blake3hex": true,
+    "kappo ≡ did:holo:blake3:<hex>": true,
+    "kappoVerify accepts true bytes": true,
+    "kappoVerify refuses a flipped byte": true,
+    "hexOf parses did:holo:blake3 form": true,
+    "hexOf parses bare blake3: label": true,
+    "hexOf parses bare hex": true,
+    "isKappa true for a real κ": true,
+    "isKappa false for junk": true,
+    "shaBridge ≡ sha256 (the bridge encoding)": true,
+    "shaBridge is NOT the κ (distinct axis)": true,
+    "kappo agrees with the sealer's blake3 alias on all 496 in-step closure files": true
+  },
+  "passed": 13,
+  "failed": 0
+}

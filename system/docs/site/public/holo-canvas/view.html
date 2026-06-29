@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Holo Canvas — join a shared scene</title>
+<style>
+  html,body{margin:0;height:100%;background:#05080f;color:#cfe8ff;font:13px/1.5 ui-monospace,Menlo,monospace;overflow:hidden}
+  #screen{position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;background:#05080f;z-index:1}
+  #hud{position:fixed;top:10px;left:10px;z-index:5;padding:9px 13px;background:rgba(6,12,22,.6);border:1px solid rgba(120,200,255,.18);border-radius:11px;backdrop-filter:blur(8px);white-space:pre;pointer-events:none;min-width:240px}
+  #hud b{color:#7fd6c0}
+  #panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;width:400px;max-width:88vw;padding:18px;background:rgba(6,12,22,.96);border:1px solid rgba(120,200,255,.3);border-radius:13px;backdrop-filter:blur(8px)}
+  #panel h3{margin:0 0 8px;color:#7fd6c0;font:600 15px/1.3 ui-sans-serif,system-ui}
+  #panel p{margin:7px 0;opacity:.78;font-size:12px}
+  #panel textarea{width:100%;box-sizing:border-box;background:#0a1322;border:1px solid rgba(120,200,255,.2);border-radius:7px;color:#bfe6ff;font:11px ui-monospace,monospace;resize:vertical}
+  #offerIn{height:60px} #replyCode{height:64px}
+  #panel button{margin-top:8px;padding:8px 13px;background:rgba(120,200,255,.14);border:1px solid rgba(120,200,255,.3);border-radius:8px;color:#cfe8ff;font:inherit;cursor:pointer}
+  #panel button:hover{border-color:#7fd6c0;color:#7fd6c0}
+  .step{display:none} .step.on{display:block}
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="hud">Holo Canvas — viewer</div>
+<div id="panel">
+  <h3>Join a shared scene</h3>
+  <div id="step1" class="step">
+    <p>Paste the share link (or its code) from the other device:</p>
+    <textarea id="offerIn" placeholder="paste the link or offer code…"></textarea>
+    <button id="joinBtn">Join</button>
+  </div>
+  <div id="step2" class="step">
+    <p>Copy this reply code and paste it back on the sharing device, then wait:</p>
+    <textarea id="replyCode" readonly></textarea>
+    <button id="replyCopy">Copy reply code</button>
+  </div>
+</div>
+<script type="module">
+// Self-contained PUBLIC viewer — runs in ANY browser (no holo:// scheme, no host). It reuses the SAME sealed
+// κ-stream + transport modules (served beside this file), so it keeps L5 verify-before-paint and the real
+// WebRTC dial handshake. It only re-implements the projector's THIN lens loop (admit → paint-on-κ-change),
+// since the heavy origin-side delta/memo machinery is host-only.
+import { makeKappaStream } from "./holo-kappa-stream.mjs";
+import { joinDial } from "./holo-canvas-transport.mjs";
+
+const screen = document.getElementById("screen"), ctx = screen.getContext("2d"), hud = document.getElementById("hud");
+const panel = document.getElementById("panel"), step1 = document.getElementById("step1"), step2 = document.getElementById("step2");
+const H = window.HoloPublicView = { frames: 0, refused: 0, novelBytes: 0, fullBytes: 0 };
+
+// the LENS (= holo-projector.receive, minus the host-only origin loop): admit each region (L5 verify via the
+// κ-stream), then paint a slot only when its κ changes. The viewer holds prior tiles, so refs reconstruct O(1).
+function makeViewer(paintTile) {
+  const stream = makeKappaStream(); const lastK = new Map(); let layout = null;
+  return {
+    async receive({ wire, layout: l }) {
+      if (l) layout = l;
+      let painted = 0, refused = 0; const before = stream.wireBytes();
+      for (const w of wire) {
+        let bytes; try { bytes = await stream.admit(w.event); } catch (e) { refused++; continue; }   // L5
+        if (lastK.get(w.id) !== w.event.kappa) { const t = layout && layout.tiles.find((x) => x.id === w.id); if (t) paintTile(w.id, bytes, t); lastK.set(w.id, w.event.kappa); painted++; }
+      }
+      return { painted, refused, novelBytes: stream.wireBytes() - before, held: stream.cache.size };
+    },
+  };
+}
+const viewer = makeViewer((id, bytes, t) => { try { ctx.putImageData(new ImageData(new Uint8ClampedArray(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)), t.w, t.h), t.x, t.y); } catch (e) { H.paintErr = String(e && e.message || e).slice(0, 80); } });
+
+async function onFrame(d) {
+  if (!d || d.type !== "frame") return;
+  if (d.layout && (screen.width !== d.layout.w || screen.height !== d.layout.h)) { screen.width = d.layout.w; screen.height = d.layout.h; }
+  const r = await viewer.receive({ wire: d.wire, layout: d.layout });
+  H.frames++; H.refused += r.refused; H.novelBytes += r.novelBytes; H.fullBytes += (d.layout && d.layout.w * d.layout.h * 4) || 0;
+  hud.innerHTML = `<b>Holo Canvas — viewer</b>\nsource    κ frame-tiles over WebRTC (P2P)\nframe     ${H.frames} · ${r.painted} painted · ${r.refused} refused\nwire      ${(r.novelBytes / 1024).toFixed(0)} KB this frame (novelty only)\nsaved     ${H.fullBytes ? Math.round(100 * (1 - H.novelBytes / H.fullBytes)) : 0}% vs every pixel · L5 verified`;
+}
+
+async function join(offer) {
+  offer = (offer || "").trim();
+  const hashIdx = offer.indexOf("#"); if (hashIdx >= 0) offer = offer.slice(hashIdx + 1);   // accept a full link or a bare code
+  offer = decodeURIComponent(offer);
+  if (!offer) { hud.textContent = "no offer code"; return; }
+  step1.classList.remove("on");
+  const j = await joinDial(offer);
+  document.getElementById("replyCode").value = j.answerBlob;
+  document.getElementById("replyCopy").onclick = () => navigator.clipboard && navigator.clipboard.writeText(j.answerBlob);
+  step2.classList.add("on");
+  const chan = await j.channel;
+  chan.onMessage(onFrame);
+  chan.ready.then(() => { panel.style.display = "none"; });   // connected — the host began streaming
+}
+
+// the offer can ride in the URL hash (#<offerBlob>) for a one-tap link, or be pasted.
+const hashOffer = decodeURIComponent(location.hash.slice(1));
+if (hashOffer) { join(hashOffer); }
+else { step1.classList.add("on"); document.getElementById("joinBtn").onclick = () => join(document.getElementById("offerIn").value); }
+</script>
+</body>
+</html>

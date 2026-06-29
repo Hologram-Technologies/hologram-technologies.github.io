@@ -1,0 +1,17 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-discovery — peers find each other for a Space with NO invite link, serverless: a newcomer connected to one intermediary learns transitively (directory gossip) who is in a Space, then auto-rendezvous-connects to a member over mesh-relayed signaling — a real channel + a verified membership grant open with nobody pasting a link. The relay carries, never confers (it gains no membership/channel); the directory is idempotent; and the cold first contact (connected to no one) is the one honest edge.",
+  "authority": "holo-gossip anti-entropy + holo-ad4m-wan invite handshake over mesh-relayed signaling · holo-pair delegation (L5)",
+  "witnessed": true,
+  "checks": {
+    "transitiveDirectory": true,
+    "autoRendezvousNoLink": true,
+    "directChannelOpened": true,
+    "membershipVerified": true,
+    "convergeAfterDiscovery": true,
+    "relayGainsNothing": true,
+    "idempotentGossip": true,
+    "coldEdgeHonest": true
+  },
+  "failed": []
+}

@@ -1,0 +1,54 @@
+{
+  "spec": "Cross-impl BLAKE3 parity vectors: input = bytes (i % 251) of the given length; blake3 = lowercase hex of standard BLAKE3. Re-derived by holo-blake3.mjs (JS/browser), the `blake3` crate (kappa-route, native verifier), and kr_blake3_hex (CEF FFI). The κ-cutover's bedrock invariant — a promoted canonical axis that diverges here does NOT land.",
+  "pattern": "i % 251",
+  "vectors": [
+    {
+      "len": 0,
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
+    },
+    {
+      "len": 1,
+      "blake3": "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213"
+    },
+    {
+      "len": 63,
+      "blake3": "e9bc37a594daad83be9470df7f7b3798297c3d834ce80ba85d6e207627b7db7b"
+    },
+    {
+      "len": 64,
+      "blake3": "4eed7141ea4a5cd4b788606bd23f46e212af9cacebacdc7d1f4c6dc7f2511b98"
+    },
+    {
+      "len": 65,
+      "blake3": "de1e5fa0be70df6d2be8fffd0e99ceaa8eb6e8c93a63f2d8d1c30ecb6b263dee"
+    },
+    {
+      "len": 1023,
+      "blake3": "10108970eeda3eb932baac1428c7a2163b0e924c9a9e25b35bba72b28f70bd11"
+    },
+    {
+      "len": 1024,
+      "blake3": "42214739f095a406f3fc83deb889744ac00df831c10daa55189b5d121c855af7"
+    },
+    {
+      "len": 1025,
+      "blake3": "d00278ae47eb27b34faecf67b4fe263f82d5412916c1ffd97c8cb7fb814b8444"
+    },
+    {
+      "len": 2048,
+      "blake3": "e776b6028c7cd22a4d0ba182a8bf62205d2ef576467e838ed6f2529b85fba24a"
+    },
+    {
+      "len": 4096,
+      "blake3": "015094013f57a5277b59d8475c0501042c0b642e531b0a1c8f58d2163229e969"
+    },
+    {
+      "len": 16385,
+      "blake3": "1dabe216be2578830263b049de1639f39f05a4da616b9b78c7a5e4e41662fd1f"
+    },
+    {
+      "len": 1048576,
+      "blake3": "74cb441fd087764ca9c3694da742ebe30cbeb3060a17009ca81825c7a8d10343"
+    }
+  ]
+}

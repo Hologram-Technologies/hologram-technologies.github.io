@@ -25,15 +25,54 @@ const FILE = {
   "qwen-coder-3b": "qwen2.5-coder-3b-instruct.holo",
   "moonshine-tiny-int8": "moonshine-tiny-int8.holo",
   "moonshine-tiny-f16": "moonshine-tiny-f16.holo",
+  // listen 0.6B upgrade (WebGPU) — the κ-native FastConformer-TDT ear. Encoder + joint are separate .holo;
+  // the parakeet ear (holo-parakeet-ear.mjs) takes the encoder as holoUrl and the joint via jointUrl.
+  "parakeet-tdt-0.6b-v2": "parakeet-tdt-0.6b-v2-stream.holo",
+  "parakeet-tdt-0.6b-v2-joint": "parakeet-tdt-0.6b-v2-joint.holo",
   "kokoro-82m": "kokoro-82m.holo",
+  // semantic turn-detector (SmolLM2-135M) — its own loader (createTurnDetectorWeb) but a first-class registry model
+  // so it shares the pack delivery; standalone lives in its own dir.
+  "turn-detector": "turn-detector/turn-detector.holo",
 };
 
-// a {id, kappa} from the mux → a loadable spec (url path → release → κ-route; every block L5-verified).
+// THE UNIFIED PACK — one κ-addressable .holo holding every faculty model's bodies (deduped, instant-tier-first).
+// ONE delivery, one warm OPFS cache, one address: a pack-aware loader opens it ONCE (holo-model-pack.mjs) and
+// Range-fetches only the model it needs (proven by q-pack-stream-witness: a faculty reads ≈ its own bytes, never
+// the 953MB whole). Standalone .holo stay as the per-model fallback when the pack isn't reachable. PACK_ID maps a
+// mux/FILE model id → its id INSIDE the pack manifest (the encoder/joint are named without the version suffix there).
+const PACK_FILE = "q-models.holo";
+// EVERY Q model lives in the pack (bundle-everything). The pack is one κ-addressable file; because it exceeds GitHub's
+// 2 GiB per-asset cap it's DELIVERED in <2 GiB shards (q-models.holo.partNN, manifest q-models.holo.parts.json) that a
+// spanning reader (holo-pack-shards.mjs) stitches back — one address, sharding invisible above the rangeReader.
+const PACK_ID = {
+  "moonshine-tiny-int8": "moonshine-tiny-int8", "moonshine-tiny-f16": "moonshine-tiny-f16", "kokoro-82m": "kokoro-82m",
+  "parakeet-tdt-0.6b-v2": "parakeet-encoder", "parakeet-tdt-0.6b-v2-joint": "parakeet-joint",
+  "turn-detector": "turn-detector", "qwen2.5-0.5b": "qwen2.5-0.5b", "qwen2.5-1.5b": "qwen2.5-1.5b", "qwen-coder-3b": "qwen-coder-3b",
+};
+// the pack's own coordinates. `url` = monolithic file (dev/FORGE mount, served same-origin when present); `release`
+// = label only. `partsManifest` = the shard manifest, shipped SAME-ORIGIN (tiny → in dist, no CORS); it carries an
+// IPFS gateway + per-shard CIDs so the bytes stream from a CDN-backed CORS+Range gateway (serverless, any-device).
+// GitHub release assets are NOT used for browser delivery (they send no CORS header). Override the gateway via
+// window.HOLO_PACK_GATEWAY; override the whole base via window.HOLO_MODELS_RELEASE_BASE.
+export const packSpec = { file: PACK_FILE, url: FORGE + ".models/" + PACK_FILE, release: RELEASE_BASE + PACK_FILE, partsManifest: FORGE + ".models/" + PACK_FILE + ".parts.json", sharded: true };
+
+// THE SEED FIRST-RESPONDER — a tiny (~7MB int8) context-aligned .holo that speaks an instant qwen-aligned opener
+// ("Sure! …") the moment it loads, so a cold user hears audio in <2s while the 485MB brain streams in (speak-while-
+// streaming, holo-voice-seed-handoff.mjs). ONE small same-origin asset (no sharding); release is the prod fallback.
+// κ is the q-seed.holo archive root (file-bundle: seed.onnx int8 + seed.json cfg, L5-verified). Loaded fail-soft:
+// any open/run error → the loop falls back to brain-only, never breaking listen/respond.
+export const seedSpec = { file: "q-seed.holo", url: FORGE + ".models/q-seed.holo", release: RELEASE_BASE + "q-seed.holo", kappa: "did:holo:sha256:32edd21a7f80a0645cf5659be51a4002ef2271aa6637fba08314929f57bae4a0", bytesMB: 7 };
+
+// a {id, kappa} from the mux → a loadable spec (url path → release → κ-route; every block L5-verified). When the
+// model also lives in the unified pack, the spec carries {pack:{url,release,model}} so a pack-aware loader prefers
+// the single delivery; loaders that ignore it fall back to the standalone url/release unchanged.
 export function specFor(tier) {
   if (!tier || !tier.id) return null;
   const file = FILE[tier.id];
   if (!file) return { id: tier.id, kappa: tier.kappa || "", url: tier.id, release: "" };   // a direct URL/unknown id — pass through
-  return { id: tier.id, kappa: tier.kappa || "", url: FORGE + ".models/" + file, release: RELEASE_BASE + file, bytesMB: tier.bytesMB || 0 };
+  const spec = { id: tier.id, kappa: tier.kappa || "", url: FORGE + ".models/" + file, release: RELEASE_BASE + file, bytesMB: tier.bytesMB || 0 };
+  if (PACK_ID[tier.id]) spec.pack = { url: packSpec.url, release: packSpec.release, model: PACK_ID[tier.id] };
+  return spec;
 }
 
 // every pinned TIER the OS ships, indexed by model id (instant + upgrade across all faculties). This is the
@@ -75,4 +114,4 @@ export function instantSpec(faculty) { const r = resolveFacultyModel(faculty); r
 export function upgradeSpec(faculty) { const r = resolveFacultyModel(faculty); return r.source === "pinned" ? r.upgrade : null; }
 
 export { PINNED, resolveModel };
-export default { resolveFacultyModel, instantSpec, upgradeSpec, specFor, specById, tiersFor };
+export default { resolveFacultyModel, instantSpec, upgradeSpec, specFor, specById, tiersFor, packSpec, seedSpec };

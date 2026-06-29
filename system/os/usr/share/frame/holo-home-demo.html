@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holo Home — demo</title>
+<style>
+  :root { color-scheme: dark light; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #0b0b12; color: #e8e8f0; padding: 6vh 7vw; }
+  h1 { font-weight: 650; font-size: 22px; margin: 0 0 4px; }
+  .sub { opacity: .6; font-size: 13px; margin: 0 0 32px; }
+  #holo-home-root { display: grid; gap: 28px; max-width: 980px; }
+  .holo-home-section h2 { font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; opacity: .55; margin: 0 0 12px; }
+  .holo-home-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .holo-home-tile { display: flex; align-items: center; gap: 10px; min-width: 150px;
+    padding: 14px 16px; border: 1px solid #ffffff14; border-radius: 14px;
+    background: #ffffff08; color: inherit; font: inherit; cursor: pointer;
+    transition: background .15s ease, transform .1s ease; text-align: left; }
+  .holo-home-tile:hover { background: #ffffff14; transform: translateY(-1px); }
+  .holo-home-tile:active { transform: translateY(0); }
+  .holo-home-tile[data-untrusted] { border-color: #f5a62333; }
+  .hh-label { font-size: 14px; }
+  .holo-home-ask .hh-hint { opacity: .6; }
+  .holo-home-empty { opacity: .6; }
+</style>
+<!-- turn on the dev demo seam: the boot module seeds sample files/apps/spaces -->
+<script>window.HOLO_HOME_DEMO = true;</script>
+</head>
+<body>
+  <h1>Holo Home</h1>
+  <p class="sub">Your stuff — Files, Apps, Spaces, Ask. (demo seed; click an app to open it)</p>
+  <!-- the boot module renders into #holo-home-root and wires window.HoloHome + the one open path -->
+  <script type="module" src="/usr/lib/holo/holo-home-boot.mjs"></script>
+</body>
+</html>

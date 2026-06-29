@@ -4,18 +4,30 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <!-- Appearance, before first paint: pin the canonical palette/immersive onto <html> so the lock
-     screen wears the SAME theme the operator chose, with no flash — consistent boot end to end. -->
+     screen wears the SAME theme the operator chose, with no flash — consistent boot end to end.
+     (The theme is chosen in the desktop; the lock screen only honours it, never switches it.) -->
 <script src="./_shared/holo-appearance-boot.js"></script>
 <title>Hologram OS Sign in</title>
+<link rel="icon" type="image/svg+xml" href="/usr/share/icons/holo-favicon.svg">
+<link rel="mask-icon" href="/usr/share/icons/holo-glyph.svg" color="#3b82f6">
+<script type="module" src="/usr/lib/holo/holo-immersive.mjs"></script>
+<!-- Appearance toggle — a matched glass tile just LEFT of the Immersive button: opens the appearance picker. -->
+<script type="module" src="/usr/lib/holo/holo-theme-toggle.mjs"></script>
+<!-- Immersive backdrop super-res: project the wallpaper through the OS lens at true device px (up to 8K),
+     Catmull-Rom + CAS. Fail-soft over the CSS .wall — additive, never on the boot-critical path. -->
+<script type="module" src="/usr/lib/holo/holo-immersive-backdrop.mjs"></script>
 <!-- AI agents: machine-readable sign-in instructions live in <script id="holo-agent-login"> (JSON) and on
-     window.HoloLogin. Guest = act now (or load ?guest=1). Ask Human = request the person to approve. -->
+     window.HoloLogin. Guest = act now (or load ?guest=1). Ask Human = request the person to approve.
+     The human chrome is deliberately quiet — agents never needed the visible door. -->
 <meta name="ai-agent-login" content="See script#holo-agent-login (JSON) or window.HoloLogin. Options: guest (act now, ?guest=1) · ask-human (request the person)." />
-<!-- The Hologram lock screen — a sheet of frosted glass over the desktop. It wears the desktop's own
-     wallpaper (the "aurora" plane), blurred behind an acrylic layer, so signing in feels like the glass
-     lifting to reveal the workspace beneath. The avatar + name + sign-in float on the glass (Windows-
-     lock vocabulary); accounts sit bottom-left, power/another-device bottom-right, AI-agent help bottom-
-     center. Auth is BIOMETRIC-ONLY — no passcode: unlockDevice (this device's biometric) · access
-     (first-run biometric enrol) · pairWithPhone (the phone's biometric) · guest (ephemeral). -->
+<!-- The Hologram lock screen — a Windows account sign-in, projected onto our biometric, self-sovereign
+     backend. A sheet of frosted glass over the desktop wallpaper; on the glass, centred, ONE clean
+     column: avatar → name → one sign-in tap. Nothing else competes. A first-time person AUTHENTICATES
+     FIRST (one tap, no name), and only THEN is asked their name — which we remember and greet them by
+     ever after. Returning people see their name above a single "It's me". Quiet power / another-device
+     sit bottom-right (the Windows tray). Auth is BIOMETRIC-ONLY — no passcode: firstRun (first-time
+     enrol, name after) · unlockDevice (returning biometric) · pairWithPhone (the phone's biometric) ·
+     guest (ephemeral, behind "Sign-in options"). -->
 <style>
   /* ── GOLDEN-RATIO DESIGN SYSTEM ───────────────────────────────────────────────────────────────
      One fluid unit --u and powers of φ govern every size, gap and control, so the lock screen is one
@@ -52,22 +64,21 @@
   .wall .a { left: 8%; top: 12%; width: 42vw; height: 42vw; background: radial-gradient(circle, rgba(52,211,166,.55), transparent 62%); }
   .wall .b { right: 6%; bottom: 4%; width: 46vw; height: 46vw; background: radial-gradient(circle, rgba(64,99,214,.5), transparent 62%); }
   .wall .c { left: 44%; top: 48%; width: 30vw; height: 30vw; background: radial-gradient(circle, rgba(125,239,201,.28), transparent 62%); }
-  /* the glass: frost the wallpaper + lights behind into a soft acrylic sheet */
+  /* the glass: frost the wallpaper + lights behind into a soft acrylic sheet (Windows lock blur) */
   .frost { position: fixed; inset: 0; z-index: 1; background: rgba(7, 11, 22, .46);
     -webkit-backdrop-filter: blur(80px) saturate(1.35) brightness(.92); backdrop-filter: blur(80px) saturate(1.35) brightness(.92); }
 
   .lock { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: var(--g2); }
   .panel { display: flex; flex-direction: column; align-items: center; text-align: center; width: var(--field); max-width: 92vw; }
-  /* avatar — a φ⁴ ring; the operator's hue + initials (or a default silhouette) */
+  /* avatar — a φ⁴ ring; the operator's hue + initials (or a default silhouette). Soft, Windows-quiet. */
   .avatar { width: var(--avatar); height: var(--avatar); border-radius: 50%; display: grid; place-items: center; color: #fff;
     font-size: calc(var(--avatar) * .37); font-weight: 600; letter-spacing: .02em; user-select: none;
-    box-shadow: 0 .85em 2.6em rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.7), 0 0 0 6px rgba(255,255,255,.06); }
+    box-shadow: 0 .6em 1.8em rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.6); }
   .avatar svg { width: 62%; height: 62%; opacity: .92; }
   .avatar.pulse { animation: avp 1.6s ease-in-out infinite; }
-  @keyframes avp { 0%,100% { box-shadow: 0 .85em 2.6em rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.7), 0 0 0 6px rgba(52,211,166,.18); }
-                   50% { box-shadow: 0 .85em 2.6em rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.7), 0 0 0 16px rgba(52,211,166,0); } }
-  .name { margin: var(--g1) 0 0; font-size: var(--fs-name); font-weight: 300; letter-spacing: .005em; line-height: 1.1; text-shadow: 0 2px 18px rgba(0,0,0,.45); }
-  .sub { margin: var(--u) 0 0; font-size: var(--fs-meta); color: var(--ink-dim); text-shadow: 0 1px 8px rgba(0,0,0,.4); }
+  @keyframes avp { 0%,100% { box-shadow: 0 .6em 1.8em rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.6), 0 0 0 6px rgba(52,211,166,.18); }
+                   50% { box-shadow: 0 .6em 1.8em rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.6), 0 0 0 16px rgba(52,211,166,0); } }
+  .name { margin: var(--g1) 0 0; font-size: var(--fs-name); font-weight: 300; letter-spacing: .005em; line-height: 1.15; text-shadow: 0 2px 18px rgba(0,0,0,.45); }
 
   /* the sign-in box (Windows lock vocabulary) */
   .auth { margin-top: var(--g1); display: flex; flex-direction: column; align-items: center; gap: var(--u); width: 100%; }
@@ -89,15 +100,22 @@
   .bio:active { transform: translateY(0) scale(.99); }
   .bio:disabled { opacity: .7; cursor: default; }
   .bio svg { width: 1.18em; height: 1.18em; }
-  .alt { background: none; border: 0; color: var(--ink-dim); font-size: var(--fs-meta); font-family: inherit; cursor: pointer; padding: calc(var(--u) * .25) calc(var(--u) * .5); border-radius: calc(var(--u) * .4); transition: color .15s; }
+  /* quiet secondary text-buttons (Windows "Sign-in options") */
+  .alt { background: none; border: 0; color: var(--ink-dim); font-size: var(--fs-meta); font-family: inherit; cursor: pointer; padding: calc(var(--u) * .3) calc(var(--u) * .55); border-radius: calc(var(--u) * .4); transition: color .15s, background .15s;
+    display: inline-flex; align-items: center; gap: calc(var(--u) * .4); }
   .alt:hover { color: #fff; }
+  .alt svg { width: 1.05em; height: 1.05em; }
+  /* the "Sign-in options" expander — a small centred row of quiet alternatives, hidden until asked for */
+  .opts { display: flex; gap: calc(var(--u) * .3); justify-content: center; flex-wrap: wrap; }
+  .opts[hidden] { display: none; }
   .status { min-height: calc(var(--u) * 1.5); font-size: var(--fs-meta); color: #c4f3e2; text-shadow: 0 1px 8px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * .5); }
   .status.err { color: #ffc0c0; }
   /* a crisp ring that turns while a sign-in step runs — pure motion, no glyphs (reduced-motion-safe) */
   .spin { width: 1em; height: 1em; border-radius: 50%; border: 2px solid rgba(125,239,201,.28); border-top-color: var(--accent); animation: spin .7s linear infinite; flex: 0 0 auto; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* bottom-left account switcher */
+  /* bottom-left account switcher — shown ONLY when more than one operator is enrolled (Windows "other
+     users"). With zero or one account there is nothing here, keeping the screen clean. */
   .users { position: fixed; left: var(--g1); bottom: var(--g1); z-index: 3; display: flex; flex-direction: column; gap: calc(var(--u) * .3); max-width: min(40vw, 280px); }
   .chip { display: flex; align-items: center; gap: calc(var(--u) * .6); padding: calc(var(--u) * .4) var(--u) calc(var(--u) * .4) calc(var(--u) * .4); border-radius: calc(var(--u) * .7); cursor: pointer; border: 1px solid transparent;
     background: rgba(255,255,255,.06); transition: background .15s, border-color .15s; }
@@ -107,7 +125,7 @@
   .chip .pic svg { width: 1.15em; height: 1.15em; }
   .chip .lab { font-size: var(--fs-label); color: #eef1fb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* bottom-right controls */
+  /* bottom-right controls (the Windows tray): another device · power */
   .controls { position: fixed; right: var(--g1); bottom: var(--g1); z-index: 3; display: flex; gap: calc(var(--u) * .4); align-items: center; }
   .ctl { width: calc(var(--u) * 2.5); height: calc(var(--u) * 2.5); border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
     color: #e7ecf7; background: rgba(255,255,255,.07); transition: background .15s, color .15s; }
@@ -121,26 +139,8 @@
     font-size: var(--fs-label); font-family: inherit; cursor: pointer; text-align: left; } .pop button:hover { background: rgba(255,255,255,.1); }
   .pop button svg { width: 1em; height: 1em; opacity: .85; }
 
-  /* bottom-center AI-agent affordance — a quiet, discoverable door for autonomous agents */
-  .agentlink { position: fixed; left: 50%; bottom: var(--g1); transform: translateX(-50%); z-index: 3; display: inline-flex; align-items: center; gap: calc(var(--u) * .45);
-    padding: calc(var(--u) * .5) var(--u); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; background: rgba(255,255,255,.06); color: var(--ink-dim);
-    font-size: var(--fs-meta); font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
-  .agentlink:hover { background: rgba(255,255,255,.13); color: #fff; }
-  .agentlink svg { width: 1.1em; height: 1.1em; }
-  .agentpanel { position: fixed; left: 50%; bottom: calc(var(--g1) + var(--u) * 2.8); transform: translateX(-50%); z-index: 5; display: none; width: min(92vw, calc(var(--u) * 22)); text-align: left;
-    background: rgba(18,22,34,.95); border: 1px solid rgba(255,255,255,.12); border-radius: var(--g1); padding: var(--g1) var(--g1) var(--u);
-    box-shadow: 0 24px 60px rgba(0,0,0,.55); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); }
-  .agentpanel.on { display: block; }
-  .agentpanel h2 { margin: 0 0 calc(var(--u) * .25); font-size: var(--fs-label); font-weight: 600; }
-  .agentpanel .ap-lead { margin: 0 0 calc(var(--u) * .4); font-size: var(--fs-meta); color: var(--ink-dim); line-height: 1.5; }
-  .ap-opt { padding: var(--u) 0 calc(var(--u) * .25); border-top: 1px solid rgba(255,255,255,.09); }
-  .ap-h { display: flex; align-items: center; gap: calc(var(--u) * .45); font-size: var(--fs-label); font-weight: 600; margin-bottom: calc(var(--u) * .3); }
-  .ap-h svg { width: 1.05em; height: 1.05em; opacity: .92; }
-  .ap-opt p { margin: 0 0 calc(var(--u) * .6); font-size: var(--fs-meta); color: var(--ink-dim); line-height: 1.5; }
-  .ap-opt button { width: 100%; height: calc(var(--u) * 2.6); border: 0; border-radius: calc(var(--u) * .55); cursor: pointer; font-size: var(--fs-label); font-weight: 600; color: #06140f;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-family: inherit; transition: filter .15s; } .ap-opt button:hover { filter: brightness(1.05); }
-  .ap-opt.secondary button { background: rgba(255,255,255,.13); color: #eef1fb; }
-  .ap-opt code { display: block; margin-top: calc(var(--u) * .5); font-size: var(--fs-meta); color: rgba(180,240,219,.9); font-family: ui-monospace, "Cascadia Code", monospace; }
+  /* agent banner — surfaced ONLY when an AI agent calls window.HoloLogin.askHuman(); never shown to a
+     person by default. The visible agent "door" is gone; agents use the JSON + window.HoloLogin + ?guest=1. */
   .agentcall { position: fixed; top: var(--g1); left: 50%; transform: translateX(-50%); z-index: 6; display: none; align-items: center; gap: calc(var(--u) * .5);
     padding: calc(var(--u) * .6) var(--g1); border-radius: calc(var(--u) * .7); background: rgba(52,211,166,.16); border: 1px solid rgba(52,211,166,.5); color: #d6f7ec; font-size: var(--fs-meta); }
   .agentcall.on { display: inline-flex; }
@@ -162,44 +162,47 @@
   .wall  { animation: bootFade .9s var(--ease) both; }
   .frost { animation: bootFade .9s var(--ease) both; }
   .panel { animation: bootRise .7s var(--ease) .14s both; }
-  .users, .controls, .agentlink, .session { animation: bootFade .8s var(--ease) .28s both; }
+  .users, .controls, .session { animation: bootFade .8s var(--ease) .28s both; }
 
   /* GLASS UNFOGGING — on sign-in the frost clears (blur 80→0, tint → transparent) and the lock UI lifts
      away while the aurora gently pushes in, as if you step through the clearing glass into your space.
      The desktop wears the same aurora + fades in (see the shell), so the redirect lands without a seam. */
-  body.unfog .frost { animation: defog .8s cubic-bezier(.4,0,.2,1) forwards; }
-  body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .agentlink, body.unfog .agentpanel, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: lift .72s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; }
-  body.unfog .wall { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; }
-  @keyframes defog { to { background: rgba(7,11,22,0); -webkit-backdrop-filter: blur(0) saturate(1) brightness(1); backdrop-filter: blur(0) saturate(1) brightness(1); } }
-  @keyframes lift { to { opacity: 0; transform: translateY(-10px) scale(1.03); filter: blur(3px); } }
+  /* CRISP: the frost is a STATIC blur layer — dissolve it by fading OPACITY (a cached, fully GPU-composited
+     op) rather than animating the 80px blur radius (a full-screen per-frame recompute = the jank). Same "fog
+     lifts to reveal the sharp aurora" look, a fraction of the GPU cost. will-change promotes its own layer. */
+  body.unfog .frost { animation: defog .8s cubic-bezier(.4,0,.2,1) forwards; will-change: opacity; }
+  body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: lift .72s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; will-change: transform, opacity; }
+  body.unfog .wall { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; will-change: transform; }
+  /* the backdrop (super-res photo OR live fluid) rushes gently toward you as the glass clears — the bloom
+     finale feels like stepping INTO the light, then through it to the desktop. */
+  body.unfog .sr-wall, body.unfog .sr-fluid { animation: pushin 1.15s cubic-bezier(.4,0,.2,1) forwards; will-change: transform; }
+  @keyframes defog { to { opacity: 0; } }
+  @keyframes lift { to { opacity: 0; transform: translateY(-10px) scale(1.03); } }
   @keyframes pushin { to { transform: scale(1.08); } }
-  @keyframes defogRM { to { background: rgba(7,11,22,0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+  @keyframes defogRM { to { opacity: 0; } }
   @keyframes liftRM { to { opacity: 0; } }
 
   @media (prefers-reduced-motion: reduce) {
     .wall i, .avatar.pulse, .spin { animation: none; }
-    .wall, .frost, .panel, .users, .controls, .agentlink, .session { animation: none; }   /* no power-on motion */
+    .wall, .frost, .panel, .users, .controls, .session { animation: none; }   /* no power-on motion */
     body.unfog .frost { animation: defogRM .45s ease forwards; }
-    body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .agentlink, body.unfog .agentpanel, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: liftRM .45s ease forwards; }
-    body.unfog .wall { animation: none; }
+    body.unfog .panel, body.unfog .users, body.unfog .controls, body.unfog .pop, body.unfog .agentcall, body.unfog .session { animation: liftRM .45s ease forwards; }
+    body.unfog .wall, body.unfog .sr-wall, body.unfog .sr-fluid { animation: none; }
   }
   #fallback { position: fixed; inset: 0; display: none; place-items: center; color: #cbd5e1; z-index: 9;
     font: var(--fs-meta)/1.6 ui-monospace, monospace; text-align: center; padding: 24px; }
   #fallback.on { display: grid; }
   #fallback code { color: #f87171; display: block; margin-top: 8px; word-break: break-all; max-width: 600px; }
-  /* tight screens: keep the account switcher narrow and lift the agent door clear of the corner chrome */
-  @media (max-width: 560px) {
-    .users { max-width: 42vw; }
-    .agentlink { bottom: calc(var(--g1) + var(--u) * 2.9); }
-  }
+  /* tight screens: keep the account switcher narrow */
+  @media (max-width: 560px) { .users { max-width: 42vw; } }
 
   /* ── MOBILE CONFORMANCE (Compact window-size class OR coarse pointer) ──────────────────────────
-     This greeter is a VERBATIM SDDM reproduction (font-exempt in the UI-conformance witness), so we do
-     NOT apply the global holo-mobile.css floor here — it would alter the pixel-exact desktop projection
-     and overflow the submit button nested inside the password field. Instead we meet the same standard,
-     scoped to phones: MD3 48dp touch targets (Material 3 · Accessibility → Touch target), WCAG 2.2
-     §2.5.8 (Target Size, Minimum), and CSS env() safe-area so the fixed furniture clears the notch and
-     home indicator. The desktop greeter is untouched. */
+     This greeter departs from the upstream SDDM raster toward the Windows account-sign-in look (see the
+     UI-conformance witness exemption note), so we do NOT apply the global holo-mobile.css floor here — it
+     would alter the pixel-exact projection and overflow the submit button nested inside the name field.
+     Instead we meet the same standard, scoped to phones: MD3 48dp touch targets (Material 3 · Accessibility
+     → Touch target), WCAG 2.2 §2.5.8 (Target Size, Minimum), and CSS env() safe-area so the fixed furniture
+     clears the notch and home indicator. The desktop greeter is untouched. */
   @media (max-width: 600px), (pointer: coarse) {
     /* primary controls reach the 48dp floor */
     .box input { height: max(var(--g2), 48px); }
@@ -208,33 +211,38 @@
     .ctl { width: 48px; height: 48px; }
     .chip { min-height: 48px; }
     .alt { min-height: 48px; padding-left: var(--u); padding-right: var(--u); }
-    .agentlink { min-height: 48px; }
-    .ap-opt button { min-height: 48px; }
     .pop button { min-height: 48px; }
     /* safe-area: keep the fixed bottom furniture above the home indicator and clear of the side notch */
     .users { left: max(var(--g1), env(safe-area-inset-left, 0px)); bottom: max(var(--g1), env(safe-area-inset-bottom, 0px)); }
     .controls { right: max(var(--g1), env(safe-area-inset-right, 0px)); bottom: max(var(--g1), env(safe-area-inset-bottom, 0px)); }
-    .agentlink { bottom: calc(var(--g1) + var(--u) * 2.9 + env(safe-area-inset-bottom, 0px)); }   /* keep the corner-clearing lift, add home-bar clearance */
     .pop { right: max(var(--g1), env(safe-area-inset-right, 0px)); bottom: calc(var(--g1) + var(--u) * 2.9 + env(safe-area-inset-bottom, 0px)); }
-    .agentpanel { bottom: calc(var(--g1) + var(--u) * 2.8 + env(safe-area-inset-bottom, 0px)); }
     /* top furniture clears the notch / Dynamic Island */
     .session, .agentcall { top: max(var(--g1), env(safe-area-inset-top, 0px)); }
   }
 
-  /* ── APPEARANCE (Dark · Light · Immersive) ─────────────────────────────────────────────────────
-     The lock screen reflects the operator's chosen theme (set pre-paint by holo-appearance-boot.js
-     and live by the toggle below), so sign-in matches the desktop it opens into. Dark ALWAYS wears the
-     navy aurora — identical to the boot splash's handoff backdrop — so sign-in flows seamlessly out of
-     the boot animation with no change of scene. Light drops the glows for a clean, launcher-quiet day surface. */
+  /* ── APPEARANCE (Dark · Light) ─────────────────────────────────────────────────────────────────
+     The lock screen reflects the operator's chosen theme (set pre-paint by holo-appearance-boot.js), so
+     sign-in matches the desktop it opens into. There is no theme switch ON the lock screen (Windows has
+     none); the choice is made in the desktop and simply honoured here. Dark ALWAYS wears the navy aurora —
+     identical to the boot splash's handoff backdrop — so sign-in flows seamlessly out of the boot
+     animation. Light drops the glows for a clean, launcher-quiet day surface. */
+  /* Dark (chosen, backdrop off) wears 100% PURE BLACK — the operator asked for true black, not the navy
+     aurora. Glows off, the frost reads as a faint black sheet so the card still floats. (The boot handoff's
+     navy aurora lives on in the Immersive default, which is the first-run look.) */
+  :root[data-holo-palette="dark"][data-holo-immersive="off"] body { background: #000; }
+  :root[data-holo-palette="dark"][data-holo-immersive="off"] .wall { background: #000; }
+  :root[data-holo-palette="dark"][data-holo-immersive="off"] .wall i { opacity: 0; }
+  :root[data-holo-palette="dark"][data-holo-immersive="off"] .frost { background: rgba(0,0,0,.42);
+    -webkit-backdrop-filter: blur(80px) saturate(1.15) brightness(.96); backdrop-filter: blur(80px) saturate(1.15) brightness(.96); }
+
   :root[data-holo-palette="light"][data-holo-immersive="off"] .wall i { opacity: 0; }   /* clean, no aurora glows */
-  /* Light: a soft daylight wall, dark ink, a bright frost — every key surface flipped. */
   :root[data-holo-palette="light"] { --ink: #1a1d24; --ink-dim: rgba(26,29,36,.74); --ink-faint: rgba(26,29,36,.5); }
   :root[data-holo-palette="light"] body { background: #eceae4; }
   :root[data-holo-palette="light"] .wall { background: radial-gradient(120% 120% at 20% 0%, #dfe7f2 0%, #ece9e3 60%, #f5f3ed 100%); }
   :root[data-holo-palette="light"] .wall i { mix-blend-mode: multiply; opacity: .28; }
   :root[data-holo-palette="light"] .frost { background: rgba(245,244,240,.42);
     -webkit-backdrop-filter: blur(80px) saturate(1.2) brightness(1.04); backdrop-filter: blur(80px) saturate(1.2) brightness(1.04); }
-  :root[data-holo-palette="light"] .name, :root[data-holo-palette="light"] .sub, :root[data-holo-palette="light"] .status { text-shadow: none; }
+  :root[data-holo-palette="light"] .name, :root[data-holo-palette="light"] .status { text-shadow: none; }
   :root[data-holo-palette="light"] .box input { color: #1a1d24; background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.14); }
   :root[data-holo-palette="light"] .box input::placeholder { color: rgba(26,29,36,.5); }
   :root[data-holo-palette="light"] .box input:focus { background: rgba(0,0,0,.03); }
@@ -243,59 +251,110 @@
   :root[data-holo-palette="light"] .chip .lab, :root[data-holo-palette="light"] .chip .pic { color: #1a1d24; }
   :root[data-holo-palette="light"] .ctl { background: rgba(0,0,0,.06); color: #1a1d24; } :root[data-holo-palette="light"] .ctl:hover { background: rgba(0,0,0,.12); color: #000; }
   :root[data-holo-palette="light"] .alt:hover { color: #000; }
-  :root[data-holo-palette="light"] .agentlink { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.12); } :root[data-holo-palette="light"] .agentlink:hover { color: #000; }
 
-  /* the appearance toggle — a single quiet icon (top-right) that cycles Dark → Light → Immersive */
-  #appearance-toggle { position: fixed; top: var(--g1); right: var(--g1); z-index: 5; width: calc(var(--u) * 2.5); height: calc(var(--u) * 2.5);
-    border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center; font-size: calc(var(--u) * 1.1);
-    color: #e7ecf7; background: rgba(255,255,255,.07); transition: background .15s, color .15s; }
-  #appearance-toggle:hover { background: rgba(255,255,255,.16); color: #fff; }
-  :root[data-holo-palette="light"] #appearance-toggle { background: rgba(0,0,0,.06); color: #1a1d24; }
-  :root[data-holo-palette="light"] #appearance-toggle:hover { background: rgba(0,0,0,.12); color: #000; }
-  @media (max-width: 600px), (pointer: coarse) { #appearance-toggle { width: 48px; height: 48px; top: max(var(--g1), env(safe-area-inset-top, 0px)); right: max(var(--g1), env(safe-area-inset-right, 0px)); } }
+  /* ── IMMERSIVE BACKDROP on the lock screen ──────────────────────────────────────────────────────
+     "Immersive" is the third appearance mode (Immersive · Dark · Light; toggled top-right). On the
+     desktop it publishes a κ-sealed wallpaper behind translucent surfaces; the lock screen now honours
+     it too — the chosen wallpaper (set as --holo-wallpaper by holo-appearance-boot.js) sits under the
+     frost, so Immersive reads as a distinct, photographic mode rather than the flat Dark gradient. Falls
+     back to the navy aurora gradient when no wallpaper is pinned. */
+  :root[data-holo-immersive="on"] .wall {
+    background-image: var(--holo-wallpaper, none),
+      radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%);
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  /* Immersive: SHOW the photograph. The flat 80px frost erased the wallpaper entirely; here we drop the
+     blur to a whisper and trade the opaque tint for a centred vignette — the photo reads crisp edge to edge
+     while the centred sign-in card keeps enough contrast underneath (the name/buttons already carry shadows). */
+  :root[data-holo-immersive="on"] .frost {
+    background: radial-gradient(132% 108% at 50% 44%, rgba(0,0,0,.10) 0%, rgba(0,0,0,.34) 50%, rgba(0,0,0,.62) 100%);
+    -webkit-backdrop-filter: none; backdrop-filter: none;   /* NO blur over the photo — the LENS keeps it 8K-crisp; only a vignette darkens for card legibility */
+  }
+  /* Live backdrop (e.g. Fluid, the default): paint pure black on the FIRST frame so there's no navy-gradient
+     flash before the sim's iframe reveals over it — the sim is black-on-black, so this is seamless. */
+  :root[data-holo-live="fluid"] .wall { background: #000; }
+  :root[data-holo-live="fluid"] .wall i { opacity: 0; }
+
+  /* the super-res backdrop canvas: the wallpaper projected through the OS lens at true device px (Catmull-Rom
+     + CAS, up to 8K). Sits directly above the CSS .wall (which stays as the instant first-paint + fallback)
+     and below the frost vignette; revealed only once a frame has actually drawn (fail-soft never-blank). */
+  .sr-wall { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; display: block;
+    opacity: 0; transition: opacity .6s var(--ease); pointer-events: none; }
+  .sr-wall.on { opacity: 1; }
+  /* the live FLUID backdrop (interactive sim in an isolated iframe) — same layer as the photo, but it
+     RECEIVES pointer events so the fluid reacts to the cursor/touch. The frost above is made decorative
+     (pointer-events:none) so splats reach it; the centred sign-in card stays interactive on its own layer. */
+  .sr-fluid { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; border: 0; display: block;
+    opacity: 0; transition: opacity .5s var(--ease); pointer-events: auto; background: #000; }
+  .sr-fluid.on { opacity: 1; }
+  .frost { pointer-events: none; }   /* decorative vignette only — never intercepts the fluid's splats */
+  /* .lock is a full-viewport centring grid; without this it would swallow every pointer event and starve the
+     interactive fluid. Make the container transparent to events and re-enable just the sign-in card itself. */
+  .lock { pointer-events: none; }
+  .panel { pointer-events: auto; }
+  @media (prefers-reduced-motion: reduce) { .sr-wall, .sr-fluid { transition: none; } }
+
+  /* ── CONTRAST (WCAG AA across Dark · Light) ─────────────────────────────────────────────────────
+     Every element kept ≥4.5:1 for text and ≥3:1 for UI furniture in both palettes. */
+  /* white initials must stay legible on the mid-tone hue avatar / chip in BOTH palettes */
+  .avatar, .chip .pic { text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  /* Light fixes — translucent-white furniture turns near-invisible on a bright surface; re-ink it. */
+  :root[data-holo-palette="light"] .status { color: #0a6048; }                       /* green, ≥4.5:1 on light frost */
+  :root[data-holo-palette="light"] .box input::placeholder { color: rgba(26,29,36,.62); }
+  :root[data-holo-palette="light"] .session { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.16); color: #1a1d24; }
+  :root[data-holo-palette="light"] .pop { background: rgba(252,251,248,.96); border-color: rgba(0,0,0,.12); }
+  :root[data-holo-palette="light"] .pop button { color: #1a1d24; }
+  :root[data-holo-palette="light"] .pop button:hover { background: rgba(0,0,0,.06); }
 </style>
 </head>
 <body>
 <div class="wall"><i class="a"></i><i class="b"></i><i class="c"></i></div>
 <div class="frost"></div>
 <main class="lock"><div class="panel" id="panel"></div></main>
+
+<!-- BASELINE (synchronous, dependency-free): paint a working sign-in panel on the FIRST frame, before any
+     module loads or any network call. This is the never-blank guarantee — if every module 404s, fails to
+     parse, or hangs, this stays on screen and the operator still has a way in. The module ENHANCES this; it
+     never OWNS first render. A returning operator is read from a tiny local cache (holo.lastOperator) so their
+     name + "It's me" paint with zero identity/model load — the returning path is interactive at first paint. -->
+<script>
+(function () {
+  var panel = document.getElementById("panel");
+  if (!panel) return;
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]); }); };
+  var op = null;
+  try { op = JSON.parse(localStorage.getItem("holo.lastOperator") || "null"); } catch (e) {}
+  var fp = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.5 11a6.5 6.5 0 0 1 13 0"/><path d="M8.5 11a3.5 3.5 0 0 1 7 0v2.6"/><path d="M12 11v4.4"/><path d="M8.6 14.2V16"/><path d="M15.4 15.4V18"/></svg>';
+  var person = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8.4" r="4.1"/><path d="M3.8 20.4a8.2 8.2 0 0 1 16.4 0z"/></svg>';
+  var avatar, name, label;
+  if (op && op.label) {
+    var hue = (op.hue != null ? op.hue : 210) | 0;
+    var ini = op.label.trim().split(/\s+/).map(function (w) { return w[0]; }).filter(Boolean).slice(0, 2).join("").toUpperCase() || "·";
+    avatar = '<div class="avatar" style="background:linear-gradient(140deg, hsl(' + hue + ' 52% 46%), hsl(' + (hue + 26) + ' 52% 46%))">' + esc(ini) + '</div>';
+    name = esc(op.label); label = "It’s me";
+  } else {
+    avatar = '<div class="avatar" style="background:linear-gradient(140deg,#5b6b86,#3a455c)">' + person + '</div>';
+    name = "Welcome"; label = "Sign in";
+  }
+  panel.innerHTML = avatar + '<h1 class="name">' + name + '</h1><div class="auth"><button class="bio" id="baselineBio">' + fp + label + '</button><div class="status"></div></div>';
+  // Until the module wires real biometric auth, the only safe action is to retry the load (idempotent — the
+  // κ-host re-fetches + re-verifies canonical entries on reload). The module replaces this the instant it lands.
+  var b = document.getElementById("baselineBio");
+  if (b) b.onclick = function () { b.disabled = true; location.reload(); };
+  // WATCHDOG backstop: if #panel is somehow STILL empty after 1.5s (the baseline itself failed AND no module
+  // rendered), reveal the recovery screen so the operator never stares at a blank gate.
+  setTimeout(function () {
+    try { if (!document.getElementById("panel").innerHTML.trim()) document.getElementById("fallback").classList.add("on"); } catch (e) {}
+  }, 1500);
+})();
+</script>
+
 <div class="users" id="users"></div>
 <div class="pop" id="powmenu"></div>
 <div class="controls" id="controls"></div>
-<button id="appearance-toggle" type="button" aria-label="Appearance — Dark, Light or Immersive" title="Appearance"></button>
-<button class="agentlink" id="agentbtn" aria-haspopup="dialog" aria-controls="agentpanel"></button>
-<section class="agentpanel" id="agentpanel" role="region" aria-label="AI agent sign-in instructions" data-agent-login></section>
 <div class="agentcall" id="agentcall"></div>
 <div class="session" id="session" title="the session this sign-in will open"></div>
 <div id="fallback"><div>The display manager could not start.<code id="fallbackMsg"></code></div></div>
-
-<!-- Appearance toggle — cycles Dark → Light → Immersive, applied live AND persisted to the canonical
-     holo.theme.v1 the bootstrap reads, so the choice carries into the desktop and every future boot.
-     Classic + standalone (no engine dependency): mirrors holo-appearance-boot.js's apply logic. -->
-<script>
-(function () {
-  var KEY = "holo.theme.v1", root = document.documentElement, ORDER = ["dark", "light", "immersive"];
-  var GLYPH = { dark: "🌙", light: "☀️", immersive: "🏞️" };
-  function read() { try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { return {}; } }
-  function curMode(s) { return s.immersive ? "immersive" : (s.palette === "light" ? "light" : "dark"); }
-  function apply(mode) {
-    var s = read();
-    if (mode === "light") { s.palette = "light"; s.immersive = false; }
-    else if (mode === "dark") { s.palette = "dark"; s.immersive = false; }
-    else { s.immersive = true; if (!s.palette || s.palette === "auto") s.palette = "dark"; }
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
-    if (s.palette && s.palette !== "auto") { root.setAttribute("data-holo-palette", s.palette); root.style.setProperty("color-scheme", s.palette); }
-    root.setAttribute("data-holo-immersive", s.immersive ? "on" : "off");
-    reflect(mode);
-  }
-  function reflect(mode) { if (btn) { btn.textContent = GLYPH[mode] || "🌙"; btn.setAttribute("title", "Appearance — " + mode.charAt(0).toUpperCase() + mode.slice(1)); } }
-  var btn = document.getElementById("appearance-toggle");
-  if (btn) {
-    reflect(curMode(read()));
-    btn.addEventListener("click", function () { var now = curMode(read()); apply(ORDER[(ORDER.indexOf(now) + 1) % ORDER.length]); });
-  }
-})();
-</script>
 
 <!-- Machine-readable sign-in instructions for AI agents. Always present in the DOM, even before scripts run. -->
 <script type="application/json" id="holo-agent-login">
@@ -309,7 +368,7 @@
       "title": "Guest",
       "persistent": false,
       "requiresHuman": false,
-      "do": { "navigate": "?guest=1", "click": "#agent-guest", "call": "window.HoloLogin.guest()" },
+      "do": { "navigate": "?guest=1", "call": "window.HoloLogin.guest()" },
       "result": "An instant, private, ephemeral session. No biometric and no human needed. Nothing persists after the session ends."
     },
     {
@@ -317,7 +376,7 @@
       "title": "Ask Human",
       "persistent": true,
       "requiresHuman": true,
-      "do": { "click": "#agent-askhuman", "call": "window.HoloLogin.askHuman()", "then": "ask the person to approve sign-in with their device biometric" },
+      "do": { "call": "window.HoloLogin.askHuman()", "then": "ask the person to approve sign-in with their device biometric" },
       "result": "Surfaces a request for the person to approve sign-in with their device biometric (Windows Hello / Touch ID). An agent cannot complete this alone."
     }
   ]
@@ -325,8 +384,10 @@
 </script>
 
 <script type="module">
-import { createGreeter } from "./_shared/holo-sddm.js";
-import { teeReason, teeName } from "./_shared/holo-webauthn.mjs";
+// The enhancers (greeter + webauthn) are dynamically imported INSIDE the try below, NOT statically here.
+// A static `import` of a module that fails to PARSE aborts this whole script before the try/catch exists —
+// that exact failure (one unterminated regex in holo-sddm.js) blanked the gate on 2026-06-27 with no error
+// path. Dynamic import() turns that into a catch-able rejection that degrades to the baseline + recovery.
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -344,10 +405,19 @@ const I = {
   session: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
 };
 
+// cacheOperator — persist a tiny, non-secret hint {label, hue, cred} so the NEXT boot's baseline paints this
+// operator's name + "It's me" at first frame, with zero identity/model load. No keys, no biometrics — only the
+// greeting. Read by the dependency-free baseline script above.
+const cacheOperator = (u) => { try { if (u && u.label) localStorage.setItem("holo.lastOperator", JSON.stringify({ label: u.label, hue: (u.avatar && u.avatar.hue != null ? u.avatar.hue : 210), cred: !!u.cred })); } catch (e) {} };
+
 // Fullscreen is owned by the greeter: it flags + requests it ONCE at the very end of the chosen sign-in
 // path (holo-sddm.js → enterShell), just before the desktop is revealed. The page never requests it on tap.
 
 try {
+  // Dynamic, catch-able imports (see the note above the helpers): a load/parse failure REJECTS here and is
+  // caught below → recovery over the baseline, never a silent blank.
+  const { createGreeter } = await import("./_shared/holo-sddm.js");
+  const { teeReason, teeName } = await import("./_shared/holo-webauthn.mjs");
   const params = new URLSearchParams(location.search);
   const ctx = await createGreeter(params);
   const sddm = ctx.sddm;
@@ -357,24 +427,35 @@ try {
     const users = (ctx.userModel.users || []);
     const reason = await teeReason();
     const st = { users, hasBio: !reason, bioName: teeName(), selected: users[0] || null };
+    if (st.selected) cacheOperator(st.selected);   // warm the baseline for next boot (instant returning-operator paint)
     const setStatus = (t, err) => { const el = $("panel").querySelector(".status"); if (el) { el.textContent = t || ""; el.className = "status" + (err ? " err" : ""); } if (err) window.__lastErr = t; };
     // a sign-in step in progress → a crisp turning ring beside the message (no glyphs, low-latency CSS)
     const setBusy = (m) => { const el = $("panel").querySelector(".status"); if (!el) return; el.className = "status"; el.innerHTML = `<span class="spin"></span><span>${esc(m || "")}</span>`; };
-    sddm.connect("informationMessage", (m) => setBusy(m));
-    sddm.connect("loginFailed", () => setStatus(window.__lastErr || "Try again", true));
-    sddm.connect("loginSucceeded", () => { setStatus("Opening my space…"); document.body.classList.add("unfog"); });
+    // VERIFY WATCHDOG (never-blank): the biometric ceremony is human + OS-dialog gated and, on a lost native
+    // callback, could otherwise spin "Verifying…" forever (the screenshot hang). When a verify/enrol step is
+    // shown, arm a timer; if nothing resolves in 12s, replace the lone spinner with an ACTIONABLE recovery —
+    // Try again (idempotent reload, tears down any stale ceremony) · the phone's biometric · Guest. The panel
+    // never blanks; the underlying teeAssert also has its own 90s settle guard (holo-webauthn) as a backstop.
+    let _verifyT = null;
+    const clearVerify = () => { if (_verifyT) { clearTimeout(_verifyT); _verifyT = null; } };
+    const armVerify = () => { clearVerify(); _verifyT = setTimeout(() => { _verifyT = null; renderVerifyStuck(st, sddm); }, 12000); };
+    sddm.connect("informationMessage", (m) => { setBusy(m); if (/Verifying|Setting up/i.test(m || "")) armVerify(); else clearVerify(); });
+    sddm.connect("loginFailed", () => { clearVerify(); setStatus(window.__lastErr || "Try again", true); });
+    sddm.connect("loginSucceeded", () => { clearVerify(); cacheOperator(st.selected || st.users[0]); setStatus("Opening my space…"); try { window.HoloBackdrop && window.HoloBackdrop.burst && window.HoloBackdrop.burst(); } catch (e) {} document.body.classList.add("unfog"); });
     // Biometric-only: nothing this device can verify (no passkey enrolled here) → don't ask for a
     // passcode (there isn't one). Offer the phone's biometric or Guest instead.
     sddm.connect("needName", () => renderCenter({ ...st, hasBio: false }, sddm));
+    // Name-after-auth: the first-time enrol authenticated, then asked us to collect a display name.
+    sddm.connect("needGreetingName", () => renderNameStep(st, sddm));
 
     // window.HoloLogin — the agent-facing API (mirrors script#holo-agent-login)
     window.HoloLogin = {
       options: (() => { try { return JSON.parse($("holo-agent-login").textContent).options; } catch { return []; } })(),
       guest() { sddm.guest(); return "Signing in as Guest (ephemeral, private)."; },
       askHuman() {
-        $("agentpanel").classList.remove("on"); $("agentcall").classList.add("on");
+        const ac = $("agentcall"); if (ac) ac.classList.add("on");
         const av = $("panel").querySelector(".avatar"); if (av) av.classList.add("pulse");
-        setStatus("An AI agent asked you to sign in approve above.");
+        setStatus("An AI agent asked you to sign in — approve above.");
         return "Requested. Ask the human to approve sign-in with their device biometric; you cannot complete this alone.";
       },
     };
@@ -382,7 +463,7 @@ try {
     renderCenter(st, sddm);
     renderUsers(st, sddm);
     renderControls(sddm);
-    renderAgent(sddm);
+    renderAgent();
     renderSession(ctx);
   }
 } catch (e) {
@@ -396,67 +477,123 @@ function avatarHtml(u, big) {
   return `<div class="${cls}" style="background:linear-gradient(140deg,#5b6b86,#3a455c)">${I.person}</div>`;
 }
 
-// renderPhoneGuest — the no-passcode fallback when this device can't do a biometric (no enclave, or
-// a legacy identity with no passkey enrolled here): the operator signs in with their PHONE's
-// biometric, or enters as an ephemeral Guest. Nothing to type, ever — the experience stays biometric.
+// optionsHtml / wireOptions — the quiet "Sign-in options" expander: phone (another device) + Guest,
+// hidden until asked for. This is where Guest lives now — reachable, never in a first-timer's face.
+function optionsHtml() {
+  return `<button class="alt" id="opts" aria-expanded="false">Sign-in options</button>
+    <div class="opts" id="optsrow" hidden>
+      <button class="alt" id="optphone">${I.phone}Another device</button>
+      <button class="alt" id="optguest">${I.ghost}Guest</button>
+    </div>`;
+}
+function wireOptions(p, sddm) {
+  const opts = p.querySelector("#opts"), row = p.querySelector("#optsrow");
+  if (opts && row) opts.onclick = () => { const open = row.hidden; row.hidden = !open; opts.setAttribute("aria-expanded", String(open)); };
+  const ph = p.querySelector("#optphone"), gu = p.querySelector("#optguest");
+  if (ph) ph.onclick = () => sddm.pairWithPhone();
+  if (gu) gu.onclick = () => sddm.guest();
+}
+
+// renderPhoneGuest — the no-biometric fallback (no enclave, or a legacy identity with no passkey here):
+// the operator signs in with their PHONE's biometric, or enters as an ephemeral Guest. Nothing to type.
 function renderPhoneGuest(st, sddm, heading) {
   const p = $("panel");
   p.innerHTML = `${avatarHtml(st.selected, true)}
     <h1 class="name">${esc(heading)}</h1>
     <div class="auth">
       <button class="bio" id="phone">${I.phone}Sign in with your phone</button>
-      <button class="alt" id="guest">Continue as Guest</button>
-      <div class="sub">This device has no biometric. Use your phone’s fingerprint or face — or enter as Guest.</div>
+      <button class="alt" id="guest">${I.ghost}Continue as Guest</button>
       <div class="status"></div>
     </div>`;
   p.querySelector("#phone").onclick = () => sddm.pairWithPhone();
   p.querySelector("#guest").onclick = () => sddm.guest();
 }
 
+// renderVerifyStuck — the never-blank recovery when a biometric verify/enrol step doesn't resolve in time.
+// Keeps the operator's avatar + name; swaps the spinner for three sure ways in. Try again RELOADS (idempotent —
+// the κ-host re-fetches + re-verifies, and any stale/hung ceremony callback is torn down with the page).
+function renderVerifyStuck(st, sddm) {
+  const p = $("panel");
+  const u = st && st.selected;
+  p.innerHTML = `${avatarHtml(u, true)}
+    <h1 class="name">${esc((u && u.label) || "Welcome")}</h1>
+    <div class="auth">
+      <div class="status">${esc((st && st.bioName) || "Windows Hello")} is taking longer than usual.</div>
+      <button class="bio" id="vretry">${I.fp}Try again</button>
+      <button class="alt" id="vphone">${I.phone}Use your phone</button>
+      <button class="alt" id="vguest">${I.ghost}Guest</button>
+    </div>`;
+  p.querySelector("#vretry").onclick = () => location.reload();
+  p.querySelector("#vphone").onclick = () => sddm.pairWithPhone();
+  p.querySelector("#vguest").onclick = () => sddm.guest();
+}
+
 function renderCenter(st, sddm) {
   const firstRun = !st.selected;
   const p = $("panel");
-  // No biometric on this device → no passcode means the phone's biometric (or Guest) is the way in.
+  // No biometric on this device → the phone's biometric (or Guest) is the way in.
   if (!st.hasBio) { renderPhoneGuest(st, sddm, firstRun ? "Welcome" : (st.selected.label || "Welcome")); return; }
   if (firstRun) {
+    // FIRST TIME — authenticate first, name second. One tap; no name field here. The name is asked
+    // only AFTER the biometric succeeds (needGreetingName → renderNameStep).
     p.innerHTML = `${avatarHtml(null, true)}
       <h1 class="name">Welcome</h1>
       <div class="auth">
-        <button class="bio" id="juststart" title="Start now — nothing to set up">${I.fp || ""}Just start</button>
-        <div class="box"><input id="namein" type="text" autocomplete="name" placeholder="Or add your name (optional)" /><button class="submit" id="go" title="Create">${I.arrow}</button></div>
-        <div class="sub">No account needed — your name is optional</div>
+        <button class="bio" id="signin" title="Sign in — one tap, nothing to set up">${I.fp}Sign in</button>
+        ${optionsHtml()}
         <div class="status"></div>
       </div>`;
-    const nameEl = p.querySelector("#namein"), go = p.querySelector("#go"), js = p.querySelector("#juststart");
-    if (js) js.onclick = () => { try { js.disabled = true; sddm.guest(); } catch (e) {} };   // guest-first: just start, identity deferred
-    const submit = () => { const n = (nameEl.value || "").trim(); if (!n) { nameEl.focus(); return; } go.disabled = true; sddm.access(n); };
-    go.onclick = submit; nameEl.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
-    setTimeout(() => nameEl.focus(), 40);
+    const si = p.querySelector("#signin");
+    si.onclick = () => { si.disabled = true; sddm.firstRun(); };
+    wireOptions(p, sddm);
+    setTimeout(() => si.focus(), 40);
     return;
   }
   const u = st.selected;
-  // A legacy key with no biometric enrolled on THIS device can't be unlocked here — there is no
-  // passcode to fall back on, so sign in with the phone's biometric instead.
+  // A legacy key with no biometric enrolled on THIS device can't be unlocked here — sign in with the phone.
   if (!u.cred) { renderPhoneGuest(st, sddm, u.label || "Welcome"); return; }
-  // Returning operator — one biometric tap. Nothing to type.
+  // Returning operator — their name above one biometric tap. Nothing to type. (Windows account sign-in.)
   p.innerHTML = `${avatarHtml(u, true)}
     <h1 class="name">${esc(u.label || "Welcome")}</h1>
     <div class="auth">
       <button class="bio" id="bio">${I.fp}It’s me</button>
+      ${optionsHtml()}
       <div class="status"></div>
     </div>`;
   const bio = p.querySelector("#bio");
   bio.onclick = () => { bio.disabled = true; sddm.unlockDevice(); };
-  setTimeout(() => bio.focus(), 40);
+  wireOptions(p, sddm);
+  setTimeout(() => bio.focus(), 40);   // focus the button so Enter/Space starts it — but the user initiates
 }
 
+// renderNameStep — the ONE place a name is ever typed, shown only AFTER a first-time person has
+// authenticated. Optional: submit a name or Skip; either way we enter the desktop. Remembered forever.
+function renderNameStep(st, sddm) {
+  const p = $("panel");
+  p.innerHTML = `${avatarHtml(null, true)}
+    <h1 class="name">What should I call you?</h1>
+    <div class="auth">
+      <div class="box"><input id="namein" type="text" autocomplete="name" placeholder="Your name (optional)" /><button class="submit" id="go" title="Continue">${I.arrow}</button></div>
+      <button class="alt" id="skip">Skip</button>
+      <div class="status"></div>
+    </div>`;
+  const nameEl = p.querySelector("#namein"), go = p.querySelector("#go"), skip = p.querySelector("#skip");
+  const done = () => { go.disabled = true; skip.disabled = true; if (nameEl.value) cacheOperator({ label: nameEl.value, cred: true }); sddm.completeFirstRun(nameEl.value || ""); };
+  go.onclick = done;
+  nameEl.addEventListener("keydown", (e) => { if (e.key === "Enter") done(); });
+  skip.onclick = () => { go.disabled = true; skip.disabled = true; sddm.completeFirstRun(""); };
+  setTimeout(() => nameEl.focus(), 40);
+}
+
+// renderUsers — the bottom-left account switcher, shown ONLY when more than one operator is enrolled
+// (Windows "other users"). With zero or one account there is nothing here. Guest lives in Sign-in options.
 function renderUsers(st, sddm) {
   const host = $("users");
+  if (!host) return;
+  if (!st.users || st.users.length < 2) { host.innerHTML = ""; return; }
   const chips = st.users.map((u) => `<div class="chip ${st.selected && u.kappa === st.selected.kappa ? "on" : ""}" data-k="${esc(u.kappa)}">${avatarHtml(u, false)}<span class="lab">${esc(u.label || "Operator")}</span></div>`);
-  chips.push(`<div class="chip" data-guest="1"><div class="pic" style="background:linear-gradient(140deg,#5b6b86,#3a455c)">${I.ghost}</div><span class="lab">Guest</span></div>`);
   host.innerHTML = chips.join("");
   host.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
-    if (c.dataset.guest) { sddm.guest(); return; }
     st.selected = st.users.find((u) => u.kappa === c.dataset.k) || st.selected;
     renderCenter(st, sddm);
     renderUsers(st, sddm);
@@ -486,25 +623,11 @@ function renderControls(sddm) {
   $("powmenu").querySelector("#shutdown").onclick = () => sddm.powerOff();
 }
 
-// renderAgent — the discoverable AI-agent sign-in help (mirrors script#holo-agent-login + window.HoloLogin)
-function renderAgent(sddm) {
-  $("agentbtn").innerHTML = `${I.robot}AI agent`;
-  $("agentpanel").innerHTML = `
-    <h2>Signing in as an AI agent</h2>
-    <p class="ap-lead">Two ways to proceed — you can do <b>Guest</b> yourself; <b>Ask Human</b> needs the person.</p>
-    <div class="ap-opt"><div class="ap-h">${I.ghost} Guest</div>
-      <p>Instant, private, throwaway identity — no biometric needed, nothing is saved after the session.</p>
-      <button id="agent-guest">Continue as Guest</button>
-      <code>or load this page with ?guest=1</code></div>
-    <div class="ap-opt secondary"><div class="ap-h">${I.person} Ask Human</div>
-      <p>A saved, sovereign identity needs the person’s device biometric (Windows Hello / Touch ID) — you can’t do that yourself. Ask them to approve.</p>
-      <button id="agent-askhuman">Ask the human to sign in</button></div>`;
-  $("agentcall").innerHTML = `${I.robot}<span>An AI agent is requesting access — sign in below to approve.</span>`;
-  $("agentbtn").onclick = (e) => { e.stopPropagation(); $("agentpanel").classList.toggle("on"); };
-  $("agentpanel").addEventListener("click", (e) => e.stopPropagation());
-  document.addEventListener("click", () => $("agentpanel").classList.remove("on"));
-  $("agent-guest").onclick = () => window.HoloLogin.guest();
-  $("agent-askhuman").onclick = () => window.HoloLogin.askHuman();
+// renderAgent — prime the (hidden) agent banner used by window.HoloLogin.askHuman(). There is no
+// visible agent door for humans; agents sign in via the JSON, window.HoloLogin, or ?guest=1.
+function renderAgent() {
+  const call = $("agentcall");
+  if (call) call.innerHTML = `${I.robot}<span>An AI agent is requesting access — sign in below to approve.</span>`;
 }
 </script>
 </body>

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+    <script>(function(){try{var s=parseFloat(new URLSearchParams(location.search).get('__hsr'));if(!(s>0))return;var b=window.devicePixelRatio||1,t=b*Math.max(0.3,Math.min(1,s));Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:function(){return t;}});window.__holoMemoReady=new Promise(function(r){window.__holoMemoResolve=r;});var gc=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(ty,at){if(/webgl/i.test(ty)){at=Object.assign({},at,{preserveDrawingBuffer:true});}var c=gc.call(this,ty,at);try{if(c&&/webgl/i.test(ty)){['drawArrays','drawElements','drawArraysInstanced','drawElementsInstanced'].forEach(function(m){var o=c[m];if(o){c[m]=function(){window.__holoSeq=(window.__holoSeq||0)+1;return o.apply(c,arguments);};}});}}catch(e){}return c;};window.__HOLO_SR__={base:b,scale:t};}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Julia Bloom — WebGL2</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#04020a;font:13px ui-monospace,Menlo,monospace;color:#e9d5ff}
+  #c{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none;cursor:crosshair}
+  #t{position:fixed;right:14px;top:12px;text-align:right;opacity:.85;pointer-events:none;text-shadow:0 1px 4px #000}
+  #t b{color:#e9b8ff;font-size:15px}
+  #t small{opacity:.6}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="t"><b>Julia Bloom · WebGL2</b><br/>a living fractal — move to reshape it<br/><small>move the cursor</small></div>
+<script>
+const cv = document.getElementById("c");
+const gl = cv.getContext("webgl2", { antialias: false });
+if (!gl) document.body.innerHTML = "<p style='padding:20px'>WebGL2 unavailable</p>";
+
+const VS = `#version 300 es
+void main(){ vec2 p=vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position=vec4(p*2.0-1.0,0.,1.); }`;
+
+const FS = `#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 R; uniform float T; uniform vec2 C;   // C = Julia seed (animated + mouse)
+// smooth iteration coloring with a soft inner glow
+vec3 pal(float t){
+  // a violet→magenta→gold bloom
+  return 0.5 + 0.5*cos(6.2831853*(vec3(0.96,0.82,0.6)*t + vec3(0.0,0.12,0.30)));
+}
+void main(){
+  vec2 uv = (gl_FragCoord.xy*2.0 - R)/R.y;
+  float zoom = 1.35 + 0.12*sin(T*0.13);
+  vec2 z = uv*zoom;
+  vec2 c = C;
+  float m = 0.0; float trap = 1e9;
+  const int N = 220;
+  int it = 0;
+  for(int i=0;i<N;i++){
+    // z = z^2 + c
+    z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+    float r2 = dot(z,z);
+    trap = min(trap, abs(z.x*z.y));          // orbit trap → filaments
+    if(r2 > 64.0){ m = float(i) - log2(log2(r2))*0.5; break; }
+    it = i;
+  }
+  if(it >= N-1){
+    // interior: dark with a faint pulsing core from the orbit trap
+    float g = exp(-trap*9.0);
+    o = vec4(vec3(0.10,0.02,0.18)*0.6 + vec3(0.5,0.2,0.7)*g*0.5, 1.0);
+    return;
+  }
+  float t = m/float(N);
+  vec3 col = pal(t*3.2 + T*0.04);
+  col *= 0.4 + 0.9*pow(1.0-t, 0.6);           // brighten near the boundary
+  col += vec3(0.9,0.6,0.3)*exp(-trap*5.0)*0.5; // golden filament glow
+  col = pow(col, vec3(0.85));
+  o = vec4(col, 1.0);
+}`;
+
+function sh(type, src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+const prog = gl.createProgram();
+gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog); if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const uR=gl.getUniformLocation(prog,"R"), uT=gl.getUniformLocation(prog,"T"), uC=gl.getUniformLocation(prog,"C");
+gl.bindVertexArray(gl.createVertexArray());
+
+let target=[-0.74, 0.16], cur=[-0.74, 0.16];
+addEventListener("pointermove", e=>{
+  // map cursor to a gentle region of Julia seeds (the interesting band)
+  const x = e.clientX/window.innerWidth, y = e.clientY/window.innerHeight;
+  target = [-0.9 + x*0.8, -0.32 + y*0.64];
+});
+function resize(){ const dpr=window.devicePixelRatio||1; cv.width=Math.round(window.innerWidth*dpr); cv.height=Math.round(window.innerHeight*dpr); gl.viewport(0,0,cv.width,cv.height); }
+addEventListener("resize", resize); resize();
+
+const t0 = performance.now();
+function frame(){
+  const t=(performance.now()-t0)/1000;
+  // ease toward the cursor seed + a slow autonomous drift so it's alive even when still
+  cur[0] += (target[0]-cur[0])*0.05; cur[1] += (target[1]-cur[1])*0.05;
+  const c0 = cur[0] + 0.012*Math.sin(t*0.27), c1 = cur[1] + 0.012*Math.cos(t*0.21);
+  gl.uniform2f(uR, cv.width, cv.height);
+  gl.uniform1f(uT, t);
+  gl.uniform2f(uC, c0, c1);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.JULIA = { gl, draw: ()=>gl.drawArrays(gl.TRIANGLES,0,3) };
+</script>
+</body>
+</html>

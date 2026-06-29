@@ -148,6 +148,7 @@ export async function installFromWebStore(input, { manager = null, fetchImpl, pr
     ok: true, requestedId: id, extensionId: v.extensionId, kappa: v.kappa, did: v.did, holoUrl: "holo://" + v.kappa,
     name: analysis.name, version: analysis.version, verdict: analysis.verdict, reason: analysis.reason,
     runnable, needsNative: analysis.verdict === "needs-native", featureSupport: analysis.featureSupport,
+    popup: (analysis.action && analysis.action.default_popup) || "",
     publisherBound: v.publisherBound, signatureOk: v.signatureOk, proofCount: v.proofCount,
     installed, seamBundle, downloadUrl: dl,
   };

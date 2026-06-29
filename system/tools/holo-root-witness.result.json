@@ -1,0 +1,36 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-root — THERE IS NO ROOT: the single DNS root zone + KSK is replaced by a plural, pinnable set of self-verifying anchors and a default of pure math. A bare name resolves by walking pinned anchors in order, first verified hit winning (per-anchor scarcity — honest + deterministic). An anchor IS a zone (a zone of zones), so no new storage/crypto; every anchor read is re-derived (Law L5) and a tampered anchor is skipped, never trusted. Supplies the openZone seam the one omni door uses and plugs into it for bare names. The math default (a fully-qualified holo://zone/<owner>/<label>) needs no anchor at all.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · IETF RFC 8785 (JCS) · W3C PROV-O · holospaces Laws L1/L2/L3/L5 · rests on #holo-zone + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "no-single-root",
+    "math-default",
+    "content-passthrough",
+    "bare-name-multi-hop",
+    "first-verified-hit",
+    "pin-order-scarcity",
+    "anchor-verify-before-trust",
+    "unbound-fail-closed",
+    "provenance",
+    "one-door-integration"
+  ],
+  "sample": {
+    "deckName": "holo://zone/e3b64acebcc8f6daa4ddf851cb6a873ef0af4b8d128db320317c46df44cf15f9/deck",
+    "bare": "ilya.deck",
+    "target": "did:holo:sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+  },
+  "checks": {
+    "mathDefaultNoAnchor": true,
+    "contentPassthrough": true,
+    "bareNameTwoHop": true,
+    "bareNameDirectKappa": true,
+    "fallthroughSkipsMiss": true,
+    "pinOrderScarcity": true,
+    "anchorVerifyB4Trust": true,
+    "unboundFailsClosed": true,
+    "provenanceReported": true,
+    "oneDoorUsesRoot": true
+  },
+  "failed": []
+}

@@ -1,0 +1,13 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-federation (Phase 1 — Two Sovereigns, One World) — two sovereign nodes, each a full three-noun door (makeFront), converge a κ-Link over a dumb loopback transport (a real WebRTC DataChannel in the browser): Bob renders Ana's real text; Bob's Pocket resolves+embeds Ana's post κ ACROSS the node boundary; a late joiner backfills. The wire carries bytes only — verify-before-adopt is the sole gate.",
+  "authority": "ADAM Neighbourhood · three-noun door · hash-agnostic transport · verify-before-adopt (L5)",
+  "witnessed": true,
+  "checks": {
+    "twoFrontsConvergeKappaLink": true,
+    "pocketGrabsFederatedPost": true,
+    "lateJoinerBackfills": true,
+    "wireIsDumbVerifyBeforeAdopt": true
+  },
+  "failed": []
+}

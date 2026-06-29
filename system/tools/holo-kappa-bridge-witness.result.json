@@ -1,0 +1,34 @@
+{
+  "spec": "P7 — the canonical-κ regression guard. Fails on a NEW unsanctioned sha256 κ-mint (not baselined, not // BRIDGE:-marked); positively asserts the cutover landed on the canonical spine and the named external bridges are self-documenting.",
+  "witnessed": true,
+  "mintedNow": 94,
+  "baseline": 96,
+  "newMints": [],
+  "unsanctioned": [],
+  "migrated": 2,
+  "covers": [
+    "bridge-line",
+    "regression-guard",
+    "blake3-canonical",
+    "ipfs",
+    "ens",
+    "sri",
+    "sd-jwt",
+    "lint"
+  ],
+  "checks": {
+    "no NEW unsanctioned sha256 κ-mint (canonical-κ regression guard)": true,
+    "canonical seam holo-kappa.mjs mints did:holo:blake3 (kappo)": true,
+    "sealer reseal-drift emits the canonical blake3 primary": true,
+    "sealer seal-served carries the canonical blake3": true,
+    "app-CAS relock-app carries the canonical blake3": true,
+    "the anchor (holo-anchor-sw) is blake3(os-closure.json)": true,
+    "identity exposes the canonical kappaOf seam": true,
+    "IPFS bridge self-documents sha2-256 CID": true,
+    "SW marks the IPFS/GitHub-asset heal boundary // BRIDGE:": true,
+    "SW marks the CSP source-hash boundary // BRIDGE:": true,
+    "credential/present disclosure leaves marked // BRIDGE: SD-JWT-VC": true
+  },
+  "passed": 11,
+  "failed": 0
+}

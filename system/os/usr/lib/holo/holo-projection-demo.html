@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hologram — Projection Substrate</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #07070b; color: #e8e8f0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: .3px; margin: 4px 0 0; color: #fff; }
+  .sub { color: #8a8a99; font-size: 12px; margin: 0; }
+  canvas { background: #000; border-radius: 10px; box-shadow: 0 0 0 1px #1c1c26, 0 14px 40px #000a; image-rendering: pixelated; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  button { background: #14141c; color: #d8d8e4; border: 1px solid #2a2a36; border-radius: 7px; padding: 7px 12px; cursor: pointer; font: inherit; }
+  button:hover { background: #1d1d28; border-color: #3a3a48; }
+  button.on { background: #1f3a2e; border-color: #2f6f55; color: #b7f0d6; }
+  .hud { display: grid; grid-template-columns: auto auto; gap: 2px 18px; background: #0d0d14; border: 1px solid #1c1c26; border-radius: 10px; padding: 12px 16px; min-width: 320px; }
+  .hud b { color: #fff; font-weight: 600; }
+  .k { color: #8a8a99; }
+  .big { font-size: 20px; color: #7ee0b0; }
+</style>
+</head>
+<body>
+  <h1>Hologram — Projection Substrate</h1>
+  <p class="sub">every rendered object is a content-addressed κ tile, streamed by novelty, projected on the metal</p>
+  <canvas id="screen" width="512" height="512" style="width:512px;height:512px"></canvas>
+  <div class="row">
+    <button id="bRunahead" class="on">run-ahead: L=3</button>
+    <button id="bReproject" class="on">reproject: on</button>
+    <button id="bSuperres">super-res: off</button>
+    <button id="bPause">pause</button>
+  </div>
+  <div class="hud">
+    <span class="k">present FPS</span><b class="big" id="fps">—</b>
+    <span class="k">lens</span><b id="lens">—</b>
+    <span class="k">tiles streamed / frame</span><b id="tiles">—</b>
+    <span class="k">novelty / frame</span><b id="novel">—</b>
+    <span class="k">full frame size</span><b id="full">1024 KB</b>
+    <span class="k">eye leads sim by</span><b id="lead">3 frames</b>
+  </div>
+
+<script type="module">
+import { makeProjectionPipeline } from "./holo-projection-pipeline.mjs";
+import { upscaleBilinear } from "./holo-superres.mjs";
+
+const W = 512, H = 512, TILE = 256, FULLKB = (W * H * 4 / 1024) | 0;
+const screen = document.getElementById("screen");
+const ctx2d = screen.getContext("2d");
+
+// an animated producer: a bouncing ball + a slow scrolling band — snapshot/restore/advance, frame is a pure
+// function of state (so run-ahead's committed trajectory is bit-identical, and the demo is deterministic).
+function makeScene() {
+  let bx = 90, by = 120, vx = 7, vy = 5, c = 0;
+  const SZ = 80;
+  const render = () => {
+    const fb = new Uint8Array(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const o = (y * W + x) * 4;
+      const band = ((y + c) % 64) < 32 ? 18 : 12;           // slow scrolling background band
+      fb[o] = band; fb[o + 1] = band; fb[o + 2] = band + 8; fb[o + 3] = 255;
+    }
+    for (let y = by; y < by + SZ && y < H; y++) for (let x = bx; x < bx + SZ && x < W; x++) {
+      const o = (y * W + x) * 4; fb[o] = 240; fb[o + 1] = 230; fb[o + 2] = 90; fb[o + 3] = 255;   // the ball
+    }
+    return fb;
+  };
+  return {
+    snapshot() { const b = new Uint8Array(20); const dv = new DataView(b.buffer); dv.setInt32(0, bx, true); dv.setInt32(4, by, true); dv.setInt32(8, vx, true); dv.setInt32(12, vy, true); dv.setUint32(16, c, true); return [b]; },
+    restore(l) { const dv = new DataView(l[0].buffer, l[0].byteOffset, 20); bx = dv.getInt32(0, true); by = dv.getInt32(4, true); vx = dv.getInt32(8, true); vy = dv.getInt32(12, true); c = dv.getUint32(16, true); },
+    advance() { bx += vx; by += vy; if (bx < 0 || bx > W - 80) { vx = -vx; bx += vx; } if (by < 0 || by > H - 80) { vy = -vy; by += vy; } c = (c + 1) >>> 0; return render(); },
+  };
+}
+
+let L = 3, reproject = true, superres = false, paused = false;
+let pipe, scene;
+function build() { scene = makeScene(); pipe = makeProjectionPipeline({ producer: scene, frames: L, tile: TILE, width: W, height: H }); }
+build();
+document.getElementById("lens").textContent = "CPU (canvas) — WebGPU path witnessed @284 FPS";
+
+const bRun = document.getElementById("bRunahead"), bRep = document.getElementById("bReproject"), bSup = document.getElementById("bSuperres"), bPause = document.getElementById("bPause");
+bRun.onclick = () => { L = L === 3 ? 0 : L === 0 ? 6 : 3; bRun.textContent = `run-ahead: L=${L}`; bRun.classList.toggle("on", L > 0); document.getElementById("lead").textContent = `${L} frames`; build(); };
+bRep.onclick = () => { reproject = !reproject; bRep.textContent = `reproject: ${reproject ? "on" : "off"}`; bRep.classList.toggle("on", reproject); };
+bSup.onclick = () => { superres = !superres; bSup.textContent = `super-res: ${superres ? "2× on" : "off"}`; bSup.classList.toggle("on", superres); };
+bPause.onclick = () => { paused = !paused; bPause.textContent = paused ? "play" : "pause"; };
+
+let frames = 0, t0 = performance.now(), inputX = 0;
+async function loop() {
+  if (!paused) {
+    inputX += 6;
+    const r = await pipe.produce({ }, { x: inputX, y: 0 });          // PRODUCE one authoritative frame (run-ahead inside)
+    let shown = reproject ? pipe.present({ x: inputX + 3, y: 0 }) : r.presented;   // PRESENT (timewarp the held frame)
+    let dw = W, dh = H, bytes = shown;
+    if (superres) { const u = upscaleBilinear(shown, W, H, 2); bytes = u.bytes; dw = u.w; dh = u.h; }   // sharpen at the lens
+    if (screen.width !== dw) { screen.width = dw; screen.height = dh; }
+    ctx2d.putImageData(new ImageData(new Uint8ClampedArray(bytes), dw, dh), 0, 0);
+    document.getElementById("tiles").textContent = `${r.emitted} / 4`;
+    document.getElementById("novel").textContent = `${(r.novelBytes / 1024).toFixed(0)} KB  (of ${FULLKB} KB)`;
+    frames++;
+    const now = performance.now();
+    if (now - t0 > 500) { document.getElementById("fps").textContent = (1000 * frames / (now - t0)).toFixed(0); frames = 0; t0 = now; }
+  }
+  requestAnimationFrame(loop);
+}
+window.__holoDemoReady = true;   // smoke-test signal
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

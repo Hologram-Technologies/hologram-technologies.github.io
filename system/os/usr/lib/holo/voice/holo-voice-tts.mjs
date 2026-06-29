@@ -50,10 +50,14 @@ export function createTTS(opts = {}) {
       if (cfg.knativeVoice && cfg.knativeVoice.module && cfg.knativeVoice.holoUrl) {
         try {
           const km = await import(/* @vite-ignore */ new URL(cfg.knativeVoice.module, base).href);
+          // serve Kokoro's files from the ONE q-models pack when opted in (fail-soft → holoUrl/release standalone)
+          let openFiles = null;
+          if (cfg.knativeVoice.pack) { try { const pp = await import(/* @vite-ignore */ new URL("/apps/q/forge/gpu/holo-q-pack-provider.mjs", base).href); const fm = await import(/* @vite-ignore */ new URL("./holo-q-faculty-models.mjs", import.meta.url).href); openFiles = pp.makePackOpenFiles("kokoro-82m", { packSpec: fm.packSpec }); } catch (_) {} }
           kserve = await (km.serveModelFromHolo || km.default)({
             holoUrl: new URL(cfg.knativeVoice.holoUrl, base).href,
             modelId: cfg.knativeVoice.modelId || cfg.model,
             release: cfg.knativeVoice.release || "",
+            openFiles,
           });
         } catch (e) { try { console.warn("[HoloVoice TTS] κ-served voice unavailable, using vendored ONNX:", e && e.message || e); } catch (_) {} kserve = null; }
       }

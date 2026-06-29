@@ -13,17 +13,13 @@
 // node-, SW- and DOM-safe; pure (own hash, no imports). The work is injected — the memo never recomputes a
 // known (op,in).
 
+// One canonical hash (Law L2): the κ axis is BLAKE3 (the substrate's kappo), shared with the stream
+// primitive so a memoized output's κ == its Bao root. (Was a duplicate SHA-256 — a second stream island;
+// flipped to the canonical seam in the verified-streaming wiring.)
+import { kappoHex, KAPPA_PREFIX } from "./holo-kappa.mjs";
 const hexOf = (k) => String(k).split(":").pop();
-async function reDerive(bytes) {
-  const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  if (globalThis.crypto && globalThis.crypto.subtle) {
-    const d = await crypto.subtle.digest("SHA-256", u);
-    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  }
-  const { createHash } = await import("node:crypto");
-  return createHash("sha256").update(u).digest("hex");
-}
-const kappaOf = async (bytes) => "did:holo:sha256:" + (await reDerive(bytes));
+async function reDerive(bytes) { return kappoHex(bytes); }
+const kappaOf = async (bytes) => KAPPA_PREFIX + (await reDerive(bytes));
 // the input identity: a deterministic κ of (op, in) — the lookup key BEFORE any work is done (Law L2).
 const inputKey = async (opKappa, inKappa) => reDerive(new TextEncoder().encode(JSON.stringify({ in: String(inKappa), op: String(opKappa) })));
 

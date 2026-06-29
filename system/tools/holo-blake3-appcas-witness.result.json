@@ -1,0 +1,23 @@
+{
+  "spec": "P6 — app-CAS (holospace.lock) carries the canonical blake3 alongside the sha256 bridge alias; large v86/ISO blobs fill their canonical axis LAZILY (serve via the sha alias until re-sealed), never a flag-day multi-GB re-hash. Tamper refused on whichever axis is canonical for the entry.",
+  "witnessed": true,
+  "covers": [
+    "app-cas",
+    "holospace-lock",
+    "dual-axis",
+    "lazy-reseal",
+    "iso",
+    "law-l5"
+  ],
+  "checks": {
+    "small app file resolves on the CANONICAL blake3 axis": true,
+    "small app file tamper refused on the canonical axis": true,
+    "large ISO (sha-only) resolves via the bridge FALLBACK — lazy re-seal, no flag-day re-hash": true,
+    "large ISO tamper still refused on the bridge axis (Law L5 holds during the lazy window)": true,
+    "once the blake3 axis is filled, the ISO verifies CANONICALLY (lazy cut-over completes)": true,
+    "relock-app emits the canonical top-level blake3 κ on every app entry": true,
+    "native Rust app-lock loader reads the canonical blake3 (top-level OR alsoKnownAs)": true
+  },
+  "passed": 7,
+  "failed": 0
+}

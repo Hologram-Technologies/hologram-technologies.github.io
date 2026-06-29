@@ -1,0 +1,27 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-home-files — THE FILES PILLAR: a navigable view over the manifest's owned file index where a file's NAME is the content address of its bytes and opening it re-derives that address (file-level Law L5 — a compromised store cannot return the wrong bytes), with provenance (who/when) read from the signed ingest entry on the spine. CasaOS's drive/file manager with no drives and no locations: identical bytes are one κ everywhere. The content store is the injected KappaStore contract; navigation, integrity and provenance are owned here.",
+  "authority": "UOR-ADDR (κ = H(bytes)) · holospaces Laws L1/L3/L5 · rests on #holo-home + #holo-strand-provenance + KappaStore contract",
+  "witnessed": true,
+  "covers": [
+    "folder-navigation",
+    "breadcrumb",
+    "open-content-verified",
+    "refuse-wrong-bytes",
+    "honest-not-found",
+    "provenance-provable"
+  ],
+  "sample": {
+    "rootCount": 2,
+    "ingestProvable": true
+  },
+  "checks": {
+    "listGroupsByFolder": true,
+    "breadcrumbWalksToRoot": true,
+    "opensVerifiedBytes": true,
+    "refusesWrongBytes": true,
+    "missingIsNotFound": true,
+    "provenanceProvable": true
+  },
+  "failed": []
+}

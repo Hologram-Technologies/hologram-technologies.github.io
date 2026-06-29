@@ -62,7 +62,7 @@ const rmotion = fidelity({ cores: 8, mem: 8, gpu: true, reducedMotion: true });
   const opFull = await qualityOp(baseOp, streamConfig(desktop));
   const opLean = await qualityOp(baseOp, streamConfig(weak));
   // the transform's op differs by tier ⇒ the rendered output κ differs, but the INPUT content κ is identical
-  checks.sameContentDifferentQuality = opFull !== opLean && opFull.startsWith("did:holo:sha256:") && contentIn === (await kappaOf(new TextEncoder().encode("the region content")));
+  checks.sameContentDifferentQuality = opFull !== opLean && opFull.startsWith("did:holo:blake3:") && contentIn === (await kappaOf(new TextEncoder().encode("the region content")));
 }
 
 // ── 7 · any-browser floor: no-GPU lean tier still yields a usable config + a CPU path ─────────────

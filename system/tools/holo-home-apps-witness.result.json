@@ -1,0 +1,32 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-home-apps — THE APPS PILLAR: CasaOS's one-click app store with no install. A pinned app is a κ-ref in the manifest, 'open' is a projection, and the renderer picks HOW by the app's class (kappa→project · web→web · alpine→boot-in-tab · ext→install). Display name/icon come from the signed catalog (holo-bar join); a pin is trusted only if it's in that catalog OR is a self-verifying content κ, so a bare unknown app-id is surfaced as untrusted (catalog divergence) rather than silently opened. No new catalog and no new store — the manifest's pins joined to the existing one.",
+  "authority": "holospaces Laws L1/L2/L5 · rests on #holo-home + #holo-bar + #holo-open + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "only-pinned-in-order",
+    "catalog-join-display",
+    "class-routes-open",
+    "content-kappa-trusted",
+    "unknown-id-untrusted",
+    "broken-chain-fail-closed"
+  ],
+  "sample": {
+    "apps": [
+      "Holo Atlas(web→web)",
+      "Jellyfin(alpine→boot)",
+      "uBlock(ext→install)",
+      "did:holo:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc(kappa→project)",
+      "holo://org.unknown.thing(web→web·untrusted)"
+    ]
+  },
+  "checks": {
+    "onlyPinnedAppsInOrder": true,
+    "catalogJoinForDisplay": true,
+    "classRoutesOpen": true,
+    "contentKappaTrusted": true,
+    "unknownIdUntrusted": true,
+    "brokenChainNoApps": true
+  },
+  "failed": []
+}

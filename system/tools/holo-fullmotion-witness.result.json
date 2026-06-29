@@ -1,0 +1,16 @@
+{
+  "spec": "Full-motion end-to-end: a high-churn region encodes via WebCodecs to a κ-addressed chunk, the lens routes it as a vchunk and decodes it (VideoDecoder) into the composited frame, while a low-churn region in the same frame stays a lossless raw κ tile. Video and UI coexist — one path per region, one κ namespace, one lens.",
+  "authority": "W3C WebCodecs VP8 · the served holo-osr-lens.mjs (vchunk path) + holo-churn-router · real browser",
+  "witnessed": true,
+  "lane": "browser",
+  "metrics": {
+    "chunkBytes": 870,
+    "compression": 301.3
+  },
+  "checks": {
+    "videoDecoded": true,
+    "videoRoughlyMatches": true,
+    "uiTileExact": true,
+    "coexist": true
+  }
+}

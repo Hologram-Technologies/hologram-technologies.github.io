@@ -1,0 +1,27 @@
+{
+  "spec": "S3 — a streaming consumer renders on chunk-0 with per-chunk verification, and holo-stream-kit exposes verified chunk-streaming (bao + streamObject) so any surface opts in. The blake3 axis flip is non-breaking: all stream consumers stay green.",
+  "witnessed": true,
+  "objectBytes": 2000000,
+  "chunks": 1954,
+  "covers": [
+    "bao",
+    "render-on-chunk-0",
+    "stream-kit",
+    "facade",
+    "consumers",
+    "law-l5"
+  ],
+  "checks": {
+    "the large object's stream κ == its Bao root (S1 axis holds end to end)": true,
+    "renderer paints on chunk 0 (before the object is whole)": true,
+    "every chunk rendered + verified against the stream κ (1954/1954)": true,
+    "a tampered chunk halts the render (Law L5)": true,
+    "chunks before the bad one were already painted (render survives up to the fault)": true,
+    "holo-stream-kit imports + re-exports bao": true,
+    "holo-stream-kit exposes streamObject": true,
+    "mount() publishes bao + streamObject on window.HoloStream": true,
+    "all 8 stream consumers GREEN after the blake3 flip (non-breaking)": true
+  },
+  "passed": 9,
+  "failed": 0
+}

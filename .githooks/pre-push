@@ -13,6 +13,17 @@ while read -r _local_ref _local_sha remote_ref _remote_sha; do
 done
 [ "$push_to_deploy" -eq 1 ] || exit 0
 
+echo "pre-push: enforcing the grammar (every module is one of 3 nouns + 9 verbs)…"
+if ! node system/tools/holo-grammar-gate.mjs; then
+  echo ""
+  echo "✗ push blocked — grammar drift: a module is uncategorized, stale, or has an invalid category."
+  echo "  fix:  add the module to system/os/etc/holo-grammar.map.json with its category"
+  echo "        (regenerate the seed: cd system && node tools/holo-grammar-witness.mjs)"
+  echo "  (emergency bypass: git push --no-verify)"
+  exit 1
+fi
+echo "pre-push: grammar holds ✓"
+
 echo "pre-push: verifying OS seals before publishing to main…"
 if ! node system/tools/reseal.mjs --check; then
   echo ""

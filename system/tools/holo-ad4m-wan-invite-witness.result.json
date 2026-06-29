@@ -1,0 +1,20 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-ad4m-wan-invite — the human on-ramp to WAN: one shared link opens a real WebRTC channel into a Space, serverless. The inviter mints a link (a WebRTC offer inside); the joiner hands back ONE answer + its agent κ; the inviter mints an operator-signed membership grant. Members converge both ways; the answer leaks no secret; a tampered, forged, or expired grant is refused; a non-member peer's posts never render in the invite-only (gated) Space; an open Space stays open (gating is opt-in). No signaling server, no relay, no TURN.",
+  "authority": "Serverless invite/join over real transport · holo-pair delegation (operator-signed, L5) · composes holo-ad4m-wan + holo-ad4m-boot + holo-webrtc-link + holo-pair",
+  "witnessed": true,
+  "checks": {
+    "inviteLinkMinted": true,
+    "joinerAnswers": true,
+    "channelAttached": true,
+    "answerNoSecret": true,
+    "grantAdmits": true,
+    "membersConverge": true,
+    "tamperedGrantRefused": true,
+    "forgedGrantRefused": true,
+    "expiredGrantRefused": true,
+    "nonMemberFiltered": true,
+    "openSpaceStaysOpen": true
+  },
+  "failed": []
+}

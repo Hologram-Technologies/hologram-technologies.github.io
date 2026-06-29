@@ -1,0 +1,26 @@
+{
+  "spec": "The whole projection substrate as one path: a deterministic producer reaches the eye through run-ahead → raster-ingest → kappa-stream → projector → present-mailbox → reproject. The composited frame is lossless; the committed sim trajectory + final state are bit-identical to a bare run (determinism fence end-to-end); the presented frame is L steps ahead (negative latency); only changed tiles stream; identical background tiles dedup; present reprojects the held frame between produces without touching the sim.",
+  "authority": "holospaces Laws L1/L3/L5 · RetroArch run-ahead · VR async timewarp · lock-free triple buffer · content-addressed tile compositing",
+  "witnessed": true,
+  "covers": [
+    "unified-pipeline",
+    "lossless-projection",
+    "determinism-fence-end-to-end",
+    "negative-latency",
+    "novelty-only",
+    "spatial-dedup",
+    "present-outpaces-produce"
+  ],
+  "model": {
+    "lookaheadSteps": 3,
+    "ballAheadPx": 15
+  },
+  "checks": {
+    "losslessProjection": true,
+    "determinismFenceEndToEnd": true,
+    "negativeLatency": true,
+    "noveltyOnly": true,
+    "spatialDedup": true,
+    "presentOutpacesProduce": true
+  }
+}

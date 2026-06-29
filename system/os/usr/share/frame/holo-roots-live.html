@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>κ-Roots — live</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0b0d12; color: #e8edf6; font: 15px/1.5 ui-monospace, "SF Mono", Menlo, monospace; padding: 28px 22px 60px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; letter-spacing: .2px; }
+  .sub { color: #8a93a6; margin: 0 0 22px; font-size: 13px; }
+  .row { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid #161a22; align-items: start; }
+  .mark { font-size: 15px; }
+  .ok .mark { color: #46d18b; } .bad .mark { color: #ff6b6b; } .pend .mark { color: #6b7488; }
+  .name { font-weight: 600; }
+  .detail { color: #8a93a6; font-size: 12.5px; word-break: break-all; margin-top: 2px; }
+  #verdict { margin-top: 22px; font-size: 16px; font-weight: 700; }
+  #verdict.ok { color: #46d18b; } #verdict.bad { color: #ff6b6b; }
+  code { color: #b8c4dc; }
+</style>
+</head>
+<body>
+  <h1>κ-Roots — live in a real browser</h1>
+  <p class="sub">The production modules (holo-zone · holo-root · holo-zone-lane · holo-omni-unified · holo-ens), real WebCrypto, no network. A name no registrar issued, that re-derives or refuses.</p>
+  <div id="list"></div>
+  <div id="verdict" class="pend">running…</div>
+
+<script type="module">
+import { makeZone, normTarget } from "/usr/lib/holo/holo-zone.mjs";
+import { makeRoot } from "/sbin/holo-root.mjs";
+import { parseZoneRef, classifyZone, resolveZone } from "/sbin/holo-zone-lane.mjs";
+import { enroll } from "/usr/lib/holo/holo-identity.mjs";
+
+const checks = [];
+const list = document.getElementById("list");
+const add = (name, ok, detail) => {
+  checks.push({ name, ok: !!ok, detail: String(detail || "") });
+  const el = document.createElement("div");
+  el.className = "row " + (ok ? "ok" : "bad");
+  el.innerHTML = `<div class="mark">${ok ? "✓" : "✗"}</div><div><div class="name">${name}</div><div class="detail">${detail || ""}</div></div>`;
+  list.appendChild(el);
+};
+
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const arrayBackend = (init = []) => { let s = clone(init); return { load: async () => clone(s), save: async (r) => { s = clone(r); }, dump: () => clone(s) }; };
+const now = () => new Date().toISOString();
+const hexOf = (k) => k.split(":").pop();
+const kX = "a1".repeat(32), kY = "b2".repeat(32);
+const tX = normTarget(kX), tY = normTarget(kY);
+
+try {
+  // a REAL operator, minted with the browser's WebCrypto (no server, no account)
+  const owner = await enroll({ label: "roots-live", passphrase: "live in the browser 24" });
+  add("operator enrolled (real WebCrypto, device-held key)", !!owner.kappa && /^did:holo:sha256:/.test(owner.kappa), owner.kappa);
+
+  // bind a name on the operator's own source chain
+  const zone = makeZone({ owner, backend: arrayBackend(), now });
+  const b1 = await zone.bind("ilya.deck", kX);
+  const g1 = await zone.resolve("ilya.deck");
+  add("bind + resolve a name (no registrar)", b1.ok && g1.ok && g1.target === tX, `${b1.name} → ${g1.target}`);
+
+  // mutate it; the new target wins, the old stays in history
+  await zone.bind("ilya.deck", kY);
+  const g2 = await zone.resolve("ilya.deck");
+  const oldKept = zone.entries().some((e) => (e["holstr:payload"] || {}).target === tX);
+  add("mutable re-bind (old target kept in history)", g2.ok && g2.target === tY && oldKept, `now → ${g2.target}`);
+
+  // the lane: a Holo name classifies + resolves through the one-door envelope
+  const name = zone.qualified("ilya.deck");
+  const ref = parseZoneRef(name), cls = classifyZone(name);
+  const lr = await resolveZone(name, { openZone: async (h) => (h === hexOf(owner.kappa) ? zone : null) });
+  add("one door: parse + classify + resolve a Holo name", ref && cls.lane === "zone" && lr.ok && lr.kappa === tY, `${name} → lane ${cls.lane} → ${lr.kappa}`);
+
+  // holo-root: a bare name resolves with no owner spelled out (pin the zone as an anchor)
+  const openZone = async (h) => (h === hexOf(owner.kappa) ? zone : null);
+  const root = makeRoot({ anchors: [zone], openZone });
+  await zone.bind("home", "holo://zone/" + hexOf(owner.kappa) + "/ilya.deck");   // anchor "home" → the deck name (a hop)
+  const rb = await root.resolveName("home");
+  add("holo-root: bare name → anchor → name → content (offline)", rb.ok && rb.kappa === tY, `home → ${rb.kappa}  via ${String(rb.via).slice(0, 22)}…`);
+
+  // pin-order scarcity — the math default needs no anchor at all
+  const md = await root.resolveName(name);
+  add("math default: a qualified name needs no anchor", md.ok && md.kappa === tY && md.via === "math", `via ${md.via}`);
+
+  // tamper refused — point the name elsewhere on disk; the chain won't re-derive
+  const dump = zone.entries();
+  const bad = clone(dump);
+  const di = bad.findIndex((e) => (e["holstr:payload"] || {}).label === "ilya.deck");
+  bad[di]["holstr:payload"].target = normTarget("dead".padEnd(64, "0"));
+  const evil = makeZone({ owner: owner.kappa, backend: arrayBackend(bad) });
+  const gt = await evil.resolve("ilya.deck");
+  add("tamper refused (a name cannot lie)", gt.ok === false && /zone-unverified/.test(gt.why), gt.why);
+
+  // foreign owner refused — open the real chain claiming a different owner
+  const other = await enroll({ label: "impostor-live", passphrase: "not the owner 99" });
+  const claimed = makeZone({ owner: other.kappa, backend: arrayBackend(dump) });
+  const gc = await claimed.resolve("ilya.deck");
+  add("namespace can't be hijacked (foreign owner refused)", gc.ok === false, gc.why);
+
+  // the one-door resolver end to end (guarded — pulls the full omni leg graph)
+  try {
+    const m = await import("/sbin/holo-omni-unified.mjs");
+    const u = await m.resolveUnified(name, { openZone });
+    add("resolveUnified routes the Holo name (full omni door)", u.ok && u.lane === "zone" && u.kappa === tY, `lane ${u.lane} → ${u.kappa}`);
+    const un = await m.resolveUnified("home", { root });
+    add("resolveUnified routes a bare name via holo-root", un.ok && un.lane === "name" && un.kappa === tY, `lane ${un.lane} → ${un.kappa}`);
+  } catch (e) { add("resolveUnified (full omni door)", false, "import/exec error: " + (e && e.message)); }
+
+  // zone-net: another peer fetches my zone over a transport and resolves it, verify-before-trust
+  try {
+    const { makeZoneNet } = await import("/usr/lib/holo/holo-zone-net.mjs");
+    const peers = [];
+    const post = (self) => (m) => { for (const p of peers) if (p.self !== self) p.net.onMessage(m); };
+    const netA = makeZoneNet({ self: "A", openLocal: async (h) => (h === hexOf(owner.kappa) ? zone : null), post: post("A"), timeoutMs: 200 });
+    peers.push({ self: "A", net: netA });
+    const netB = makeZoneNet({ self: "B", openLocal: async () => null, post: post("B"), timeoutMs: 200 });
+    peers.push({ self: "B", net: netB });
+    const zB = await netB.openZone(hexOf(owner.kappa));
+    const gB = zB ? await zB.resolve("ilya.deck") : { ok: false };
+    add("zone-net: another peer fetches + verifies my zone", !!zB && gB.ok && gB.target === tY, `peer B → ${gB.target}`);
+  } catch (e) { add("zone-net (holo-zone-net)", false, "import/exec error: " + (e && e.message)); }
+
+  // a web3 name, verified by real keccak namehash, in the browser
+  try {
+    const ens = await import("/sbin/holo-ens.mjs");
+    const eth = await import("/usr/lib/holo/holo-eth.js");
+    const uor = await import("/usr/lib/holo/holo-uor.mjs");
+    const cidm = await import("/usr/lib/holo/holo-cid.mjs");
+    const content = "<!doctype html><title>vitalik.eth — hello from κ</title>";
+    const khex = uor.sha256hex(content);
+    const ch = "0xe3010155" + "1220" + khex;
+    const proof = { node: eth.namehash("vitalik.eth"), contenthash: ch, chainId: 1 };
+    const br = ens.bridgeEns("vitalik.eth", proof, { content });
+    add("web3 bridge: real keccak namehash + content re-derives", br.ok && br.contentVerified && br.kappa === ("did:holo:sha256:" + khex), `vitalik.eth → ${br.target.slice(0, 30)}…`);
+  } catch (e) { add("web3 bridge (holo-ens)", false, "import/exec error: " + (e && e.message)); }
+
+} catch (e) {
+  add("fatal", false, String(e && e.stack || e));
+}
+
+const passed = checks.filter((c) => c.ok).length;
+const all = passed === checks.length && checks.length >= 8;
+const v = document.getElementById("verdict");
+v.className = all ? "ok" : "bad";
+v.textContent = `${all ? "WITNESSED ✓" : "FAILED"}  ${passed}/${checks.length} live in a real browser`;
+window.__rootsResult = { passed, total: checks.length, allGreen: all, checks };
+console.log("[κ-Roots live]", JSON.stringify(window.__rootsResult));
+</script>
+</body>
+</html>

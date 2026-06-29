@@ -117,12 +117,14 @@ function render() {
       (native ? '<br>uses native-only APIs — runs in the native Chromium engine' : '') + '</div>' +
       '<div class="row">' +
         (native ? '' : '<label><input type="checkbox" data-k="' + x.kappa + '" ' + (x.enabled ? "checked" : "") + '> enabled</label>') +
+        '<button class="pin" data-pin="' + x.kappa + '">pin to rail</button>' +
         '<button class="rm" data-rm="' + x.kappa + '">remove</button>' +
       '</div>';
     list.appendChild(card);
   }
   list.querySelectorAll("input[data-k]").forEach((cb) => cb.onchange = () => toggle(cb.dataset.k, cb.checked));
   list.querySelectorAll("button[data-rm]").forEach((b) => b.onclick = () => remove(b.dataset.rm));
+  list.querySelectorAll("button[data-pin]").forEach((b) => b.onclick = () => pin(b.dataset.pin));
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -137,13 +139,29 @@ async function remove(kappa) {
   setStatus("Removed " + x.name + ".");
 }
 
+// Pin an extension to the action rail (right of the address bar). The rail item is a κ-reference of kind
+// "ext" whose ref is the [a-p]{32} id; clicking it proxies to the extension's popup (holo:extaction). This
+// manager runs as a same-origin iframe under the shell, so we hand the pin to the shell's HoloRail directly;
+// if the frame is sandboxed, we fall back to a postMessage the shell trusts only from its own frames.
+async function pin(kappa) {
+  const x = admitted.get(kappa); if (!x) return;
+  const open = x.popup ? ("chrome-extension://" + x.extensionId + "/" + x.popup) : "";
+  const opt = { kind: "ext", label: x.name, open };
+  try {
+    const top = window.top;
+    if (top && top !== window && top.HoloRail && top.HoloRail.add) { await top.HoloRail.add(x.extensionId, opt); setStatus("Pinned " + x.name + " to the rail."); return; }
+  } catch (e) {}
+  try { (window.top || window.parent).postMessage({ type: "holo:rail:pin", ref: x.extensionId, opt }, "*"); setStatus("Pinned " + x.name + " to the rail."); }
+  catch (e) { setStatus("Couldn't reach the rail — open Extensions inside Hologram.", true); }
+}
+
 async function add(input) {
   const det = detectWebStore(input);
   if (!det.isWebStore) { setStatus("That doesn't look like a Chrome Web Store link or id.", true); return; }
   setStatus("Fetching and verifying " + det.extensionId + "…");
   try {
     const r = await installFromWebStore(input, { manager: mgr, fetchImpl: egressFetch });
-    admitted.set(r.kappa, { extensionId: r.extensionId, kappa: r.kappa, name: r.name, version: r.version, verdict: r.verdict, needsNative: r.needsNative, enabled: r.installed });
+    admitted.set(r.kappa, { extensionId: r.extensionId, kappa: r.kappa, name: r.name, version: r.version, verdict: r.verdict, needsNative: r.needsNative, enabled: r.installed, popup: r.popup || "" });
     render();
     const seam = await pushSeam();
     setStatus("Added " + r.name + " — verified, pinned as κ " + short(r.kappa) +
@@ -167,7 +185,7 @@ $("demo").onclick = async (e) => {
     const v = await verifyStrict(crx, kappa);
     const rec = await mgr.install(crx, { expectedKappa: kappa });
     const a = analyzeManifest(await readManifest(crx));
-    admitted.set(kappa, { extensionId: rec.id, kappa, name: a.name, version: a.version, verdict: a.verdict, needsNative: a.verdict === "needs-native", enabled: true });
+    admitted.set(kappa, { extensionId: rec.id, kappa, name: a.name, version: a.version, verdict: a.verdict, needsNative: a.verdict === "needs-native", enabled: true, popup: (a.action && a.action.default_popup) || "" });
     render();
     const seam = await pushSeam();
     setStatus("Demo ad-blocker installed — κ " + short(kappa) + (v.ok ? " (publisher-bound)" : "") + (seam ? ", projected onto the seam." : "."));

@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>HOLOGRAM</title>
+    <meta name="description" content="HOLOGRAM boot reveal — a living knowledge graph of content-addressed κ-motes self-organizes out of the void and births the HOLOGRAM mark, which decodes from scrambling κ-glyphs into razor-crisp type with a chromatic snap and a luminous burst. ROG-grade, self-contained, zero-dependency, 60fps. No server, no network." />
+    <style>
+      /* ── HOLOGRAM boot reveal ───────────────────────────────────────────────────────
+         A premium ~4s power-on. Intelligence rendered literally: a living knowledge graph
+         of κ-motes (content-address particles) drifts in the void, snaps into a graph whose
+         edges carry light, converges onto the HOLOGRAM mark, then the wordmark DECODES from
+         scrambling κ-glyphs into razor-crisp type — RGB-split snapping into focus, framed by
+         HUD brackets, lit by one burst. It ENDS on the SAME aurora the login greeter wears
+         (login.html .wall: #1b2a4a → #05070c, accent #7defc9) so sign-in is one continuous
+         space — no cut, no flash. Self-contained: one file, no dependency, no network. Drops
+         into the boot chain like splash.html (reads ?next, emits hologram:splash-done,
+         honours prefers-reduced-motion, skips on key/click). */
+      :root {
+        --accent: #7defc9; --accent-2: #34d3a6; --blue: #4063d6;
+        --ink: #eafff8;
+        --ca: 0px;                      /* chromatic-aberration split — animated, snaps to 0 in focus */
+        --u: clamp(15px, 1.7vmin, 19px);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, "Oxygen", sans-serif;
+        color: var(--ink); -webkit-font-smoothing: antialiased; cursor: none;
+        transition: opacity .42s cubic-bezier(.4,0,.2,1);
+      }
+      body.leaving { opacity: 0; }
+      #scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; z-index: 1; }
+
+      /* the LOGIN greeter's aurora — faded up across the reveal so the void opens into the
+         desktop's own backdrop by the time the mark settles. Under the graph canvas. */
+      #wall { position: fixed; inset: 0; z-index: 0; opacity: 0; pointer-events: none;
+        background: radial-gradient(120% 120% at 20% 0%, #1b2a4a 0%, #0d1117 60%, #05070c 100%); }
+      #wall i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5; }
+      #wall .a { left: 8%; top: 12%; width: 42vw; height: 42vw; background: radial-gradient(circle, rgba(52,211,166,.5), transparent 62%); }
+      #wall .b { right: 6%; bottom: 4%; width: 46vw; height: 46vw; background: radial-gradient(circle, rgba(64,99,214,.45), transparent 62%); }
+      #wall .c { left: 44%; top: 48%; width: 30vw; height: 30vw; background: radial-gradient(circle, rgba(125,239,201,.26), transparent 62%); }
+
+      /* ── the crisp logo lockup (DOM = sub-pixel sharp, the part dots can't render) ──── */
+      #logo { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none;
+        opacity: 0; }
+      .lockup { position: relative; display: flex; flex-direction: column; align-items: center; }
+
+      /* the wordmark — razor type with a chromatic RGB split that snaps to focus, over a
+         teal/blue bloom. Each letter is a fixed-width cell so scrambling never shifts layout. */
+      #brand { display: flex; font-weight: 800; line-height: 1; letter-spacing: .075em;
+        font-size: clamp(36px, 9.6vw, 140px);
+        filter: drop-shadow(0 0 24px rgba(125,239,201,.42)) drop-shadow(0 0 74px rgba(64,99,214,.26)); }
+      #brand .c { display: inline-block; text-align: center; min-width: .64em; position: relative; color: var(--ink);
+        text-shadow:
+          calc(var(--ca) * -1) 0 rgba(255,42,90,.6),       /* red split-left  (glitch RGB tear) */
+          var(--ca) 0 rgba(38,224,255,.62),                /* cyan split-right (glitch RGB tear) */
+          0 0 20px rgba(125,239,201,.6); }
+      #brand .c.scram { color: #bfe7de; opacity: .9; }     /* still-decoding cells read teal/dim */
+      #brand .c.lit { color: #ffffff; }
+
+      /* the hairline rule + tagline beneath — quiet, letter-spaced, decodes after the brand */
+      #rule { height: 2px; width: 0; margin-top: calc(var(--u) * .9); border-radius: 2px;
+        background: linear-gradient(90deg, transparent, var(--accent) 18%, #bfe7ff 50%, var(--accent) 82%, transparent);
+        box-shadow: 0 0 16px rgba(125,239,201,.55); }
+      #tag { display: flex; margin-top: calc(var(--u) * .9); font-weight: 600; letter-spacing: .46em;
+        font-size: var(--u); color: rgba(125,239,201,.0); text-indent: .46em; }
+      #tag .c { display: inline-block; text-align: center; min-width: .9em; color: rgba(207,238,222,.86);
+        text-shadow: 0 0 12px rgba(125,239,201,.4); }
+
+      /* ROG-style HUD corner brackets framing the lockup — draw in at the reveal */
+      .brk { position: absolute; width: clamp(20px, 3.2vw, 44px); height: clamp(20px, 3.2vw, 44px);
+        border: 2px solid var(--accent); opacity: 0; filter: drop-shadow(0 0 8px rgba(125,239,201,.6)); }
+      .brk.tl { left: -7%; top: -42%; border-right: 0; border-bottom: 0; }
+      .brk.tr { right: -7%; top: -42%; border-left: 0; border-bottom: 0; }
+      .brk.bl { left: -7%; bottom: -42%; border-right: 0; border-top: 0; }
+      .brk.br { right: -7%; bottom: -42%; border-left: 0; border-top: 0; }
+
+      /* high-tech overlays — receding grid, scanlines, vignette, a one-shot scan sweep, the burst flash */
+      #grid { position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+        background-image:
+          linear-gradient(rgba(125,239,201,.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(125,239,201,.05) 1px, transparent 1px);
+        background-size: 46px 46px; mask-image: radial-gradient(120% 90% at 50% 56%, #000 30%, transparent 78%);
+        -webkit-mask-image: radial-gradient(120% 90% at 50% 56%, #000 30%, transparent 78%); }
+      #scan { position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: .3; mix-blend-mode: overlay;
+        background: repeating-linear-gradient(180deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); }
+      #sweep { position: fixed; left: 0; right: 0; height: 38vh; z-index: 4; pointer-events: none; opacity: 0; top: -40vh;
+        background: linear-gradient(180deg, transparent, rgba(125,239,201,.10) 64%, rgba(190,231,255,.22) 86%, transparent);
+        mix-blend-mode: screen; }
+      /* metallic specular glint — a hard highlight that rakes across the lockup at the snap */
+      #glint { position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+        background: linear-gradient(105deg, transparent 45%, rgba(255,255,255,.6) 50%, transparent 55%);
+        background-size: 250% 100%; background-position: 100% 0;
+        -webkit-mask-image: radial-gradient(42% 26% at 50% 46%, #000 55%, transparent 100%);
+        mask-image: radial-gradient(42% 26% at 50% 46%, #000 55%, transparent 100%); }
+      /* datamosh block-noise — flickers in only during glitch spikes */
+      #noise { position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+        background:
+          repeating-linear-gradient(0deg, rgba(125,239,201,.06) 0 2px, transparent 2px 5px),
+          repeating-linear-gradient(90deg, rgba(64,99,214,.05) 0 3px, transparent 3px 7px); }
+      #vig { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+        background: radial-gradient(120% 120% at 50% 50%, transparent 50%, rgba(0,0,0,.58) 100%); }
+      #flash { position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: 0; background: #ffffff; }
+
+      #skip { position: fixed; left: 50%; bottom: 5.2vh; transform: translateX(-50%); z-index: 7;
+        color: rgba(231,237,250,.32); font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+        pointer-events: none; opacity: 0; transition: opacity .6s; }
+      #skip.show { opacity: 1; }
+      @media (prefers-reduced-motion: reduce) { body { transition-duration: .01s; } }
+    </style>
+  </head>
+  <body>
+    <div id="wall" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+    <canvas id="scene"></canvas>
+    <div id="grid" aria-hidden="true"></div>
+    <div id="logo" aria-hidden="true">
+      <div class="lockup">
+        <div id="brand"></div>
+        <div id="rule"></div>
+        <div id="tag"></div>
+        <span class="brk tl"></span><span class="brk tr"></span><span class="brk bl"></span><span class="brk br"></span>
+      </div>
+    </div>
+    <div id="sweep" aria-hidden="true"></div>
+    <div id="glint" aria-hidden="true"></div>
+    <div id="noise" aria-hidden="true"></div>
+    <div id="scan" aria-hidden="true"></div>
+    <div id="vig" aria-hidden="true"></div>
+    <div id="flash" aria-hidden="true"></div>
+    <div id="skip" aria-hidden="true">press any key to skip</div>
+
+    <script>
+    (function () {
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+      var params = new URLSearchParams(location.search);
+      var WORD = (params.get("label") || params.get("logo") || "HOLOGRAM").toUpperCase().slice(0, 18);
+      var TAG = (params.get("tag") != null ? params.get("tag") : "OWN YOUR INTELLIGENCE").toUpperCase().slice(0, 40);
+      var NEXT = params.get("next") || "";
+      var DUR = Math.max(2.4, Math.min(8, parseFloat(params.get("duration")) || 4.4));
+      // bootanimation semantics: with ?wait, the intro plays ONCE (part0) then the locked
+      // mark loops a breathing "hold" (part1) until a hologram:boot-ready event fires — the
+      // same once-then-loop-until-ready structure as an Android bootanimation desc.txt.
+      var WAIT = params.has("wait");
+      var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      var cv = $("scene"), ctx = cv.getContext("2d", { alpha: true });
+      var lockupEl = document.querySelector(".lockup");
+      var W = 0, H = 0, DPR = 1, cx = 0, cy = 0, targetW = 0;
+
+      // ── timeline (seconds) — genesis · organize · converge · reveal · settle ──────────
+      var T = { genesis: 1.45, organize: 2.75, converge: 3.45, reveal: 3.45, focus: 3.70, settle: 4.0 };
+      (function () { var k = DUR / 4.0; for (var key in T) T[key] *= k; T.settle = DUR; })();
+
+      var clamp = function (x, a, b) { return x < a ? a : x > b ? b : x; };
+      var lerp = function (a, b, t) { return a + (b - a) * t; };
+      var smooth = function (t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+      var seg = function (t, a, b) { return smooth((t - a) / (b - a)); };
+      var easeOut = function (t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); };
+
+      // ── κ-glyph scramble pool — the OS's own alphabet decoding into the mark (ROG-style) ─
+      var GLYPHS = "ΚΛΦΨΞΣΔκλφψξσ0123456789░▒▓◢◣◤◥▟▙▜▛⟨⟩//\\<>=+*∴∷⊹⌁⎔アイウエカキクケサシ".split("");
+      var rg = function () { return GLYPHS[(Math.random() * GLYPHS.length) | 0]; };
+
+      // build a row of fixed-width letter cells; returns the cell objects (with lock timing)
+      function buildRow(host, text, t0, total) {
+        host.innerHTML = "";
+        var letters = text.split(""), cells = [];
+        for (var i = 0; i < letters.length; i++) {
+          var span = document.createElement("span"); span.className = "c"; span.textContent = letters[i] === " " ? " " : rg();
+          host.appendChild(span);
+          var frac = letters.length > 1 ? i / (letters.length - 1) : 0;
+          cells.push({ el: span, ch: letters[i] === " " ? " " : letters[i], space: letters[i] === " ",
+            lock: t0 + frac * total * 0.62 + 0.05, last: -1 });
+        }
+        return cells;
+      }
+      var brandCells = [], tagCells = [];
+      function updateRow(cells, t) {
+        for (var i = 0; i < cells.length; i++) {
+          var c = cells[i];
+          if (c.space) { continue; }
+          if (t >= c.lock) {
+            if (!c.lit) { c.el.textContent = c.ch; c.el.classList.remove("scram"); c.el.classList.add("lit"); c.lit = true; }
+          } else {
+            c.el.classList.add("scram");
+            var tick = (t * 26) | 0; if (tick !== c.last) { c.el.textContent = rg(); c.last = tick; }   // ~26 swaps/s flicker
+          }
+        }
+      }
+
+      // ── glow sprites (performant bloom: drawImage, no per-blob shadow) ────────────────
+      var HUE_LO = 165, HUE_HI = 210, NBUCKET = 18, sprites = [], whiteSprite = null;
+      function makeSprite(hue, light, sat) {
+        var s = 64, c = document.createElement("canvas"); c.width = c.height = s;
+        var g = c.getContext("2d"), grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+        var col = function (a) { return "hsla(" + hue + "," + sat + "%," + light + "%," + a + ")"; };
+        grd.addColorStop(0, col(1)); grd.addColorStop(.25, col(.55)); grd.addColorStop(.6, col(.12)); grd.addColorStop(1, col(0));
+        g.fillStyle = grd; g.fillRect(0, 0, s, s); return c;
+      }
+      function buildSprites() {
+        sprites.length = 0;
+        for (var i = 0; i < NBUCKET; i++) sprites.push(makeSprite(lerp(HUE_LO, HUE_HI, i / (NBUCKET - 1)), 64, 92));
+        whiteSprite = makeSprite(190, 100, 0);
+      }
+      var spriteAt = function (frac) { return sprites[clamp(Math.round(frac * (NBUCKET - 1)), 0, NBUCKET - 1)]; };
+
+      var nodes = [], edges = [], motes = [], rings = [];
+
+      // sample opaque pixels of the wordmark → normalized target points (the energy that traces the letters)
+      function sampleWord(text) {
+        var OW = 1600, OH = 460, oc = document.createElement("canvas"); oc.width = OW; oc.height = OH;
+        var g = oc.getContext("2d");
+        g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
+        var fs = 300; g.font = "800 " + fs + "px 'Segoe UI', system-ui, sans-serif";
+        while (g.measureText(text).width > OW * 0.94 && fs > 48) { fs -= 8; g.font = "800 " + fs + "px 'Segoe UI', system-ui, sans-serif"; }
+        g.fillText(text, OW / 2, OH / 2 + 6);
+        var d = g.getImageData(0, 0, OW, OH).data, cand = [];
+        for (var y = 0; y < OH; y += 5) for (var x = 0; x < OW; x += 5) {
+          if (d[(y * OW + x) * 4 + 3] > 130) cand.push([(x - OW / 2) / OW, (y - OH / 2) / OW]);
+        }
+        var want = reduce ? 240 : (W * H > 2300000 ? 600 : 440);
+        for (var i = cand.length - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0; var t = cand[i]; cand[i] = cand[j]; cand[j] = t; }
+        return cand.slice(0, Math.min(want, cand.length));
+      }
+
+      function build() {
+        var pts = sampleWord(WORD);
+        nodes = pts.map(function (p) {
+          var a = Math.random() * Math.PI * 2, b = Math.acos(2 * Math.random() - 1), r = 0.45 + Math.random() * 0.85;
+          return { tx: p[0], ty: p[1],
+            hx: r * Math.sin(b) * Math.cos(a), hy: r * Math.cos(b) * 0.62, hz: r * Math.sin(b) * Math.sin(a),
+            ph: Math.random() * Math.PI * 2, sp: 0.8 + Math.random() * 0.7,
+            frac: clamp((p[0] + 0.42) / 0.84, 0, 1), twk: 0.5 + Math.random() * 0.5,
+            x: 0, y: 0, z: 0, size: 0, alpha: 0, energy: 0 };
+        });
+        edges.length = 0;
+        var k = reduce ? 1 : 2, n = nodes.length;
+        for (var i = 0; i < n; i++) {
+          var best = [];
+          for (var j = 0; j < n; j++) if (j !== i) {
+            var dx = nodes[i].tx - nodes[j].tx, dy = nodes[i].ty - nodes[j].ty, d2 = dx * dx + dy * dy;
+            if (best.length < k) { best.push([d2, j]); best.sort(function (p, q) { return p[0] - q[0]; }); }
+            else if (d2 < best[k - 1][0]) { best[k - 1] = [d2, j]; best.sort(function (p, q) { return p[0] - q[0]; }); }
+          }
+          for (var b2 = 0; b2 < best.length; b2++) if (i < best[b2][1]) edges.push({ a: i, b: best[b2][1], seed: Math.random() });
+        }
+        motes.length = 0;
+        var mc = reduce ? 36 : 140;
+        for (var m = 0; m < mc; m++) motes.push({ a: Math.random() * 6.283, r: 0.5 + Math.random() * 1.3, y: (Math.random() - 0.5) * 1.4, ph: Math.random() * 6.283, sp: 0.3 + Math.random() * 0.8, frac: Math.random() });
+        rings.length = 0;
+      }
+
+      // align the dot-energy width to the CRISP DOM wordmark so they sit as one mark
+      function syncTargetW() {
+        var brand = $("brand"), r = brand.getBoundingClientRect();
+        // the sampled wordmark spans ~0.918 of targetW on screen → make that equal the DOM width
+        targetW = r.width > 20 ? r.width / 0.918 : clamp(W * 0.66, 300, 1180);
+      }
+
+      function resize() {
+        DPR = Math.min(2, window.devicePixelRatio || 1);
+        W = cv.clientWidth; H = cv.clientHeight;
+        cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        cx = W / 2; cy = H / 2;
+        syncTargetW();
+      }
+
+      var t0 = 0, done = false, finished = false, swept = false;
+
+      function frame(now) {
+        if (!t0) t0 = now;
+        var t = (now - t0) / 1000;
+
+        var zoom = lerp(0.80, 1.0, smooth(clamp(t / T.reveal, 0, 1)));
+        var ry = t * 0.26 * (1 - seg(t, T.organize, T.converge) * 0.85);
+        var conv = seg(t, T.organize, T.converge);
+        var birth = seg(t, 0, T.genesis);
+        var burst = seg(t, T.converge, T.focus);
+        var settle = seg(t, T.focus, T.settle);
+
+        $("wall").style.opacity = (0.18 + 0.82 * smooth(clamp(t / T.settle, 0, 1))).toFixed(3);
+        $("grid").style.opacity = (0.9 * seg(t, T.genesis * 0.6, T.organize)).toFixed(3);
+
+        ctx.clearRect(0, 0, W, H);
+        ctx.globalCompositeOperation = "lighter";
+        var cosY = Math.cos(ry), sinY = Math.sin(ry), spread = 1.18;
+
+        // ambient motes
+        for (var mi = 0; mi < motes.length; mi++) {
+          var mo = motes[mi];
+          var mxw = mo.r * Math.cos(mo.a + t * 0.12 * mo.sp), mzw = mo.r * Math.sin(mo.a + t * 0.12 * mo.sp);
+          var rx = mxw * cosY + mzw * sinY, rz = -mxw * sinY + mzw * cosY, dep = (rz + 1.4) / 2.8;
+          var sx = cx + rx * spread * targetW * zoom;
+          var sy = cy + (mo.y + 0.03 * Math.sin(t * mo.sp + mo.ph)) * spread * targetW * zoom;
+          var ma = birth * (0.10 + 0.22 * dep) * (1 - burst * 0.6); if (ma <= 0.004) continue;
+          var ms = (3 + 7 * dep) * zoom;
+          ctx.globalAlpha = ma; ctx.drawImage(spriteAt(mo.frac), sx - ms / 2, sy - ms / 2, ms, ms);
+        }
+
+        // nodes (cloud → target)
+        for (var i = 0; i < nodes.length; i++) {
+          var nd = nodes[i];
+          var hx = nd.hx + 0.03 * Math.sin(t * nd.sp + nd.ph), hy = nd.hy + 0.025 * Math.cos(t * nd.sp * 0.8 + nd.ph), hz = nd.hz;
+          var rx2 = hx * cosY + hz * sinY, rz2 = -hx * sinY + hz * cosY, dep2 = (rz2 + 1.4) / 2.8;
+          var cloudX = cx + rx2 * spread * targetW * zoom, cloudY = cy + hy * spread * targetW * zoom;
+          var logoX = cx + nd.tx * targetW * zoom, logoY = cy + nd.ty * targetW * zoom;
+          nd.x = lerp(cloudX, logoX, conv); nd.y = lerp(cloudY, logoY, conv); nd.z = lerp(dep2, 0.82, conv);
+          var base = birth * (0.30 + 0.55 * nd.z);
+          nd.energy = base * (1 + 1.4 * burst);
+          // as the crisp type locks in (settle), the dot-energy DIMS so the type carries the mark
+          nd.alpha = clamp(nd.energy, 0, 1) * (1 - settle * 0.74);
+          nd.size = (1.8 + 4.4 * nd.z) * zoom * (1 + 0.9 * burst) * (reduce ? 1.2 : 1);
+        }
+
+        // edges + travelling light pulses
+        var edgeFade = clamp(birth * 0.9 - burst * 0.35 - settle * 0.5, 0, 1);
+        if (edgeFade > 0.01) {
+          ctx.lineWidth = Math.max(0.6, 0.9 * zoom);
+          for (var e = 0; e < edges.length; e++) {
+            var A = nodes[edges[e].a], B = nodes[edges[e].b];
+            var ea = edgeFade * 0.5 * Math.min(A.alpha, B.alpha) + 0; if (ea <= 0.01) continue;
+            var hue = lerp(HUE_LO, HUE_HI, (A.frac + B.frac) / 2);
+            ctx.strokeStyle = "hsla(" + hue.toFixed(0) + ",90%,66%," + ea.toFixed(3) + ")";
+            ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+            if (!reduce) {
+              var fr = (t * 0.55 * A.twk + edges[e].seed) % 1;
+              var pxx = lerp(A.x, B.x, fr), pyy = lerp(A.y, B.y, fr), psz = 7 * zoom;
+              ctx.globalAlpha = ea * 1.6 * (1 - burst); ctx.drawImage(whiteSprite, pxx - psz / 2, pyy - psz / 2, psz, psz);
+            }
+          }
+        }
+
+        // nodes draw
+        for (var n2 = 0; n2 < nodes.length; n2++) {
+          var p = nodes[n2]; if (p.alpha <= 0.01) continue;
+          var s = p.size * (4.2 + p.energy * 2.0);
+          var useWhite = burst > 0.55 || p.energy > 1.05;
+          var sp2 = useWhite ? whiteSprite : spriteAt(p.frac);
+          ctx.globalAlpha = clamp(p.alpha * (0.7 + 0.6 * burst), 0, 1);
+          ctx.drawImage(sp2, p.x - s / 2, p.y - s / 2, s, s);
+        }
+
+        // the discharge — expanding rings
+        if (burst > 0 && burst < 1 && rings.length === 0 && !reduce) { rings.push({ t0: t, hue: 285 }); rings.push({ t0: t + 0.05, hue: 175 }); }
+        for (var ri = 0; ri < rings.length; ri++) {
+          var rgn = rings[ri], age = t - rgn.t0; if (age < 0) continue;
+          var rr = age * targetW * 2.4, ra = clamp(1 - age / 0.55, 0, 1) * 0.5; if (ra <= 0.01) continue;
+          ctx.globalAlpha = 1; ctx.lineWidth = 2.2 * zoom;
+          ctx.strokeStyle = "hsla(" + rgn.hue + ",92%,70%," + ra.toFixed(3) + ")";
+          ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 6.2832); ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+
+        // ── the crisp DOM lockup: fade in, scramble→lock, chromatic snap, brackets, rule, tag ──
+        var logoOp = seg(t, T.converge - 0.12 * (DUR / 4), T.focus);
+        $("logo").style.opacity = logoOp.toFixed(3);
+        // chromatic aberration: peaks with the burst, snaps to 0 as it reaches focus
+        updateRow(brandCells, t);
+        // brackets draw in across the reveal
+        var bp = seg(t, T.converge, T.focus);
+        var brks = document.querySelectorAll(".brk");
+        for (var bi = 0; bi < brks.length; bi++) { brks[bi].style.opacity = bp.toFixed(3); brks[bi].style.transform = "scale(" + (0.7 + 0.3 * bp).toFixed(3) + ")"; }
+        // hairline rule expands, then tagline decodes
+        $("rule").style.width = (seg(t, T.focus - 0.18 * (DUR / 4), T.settle) * Math.min($("brand").getBoundingClientRect().width, W * 0.8)).toFixed(0) + "px";
+        $("tag").style.color = "rgba(125,239,201," + (0.0 + 0.86 * seg(t, T.focus, T.settle)).toFixed(3) + ")";
+        updateRow(tagCells, t);
+
+        // one-shot scan sweep + metallic specular glint raking across the lockup
+        var swp = seg(t, T.converge, T.settle);
+        if (swp > 0 && swp < 1) { $("sweep").style.opacity = "1"; $("sweep").style.top = (lerp(-40, 100, swp)).toFixed(1) + "vh"; }
+        else $("sweep").style.opacity = "0";
+        var glp = seg(t, T.converge + (T.focus - T.converge) * 0.2, T.settle);
+        if (glp > 0 && glp < 1) { $("glint").style.opacity = Math.sin(glp * Math.PI).toFixed(3); $("glint").style.backgroundPosition = (100 - 175 * glp).toFixed(1) + "% 0"; }
+        else $("glint").style.opacity = "0";
+        // ── GLITCH PASS — chromatic tearing · slice displacement · datamosh · strobe ──
+        // Aggressive instability that rises into the snap and spikes briefly in the hold loop,
+        // then the locked mark BREATHES (the "part1" hold). Glitch is MOTION-only — the resolved
+        // mark snaps back to razor-clean between tears, so the logo never reads as broken.
+        var breathe = t > T.focus ? 0.012 * Math.sin((t - T.focus) * 3.0) : 0;
+        var baseScale = 1 + 0.055 * (1 - easeOut(burst)) + breathe;
+        var gBuild = 0.32 * seg(t, T.organize, T.converge);          // rising instability into the snap
+        var gSnap = 1 - easeOut(seg(t, T.converge, T.focus));        // violent at the snap, decays
+        var gIdle = (t > T.focus && (t % 1.7) < 0.085) ? 0.5 : 0;    // brief data-spikes during the hold
+        var gAmt = Math.min(1, Math.max(gBuild, gSnap, gIdle)) * (logoOp > 0 ? 1 : 0);
+        if (gAmt > 0.03 && !reduce) {
+          var jx = (Math.random() * 2 - 1) * 11 * gAmt, jy = (Math.random() * 2 - 1) * 3 * gAmt;
+          var skew = (Math.random() * 2 - 1) * 2.4 * gAmt;
+          document.documentElement.style.setProperty("--ca", (3 + Math.random() * 14 * gAmt).toFixed(1) + "px");
+          if (lockupEl) {
+            lockupEl.style.transform = "translate(" + jx.toFixed(1) + "px," + jy.toFixed(1) + "px) skewX(" + skew.toFixed(2) + "deg) scale(" + baseScale.toFixed(4) + ")";
+            lockupEl.style.clipPath = Math.random() < 0.55 * gAmt
+              ? "inset(" + (Math.random() * 64).toFixed(0) + "% 0 " + (Math.random() * 28).toFixed(0) + "% 0)" : "none";
+          }
+          $("noise").style.opacity = (0.5 * gAmt).toFixed(2);
+          $("noise").style.backgroundPosition = ((Math.random() * 8) | 0) + "px " + ((Math.random() * 8) | 0) + "px";
+          $("flash").style.opacity = (Math.random() < 0.3 * gAmt ? 0.3 * gAmt : Math.max(0, Math.sin(burst * Math.PI)) * 0.74).toFixed(3);
+        } else {
+          document.documentElement.style.setProperty("--ca", ((1 - easeOut(seg(t, T.converge, T.focus))) * 6 * (logoOp > 0 ? 1 : 0)).toFixed(2) + "px");
+          if (lockupEl) { lockupEl.style.transform = "scale(" + baseScale.toFixed(4) + ")"; lockupEl.style.clipPath = "none"; }
+          $("noise").style.opacity = "0";
+          $("flash").style.opacity = (Math.max(0, Math.sin(burst * Math.PI)) * 0.74).toFixed(3);
+        }
+        if (t > T.focus) $("logo").style.filter = "brightness(" + (1 + 0.10 * (0.5 + 0.5 * Math.sin((t - T.focus) * 3.0))).toFixed(3) + ")";
+
+        if (t > T.genesis + 0.5) $("skip").classList.add("show");
+        if (!WAIT && t >= T.settle && !done) { done = true; handoff(); }   // WAIT loops the hold until boot-ready
+        if (!finished) requestAnimationFrame(frame);
+      }
+
+      // reduced-motion: a calm static lockup, then proceed
+      function staticReveal() {
+        $("wall").style.opacity = "1"; $("grid").style.opacity = "0.6";
+        $("logo").style.opacity = "1";
+        for (var i = 0; i < brandCells.length; i++) { brandCells[i].el.textContent = brandCells[i].ch; brandCells[i].el.classList.add("lit"); }
+        for (var j = 0; j < tagCells.length; j++) tagCells[j].el.textContent = tagCells[j].ch;
+        $("tag").style.color = "rgba(125,239,201,.86)";
+        $("rule").style.width = Math.min($("brand").getBoundingClientRect().width, W * 0.8) + "px";
+        document.documentElement.style.setProperty("--ca", "0px");
+        $("skip").classList.add("show"); setTimeout(handoff, 1300);
+      }
+
+      function handoff() {
+        if (finished) return; finished = true;
+        try { window.dispatchEvent(new CustomEvent("hologram:splash-done", { detail: { next: NEXT } })); } catch (e) {}
+        if (NEXT) { document.body.classList.add("leaving"); setTimeout(function () { location.replace(new URL(NEXT, location.href).href); }, 420); }
+      }
+      function skip() { if (finished) return; if (!done) { done = true; handoff(); } }
+      addEventListener("keydown", skip, { once: true });
+      addEventListener("pointerdown", skip, { once: true });
+      addEventListener("hologram:boot-ready", function () { skip(); });   // system ready → end the part1 loop, hand off
+      addEventListener("resize", function () { resize(); });
+
+      // boot
+      buildSprites();
+      brandCells = buildRow($("brand"), WORD, 0, 0);
+      tagCells = buildRow($("tag"), TAG, 0, 0);
+      // set the per-letter lock schedule against the real timeline
+      (function schedule() {
+        var n = brandCells.length, span = T.focus - T.converge;   // the tight snap window
+        for (var i = 0; i < n; i++) brandCells[i].lock = T.converge + (n > 1 ? i / (n - 1) : 0) * span * 0.8 + span * 0.12;
+        var m = tagCells.length;
+        for (var j = 0; j < m; j++) tagCells[j].lock = T.focus + (m > 1 ? j / (m - 1) : 0) * (T.settle - T.focus) * 0.8;
+      })();
+      resize(); build();
+      // re-sync the dot width to the laid-out DOM wordmark (fonts are now measured)
+      requestAnimationFrame(function () { syncTargetW(); });
+      if (reduce) staticReveal(); else requestAnimationFrame(frame);
+    })();
+    </script>
+  </body>
+</html>

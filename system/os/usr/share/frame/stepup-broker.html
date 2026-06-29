@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Holo step-up broker (B1–B4). Served from http://localhost so location.hostname === "localhost" and
+     holo-webauthn's rpIdValid() is TRUE — the UNMODIFIED WebAuthn ceremony (Windows Hello / Touch ID + the
+     PRF extension that derives the vault secret) runs HERE, not under holo://os where rpId="os" is rejected.
+     The trusted shell loads this in a hidden iframe and drives it by postMessage; the broker runs teeAssert/
+     teeEnroll and returns the PRF secret / credential. The private key and PRF secret never leave the device;
+     they cross only the in-process iframe boundary back to the shell (the TCB). -->
+<html lang="en"><head><meta charset="utf-8"><title>Holo step-up</title></head>
+<body>
+<script type="module">
+  import { teeAssert, teeEnroll, teeReason, teeSupported } from "/usr/lib/holo/holo-webauthn.mjs";
+
+  // base64url ⇄ bytes (the PRF secret + challenge travel as base64url across postMessage)
+  const b2u = (buf) => { const u = new Uint8Array(buf); let s = ""; for (const x of u) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+  const u2b = (s) => { s = String(s).replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; const b = atob(s); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+
+  // The shell tightens this to its real origin; "*" is acceptable because the broker discloses only to its
+  // opener and the payload is the operator's OWN secret destined for the operator's OWN shell.
+  const TARGET = "*";
+  const reply = (id, out) => { try { parent.postMessage(Object.assign({ __holoBroker: 1, id }, out), TARGET); } catch (e) {} };
+
+  window.addEventListener("message", async (e) => {
+    const m = e.data;
+    if (!m || !m.__holoBrokerReq) return;
+    try {
+      const reason = await teeReason();                       // "" only when a real ceremony can run here
+      if (reason) return reply(m.id, { ok: false, err: "broker: " + reason });
+      if (m.op === "assert") {
+        // Return the FULL assertion verbatim — secret, credentialId (needed to map the verified passkey → κ),
+        // and the clientDataJSON/authenticatorData/signature axis. teeAssert already encodes every field as
+        // base64url (JSON-safe), so forward it as-is — no re-encoding (the old b2u double-encoded the secret).
+        const a = await teeAssert({ credentialId: m.credentialId, allowCredentials: m.allowCredentials, challenge: m.challenge ? u2b(m.challenge) : undefined });
+        reply(m.id, { ok: true, ...a });
+      } else if (m.op === "enroll") {
+        const en = await teeEnroll({ name: m.name || "operator", userId: m.userId });
+        reply(m.id, { ok: true, ...en });                       // {credentialId, secret, credPub} — all base64url
+      } else {
+        reply(m.id, { ok: false, err: "broker: unknown op " + m.op });
+      }
+    } catch (err) { reply(m.id, { ok: false, err: "broker: " + String((err && err.message) || err) }); }
+  });
+
+  // announce readiness (with whether a ceremony is even possible here) so the shell can drive us
+  (async () => { let reason = "unknown"; try { reason = await teeReason(); } catch (e) {} parent.postMessage({ __holoBroker: 1, ready: true, supported: teeSupported(), reason }, TARGET); })();
+</script>
+</body></html>
