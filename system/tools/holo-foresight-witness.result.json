@@ -1,0 +1,75 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-foresight — PROOF OF FORESIGHT: a private-edge forecaster that reads the operator's PRIVATE κ-hypergraph against the crowd's READ-ONLY market price, surfaces only the delta (where my information disagrees with the crowd), commits each belief to the source chain the moment it forms (hash-linked, operator-signed, timestamped κ), and grades it into a verifiable, tamper-evident forecasting reputation. The edge never leaves the device (Law L1); each belief is content-addressed (Law L2); the chain of beliefs is tamper-evident over the sequence (Law L5). Impossible without κ: a cloud copilot leaks the edge by construction, and a track record cannot be proven without exposing the bets.",
+  "authority": "UOR-ADDR (κ = H(canonical_form)) · holospaces Laws L1/L2/L5 · rests on #holo-strand + #holo-object + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "private-graph-vs-crowd-delta",
+    "agreement-silent",
+    "defer-when-blind",
+    "evidence-anchored",
+    "committed-before-move",
+    "chain-attests-beliefs",
+    "operator-signed",
+    "tamper-refused",
+    "proofs-replay",
+    "beats-crowd-when-right",
+    "deterministic-core"
+  ],
+  "sample": {
+    "signals": [
+      {
+        "id": "m-acme",
+        "side": "no",
+        "marketYes": 0.7,
+        "impliedP": 0.0457,
+        "edge": -0.6543
+      },
+      {
+        "id": "m-fed",
+        "side": "yes",
+        "marketYes": 0.35,
+        "impliedP": 0.984,
+        "edge": 0.634
+      }
+    ],
+    "scorecard": {
+      "n": 2,
+      "brier": 0.0012,
+      "crowdBrier": 0.4563,
+      "edgeOverCrowd": 0.4551,
+      "beatRate": 1,
+      "rows": [
+        {
+          "id": "m-acme",
+          "truth": 0,
+          "impliedP": 0.0457,
+          "marketYes": 0.7,
+          "beatCrowd": true
+        },
+        {
+          "id": "m-fed",
+          "truth": 1,
+          "impliedP": 0.984,
+          "marketYes": 0.35,
+          "beatCrowd": true
+        }
+      ]
+    },
+    "head": "did:holo:sha256:b887928d46f123cecccf6d4622f3781873ea096288f4dd54f1a91b8cd8b298b3"
+  },
+  "checks": {
+    "edgeDetected": true,
+    "agreementIsSilent": true,
+    "noPrivateNoSignal": true,
+    "evidenceAnchored": true,
+    "committedBeforeMove": true,
+    "chainAttestsBeliefs": true,
+    "beliefsSigned": true,
+    "tamperRefused": true,
+    "proofsReplay": true,
+    "beatsCrowdWhenRight": true,
+    "deterministic": true
+  },
+  "failed": []
+}

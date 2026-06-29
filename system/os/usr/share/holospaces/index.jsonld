@@ -359,7 +359,7 @@
       ],
       "schema:keywords": [
         "browser",
-        "chromium",
+        "hologram",
         "web",
         "holo",
         "ipfs",
@@ -1240,6 +1240,41 @@
       "schema:image": "apps/holo-x86/icon.svg"
     },
     {
+      "@id": "did:holo:sha256:9d0a83ebd430c5fe25fafbadc86f588ce2b7c2b0f2c5c639fbd71d3118d97b5c",
+      "holo:root": "did:holo:sha256:9d0a83ebd430c5fe25fafbadc86f588ce2b7c2b0f2c5c639fbd71d3118d97b5c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo XXX",
+      "schema:identifier": "org.hologram.HoloXXX",
+      "holo:words": "kind.autumn.luxury",
+      "schema:alternateName": "kind.autumn.luxury",
+      "schema:description": "The open web's adult catalogue, discovered by metadata and owned by κ — your collection is an encrypted, biometric-sealed κ-DAG you carry, streamed in 4K/60 as content-verified objects, not a server you run.",
+      "schema:applicationCategory": "VideoApplication",
+      "holo:categories": [
+        "AudioVideo",
+        "Video"
+      ],
+      "schema:keywords": [
+        "video",
+        "streaming",
+        "kappa",
+        "private",
+        "self-hosted",
+        "collection"
+      ],
+      "dcat:landingPage": "apps/holo-xxx/index.html",
+      "schema:image": "apps/holo-xxx/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-media.mjs",
+        "holo-uor.mjs",
+        "holo-sound.mjs",
+        "holo-theme.js",
+        "holo-mobile.css"
+      ]
+    },
+    {
       "@id": "did:holo:sha256:620299e9ab8fdfb5396f254d8ef2636aa3c8940b15c76b5a84f72727077b002c",
       "holo:root": "did:holo:sha256:620299e9ab8fdfb5396f254d8ef2636aa3c8940b15c76b5a84f72727077b002c",
       "@type": [
@@ -1358,6 +1393,40 @@
       "schema:softwareRequirements": [
         "holo-mobile.css",
         "holo-theme.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:c2a71c0011d5c73c95547fb8c1d9caa945cdbe5b03c59c17d2a2944458ab552c",
+      "holo:root": "did:holo:sha256:c2a71c0011d5c73c95547fb8c1d9caa945cdbe5b03c59c17d2a2944458ab552c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Library",
+      "schema:identifier": "org.hologram.HoloLibrary",
+      "holo:words": "acquire.hybrid.fatal",
+      "schema:alternateName": "acquire.hybrid.fatal",
+      "schema:description": "The open web's audiobooks and books, owned by κ, listened to and read as one synced object.",
+      "schema:applicationCategory": "BookApplication",
+      "holo:categories": [
+        "AudioVideo",
+        "Audio",
+        "Literature"
+      ],
+      "schema:keywords": [
+        "audiobook",
+        "book",
+        "read-along",
+        "librivox",
+        "gutenberg",
+        "library"
+      ],
+      "dcat:landingPage": "apps/library/index.html",
+      "schema:image": "apps/library/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-sound.mjs",
+        "holo-theme.js",
+        "holo-mobile.css"
       ]
     },
     {
@@ -1778,6 +1847,53 @@
       ]
     },
     {
+      "@id": "did:holo:sha256:e37ffbb8ba82d5070c06c17230c09644b46e84c0f3aa7da14d7e49a60e55ba9c",
+      "holo:root": "did:holo:sha256:e37ffbb8ba82d5070c06c17230c09644b46e84c0f3aa7da14d7e49a60e55ba9c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Quantum",
+      "schema:identifier": "org.hologram.HoloQuantum",
+      "holo:words": "blanket.upon.say",
+      "schema:alternateName": "blanket.upon.say",
+      "schema:description": "Unmodified PennyLane running natively in Hologram's κ-addressable substrate as a topological quantum computing emulator. Paste any PennyLane script and run it verbatim on the tqc.anyon device.",
+      "schema:applicationCategory": "ScienceApplication",
+      "holo:categories": [
+        "Science",
+        "Education",
+        "Development"
+      ],
+      "schema:keywords": [
+        "pennylane",
+        "quantum",
+        "quantum computing",
+        "topological quantum computing",
+        "tqc",
+        "anyon",
+        "qubit",
+        "qnode",
+        "qml",
+        "pyodide",
+        "simulator",
+        "emulator",
+        "content-addressing",
+        "law-l4",
+        "law-l5"
+      ],
+      "dcat:landingPage": "apps/quantum/index.html",
+      "schema:image": "apps/quantum/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-ux.js",
+        "holo-ui-kernel.js",
+        "holo-fx.js"
+      ]
+    },
+    {
       "@id": "did:holo:sha256:8193514c68d55489e91874e4d60ac4e4bc1101eb39cc97627a009c70318ca206",
       "holo:root": "did:holo:sha256:8193514c68d55489e91874e4d60ac4e4bc1101eb39cc97627a009c70318ca206",
       "@type": [
@@ -2153,16 +2269,16 @@
       ]
     },
     {
-      "@id": "did:holo:sha256:499ae7dec1be371380d2924b8b7f625e19508e307419ad4d017437629373bccb",
-      "holo:root": "did:holo:sha256:499ae7dec1be371380d2924b8b7f625e19508e307419ad4d017437629373bccb",
+      "@id": "did:holo:sha256:2bbe6ebc38d52eeef1c5d57c4777eb99307a9cb09adabc0a082638d078a4560a",
+      "holo:root": "did:holo:sha256:2bbe6ebc38d52eeef1c5d57c4777eb99307a9cb09adabc0a082638d078a4560a",
       "@type": [
         "schema:SoftwareApplication",
         "schema:WebApplication"
       ],
       "schema:name": "Holo",
       "schema:identifier": "org.hologram.HoloWeb",
-      "holo:words": "subway.panda.sniff",
-      "schema:alternateName": "subway.panda.sniff",
+      "holo:words": "mandate.road.tennis",
+      "schema:alternateName": "mandate.road.tennis",
       "schema:description": "One door to your whole web: Spaces you share with people and agents, Posts you can trust, private search that cites where it came from. No accounts, no servers, no setup — it just works. The entire agent-centric web (Coasys/AD4M) on the κ substrate, behind eight plain words.",
       "schema:applicationCategory": "SocialNetworkingApplication",
       "dcat:landingPage": "apps/web/index.html",

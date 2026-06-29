@@ -21,9 +21,10 @@ import { blake3hex } from "./holo-blake3.mjs";   // the substrate σ-axis hash �
 import { classify } from "./holo-projection-policy.mjs";   // the ONE projection policy (doc=pixel-native · media=super-res)
 import { mountProjectionHUD } from "./holo-projection-hud.mjs";   // the ONE projection HUD (same readout web · app · video)
 import { makeBroadcastTransport, makeDialHost } from "./holo-canvas-transport.mjs";   // the ONE share wire (same as the app)
+import { tilePlacement } from "./holo-osr-admit.mjs";   // the ONE tile-placement source (shared with view.html)
+import { HoloCanvas, detectGPU } from "./holo-canvas.mjs";   // WebGPU super-res (Catmull-Rom + CAS) — the SAME kernel as the app
 
 const screen = document.getElementById("screen");
-const ctx = screen.getContext("2d", { alpha: false });
 let lens = null, W = 0, H = 0, TILE = 256;
 
 // THE UNIFIED POLICY applied to THIS surface: a web document projects PIXEL-NATIVE (crisp text); a video/GPU
@@ -34,6 +35,29 @@ const KIND_HINT = new URLSearchParams(location.search).get("kind") || "";
 const POLICY = classify({ url: TARGET, surfaceKind: KIND_HINT });
 let NATIVE = null;                                  // the display res (super-res target); set when reqRes runs
 window.HoloProjection = POLICY;                      // exposed for the unified HUD + verification
+
+// PRESENT PATH (from the policy + WebGPU availability):
+//   doc / pixel-native → a 2D context, drawImage 1:1 (crisp text — the proven path, byte-identical).
+//   super-res + WebGPU → HoloCanvas (Catmull-Rom upscale + CAS sharpen) on the reconstructed frame: the REAL
+//   quality super-res, not bilinear. No WebGPU ⇒ fall back to the 2D bilinear path. NEVER blank.
+const SR_WANTED = POLICY.treatment === "super-res" && typeof navigator !== "undefined" && !!navigator.gpu;
+let ctx = SR_WANTED ? null : screen.getContext("2d", { alpha: false });   // doc: synchronous 2D, UNCHANGED
+let holoComp = null, SR = false, srReady = false;
+window.__holoLensPresent = SR_WANTED ? "webgpu-pending" : "canvas2d";
+if (SR_WANTED) (async () => {
+  try {
+    const gpu = await detectGPU();                   // confirm an adapter BEFORE touching the canvas (never-blank)
+    if (gpu && gpu.ok) {
+      holoComp = new HoloCanvas(screen, { sharpen: 0.55 });
+      await holoComp.init(gpu.adapter);              // adapter may be undefined → init requests its own
+      SR = true; srReady = true; window.__holoLensPresent = "webgpu-superres";
+      if (W) sizeScreen();
+      return;
+    }
+  } catch (e) { window.__holoLensSRErr = String(e && e.message || e).slice(0, 80); }
+  ctx = screen.getContext("2d", { alpha: false });   // no adapter / init failed → proven 2D bilinear (never blank)
+  window.__holoLensPresent = "canvas2d-fallback";
+})();
 // GPU path (no WebGPU adapter on this host → use GPU-accelerated Canvas2D). The composited frame lives in a
 // GPU-backed OffscreenCanvas; only CHANGED tiles are written (O(1), work ∝ novelty). The present loop draws it
 // with drawImage — which scales (super-res to the native display resolution) + translates (sub-pixel scroll
@@ -90,19 +114,14 @@ window.__holoShareOsr = async (mode) => {
 const _share = new URLSearchParams(location.search).get("share");
 if (_share) window.__holoShareOsr(_share === "link" ? "link" : "tab");
 
-// write ONE tile into the GPU-backed offscreen base. Content-space tiles ("c{cx}_{prow}") are placed by their
-// document row, offset by the frame's scrollY; legacy screen-space tiles ("t{cx}_{ry}") by their fixed grid
-// slot. putImageData clips to the canvas, so a margin tile's off-screen (zero-padded) rows are simply dropped.
+// write ONE tile into the GPU-backed offscreen base. Placement is the SHARED tilePlacement (the same source
+// view.html uses) — content-space ("c{cx}_{prow}") by document row − scrollY, legacy screen-space ("t{cx}_{ry}")
+// by grid slot. putImageData clips to the canvas, so a margin tile's off-screen (zero-padded) rows are dropped.
 const blit = (id, bytes) => {
-  let x0, y0, tw, th;
-  let m = /^c(\d+)_(-?\d+)$/.exec(id);
-  if (m) {                                         // content-space: place by document row − scrollY (TILE-high, padded)
-    x0 = +m[1] * TILE; y0 = +m[2] * TILE - curScrollY; tw = Math.min(TILE, W - x0); th = TILE;
-  } else {                                         // legacy screen-space grid slot
-    m = /^t(\d+)_(\d+)$/.exec(id); x0 = +m[1] * TILE; y0 = +m[2] * TILE; tw = Math.min(TILE, W - x0); th = Math.min(TILE, H - y0);
-  }
+  const p = tilePlacement(id, TILE, W, curScrollY, H);   // ONE placement path (no per-surface re-implementation)
+  if (!p) return;
   const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  bctx.putImageData(new ImageData(new Uint8ClampedArray(u.subarray(0, tw * th * 4)), tw, th), x0, y0);
+  bctx.putImageData(new ImageData(new Uint8ClampedArray(u.subarray(0, p.w * p.h * 4)), p.w, p.h), p.x, p.y);
 };
 
 // the one entry the native producer calls each frame
@@ -145,12 +164,13 @@ window.__holoOsrFrame = async (manifest) => {
 // the visible canvas backs the NATIVE display resolution (super-res target); drawImage upscales the producer
 // frame to it with high-quality sampling.
 function sizeScreen() {
-  // PIXEL-NATIVE (doc): producer renders at display res (W×H from the manifest) → backing matches → drawImage 1:1,
-  // crisp text, no upscale. SUPER-RES (media/3d/video): producer renders CHEAP (W×H < display), so the visible
-  // canvas backs the full NATIVE display res and the present-loop drawImage upscales the cheap frame to it.
+  // WebGPU super-res: HoloCanvas owns the canvas backing (setOutput = the NATIVE super-res target); the producer's
+  // cheap W×H frame is upscaled by the Catmull-Rom + CAS kernel. NO WebGPU: the 2D path — doc backs producer res
+  // (1:1 crisp text, UNCHANGED); super-res-fallback backs NATIVE so the present-loop drawImage upscales.
+  if (SR && holoComp) { if (NATIVE) holoComp.setOutput(NATIVE.w, NATIVE.h); return; }
   if (POLICY.treatment === "super-res" && NATIVE) { screen.width = NATIVE.w; screen.height = NATIVE.h; }
   else { screen.width = W; screen.height = H; }
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  if (ctx) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; }
 }
 // the resolution we ask the producer to render at. doc ⇒ native (pixel-native); media/3d/video ⇒ native ×
 // internalScale (render cheap → the lens super-res's it). NATIVE (the display res) is the super-res target.
@@ -166,13 +186,18 @@ function reqRes() {
 // the display resolution) + translate (sub-pixel scroll reproject = present-side negative latency).
 function presentLoop() {
   if (base && W) {
-    const sy = scrollAccum - baseScroll;             // px scrolled (producer space) since the held frame
-    const scaleY = screen.height / H;
-    if (sy !== 0) ctx.clearRect(0, 0, screen.width, screen.height);
-    ctx.drawImage(base, 0, 0, W, H, 0, -sy * scaleY, screen.width, screen.height);   // GPU: super-res + reproject
-    window.__holoReprojDy = -sy;
-    const a = Math.abs(sy); if (a > (window.__holoReprojMax || 0)) window.__holoReprojMax = a;
-    window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
+    if (SR && holoComp && srReady) {
+      try { holoComp.present(base, "sr"); } catch (e) {}   // WebGPU Catmull-Rom upscale + CAS sharpen (real super-res)
+      window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
+    } else if (ctx) {
+      const sy = scrollAccum - baseScroll;           // px scrolled (producer space) since the held frame
+      const scaleY = screen.height / H;
+      if (sy !== 0) ctx.clearRect(0, 0, screen.width, screen.height);
+      ctx.drawImage(base, 0, 0, W, H, 0, -sy * scaleY, screen.width, screen.height);   // 2D: bilinear scale + reproject
+      window.__holoReprojDy = -sy;
+      const a = Math.abs(sy); if (a > (window.__holoReprojMax || 0)) window.__holoReprojMax = a;
+      window.__holoPresentFrames = (window.__holoPresentFrames || 0) + 1;
+    }
   }
   requestAnimationFrame(presentLoop);
 }
@@ -187,14 +212,15 @@ window.__holoScreencastFrame = async (dataUrl, seq) => {
   window.__holoFirstFrame = true;                    // projection is live (cancels the Phase-C fallback)
   const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
   if (!scPipe || bmp.width !== scW) {
-    scW = bmp.width; scH = bmp.height; screen.width = scW; screen.height = scH; W = scW; H = scH;
+    scW = bmp.width; scH = bmp.height; if (ctx) { screen.width = scW; screen.height = scH; } W = scW; H = scH;
     const off = new OffscreenCanvas(scW, scH); scCtx = off.getContext("2d", { willReadFrequently: true });
     scPipe = makeFramebufferPipeline({ getFrame: () => scCur, width: scW, height: scH, tile: TILE });
   }
   scCtx.drawImage(bmp, 0, 0);
   scCur = new Uint8Array(scCtx.getImageData(0, 0, scW, scH).data);
   const r = await scPipe.present();                  // tile + project only the CHANGED tiles
-  ctx.putImageData(new ImageData(new Uint8ClampedArray(scPipe.framebuffer()), scW, scH), 0, 0);
+  if (ctx) ctx.putImageData(new ImageData(new Uint8ClampedArray(scPipe.framebuffer()), scW, scH), 0, 0);
+  else if (SR && holoComp && srReady) { const o = new OffscreenCanvas(scW, scH); o.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(scPipe.framebuffer()), scW, scH), 0, 0); try { holoComp.present(o, "sr"); } catch (e) {} }
   window.__holoOsrSeq = seq; window.__holoScLast = { changed: r.changed, emitted: r.emitted };
   return r;
 };
@@ -230,7 +256,7 @@ if (window.cefQuery) window.cefQuery({ request: "holo:osrready:" + _rr.w + ":" +
 // THE ONE HUD — same readout the app envelope + video path show. Reads this lens's live κ globals; Alt+H toggles.
 mountProjectionHUD(() => ({
   kind: POLICY.kind, treatment: POLICY.treatment,
-  engine: window.__holoScLast ? "screencast" : "canvas2d",   // the path actually projecting this frame
+  engine: SR ? "webgpu" : (window.__holoScLast ? "screencast" : "canvas2d"),   // the path actually projecting this frame
   refs: window.__holoTilesSeen || 0,                         // tiles referenced (resident κ never re-cross)
   novelBytes: window.__holoWireBytes || 0,                   // bytes that ACTUALLY crossed (∝ novelty — the κ win)
   tileBytes: TILE * TILE * 4,

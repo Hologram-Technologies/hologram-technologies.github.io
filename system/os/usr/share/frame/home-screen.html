@@ -35,7 +35,8 @@
     /* type scale (same ladder): meta = base · greeting = φ · time = φ²+1 */
     --t-meta: var(--u);
     --t-greet: calc(var(--u) * 1.618);
-    --t-time: calc(var(--u) * 3.618);
+    /* the time is the hero of the surface — large enough that the ring hugs it (the reference proportion) */
+    --t-time: calc(var(--u) * 4);
     /* one control size, golden + ≥48px touch floor — the hamburger, the orb and the toggle all share it */
     --fab: max(48px, calc(var(--u) * 2.618));
     --r: var(--g0);                /* corner radius rides the ladder too */
@@ -80,15 +81,17 @@
   /* the clock sits at the upper-golden node: empty space above ≈ 1/φ of the space below, so the eye rests
      on the time first. Shifted down a touch from the very top, the golden --g2 gap holds time + greeting. */
   main { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: flex-start; gap: var(--g2); padding: calc(16vh + env(safe-area-inset-top)) var(--g2) 0; }
-  .clock { position: relative; width: min(70vw, 50vh, 290px); aspect-ratio: 1; display: grid; place-items: center; }
+    justify-content: flex-start; gap: var(--g1); padding: calc(17vh + env(safe-area-inset-top)) var(--g2) 0; }
+  /* the ring is sized off the golden unit so the time/ring ratio is identical on phone and desktop — the
+     arc hugs the time the way the reference does (≈ φ× the widest time), never a big empty hoop. */
+  .clock { position: relative; width: min(60vw, 46vh, calc(var(--u) * 15.5)); aspect-ratio: 1; display: grid; place-items: center; }
   .clock svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
-  .ring-prog  { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round;
+  .ring-prog  { fill: none; stroke: var(--ink); stroke-width: 1.1; stroke-linecap: round;
     transition: stroke-dashoffset 1s linear; }
   .face { display: flex; flex-direction: column; align-items: center; gap: var(--g0); text-align: center; }
   .time { font-size: var(--t-time); font-weight: 400; line-height: 1; letter-spacing: -.005em;
     font-variant-numeric: tabular-nums; }
-  .date { font-size: var(--t-meta); color: var(--ink); font-weight: 400; letter-spacing: .005em; }
+  .date { font-size: var(--t-meta); color: var(--ink-dim); font-weight: 400; letter-spacing: .01em; margin-top: calc(var(--u) * .1); }
   /* time-of-day greeting with the operator's name — the one warm line, under the circle */
   .greeting { font-size: var(--t-greet); font-weight: 300; letter-spacing: .005em; text-align: center; }
   .greeting b { font-weight: 500; }
@@ -130,6 +133,16 @@
   #qorb.live .q-fallback { opacity: .22; }   /* real wireframe is up → the disc dims to a soft glow */
   @keyframes q-spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .q-fallback { animation: none; } }
+
+  /* the desktop orb is a spectrum icosahedron WIREFRAME (createOrb). When WebGL can't paint it, this is
+     the floor: an animated SVG wireframe SPHERE in the same brand spectrum — meridians sweep so it reads
+     as a living, rotating globe, not a flat disc. The real orb (canvas) overlays and hides this when up. */
+  .q-wire { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
+    filter: drop-shadow(0 3px 14px rgba(91,140,255,.32)); animation: q-breathe 4.2s ease-in-out infinite;
+    transition: opacity .35s var(--ease); }
+  #qorb.live .q-wire { opacity: 0; }   /* the real WebGL orb is up → hand off cleanly, no double image */
+  @keyframes q-breathe { 0%, 100% { transform: scale(.965); opacity: .9; } 50% { transform: scale(1.03); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .q-wire { animation: none; } }
 
   /* Q orb right-click context MENU — a compact popup of quick actions (NOT the ask panel) */
   .qmenu { position: fixed; z-index: 50; min-width: 172px; padding: 6px; border-radius: 12px;
@@ -407,8 +420,32 @@
 <button class="fab corner" id="appear" aria-label="Appearance — Dark, Light or Immersive" title="Appearance"></button>
 <button class="fab corner" id="fullscreen" aria-label="Toggle full screen" title="Full screen"></button>
 
-<!-- Q — the living assistant: the desktop's icosahedron-wireframe orb in the brand spectrum -->
-<button class="corner" id="qorb" aria-label="Ask Q" title="Q"><span class="q-fallback"></span><canvas class="q-canvas" id="qcanvas"></canvas></button>
+<!-- Q — the living assistant: the desktop's icosahedron-wireframe orb in the brand spectrum.
+     The SVG is the no-WebGL floor (a living, rotating spectrum wireframe sphere); the canvas paints the
+     real desktop orb over it when WebGL is up. -->
+<button class="corner" id="qorb" aria-label="Ask Q" title="Q">
+  <svg class="q-wire" viewBox="0 0 64 64" aria-hidden="true">
+    <defs>
+      <linearGradient id="qwireg" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#ff3b6b"/><stop offset=".16" stop-color="#ff9e2c"/>
+        <stop offset=".32" stop-color="#ffe24a"/><stop offset=".48" stop-color="#46e08a"/>
+        <stop offset=".64" stop-color="#2bd4ff"/><stop offset=".80" stop-color="#5b8cff"/>
+        <stop offset=".92" stop-color="#c77bff"/><stop offset="1" stop-color="#ff3b6b"/>
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke="url(#qwireg)" stroke-width="1.3" stroke-linecap="round">
+      <circle cx="32" cy="32" r="29"/>
+      <line x1="32" y1="3" x2="32" y2="61"/>
+      <line x1="3" y1="32" x2="61" y2="32" opacity=".65"/>
+      <ellipse cx="32" cy="32" rx="29" ry="11" opacity=".7"/>
+      <ellipse cx="32" cy="32" rx="29" ry="21" opacity=".5"/>
+      <ellipse cx="32" cy="32" ry="29" rx="11"><animate attributeName="rx" values="29;2;29" dur="6s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="32" cy="32" ry="29" rx="21"><animate attributeName="rx" values="21;29;2;21" dur="6s" begin="-2s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="32" cy="32" ry="29" rx="2"><animate attributeName="rx" values="2;29;2" dur="6s" begin="-4s" repeatCount="indefinite"/></ellipse>
+    </g>
+  </svg>
+  <canvas class="q-canvas" id="qcanvas"></canvas>
+</button>
 
 <!-- Q's one quiet proactive pill — appears only when Q has something earned to say; tap → Inbox -->
 <div class="qpill" id="qpill" role="button" tabindex="0" aria-label="Open Q's inbox">

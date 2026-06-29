@@ -1,0 +1,56 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-foresight-graph — the bridge from THE + to PROOF OF FORESIGHT. The forecaster runs over a REAL κ-hypergraph (holo-map: entities/claims/provenance extracted from ingested private text), via a belief reader in two honest forms: a deterministic baseline over the real graph (polarity lexicon + evidence-density weight) and Q's on-device zero-shot reader (proven against its contract with a stub). Every signal cites the REAL provenance source κ of the claims that formed the belief, so the evidence re-derives end to end (Law L5). The edge never leaves the device (L1).",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-map + #holo-foresight + #holo-strand + #holo-identity",
+  "witnessed": true,
+  "covers": [
+    "subgraph-is-evidence",
+    "baseline-stance-from-graph",
+    "baseline-signal-real-kappa",
+    "q-reader-contract",
+    "q-defers-on-garbage",
+    "q-blind-defers",
+    "q-end-to-end",
+    "evidence-re-derives",
+    "deterministic-baseline"
+  ],
+  "sample": {
+    "entity": "Acme Corp",
+    "baselineNode": {
+      "label": "Acme Corp",
+      "stance": -0.7615941559557649,
+      "weight": 1.0397207708399179,
+      "sourceKappa": "did:holo:sha256:note-2026-06-28"
+    },
+    "qBelief": {
+      "p": 0.08,
+      "evidence": [
+        "did:holo:sha256:note-2026-06-28"
+      ],
+      "rationale": "regulator blocking the merger",
+      "informed": true
+    },
+    "signal": {
+      "side": "no",
+      "marketYes": 0.7,
+      "impliedP": 0.08,
+      "edge": -0.62,
+      "evidence": [
+        "did:holo:sha256:note-2026-06-28"
+      ]
+    }
+  },
+  "checks": {
+    "subgraphIsEvidence": true,
+    "baselineStanceFromGraph": true,
+    "baselineSignalRealκ": true,
+    "_promptHasFacts": true,
+    "qReaderContract": true,
+    "qReaderDefersOnGarbage": true,
+    "qReaderBlindDefers": true,
+    "qIntegratesEndToEnd": true,
+    "evidenceReDerives": true,
+    "deterministicBaseline": true
+  },
+  "failed": []
+}

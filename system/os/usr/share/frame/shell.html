@@ -1710,5 +1710,56 @@
       lock: () => { _wcP = null; },
     };
   </script>
+
+  <!-- ── NEVER-BLANK SAFETY NET (Boot-integrity M2) ──────────────────────────────────────────────────────
+       The desktop chrome is inline, so the screen is rarely fully blank — but if the engine (shell-main.mjs)
+       404s, fails to parse, or throws synchronously, the desktop is VISIBLE-BUT-DEAD with no way out. This
+       overlay is dependency-free (zero imports, zero await, buttons use only `location`) so it works even when
+       every module on the page failed. A watchdog reveals it ONLY if shell-main never fires `holo-shell-ready`;
+       a healthy (even slow) boot fires the signal and this auto-dismisses. Never a dead-end desktop. -->
+  <div id="holo-shell-recovery" role="alertdialog" aria-modal="true" aria-label="Desktop recovery">
+    <div class="hsr-card">
+      <div class="hsr-mark" aria-hidden="true">⬡</div>
+      <h2 class="hsr-h">The desktop didn’t finish loading</h2>
+      <p class="hsr-p">Something interrupted boot. Your data is safe. Reload to try again, or sign out.</p>
+      <div class="hsr-row">
+        <button class="hsr-btn hsr-primary" id="hsr-reload" type="button">Reload</button>
+        <button class="hsr-btn" id="hsr-signout" type="button">Sign out</button>
+      </div>
+    </div>
+  </div>
+  <style>
+    #holo-shell-recovery { position: fixed; inset: 0; z-index: 2147483600; display: none; place-items: center;
+      background: rgba(5,7,12,.72); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+    #holo-shell-recovery.on { display: grid; }
+    #holo-shell-recovery .hsr-card { width: min(440px, 88vw); padding: 32px 30px; border-radius: 16px; text-align: center;
+      color: #eef2fb; background: rgba(20,26,40,.96); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 24px 64px rgba(0,0,0,.55); }
+    #holo-shell-recovery .hsr-mark { font-size: 34px; color: #7defc9; line-height: 1; margin-bottom: 12px; }
+    #holo-shell-recovery .hsr-h { margin: 0 0 10px; font-size: 20px; font-weight: 600; }
+    #holo-shell-recovery .hsr-p { margin: 0 0 22px; font-size: 15px; line-height: 1.5; color: rgba(231,237,250,.8); }
+    #holo-shell-recovery .hsr-row { display: flex; gap: 12px; justify-content: center; }
+    #holo-shell-recovery .hsr-btn { padding: 11px 22px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.08); color: #eef2fb; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+    #holo-shell-recovery .hsr-btn:hover { background: rgba(255,255,255,.14); }
+    #holo-shell-recovery .hsr-primary { background: linear-gradient(135deg, #7defc9, #34d3a6); color: #06140f; border-color: transparent; }
+  </style>
+  <script>
+    // Classic, dependency-free script: MUST run even if every module on the page failed to load or parse.
+    (function () {
+      var REVEAL_MS = 18000;   // generous — a cold/contended desktop can legitimately take 10s+; only a truly stuck boot trips this
+      var armed = true;
+      function dismiss() { armed = false; var ov = document.getElementById("holo-shell-recovery"); if (ov) ov.classList.remove("on"); }
+      window.addEventListener("holo-shell-ready", dismiss);
+      // Wire the escape buttons up front so they work the instant the overlay shows (location only — no engine).
+      var r = document.getElementById("hsr-reload"), s = document.getElementById("hsr-signout");
+      if (r) r.onclick = function () { r.disabled = true; location.reload(); };
+      if (s) s.onclick = function () { s.disabled = true; location.href = "holo://os/login"; };
+      setTimeout(function () {
+        if (!armed || document.documentElement.classList.contains("holo-shell-ready")) return;   // healthy (incl. slow) boot — engine signalled ready
+        var ov = document.getElementById("holo-shell-recovery"); if (ov) ov.classList.add("on");
+      }, REVEAL_MS);
+    })();
+  </script>
   </body>
 </html>

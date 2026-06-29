@@ -14,6 +14,7 @@
 
 import { seal, verify as verifyObj, address, UOR_CONTEXT } from "./holo-object.mjs";
 import { recordIngest, provenanceOf } from "./holo-strand-provenance.mjs";
+import { defineLanguage } from "./holo-language.mjs";
 
 const NS = "https://hologram.os/ns/ad4m#";
 
@@ -69,6 +70,20 @@ export async function generateAi(generate, prompt, model) {
 // on the operator's source chain as a signed ingest entry, so provenanceOf(strand, expr.url) proves it.
 export async function recordExpressionProvenance(strand, expr, { name = null, bytes = null } = {}) {
   return recordIngest(strand, { source: expr.id, name, bytes });
+}
+
+// the capability taxonomy for the three (Step B fold): web wraps HTTP/AP (storage+transport), web3 wraps
+// IPFS/EVM (storage), ai wraps a model (compile). The impls are UNCHANGED — folding only tags + re-homes them.
+export const LANG_CAPS = { web: { storage: true, transport: true }, web3: { storage: true }, ai: { compile: true } };
+
+// foldInto(node) — STEP B: fold the three real Languages onto the ONE capability-typed registry (node.languages).
+// Same create/get impl, now resolvable by capability through the single seam — the bespoke registerAll path
+// becomes a fold. Returns the folded names. Bit-identity holds because the create() functions are reused as-is.
+export function foldInto(node) {
+  node.languages.register(defineLanguage({ ...webLanguage, capabilities: LANG_CAPS.web }));
+  node.languages.register(defineLanguage({ ...web3Language, capabilities: LANG_CAPS.web3 }));
+  node.languages.register(defineLanguage({ ...aiLanguage, capabilities: LANG_CAPS.ai }));
+  return ["web", "web3", "ai"];
 }
 
 // registerAll(ad4m) — convenience: register all three Languages on a makeAd4m instance.

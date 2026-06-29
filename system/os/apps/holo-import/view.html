@@ -33,9 +33,11 @@
 // tiles ever arrive (unchanged regions cross at ~0 bytes); each is L5-verified before paint. Same sealed
 // modules as the host — cross-tab via BroadcastChannel, cross-device via the holo-dial WebRTC DataChannel.
 import { makeShareViewer } from "holo://os/usr/lib/holo/holo-canvas-share.mjs";
-import { makeBroadcastTransport, makeRTCTransport, makeBroadcastSignaling, joinDial } from "holo://os/usr/lib/holo/holo-canvas-transport.mjs";
+import { makeBroadcastTransport, makeRTCTransport, makeBroadcastSignaling, joinDial, makeDialHost } from "holo://os/usr/lib/holo/holo-canvas-transport.mjs";
 import { admitOsrManifest } from "holo://os/usr/lib/holo/holo-osr-admit.mjs";   // ONE reconstruction for a projected WEB tab (content-space tiles)
 import { blake3hex } from "holo://os/usr/lib/holo/holo-blake3.mjs";              // L5 re-derive on the substrate σ-axis
+import { makeSwarmResolver } from "holo://os/usr/lib/holo/holo-kappa-swarm.mjs";  // 1→N: fetch each tile from the nearest peer holding it
+import { joinRoom } from "holo://os/usr/lib/holo/holo-kappa-room.mjs";            // the co-view room: viewers serve tiles to each other
 const Q = new URLSearchParams(location.search);
 const NAME = (Q.get("app") || "raymarch").replace(/[^a-z0-9-]/gi, "");
 const OSRKEY = (Q.get("osr") || "").replace(/[^a-z0-9]/gi, "");   // co-view a projected WEB tab (its SHARE_KEY) — one viewer, both kinds
@@ -54,11 +56,40 @@ const label = WANV === "link" ? "WebRTC DataChannel (holo-dial, cross-device)" :
 //    ({w,h,tile,scrollY?,tiles:[{id,k}]}); reconstruct it with the shared admit (same placement + L5 as the lens).
 //    Tiles are fetched by blake3 from the κ-cache (shared-κ on a remote device). ──
 const osrStore = new Map();
+// the SWARM resolver: a tile is fetched from the nearest peer holding it, L5-verified from ANY source, else the
+// origin floor. Today peers() is empty ⇒ origin-only (identical to before); the room (Phase 1) injects holders via
+// window.__holoOsrPeers — no further change here. Self becomes a holder so later joiners pull from us.
+const osrSwarm = makeSwarmResolver({
+  peers: () => (window.__holoOsrPeers || []),
+  originGet: async (b3) => { const res = await fetch("holo://os/cache/blake3/" + b3); if (!res.ok) throw new Error("tile " + res.status); return new Uint8Array(await res.arrayBuffer()); },
+  digestHex: async (b) => blake3hex(b),
+  selfStore: osrStore,
+});
+// join the co-view ROOM keyed by this projection — other viewers in it serve us tiles peer-to-peer (and we them),
+// so the origin (host) uploads each tile ~once. Presence-gated: alone ⇒ origin-direct, no latency tax.
+// CROSS-DEVICE wire options: ?roomdial=host|join runs the room over a holo-DIAL WebRTC DataChannel — the PROVEN
+// non-trickle connector (offer/answer blobs exchanged out-of-band; here via the witness, a deployment via a link /
+// κ-DHT). ?rtc=init|join is the trickle path (kept for reference). Default = cross-tab BroadcastChannel (proven).
+H.swarm = osrSwarm.stats;
+let osrRoom = null;
+function useRoom(channel) { osrRoom = joinRoom(OSRKEY, osrStore, channel ? { channel } : undefined); window.__holoOsrPeers = [osrRoom.peer]; H.room = osrRoom.stats; }
+const RTCROLE = Q.get("rtc"), RD = Q.get("roomdial");
+if (OSRKEY) {
+  if (RD === "host") {                                // mint a dial offer; the room runs over the channel once accepted
+    (async () => { const host = await makeDialHost(); window.__roomOffer = host.offerBlob; window.__roomAccept = (a) => host.accept(a); H.dialState = () => ({ ice: host.pc.iceConnectionState }); useRoom(host.channel); })();
+  } else if (RD === "join") {                         // consume an offer (injected) → answer → the channel
+    window.__roomJoinWithOffer = async (offer) => { const j = await joinDial(offer); window.__roomAnswer = j.answerBlob; const ch = await j.channel; H.dialState = () => ({ ice: j.pc.iceConnectionState }); useRoom(ch); return j.answerBlob; };
+  } else if (RTCROLE) {                               // trickle (unproven) — reference path
+    const roomCh = makeRTCTransport({ initiator: RTCROLE === "init", signaling: makeBroadcastSignaling("holo-osr-rtc-" + OSRKEY) });
+    H.rtcState = () => ({ ice: roomCh.pc.iceConnectionState, sig: roomCh.pc.signalingState });
+    useRoom(roomCh);
+  } else { useRoom(null); }                           // default: cross-tab BroadcastChannel (proven)
+}
 async function onOsrFrame(m) {
   if (screen.width !== m.w || screen.height !== m.h) { screen.width = m.w; screen.height = m.h; }
   wait.style.display = "none";
   const r = await admitOsrManifest(m, {
-    getTile: async (b3) => { const res = await fetch("holo://os/cache/blake3/" + b3); if (!res.ok) throw new Error("tile " + res.status); return new Uint8Array(await res.arrayBuffer()); },
+    getTile: osrSwarm.swarmGet,                     // through the swarm (origin-only until the room adds peers)
     digestHex: async (b) => blake3hex(b),
     paint: (id, bytes, p) => { try { ctx.putImageData(new ImageData(new Uint8ClampedArray(bytes.subarray(0, p.w * p.h * 4)), p.w, p.h), p.x, p.y); } catch (e) { H.paintErr = String(e?.message || e).slice(0, 80); } },
     store: osrStore,

@@ -210,6 +210,11 @@ export async function createGreeter(params) {
         } catch {}
       }
     } catch {}
+    // AUTH ⊗ RESTORE, ONE MOTION: the biometric secret is in hand for this single instant. Hand the shell the
+    // session VAULT KEY (consume-once, same-origin) so it boots straight into the operator's sovereign realm —
+    // their exact prior tabs/apps restored without a second tap. The PRF secret + sovereign key never cross
+    // (only the manifest-at-rest key). Best-effort: a failure here just falls back to the device realm as before.
+    if (secret && !guest) { try { const HS = await import("./holo-session.mjs"); await HS.stashUnlock({ operator: principal.kappa, secret }); } catch (e) {} }
     emit("loginSucceeded");
     // Vault stays closed here (display-split): the shell opens it lazily on first credential use, gated by
     // the broker biometric (typically silent within the OS Hello trust window). No secret crosses to the shell.
@@ -229,7 +234,7 @@ export async function createGreeter(params) {
     // storage crosses the navigation; the query was only ever there to survive it. The shell rehydrates once.
     try { const h = packHandoff(url); if (h.handoff) { sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(h.handoff)); url = h.path; } } catch (e) {}
     // native: holo://os/home canonicalizes to shell.html; web/dev keeps shell.html (no canonicalizer).
-    if (location.protocol === "holo:") url = String(url).replace(/^(?:.?/)?shell.html(?=[?#]|$)/, "home");
+    if (location.protocol === "holo:") url = String(url).replace(/^(?:\.?\/)?shell\.html(?=[?#]|$)/, "home");
     sddm.__pendingUrl = url;
     setTimeout(() => { location.href = url; }, delay);
   }
@@ -338,7 +343,7 @@ export async function createGreeter(params) {
         const op = known.find((u) => u.cred === credentialId);
         if (!op) throw new Error("This device doesn't recognise that identity");
         const principal = await unlock(op.kappa, secret);         // re-derives κ (Law L5)
-        const { url } = await establish(principal, session);
+        const { url } = await establish(principal, session, { secret });   // carry the secret so establish can bridge the session vault key (auth ⊗ restore)
         enterShell(url);
       } catch (e) {
         // A real biometric cancel/timeout → report it. Anything else (no PRF, unknown passkey) →
@@ -367,6 +372,10 @@ export async function createGreeter(params) {
         if (!blob) { if (!abort.signal.aborted) ui.status("Timed out — Cancel and try again"); return; }
         ui.status("Approved — signing you in…");
         const got = await pair.acceptGrant(secrets, blob);              // decrypt + verify the grant (Law L5)
+        // SESSION ROAM handoff: pairing yielded a shared roam key (both devices derived it). Stash it (+ the
+        // channel) consume-once so the shell, on boot, activates roam and OPENS the WebRTC datachannel to the
+        // granting device (holo-roam-link.roamAnswer) — this device then lives-resumes that device's session.
+        try { if (got.roamKey) sessionStorage.setItem("holo.roam.pair", JSON.stringify({ operator: got.operator, roamKey: got.roamKey, channel: offer.channel, role: "answer" })); } catch (e) {}
         const session = SESSIONS[defaultSessionIndex] || SESSIONS[0];
         // a DELEGATED session: the device acts for the operator, carrying the operator-signed grant as
         // proof (only this device could decrypt it — E2E to its key). Device-signed session = a refinement.

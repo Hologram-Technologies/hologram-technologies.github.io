@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<script src="./_shared/holo-appearance-boot.js"></script>
+<title>Instant</title>
+<link rel="icon" type="image/svg+xml" href="/usr/share/icons/holo-favicon.svg">
+<style>
+  :root{
+    --u: clamp(15px,1.6vmin,18px); --ease: cubic-bezier(.4,0,.2,1);
+    --ink:#e9edef; --muted:#8aa0ad; --line:rgba(255,255,255,.10);
+    --glass:rgba(20,30,42,.55); --accent:#5b9cff; color-scheme:dark;
+  }
+  *{box-sizing:border-box} html,body{height:100%;margin:0}
+  body{
+    background:radial-gradient(120% 120% at 18% 0%, #16243f, #0d1117 60%, #05070c);
+    color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    display:grid; grid-template-rows:auto 1fr; gap:calc(var(--u)*.8); padding:calc(var(--u)*1.2); overflow:hidden;
+  }
+  header{display:flex;align-items:baseline;gap:var(--u);flex-wrap:wrap}
+  h1{font-size:calc(var(--u)*1.7);margin:0;letter-spacing:-.02em}
+  .tag{color:var(--muted);font-size:calc(var(--u)*.92)}
+  #witness{margin-left:auto;font-size:calc(var(--u)*.8);padding:.3em .7em;border-radius:999px;border:1px solid var(--line);background:var(--glass);color:var(--muted)}
+  #witness.ok{color:#7ee0a8;border-color:rgba(126,224,168,.35)} #witness.bad{color:#f8a4a4;border-color:rgba(248,164,164,.4)}
+  main{display:grid;grid-template-columns:minmax(260px,1fr) 1fr;gap:var(--u);min-height:0}
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:calc(var(--u)*.9);padding:var(--u);backdrop-filter:blur(40px) saturate(1.3);display:flex;flex-direction:column;gap:calc(var(--u)*.7);min-height:0;animation:rise .6s var(--ease) both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+  .label{font-size:calc(var(--u)*.78);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  canvas{width:100%;max-width:300px;aspect-ratio:1;border-radius:calc(var(--u)*.7);border:1px solid var(--line);background:#0a0f16;align-self:center;image-rendering:auto}
+  .gens{display:flex;flex-wrap:wrap;gap:calc(var(--u)*.5)}
+  button{font:inherit;color:var(--ink);background:rgba(91,156,255,.14);border:1px solid rgba(91,156,255,.3);border-radius:calc(var(--u)*.6);padding:.55em 1em;cursor:pointer;transition:transform .12s var(--ease),background .12s}
+  button:hover{background:rgba(91,156,255,.26)} button:active{transform:scale(.96)} button:disabled{opacity:.4;cursor:not-allowed}
+  .primary{background:var(--accent);border-color:var(--accent);color:#06101f;font-weight:600}
+  .seqchip{font-family:ui-monospace,monospace;font-size:calc(var(--u)*.95);padding:.6em .8em;border-radius:calc(var(--u)*.6);background:rgba(0,0,0,.25);border:1px solid var(--line);min-height:2.4em;display:flex;align-items:center;color:#cfe0ff}
+  .row{display:flex;gap:calc(var(--u)*.5);flex-wrap:wrap}
+  #status{font-size:calc(var(--u)*1.05)} #proof{font-size:calc(var(--u)*.9);color:var(--muted);line-height:1.5}
+  #savedn{margin-left:auto;color:#7ee0a8;font-weight:600;font-size:calc(var(--u)*.85)}
+  code{font-family:ui-monospace,monospace;color:#bcd0ff;background:rgba(0,0,0,.3);padding:.1em .4em;border-radius:.3em}
+  ul#looks{list-style:none;margin:0;padding:0;overflow:auto;display:flex;flex-wrap:wrap;gap:.5em}
+  ul#looks li{display:flex;align-items:center;gap:.4em;font-size:calc(var(--u)*.82);cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:.25em .6em;background:rgba(0,0,0,.2)}
+  ul#looks li:hover{border-color:var(--accent)}
+  .sw{width:1em;height:1em;border-radius:50%} .muted{color:var(--muted)} .hint{font-size:calc(var(--u)*.82);color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Instant</h1>
+  <span class="tag">make a look once — it's instant forever, and provably the same</span>
+  <span id="witness">checking…</span>
+</header>
+<main>
+  <section class="card">
+    <div class="label">Your image</div>
+    <canvas id="canvas" width="256" height="256"></canvas>
+    <div class="label">Adjust</div>
+    <div class="gens">
+      <button data-gen="hue+">Hue +</button>
+      <button data-gen="hue-">Hue −</button>
+      <button data-gen="bright+">Tint +</button>
+      <button data-gen="bright-">Tint −</button>
+      <button data-gen="warm">Warm</button>
+    </div>
+    <div class="seqchip" id="seq">(original)</div>
+    <div class="row">
+      <button class="primary" id="apply">Apply</button>
+      <button id="clear">Clear</button>
+      <button id="share">Share look</button>
+    </div>
+    <p class="hint">Try <code>Hue + then Tint +</code>, then <code>Tint + then Hue +</code>, then just <code>Warm</code> —
+       three different paths, one look. The second and third are instant.</p>
+  </section>
+  <section class="card">
+    <div class="row" style="align-items:baseline"><div class="label">Result</div><span id="savedn"></span></div>
+    <div id="status">Adjust your image and press Apply.</div>
+    <div id="proof"></div>
+    <div class="label" style="margin-top:.4em">Your looks</div>
+    <ul id="looks"><li class="muted">No looks yet — adjust and Apply.</li></ul>
+  </section>
+</main>
+<script type="module" src="./instant-main.mjs"></script>
+</body>
+</html>

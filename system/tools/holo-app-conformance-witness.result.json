@@ -1,7 +1,7 @@
 {
   "spec": "Every holospace application is a self-contained, shareable, provenance-tracked κ-holospace: it runs in the ONE canonical shell (P1), is a sealed serverless κ-object with no undeclared backend (P2), is named by a content address resolvable by any transport tier (P3), is discoverable + launchable from its single root κ via the one door (P4), is shareable as a link with a per-app social card (P5), and embeds an out-of-band κ-addressed version chain with per-version creator κ for programmatic royalties (P6). Enforced as a RATCHET over the served app repo: no app may LOSE a property, so conformance only increases. Properties not yet met are reported RED, never faked green (Law L5).",
   "authority": "ADR-0112 over ADR-0109 (Share) · ADR-0105/0106 (Workspace Sync + Session capture) · ADR-0082 (PROV-O) · ADR-0111 (Boot root + CSP/clickjacking floor) · ADR-0103 (Omni resolver) · #app-mobile-conformance (ratchet template) · Gateway launcher · static analysis of the served app repo + apps/index.jsonld",
-  "witnessed": false,
+  "witnessed": true,
   "covers": [
     "canonical-shell",
     "self-contained",
@@ -15,13 +15,13 @@
     "ratchet",
     "honest-null"
   ],
-  "appsScanned": 155,
+  "appsScanned": 166,
   "perProperty": {
-    "P1": 155,
-    "P2": 152,
-    "P3": 154,
-    "P4": 48,
-    "P5": 50,
+    "P1": 166,
+    "P2": 159,
+    "P3": 161,
+    "P4": 57,
+    "P5": 57,
     "P6": 0
   },
   "fullyConformant": 0,
@@ -195,7 +195,23 @@
       "share-as-link": true,
       "provenance": false
     },
+    "holo-games": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
     "holo-linux": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "holo-messenger": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -220,6 +236,14 @@
       "provenance": false
     },
     "holo-x86": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "holo-xxx": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -252,6 +276,14 @@
       "provenance": false
     },
     "liberty": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "library": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -323,7 +355,23 @@
       "share-as-link": true,
       "provenance": false
     },
+    "q": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
     "qemu": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "quantum": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -340,6 +388,22 @@
       "provenance": false
     },
     "search": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "self": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
+    "spaces": {
       "canonical-shell": true,
       "self-contained": true,
       "storage-agnostic": true,
@@ -387,6 +451,14 @@
       "share-as-link": true,
       "provenance": false
     },
+    "web": {
+      "canonical-shell": true,
+      "self-contained": true,
+      "storage-agnostic": true,
+      "single-address": true,
+      "share-as-link": true,
+      "provenance": false
+    },
     "workspace": {
       "canonical-shell": true,
       "self-contained": true,
@@ -408,22 +480,6 @@
       "self-contained": false,
       "storage-agnostic": true,
       "single-address": true,
-      "share-as-link": true,
-      "provenance": false
-    },
-    "q": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": false,
-      "share-as-link": true,
-      "provenance": false
-    },
-    "spaces": {
-      "canonical-shell": true,
-      "self-contained": true,
-      "storage-agnostic": true,
-      "single-address": false,
       "share-as-link": true,
       "provenance": false
     },
@@ -1259,7 +1315,39 @@
       "share-as-link": false,
       "provenance": false
     },
+    "holo-games-heroic": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": false,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
+    },
+    "holo-pass": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": false,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
+    },
+    "origin-probe": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": false,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
+    },
     "plus": {
+      "canonical-shell": true,
+      "self-contained": false,
+      "storage-agnostic": false,
+      "single-address": false,
+      "share-as-link": false,
+      "provenance": false
+    },
+    "youtube": {
       "canonical-shell": true,
       "self-contained": false,
       "storage-agnostic": false,
@@ -1268,15 +1356,5 @@
       "provenance": false
     }
   },
-  "regressions": [
-    {
-      "app": "q",
-      "lost": [
-        "P4"
-      ],
-      "why": [
-        "single-address: root κ NOT in catalog (catalog keys by metadata/slug, not app root — reverse-index missing)"
-      ]
-    }
-  ]
+  "regressions": []
 }

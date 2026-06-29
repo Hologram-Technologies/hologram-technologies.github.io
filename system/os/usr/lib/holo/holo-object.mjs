@@ -95,10 +95,14 @@ export function linkTo(store, rel, child) {
 // alone (no bytes); verified at resolve time by re-hashing the raw bytes to the address.
 export function contentLink(rel, kappa, type = "schema:MediaObject") {
   const hex = String(kappa).split(":").pop();
-  const digest = Buffer.from(hex, "hex");                         // the raw 32-byte sha-256
+  // Buffer-free (browser + Service Worker too, like address()/verify() above). Byte-identical output:
+  // hex → raw 32 bytes → base64 (SRI) and 0x12 0x20 multihash prefix → base64url (multibase "u").
+  const digest = new Uint8Array((hex.match(/.{2}/g) || []).map((b) => parseInt(b, 16)));
+  const b64 = (u8) => { let s = ""; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); };
+  const mh = new Uint8Array(digest.length + 2); mh[0] = 0x12; mh[1] = 0x20; mh.set(digest, 2);
   return { id: `did:holo:sha256:${hex}`, rel, "@type": type, leaf: true,
-    digestSRI: "sha256-" + digest.toString("base64"),
-    digestMultibase: "u" + Buffer.concat([Buffer.from([0x12, 0x20]), digest]).toString("base64url") };
+    digestSRI: "sha256-" + b64(digest),
+    digestMultibase: "u" + b64(mh).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") };
 }
 
 // verifyDeep(store, obj): re-derive + verify the WHOLE DAG top-to-bottom (Law L5 at every

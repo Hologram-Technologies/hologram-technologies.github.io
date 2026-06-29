@@ -106,14 +106,23 @@ function nativeHello() { return typeof window !== "undefined" && typeof window.c
 function helloCall(op, params = {}) {
   return new Promise((resolve, reject) => {
     let done = false;
+    // SETTLE GUARD (defense-in-depth): the native ceremony runs the OS dialog on a worker thread and ALWAYS
+    // calls back — UNLESS that callback is lost (e.g. the page navigates/reloads while the worker is still
+    // blocked, tearing down the message-router callback). cefQuery has no client-side timeout, so a lost
+    // callback would leave this Promise pending FOREVER ("Verifying with Windows Hello…" hangs). 90s is safely
+    // past the ceremony's own 60s WebAuthN timeout, so a legitimate (even slow) prompt resolves first; this only
+    // ever fires on a genuinely lost callback, turning an infinite spinner into a catchable, recoverable error.
+    const t = setTimeout(() => { if (done) return; done = true; reject(new Error("biometric timed out — no response from " + teeName())); }, 90000);
+    const settle = (fn) => (...a) => { if (done) return; done = true; clearTimeout(t); fn(...a); };
+    const ok = settle(resolve), no = settle(reject);
     try {
       window.cefQuery({
         request: "holo:hello:" + JSON.stringify({ op, ...params }),
         persistent: false,
-        onSuccess: (r) => { if (done) return; done = true; try { const j = JSON.parse(r); j && j.ok === false ? reject(new Error(j.error || "biometric failed")) : resolve(j); } catch (e) { reject(e); } },
-        onFailure: (code, msg) => { if (done) return; done = true; reject(new Error(msg || ("biometric error " + code))); },
+        onSuccess: (r) => { try { const j = JSON.parse(r); j && j.ok === false ? no(new Error(j.error || "biometric failed")) : ok(j); } catch (e) { no(e); } },
+        onFailure: (code, msg) => { no(new Error(msg || ("biometric error " + code))); },
       });
-    } catch (e) { reject(e); }
+    } catch (e) { no(e); }
   });
 }
 function secureOk() { return typeof window === "undefined" ? false : (window.isSecureContext === true); }

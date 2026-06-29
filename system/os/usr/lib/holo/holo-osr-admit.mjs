@@ -12,12 +12,15 @@
 // Pure (no DOM, no fetch): the caller injects getTile / digestHex / paint, so it node-witnesses and runs in any
 // surface (the in-OS κ-cache, a remote shared-κ, or an in-memory test store).
 
-// tilePlacement(id, TILE, W, scrollY) → { x, y, w, h, space } | null
-export function tilePlacement(id, TILE, W, scrollY = 0) {
+// tilePlacement(id, TILE, W, scrollY, H?) → { x, y, w, h, space } | null
+//   H (optional, the frame height): when given, a SCREEN-space tile's height is clipped to the frame (the lens
+//   passes it for exact putImageData parity). Content-space tiles are TILE-high (padded); putImageData clips the
+//   off-canvas rows, so H is unnecessary there. A viewer that omits H gets TILE-high tiles and relies on the clip.
+export function tilePlacement(id, TILE, W, scrollY = 0, H = null) {
   let m = /^c(\d+)_(-?\d+)$/.exec(id);
   if (m) { const x = +m[1] * TILE; return { x, y: +m[2] * TILE - scrollY, w: Math.min(TILE, W - x), h: TILE, space: "content" }; }
   m = /^t(\d+)_(\d+)$/.exec(id);
-  if (m) { const x = +m[1] * TILE; return { x, y: +m[2] * TILE, w: Math.min(TILE, W - x), h: TILE, space: "screen" }; }
+  if (m) { const x = +m[1] * TILE, y = +m[2] * TILE; return { x, y, w: Math.min(TILE, W - x), h: H != null ? Math.min(TILE, H - y) : TILE, space: "screen" }; }
   return null;
 }
 

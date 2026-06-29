@@ -10,6 +10,20 @@
 // Returns the os-relative physical path, or null for "unknown top-level" (the dev server then
 // tries the Apps repo / original-os gap fallback; on Pages a null is simply a 404).
 
+// Flat root-served single files (requested at holo://os/<name>), grouped by their FHS home. Defined ONCE here
+// and exported as FLAT_ROOT_FILES so the image builder (make-dist) projects EXACTLY what dev + SW serve at
+// root — there is no second, hand-maintained list to drift. That drift is what 403'd shell-main.mjs and
+// holo-fabric.mjs on the native host (they worked on dev via this map, but make-dist's old lists omitted them).
+const FRAME_PAGES = ["shell.html", "holospace.html", "home.html", "home-screen.html", "homepage.html", "find.html", "splash.html", "login.html", "identity.html", "wallet.html", "workspace.html", "pair.html", "omni.html"];
+const BOOT_FILES = ["holo-boot-sw.js", "coi-serviceworker.min.js"];
+const LIB_FILES = ["holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "holo-heal-boot.mjs", "browser-sw.js"];
+const SBIN_FILES = ["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-wire.mjs", "holo-fabric.mjs"];
+const ETC_FILES = ["manifest.webmanifest", "os-closure.json"];
+const ICON_FILES = ["icon-192.png", "icon-512.png"];
+// The complete set make-dist must project to dist root. os-closure.json + holo-fhs-sw.js are sealed/anchored
+// specially by the builder, so they are deliberately EXCLUDED here.
+export const FLAT_ROOT_FILES = [...FRAME_PAGES, "boot.html", ...BOOT_FILES, ...LIB_FILES, ...SBIN_FILES, "manifest.webmanifest", ...ICON_FILES];
+
 export function fhsMap(rel) {
   rel = String(rel).replace(/^\/+/, "");
   let mm;
@@ -28,16 +42,16 @@ export function fhsMap(rel) {
   if (rel === "apps-witness.result.json") return "srv/apps-witness.result.json";
   // The boot chain: rEFInd (boot.html at root) → Plymouth (splash.html) → SDDM (login.html)
   // → shell (home.html) → editor (workspace.html). All in /usr/share/frame.
-  if (["shell.html", "holospace.html", "home.html", "home-screen.html", "homepage.html", "find.html", "splash.html", "login.html", "identity.html", "wallet.html", "workspace.html", "pair.html", "omni.html"].includes(rel)) return "usr/share/frame/" + rel;   // shell.html = the ONE canonical holospace shell (in OS2); identity.html + wallet.html = the unified Holo Identity surface (the sovereign vault) — core, always served; omni.html = the κ-resolve lab
+  if (FRAME_PAGES.includes(rel)) return "usr/share/frame/" + rel;   // shell.html = the ONE canonical holospace shell (in OS2); identity.html + wallet.html = the unified Holo Identity surface (the sovereign vault) — core, always served; omni.html = the κ-resolve lab
   if (rel === "boot.html") return "boot/boot.html";                   // the bootloader, served at the root (file named boot.html — no index.html clash with the OS-root gateway)
   // …the bootloader's OWN asset subdir is physically boot/boot/, so `boot/<x>` maps one level deeper.
   if (/^boot\/(refind\.conf|boot-manifest\.json|icons\/|themes\/|make-boot\.mjs)/.test(rel)) return "boot/boot/" + rel.slice(5);
-  if (["holo-boot-sw.js", "coi-serviceworker.min.js"].includes(rel)) return "boot/" + rel;
+  if (BOOT_FILES.includes(rel)) return "boot/" + rel;
   if (rel === "holo-fhs-sw.js") return "holo-fhs-sw.js";              // the content-addressed delivery worker lives at the os/ root (registered relative by the gateway)
-  if (["holo-launch.mjs", "holo-omni.mjs", "holo-boot-sw-register.mjs", "holo-heal-boot.mjs", "browser-sw.js"].includes(rel)) return "lib/" + rel;
-  if (["holo-resolver.mjs", "holo-sources.mjs", "holo-peers.mjs", "holo-wire.mjs", "holo-fabric.mjs"].includes(rel)) return "sbin/" + rel;
-  if (["manifest.webmanifest", "os-closure.json"].includes(rel)) return "etc/" + rel;
-  if (["icon-192.png", "icon-512.png"].includes(rel)) return "usr/share/icons/" + rel;
+  if (LIB_FILES.includes(rel)) return "lib/" + rel;
+  if (SBIN_FILES.includes(rel)) return "sbin/" + rel;
+  if (ETC_FILES.includes(rel)) return "etc/" + rel;
+  if (ICON_FILES.includes(rel)) return "usr/share/icons/" + rel;
   // The Plymouth theme catalog the splash fetches as `splash/themes/<id>/…` lives FHS-true.
   if ((mm = rel.match(/^splash\/themes\/(.+)$/))) return "usr/share/plymouth/themes/" + mm[1];
   // Cross-repo: the GGUF forge (apps/q/forge/*) imports the OS's holo-uor via the sibling-repo layout

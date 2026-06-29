@@ -1,0 +1,43 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-foresight-live — PROOF OF FORESIGHT in one call. The bound live loop ties THE + (private κ-graph), the read-only crowd feed, the best-present belief reader (Q on-device else the deterministic baseline), and the source-chain commit into one tick. Every seam is a graceful upgrade, never a hard dependency: no brain → baseline; no strand → scan only (zero side effects). Read-only by construction — the loop exposes no order/spend path; acting on a signal is a separate, human-gated step through the wallet's one door. Mirrors holo-plus.bindQ.",
+  "authority": "UOR-ADDR · holospaces Laws L1/L2/L5 · rests on #holo-foresight + #holo-foresight-graph + #holo-foresight-feed + #holo-strand",
+  "witnessed": true,
+  "covers": [
+    "auto-baseline",
+    "auto-q",
+    "watch-commits",
+    "run-from-feed",
+    "read-only-surface",
+    "scan-only-no-strand",
+    "proofs-on-chain"
+  ],
+  "sample": {
+    "baselineP": 0.1703,
+    "qP": 0.05,
+    "signal": {
+      "side": "no",
+      "edge": -0.65,
+      "marketYes": 0.7,
+      "impliedP": 0.05
+    },
+    "feedMarket": "0xacme",
+    "surface": [
+      "reader",
+      "foresight",
+      "watch",
+      "run",
+      "proofs"
+    ]
+  },
+  "checks": {
+    "bindAutoBaseline": true,
+    "bindAutoQ": true,
+    "watchCommits": true,
+    "runFromFeed": true,
+    "feedReadOnly": true,
+    "scanOnlyNoStrand": true,
+    "proofsOnChain": true
+  },
+  "failed": []
+}

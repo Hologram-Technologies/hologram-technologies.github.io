@@ -73,6 +73,12 @@
       import * as HoloRoam from "/_shared/holo-roam-ui.mjs";   // Phase E: ⇄ Roam toggle — mirror open windows across tabs/devices (BroadcastChannel; WAN out-of-band)
       import * as HoloRoamWan from "/_shared/holo-roam-wan.mjs";   // AMBIENT roam: auto-on at boot, tabs (BroadcastChannel) + devices (relay/WAN); seamless, no toggle
 
+      // NEVER-BLANK SIGNAL (Boot-integrity M2): the engine module loaded and ALL its static imports resolved —
+      // fire it HERE (right after the import block, before the body's long-lived top-level boot) so a healthy
+      // boot signals immediately. If shell-main.mjs 404s, fails to parse, or any import above fails, this line
+      // never runs → shell.html's dependency-free watchdog reveals the recovery overlay. Never a dead-end desktop.
+      try { document.documentElement.classList.add("holo-shell-ready"); window.dispatchEvent(new Event("holo-shell-ready")); } catch (e) {}
+
       // ── Holo Q Remote (ADR-0090): install the ONE host broker for the governed remote-model capability.
       // The key/URL live ONLY in this broker's vault (in its closure) — never in a κ, never posted to an
       // app frame. Apps reach it over holo-gov.js's holo-privacy:rpc bus (which delegates q.remote.* to
@@ -424,7 +430,11 @@
                   if (!_d.querySelector('link[href*="holo-mobile.css"]') && !_d.getElementById("holo-mobile-inject")) { const _m = _d.createElement("link"); _m.id = "holo-mobile-inject"; _m.rel = "stylesheet"; _m.href = "/_shared/holo-mobile.css"; _m.setAttribute("data-holo-ephemeral", ""); (_d.head || _h).appendChild(_m); } } } catch (e) {}
                 // Holo Playground: inject the in-frame agent so EVERY element in this app is right-click-editable; its edits
                 // serialise (ephemeral-stripped) and post UP to createPlaygroundHost → the ONE primitive HoloLiveEdit.edit. No second sealer.
-                try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-playground-app")) { const _p = _d.createElement("script"); _p.id = "holo-playground-app"; _p.type = "module"; _p.setAttribute("data-holo-ephemeral", ""); _p.dataset.surface = n.id; if (pgActive()) _p.dataset.pgActive = "1"; _p.src = "/_shared/holo-playground-app.js"; (_d.head || _d.documentElement).appendChild(_p); } } catch (e) {} }); }
+                try { const _d = f.contentDocument; if (_d && !_d.getElementById("holo-playground-app")) { const _p = _d.createElement("script"); _p.id = "holo-playground-app"; _p.type = "module"; _p.setAttribute("data-holo-ephemeral", ""); _p.dataset.surface = n.id; if (pgActive()) _p.dataset.pgActive = "1"; _p.src = "/_shared/holo-playground-app.js"; (_d.head || _d.documentElement).appendChild(_p); } } catch (e) {}
+                // Deep Resume: re-apply this surface's saved scroll + drafts (generic, no per-app code), AFTER the
+                // app's own load so its content exists. Only fills EMPTY draft fields (never clobbers). Twice, to
+                // catch apps that render slightly late; idempotent. Gated on a restored node carrying the snapshot.
+                try { const _rs = n.appState && n.appState.__holoResumeDom; if (_rs && _ResumeDom) { const _go = () => { try { _ResumeDom.apply(f.contentWindow, _rs); } catch (e) {} }; setTimeout(_go, 120); setTimeout(_go, 480); } } catch (e) {} }); }
             else if (n.kind === "manim") el.appendChild(holoManimScene(n.scene)); // native Manim-flavored animation, in-shell
             else if (n.pure) el.appendChild(buildPure(n.pure));   // real OSS web component, in-shell — first-class
             else if (n.kappa) { const slot = document.createElement("div"); slot.className = "kappa-object"; el.appendChild(slot); HoloRender.render(slot, n.kappa, n.ctx || {}).catch((err) => { slot.textContent = "⚠ " + (err && err.message || err); }); }   // ANY UOR object, mounted in-shell from its κ via the ONE render path
@@ -984,14 +994,34 @@
       let _ssReady = false, _ssSaveT = 0;
       const _appPending = new Map();   // surfaceId → state to hand a participating app when it announces readiness
       const _appCollect = new Map();   // surfaceId → resolver, while collecting app state on flush
+      // Deep Resume: GENERIC per-app deep-state (scroll + drafts) captured straight from each same-origin app
+      // frame — zero per-app code. Used iff an app provides no custom holo-session-client state. Lazy + fail-soft.
+      let _ResumeDom = null;
+      import("/_shared/holo-resume-dom.mjs").then((m) => { _ResumeDom = m; }).catch(() => {});
+      // Session Roam: install the live device relay (window.HoloRelay; inert until a device pairs) so roam's
+      // "devices" leg has a relay to bind. The session-manifest roamer itself is created on pairing (below).
+      let _sessionRoam = null;
+      import("/_shared/holo-relay-bus.mjs").catch(() => {});
       function appFrames() { const out = []; try { for (const [id, el] of mounted) { const f = el.querySelector && el.querySelector("iframe"); if (f && f.contentWindow) out.push([id, f]); } } catch (e) {} return out; }
       // collect each open app's opt-in state into its world node (best-effort, timed — a non-participating app simply never replies)
       function collectAppState(timeout) {
         const frames = appFrames(); if (!frames.length) return Promise.resolve();
         return new Promise((resolve) => {
           let pending = frames.length; const fin = () => { if (--pending <= 0) { clearTimeout(to); resolve(); } };
-          const to = setTimeout(() => { for (const [id] of frames) _appCollect.delete(id); resolve(); }, timeout || 160);
+          const domFallback = new Map();   // Deep Resume: generic scroll+draft snapshot per surface
+          const to = setTimeout(() => {
+            // an app that DID reply already set its custom state + was removed from _appCollect (custom wins);
+            // anything still pending got no custom state → fall back to the generic deep-state snapshot.
+            for (const [id] of frames) {
+              if (!_appCollect.has(id)) continue;
+              _appCollect.delete(id);
+              const dom = domFallback.get(id);
+              if (dom) { try { patch(id, (n) => { n.appState = { __holoResumeDom: dom }; }); } catch (e) {} }
+            }
+            resolve();
+          }, timeout || 160);
           for (const [id, f] of frames) {
+            try { if (_ResumeDom) domFallback.set(id, _ResumeDom.capture(f.contentWindow)); } catch (e) {}   // direct same-origin read; null if not accessible
             _appCollect.set(id, (state) => { try { patch(id, (n) => { if (state == null) delete n.appState; else n.appState = state; }); } catch (e) {} fin(); });
             try { f.contentWindow.postMessage({ t: "holo-session:save", surfaceId: id }, "*"); } catch (e) { fin(); }
           }
@@ -1015,6 +1045,7 @@
         try { await HoloWB.captureWorld(desktop.doc().world); } catch (e) {}   // Phase A/C: fold each app's fresh state into its per-app chain, SCOPED to the active workspace (lazy; dedup'd)
         try { window.__holoRoam && window.__holoRoam.advertiseAll(); } catch (e) {}   // Phase E: if Roam is on, mirror the captured changes to other tabs/devices
         try { await HoloSession.saveSnapshot({ tabs, activeTab }); } catch (e) {}
+        try { _sessionRoam && _sessionRoam.publish(); } catch (e) {}                  // Session Roam: advertise this manifest to paired devices (inert until paired)
       }
       function scheduleSave() { if (!_ssReady || (typeof document !== "undefined" && document.visibilityState === "hidden")) return; clearTimeout(_ssSaveT); _ssSaveT = setTimeout(flushSession, 800); }   // debounced; a hidden tab defers to its pagehide flush (cross-tab guard)
       // applyBody(manifest) — settings → localStorage, rebuild tabs, queue per-app state, repaint. ONE reflow.
@@ -1031,6 +1062,11 @@
         return true;
       }
       try {   // BOOT: a CAR-resume (ADR-0105, explicit + device-agnostic) first, else THIS device's active realm
+        // AUTH ⊗ RESTORE, ONE MOTION: if the lock screen just signed an operator in, it left their session
+        // vault key as a consume-once handoff. Adopt it BEFORE any restore so activeRealm() resolves to the
+        // operator's SOVEREIGN realm — their exact prior world is unwrapped here, no second biometric. Absent
+        // (guest, or warm reveal with the key already in memory) → falls through to the device realm as before.
+        try { await HoloSession.takeUnlock(); } catch (e) {}
         let _link = null;                                            // (a guest → the device-key realm, so a guest lands where they left off with NO action)
         try { _link = await resolveBootResume(); } catch (e) {}       // a shared holospace (#wks) or cloud token (?wks) opened as a URL
         let _body = null;
@@ -1086,6 +1122,7 @@
           if (!body) { const c = await HoloSession.claimGuestRealm(); body = c && c.body; }   // first sign-in → claim guest work
           if (body) { await applyBody(body); try { renderTabs(); reflectOmni(); } catch (e) {} }
           flushSession();
+          try { bootSessionRoam(); } catch (e) {}   // operator just unlocked → activate roam for their devices
         } catch (e) { console.warn("holo-session onSignIn:", e && e.message); }
       }
       window.HoloSession = Object.assign(window.HoloSession || {}, {
@@ -1094,6 +1131,72 @@
         operatorLocked: () => { try { return HoloSession.operatorLocked(); } catch (e) { return false; } },
         reset: async () => { try { await HoloSession.resetDevice(); toast("This device's saved experience was reset · reload to start fresh"); } catch (e) {} },
       });
+
+      // SESSION ROAM — your live session follows you to a PAIRED device by κ. Pairing (holo-pair) calls
+      // window.HoloSessionRoam.activate({operator, pairKey}) with the shared operator κ + E2E pair key and
+      // attaches the device channel via window.HoloRelay.attach(...). Then each save tick advertises this
+      // manifest; an incoming newer manifest is verify-before-trust'd + resumed (applyBody); a true divergence
+      // keeps BOTH. kappaOf hashes ONLY the stable holo:experience (NOT the volatile timestamp) so an identical
+      // desktop reads as in-sync; seq = the manifest's generatedAtTime (recency). Fail-soft + inert until paired.
+      window.HoloSessionRoam = Object.assign(window.HoloSessionRoam || {}, {
+        active: () => !!_sessionRoam,
+        async activate({ operator, pairKey } = {}) {
+          try {
+            if (!operator || !pairKey || !window.HoloRelay) return false;
+            const [{ makeSessionRoam }, { topicOf }, { jcs }] = await Promise.all([
+              import("/_shared/holo-session-roam.mjs"), import("/_shared/holo-pull-rendezvous.mjs"), import("/_shared/holo-uor.mjs")]);
+            const keyBytes = pairKey instanceof Uint8Array ? pairKey : new Uint8Array(pairKey);
+            const cipher = HoloSession.makeCipher(keyBytes);
+            const enc = new TextEncoder();
+            const kappaOf = async (b) => "did:holo:sha256:" + [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(jcs((b && b["holo:experience"]) || b))))].map((x) => x.toString(16).padStart(2, "0")).join("");
+            const getLocal = async () => { const body = await HoloSession.currentExperienceManifest({ tabs, activeTab }); return { body, seq: Date.parse(body["prov:generatedAtTime"]) || 0 }; };
+            const applyRemote = async (body) => { try { await applyBody(body); renderTabs(); reflectOmni(); updateNav(); try { window.__paintEmpty && window.__paintEmpty(); } catch (e) {} } catch (e) {} };
+            const onDiverged = (body) => { import("/_shared/holo-roam-choose.mjs").then((m) => m.offerRoamResume({ label: "your other device", onResume: () => applyRemote(body) })).catch(() => { try { toast("Your session from another device is ready"); } catch (e) {} }); };   // P4: one-tap chooser, never auto-clobber
+            const self = (crypto.randomUUID && crypto.randomUUID()) || ("d" + (Date.parse(new Date().toISOString()) || 0));
+            _sessionRoam = makeSessionRoam({ relay: window.HoloRelay, topic: topicOf(operator), cipher, kappaOf, getLocal, applyRemote, onDiverged, self });
+            _sessionRoam.start(); _sessionRoam.publish();
+            return true;
+          } catch (e) { console.warn("session-roam activate:", e && e.message); return false; }
+        },
+        // fromPairing — a pairing flow hands the shared roam key (b64) + the channel + this device's role
+        // (offer = the device that minted the grant · answer = the new device). Activate roam, then open the
+        // WebRTC datachannel to the other device and attach it to the relay. Any authorizer/login pairing path
+        // can call this directly. Cross-MACHINE liveness verifies on two real devices.
+        async fromPairing({ operator, roamKey, channel, role } = {}) {
+          try {
+            if (!operator || !roamKey || !window.HoloRelay) return false;
+            const key = roamKey instanceof Uint8Array ? roamKey : Uint8Array.from(atob(roamKey), (c) => c.charCodeAt(0));
+            if (!(await window.HoloSessionRoam.activate({ operator, pairKey: key }))) return false;
+            if (channel) { try { const { roamOffer, roamAnswer } = await import("/_shared/holo-roam-link.mjs"); (role === "offer" ? roamOffer : roamAnswer)(channel, (dc) => { try { window.HoloRelay.attach(dc); } catch (e) {} }).catch(() => {}); } catch (e) {} }
+            return true;
+          } catch (e) { return false; }
+        },
+      });
+      // bootSessionRoam — auto-activate roam for THIS operator's own surfaces (other windows on this machine):
+      // a roam key derived from the unlocked vault key (identical across the operator's windows), over a
+      // same-origin BroadcastChannel attached to the device relay. Cross-DEVICE roam activates via the pairing
+      // roam key (holo-pair → window.HoloSessionRoam.activate + a WebRTC datachannel on window.HoloRelay).
+      // Fail-soft + idempotent; inert for guests / locked / no-relay. Function declaration → onSignIn can call it.
+      async function bootSessionRoam() {
+        try {
+          if (_sessionRoam || !window.HoloRelay) return;                                // already roaming / relay-bus not loaded yet
+          // (a) cross-DEVICE: a pairing handed us a shared roam key (consume-once) → open the datachannel + roam
+          let pr = null; try { pr = JSON.parse(sessionStorage.getItem("holo.roam.pair") || "null"); } catch (e) {}
+          if (pr && pr.operator && pr.roamKey) { try { sessionStorage.removeItem("holo.roam.pair"); } catch (e) {} await window.HoloSessionRoam.fromPairing(pr); return; }
+          // (b) same-MACHINE: this operator's OTHER WINDOWS, via a same-origin BroadcastChannel
+          const op = HoloSession.signedInOperator && HoloSession.signedInOperator(); if (!op) return;
+          const rk = await HoloSession.roamKeyBytes(); if (!rk) return;                 // operator must be unlocked
+          try { if (typeof BroadcastChannel !== "undefined") window.HoloRelay.attach(new BroadcastChannel("holo-roam:" + op)); } catch (e) {}
+          await window.HoloSessionRoam.activate({ operator: op, pairKey: rk });
+        } catch (e) {}
+      }
+      bootSessionRoam(); setTimeout(bootSessionRoam, 1200);   // now + once after the async relay-bus import settles
+
+      // WARM LOCK — "lock, don't log out": gate the warm-resident shell behind a biometric on hide/idle. The
+      // session stays live in memory (no navigation, no re-restore on unlock); eligible ONLY for a real
+      // operator with a device biometric — a guest / no-biometric session is never locked (never stranded).
+      // Pure-JS: warm-resident SW_HIDE fires visibilitychange, which the lock listens for (no native change).
+      try { const { installWarmLock } = await import("/_shared/holo-lock-ui.mjs"); window.__holoLock = installWarmLock(); } catch (e) { console.warn("warm-lock install:", e && e.message); }
 
       renderTabs(); recordNav();   // seed the Home tab's origin (its current desktop)
       // The empty canvas (Home or a fresh tab) is intentionally clean — just the wallpaper. The

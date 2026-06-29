@@ -19,9 +19,19 @@
 
 import { seal, verify as verifyObj, UOR_CONTEXT } from "./holo-object.mjs";
 import { makeStrand } from "./holo-strand.mjs";
+import { sha256Hex } from "./holo-identity.mjs";
 
 const NS = "https://hologram.os/ns/ad4m#";
 const hexOf = (url) => String(url).split(":").pop();
+
+// predicateKappa(verb) — a Link's predicate is itself a κ (content-addressed, reusable across links and
+// agents), not a bare string. A verb name is minted to its stable address; an already-minted κ passes
+// through. This is what turns the graph into a shared VOCABULARY (Law L1, one address per relation).
+export async function predicateKappa(p) {
+  const s = String(p);
+  if (s.startsWith("did:holo:")) return s;
+  return "did:holo:sha256:" + (await sha256Hex(new TextEncoder().encode("ad4m:pred:" + s)));
+}
 
 // The base shape of an Expression: a self-verifying UOR value. Authorship and time live on the LINK that
 // references it (the strand records op + generatedAtTime), NOT inside the value — so an Expression is an
@@ -48,6 +58,7 @@ export function linksFromEntries(entries = []) {
       kappa: r.id,
       source: r["holstr:payload"].source,
       predicate: r["holstr:payload"].predicate,
+      predicateKappa: r["holstr:payload"].pk ?? null,   // predicate-as-κ (D1): the relation's content address
       target: r["holstr:payload"].target,
       author: r["holstr:op"] || null,
       at: r["prov:generatedAtTime"],
@@ -119,14 +130,20 @@ export function makeAd4m({ signer = null, store = new Map(), now = () => "1970-0
       kappa: rec.id,
       source: rec["holstr:payload"].source,
       predicate: rec["holstr:payload"].predicate,
+      predicateKappa: rec["holstr:payload"].pk ?? null,   // predicate-as-κ (D1): the relation's content address
       target: rec["holstr:payload"].target,
       author: rec["holstr:op"] || null,
       at: rec["prov:generatedAtTime"],
     });
 
-    async function addLink({ source, predicate, target }) {
+    // pk (optional) — the predicate's κ, carried alongside the verb name so rulesets still validate the
+    // human verb while the graph projects the content address. The strand entry keeps both; conformance
+    // checks `predicate`, links() expose `pk`.
+    async function addLink({ source, predicate, target, pk = null }) {
       if (!source || !predicate || !target) throw new Error("a Link needs source, predicate, target");
-      const rec = await strand.append({ kind: "ad4m:link", payload: { source, predicate, target } });
+      const payload = { source, predicate, target };
+      if (pk) payload.pk = pk;
+      const rec = await strand.append({ kind: "ad4m:link", payload });
       return linkOf(rec);
     }
 
@@ -158,7 +175,18 @@ export function makeAd4m({ signer = null, store = new Map(), now = () => "1970-0
     };
   }
 
-  return { me, registerLanguage, languageNames, createExpression, getExpression, perspective, store };
+  // ── the ONE link verb (the unified facade seam) ─────────────────────────────────────────────────────
+  // link(subject, predicate, object) over a default Perspective; the predicate is minted to a κ. This is
+  // the single entry point that edge-κ and the semantic-web slices fold onto — one verb, not many modules.
+  let _defaultPersp = null;
+  async function link(subject, predicate, object) {
+    if (!subject || !predicate || !object) throw new Error("link needs subject, predicate, object");
+    if (!_defaultPersp) _defaultPersp = perspective({});
+    return _defaultPersp.addLink({ source: subject, predicate, target: object, pk: await predicateKappa(predicate) });
+  }
+  const graph = (q = {}) => (_defaultPersp ? _defaultPersp.links(q) : []);
+
+  return { me, link, graph, registerLanguage, languageNames, createExpression, getExpression, perspective, store };
 }
 
 // ── browser binding: window.HoloAd4m over the live operator + κ store, on operator surfaces only. The

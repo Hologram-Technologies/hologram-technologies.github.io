@@ -400,6 +400,36 @@
     var k = phraseKey(text, voice); if (_pcmCache.has(k)) _pcmCache.delete(k);
     _pcmCache.set(k, { audio: audio, rate: rate });
     while (_pcmCache.size > _PCM_MAX) _pcmCache.delete(_pcmCache.keys().next().value);
+    persistPhrasePCM(k, audio, rate);                                  // write-through to the durable κ-commons
+  }
+  // Durable backing for the phrase cache (the "κ-disk backend behind the same key" this seam was built for):
+  // the SAME content-addressed phraseKey, persisted into the OS's shared κ-store (Cache API "holo-kappa-v2",
+  // which the IPFS gateway already serves from). A clip synthesised once — by you in any past session, or by
+  // a peer who shares the store — replays with ZERO inference. The in-memory _pcmCache stays the SYNC read
+  // path (callers are sync); this only WRITES through and HYDRATES L1 at warm(). No new surface, fail-soft.
+  function voiceKeyURL(k) { return "https://holo.kappa/voice/" + encodeURIComponent(k); }
+  function persistPhrasePCM(k, audio, rate) {
+    try {
+      if (typeof caches === "undefined" || !audio || !audio.length) return;
+      var u8 = new Uint8Array(audio.buffer, audio.byteOffset || 0, audio.byteLength).slice();   // own the bytes
+      caches.open("holo-kappa-v2").then(function (c) {
+        c.put(voiceKeyURL(k), new Response(u8, { headers: { "x-holo-voice": "1", "x-rate": String(rate || 24000), "cache-control": "public, max-age=31536000, immutable" } }));
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  async function hydratePhrasePCM() {                                  // load durable phrases into L1 so past/peer clips replay instantly + prewarm skips them
+    try {
+      if (typeof caches === "undefined") return 0;
+      var c = await caches.open("holo-kappa-v2"), keys = await c.keys(), n = 0, P = "https://holo.kappa/voice/";
+      for (var i = 0; i < keys.length && _pcmCache.size < _PCM_MAX; i++) {
+        var u = keys[i].url || "", at = u.indexOf(P); if (at < 0) continue;
+        var k = decodeURIComponent(u.slice(at + P.length)); if (_pcmCache.has(k)) continue;
+        var r = await c.match(keys[i]); if (!r) continue;
+        var rate = +(r.headers.get("x-rate") || 24000), buf = await r.arrayBuffer();
+        if (buf && buf.byteLength >= 4) { _pcmCache.set(k, { audio: new Float32Array(buf), rate: rate }); n++; }
+      }
+      return n;
+    } catch (e) { return 0; }
   }
   // one ORT TTS session ⇒ synth calls must never overlap. This FIFO lock serialises every synth (the
   // streaming speaker, one-shot speakNatural, and the background prewarm) so they can't collide.
@@ -544,6 +574,7 @@
   }
   function warm() {
     if (_warmed) return; _warmed = true;
+    try { hydratePhrasePCM(); } catch (e) {}                           // load durable phrases into L1 first → past/peer clips replay instantly + prewarm skips them
     try { ensureMode(true); } catch (e) {}                            // load the recognizer QUIETLY — warm() is a background pre-load, it must never surface a "loading" toast
     setTimeout(function () { ensureTTS().then(function (t) { if (t && t.engine) prewarmPhrases(); }); }, 500);
     try { prefetchBrain(); } catch (e) {}                             // start the brain .holo → OPFS warm in the background
@@ -599,7 +630,7 @@
           // κ-served WASM fallback: when there's no WebGPU (κ-native ear off), serve Whisper's ONNX from its
           // .holo so the any-browser floor is ALSO content-addressed/warm/serverless (falls back to vendored ONNX).
           var serve = { module: "/apps/q/forge/gpu/holo-onnx-kserve.mjs", holoUrl: "/apps/q/forge/.models/whisper-tiny-onnx.holo",
-            modelId: "onnx-community/whisper-tiny", kappa: "bed091f088f786ca772a0f00b89a3a20ac0a0f95f8aba10801b1302c994432e7",
+            modelId: "onnx-community/whisper-tiny", kappa: "361209ec2ff387beb9e763017cd50d18f9cc8b5276346d62420922ca9a5d9185",
             release: "https://github.com/Hologram-Technologies/hologram-apps/releases/download/models-v1/whisper-tiny-onnx.holo" };
           STATE.asr = (mod.createASR || mod.default)({ remote: CFG.remote, proxy: CFG.stream !== false, knativeEar: ear, knativeServe: serve, lang: CFG.lang || "en" });   // κ-native ear when WebGPU; κ-served Whisper on the WASM floor; both fall back to vendored ONNX; streaming → worker
           bindSeam();
@@ -1245,9 +1276,14 @@
           // fetched/egressed; falls through to the link-adapter / none if absent or locked.
           var adapterBytes = null; try { var _ua = (typeof window !== "undefined" && window.HoloUserAdapter) ? await window.HoloUserAdapter.load() : null; if (_ua && _ua.bytes) adapterBytes = _ua.bytes; } catch (e) {}
           var respondKey = (m.modelKeyForFaculty && m.modelKeyForFaculty("respond")) || CFG.holoModel || "qwen2.5-0.5b";
+          // PER-SKILL specialist adapter (the model-zoo routing): when no link/user adapter is set, fall back to the
+          // catalog's adapter for this faculty — a tiny LoRA delta over the warm base. INERT by default: an empty
+          // catalog ⇒ resolveAdapter→null ⇒ adapterK||null = adapterK = exact current behavior. Import is fail-safe.
+          var skillAdapter = null;
+          try { var _qa = await import(BASE + "q/holo-q-adapters.mjs"); skillAdapter = _qa.resolveAdapter("respond", { baseModel: respondKey }); } catch (e) {}
           var engine = CFG.holoModelKappa
-            ? (m.createHoloModelBrain || m.default)({ model: "/.holo/sha256/" + CFG.holoModelKappa, kappa: CFG.holoModelKappa, adapter: adapterK, adapterBytes: adapterBytes })
-            : (m.createHoloModelBrain || m.default)({ model: respondKey, adapter: adapterK, adapterBytes: adapterBytes });
+            ? (m.createHoloModelBrain || m.default)({ model: "/.holo/sha256/" + CFG.holoModelKappa, kappa: CFG.holoModelKappa, adapter: adapterK || skillAdapter, adapterBytes: adapterBytes })
+            : (m.createHoloModelBrain || m.default)({ model: respondKey, adapter: adapterK || skillAdapter, adapterBytes: adapterBytes });
           await engine.load();                                     // quiet (no HUD) — overlaps the welcome
           _holoBrain = { engine };
           return _holoBrain;

@@ -20,4 +20,17 @@ async function boot() {
     if (halted) { postMessage({ kind: "halted" }); return; } setTimeout(tick, 0); };
   tick();
 }
-onmessage = (e) => { const m = e.data || {}; if (m.kind === "boot") boot(); else if (m.kind === "input" && ws) ws.feed_input(new TextEncoder().encode(m.data)); };
+// suspend → the live VM state bytes (the page seals them under the TEE key via holospace-lifecycle.snapshot);
+// resume → load a snapshot back (the page has already openState'd it — owner+TEE only — before handing bytes here).
+onmessage = (e) => {
+  const m = e.data || {};
+  if (m.kind === "boot") boot();
+  else if (m.kind === "input" && ws) ws.feed_input(new TextEncoder().encode(m.data));
+  else if (m.kind === "suspend" && ws) {
+    try { const b = ws.suspend(); postMessage({ kind: "suspended", bytes: b }, [b.buffer]); }
+    catch (err) { postMessage({ kind: "error", error: "suspend: " + String(err && err.stack || err) }); }
+  } else if (m.kind === "resume" && ws) {
+    try { ws.resume_devcontainer(m.bytes); postMessage({ kind: "resumed" }); }
+    catch (err) { postMessage({ kind: "error", error: "resume: " + String(err && err.stack || err) }); }
+  }
+};

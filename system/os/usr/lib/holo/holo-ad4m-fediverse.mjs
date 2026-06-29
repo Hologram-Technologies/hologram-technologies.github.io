@@ -17,6 +17,7 @@
 
 import { seal, verify as verifyObj, UOR_CONTEXT } from "./holo-object.mjs";
 import { canon } from "./holo-identity.mjs";
+import { defineLanguage } from "./holo-language.mjs";
 
 const AS2 = "https://www.w3.org/ns/activitystreams";
 const NS = "https://hologram.os/ns/ad4m#";
@@ -43,6 +44,13 @@ export const activitypubLanguage = Object.freeze({
   create: ({ note, prov }) => noteExpression(note, prov || {}),
   get: (e) => (verifyObj(e) ? e : null),
 });
+
+// foldActivityPub(node) — STEP B: fold the fediverse adapter onto the ONE capability-typed registry. It is a
+// transport Language (federates Notes over ActivityPub). Same impl, re-homed — κ stays bit-identical.
+export function foldActivityPub(node) {
+  node.languages.register(defineLanguage({ ...activitypubLanguage, capabilities: { transport: true } }));
+  return ["activitypub"];
+}
 
 // resolveActor(handle, { fetch }) — WebFinger → actor document. handle = "@user@instance" or "user@instance".
 export async function resolveActor(handle, { fetch } = {}) {

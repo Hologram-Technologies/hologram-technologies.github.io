@@ -14,6 +14,9 @@
 // entries and validation is a pure read. Reuses holo-strand-rules wholesale — no new rule engine.
 
 import { defineRuleset, forkRuleset, validate, adoptRuleset, governingRuleset, validateChain } from "./holo-strand-rules.mjs";
+import { predicateKappa } from "./holo-ad4m.mjs";
+import { sha256Hex } from "./holo-identity.mjs";
+import { verifyEntry } from "./holo-strand.mjs";
 
 export { defineRuleset, forkRuleset };
 
@@ -33,6 +36,20 @@ export function makeDna({ perspective, ruleset = LINK_DNA, isMember = () => true
   if (!perspective) throw new Error("Social DNA needs a perspective to govern");
   let rules = ruleset;
   let installed = false;
+  let _ruleEvals = 0;                                          // contract rule evaluations, cumulative
+  const truthy = (x) => x === true || (x && x.ok === true);
+
+  // warrantFor(link, verdict) — a signed, content-addressed proof that a Link violated the DNA, naming the
+  // offender. The proof is a κ over the warrant body (self-verifying; re-derivable by anyone, no key needed).
+  async function warrantFor(link, g) {
+    const body = {
+      offender: link.author ?? me ?? null,
+      badLink: { source: link.source ?? null, predicate: link.predicate ?? null, target: link.target ?? null },
+      reason: g.why, violations: g.violations ?? null,
+    };
+    const proof = "did:holo:sha256:" + (await sha256Hex(new TextEncoder().encode(JSON.stringify(body))));
+    return { ...body, proof };
+  }
 
   // ready() — record the governing ruleset on the spine once (an ordered `ruleset` entry). Idempotent.
   async function ready() {
@@ -42,19 +59,36 @@ export function makeDna({ perspective, ruleset = LINK_DNA, isMember = () => true
 
   // gate(link) → { ok, why?, violations? } — both checks, fail-closed. Used at add and per-entry at adopt.
   function gate(link) {
+    _ruleEvals++;
     const v = validate({ "holstr:kind": "ad4m:link", "holstr:payload": link }, rules);
     if (!v.ok) return { ok: false, why: "rule-violation", violations: v.violations };
     if (link.author != null && !isMember(link.author)) return { ok: false, why: "not-a-member", author: link.author };
     return { ok: true };
   }
 
-  // addLink(link) — validate BEFORE append; a violating Link never reaches the chain (fail-closed).
+  // addLink(link) — validate BEFORE append; a violating Link never reaches the chain (fail-closed) and
+  // yields a signed warrant. The STORED predicate is minted to a κ (D1): relations are addressable.
   async function addLink(link) {
     await ready();
-    const g = gate({ ...link, author: link.author ?? me });   // the local signer is the author
-    if (!g.ok) return g;
-    const added = await perspective.addLink(link);
+    const authored = { ...link, author: link.author ?? me };   // the local signer is the author
+    const g = gate(authored);
+    if (!g.ok) return { ...g, warrant: await warrantFor(authored, g) };
+    const added = await perspective.addLink({ ...link, pk: await predicateKappa(link.predicate) });
     return { ok: true, link: added };
+  }
+
+  // receive(entry) — a validation authority re-checking ONE published Link (Holochain's validating peer).
+  // INTEGRITY FIRST and FREE: the κ self-proves the bytes (verifyEntry), so a tampered Link is dropped
+  // BEFORE any contract rule runs — ruleEvals never increments on bad bytes (law: addressing-is-performance).
+  // Only an integrity-valid Link reaches the Social DNA; a rule-violating one yields a signed WARRANT κ.
+  async function receive(entry) {
+    await ready();
+    if (!truthy(await verifyEntry(entry))) return { ok: false, why: "integrity" };
+    if (entry["holstr:kind"] !== "ad4m:link") return { ok: true, skipped: true };
+    const link = { ...(entry["holstr:payload"] || {}), author: entry["holstr:op"] || null };
+    const g = gate(link);
+    if (!g.ok) return { ...g, warrant: await warrantFor(link, g) };
+    return { ok: true };
   }
 
   // adopt(entries) — validate an inbound chain against the DNA before trusting it: every ad4m:link entry
@@ -80,9 +114,11 @@ export function makeDna({ perspective, ruleset = LINK_DNA, isMember = () => true
   return {
     ready,
     addLink,
+    receive,
     adopt,
     gate,
     fork,
+    ruleEvals: () => _ruleEvals,
     ruleset: () => rules,
     governingAt: (seq) => governingRuleset(perspective.raw, seq),
     conformance: () => validateChain(perspective.raw),

@@ -258,19 +258,24 @@ if (typeof window !== "undefined") {
       // (separate tabs/windows converge), and WebRTC invite channels attach to the SAME bus — so a Space spans
       // this machine AND the open internet through a single seam. Inbound is routed to deliver (verify-before-
       // adopt); the operator signs invite membership grants. Loaded lazily so node stays free of this module.
-      let web;
+      let front;
       const { makeWanTransport } = await import("./holo-ad4m-wan.mjs");
-      const transport = makeWanTransport({ deliver: (s, m) => web && web._internal.deliver(s, m), operator: signer });
+      const { makeFront } = await import("./holo-front.mjs");   // the ONE door (node + pocket + Flux); dynamic import avoids a static cycle
+      const transport = makeWanTransport({ deliver: (s, m) => front && front.web._internal.deliver(s, m), operator: signer });
       if (typeof BroadcastChannel !== "undefined") { try { transport.attach(new BroadcastChannel("holo-flux-net")); } catch (e) {} }
-      web = makeHoloWeb({
+      front = makeFront({
         signer,
         now: () => new Date().toISOString(),
-        ambient: window.HoloAmbient || null,
-        transport,
-        opener: (t) => (window.HoloOpen ? window.HoloOpen(t) : Promise.resolve()),
-        displayName: (signer && signer.label) || "You",
+        web: {
+          ambient: window.HoloAmbient || null,
+          transport,
+          opener: (t) => (window.HoloOpen ? window.HoloOpen(t) : Promise.resolve()),
+          displayName: (signer && signer.label) || "You",
+        },
       });
-      window.HoloWeb = web;
+      window.HoloFront = front;            // the three-noun door (agent · κ · holospace)
+      window.HoloWeb = front.web;          // existing apps/web code transparently runs on the unified door (shared κ-store)
+      window.HoloPocket = front.pocket;    // grab/drop/embed now available to the UI
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-web-ready"));
     } catch (e) { /* leave unset; the app falls back to guest */ }
   };

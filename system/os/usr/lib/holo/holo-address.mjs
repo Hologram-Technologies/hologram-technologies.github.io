@@ -29,6 +29,8 @@ export const PLACES = Object.freeze([
   { name: "Login", path: "login.html" },
   { name: "Home",  path: "shell.html", alt: ["home", "home.html", "home-screen.html"] },
   { name: "Find",  path: "find.html",  alt: ["search"] },
+  { name: "Echo",  path: "echo.html",  alt: ["echo"] },
+  { name: "Instant", path: "instant.html", alt: ["instant"] },
 ]);
 
 // flatPath(loc) — normalize any holo location to its mount-relative key.

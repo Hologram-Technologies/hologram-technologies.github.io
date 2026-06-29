@@ -4,8 +4,8 @@
   },
   "dcterms:title": "Hologram OS — the SERVED-set closure (every served first-party byte, Law L5)",
   "spec": "A serve-rel → {blake3 (canonical κ), kappa (sha256 bridge alias)} pin for EVERY file the Service Worker serves from the os/ tree, so re-derivation (Law L5) covers the whole OS — not only the boot closure (os-closure.json). BLAKE3 is the substrate's kappo() (the one canonical address); sha256 is kept as a re-derivable bridge alias for legacy .holo/sha256 links and foreign-protocol interop. Folded by holo-fhs-sw.js with the same foldClosure() as os-closure; identity is content, not location (Law L1). Gitignored/undeployed heavy blobs heal by κ via their own manifests and are out of scope here.",
-  "count": 7162,
-  "bytes": 3777676046,
+  "count": 7217,
+  "bytes": 3778174786,
   "closure": {
     ".well-known/agent-card.json": {
       "blake3": "did:holo:blake3:6d2318d602f69bffcca3b68a76877386ef9ba16b1e4ed08fc02c35a0a15261fa",
@@ -148,16 +148,16 @@
       "kappa": "did:holo:sha256:a54e18536d0957188108fd95d39669ec88a338a519a174598b90afb4abefb0b1"
     },
     "apps/holo-import/view.html": {
-      "blake3": "did:holo:blake3:2e6d9b149671b5e38cd0b64bd16a53aefc6406c042cf891e4ab3a81817767cae",
-      "kappa": "did:holo:sha256:5b7ed1019a545c0a2f8b51d629b63b16ba0aeafadbb19292f23ef4807e0ff8fb"
+      "blake3": "did:holo:blake3:a733a42e587da04b36fe28373c5ac996cc5183fbeeea0c2e2da46c34e3cae2c5",
+      "kappa": "did:holo:sha256:3b539402e993e520e4d5563cd089d58fa374c94b5e62c1cab0922dcbe0879edb"
     },
     "bin/index.jsonld": {
       "blake3": "did:holo:blake3:b119b7e6a697df4fe6340dd1410428b2f5038a2bdc77ae563c1fd77cbf74382a",
       "kappa": "did:holo:sha256:1cb9902eed5333ae1d23ceffbb54e958cd744336c3ebbd080ceb571e71e93725"
     },
     "boot/boot.html": {
-      "blake3": "did:holo:blake3:c334294f1603064ea3be993a07a6d56d0a628f68371102ba32ad04673a0f8637",
-      "kappa": "did:holo:sha256:f6962ac039ede3a40b716293f22c723fc8f0752de00b1d21e3c3024b0c6e17e0"
+      "blake3": "did:holo:blake3:49078eefac9228d909f8d9de6fc3c7fcf8fd8ad646e64733196fa4403380bf36",
+      "kappa": "did:holo:sha256:b7b97bdae170477a07be4bae8a6fab094972bc1d1697f57ec22f4697dfff1b5e"
     },
     "boot/boot/boot-manifest.json": {
       "blake3": "did:holo:blake3:bc0c92d3ad3ee2f4d48db04b3e724a9db9deaf80acfaff46f4750349ad4ce255",
@@ -383,6 +383,10 @@
       "blake3": "did:holo:blake3:dad742a532de7d5a6621a10ac07d9b030320b0da57d2235de6bcf9b9c9837985",
       "kappa": "did:holo:sha256:19115566a555a40a61c69e211ea3b38606a0d5e5ec1812ee1faf0163525a9e9f"
     },
+    "etc/holo-grammar.map.json": {
+      "blake3": "did:holo:blake3:036d5f3038c4d538341226b794733f04b643c01b009489e5926a786f43835f14",
+      "kappa": "did:holo:sha256:04d86181b9a4396ddee6a67e443713141bad4cec3cc51f6d36523ef8ea16cce8"
+    },
     "etc/holo-pm/pm.uor.json": {
       "blake3": "did:holo:blake3:7929f3731363076d06bd99beecc42521a221b6bf60171ab4e6c16296f3bbccce",
       "kappa": "did:holo:sha256:a5a9db7fe0a76df174f04e0fdb22d27ad6e2000d515154e311e6235fc262a705"
@@ -420,8 +424,8 @@
       "kappa": "did:holo:sha256:bdb7fee16d37632c6b21af40477a0d910a8e5028387a1575a6c6c2105d964f1f"
     },
     "etc/os-closure.json": {
-      "blake3": "did:holo:blake3:655496d4ca14e9005210bf70811cc150c676db78cf7ca0a8e336765f15cc9fa0",
-      "kappa": "did:holo:sha256:3294cf0d23bdc0def14106b271f4c5aeb4b72d60b73b3b74bb8f237abd8a7010"
+      "blake3": "did:holo:blake3:aaf9a73df07145ccd45ddfcdaec430776a0603291a19821bba43d7875d77ec83",
+      "kappa": "did:holo:sha256:8d1353747ef787cf2a18b3a631934ce68569814430864b11151fa488ad8720d6"
     },
     "etc/privacy/policies.json": {
       "blake3": "did:holo:blake3:e80cad66fb96e5ec0792b36ab7df0533ace721b06f58e65d4fc63416d2620f78",
@@ -440,8 +444,8 @@
       "kappa": "did:holo:sha256:eca88a456d15c4ac7316a08cd81eb1e77dc000a5a102e8b3a24796fb26bf17b6"
     },
     "holo-fhs-sw.js": {
-      "blake3": "did:holo:blake3:23896f0e1fe9b27e20e3447cd73788bc84c9283a5a69e70f2c2822b179605fd1",
-      "kappa": "did:holo:sha256:33da6fe87bd29bd882e778454f7cf13836d0f477689db4c508c39599e857c6f2"
+      "blake3": "did:holo:blake3:e5f476f87d6115782f3d3de4835e52a777d81d330df683f4081e651d567c9465",
+      "kappa": "did:holo:sha256:25796d2548299d9ae4f8f5786a4399b66a4a9cf88421e94c9132fd98a3d1f419"
     },
     "home/index.jsonld": {
       "blake3": "did:holo:blake3:b461269a262aafd7bed7ec90b30dba31ad7f87c2e9d2ecbbe79e5ffc95da7e4e",
@@ -467,6 +471,10 @@
       "blake3": "did:holo:blake3:2adaeffa5d17768afbc755348140909c1f06374f8890f04a433608f7604487d5",
       "kappa": "did:holo:sha256:c417698fa1a44e71f95bc0e5d6be8c8d4362daf8e74fbd45b84fa158f14ef535"
     },
+    "lib/holo-archive-source.mjs": {
+      "blake3": "did:holo:blake3:4402e8fb72db50159a83b9a5516ef009f2eec9bb25ad419240c45111c6064ea4",
+      "kappa": "did:holo:sha256:adec8a49c3803217419e4cb82d6fd00372b977c6c7a4bd937773ca7008c7f528"
+    },
     "lib/holo-boot-sw-register.mjs": {
       "blake3": "did:holo:blake3:49236b3ba0193939c665e6c48868eb8e9ff452789dbe4bdb9d43aa8ab886b259",
       "kappa": "did:holo:sha256:c1c9a996b0306c7725c889aae33c10cf98bcf6e3d01dca589f062d9a2c8380cd"
@@ -476,8 +484,8 @@
       "kappa": "did:holo:sha256:25575817c80c76db3ba51969b6c56b60d0c18d007791567b022ab47764aeae16"
     },
     "lib/holo-fhs-map.mjs": {
-      "blake3": "did:holo:blake3:87fc4286e34cf5f0955cd034b1bbaf9a5fdde004db5bb513ad55a7681f150eee",
-      "kappa": "did:holo:sha256:1a0ae153fccf9593ede9194aec3ef421cffbe6f0ff3c472b2b6eab8af1d526dc"
+      "blake3": "did:holo:blake3:41b3160d1c94345fd1fadc9cc9b5b1aaa015eb98217fbfa2da632f1583e1a5fc",
+      "kappa": "did:holo:sha256:d94556a14c753f246eb1a89739856cd6b73d01c5119d4aa23210b2d3574432e9"
     },
     "lib/holo-heal-boot.mjs": {
       "blake3": "did:holo:blake3:05a1c60ebf7d06eb9d817d6c9c8dd8b3e52f544be5eda347bfb6f1d2655fe27f",
@@ -494,6 +502,10 @@
     "lib/holo-runtime.mjs": {
       "blake3": "did:holo:blake3:447694a8219d27420b71d623e11ecca3694984f1db57e7c56cb69636795fd2f1",
       "kappa": "did:holo:sha256:2ac77d66a2eb0ac9f79414a5b4ae6231197425abf1d16ac0b16923e260af9e21"
+    },
+    "lib/holo-stremio.mjs": {
+      "blake3": "did:holo:blake3:05114a06b4d36e17ba67b376c8c5845b3ee4d116e4def17c18a8c340553266e6",
+      "kappa": "did:holo:sha256:6f944554d31a00c079c05950acfbd1d9d60708db3fb56bc258d9770d82fdfd41"
     },
     "lib/index.jsonld": {
       "blake3": "did:holo:blake3:eefa1010f44e0823ce8e6659a123655e124a46c25e1e62e06706223f9c0cda0f",
@@ -774,6 +786,10 @@
     "sys/index.jsonld": {
       "blake3": "did:holo:blake3:fdb9616e6d71fe935660e2d908e12a93b1a35024b80ac9eb93eadc1e6770fd92",
       "kappa": "did:holo:sha256:f23454c78a1cebfea115c6c0b7f8668f12e118d6b806c4925a7b49521cc8d87d"
+    },
+    "talk-to-q.html": {
+      "blake3": "did:holo:blake3:50936b4c2ee848b9744887dadbb0ea55b6800aa9fb16a43392f7f0bec2fcbded",
+      "kappa": "did:holo:sha256:5e987a26b4b8d7e5d77a3877cebd10988b5edbaaa8f866d600c2f98df93107e0"
     },
     "tmp/index.jsonld": {
       "blake3": "did:holo:blake3:18898f8ada76fb73fbe80a80edbfa720ac59b9f462be9bb01b9c3d309b3de27c",
@@ -1122,6 +1138,10 @@
     "usr/index.jsonld": {
       "blake3": "did:holo:blake3:5922b700e1f82ac6bf4cd0e82ece497aabffc1e009b20ee3743ec877a507f5fd",
       "kappa": "did:holo:sha256:cda00c2c7fb2366f3fe8e5df096f69beac4146542be4097002985ba195e5db51"
+    },
+    "usr/lib/holo/alpine-worker.mjs": {
+      "blake3": "did:holo:blake3:bb2d54e7df18aeea1233c55a9397ec3c6d2e7f44bd418acb454edde2e01f9d18",
+      "kappa": "did:holo:sha256:c1d45e0ed4232bbca758ddbc3df19801dd2d8bcf98df0adb2fb3370a7de3e114"
     },
     "usr/lib/holo/api/holo-api-core.mjs": {
       "blake3": "did:holo:blake3:cf78717c7b61e273eee2cde0ffb2980b5989e56c467a2c8dd386e4e0983cd4d1",
@@ -21816,24 +21836,24 @@
       "kappa": "did:holo:sha256:c3a737c231acc110614f0ba8d0f9c34c07702041d053a01098e6c9d0d8c374a0"
     },
     "usr/lib/holo/holo-ad4m-boot.mjs": {
-      "blake3": "did:holo:blake3:a5d44dbdfd41dda293120a53812f26bc79061ea0be3b293099703df7249113f3",
-      "kappa": "did:holo:sha256:383074d8329b1418cb2b7ba3ff9dc9baed1fa1c9fa9e0a4d87105de828ea84a8"
+      "blake3": "did:holo:blake3:6b477aaea2357f964d2a946bd5f6ff5622467f4cd56ebf6664076943cc346437",
+      "kappa": "did:holo:sha256:b5d6a94cb06583a5749e4fdc0a71353c8c01ac08967b8d2073278ba55fe9d52e"
     },
     "usr/lib/holo/holo-ad4m-discovery.mjs": {
       "blake3": "did:holo:blake3:93ac0caab1bd3d77f8dd3b43ad7c442b9863f8d5aec34891761e923f4df966c4",
       "kappa": "did:holo:sha256:51180a120c4eb4e9f3627733c1f2ab3641be263f2b99b64411df8943f1fef875"
     },
     "usr/lib/holo/holo-ad4m-dna.mjs": {
-      "blake3": "did:holo:blake3:40e9c5d46d6906093c4f111bafe483fc9eae2eddfa2e7558b16476e7045a7bb8",
-      "kappa": "did:holo:sha256:7e9a95624fd8d2db140a05e6ad0c24140d30258ba5ce293a283873f7211f2a95"
+      "blake3": "did:holo:blake3:2250434a354c05d5e7006f6be0976d45c9aa2c0e62fd69d19d31a30bd0283b3d",
+      "kappa": "did:holo:sha256:5d1b479358a4522d0690721c9aee3b79565e15168521edb042c7b09e09d6ff90"
     },
     "usr/lib/holo/holo-ad4m-fediverse.mjs": {
-      "blake3": "did:holo:blake3:add3d74657d8c43d7e71812293a7e559e1939f5c2f3e6e819391ce83e0e3c14c",
-      "kappa": "did:holo:sha256:c9846381a30bf735cf3350ab168c9f1b48d32040c3351aa382fe23dd9b42ddc2"
+      "blake3": "did:holo:blake3:e7a1c47a8b9753fab665a9cfcd298b03c6c9ec7ebede89e525be582d0430f2d4",
+      "kappa": "did:holo:sha256:a59b0686fc345de6a0847b1b5d837fde773f27ea009760db101ca3901be8e6d9"
     },
     "usr/lib/holo/holo-ad4m-lang.mjs": {
-      "blake3": "did:holo:blake3:8c76b349713151063c22a7b918eab4e12e7e19c0df8810cdfd21e23c28795ef9",
-      "kappa": "did:holo:sha256:23e60a33354ce0d6c1755759ded56dd6f7615ae9a0084e3b5a0022f76e5a207b"
+      "blake3": "did:holo:blake3:4c97797b031624e0f3126ba7dd339de3590dc1ac7624ce1cfb9856deccef9418",
+      "kappa": "did:holo:sha256:ca80af16aecc8e33a0404f3ff36f8f617e71262abf9da887162e83fa0c8279ce"
     },
     "usr/lib/holo/holo-ad4m-mcp.mjs": {
       "blake3": "did:holo:blake3:fa4c87637fe54bd4cbe841090c8deabd9b8fcb15a3845fda77fffde064d0d740",
@@ -21852,12 +21872,12 @@
       "kappa": "did:holo:sha256:bb475b89499f7ccf1af6c5a17b46e49ade666b87f8fa56a04181a8db30e48b58"
     },
     "usr/lib/holo/holo-ad4m.mjs": {
-      "blake3": "did:holo:blake3:a0999cecb17f95432ab8d45d3cf11c2c017f199ac47d94001e33865f6ed88478",
-      "kappa": "did:holo:sha256:7992dc77455e5ccc1e3b795cb409e25abc57a731239f1de78846b0e8df93ed25"
+      "blake3": "did:holo:blake3:7a6263db820295d9dff855666066fd2127739f9602eadbbfee619539fe86b59c",
+      "kappa": "did:holo:sha256:109e0f98c0f38d3e54ef622d89fcdb5c4df220be29c0a402309c819e011298e8"
     },
     "usr/lib/holo/holo-address.mjs": {
-      "blake3": "did:holo:blake3:a9d21192309544efed57cc63354a975014d41181939ad4e2b26a1502abde5584",
-      "kappa": "did:holo:sha256:66937bf1810fd1c5ecf7fa5ab1f626dfcdc1a20b58e63f8ff238238c4e1f2e75"
+      "blake3": "did:holo:blake3:81f3be785cef35adc9d2983707c92da6f4017270d3cb3fde7d37085400eed3e2",
+      "kappa": "did:holo:sha256:8c6a383f682712b5d6f3871664ee5398da9981ddc98463ccfaae14f01c238ae2"
     },
     "usr/lib/holo/holo-admit.mjs": {
       "blake3": "did:holo:blake3:b2d069080655841d9ca4b4edf984cdd7f9e970f4ed02442f119244125f7f677e",
@@ -21892,8 +21912,8 @@
       "kappa": "did:holo:sha256:5f9443279c043686a69b3bf8e0325c4917e6bbbe8ea99b9c04932078e1b578ef"
     },
     "usr/lib/holo/holo-appearance-boot.js": {
-      "blake3": "did:holo:blake3:5ae35ef198fdad7f3a15ac6a15e20a1bb24d49cd352a0fefb9d1616522314750",
-      "kappa": "did:holo:sha256:e3f5f5a8b998c2bded337b23a647298f5b67454b8d14992bb1a748b1b5ee6cd3"
+      "blake3": "did:holo:blake3:f5cf434cf588d28416e1bc8f954c032782d256a73ad3671bf850d03a4a9f9875",
+      "kappa": "did:holo:sha256:48a8b06b25aae90e3b3ccb9104bdbf8f64a3fa04a6ba1f0988230ad06ffef48b"
     },
     "usr/lib/holo/holo-asanoha-gpu.js": {
       "blake3": "did:holo:blake3:339f209210e3fd80ca9539ed2d2a8cfb3f53dab978a09e64aa451629136a3762",
@@ -22147,6 +22167,10 @@
       "blake3": "did:holo:blake3:a71c2076580ea4ebd9edfb7bd5d9c09db90805ab58ae2c1ecf19d988f0d551ae",
       "kappa": "did:holo:sha256:23c94d9fe162e2f3704ee0934c111032def9dcbdd43e5f97a9a8bb668410cdaa"
     },
+    "usr/lib/holo/holo-device-graph.mjs": {
+      "blake3": "did:holo:blake3:73ae7daf862eaef111a27da36be51410391653e6ab66c30bba7979c95a54cfb4",
+      "kappa": "did:holo:sha256:47d126f17d3dd0e6c88d318e5201ef986b4acaa7092f75d1df46ae0073fc279e"
+    },
     "usr/lib/holo/holo-device-tier.mjs": {
       "blake3": "did:holo:blake3:f2bfda9626ac26fd73449773c768bc49b3cfb8162e7a8e89e45c06a5a453fd49",
       "kappa": "did:holo:sha256:a73717a241ced2acb058988a5b10f4e35958070092acfe4b5bf9b656a64baa3b"
@@ -22220,8 +22244,8 @@
       "kappa": "did:holo:sha256:fd1f0657c72d5b8b4b25ef3fbb279674bdbbe84e1ee62d530a1acbae896eb5d0"
     },
     "usr/lib/holo/holo-files.js": {
-      "blake3": "did:holo:blake3:cb8db7f71d56c87623b8749d399b5669c195453ed25b2d4d1b2f6d8a9e58daec",
-      "kappa": "did:holo:sha256:918ab94a3fa42556416403e24730443ae9c98c12f206c7813c62b1dc8c2e62dc"
+      "blake3": "did:holo:blake3:bada7904c5e4089614b81217cba358dfcc2575fbc1d699a3138fa5c3749cbea6",
+      "kappa": "did:holo:sha256:531753076dde7dc40880957d8822764bd7bc3e1a57e7d571608f7831b5340f82"
     },
     "usr/lib/holo/holo-find.js": {
       "blake3": "did:holo:blake3:e51c729338ac9af7a70f9ab0180b0717cd865656c562789e5a8fab46a16ee7c5",
@@ -22230,6 +22254,22 @@
     "usr/lib/holo/holo-fix-proposer.mjs": {
       "blake3": "did:holo:blake3:4948689a70b516da5f75158f4d9b582fcea662bc9a85b97b584b383a0879a51d",
       "kappa": "did:holo:sha256:347a44c108726c12bfb03ea5ab9ac54e33ecb5e64bf1acc5a622b55bc3a5b349"
+    },
+    "usr/lib/holo/holo-foresight-feed.mjs": {
+      "blake3": "did:holo:blake3:68b4d32a509a2816b9c9e99873a53a3879feda56251a7ac2c86121185add3285",
+      "kappa": "did:holo:sha256:1360785f0c3c1e5b4739f12800a980c22a07fccd34137858a86c27ccfd35ed32"
+    },
+    "usr/lib/holo/holo-foresight-graph.mjs": {
+      "blake3": "did:holo:blake3:e5507e3f91d407479bb18f56659c61bde99e04d1748d2175287f78d5a539f689",
+      "kappa": "did:holo:sha256:9c80eb98bc75308070096ced792e69aa2ec2835ea39afa5662db776c01781f78"
+    },
+    "usr/lib/holo/holo-foresight-live.mjs": {
+      "blake3": "did:holo:blake3:0a97d45d5f11dd642baa272efee25cddfb40aa8173367a52b0f6de70b8a7d56c",
+      "kappa": "did:holo:sha256:06ec7bee76df336d1bbbcd8a3797259147f42e244ea8cd9a30c8b545f30757c6"
+    },
+    "usr/lib/holo/holo-foresight.mjs": {
+      "blake3": "did:holo:blake3:b6f97c7f4e376038ee5fef5e921f083eec8f343ecfa9081753ea2064c5404a17",
+      "kappa": "did:holo:sha256:ef7ae4a7afffc83032fd10360dcc412ce3f25fe192335e2c8e93f31048d1e3ad"
     },
     "usr/lib/holo/holo-forge-bundle.mjs": {
       "blake3": "did:holo:blake3:ccc57ac8836341d2de254ad2457b95c16aabb40654d0e232bbcd6fa026311fa2",
@@ -22287,6 +22327,10 @@
       "blake3": "did:holo:blake3:b3f0cf63a394572b270ff029c87cf4891cef40f765c6b286affaa77f66289a18",
       "kappa": "did:holo:sha256:5329c69e381a521d61bffe6fa356e8822af76901a39d2488577a70252776a7ab"
     },
+    "usr/lib/holo/holo-front.mjs": {
+      "blake3": "did:holo:blake3:624f1ca8f9f3d97f55083c24f939873982040190a80da4b1c2ab1471973d0159",
+      "kappa": "did:holo:sha256:9af8b0bbf02270faed8246870b97778b71247ca7e65b4346afe86fd92cc67022"
+    },
     "usr/lib/holo/holo-fx.js": {
       "blake3": "did:holo:blake3:6de42d5b321ab410e77198962636883fd71f6681928fc0803c204e4b305303a0",
       "kappa": "did:holo:sha256:6b1b79d9947fe97ad5623d36ae8d1b0ab846cbfbcec9e1a98c29d207256c9082"
@@ -22306,6 +22350,10 @@
     "usr/lib/holo/holo-gov.js": {
       "blake3": "did:holo:blake3:d00b1ca43d53a12cbfe5bf34bed8b653e5548a99209b534104f95fc412c7bdd9",
       "kappa": "did:holo:sha256:da5458bf085c0868af8d5705e8e51699cb0bbc375acce9fb2d4f10a07998d2bc"
+    },
+    "usr/lib/holo/holo-govern.mjs": {
+      "blake3": "did:holo:blake3:1294f264cfa41f37829d79aff73c299bb1ac44b4e62cff2e7038c51c94db749a",
+      "kappa": "did:holo:sha256:41a9ee0437f832d74045cab9bf8384c99d335d73af848c3a027b2fe700e9dfd7"
     },
     "usr/lib/holo/holo-gpu.js": {
       "blake3": "did:holo:blake3:2b4c0a04a07cb8cf5f4422af98f2d6f87f8759f727b50447e02770a3ade3e824",
@@ -22395,6 +22443,10 @@
       "blake3": "did:holo:blake3:a4e693c51ae16ccff82c194cedc2358e24a0f8f30709a950c452dee029e22cef",
       "kappa": "did:holo:sha256:0206ad239076af380818870878908f65be66a47705421818f42f832875d8f27f"
     },
+    "usr/lib/holo/holo-immersive-backdrop.mjs": {
+      "blake3": "did:holo:blake3:c038de1309006b824e617f11561e2343fffce977eb394a97e3c352c4a833158f",
+      "kappa": "did:holo:sha256:7dba320f5986472dae9a9a2880517f5a78dac9360ad3a22558a2c6ef26ed0e7d"
+    },
     "usr/lib/holo/holo-immersive.mjs": {
       "blake3": "did:holo:blake3:c1709eb06f0df9b4066c6691973d7b16e6bb78a91b4d9b9d7f67b27f43c7e36d",
       "kappa": "did:holo:sha256:2118e40d40fbf096ba10806a9cbdfc5d1618ba15a04e0b23df34c906f5d6a185"
@@ -22427,6 +22479,10 @@
       "blake3": "did:holo:blake3:1eb5579e1d0cd397149f83486468c1112348436228636269ac7b1ac04bf3c20c",
       "kappa": "did:holo:sha256:1729a98d6ac9ab1bedbf001a53402f59915a4769535c118b4f256d900c281e7a"
     },
+    "usr/lib/holo/holo-instant.mjs": {
+      "blake3": "did:holo:blake3:4b54533918af397ee91f9886db93e84f06665b8174f642873816ccfe8b7811c3",
+      "kappa": "did:holo:sha256:684a2b7a6770999fdf1d5fd28be7ac2652bacfe50e5842c1aa4124c8a2550dbb"
+    },
     "usr/lib/holo/holo-intent.mjs": {
       "blake3": "did:holo:blake3:dcbc6c6cf9156eab60b1c8dcb4b3b5e3bd85930d1824f50b6b5465de0d10e24e",
       "kappa": "did:holo:sha256:1b697cb4475d3c489c2cf6c7c633432ad98e219a625db04e7905f5bf26bc0ef1"
@@ -22455,9 +22511,17 @@
       "blake3": "did:holo:blake3:11bb2183aa7a153903a67c5e0da3c5f20daa836b022c0ffb80c9198928842f3f",
       "kappa": "did:holo:sha256:f631db771608ba3c4f935cd3ac562c1a49cba9d556e17918ad3398117c8a1ad1"
     },
+    "usr/lib/holo/holo-kappa-room.mjs": {
+      "blake3": "did:holo:blake3:0dfe8ea497555c81004e4b3bca7c2f15603630c34afe57240e273ebc73008930",
+      "kappa": "did:holo:sha256:fc2985adcb778293985bce51ad0134175ec5d816bdbaec6e50497d3cd9b106ef"
+    },
     "usr/lib/holo/holo-kappa-stream.mjs": {
       "blake3": "did:holo:blake3:4f06079e5b08ac348f102d91de60385ec97f9d4ccddfbe0338165dc9c74370a2",
       "kappa": "did:holo:sha256:c743e057ec492c8dfbd220304c9a86c0ee563a88f714e37b7cc1fa4c906b9575"
+    },
+    "usr/lib/holo/holo-kappa-swarm.mjs": {
+      "blake3": "did:holo:blake3:9890124ab2f6bd5dc3196bdf0c1360bac88a49b574b909ed1278a72225eb5f47",
+      "kappa": "did:holo:sha256:fcfeb3c971842723128684df798f72bf6782bcc15f4f49c984b0d31b562c9980"
     },
     "usr/lib/holo/holo-kappa.mjs": {
       "blake3": "did:holo:blake3:ef48f906023faf0a72ffded045ed2cc0f4e8dac46bae4d2bfcf61871e80d3032",
@@ -22470,6 +22534,10 @@
     "usr/lib/holo/holo-kstore.js": {
       "blake3": "did:holo:blake3:8d67fbc6b900af45a1c1cfefadd6ace456b95299106a6ba6a1dd8667be16fda1",
       "kappa": "did:holo:sha256:bb68b54a41da6bd978d79ee8cfc62c1e3e4067f4a5cf468165d4e752435c0702"
+    },
+    "usr/lib/holo/holo-language.mjs": {
+      "blake3": "did:holo:blake3:300480e4809206387bc3433fed215cc5e9512f4344afc9e31cc447919a6172bc",
+      "kappa": "did:holo:sha256:7425683ad958297b6334bbc3b7782c8684ed1726ec5383a84a0c54eb45fe80ef"
     },
     "usr/lib/holo/holo-learn-scheduler.mjs": {
       "blake3": "did:holo:blake3:e67c89abebf141fdd437f6477ddf58320ecc7b09e4ddcc962d3256757f90ddc8",
@@ -22494,6 +22562,14 @@
     "usr/lib/holo/holo-locator.mjs": {
       "blake3": "did:holo:blake3:bdb15904914e596e46999da7f4e34d97a549d7feb2f758d371e93267562eb885",
       "kappa": "did:holo:sha256:c890454df73c704e726403f4d129bf1f7d107c8109dc279a7be112fb504a3a4e"
+    },
+    "usr/lib/holo/holo-lock-ui.mjs": {
+      "blake3": "did:holo:blake3:4c387a5ab4e112c71ee7c1b6a987b1ebf5d1e14ae7006a3fd9130b5f01f65727",
+      "kappa": "did:holo:sha256:0de05c9b77cc84be1719811a2016d1f8c2446988eafae485617a2abb36e7585c"
+    },
+    "usr/lib/holo/holo-lock.mjs": {
+      "blake3": "did:holo:blake3:683c1d84883ec83505307b9e20ec4e9c33831afb6c6ea5361818ea2359272a0b",
+      "kappa": "did:holo:sha256:5021a6c71d00ad18bc3c63314ac09f9ee16c792fdbed3eeb510f7e02b95c4e8a"
     },
     "usr/lib/holo/holo-login.mjs": {
       "blake3": "did:holo:blake3:b7cc47d4f02ff1323e51527cb0b7898478af3c469f1b322d72214897b9b1e492",
@@ -22623,6 +22699,14 @@
       "blake3": "did:holo:blake3:b998f9ec5d030118e7a96b2620b496f903a41a0ad4f58a197ccc7359dc8217f4",
       "kappa": "did:holo:sha256:24d7fa78afc3bcf417665c830daf738177ae02ea34107c37a78fc384d18df73e"
     },
+    "usr/lib/holo/holo-node.mjs": {
+      "blake3": "did:holo:blake3:32ee4d5c9699d291604a7356b329654d209e8b37e89f794b3cd531e40f13f4f7",
+      "kappa": "did:holo:sha256:0120cbc3b5e3f80ab4d40fbf585430e382b5c48da27cf2bf73a0ee72e0a00367"
+    },
+    "usr/lib/holo/holo-nostr.mjs": {
+      "blake3": "did:holo:blake3:79d62021f4545787f3b4f392fd5cabec2e85b1c3ced5fa756109dc0a731d291d",
+      "kappa": "did:holo:sha256:ecd0706f398985fd44dacdd388380184f0f491d3c1f9b6f074128fb566cb0e2d"
+    },
     "usr/lib/holo/holo-notepad-launch.js": {
       "blake3": "did:holo:blake3:6e06ccd0ee7df392557b7ad30576fcf19605b70f454d7d0fc052788fe71b5844",
       "kappa": "did:holo:sha256:621f916c0ce1995b6008595cb27e57acbca070d75fb5687ae3fd4e4791b39afc"
@@ -22636,8 +22720,8 @@
       "kappa": "did:holo:sha256:ae2f0809078dc2eacfb8f3b4f114922e71b603b9ff1098fbdb203baeaac32335"
     },
     "usr/lib/holo/holo-object.mjs": {
-      "blake3": "did:holo:blake3:4621749e2edebada3ed908e94a461fe14861ab3610e4dc47fbb2319c3cacd581",
-      "kappa": "did:holo:sha256:e2b86e6c9570ac05a5b1cfa8d373e8f13417d4a3baf34b6e31e0eae1f3d147e9"
+      "blake3": "did:holo:blake3:8f9b4c29e64abaa23b6dfa53c226ef65c289e59e74b67930065c4de99403b22c",
+      "kappa": "did:holo:sha256:139a482862ad7ec4a5805cc093937d2bdf63b7341183cad674e9d2f1467b60bb"
     },
     "usr/lib/holo/holo-observer.mjs": {
       "blake3": "did:holo:blake3:142af63263c64944f199b730efd55c1392d1c7928fdfaa9120532a0a0d2b9961",
@@ -22671,17 +22755,21 @@
       "blake3": "did:holo:blake3:da7cc44f104f9674621010c74c6950944a7af9b9424b4034c17768b7f87a8464",
       "kappa": "did:holo:sha256:438e2528a6f04dad1cbc9f1d09828a33aafcf25e95e6b8d16d4c553c42d8ce98"
     },
+    "usr/lib/holo/holo-origin.js": {
+      "blake3": "did:holo:blake3:0fb949f6c21c584c699875935c309e80572ac507b2bf497bc65d80eaf4acecd7",
+      "kappa": "did:holo:sha256:10ad82be01c479991469a3203df337ffe2c5829734b9946d388c8dcf84d28e86"
+    },
     "usr/lib/holo/holo-osr-admit.mjs": {
-      "blake3": "did:holo:blake3:c367dc334bbac25e86310ad21671e2cc3f287c7d7d39e77b5ee82d090c20ef0d",
-      "kappa": "did:holo:sha256:8894f2ebc98658f90f72ea950c3b2819d440aade6c8d5f50bf026e5e4de17631"
+      "blake3": "did:holo:blake3:23cd5adf7470d760ebbf8ed07eca404e79c8d476b03f5336e4e976f0eaf4cc52",
+      "kappa": "did:holo:sha256:3df8a3eb184c3cf29a4565fa3d9510f560a52ee6c288b6972769df6c8aa7f1ac"
     },
     "usr/lib/holo/holo-osr-lens.mjs": {
       "blake3": "did:holo:blake3:ddd98365d8f646691dfd9cbccd7fc9bb1d2cdda9a597d536d821624af21a6467",
       "kappa": "did:holo:sha256:a904ca5e580a5de0417320b97bf2f9284ee11b816c29ff22f074ef7d5ca1b3b0"
     },
     "usr/lib/holo/holo-osr-projector.html": {
-      "blake3": "did:holo:blake3:1bc4f7c5df562e935fa4148f2769e5fc34cb303ce58268fccf281043ff193cb5",
-      "kappa": "did:holo:sha256:bdb02cf94ce31c55303f70d0b01a6c472c767b49a4ff3f33a6acf62e7a7dd0f0"
+      "blake3": "did:holo:blake3:88525aac510f9de9f129b35a668b5e33e7ef1c1d56dc0781bfbc2dbbccaa762b",
+      "kappa": "did:holo:sha256:143c078fac9dd94cc51f1bdcdf3690f2d9a6b608223e19235cd868c5496579dd"
     },
     "usr/lib/holo/holo-own-rail.js": {
       "blake3": "did:holo:blake3:85489560b7d6ffd737a0fdd8475195b6fd9d19c944754aec26a1b4e609b079f7",
@@ -22696,8 +22784,8 @@
       "kappa": "did:holo:sha256:b0ebfcdf6e96feaf8f87d185443b3372765b8f9835826dfde12c64d2cb19acfb"
     },
     "usr/lib/holo/holo-pair.mjs": {
-      "blake3": "did:holo:blake3:b4f989ac848fa87584e5cb107a4ed05be5a13ee8117e9f48186ee123a70d6871",
-      "kappa": "did:holo:sha256:06fc6b059125bf57dca99302cf677bf0b6a1aeebf74baebdd990e811d862cd46"
+      "blake3": "did:holo:blake3:df4ab9f162331e0b1a90b297bff41fbff0936116613a68a31273e9abab8af4b9",
+      "kappa": "did:holo:sha256:050af643eaa857fce7970fd1dfdef376193db00a4f9299ed9b409737f249a0fb"
     },
     "usr/lib/holo/holo-passkey.mjs": {
       "blake3": "did:holo:blake3:baeb42edd27eaa2d599cc18af074b54078833a61c63477f42feca42b01750764",
@@ -22810,6 +22898,10 @@
     "usr/lib/holo/holo-pm.mjs": {
       "blake3": "did:holo:blake3:3b70928d8fed78f06ff8b3d1c8e0dc1f778069cbd26ee3246dc6363867fde346",
       "kappa": "did:holo:sha256:871473e4705ec9b65c87cfb1e34391a5ad7a3db2faa9e0edd38218728a3b5941"
+    },
+    "usr/lib/holo/holo-pocket.mjs": {
+      "blake3": "did:holo:blake3:3b3b9b4c167f84bd40bdf14eba2aca3243c0be9fa9ac1d1b9a4de13949ae770e",
+      "kappa": "did:holo:sha256:b1ee62acefacfab58af769c3a013d9dcc6717f6af0f54f1b3cc4b6fd65512abf"
     },
     "usr/lib/holo/holo-pqc.mjs": {
       "blake3": "did:holo:blake3:834778b6099f0301f069eb0177dcd115c99b5757cbb4a7606cc76524e319c215",
@@ -22959,6 +23051,10 @@
       "blake3": "did:holo:blake3:dee873a0858da7bdcc197bff86ddf450ab8313adb7ec0d5dae04a9a71e87a88f",
       "kappa": "did:holo:sha256:40a570dc3a35f51685db790296fb25260c56ccd73697f01ed6fdc6e29b143f20"
     },
+    "usr/lib/holo/holo-relay-bus.mjs": {
+      "blake3": "did:holo:blake3:93f38b84d9234e4f853393b4d417c14f7d428c933db1c45ba72002f2c1541125",
+      "kappa": "did:holo:sha256:5fa3242b637ba104d34b09dd42d212436444a808012c73dffceb90423386c77f"
+    },
     "usr/lib/holo/holo-relay.mjs": {
       "blake3": "did:holo:blake3:4f835ee4b2ae825c71c703100cb611290c77845bba0c7bf3bf506f2f4c06baeb",
       "kappa": "did:holo:sha256:50a1603e85b7fe83fc7abb940ffdf4bfb39000ff7d81e08372bab37f7bf2bc3f"
@@ -22991,6 +23087,10 @@
       "blake3": "did:holo:blake3:54e5370b11771bd69286f5e6257e0be8018217a1fbfbf28353b05b995e106830",
       "kappa": "did:holo:sha256:3a929d1c1bc1af2ac6d4ca7b6b54aec4b821e15f7cfa5db8e7ef26147ae18a88"
     },
+    "usr/lib/holo/holo-resume-dom.mjs": {
+      "blake3": "did:holo:blake3:de8ff6919e762205da681eeb9f28f90977d151609421db3d3f6f3826bc4b0a54",
+      "kappa": "did:holo:sha256:fb9d4be45f58fd68885f051f33b0e6ee2d351dd7a746e735a72960f865abcb35"
+    },
     "usr/lib/holo/holo-revocation.mjs": {
       "blake3": "did:holo:blake3:66064058ac7635b068c5dfce0fa2d67ce528b8898d33dcda723078ef1da578aa",
       "kappa": "did:holo:sha256:bd7035efd7f1c3f99222679194d6c43b2abdec68d34c3fd4d9c094cf549138ea"
@@ -22998,6 +23098,14 @@
     "usr/lib/holo/holo-rewind-ui.mjs": {
       "blake3": "did:holo:blake3:0673066e5ab9259368d7a4b342d25cfd0797ebdb90a7aaa1d9fa89afa1074629",
       "kappa": "did:holo:sha256:7a7442234fbbb2719ae01b13d2e2750cb5aa5b3a46425335c9a4014fca0277fe"
+    },
+    "usr/lib/holo/holo-roam-choose.mjs": {
+      "blake3": "did:holo:blake3:925866b3ea1c5a0f0ad5155e9e90e6e081bcb745f74f02e27918b8f253e126f5",
+      "kappa": "did:holo:sha256:d774653e3682bdeab78e7e6b365f8fce651319ff39bb4803e83a839f1a2009ef"
+    },
+    "usr/lib/holo/holo-roam-link.mjs": {
+      "blake3": "did:holo:blake3:3b6ed244eb98b249965ca84d7dc0367128d510639c16f0da383c7c654ba00a48",
+      "kappa": "did:holo:sha256:2a2408a16cf38f17a99168bb2a934e473f0de0e8ecbc0c6a1093093000fccdb7"
     },
     "usr/lib/holo/holo-roam-ui.mjs": {
       "blake3": "did:holo:blake3:1df8e2b99a4ae0f0c03f690b1307312b64004a7b9904edf47b7144667298f1d6",
@@ -23040,8 +23148,8 @@
       "kappa": "did:holo:sha256:9d5ec922fa13f6a5e924353dae8f25a26483ba83ed9a498427027c25a14f0bc0"
     },
     "usr/lib/holo/holo-sddm.js": {
-      "blake3": "did:holo:blake3:87adba77a5541adf4b5d7ede7085ac935e26b3d6ba2212cc7013696b79b23f73",
-      "kappa": "did:holo:sha256:96eff11b9199bcc1c185056014292fd3dd8fb3e4f35d92e4650c2618d9b73ba8"
+      "blake3": "did:holo:blake3:ece246b7504af08d3a0f73abdf41d4e42fed337b3a4f5734f6ba3e132e4f5959",
+      "kappa": "did:holo:sha256:f21f672164a1710947c7040c2b6391f67c86697e2101959e76fa487479538f5f"
     },
     "usr/lib/holo/holo-sdk.js": {
       "blake3": "did:holo:blake3:f460a7845da0d57136c707a3609e27ff8cca4dab30a9ae90cfa7ac0a132f6b91",
@@ -23055,9 +23163,13 @@
       "blake3": "did:holo:blake3:0172c05ad06b10de691b8d9fc241182db8e1b1c6a9c60492690130de318c34c6",
       "kappa": "did:holo:sha256:0d056f072761d2b85972de2739e228fea97459ed38bff803f0129aa9d5736530"
     },
+    "usr/lib/holo/holo-session-roam.mjs": {
+      "blake3": "did:holo:blake3:b70e47566b1bf0cb21c02914010bdd094f77627aa3432e4fdc112b290d6d6970",
+      "kappa": "did:holo:sha256:71a199e45d4c115791d61c84c81c507c5e3abf1a48021a428e4315ce568e27d5"
+    },
     "usr/lib/holo/holo-session.mjs": {
-      "blake3": "did:holo:blake3:92385c82d86d42b1dce37324abae2b1214db38b49fb20f2b1d3d42b3929bfc87",
-      "kappa": "did:holo:sha256:e4b1d8f2603426d61dd1dac87ebabe2a896afd996b23621d8facab46263e0786"
+      "blake3": "did:holo:blake3:b465a7113c1b962cc3ebc068482458707916751fc95a6725f1c44b9f83be33e9",
+      "kappa": "did:holo:sha256:a3bcd51fa311ee36dc8f6335ed623404f071e1d5fff8cb291413e9c6a9e8fa7f"
     },
     "usr/lib/holo/holo-shard.mjs": {
       "blake3": "did:holo:blake3:86ca6ea2839050075eeaf4d6f1d151ada2394587569e5467a5d976c4f8ee3fb1",
@@ -23224,8 +23336,8 @@
       "kappa": "did:holo:sha256:8964a12730678cc642062821e8fe38ee43a53b23f62066a5b6a7eb2452fe6ad4"
     },
     "usr/lib/holo/holo-theme-toggle.mjs": {
-      "blake3": "did:holo:blake3:423253ddac9798a4d7cfb1038fdeb66dedae0e6bad030cf7e5df2ab43b3fd92e",
-      "kappa": "did:holo:sha256:3254d76f41ffd50a3d0a4bc476d719a5b525733381d6311e875cb68e2b7a3eb1"
+      "blake3": "did:holo:blake3:72c44eddeeb1618d5cbfea64bea2e8e7172ca58b97d3c2cc483950b578c30f82",
+      "kappa": "did:holo:sha256:81bf1058e6d904ee961e47b3f79f4f31cffb703699f93a954c14cc787c0396f9"
     },
     "usr/lib/holo/holo-theme.css": {
       "blake3": "did:holo:blake3:1f29a13bf488c4bef3ad0f8a9c1335f15c968afbdc277b9527b500b39dff0ce4",
@@ -23250,6 +23362,10 @@
     "usr/lib/holo/holo-translucenttb-accents.json": {
       "blake3": "did:holo:blake3:818770ef4486b562ce9ad8da098d7bc69b20da7353428dea7aed3d1a9120f97f",
       "kappa": "did:holo:sha256:464227b40b63ee81edddf27b588dfee1ff8731b81bd5d7e94c124ee76a327514"
+    },
+    "usr/lib/holo/holo-transport.mjs": {
+      "blake3": "did:holo:blake3:e8f2efa9f778d69c9d5ffb1426b0c5044221029170dd0d8de0d40b91008aaf49",
+      "kappa": "did:holo:sha256:6e786246f65be2232cab5aab7abe2c08546c4c9855701155190c4d906832a18d"
     },
     "usr/lib/holo/holo-tron.mjs": {
       "blake3": "did:holo:blake3:c387634776f5c356e123b954efcd1a4711ad6bd0c63dcbf19a116815f0ce836e",
@@ -23312,8 +23428,8 @@
       "kappa": "did:holo:sha256:0e731f59f105d3396cbc256081eca99fddbd5c3e4a8f8c70357066060af80e3f"
     },
     "usr/lib/holo/holo-voice.js": {
-      "blake3": "did:holo:blake3:e9e8eb7923d652c7fcf267a64c9730a65f9d03b5ce32dbb4bbd49f71ccdc735d",
-      "kappa": "did:holo:sha256:6e2ca5c3504d86765fb7e8117db8a4ea172ce23939b06d26d3a64d578514355c"
+      "blake3": "did:holo:blake3:e6e8ab97db523f7dc6717767ff48ef5aaaa971889f38bfc9b7a661164e35e3b8",
+      "kappa": "did:holo:sha256:f7d22ece6b46de3d26bea65b061cf0130cf8b4fde0bf9a9f1f66b6b1748fc671"
     },
     "usr/lib/holo/holo-voice.mjs": {
       "blake3": "did:holo:blake3:2ab797e14547ffb7b0335aea66a6cb15b4feb39d9a51d91803f870c3a860e44a",
@@ -23348,8 +23464,8 @@
       "kappa": "did:holo:sha256:615e6a94d13e1f3957614f93cc60150b6d4beb994ff819ebdd265795ea3d0566"
     },
     "usr/lib/holo/holo-webauthn.mjs": {
-      "blake3": "did:holo:blake3:ca8bb54b73c287709b2d32eca49de2adeca58f2445d18931dd9fde88a1cc083c",
-      "kappa": "did:holo:sha256:b5b48b7706b392cb6323458b17d8f67d064106fdc677af3b1baf66d3752f456d"
+      "blake3": "did:holo:blake3:ee13b7b793c5531fe1d53a702c514d64191ce2f49218ca407f3b8860a0225645",
+      "kappa": "did:holo:sha256:872bacadeb0eb33342ba136f52e7725276a652d29d55e0435b61a2884f9c026b"
     },
     "usr/lib/holo/holo-webdav.js": {
       "blake3": "did:holo:blake3:3dd20aa4b6b8aeed057e36285ae965eb2d03eecac9225b855060587c5a46f596",
@@ -23458,6 +23574,10 @@
     "usr/lib/holo/holospace-identity.mjs": {
       "blake3": "did:holo:blake3:72f60e6a8400f614b9ca5d4d7a3411af1eb5844ef5c4faf70345082c66b3cad2",
       "kappa": "did:holo:sha256:a47d3b9d4e88ef9b9feb67ccf5f6e6908fbea15d30ed2d30c1ec2f1eab694ad2"
+    },
+    "usr/lib/holo/holospace-lifecycle.mjs": {
+      "blake3": "did:holo:blake3:2f898e6e8ad5d7af5189868410fa1688761cc17290275c5c13f43d07ad9578a1",
+      "kappa": "did:holo:sha256:c2bad6bbfcb239e712519ea7ca2cb0a98e2091374664df46fedf63e0ed8f974d"
     },
     "usr/lib/holo/holospace.mjs": {
       "blake3": "did:holo:blake3:ca33940fe0a4aa3997a3369d04bc863a83d24effc0d3c0846601f48de25a7ed6",
@@ -23639,6 +23759,10 @@
       "blake3": "did:holo:blake3:7a7b182f98bdfc431bd2b8a7247d228bccbe7e11cf8aaea2fb5cc9c8e42a68cd",
       "kappa": "did:holo:sha256:ffdb0d5fa56423021ab47e62b8b2028ce7c1bf9b9a2fe2da9d84171197b035ad"
     },
+    "usr/lib/holo/q/holo-q-adapters.mjs": {
+      "blake3": "did:holo:blake3:4ecff87aa3fce47745c790ccdb38f07ffd1743585334b127ddf40a1df1472929",
+      "kappa": "did:holo:sha256:35f4851e6687725c18c66b05d275e68dfee25fd93ab009dea7fa0d6b6e34c7e9"
+    },
     "usr/lib/holo/q/holo-q-ai.js": {
       "blake3": "did:holo:blake3:9a70befee3a1e4007a2693f20ff2266037b02451ec8163f870cfb493f9566583",
       "kappa": "did:holo:sha256:d609d31df9ed7a6b525874f5c8ae53ca8e5e96bb7ecef1b25c7708a06a762519"
@@ -23706,6 +23830,10 @@
     "usr/lib/holo/q/holo-q-components.mjs": {
       "blake3": "did:holo:blake3:5cd81f681dc86ba31891fc9993dd63b0572810479fc5b94e08629775da9dc29d",
       "kappa": "did:holo:sha256:669d0d19954ad216232030777f87918e6f692bcd6fba99e5c702cd2486ed84f2"
+    },
+    "usr/lib/holo/q/holo-q-contact.mjs": {
+      "blake3": "did:holo:blake3:19db039cfeab606137aefb05e44c5b6b6569b0347ac7e0198f725ec256733bb6",
+      "kappa": "did:holo:sha256:348390602d69f4cd28aefe1b447a2686f92f9bed945bae80da8a530b4de5e42b"
     },
     "usr/lib/holo/q/holo-q-corebrains.mjs": {
       "blake3": "did:holo:blake3:7c891cc92217f5caafc9a2250e099cb50ff275b505393b25d0b3a59f5147496c",
@@ -23784,8 +23912,8 @@
       "kappa": "did:holo:sha256:ca86a783ca8da094edb5e575fc7d8cacded0fda37495103e0b8e6daa2e2d156b"
     },
     "usr/lib/holo/q/holo-q-mux.js": {
-      "blake3": "did:holo:blake3:9ad270d2ed6e594a2cae6c2c658edd40b46a18ea1aba86278cec40eeb526cf52",
-      "kappa": "did:holo:sha256:6be2bbfebc705e896cb1163c4822d7b5d767d0e45b24f241a1972a432a2e3f3f"
+      "blake3": "did:holo:blake3:aaef870c355f60e38ccf336d9a7cd552b01a4951d3836fc6e92d642556ac8bf3",
+      "kappa": "did:holo:sha256:b88723b57ebc99358035a47d252831d3b9c16a8a146872e833586f88d240cab2"
     },
     "usr/lib/holo/q/holo-q-openrouter-catalog.mjs": {
       "blake3": "did:holo:blake3:24fbffed06153925fc2b94a26d0403366b62ad991f55c12ecb5fd1ab2fca633c",
@@ -23794,6 +23922,10 @@
     "usr/lib/holo/q/holo-q-orchestrate.js": {
       "blake3": "did:holo:blake3:024819edddac24e94f43278e7f5d242b25f815b5f8d2db33c5818ce7f86ae5d9",
       "kappa": "did:holo:sha256:3c61d6cc2e952ef05f7f6907973a8ca1de18c8cb05425701687eccf1826d6d02"
+    },
+    "usr/lib/holo/q/holo-q-passport.mjs": {
+      "blake3": "did:holo:blake3:4f0a09b4ffec4d096a1730c82da74c7ca3e5d93040f846b0acda8b5127923c02",
+      "kappa": "did:holo:sha256:d0a1a011497fd343132570f46d601dbf42cd8e3d1480495c164a5ee30cd364b1"
     },
     "usr/lib/holo/q/holo-q-perception.js": {
       "blake3": "did:holo:blake3:d09963a0701f0d09e9d4042f48f39fea10502eb17a54e468e8430cf58d87b9fc",
@@ -23830,6 +23962,10 @@
     "usr/lib/holo/q/holo-q-search.mjs": {
       "blake3": "did:holo:blake3:06245ee84e04004ada9fcf1edfaa85bbcd475268ba5c98b9658241113cd1ce7f",
       "kappa": "did:holo:sha256:0d4b7228be461a39ce7b98fd0aa6d6d9b9c07f3997d5b6955da00452d0e8eb28"
+    },
+    "usr/lib/holo/q/holo-q-seed.mjs": {
+      "blake3": "did:holo:blake3:55ecd55393d504c5d9eaec94e1c4ca1e2498e35ff5e796eaa5783d1c234e4b13",
+      "kappa": "did:holo:sha256:fcb3c6cf9082268bf571c7075623612e895c516e11c062a4ec23e82f7ef4b32a"
     },
     "usr/lib/holo/q/holo-q-spec-coder.mjs": {
       "blake3": "did:holo:blake3:8085c5b8cab73849bdf630eee578d98a9f7a345b600389d75ca9826a37948512",
@@ -23887,6 +24023,10 @@
       "blake3": "did:holo:blake3:8f9eb9e9a28276739d4c7d109eb52e1f524a680b822a863d83774bdd876635b9",
       "kappa": "did:holo:sha256:03683ebc5a9671e3d7dd1accfb38cfcc23bc697ccbeb33341fa2f86c2c64c8f9"
     },
+    "usr/lib/holo/q/holo-q-voice.mjs": {
+      "blake3": "did:holo:blake3:e078a6a722bacb31ece35a19efa0ef0b6a8b9e5f226fc07dabffc95fa1dca49d",
+      "kappa": "did:holo:sha256:3a18deca2c1456169170dda046c8b14e8c5c0847955a1681461d4138297f7401"
+    },
     "usr/lib/holo/q/holo-q.js": {
       "blake3": "did:holo:blake3:99d4193731984a7b29f57535de34519a786e319c3d1013462db7f418469a363f",
       "kappa": "did:holo:sha256:5873458185a37e2451688499c49d22933092e4995725fbde7e1233d8063ae3f1"
@@ -23924,8 +24064,8 @@
       "kappa": "did:holo:sha256:0d9c7f73faf28a53f39e54164254bf278d4fff7449e349dd351d2744e27f9d16"
     },
     "usr/lib/holo/riscv-worker.mjs": {
-      "blake3": "did:holo:blake3:d76e0ad83bc2e4f74fa8d7317d6f0aa730eda589769c1f71730d2958cb3d8deb",
-      "kappa": "did:holo:sha256:4ad2a0a23d99dda00c64115d632d5d1d3edb21469e4401b1b848f1b5c836b853"
+      "blake3": "did:holo:blake3:ce359f0c10c89040082fc7ef7be47f03e1e07fc943d4ca053a0a28be1ac5aecd",
+      "kappa": "did:holo:sha256:4a1bae69be6b605a8888fa206473c2b35810438caa01396e54818143adacc9a7"
     },
     "usr/lib/holo/screen-parity.html": {
       "blake3": "did:holo:blake3:fe30f8f8c4a943da121db73d8ea76b317211dd037c4425b529e4edd3023e6924",
@@ -26180,8 +26320,8 @@
       "kappa": "did:holo:sha256:69048bf5ecfcbea4d5f56d1049d1f7b50d9b6d1e0e5ae98e42ba3f154e50b796"
     },
     "usr/lib/holo/voice/holo-voice-holo-brain.mjs": {
-      "blake3": "did:holo:blake3:d0c5ca0dc62559f08bbd414e6970ddcfc067b94fa9d1fbc8c3c3fdce218f0d99",
-      "kappa": "did:holo:sha256:39bdccb1fa4de23d10059a0411c2a54b07da7f81227a034ee87b1a27d187920e"
+      "blake3": "did:holo:blake3:189e9058e331857c9d3d632ae0f44d8e35a9ccd802da39aad7b6d08563d9d9c8",
+      "kappa": "did:holo:sha256:2880c6c6de28a20e85919433f7176fc963eb194ba69092aca76c7ca2fe403987"
     },
     "usr/lib/holo/voice/holo-voice-llm.mjs": {
       "blake3": "did:holo:blake3:40d689df3ae7b11b990ac954b33daead7283aa1291684244d88425a804bd5858",
@@ -26803,6 +26943,22 @@
       "blake3": "did:holo:blake3:85324586d4483bb3f8b76de1dcb448481f4216c82012fda36c7a598690d4203a",
       "kappa": "did:holo:sha256:d9b6fce4da95753fbbba85a4c7b010ec59ec71c1dc0a7ce183a57f7b6c0d18be"
     },
+    "usr/share/frame/alpine-shell.html": {
+      "blake3": "did:holo:blake3:7ca47dc70702de85b251564c9f69c4449e837b64e863a5f736ef373f155bbc24",
+      "kappa": "did:holo:sha256:968ef9cab6b39712740849baef8141c5e2f67f24cb93205360d3fd716c110b03"
+    },
+    "usr/share/frame/echo-main.mjs": {
+      "blake3": "did:holo:blake3:d2ada6505e7294a801a31ec0952c6ca5629346a6383a6dee3745941cbe5c423c",
+      "kappa": "did:holo:sha256:b38997015d14dc9b2e7fff027f70253d0c7cf35f2d0f9142fb6410c9b52113f2"
+    },
+    "usr/share/frame/echo-oracle.mjs": {
+      "blake3": "did:holo:blake3:cae012079e71a1c02b786520c7af13572e1332832a284a1feccdafe38515cd59",
+      "kappa": "did:holo:sha256:6a1c97c588a1a6552efdc6ee47edba50f8c269ba5b0bc037f7c43f91f360f894"
+    },
+    "usr/share/frame/echo.html": {
+      "blake3": "did:holo:blake3:805fefeaa99d165391790ad063a74196ba70b769c844d1391f7d2b924273b86f",
+      "kappa": "did:holo:sha256:61df42fb77703b51d74520efd553abef5c1c8a1934dd50b83b29b0fc087bb84d"
+    },
     "usr/share/frame/extensions.html": {
       "blake3": "did:holo:blake3:74444cbf7203b9a4953a2c4b7a381f730877d23b1c12ac2eac7073b7a7923fec",
       "kappa": "did:holo:sha256:b427f9a6e183ccd6de20b6f46fcf1478d74672af0b5e597738c16a79d7c5832a"
@@ -26810,6 +26966,22 @@
     "usr/share/frame/find.html": {
       "blake3": "did:holo:blake3:76725e9f03b5c8b3ac6294308d968f22770a6b75ac3608332c5970721fa4aa0e",
       "kappa": "did:holo:sha256:6efc1866a0cb9bb1909f1027c8029d1d5317fd2ad669b8a9de8e719645b4bf75"
+    },
+    "usr/share/frame/fluid/vendor/LDR_LLL1_0.png": {
+      "blake3": "did:holo:blake3:4424e68f585acca7424277051345b7fca72ef058e14784ae01a1c8853bab8046",
+      "kappa": "did:holo:sha256:140c55bd97c21b9b22008d7054b492333fec67fbfc1a1b266e5b0209b647eed4"
+    },
+    "usr/share/frame/fluid/vendor/dat.gui.min.js": {
+      "blake3": "did:holo:blake3:b4d53efd88f8fa18378c83dc88d900de09922bca5231fb1fd2908cfce58ea632",
+      "kappa": "did:holo:sha256:55b14afbb94195bfb2e321727013c50eddb03d0b3aad5039b8a52b4f6df0d3c0"
+    },
+    "usr/share/frame/fluid/vendor/index.html": {
+      "blake3": "did:holo:blake3:7ad09cfebd23ca942993e960a5c39a893f5ec4d0ee096d9f4bbdf70a2211fca2",
+      "kappa": "did:holo:sha256:f41114fbb74519e721d1d360c7830153d01c6088270ca3042d485a5cd84344b6"
+    },
+    "usr/share/frame/fluid/vendor/script.js": {
+      "blake3": "did:holo:blake3:ae09aa1ce27241f6d74888e1a81541b5479ab5466e9d85622483e0ef2b2c4798",
+      "kappa": "did:holo:sha256:de703a437fff6a0261a756e3e42f749f34fd900849cfd541b689ff4eb0a11dde"
     },
     "usr/share/frame/holo-alive.html": {
       "blake3": "did:holo:blake3:9f542df4f1fe6b51526f5e19fa7da7d7ace74f9f2a023a08aa596845a662e427",
@@ -26868,12 +27040,12 @@
       "kappa": "did:holo:sha256:a962498fe61fbe4b8ab7f813bfa4904e08a9b5f9a098b6e51287375329753bf4"
     },
     "usr/share/frame/home-screen.html": {
-      "blake3": "did:holo:blake3:e49288b3c9faacab3e356aa88abfdb76b35bf7fbabab76703de09fa45652f66a",
-      "kappa": "did:holo:sha256:7abd717961d4098a2e6ec91ef723bb986cf41ee9e7901e1cd6432fbd82e86a51"
+      "blake3": "did:holo:blake3:b51ec19a3a0641d18b5e05246613a7f80cfc73ed6443e53ab8e7fbd2fd1f5e50",
+      "kappa": "did:holo:sha256:0442dd14dfcab78eeca89ea73eacc84a7d7a4104bdcf7f09fcf1d8bbac15d641"
     },
     "usr/share/frame/home.html": {
-      "blake3": "did:holo:blake3:5afd31cb88c7af8fa0d4de07f4848af69e3013b96f6eef63e1112258760e1901",
-      "kappa": "did:holo:sha256:54c08b2f732ca119db9aba9523a1d23d6cb51b70e0d8700f0dc239bf1f61e8da"
+      "blake3": "did:holo:blake3:f92111cba8ca70e342ce4ce4a7ff2405974e77bc5b6f8094475f60dcaa7e4a33",
+      "kappa": "did:holo:sha256:f3d36c8a85da3a87d24f206a47fc49f49ef1ba10c0bc1bd3b904488482b31da5"
     },
     "usr/share/frame/homepage.html": {
       "blake3": "did:holo:blake3:f2a74722ef6adf7ae36d22b1d90a1113dc6032903a899eceee19781f8a9188a0",
@@ -26887,9 +27059,21 @@
       "blake3": "did:holo:blake3:b3ef45c3b136a7b8efe22cecb95fa52ad5848aac25ce65053e8c3e8f10af229b",
       "kappa": "did:holo:sha256:96393667630081883d1ce387724a4cde30ff54279f793086b41673f3de03ab63"
     },
+    "usr/share/frame/instant-main.mjs": {
+      "blake3": "did:holo:blake3:f97aef7e9eb9a1dc99a9066875a0e2b31e8b2b926478f3b29efee36df75b77bd",
+      "kappa": "did:holo:sha256:330ade8525c5c00457aceb65dc17868210e28447d55b15b445b4f6e8ac035772"
+    },
+    "usr/share/frame/instant-oracle.mjs": {
+      "blake3": "did:holo:blake3:71c31b0e41d102f7dd79cc6d3f63337d5f74cd3ff7e317b3093727e9186bfabb",
+      "kappa": "did:holo:sha256:243bfe3e5ed47bf91b1f6b0e8ea7393062d9c861ad50bc8933d6a059f48c8f19"
+    },
+    "usr/share/frame/instant.html": {
+      "blake3": "did:holo:blake3:be793be8efa98deba1279bb4563df07a0f2a8de7e438d8ce5ae1d2ebd05bcbeb",
+      "kappa": "did:holo:sha256:2a71c2991df660c071e21074a636b7c2862d662e7b3ac80c2935e3567f0a772f"
+    },
     "usr/share/frame/login.html": {
-      "blake3": "did:holo:blake3:e24cac385768272ac763dede18adbdde56307c0d434daafb49130b9e6990a38a",
-      "kappa": "did:holo:sha256:1cd5f7d9f407c7e4e187234daa6ce08f62ea2ebac18ebaa2b69eeb6e9e5d52d4"
+      "blake3": "did:holo:blake3:f5f9f70badb4bbb96704a9dd4e3e842d33ad521ea978db726634442b040e8c35",
+      "kappa": "did:holo:sha256:e6f74cf4b8394728a8e09f5db1d64af7cc65a6c6e9b77c83bd3584cb1fafb923"
     },
     "usr/share/frame/media-player.html": {
       "blake3": "did:holo:blake3:f42a67f2e18ec4ff696b1b23c0386ce4a13abec9a41b07b1fc4aba601983b87d",
@@ -26904,20 +27088,20 @@
       "kappa": "did:holo:sha256:35ffca3bc29a931524ebc35541c91303b073ac9bddda94a6d9412df1d349391d"
     },
     "usr/share/frame/shell-main.mjs": {
-      "blake3": "did:holo:blake3:6af4373fa788413a316f77a0a79bcf42595e240170c1f8340699e87ac1cf7b5e",
-      "kappa": "did:holo:sha256:c40ae36282e6e285d6a5332f03aa356ebc3bbbc2abeb7a9c1008816bcdba8ac9"
+      "blake3": "did:holo:blake3:d3978de25af63dc0bbbdf0c577b76db000ce272fbcd1e70bafbbb3fdacad0f1f",
+      "kappa": "did:holo:sha256:afe33b14c5ab0e25898c0ce253b13b9986d0db94d0957bc2f0b26c5740fc1838"
     },
     "usr/share/frame/shell.html": {
-      "blake3": "did:holo:blake3:a01ce8ec59ae6696d97efdb289c474fe7745ca0bbef48d072a5ee4e2f2f25b36",
-      "kappa": "did:holo:sha256:45af6fb59009fe73ca4f439532714a8e1afd3f494cd69db970e4706a91e3df94"
+      "blake3": "did:holo:blake3:f160c667129b342f58dc92c6ee692fbb8b8c8f3c1575644bd30876bf37a2a385",
+      "kappa": "did:holo:sha256:e6a7bb330e6ec505de99f65e642bd1fe6e97c1e1b9de9e4cc50c8312e4defaae"
     },
     "usr/share/frame/skins-preview.html": {
       "blake3": "did:holo:blake3:c6725b182e663bd7b8f262fed000d6ff2f5d1034c8c3f2e1556a0239d7fae504",
       "kappa": "did:holo:sha256:116f08bf29a98722ac62e9ac872a7f81bc1a59fe2abf2f6cb87e574cb144d329"
     },
     "usr/share/frame/splash.html": {
-      "blake3": "did:holo:blake3:b6e7889e5b633b026b9ddf7a4d254f8516d92a32dccbf789660bcd7188c4401c",
-      "kappa": "did:holo:sha256:50081f9462166c2ac2fbadbcad1447f83a96118d61305ec769991066d48280c5"
+      "blake3": "did:holo:blake3:baa1983a2a25c78792beb3dfde0fa1b9c8fda0291c14da617ba46f40eadcf5e3",
+      "kappa": "did:holo:sha256:bca6b9d81de963ebf19306cbe1e62c2b343f1a37f7a5922b640b1718d637d73b"
     },
     "usr/share/frame/stepup-broker.html": {
       "blake3": "did:holo:blake3:c21474e102247890257ad300244b3369993ef45004dd38e9acfe5a8e91379cbb",
@@ -27187,6 +27371,10 @@
       "blake3": "did:holo:blake3:917b6a36f04d0b8a49d437cd43755344d917c59f0e65257f9011cd43ac27f39a",
       "kappa": "did:holo:sha256:a28bd4476a388c79860326e54be7f7b7c5e2aa6d8854540b000e7568fe3e1509"
     },
+    "usr/share/holospaces/holo-xxx/holospace.lock.json": {
+      "blake3": "did:holo:blake3:7746163ae015b2d3b131b93ebb1078d8fc33380d3ae90b84aa1877848b6773f1",
+      "kappa": "did:holo:sha256:038aba37057eaf0ab36b191e6468fa2749497ad71b3bec368c9db484a34b9051"
+    },
     "usr/share/holospaces/holospaces.jsonld": {
       "blake3": "did:holo:blake3:7091ff0947dca4083aeb8c4a379b819ebb168059d5321df776eaa273ce8f4dca",
       "kappa": "did:holo:sha256:6628db3b4102daf670990b0dbb2ba0e98f6571b446a14d516f7bc446fbb6d441"
@@ -27200,8 +27388,8 @@
       "kappa": "did:holo:sha256:df7c890a0a046be04a4c9e88dd4bd7c072081ae7c6d33ff3741893672aab12c2"
     },
     "usr/share/holospaces/index.jsonld": {
-      "blake3": "did:holo:blake3:68e8b048e50109073cac0787062108a4d16e5a2dd344e1dce085609767962b84",
-      "kappa": "did:holo:sha256:eef8403d246790fb546df676008e1b1b00d8b2abe79b3e1a2a98d2f62b97ff68"
+      "blake3": "did:holo:blake3:97eeed6ab7940f95320386d417b0637351a980fa616e908ff73ff75086e21f08",
+      "kappa": "did:holo:sha256:025f4b6566ed6b7812008612b775f83f35c876395e3e88438de27d51f7a834f0"
     },
     "usr/share/holospaces/ipfs/holospace.lock.json": {
       "blake3": "did:holo:blake3:c71db2fed25d9ff2388bca1978906808eab8a4c6de9b0b33f91141e530196fd2",
@@ -27222,6 +27410,10 @@
     "usr/share/holospaces/liberty/icon.svg": {
       "blake3": "did:holo:blake3:2d539e2f8b81b412e724585f2ce416b927aea0057603ef380904b62d0adcef0b",
       "kappa": "did:holo:sha256:2d92feb64c07a3ab8f96b99fe3c96978fc49f5f471b03f747325cf85a0b0d273"
+    },
+    "usr/share/holospaces/library/holospace.lock.json": {
+      "blake3": "did:holo:blake3:0f4f94d8b36b6104a6276c6d029b3e00d3d58e8d1e7a1861e2c2b880b1c58d3e",
+      "kappa": "did:holo:sha256:be2bb758b97e45ea5157db2323deeb8521bcd0478c4f4f4476404fb43ab0e0c4"
     },
     "usr/share/holospaces/meet/holospace.lock.json": {
       "blake3": "did:holo:blake3:3c626115f42f8e9f1ad26dc3b4c1add35f611ded61f7c424d598c08075d80d27",
@@ -27303,6 +27495,10 @@
       "blake3": "did:holo:blake3:4985f12a343c9e19d15c5ddd724742fc06210587045079ae9d5d5aa9715d0b6d",
       "kappa": "did:holo:sha256:74e43bd96d167089e322d91c5572c8a4136a27840662f5dbec643997788fcc65"
     },
+    "usr/share/holospaces/quantum/holospace.lock.json": {
+      "blake3": "did:holo:blake3:b6fce332ea99c8376e08bf586aad75796e1b94cd225d2098af30806543066b73",
+      "kappa": "did:holo:sha256:2733d0c64c516f945a84b1242822370ac57ede38285f6b037d99dba00691d563"
+    },
     "usr/share/holospaces/qvac/holospace.lock.json": {
       "blake3": "did:holo:blake3:6b0ef7b7a3dc21479164a868ff6ba74c27153d69d22dc684f257470739680f05",
       "kappa": "did:holo:sha256:dea5da80f0a3189b633030ea6dad391931ce0945cfed5c62a98c87868be73846"
@@ -27368,8 +27564,8 @@
       "kappa": "did:holo:sha256:58f1ae6de11823ecded7b62748d79f2b22b1767928e4f8ea513eb1b0c74591d4"
     },
     "usr/share/holospaces/web/holospace.lock.json": {
-      "blake3": "did:holo:blake3:405acc159d9063e1f0e805d78bc0db06d0e03d11e6b6fe0cd91cadec4cea86aa",
-      "kappa": "did:holo:sha256:bd3e0c28782de1aab42f4f415f2a9ffff0dbcf53800a86ca35f932a9551fb058"
+      "blake3": "did:holo:blake3:65790af8a44296656a69c222b5548addee28f7f7b7c8de1e7fa75f776f7f7f6c",
+      "kappa": "did:holo:sha256:8e4ee22ee5b49abe1472cb73ed29545fd6a086d10e0cf715cef965062a7371b1"
     },
     "usr/share/holospaces/workspace/holospace.lock.json": {
       "blake3": "did:holo:blake3:a6836729595805df5c64e516513952c12ae4344f648eb7acc09aa717f4763740",
@@ -28455,6 +28651,14 @@
       "blake3": "did:holo:blake3:28b8bb95f8b93ae110db7db1af11985bd92ce7d9679bb76892be5cb7b78715f2",
       "kappa": "did:holo:sha256:bcab8a9b11f97d05a5cc451ac129e3a137d7fc8262d00dfe0ae3c1296f894db4"
     },
+    "~holo-xxx/index.html": {
+      "blake3": "did:holo:blake3:ea3a101cd6de5ea1b854c5c06fcbc57fad68921ad4b2ff4a0f74965b576b671d",
+      "kappa": "did:holo:sha256:9c668f24a3c0ac38b02433a594ffe5394f79c9dd2a6926963f6a144fa81a94a7"
+    },
+    "~holo-xxx/og.svg": {
+      "blake3": "did:holo:blake3:274afbe1797803a0a917802b2b9511f8a91be2d035630c1e0101e41cbe7fdb09",
+      "kappa": "did:holo:sha256:34279f4e4b202679d030bf8bf40520c4e5199268286b34915c4000d458bb9385"
+    },
     "~hub/index.html": {
       "blake3": "did:holo:blake3:b362f30a9a2e0018bad63c395384a2939c9777f5b90492665a707fdfe99ff5c4",
       "kappa": "did:holo:sha256:73c06327d1cd43eb881b143a7922c4ea11c036794c9d5b81add9c162c4443ae6"
@@ -28486,6 +28690,14 @@
     "~liberty/og.svg": {
       "blake3": "did:holo:blake3:747585f6bdd11962478b9f74cb92de2ff53025a1a7b0e5a28b4ae858403038b0",
       "kappa": "did:holo:sha256:f8f669ec570cd29de567fca8126b353d17c13899fa1bcdb098461a035fdabea3"
+    },
+    "~library/index.html": {
+      "blake3": "did:holo:blake3:1423cd5bf646adfd69eac2107a5be3c13ff614495a1d3f7fc508593365326cd9",
+      "kappa": "did:holo:sha256:8cf5da1b2fbf54a6202db228328a481000021b6c40a9ba0abf4ca775b1ba34f2"
+    },
+    "~library/og.svg": {
+      "blake3": "did:holo:blake3:60cfe076308522e12d10dd24ebf275d074c20c084ab2fecad9b0eac1391b9276",
+      "kappa": "did:holo:sha256:a108e200ad0f172e44afbee1ac2ef80c40df0657e63ea234be5d91b9d877c45f"
     },
     "~meet/index.html": {
       "blake3": "did:holo:blake3:aaceead2c6266c40b44b6fcabe2b9ff367604e208515ddfde01638eb5caf7393",
@@ -28567,6 +28779,14 @@
       "blake3": "did:holo:blake3:5cec28c236feb7a07f94be3e3e9dd7af2076d8f2091a5e1d712f1777fd1843ce",
       "kappa": "did:holo:sha256:314b972f81918155d5b68cc0a1d549da1d2e05aa3e5adfbba1282b451e48573f"
     },
+    "~quantum/index.html": {
+      "blake3": "did:holo:blake3:0870fe8f70ab38790ab61b51528cb956ad21ae8116d8225f5fd15e6bccdf92a7",
+      "kappa": "did:holo:sha256:2e62cb724c08e6ae523e3fc7063c4560f72afde045d139be22c1f5ddb6d8bb71"
+    },
+    "~quantum/og.svg": {
+      "blake3": "did:holo:blake3:e0407c4fd49bec9fda0b572c9831f83cc8a13d8f1dd8bf5425111d70acd8c6f3",
+      "kappa": "did:holo:sha256:3892c571c171ada6359e9c15ad04c892a321e1ff7a7a71896923b11538f67c31"
+    },
     "~qvac/index.html": {
       "blake3": "did:holo:blake3:6a5bc7fba8d6b1e212662042e9c61c914e4391a00d1b527ffdf417d43b6909f5",
       "kappa": "did:holo:sha256:cbe436522ea8245d44bd1ab3df3390fe4c85e68fd094a4e70470c40f5733cd26"
@@ -28640,12 +28860,12 @@
       "kappa": "did:holo:sha256:d38c83f4cc8734771c2fe7e73565e8bda49250e7cb876cb4ef97c51f571c05fd"
     },
     "~web/index.html": {
-      "blake3": "did:holo:blake3:63dc0811ff5bb7d14af9fa921b85e99493c6f1a634ef2db0d49422e65ba71577",
-      "kappa": "did:holo:sha256:cb9b91c8478c21bf54f29e44a2dcc69a25245c97e71eb956794182af5d6db407"
+      "blake3": "did:holo:blake3:805bb4bc1ae78136a4bb4e8b215d0524474dfad9e738a1a287806c3be4c4a8a9",
+      "kappa": "did:holo:sha256:2dd95078769f6dfbd85e5a3b8bfcd6753b0cae59a70ad660089da4bb74f8ecea"
     },
     "~web/og.svg": {
-      "blake3": "did:holo:blake3:58b86dbf45a7aff4b07a3f604b6a238df2a9a65b699f9d15adf1be8ddf51947f",
-      "kappa": "did:holo:sha256:1a5a5a41968f7030bd2b2201fca9876675b51e6933e64037b6aba5a928ecc3a2"
+      "blake3": "did:holo:blake3:65a04d327910584904fe347faf376ef5092df73abee0b0e4a628567b2f4185a3",
+      "kappa": "did:holo:sha256:5feb4707f4c13f0f91d08627eab1f2bbadf3d2073072819491755311e955585f"
     },
     "~workspace/index.html": {
       "blake3": "did:holo:blake3:a5f6c6c5525ce90e7696da79f962875e477da4a220f928296c6bb6acbe23bb91",
