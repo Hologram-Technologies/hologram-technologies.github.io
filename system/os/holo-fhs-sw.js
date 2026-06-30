@@ -250,7 +250,7 @@ const APPLOCK = new Set();   // app-ids whose lock closure has been folded into 
 // set. The check below re-derives blake3 FIRST (canonical) and accepts the sha256 bridge value as a fallback,
 // so the flip is atomic-safe: a stale sha-baked anchor still validates its own closure, a tampered closure
 // matches NEITHER axis → fail closed (invariant: never half-flip the trust root).
-const CLOSURE_KAPPA = "4b0d83d3197066b6119ddc1fbaebe6a468a911aba4b03f3d11d674722cafac45";
+const CLOSURE_KAPPA = "9e473272b2c3ef16c7cd32fecb59376abd220e5c797f342f615a07245ca45c8d";
 let CLOSURE_TRUSTED = true;   // flips false iff a baked anchor is present AND os-closure.json fails to re-derive → fail closed
 function foldClosure(closure) {
   for (const [p, v] of Object.entries(closure || {})) {
