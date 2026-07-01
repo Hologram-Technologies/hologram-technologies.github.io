@@ -43,10 +43,16 @@ export async function editApp({ root, store, path, intent = null, gesture = null
 }
 
 // ── sovereignty: share by κ, fork immutably, resolve verified ─────────────────────────────────────────────
-const PREFIX = "holo://sha256/";
+const PREFIX = "holo://blake3/";                                          // canonical (new links are BLAKE3, §1.2)
+const LEGACY_PREFIX = "holo://sha256/";                                   // still parsed so old links keep resolving (transition)
 export const shareLink = (k) => PREFIX + String(k);                       // a content-addressed, serverless-resolvable link
 export const shareElement = (k) => PREFIX + String(k);                    // an element is shareable exactly like the app
-export const parseShareLink = (link) => { const s = String(link || ""); return s.startsWith(PREFIX) ? s.slice(PREFIX.length) : (/^[0-9a-f]{64}$/.test(s) ? s : null); };
+export const parseShareLink = (link) => {
+  const s = String(link || "");
+  if (s.startsWith(PREFIX)) return s.slice(PREFIX.length);
+  if (s.startsWith(LEGACY_PREFIX)) return s.slice(LEGACY_PREFIX.length);
+  return /^[0-9a-f]{64}$/.test(s) ? s : null;
+};
 
 // resolve a shared κ from a store, RE-DERIVING every node first (L5) — a tampered store is REFUSED, not trusted.
 export function resolveShared(link, store) {

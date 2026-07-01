@@ -14,7 +14,9 @@ import { deriveApi } from "./holo-q-app-api.mjs";
 import { PLATFORM_KINDS } from "./holo-q-app-spec.mjs";
 import { buildFullStackApp } from "./holo-q-app-agent.mjs";
 import { makePlan } from "./holo-q-spec-coder.mjs";
-import { sha256hex, jcs, didHolo } from "../holo-uor.mjs";
+import { jcs, didHolo } from "../holo-uor.mjs";
+import { blake3hex } from "../holo-blake3.mjs";   // the ONE canonical κ hash (§1.2)
+const k3 = (s) => blake3hex(new TextEncoder().encode(String(s)));   // mint κ over a string
 
 // buildFromIntent — the FULL-STACK path for the live shell: the coder emits a TYPED SPEC (reliable on a weak
 // model), which compiles to a beautiful UI + data/auth + REST/MCP, self-tested + sealed to a κ. `generate` is the
@@ -27,15 +29,15 @@ export async function buildFromIntent(intent, { generate, pricing = {}, history 
 // wrap an already-built HTML projection as a conformant holo-apps app (UI-only: no collections, empty caps).
 export function sealBuiltApp(html, { name = "App", pricing = {} } = {}) {
   const projectionHtml = enforce(String(html == null ? "" : html)).html;     // beautiful by construction
-  const projectionK = sha256hex(projectionHtml);
+  const projectionK = k3(projectionHtml);
   const projectionDAG = dag.decompose(projectionHtml);                       // every element addressable (S2)
   const reducer = { format: "holo-reducer/1", platform: "uniform", kinds: {} };
-  const reducerK = sha256hex(jcs(reducer));
+  const reducerK = k3(jcs(reducer));
   const manifest = { format: "holo-app/1", name, reducer: reducerK, projection: projectionK, kinds: { platform: PLATFORM_KINDS.slice(), app: [] }, capabilities: [], identity: "open" };
-  const manifestK = sha256hex(jcs(manifest));
+  const manifestK = k3(jcs(manifest));
   const compiled = { manifestK, manifest, projectionK, projectionHtml, projectionDAG, reducerK, reducer, collections: [], capabilities: [] };
   const sealed = sealApp(compiled);
-  return { manifestK, kid: didHolo("sha256", manifestK), compiled, sealed, api: deriveApi(manifest, { pricing }), share: shareLink(manifestK) };
+  return { manifestK, kid: didHolo("blake3", manifestK), compiled, sealed, api: deriveApi(manifest, { pricing }), share: shareLink(manifestK) };
 }
 
 export { buildFullStackApp, openApp, shareLink };

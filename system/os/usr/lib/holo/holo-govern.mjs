@@ -5,7 +5,7 @@
 // free (the κ self-proves), so a tampered subject is dropped before any rule runs (integrity-is-free law).
 // The GOVERN sibling of holo-language (WRAP) and holo-transport (MOVE): same defineX + makeXRegistry pattern.
 
-import { sha256Hex } from "./holo-identity.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 
 export const GOVERN_CAPS = ["integrity", "provenance", "rules", "membership"];
 // cheapest-first cost: integrity is FREE (the hash), provenance cheap, rules/membership are the semantic checks.
@@ -15,7 +15,7 @@ const costOf = (caps) => Math.min(99, ...GOVERN_CAPS.filter((c) => caps[c]).map(
 // a signed, content-addressed warrant: a re-derivable κ proving the violation and naming the offender.
 export async function warrantFor(subject, why, by) {
   const body = { offender: (subject && subject.author) ?? null, reason: why, by: by ?? null, subject: subject ?? null };
-  const proof = "did:holo:sha256:" + (await sha256Hex(new TextEncoder().encode(JSON.stringify(body))));
+  const proof = "did:holo:blake3:" + blake3hex(new TextEncoder().encode(JSON.stringify(body)));
   return { ...body, proof };
 }
 

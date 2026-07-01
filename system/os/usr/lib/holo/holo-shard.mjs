@@ -12,8 +12,13 @@
 
 import { ticket } from "./holo-swarm.mjs";
 import { sha256hex } from "./holo-uor.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 
-const kappaOfBytes = (bytes) => "did:holo:sha256:" + sha256hex(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+const asBytes = (bytes) => (bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+// §1.2: MINT the content κ with BLAKE3 (the one canonical content hash).
+const kappaOfBytes = (bytes) => "did:holo:blake3:" + blake3hex(asBytes(bytes));
+// legacy dual-read: existing content was addressed with sha256 — still openable on receipt.
+const kappaOfBytesSha256 = (bytes) => "did:holo:sha256:" + sha256hex(asBytes(bytes)); // legacy dual-read
 
 // shardFor(contentKappa, peers, { replicas }) → { holders, tickets, replicas }. The responsible peers are
 // the `replicas` smallest-ticket peers for the κ-VRF SEEDED BY the content κ. Deterministic + verifiable.
@@ -34,12 +39,19 @@ export async function isResponsible(peer, contentKappa, peers, opts) {
 //   fetchPeer : async (peerκ, κ) → bytes|null — the injected transport (a simulated map in tests; gossip live).
 //   kappaOf   : bytes → κ (defaults to sha256 did:holo) — the verify-on-receipt derivation (Law L5).
 export function makeShardedStore({ self, peers = () => [], replicas = 3, local, fetchPeer = null, kappaOf = kappaOfBytes } = {}) {
-  const verifyReturn = async (kappa, bytes) => (bytes && (await kappaOf(bytes)) === kappa ? bytes : null);
+  // matches — bytes address to κ on the canonical BLAKE3 axis OR (legacy dual-read) the old sha256 axis.
+  // A custom kappaOf is honoured as-is; the default deriver also accepts existing sha256-addressed content.
+  const matches = async (bytes, kappa) => {
+    if ((await kappaOf(bytes)) === kappa) return true;
+    if (kappaOf === kappaOfBytes && kappaOfBytesSha256(bytes) === kappa) return true; // legacy dual-read
+    return false;
+  };
+  const verifyReturn = async (kappa, bytes) => (bytes && (await matches(bytes, kappa)) ? bytes : null);
 
   // put — store locally iff this device is a responsible holder; report the placement (the holders that
   // SHOULD carry it; pushing to the others is the transport's job — phase G).
   async function put(kappa, bytes) {
-    if ((await kappaOf(bytes)) !== kappa) throw new Error("put: bytes do not address to κ (Law L5)");
+    if (!(await matches(bytes, kappa))) throw new Error("put: bytes do not address to κ (Law L5)");
     const ps = peers();
     const { holders } = await shardFor(kappa, ps, { replicas });
     const mine = holders.includes(String(self));

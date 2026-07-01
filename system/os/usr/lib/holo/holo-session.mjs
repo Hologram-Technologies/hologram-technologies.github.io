@@ -24,6 +24,7 @@
 // injected cipher; the browser BINDINGS wire localStorage + the κ-store + WebCrypto.
 
 import { jcs } from "./holo-uor.mjs";   // the ONE canonical-form primitive (Law L2)
+import { blake3hex } from "./holo-blake3.mjs";   // §1.2: the ONE canonical content hash
 
 const te = new TextEncoder();
 const td = new TextDecoder();
@@ -124,7 +125,7 @@ export function createSession({ kv, store, now }) {
       "holo:experience": { tabs: (tabs || []).map(cleanTab), activeTab: activeTab | 0, settings: settings || {} },
     };
   }
-  async function kappaOfBody(body) { return "did:holo:sha256:" + await sha256hex(te.encode(jcs(body))); }
+  async function kappaOfBody(body) { return "did:holo:blake3:" + blake3hex(te.encode(jcs(body))); }
 
   // head value is JSON { k: κ, seq, tab }. A legacy bare-κ string (v1 / ADR-0105) reads as seq 0.
   function readHead(realm) {
@@ -143,7 +144,7 @@ export function createSession({ kv, store, now }) {
     const body = buildManifest({ operator: realm, device, tabs, activeTab, settings: settings || captureSettings() });
     const pt = te.encode(jcs(body));
     let blob; try { blob = cipher ? await cipher.seal(pt) : pt; } catch (e) { return { ok: false, why: "seal:" + (e && e.message) }; }
-    const kappa = "did:holo:sha256:" + await sha256hex(blob);
+    const kappa = "did:holo:blake3:" + blake3hex(blob);
     try { await store.put(kappa, blob); } catch (e) { return { ok: false, why: "quota" }; }   // last good snapshot untouched
     const seq = (head && head.seq | 0) + 1;
     try { kv.set(headKey(realm), JSON.stringify({ k: kappa, seq, tab })); } catch (e) { return { ok: false, why: "quota-head" }; }
@@ -158,7 +159,12 @@ export function createSession({ kv, store, now }) {
     if (!realm) return null;
     const head = readHead(realm); const k = kappa || (head && head.k); if (!k) return null;
     const blob = await store.get(k); if (!blob) return null;                       // missing / evicted → clean default
-    if (("did:holo:sha256:" + await sha256hex(blob)) !== k) return null;           // Law L5: poisoned byte → refuse
+    // Law L5: re-derive and refuse a poisoned byte. §1.2 mints BLAKE3; a legacy sha256-addressed
+    // manifest (minted before the migration) still opens — accept EITHER axis.
+    const kh = hexOf(k);
+    const matches = blake3hex(blob instanceof Uint8Array ? blob : new Uint8Array(blob)) === kh
+      || (await sha256hex(blob)) === kh;                                            // legacy dual-read
+    if (!matches) return null;                                                      // poisoned byte → refuse
     const u = blob instanceof Uint8Array ? blob : new Uint8Array(blob);
     let body = parseManifest(u);                                                   // v1 plaintext path (migration)
     if (!body && cipher) { const pt = await cipher.open(u); if (pt) body = parseManifest(pt); }   // v2 ciphertext path
@@ -220,7 +226,7 @@ export async function deviceId(kv = browserKv()) {
   let id = null; try { id = kv.get("holo.device.id"); } catch {}
   if (id) return id;
   const r = new Uint8Array(16); globalThis.crypto.getRandomValues(r);
-  id = "did:holo:sha256:" + await sha256hex(r);
+  id = "did:holo:blake3:" + blake3hex(r);
   try { kv.set("holo.device.id", id); } catch {}
   return id;
 }

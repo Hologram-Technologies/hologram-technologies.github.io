@@ -12,6 +12,7 @@
 
 import { admitChain } from "./holo-strand-admit.mjs";
 import { makeStrand } from "./holo-strand.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 
 const KIND = "workspace.snapshot";
 // Link budgets: a QR tops out near ~2.3 KB, so keep the token well under that to scan directly; a URL can
@@ -95,19 +96,22 @@ export function decodeWorkspaceShare(token) {
 // The pin/fetch transport is the same out-of-band IPFS leg the holospace #car= uses; the LOGIC here is the
 // content address + double verify-before-trust (the fetched bytes must re-hash to the cid, AND the chain
 // must admit). bundleBytes/bundleCid are pure; openSharedByBytes verifies both layers.
-async function sha256hex(bytes) {
+async function sha256hex(bytes) {                                                 // legacy dual-read: opens EXISTING sha256-addressed shares
   const SUB = (globalThis.crypto && globalThis.crypto.subtle);
   const h = await SUB.digest("SHA-256", bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 export function bundleBytes(bundle) { return new TextEncoder().encode(JSON.stringify({ h: bundle && bundle.head, e: (bundle && bundle.entries) || [] })); }
-export async function bundleCid(bundle) { return "did:holo:sha256:" + await sha256hex(bundleBytes(bundle)); }
+export async function bundleCid(bundle) { return "did:holo:blake3:" + blake3hex(bundleBytes(bundle)); }
 
 // openSharedByBytes(bytes, expectCid, opts) → like openSharedWorkspace, but FIRST re-derives the bytes' cid
 // and refuses a mismatch (Law L5 over the transport), then decodes + admits the chain. For the #wsc= leg.
 export async function openSharedByBytes(bytes, expectCid = null, opts = {}) {
   const u8 = (bytes instanceof Uint8Array) ? bytes : new TextEncoder().encode(String(bytes));
-  if (expectCid) { const cid = "did:holo:sha256:" + await sha256hex(u8); if (cid !== expectCid) return { ok: false, why: "cid-mismatch" }; }
+  if (expectCid) {                                                               // accept EITHER axis: blake3 (canonical) or legacy sha256-addressed shares
+    const matches = ("did:holo:blake3:" + blake3hex(u8)) === expectCid || ("did:holo:sha256:" + await sha256hex(u8)) === expectCid; // legacy dual-read
+    if (!matches) return { ok: false, why: "cid-mismatch" };
+  }
   let o; try { o = JSON.parse(new TextDecoder().decode(u8)); } catch (e) { return { ok: false, why: "bad-bytes" }; }
   const bundle = { head: o.h ?? o.head, entries: o.e ?? o.entries };
   return openSharedWorkspace(bundle, opts);

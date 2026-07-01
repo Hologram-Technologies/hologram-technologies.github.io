@@ -1,10 +1,11 @@
 // holo-user-adapter.mjs — the LIFECYCLE for YOUR private per-user LoRA adapter: persist it ENCRYPTED at rest
 // (session cipher → OPFS), load it back to bind into Q's brain (holo-brain-engine cfg.adapter, inference
-// proven), and reset it. The adapter is a κ-object (κ = sha256 of its .holo bytes = its identity); the stored
+// proven), and reset it. The adapter is a κ-object (κ = BLAKE3 of its .holo bytes = its identity); the stored
 // blob is AES-GCM sealed under the operator's vault key, so a same-origin app reads only ciphertext. 100%
 // local; nothing egresses. Pure + injectable (cipher + store) → Node-witnessable; browser defaults to
 // holo-session.activeCipher + an OPFS file.
-import { sha256hex, didHolo } from "./holo-uor.mjs";
+import { didHolo } from "./holo-uor.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 
 const OPFS_FILE = "holo.user-adapter.v1";   // one file in the origin's private OPFS
 
@@ -31,14 +32,14 @@ export function makeUserAdapterStore({ cipher = sessionCipher, store = null } = 
       const c = await cipher(); if (!c) return null;
       const blob = await c.seal(u8);
       const okw = await S.write(blob); if (!okw) return null;
-      return { kappa: didHolo("sha256", sha256hex(u8)), bytes: u8.length };
+      return { kappa: didHolo("blake3", blake3hex(u8)), bytes: u8.length };
     },
     // load() → { bytes, kappa } | null. Decrypts under the operator key; wrong key / tamper → null (L5).
     async load() {
       const blob = await S.read(); if (!blob) return null;
       const c = await cipher(); if (!c) return null;
       const bytes = await c.open(blob); if (!bytes) return null;          // can't decrypt → no adapter (correct)
-      return { bytes, kappa: didHolo("sha256", sha256hex(bytes)) };
+      return { bytes, kappa: didHolo("blake3", blake3hex(bytes)) };
     },
     async has() { return !!(await S.read()); },
     async reset() { return S.remove(); },                                  // "reset what Q learned about me"

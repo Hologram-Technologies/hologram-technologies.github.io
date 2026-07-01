@@ -11,9 +11,12 @@
 //
 // Isomorphic + dependency-injected: pass your own `fetchJson` (and `now`) for hermetic tests; in the
 // browser it defaults to the public Gamma read API over the platform fetch. The κ hash is injectable and
-// defaults to the canonical sha256hex (holo-uor) so a snapshot's identity is the ONE canonical form (L2).
+// defaults to the canonical BLAKE3 (§1.2 the ONE content hash) so a snapshot's identity is the ONE canonical form (L2).
 
-import { sha256hex } from "./holo-uor.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
+
+// canonical content-address of a string via BLAKE3 (§1.2). blake3hex is SYNC over bytes.
+const kappaHex = (s) => blake3hex(new TextEncoder().encode(String(s)));
 
 const GAMMA = "https://gamma-api.polymarket.com";
 
@@ -28,7 +31,7 @@ function liftEntities(question = "") {
 
 // parse one Gamma market object → our shape. `outcomePrices` is a JSON string array aligned to `outcomes`;
 // the YES leg is the crowd's implied probability. Defensive: malformed rows yield yes=null and are skipped.
-export function toMarket(raw, { hash = sha256hex } = {}) {
+export function toMarket(raw, { hash = kappaHex } = {}) {
   let prices = raw.outcomePrices, outcomes = raw.outcomes;
   try { if (typeof prices === "string") prices = JSON.parse(prices); } catch { prices = null; }
   try { if (typeof outcomes === "string") outcomes = JSON.parse(outcomes); } catch { outcomes = null; }
@@ -44,7 +47,7 @@ export function toMarket(raw, { hash = sha256hex } = {}) {
     id, question, yes,
     entities: liftEntities(question),
     closed: !!raw.closed,
-    kappa: "did:holo:sha256:" + hash(JSON.stringify(snapshot)),   // the price-at-time-T evidence anchor
+    kappa: "did:holo:blake3:" + hash(JSON.stringify(snapshot)),   // the price-at-time-T evidence anchor
   };
 }
 
@@ -52,7 +55,7 @@ export function toMarket(raw, { hash = sha256hex } = {}) {
 // platform fetch over Gamma; inject it (and skip the network entirely) in witnesses/tests.
 export async function fetchMarkets({
   fetchJson = async (url) => (await fetch(url)).json(),
-  limit = 50, active = true, closed = false, hash = sha256hex,
+  limit = 50, active = true, closed = false, hash = kappaHex,
 } = {}) {
   const url = `${GAMMA}/markets?limit=${limit}&active=${active}&closed=${closed}&order=volume&ascending=false`;
   const rows = await fetchJson(url);

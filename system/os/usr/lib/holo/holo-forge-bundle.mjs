@@ -17,6 +17,7 @@
 
 import { forgeReceipt, jcs } from "./holo-forge/holo-forge.mjs";   // reuse the re-derivable build-receipt shape
 import { ensureMobileHead } from "./holo-mobile-defaults.mjs";     // every bundled app is mobile + PWA-ready at birth
+import { blake3hex } from "./holo-blake3.mjs";                     // §1.2: the ONE canonical content hash is BLAKE3
 
 const EXT_LOADER = { js: "js", mjs: "js", cjs: "js", jsx: "jsx", ts: "ts", tsx: "tsx", json: "json", css: "css", svg: "text", txt: "text" };
 const TRY_EXT = ["", ".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".json", ".css", "/index.tsx", "/index.ts", "/index.jsx", "/index.js"];
@@ -127,12 +128,14 @@ export function makeBundler({ esbuild, resolveBare = null, hash = null } = {}) {
     const out = encodeBundle({ html, js, css });
     let receipt = null;
     if (typeof hash === "function") {
-      const enc = (s) => (typeof s === "string" ? s : jcs(s));
+      // §1.2: MINT every κ / content-address with BLAKE3 (blake3hex is sync + isomorphic; bytes in → 64-hex).
+      // The injected `hash` (sha256) is kept as the makeBundler contract but no longer mints κ here.
+      const b3 = (s) => blake3hex(new TextEncoder().encode(typeof s === "string" ? s : jcs(s)));
       receipt = forgeReceipt({
-        sourceKappa: sourceKappa || ("did:holo:sha256:" + hash(enc(jcs([...files.keys()].sort())))),
+        sourceKappa: sourceKappa || ("did:holo:blake3:" + b3(jcs([...files.keys()].sort()))),
         compilerKappa: "esbuild",   // the browser/Node injects the pinned esbuild κ; named here
-        flagsKappa: "did:holo:sha256:" + hash(enc(jcs({ bundle: true, format: "iife", jsx: "automatic" }))),
-        artifactKappa: "did:holo:sha256:" + hash(out), lang: "esbuild-bundle", exports: [],
+        flagsKappa: "did:holo:blake3:" + b3(jcs({ bundle: true, format: "iife", jsx: "automatic" })),
+        artifactKappa: "did:holo:blake3:" + b3(out), lang: "esbuild-bundle", exports: [],
       });
     }
     return { html: out, entry, receipt, unresolved, warnings, selfContained: unresolved.length === 0 };

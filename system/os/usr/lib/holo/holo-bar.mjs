@@ -4,7 +4,14 @@
 //
 // canonicalBar / barKappa / verifyBar / buildBarModel are PURE (node-witnessable). renderBar is the DOM.
 
+import { blake3hex } from "./holo-blake3.mjs";
+
 export const BAR_KINDS = ["bookmarks", "rail"];
+
+// §1.2: the ONE canonical content hash is BLAKE3. A bar's κ is minted from its bytes with BLAKE3, in-module
+// (blake3hex is pure JS — isomorphic browser + node, sync — so no platform import is needed). The optional
+// injected `digest` is kept ONLY as the legacy sha256 reader so bars minted before §1.2 still verify.
+const enc = (s) => new TextEncoder().encode(String(s));
 
 // canonicalBar(items) → the deterministic bytes that define the bar's identity. Order matters (a bar IS an
 // ordering); per item we keep only identity + display, in a fixed key order, so the same list always hashes
@@ -27,17 +34,25 @@ export function canonicalBar(items = []) {
   return JSON.stringify((Array.isArray(items) ? items : []).map(norm));
 }
 
-// barKappa(items, digest) → did:holo:sha256:<hex>. digest(str) → Promise<hex> is INJECTED (WebCrypto in the
-// browser, node:crypto in the witness) so this module needs no platform import.
-export async function barKappa(items, digest) {
-  const hex = await digest(canonicalBar(items));
-  return "did:holo:sha256:" + hex;
+// barKappa(items) → did:holo:blake3:<hex>. The κ is minted from the bar's canonical bytes with BLAKE3
+// (§1.2). `digest` is accepted-and-ignored for call-site compatibility; the mint no longer depends on it.
+export async function barKappa(items, _digest) {
+  return "did:holo:blake3:" + blake3hex(enc(canonicalBar(items)));
 }
 
 // verifyBar(items, expectedKappa, digest) → boolean. Fail-closed (Law L5): re-derive and compare; any
-// tamper, or any error, returns false.
+// tamper, or any error, returns false. Dual-read: accepts the new BLAKE3 κ OR a legacy sha256 κ (so a bar
+// stored/shared before §1.2 still opens); the legacy axis is checked only when a sha256 `digest` is supplied.
 export async function verifyBar(items, expectedKappa, digest) {
-  try { return (await barKappa(items, digest)) === String(expectedKappa || ""); } catch { return false; }
+  try {
+    const want = String(expectedKappa || "");
+    if ((await barKappa(items)) === want) return true;
+    // legacy dual-read: a pre-§1.2 bar addressed as did:holo:sha256:<hex> via the injected sha256 digest.
+    if (typeof digest === "function" && /^did:holo:sha256:/.test(want)) {
+      return ("did:holo:sha256:" + (await digest(canonicalBar(items)))) === want; // legacy dual-read
+    }
+    return false;
+  } catch { return false; }
 }
 
 // ── share a bar as a verified link ──────────────────────────────────────────────────────────────────

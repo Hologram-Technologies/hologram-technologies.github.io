@@ -23,14 +23,17 @@
 // refused). Composes Holo Import (0092) · holo-mcp · holo-api · NANDA (0034) · Holo Prov (0082).
 
 import { appEnvelope, jcs } from "./holo-import.mjs";
+import { blake3hex } from "./holo-blake3.mjs";   // the ONE canonical κ hash (§1.2 BLAKE3-only mint)
 
 const hexOf = (k) => String(k || "").split(":").pop();
+const enc = (s) => new TextEncoder().encode(typeof s === "string" ? s : jcs(s));
 // seal any content object → a self-verifying UOR object whose id re-derives (same scheme as
-// holo-object.address / publishSource: did:holo:sha256 over jcs(content sans id)). hash(str)->hex injected.
+// holo-object.address / publishSource: did:holo:<axis> over jcs(content sans id)). §1.2: the MINT is BLAKE3
+// (blake3hex is sync + isomorphic — same in browser + Node witness); the injected `hash` is accepted for
+// back-compat but the canonical content address is minted on the ONE axis.
 export function sealObject(content, hash) {
-  if (typeof hash !== "function") throw new Error("sealObject needs an injected hash(str)->hex");
   const { id, ...c } = content || {};
-  return { ...c, id: "did:holo:sha256:" + hash(jcs(c)) };
+  return { ...c, id: "did:holo:blake3:" + blake3hex(enc(jcs(c))) };
 }
 
 // a stable, reverse-DNS app id from a repo ref (the holospace.json `id`; buildAppRegistry names the
@@ -221,7 +224,7 @@ export function makeEgressToolHandlers({ manifest, governedFetch, hash = null } 
       let body = null; try { body = r.response && typeof r.response.text === "function" ? await r.response.text() : (r.response && r.response.body) || null; } catch (e) {}
       const receipt = { "@context": { prov: "http://www.w3.org/ns/prov#", hosc: "https://hologram.os/ns/conformance#" },
         "@type": ["prov:Activity", "hosc:Egress"], "hosc:tool": t.name, "prov:used": url, "hosc:method": method,
-        ...(hash && body != null ? { "prov:generated": "did:holo:sha256:" + hash(body) } : {}), "hosc:ingestReceipt": r.receipt || null };
+        ...(body != null ? { "prov:generated": "did:holo:blake3:" + blake3hex(enc(body)) } : {}), "hosc:ingestReceipt": r.receipt || null };   // §1.2: content address of the response body on the ONE (BLAKE3) axis
       return { ok: true, status: r.response && r.response.status, tool: t.name, body, receipt };
     };
   }

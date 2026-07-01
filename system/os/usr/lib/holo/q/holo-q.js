@@ -161,9 +161,10 @@ export function createQ({ trinity = null, mux: muxImpl = mux, conscience = null,
     return [
       { id: "build", what: "Build a holospace from a plain prompt", examples: ["a teal pricing page", "a todo app"] },
       { id: "ask", what: "Answer about what you're looking at, or your whole desktop", examples: ["what is this?", "what's open?"] },
-      { id: "open", what: "Open an app or a link", examples: ["open files", "go to github.com"] },
+      { id: "open", what: "Open an app, a link, or any κ (Q.open drives the one portal verb)", examples: ["open files", "go to github.com", "open holo://space/<κ>"] },
       { id: "window", what: "Manage the focused window", examples: ["close this", "minimize", "maximize this"] },
       { id: "arrange", what: "Arrange the whole desktop", examples: ["tile", "cascade", "focus mode"] },
+      { id: "runtimes", what: "See and manage every runtime — snapshot/suspend/resume/stop, on κ (Q.runtimes/Q.manage)", examples: ["what's running?", "snapshot this machine", "resume that VM"] },
     ];
   }
 
@@ -192,6 +193,52 @@ export function createQ({ trinity = null, mux: muxImpl = mux, conscience = null,
     if (!_actions || typeof _actions[it.kind] !== "function") return { kind: it.kind, target: it.target, error: "no executor bound for action '" + it.kind + "'" };
     let result; try { result = await _actions[it.kind](it.target); } catch (e) { return { kind: it.kind, target: it.target, error: String((e && e.message) || e) }; }
     return { kind: it.kind, target: it.target, ok: true, result: result == null ? true : result, receipt: caller ? { who: caller, verb: "q.act", action: it.kind, target: it.target, at: now() } : null };
+  }
+
+  // ── OPEN — a FIRST-CLASS operator verb: open ANY ref (a bare κ · an app · a space · a url) through the
+  //    ONE open path (window.HoloOpen → holo://space/<κ> → the derive portal). This is Q OPERATING the one
+  //    verb, not merely classifying it — callable programmatically with a κ (no text line to parse). Routes
+  //    through the SAME host-bound `open` executor as act(), and is GOVERNED identically (a non-human caller
+  //    passes the conscience, fail-closed with no gate; the human orb is sovereign). Every act mints a receipt.
+  async function open(ref, { caller = null, governed = false } = {}) {
+    const target = intentText(ref);
+    if (!target) return { kind: "open", ok: false, error: "Q.open: a ref (κ · app · space · url) is required" };
+    if (governed || caller != null) {                                 // a non-human caller → gate it (like act/agent)
+      const C = resolveGate();
+      if (C && typeof C.evaluate === "function") {
+        let v; try { v = await C.evaluate({ verb: "q.act", action: "open", target, caller }); }
+        catch (e) { return { kind: "open", refused: true, reason: "gate error: " + (e && e.message), caller }; }
+        if (v && v.outcome === "block") return { kind: "open", refused: true, reason: v.reason || "refused by conscience", caller };
+      } else if (governed) return { kind: "open", refused: true, reason: "no conscience gate — open is fail-closed for external callers", caller };
+    }
+    if (!_actions || typeof _actions.open !== "function") return { kind: "open", target, error: "no open executor bound (host must configureActions)" };
+    remember({ intent: "open " + target });
+    let result; try { result = await _actions.open(target); } catch (e) { return { kind: "open", target, error: String((e && e.message) || e) }; }
+    return { kind: "open", target, ok: true, result: result == null ? true : result, receipt: caller ? { who: caller, verb: "q.open", target, at: now() } : null };
+  }
+
+  // ── RUNTIMES — Q operates the ONE management plane (§6): observe EVERY runtime (holospace · web · VM) and
+  //    snapshot / suspend / resume / stop it, tier-agnostic, on κ. The host binds the plane via
+  //    configureRuntimes(manager) — the same holo-runtime-manage plane the shell renders. Observing (runtimes())
+  //    is open; a CONTROL verb (manage) is GOVERNED like act/open (external gated, fail-closed with no gate; the
+  //    human orb is sovereign) and receipted. This is Q as a first-class operator of the hypervisor, not beside it.
+  let _runtimes = null;
+  function configureRuntimes(manager) { _runtimes = manager || null; return q; }
+  function runtimes() { try { return _runtimes ? _runtimes.list() : []; } catch (e) { return []; } }
+  async function manage(verb, id, { caller = null, governed = false } = {}) {
+    if (!["snapshot", "suspend", "resume", "stop"].includes(verb)) return { ok: false, reason: "unknown runtime verb: " + verb };
+    if (!_runtimes || typeof _runtimes[verb] !== "function") return { ok: false, reason: "no runtime plane bound (host must configureRuntimes)" };
+    if (governed || caller != null) {                                 // a non-human caller controlling a runtime → gate it
+      const C = resolveGate();
+      if (C && typeof C.evaluate === "function") {
+        let v; try { v = await C.evaluate({ verb: "q.manage", action: verb, target: id, caller }); }
+        catch (e) { return { ok: false, refused: true, reason: "gate error: " + (e && e.message), caller }; }
+        if (v && v.outcome === "block") return { ok: false, refused: true, reason: v.reason || "refused by conscience", caller };
+      } else if (governed) return { ok: false, refused: true, reason: "no conscience gate — runtime control is fail-closed for external callers", caller };
+    }
+    remember({ intent: verb + " " + id });
+    let r; try { r = await _runtimes[verb](id); } catch (e) { return { ok: false, reason: String((e && e.message) || e) }; }
+    return { ...(r && typeof r === "object" ? r : { ok: r !== false }), receipt: caller ? { who: caller, verb: "q.manage", action: verb, target: id, at: now() } : null };
   }
 
   // ── SCOPE — Q's awareness of the WHOLE OS experience: summarize the desktop's open holospaces into a
@@ -255,7 +302,7 @@ export function createQ({ trinity = null, mux: muxImpl = mux, conscience = null,
   }
 
   const q = {
-    create, ask, agent, summon, scope, intent, capabilities, act, configureActions, fuse, configureFuse, recall, configureRecall, perceive, improve, remember,
+    create, ask, agent, open, runtimes, manage, configureRuntimes, summon, scope, intent, capabilities, act, configureActions, fuse, configureFuse, recall, configureRecall, perceive, improve, remember,
     get context() { return { recent: ctx.recent.slice(), feedback: { ...ctx.feedback }, intents: ctx.intents }; },
     route: (task) => muxImpl.routeTask(task),
     trinity: T, mux: muxImpl,

@@ -16,6 +16,12 @@
 
 import { bundleRepo } from "./holo-forge-bundle.mjs";
 import { forgeReceipt, jcs } from "./holo-forge/holo-forge.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
+
+// §1.2: the ONE canonical content hash is BLAKE3. κ mints below use blake3hex (SYNC), not the
+// injected sha256 `hash` — the prior injected axis is retained only for optional caller diagnostics.
+const enc = (s) => new TextEncoder().encode(s);
+const kappaOf = (str) => "did:holo:blake3:" + blake3hex(enc(str));
 
 // The verbatim Medusa files this kernel compiles (paths under vendor/medusa/, re-hashable to κ).
 export const KERNEL_FILES = Object.freeze([
@@ -45,7 +51,7 @@ const ENTRY = [
 //   read(relPath)  — verbatim text of a vendored Medusa file (under vendor/medusa/)
 //   esbuild        — the injected bundler (Node: esbuild; browser: esbuild-wasm)
 //   bignumber      — the vendored bignumber.js ESM source (its only runtime dep)
-//   hash(str)      — sha256hex
+//   hash(str)      — OPTIONAL legacy sha256hex (accepted but unused; κ is minted with BLAKE3 §1.2)
 export async function buildCommerceKernel({ read, esbuild, bignumber, hash }) {
   if (typeof read !== "function") throw new Error("buildCommerceKernel needs read(relPath)");
   if (!esbuild?.build) throw new Error("buildCommerceKernel needs an injected esbuild");
@@ -72,11 +78,11 @@ export async function buildCommerceKernel({ read, esbuild, bignumber, hash }) {
   });
   if (unresolved.length) throw new Error("commerce kernel has unresolved deps: " + unresolved.join(", "));
 
-  const kappa = "did:holo:sha256:" + hash(js);
-  const sourceKappa = "did:holo:sha256:" + hash(jcs([...files.keys()].sort().map((k) => [k, files.get(k).text])));
+  const kappa = kappaOf(js);
+  const sourceKappa = kappaOf(jcs([...files.keys()].sort().map((k) => [k, files.get(k).text])));
   const receipt = forgeReceipt({
     sourceKappa, compilerKappa: "esbuild",
-    flagsKappa: "did:holo:sha256:" + hash(jcs({ bundle: true, format: "esm", platform: "browser" })),
+    flagsKappa: kappaOf(jcs({ bundle: true, format: "esm", platform: "browser" })),
     artifactKappa: kappa, lang: "medusa-commerce-kernel",
     exports: ["calculateTaxTotal", "calculateAmountsWithTax", "BigNumber", "MathBN"],
   });

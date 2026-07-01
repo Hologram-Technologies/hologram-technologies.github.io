@@ -229,6 +229,17 @@ async function heal(rel, hex, axis, resp) {
   const h = new Headers(); for (const [k, v] of Object.entries(COI)) h.set(k, v);
   h.set("content-type", ct); h.set("x-holo-cache", "heal"); h.set("x-holo-source", src);
   try { (await caches.open(KCACHE)).put(kKey(axis, hex), new Response(bytes.slice(0), { headers: h })); } catch {}   // seed the verified copy → tier-0 serves it network-free next time
+  // ALSO seed the CANONICAL blake3 tier-0 key when this path is blake3-pinned. The recovered bytes verified on
+  // the sha256 BRIDGE (the only axis external sources speak); the handler PREFERS the blake3 pin, so without
+  // this the next request misses tier-0 and re-heals over the network every time. blake3(SAME bytes) is the
+  // canonical κ of the SAME object — seed it (+ OPFS) so the second hit is network-free. (-04-, fast repeat.)
+  try {
+    const b3 = BYPATH_B3 && (BYPATH_B3.get(rel) || BYPATH_B3.get(fhsMap(rel) || rel));
+    if (b3 && axis !== "blake3" && blake3hex(bytes) === b3) {
+      try { (await caches.open(KCACHE)).put(kKey("blake3", b3), new Response(bytes.slice(0), { headers: h })); } catch {}
+      try { const ks = await kstore(); if (ks) await ks.putVerified("blake3", b3, bytes.slice(0)); } catch {}
+    }
+  } catch {}
   return new Response(bytes, { status: 200, headers: h });
 }
 
@@ -684,6 +695,15 @@ self.addEventListener("fetch", (event) => {
       else { expect = BYPATH.get(rel) || BYPATH.get(fhsMap(rel) || rel) || null; }
     }
 
+    // SELF-HEAL BRIDGE: external recovery sources (the apps-holo repo, κ-named Release assets, IPFS) are
+    // sha256-keyed by foreign spec, so heal() only speaks sha256. When the canonical VERIFY axis is blake3
+    // (every app byte, pinned blake3-via-alsoKnownAs), heal must still run — on the sha256 BRIDGE hex from the
+    // SAME pin. Without this an origin-missing app byte (Pages serves no apps/*) can never stream → the app
+    // 404s ("worker failed to start"). Prefer the sha256 bridge; fall back to the verify pin for sha-only files.
+    const bridgeHex = (axis === "sha256") ? expect : (BYPATH.get(rel) || BYPATH.get(fhsMap(rel) || rel) || null);
+    const healHex = bridgeHex || expect;
+    const healAxis = bridgeHex ? "sha256" : axis;
+
     // κ-routes are content-addressed (immutable) → cacheable + verified. PATH requests bypass the by-κ
     // cache AND L5 refusal in DEV (localhost) so live source edits show without a reload; prod is unchanged.
     // ALSO in DEV: a κ-route that resolves to live SOURCE (not a vendored immutable blob) is served FRESH —
@@ -720,14 +740,14 @@ self.addEventListener("fetch", (event) => {
     let resp;
     try { resp = await fetch(BASE + phys, { cache: "no-store" }); }   // SW-initiated → does not re-enter this handler
     catch (e) {                                               // origin unreachable (offline / denied) → SELF-HEAL from a non-origin source before giving up
-      const healed = expect && trustCache ? await heal(rel, expect, axis, null) : null;
+      const healed = healHex && trustCache ? await heal(rel, healHex, healAxis, null) : null;
       return healed || new Response("holo-fhs-sw: fetch failed for " + phys, { status: 502, headers: COI });
     }
     if (resp.status !== 200 && phys !== rel) {                // fallback: a host that serves the FLAT name (e.g. the dev server streams apps live at apps/<id>/* rather than the vendored FHS path). κ re-derivation below still guards it.
       try { const alt = await fetch(BASE + rel, { cache: "no-store" }); if (alt.status === 200) resp = alt; } catch {}
     }
     if (resp.status !== 200) {                                // origin has no copy → SELF-HEAL the pinned κ from a non-origin source before passing the error through
-      const healed = expect && trustCache ? await heal(rel, expect, axis, resp) : null;
+      const healed = healHex && trustCache ? await heal(rel, healHex, healAxis, resp) : null;
       if (healed) return healed;
       // A bare host 404 for a top-level navigation strands the visitor on the host's error page. Replace it
       // with a calm in-OS not-found (navigations only; asset/fetch 404s pass through so app logic still sees them).
@@ -741,7 +761,7 @@ self.addEventListener("fetch", (event) => {
       const buf = await resp.arrayBuffer();
       const got = axis === "blake3" ? blake3hex(new Uint8Array(buf)) : await sha256hex(buf);
       if (got !== expect) {                                   // tampered/wrong origin byte → SELF-HEAL: recover the SAME κ from a non-origin source, re-derived; only refuse if no source can
-        const healed = await heal(rel, expect, axis, resp);
+        const healed = healHex ? await heal(rel, healHex, healAxis, resp) : null;
         return healed || refuse(rel, expect, got, axis);
       }
       const out = finalize(buf, resp, rel, { "x-holo-cache": "miss" });

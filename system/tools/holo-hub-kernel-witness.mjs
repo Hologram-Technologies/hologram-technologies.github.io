@@ -29,7 +29,7 @@ const ok = (n, c, x = "") => { (c ? pass++ : fail++); checks[(slug(n) || "check"
 const k1 = await buildCommerceKernel({ read, esbuild, bignumber, hash: sha256hex });
 ok("Medusa commerce math bundles to a self-contained kernel (no unresolved deps)", k1.unresolved.length === 0 && k1.js.length > 0, k1.js.length + " bytes");
 ok("a Forge κ-transform receipt is minted (κ(source)⊕esbuild⊕flags → κ(kernel), ADR-0051)",
-  /hosc:Compilation/.test(JSON.stringify(k1.receipt)) && k1.receipt["hosc:lang"] === "medusa-commerce-kernel" && k1.kappa.startsWith("did:holo:sha256:"));
+  /hosc:Compilation/.test(JSON.stringify(k1.receipt)) && k1.receipt["hosc:lang"] === "medusa-commerce-kernel" && k1.kappa.startsWith("did:holo:blake3:"));
 
 // deterministic / re-derivable (Law L5)
 const k2 = await buildCommerceKernel({ read, esbuild, bignumber, hash: sha256hex });

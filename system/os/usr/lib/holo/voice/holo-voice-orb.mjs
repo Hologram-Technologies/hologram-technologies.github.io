@@ -3,7 +3,7 @@
 // volume through 3D simplex noise. It is now rendered as a κ-ADDRESSED OBJECT: the orb's whole form —
 // geometry, golden-ratio framing, and a STACK of geometrical transforms — is one small canonical
 // descriptor, content-addressed with the SAME scheme as holo-scene.mjs (ADR-0089: canon = RFC 8785 JCS
-// subset → did:holo:sha256). The render loop INTERPRETS that descriptor, so the transform stack is data,
+// subset → did:holo:blake3). The render loop INTERPRETS that descriptor, so the transform stack is data,
 // not code: add/retune a transform → a new κ → a new orb. That is what "unlocks complex geometrical
 // transformations" — they are addressable and remixable, like any holospace object.
 //
@@ -16,13 +16,14 @@
 //   createOrb(canvas, { detail, spin, level(), color(), descriptor }) → { start, stop, resize, … , kappa, descriptor }
 
 import { createNoise3D } from "simplex-noise";
+import { blake3hex } from "../holo-blake3.mjs";
 
 const THREE = (typeof window !== "undefined" && window.THREE) || null;
 const PHI = (1 + Math.sqrt(5)) / 2;     // the golden ratio — the icosahedron's own constant; here it also frames + paces the orb
 
 // ── κ identity (the holo-scene.mjs scheme, inlined so the orb stays dependency-free) ────────────────
 // canon = RFC 8785 JCS subset (sorted keys) — byte-identical to holo-scene's canon, so the orb's κ is a
-// first-class did:holo:sha256 in the same address space as scenes/desktops.
+// first-class did:holo:blake3 in the same address space as scenes/desktops (§1.2: BLAKE3 is the one κ).
 function canon(v) {
   if (v === null || typeof v !== "object") return JSON.stringify(v);
   if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
@@ -30,10 +31,7 @@ function canon(v) {
 }
 async function kappaOf(obj) {
   const str = canon(obj);
-  const c = (typeof globalThis !== "undefined" && globalThis.crypto && globalThis.crypto.subtle) || null;
-  if (c) { const h = await c.digest("SHA-256", new TextEncoder().encode(str)); return "did:holo:sha256:" + [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join(""); }
-  let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  return "did:holo:sha256:" + ("00000000" + (h >>> 0).toString(16)).slice(-8);
+  return "did:holo:blake3:" + blake3hex(new TextEncoder().encode(str));
 }
 
 // ── the orb DESCRIPTOR (the κ-object) — the orb's form as pure, addressable data ─────────────────────

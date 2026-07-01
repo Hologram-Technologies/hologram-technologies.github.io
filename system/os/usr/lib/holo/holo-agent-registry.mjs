@@ -5,7 +5,8 @@
 // tool BY NAME to its owning surface — which still governs it (reads ambient, writes step-up). This is the
 // substrate the brain's tool-use layer sits on: toolMenu() → the brain picks → invoke(name,args,ctx).
 // Pure registry; surfaces are injected (Node) or browser-loaded (browserRegistry). Same κ axis as the OS.
-import { jcs, sha256hex, didHolo } from "./holo-uor.mjs";
+import { jcs, didHolo } from "./holo-uor.mjs";
+import { blake3hex } from "./holo-blake3.mjs";   // the ONE canonical κ hash (§1.2)
 
 const _surfaces = new Map();   // surfaceId → { surface, tools: Set<toolName>, title }
 
@@ -29,7 +30,7 @@ export function listAllTools() {
 }
 export function toolMenu() {                 // compact form for a brain prompt (name · surface · risk · desc)
   const tools = listAllTools().map((t) => ({ name: t.name, surface: t.surface, risk: t.risk, gated: t.gated, desc: t.desc }));
-  return { tools, id: didHolo("sha256", sha256hex(jcs(tools))) };
+  return { tools, id: didHolo("blake3", blake3hex(new TextEncoder().encode(jcs(tools)))) };   // κ on the ONE axis (§1.2)
 }
 
 // route a tool call BY NAME to its owning surface (default-deny: unknown tool refuses). The surface governs.

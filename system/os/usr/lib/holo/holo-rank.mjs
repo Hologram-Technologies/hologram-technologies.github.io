@@ -224,7 +224,7 @@ export function expandNeighbourhood({ seedApps = [], reviewsByApp, reviewsByRevi
 // ── no-network convergence self-test (idiom of holo-collab.selfTest) ────────────────────────
 export function selfTest() {
   const store = new Map();
-  const K = (h) => "did:holo:sha256:" + h.padEnd(64, "0");
+  const K = (h) => "did:holo:blake3:" + h.padEnd(64, "0");   // §1.2: self-test synthetic keys on the canonical axis
   const [A, B, C, D] = ["aa", "bb", "cc", "dd"].map(K);
   const me = "did:key:me", peer = "did:key:peer";
   const edges = [

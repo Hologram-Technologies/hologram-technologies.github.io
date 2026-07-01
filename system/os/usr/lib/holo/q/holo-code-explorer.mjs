@@ -13,9 +13,16 @@
 //   saveDescriptor(file)  -> { kind, note, editable }                       // the governed save route (no sealer here)
 
 import { sha256hex, jcs } from "../holo-uor.mjs";
+import { blake3hex } from "../holo-blake3.mjs";
 import { inspectKappa } from "../devtools/holo-devtools-kappa-lens.mjs";
 
 const LANG = { html: "html", json: "json", javascript: "javascript" };
+
+// §1.2: BLAKE3 is the ONE canonical content hash. Mint κ with BLAKE3 over the canonical bytes.
+const enc = (s) => new TextEncoder().encode(s);
+const kOf = (s) => blake3hex(enc(s));
+// legacy dual-read: existing κ-objects were minted under sha256; a verify must open EITHER axis.
+const matchesK = (s, k) => kOf(s) === k || sha256hex(s) === k;
 
 function file(name, path, kappa, group, lang, opts = {}) {
   return { id: kappa || path, name, path, kappa: kappa || null, group, lang,
@@ -31,14 +38,14 @@ export function explorerModel(build = {}) {
 
   if (app) {
     if (app.projectionHtml != null) {
-      const k = app.projectionK || sha256hex(app.projectionHtml);
+      const k = app.projectionK || kOf(app.projectionHtml);
       files.push(file("index.html", "src/index.html", k, "projection", "html",
-        { content: app.projectionHtml, verified: sha256hex(app.projectionHtml) === k }));
+        { content: app.projectionHtml, verified: matchesK(app.projectionHtml, k) }));   // legacy dual-read
     }
     if (app.manifest) files.push(file("manifest.json", "src/manifest.json", app.manifestK, "manifest", "json"));
     if (app.reducer != null) files.push(file("reducer.js", "src/reducer.js", app.reducerK, "reducer", "javascript"));
     for (const c of (app.collections || [])) {
-      const k = c.genesisK || (c.genesis && sha256hex(jcs(c.genesis)));
+      const k = c.genesisK || (c.genesis && kOf(jcs(c.genesis)));
       files.push(file((c.name || "data") + ".json", "data/" + (c.name || "data") + ".json", k, "collection", "json", { readOnly: true }));
     }
     const a = build.api || {};
@@ -50,17 +57,17 @@ export function explorerModel(build = {}) {
   // single-source holospace: one editable document
   const src = typeof build === "string" ? build : (build.source != null ? build.source : null);
   if (src != null) {
-    const k = sha256hex(src);
+    const k = kOf(src);
     files.push(file("index.html", "src/index.html", k, "projection", "html", { content: src, verified: true }));
   }
   return { manifestK: files[0] ? files[0].kappa : null, files, api };
 }
 
-// openFile — read-through-κ. Source files carry inline content (re-derive sha256===κ); store-backed κ-objects
+// openFile — read-through-κ. Source files carry inline content (re-derive BLAKE3===κ, sha256 legacy dual-read); store-backed κ-objects
 // resolve via inspectKappa (which throws MISSING / L5 REFUSE on tamper). Returns editor-ready text + language.
 export function openFile(file = {}, store = {}) {
   if (file.content != null) {
-    if (file.kappa && sha256hex(file.content) !== file.kappa) throw new Error("L5 REFUSE " + file.kappa);
+    if (file.kappa && !matchesK(file.content, file.kappa)) throw new Error("L5 REFUSE " + file.kappa);   // legacy dual-read
     return { content: file.content, lang: file.lang || "text", kappa: file.kappa, verified: true };
   }
   const r = inspectKappa(file.kappa, store);                       // MISSING / L5 REFUSE on tamper
