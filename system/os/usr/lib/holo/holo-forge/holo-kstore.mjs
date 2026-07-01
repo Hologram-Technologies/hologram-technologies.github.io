@@ -8,6 +8,8 @@
 // Shared by the page AND the Service Worker (same DB name, same origin) so a build cached by the
 // page is served offline by the worker, and an asset sealed by the worker is an O(1) hit for the page.
 
+import { blake3hex } from "../holo-blake3.mjs";
+
 const DB = "holo-kstore", STORE = "kappa";
 const hexOf = (k) => String(k).split(":").pop();
 let _db = null;
@@ -27,9 +29,12 @@ export async function kget(kappa) { return withStore("readonly", (s) => reqP(s.g
 export async function khas(kappa) { const k = await withStore("readonly", (s) => reqP(s.getKey(hexOf(kappa)))); return k !== undefined; }
 export async function kcount() { return withStore("readonly", (s) => reqP(s.count())); }
 
+// §1.2: the canonical content hash is BLAKE3. κ MINT goes through blake3hex (sync).
+export const khex = (bytes) => { const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes); return blake3hex(u); };
+export const kappaOf = async (bytes) => "did:holo:blake3:" + khex(bytes);
+// legacy dual-read: the pre-§1.2 sha256 reader, kept so EXISTING sha256-addressed content still opens.
 export async function sha256hex(bytes) { const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes); const d = await crypto.subtle.digest("SHA-256", u); return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join(""); }
-export const kappaOf = async (bytes) => "did:holo:sha256:" + await sha256hex(bytes);
 
 // kverify(kappa) → bytes | null : get from the store and RE-DERIVE (Law L5). A local byte that does
 // not hash to its own address is refused — the store cannot be silently poisoned.
-export async function kverify(kappa) { const b = await kget(kappa); if (!b) return null; return (await sha256hex(b)) === hexOf(kappa) ? b : null; }
+export async function kverify(kappa) { const b = await kget(kappa); if (!b) return null; const h = hexOf(kappa); return (khex(b) === h || (await sha256hex(b)) === h) ? b : null; } // legacy dual-read

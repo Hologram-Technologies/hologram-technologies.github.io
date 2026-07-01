@@ -8,9 +8,10 @@
 //   • an external agent must already HOLD the capability (SEC-2 attenuation) — default-deny otherwise.
 // Pure + isomorphic: the catalog + governance are Node-testable; the live seam is injected (browser bridge in
 // the app; an in-memory stub in the witness). Same axis as the rest of the OS (holo-uor κ).
-import { jcs, sha256hex, didHolo } from "./holo-uor.mjs";
+import { jcs, didHolo } from "./holo-uor.mjs";
+import { blake3hex } from "./holo-blake3.mjs";   // the ONE canonical κ hash (§1.2)
 
-const kappaOf = (obj) => didHolo("sha256", sha256hex(jcs(obj)));
+const kappaOf = (obj) => didHolo("blake3", blake3hex(new TextEncoder().encode(jcs(obj))));   // content id on the ONE axis
 // risk → the capability a caller must hold + whether it needs the step-up gate.
 export const RISK = { read: { gated: false }, write: { gated: true }, destructive: { gated: true } };
 

@@ -13,7 +13,9 @@
 import { COMPONENTS, isComponent, CONTAINERS } from "./holo-q-components.mjs";
 import { enforce } from "./holo-q-design-conscience.mjs";
 import * as dag from "./holo-q-app-dag.mjs";
-import { sha256hex, jcs, didHolo } from "../holo-uor.mjs";
+import { jcs, didHolo } from "../holo-uor.mjs";
+import { blake3hex } from "../holo-blake3.mjs";   // the ONE canonical κ hash (§1.2)
+const b3 = (s) => blake3hex(typeof s === "string" ? new TextEncoder().encode(s) : s);   // canonical hex of a string/bytes
 
 export const PLATFORM_KINDS = ["genesis", "membership", "epoch", "tombstone"];   // interpreted uniformly; never app-authored (§2.9/§3)
 export const CAP_OPS = ["read", "write", "admin"];
@@ -61,17 +63,17 @@ export function compileSpec(spec) {
   const { spec: v, report } = validateSpec(spec);
   const rep = [];
   const projectionHtml = enforce(`<!doctype html><html><head></head><body>${renderNode(v.ui, rep)}</body></html>`).html;   // beautiful by construction
-  const projectionK = sha256hex(projectionHtml);                         // projection bundle κ
+  const projectionK = b3(projectionHtml);                                // projection bundle κ (BLAKE3, §1.2)
   const projectionDAG = dag.decompose(projectionHtml);                   // every element addressable (S2)
   const reducer = { format: "holo-reducer/1", platform: "uniform", kinds: v.kinds.app.reduce((m, k) => { m[k] = "append"; return m; }, {}) };   // deterministic, no IO/clock/random
-  const reducerK = sha256hex(jcs(reducer));
+  const reducerK = b3(jcs(reducer));
   const collections = v.collections.map((c) => {
     const genesis = { kind: "genesis", reducer: reducerK, collection: c.name, recordKind: c.kind, fields: c.fields };
-    return { ...c, genesis, genesisK: sha256hex(jcs(genesis)) };
+    return { ...c, genesis, genesisK: b3(jcs(genesis)) };
   });
   const manifest = { format: "holo-app/1", name: v.name, reducer: reducerK, projection: projectionK, kinds: v.kinds, capabilities: v.capabilities, identity: v.identity };
-  const manifestK = sha256hex(jcs(manifest));                            // app identity (CC-1/L1); upgrades = new κ
-  return { manifestK, manifest, kid: didHolo("sha256", manifestK), projectionK, projectionHtml, projectionDAG, reducerK, reducer, collections, capabilities: v.capabilities, report: report.concat(rep) };
+  const manifestK = b3(jcs(manifest));                                   // app identity (CC-1/L1, BLAKE3); upgrades = new κ
+  return { manifestK, manifest, kid: didHolo("blake3", manifestK), projectionK, projectionHtml, projectionDAG, reducerK, reducer, collections, capabilities: v.capabilities, report: report.concat(rep) };
 }
 
 export default { validateSpec, compileSpec, renderNode, PLATFORM_KINDS, CAP_OPS, FIELD_TYPES };

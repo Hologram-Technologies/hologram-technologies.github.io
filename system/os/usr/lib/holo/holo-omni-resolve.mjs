@@ -37,8 +37,6 @@ export const DEST = Object.freeze({
   find:    (q)        => `holo://os/find.html?q=${encodeURIComponent(q)}`,                  // free text → Holo Find
 });
 
-const PREFIX = "did:holo:sha256:";
-
 // normalize any κ form (did:holo:sha256:<hex> · holo://<hex> · bare 64hex) to its bare hex.
 function kappaHex(v) {
   const m = String(v).match(/([0-9a-f]{64})/i);

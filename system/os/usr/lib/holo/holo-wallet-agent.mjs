@@ -19,15 +19,13 @@
 // Pure + isomorphic: the catalog, classification, and governance are Node-testable; the live seam is
 // injected (browser = holo-wallet-bridge over BroadcastChannel; witness = an in-memory stub).
 
-import { sha256 } from "./wdk-crypto/wdk-crypto.bundle.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 
 const te = new TextEncoder();
-const HEXC = Array.from({ length: 256 }, (_, b) => b.toString(16).padStart(2, "0"));
-const hex = (u) => { let s = ""; for (let i = 0; i < u.length; i++) s += HEXC[u[i]]; return s; };
 const canon = (v) => Array.isArray(v) ? "[" + v.map(canon).join(",") + "]"
   : v && typeof v === "object" ? "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canon(v[k])).join(",") + "}"
   : JSON.stringify(v);
-const kappaOf = (obj) => "did:holo:sha256:" + hex(sha256(te.encode(canon(obj))));
+const kappaOf = (obj) => "did:holo:blake3:" + blake3hex(te.encode(canon(obj)));
 
 // ── risk → capability (faithful to holo-delegate.CAP_FOR_KIND). read < sign < spend. ──────────────
 const CAP = { read: "wallet:read", sign: "wallet:sign", spend: "wallet:spend" };

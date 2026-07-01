@@ -10,13 +10,20 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { verify as verifyObject, jcs, makeObject } from "../holo-object.mjs";
+import { describeSelf, verifySelf, projectSelf, CANON } from "../holo-self.mjs";   // the ONE self — same object the CLI + Q + serverless core project
+import { teach as teachLessons } from "../holo-teach.mjs";                          // the OS teaches its PROVEN lessons at this door too
+import { express } from "../holo-expression.mjs";
+import { makeGate, livingMindCapabilities } from "../holo-gate.mjs";                 // the ONE gate — living-mind verbs defined ONCE; this door delegates
+const GATE = makeGate(livingMindCapabilities({ self: { describeSelf, verifySelf, projectSelf, CANON }, teach: { teach: teachLessons }, expression: { express } }));
+const SELF_URI = "holo://self";
+const LESSONS_URI = "holo://lessons";
 import { makeEdge, personalRank, commitRank, recommend, expandNeighbourhood, THETA } from "../holo-rank.mjs";
 import { QmlEngine, createHeadlessBackend } from "../holo-qml.mjs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeApp } from "../holo-app.mjs";
 import { makeStore, memBackend } from "../holo-store.js";
-import { sha256hex } from "../holo-uor.mjs";
+import { blake3hex } from "../holo-blake3.mjs";   // §1.2: BLAKE3 is the ONE canonical content hash for κ mints
 import * as own from "../holo-own.mjs";
 import * as bt from "../holo-bittensor.mjs";
 
@@ -28,9 +35,9 @@ const SERVER = { name: "hologram-os", version: "0.1.0", title: "Hologram OS" };
 let _forge = null;
 function forgeApp() {
   if (_forge) return _forge;
-  const store = makeStore({ hash: (b) => sha256hex(b), axis: "did:holo:sha256", backend: memBackend() });
-  _forge = makeApp({ store, hash: (b) => sha256hex(b) });
-  try { _forge.build.compilerKappa = "did:holo:sha256:" + sha256hex(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../holo-forge/holo-forge.mjs"))); } catch {}
+  const store = makeStore({ hash: (b) => blake3hex(b), axis: "did:holo:blake3", backend: memBackend() });
+  _forge = makeApp({ store, hash: (b) => blake3hex(b) });
+  try { _forge.build.compilerKappa = "did:holo:blake3:" + blake3hex(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../holo-forge/holo-forge.mjs"))); } catch {}
   return _forge;
 }
 
@@ -95,6 +102,12 @@ const BUILTIN_TOOLS = [
     inputSchema: { type: "object", properties: {} } },
   { name: "verify_batch", description: "Verify many UOR objects at once; reports progress and is cancellable.",
     inputSchema: { type: "object", properties: { objects: { type: "array", items: { type: "object" } } }, required: ["objects"] } },
+  { name: "describe_self", description: "Ask the OS what it is and whether it's well: returns its ONE self — a self-verifying UOR object with { coherence∈[0,1], whole, boot, attention, remedies } plus `kappa`, `at`, and `basis`. The SAME self the coder's `holo self` and in-OS Q project; the κ fingerprints current STATE (a different κ later means the state changed, not disagreement). Re-derive the object's id to verify the report yourself (Law L5) — don't trust, re-derive. No args.",
+    inputSchema: { type: "object", properties: {} } },
+  { name: "verify_self", description: "Re-derive the OS's self-report end-to-end (Law L5): confirm the self object's id equals the hash of its own content, and return the exact canonicalization recipe so you can reproduce it independently. Pass { object } to verify a self object you already hold, or no args to verify the OS's live self. Returns { ok, kappa, canon }.",
+    inputSchema: { type: "object", properties: { object: { type: "object" } } } },
+  { name: "teach", description: "Let the OS TEACH you what it has PROVEN worth teaching — generalizations from its own usage that survived held-out validation AND a proof (each lesson carries its lesson κ + shipping-proof κ). Pass { topic } to focus, or no args for all. Use it BEFORE you stumble: it hands you the working workflow with the proof. Re-derive any lesson to check it (Law L5).",
+    inputSchema: { type: "object", properties: { topic: { type: "string" } } } },
   { name: "holo_rank", description: "Personal, content-addressed PageRank (HoloRank). Given reference edges {rel,from,to,by?,weight?} and a seed (teleport set of did:holo you trust/own), returns a SELF-VERIFYING UOR ranking object. The result is deterministic, so DON'T trust it — re-derive its did (verify_object, Law L5) and/or recompute holo_rank over the same edges to confirm the same κ. Trustless ranking for agents.",
     inputSchema: { type: "object", properties: {
       edges: { type: "array", items: { type: "object", properties: { rel: { type: "string" }, from: { type: "string" }, to: { type: "string" }, by: { type: "string" }, weight: { type: "number" } }, required: ["rel", "from", "to"] } },
@@ -112,11 +125,11 @@ const BUILTIN_TOOLS = [
     inputSchema: { type: "object", properties: { kappa: { type: "string", description: "artifact or source κ" }, source: { type: "string", description: "Holo-C source (if no kappa)" }, fn: { type: "string", description: "exported function to call" }, args: { type: "array", items: { type: "number" }, description: "i32 args for fn" } } } },
   { name: "holo_share", description: "SHARE a built app: the κ IS the share. Returns { kappa, holo (holo://κ), url } — location-independent, self-verifying, self-compiling; the recipient resolves it from cache/peers/IPFS/origin, re-derives it (Law L5), and runs it, with no server. Agents collaborate by passing κ.",
     inputSchema: { type: "object", properties: { kappa: { type: "string", description: "the artifact or source κ to share" } }, required: ["kappa"] } },
-  { name: "holo_compile_model", description: "COMPILE a neural-network model into a content-addressed .holo κ-object. Pass an ONNX model as { onnxBase64 } (or { url } to fetch one); the REAL hologram-ai compiler (import → optimize → lower → compile, ADR-0017) runs in WebAssembly — in the browser or Node, no server, no toolchain. Compiling is a κ-transform (κ(onnx) ⊕ κ(compiler) → κ(holo)). Returns { ok, kappa (the compiled model's did:holo), sourceKappa (the ONNX κ), compilerKappa, bytes, ports ({inputs,outputs} each with dtype + shape), holoBase64 (the archive bytes — re-derive: sha256(decode)==kappa, Law L5), receipt (a self-verifying PROV-O compile receipt κ) }. Turns ANY ONNX model into a substrate-native, shareable, re-derivable object — the general model front-end that broadens the catalog beyond the hand-built ternary engine. Serverless (Law L1/L5).",
+  { name: "holo_compile_model", description: "COMPILE a neural-network model into a content-addressed .holo κ-object. Pass an ONNX model as { onnxBase64 } (or { url } to fetch one); the REAL hologram-ai compiler (import → optimize → lower → compile, ADR-0017) runs in WebAssembly — in the browser or Node, no server, no toolchain. Compiling is a κ-transform (κ(onnx) ⊕ κ(compiler) → κ(holo)). Returns { ok, kappa (the compiled model's did:holo), sourceKappa (the ONNX κ), compilerKappa, bytes, ports ({inputs,outputs} each with dtype + shape), holoBase64 (the archive bytes — re-derive: blake3(decode)==kappa, Law L5), receipt (a self-verifying PROV-O compile receipt κ) }. Turns ANY ONNX model into a substrate-native, shareable, re-derivable object — the general model front-end that broadens the catalog beyond the hand-built ternary engine. Serverless (Law L1/L5).",
     inputSchema: { type: "object", properties: { onnxBase64: { type: "string", description: "the ONNX model bytes, base64-encoded" }, url: { type: "string", description: "or a URL to fetch the ONNX model from (ingest boundary)" } } } },
   { name: "holo_inspect", description: "INSPECT a UOR object — the agent side of the on-screen Inspect (identical to what a human sees right-clicking an object). Pass the object's bytes as `source`; returns { kappa (re-derived did:holo), type (bundle·module·svg·json·text), bytes, children (the composition DAG — child κ's, for a bundle), exports (for a module) }. Self-verifying: the κ is derived from the bytes you passed (Law L5). Use it to understand an object before remixing it.",
     inputSchema: { type: "object", properties: { source: { type: "string", description: "the object's bytes as text (e.g. from holo_resolve)" } }, required: ["source"] } },
-  { name: "holo_remix", description: "REMIX an object → a NEW self-verifying object (the agent side of on-screen Edit; identical to a human's). Pass the edited `source` (optionally the `parent` κ it was forked from). Returns { kappa (new did:holo = sha256 of the bytes), holo (holo://κ), parent, link }. `link` is a SELF-CONTAINED, cross-device, serverless share URL (`/apps/ui/render.html#k=<κ>&o=<gzipped bytes>`): the recipient — human in a browser, or another agent — decodes it, re-derives the κ (Law L5), and renders it on ANY device with no server. An edit is a FORK (a new κ), never a mutation (Law L1). The remix loop for agents: holo_resolve → holo_inspect → holo_remix → hand the link to a human/agent.",
+  { name: "holo_remix", description: "REMIX an object → a NEW self-verifying object (the agent side of on-screen Edit; identical to a human's). Pass the edited `source` (optionally the `parent` κ it was forked from). Returns { kappa (new did:holo = blake3 of the bytes), holo (holo://κ), parent, link }. `link` is a SELF-CONTAINED, cross-device, serverless share URL (`/apps/ui/render.html#k=<κ>&o=<gzipped bytes>`): the recipient — human in a browser, or another agent — decodes it, re-derives the κ (Law L5), and renders it on ANY device with no server. An edit is a FORK (a new κ), never a mutation (Law L1). The remix loop for agents: holo_resolve → holo_inspect → holo_remix → hand the link to a human/agent.",
     inputSchema: { type: "object", properties: { source: { type: "string", description: "the edited object bytes as text" }, parent: { type: "string", description: "optional κ this was forked from" } }, required: ["source"] } },
   { name: "own_verify", description: "Verify a content-addressed OWNERSHIP chain (ADR-053 Titles): re-derive every Title κ, check each transfer's signature + authority (the current owner, or an attenuated UCAN delegation) + lineage (Law L5 / SEC-2), and report who owns it NOW. Returns { ok, owner (σ-axis κ), ownerDid (did:holo), head, errors, result } — `result` is a SELF-VERIFYING UOR object (re-derive its id, Law L5). An agent verifies ownership without trusting any server. An agent ACQUIRES ownership by signing a Title locally (its own holo-identity) and verifying the extended chain here.",
     inputSchema: { type: "object", properties: { titles: { type: "array", items: { type: "object" }, description: "the Title chain, genesis→head" }, delegations: { type: "object", description: "optional { titleκ: delegation } proofs for delegated transfers" } }, required: ["titles"] } },
@@ -177,6 +190,8 @@ export function capabilityCard(registry) {
 const BUILTIN_RESOURCES = [
   { uri: SAMPLE_URI, name: "Sample UOR object", description: "A built-in self-verifying object; re-derive its id to verify it (Law L5).", mimeType: "application/ld+json", type: "schema:CreativeWork" },
   { uri: CAPABILITIES_URI, name: "Holospace capability card", description: "The standardized, application-agnostic W3C capability card for this holospace — self-verifying (Law L5).", mimeType: "application/ld+json", type: "schema:SoftwareApplication" },
+  { uri: SELF_URI, name: "The OS's live self", description: "The OS's ONE self as a self-verifying UOR object: what it is and whether it's well (coherence, boot, remedies). Re-derive its id to verify (Law L5).", mimeType: "application/ld+json", type: "schema:DataFeed" },
+  { uri: LESSONS_URI, name: "The OS's proven lessons", description: "What the OS has proven worth teaching — a self-verifying object linking each held-out-validated, proved lesson (with its shipping-proof κ). Re-derive to verify (Law L5).", mimeType: "application/ld+json", type: "schema:LearningResource" },
 ];
 
 // getPrompt(registry, name, args) → { description, messages } (MCP prompts/get result).
@@ -262,6 +277,21 @@ export async function handle(req, ctx) {
   const fail = (code, message) => ({ jsonrpc: "2.0", id: req.id ?? null, error: { code, message } });
   const text = (s) => ({ content: [{ type: "text", text: typeof s === "string" ? s : JSON.stringify(s) }] });
   const { registry } = ctx;
+  const nowIso = () => { try { return new Date().toISOString(); } catch (e) { return "1970-01-01T00:00:00Z"; } };
+  // buildSelf() → the OS's ONE self (identical logic to the serverless core). The running OS injects ctx.self;
+  // else, in a browser tier, window.Q.self; else an honest minimal self. Self-verifying either way (Law L5).
+  const buildSelf = () => {
+    let provider = (typeof ctx.self === "function") ? ctx.self : null;
+    if (!provider) { try { if (typeof window !== "undefined" && window.Q && typeof window.Q.self === "function") provider = () => window.Q.self("agent"); } catch (e) {} }
+    try { if (provider) { const s = provider(); if (s && s.object) return s; if (s && typeof s === "object") return describeSelf({ ...s, door: "mcp", at: nowIso() }); } } catch (e) {}
+    return describeSelf({ door: "mcp", at: nowIso(), attention: [{ kind: "self.static", ref: "live coherence unavailable at this MCP tier — the running OS injects it via ctx.self / window.Q.self", severity: "low" }] });
+  };
+  const buildLessons = () => {
+    let provider = (typeof ctx.lessons === "function") ? ctx.lessons : null;
+    if (!provider) { try { if (typeof window !== "undefined" && window.Q && typeof window.Q.lessons === "function") provider = () => window.Q.lessons(); } catch (e) {} }
+    try { if (provider) { const L = provider(); if (Array.isArray(L)) return L; } } catch (e) {}
+    return [];
+  };
   switch (req.method) {
     case "initialize":
       return reply({ protocolVersion: PROTOCOL_VERSION, capabilities: { resources: {}, tools: {} }, serverInfo: registry.server });
@@ -269,7 +299,7 @@ export async function handle(req, ctx) {
       return reply({ resources: registry.resources.map(({ uri, name, description, mimeType }) => ({ uri, name, description, mimeType })) });
     case "resources/read": {
       const uri = req.params?.uri;
-      const obj = uri === SAMPLE_URI ? sampleObject() : uri === CAPABILITIES_URI ? capabilityCard(registry) : (ctx.resolve ? ctx.resolve(uri) : null);
+      const obj = uri === SAMPLE_URI ? sampleObject() : uri === CAPABILITIES_URI ? capabilityCard(registry) : uri === SELF_URI ? buildSelf().object : uri === LESSONS_URI ? teachLessons({ lessons: buildLessons(), audience: "agent" }).object : (ctx.resolve ? ctx.resolve(uri) : null);
       if (!obj) return fail(-32602, "resource not found: " + uri);
       return reply({ contents: [{ uri, mimeType: "application/ld+json", text: jcs(obj) }] });
     }
@@ -283,15 +313,21 @@ export async function handle(req, ctx) {
     }
     case "tools/call": {
       const { name, arguments: args = {} } = req.params || {};
+      // CAPTURE (Phase 1): record every external tool call as a typed interaction (the learning substrate). Fail-soft.
+      try { if (typeof ctx.capture === "function") ctx.capture({ door: "mcp", actor: ctx.actor || "agent", intent: name, outcome: "call" }); } catch (e) {}
       if (name === "verify_object") {
         if (!args.object || typeof args.object !== "object") return reply({ ...text("verify_object requires an 'object' argument (a UOR object)"), isError: true });
         return reply({ ...text({ verified: verifyObject(args.object), did: args.object?.id }) }); }
       if (name === "holo_describe") return reply(text(jcs(capabilityCard(registry))));   // STANDARDIZED app-agnostic capability card
-      if (name === "resolve_object") { const o = args.uri === SAMPLE_URI ? sampleObject() : args.uri === CAPABILITIES_URI ? capabilityCard(registry) : (ctx.resolve ? ctx.resolve(args.uri) : null);
+      if (name === "resolve_object") { const o = args.uri === SAMPLE_URI ? sampleObject() : args.uri === CAPABILITIES_URI ? capabilityCard(registry) : args.uri === SELF_URI ? buildSelf().object : args.uri === LESSONS_URI ? teachLessons({ lessons: buildLessons(), audience: "agent" }).object : (ctx.resolve ? ctx.resolve(args.uri) : null);
         return o ? reply(text(jcs(o))) : reply({ ...text("not found: " + args.uri), isError: true }); }
       if (name === "verify_batch") {
         if (!Array.isArray(args.objects)) return reply({ ...text("verify_batch requires an 'objects' array"), isError: true });
         return reply(text(args.objects.map((o) => ({ id: o?.id, verified: verifyObject(o) })))); }
+      // living-mind verbs are single-sourced in the ONE gate; this door only gathers context (buildSelf/buildLessons) + delegates.
+      if (name === "describe_self") return reply(text((await GATE.invoke("self", { audience: "agent" }, { self: buildSelf })).result));
+      if (name === "verify_self") return reply(text((await GATE.invoke("verify_self", { object: args.object }, { self: buildSelf })).result));
+      if (name === "teach") return reply(text((await GATE.invoke("teach", { topic: args.topic || null }, { lessons: buildLessons })).result));
       if (name === "holo_rank") {
         if (!Array.isArray(args.edges) || !Array.isArray(args.seed) || !args.seed.length)
           return reply({ ...text("holo_rank requires { edges:[{rel,from,to,by?,weight?}], seed:[did:holo] }"), isError: true });
@@ -374,10 +410,10 @@ export async function handle(req, ctx) {
           const holo = await ai.compile({ onnx });                       // the real ONNX→.holo compile (ADR-0017), in wasm
           const ports = await ai.describe({ archive: holo });
           const holoBytes = holo instanceof Uint8Array ? holo : new Uint8Array(holo);
-          const kappa = "did:holo:sha256:" + sha256hex(Buffer.from(holoBytes));        // the compiled model IS its content address (Law L1)
-          const sourceKappa = "did:holo:sha256:" + sha256hex(Buffer.from(onnx));
+          const kappa = "did:holo:blake3:" + blake3hex(Buffer.from(holoBytes));        // the compiled model IS its content address (Law L1)
+          const sourceKappa = "did:holo:blake3:" + blake3hex(Buffer.from(onnx));
           const eng = ai.engineBytes();
-          const compilerKappa = eng ? "did:holo:sha256:" + sha256hex(Buffer.from(eng)) : null;
+          const compilerKappa = eng ? "did:holo:blake3:" + blake3hex(Buffer.from(eng)) : null;
           // a self-verifying PROV-O compile receipt: κ commits to {onnx κ ⊕ compiler κ → holo κ, ports}
           const receipt = makeObject(new Map(), { type: ["prov:Activity", "prov:Entity", "schema:SoftwareSourceCode"],
             "schema:name": "Holo model compilation",
@@ -388,23 +424,23 @@ export async function handle(req, ctx) {
       }
       if (name === "holo_inspect") {
         if (typeof args.source !== "string") return reply({ ...text("holo_inspect requires a 'source' string (the object's bytes as text)"), isError: true });
-        const src = args.source, hex = sha256hex(Buffer.from(src, "utf8")); const head = src.replace(/^\s+/, "");
+        const src = args.source, hex = blake3hex(Buffer.from(src, "utf8")); const head = src.replace(/^\s+/, "");
         const childK = (c) => { const o = []; if (typeof c === "string" && /sha256:/.test(c)) o.push(c.replace(/^.*sha256:/, "holo://sha256:")); if (c && c.kappa) o.push(c.kappa); if (c && c.bundle) o.push(c.bundle); if (c && c.children) o.push(...[].concat(c.children).flatMap(childK)); return o; };
         let type = "text", children = [], exports = [];
         if (head.startsWith("<svg") || head.startsWith("<?xml")) type = "svg";
         else if (head[0] === "{" || head[0] === "[") { try { const j = JSON.parse(src); if (j && j["@type"] === "holo:Bundle") { type = "bundle"; children = [...new Set((j.children || []).flatMap(childK))]; } else type = "json"; } catch (e) { type = "text"; } }
         else if (/\b(export|import)\b/.test(src)) { type = "module"; const m = src.match(/export\s*\{([^}]+)\}/); if (m) m[1].split(",").forEach((x) => { const n = x.split(/\s+as\s+/).pop().trim(); if (n && n !== "type") exports.push(n); }); }
-        return reply(text({ kappa: "did:holo:sha256:" + hex, type, bytes: Buffer.byteLength(src, "utf8"), children, exports }));
+        return reply(text({ kappa: "did:holo:blake3:" + hex, type, bytes: Buffer.byteLength(src, "utf8"), children, exports }));
       }
       if (name === "holo_remix") {
         if (typeof args.source !== "string") return reply({ ...text("holo_remix requires a 'source' string (the edited bytes)"), isError: true });
-        const bytes = Buffer.from(args.source, "utf8"), hex = sha256hex(bytes);
+        const bytes = Buffer.from(args.source, "utf8"), hex = blake3hex(bytes);
         // a SELF-VERIFYING cross-device link: gzip the bytes into the URL fragment next to the κ; the
         // recipient re-derives the κ (Law L5) before rendering — opens on any device, no server.
         const zlib = await import("node:zlib");
         const o = "g" + zlib.gzipSync(bytes).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-        const link = "/apps/ui/render.html#k=holo%3A%2F%2Fsha256%3A" + hex + "&o=" + o;
-        return reply(text({ ok: true, kappa: "did:holo:sha256:" + hex, holo: "holo://sha256:" + hex, parent: args.parent || null, link, bytes: bytes.length, selfVerifying: true }));
+        const link = "/apps/ui/render.html#k=holo%3A%2F%2Fblake3%3A" + hex + "&o=" + o;
+        return reply(text({ ok: true, kappa: "did:holo:blake3:" + hex, holo: "holo://blake3:" + hex, parent: args.parent || null, link, bytes: bytes.length, selfVerifying: true }));
       }
       if (name === "ask_model") { if (ctx.sampler) return reply(text(await ctx.sampler(args)));
         return reply({ ...text("ask_model (sampling) needs a sampling-capable connection — use the SDK server"), isError: true }); }
@@ -474,7 +510,7 @@ export async function handle(req, ctx) {
 }
 
 // makeServer(appsDir, resolve) → a ready handler bound to a registry + resolver.
-export function makeServer({ appsDir, manifests, resolve, toolHandlers } = {}) {
+export function makeServer({ appsDir, manifests, resolve, toolHandlers, self, capture } = {}) {
   const registry = buildRegistry(manifests || scanManifests(appsDir));
-  return { registry, handle: (req) => handle(req, { registry, resolve, toolHandlers }) };
+  return { registry, handle: (req) => handle(req, { registry, resolve, toolHandlers, self, capture }) };
 }

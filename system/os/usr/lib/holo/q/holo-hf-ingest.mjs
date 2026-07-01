@@ -3,12 +3,15 @@
 // Ports the logic of the native Rust hf_api.rs to a BROWSER fetch: discover model info, select the GGUF/ONNX
 // file + companions, range-stream multi-GB weights (never whole-file), resume what we already have, map HF's
 // auth/gated/404 statuses honestly, detect the format by magic, and register the bytes as κ-blocks into the
-// store the Service Worker already serves. Pure + isomorphic; ALL IO injected (fetch, sha256hex, kput).
+// store the Service Worker already serves. Pure + isomorphic; ALL IO injected (fetch, kput). §1.2: the content
+// address (block + whole-file κ) is minted with the canonical BLAKE3 hash (blake3hex, sync) — did:holo:blake3.
 //
 // HONEST LINE: whether huggingface.co answers cross-origin RANGE reads (CORS + 206) cannot be settled by a mock —
 // `servedWhole` surfaces the case where the server IGNORED Range and returned 200 (a CORS/range fallback, not a
 // failure), and a thrown fetch surfaces as a clear network/cors error rather than a silent partial. The live
 // check is a browser-session step. Relates: ADR-0114 · ADR-0092 (governed fetch) · v86 kblocks (the streaming unit).
+
+import { blake3hex } from "../holo-blake3.mjs"; // §1.2 BLAKE3-only: the ONE canonical content hash for κ mint
 
 export class HfError extends Error { constructor(kind, msg) { super(msg); this.kind = kind; this.name = "HfError"; } }
 
@@ -92,7 +95,9 @@ export async function rangeDownload(url, { fetch, token, size, chunkSize = 8 << 
 // ingest(repo, ctx) -> manifest { repo, format, file, size, kappa, blocks:[{kappa,off,len}], companions, servedWhole, gated }
 // The whole-file κ is the model identity; the fixed-size blocks are the lazy-stream + dedup unit (the v86 pattern).
 export async function ingest(repo, ctx = {}) {
-  const { fetch, token, revision = "main", format, kput, sha256hex, chunkSize, blockSize = 1 << 18, onProgress } = ctx;
+  // §1.2: κ mint is BLAKE3 (blake3hex, sync, self-contained). `sha256hex` remains an accepted ctx dep for
+  // back-compat with callers/witnesses that still pass it, but it is NO LONGER used to mint the content address.
+  const { fetch, token, revision = "main", format, kput, chunkSize, blockSize = 1 << 18, onProgress } = ctx;
   const info = await fetchModelInfo(repo, { fetch, token });
   // /api/models/{id} siblings omit size — patch from the tree endpoint FIRST, so selection picks the SMALLEST quant
   // (otherwise the size-blind picker falls back to name order and grabs e.g. fp16 because "f" < "q").
@@ -112,11 +117,11 @@ export async function ingest(repo, ctx = {}) {
   const blocks = [];
   for (let off = 0; off < size; off += blockSize) {
     const slice = dl.bytes.subarray(off, Math.min(off + blockSize, size));
-    const bk = "did:holo:sha256:" + (await sha256hex(slice));
+    const bk = "did:holo:blake3:" + blake3hex(slice);
     if (kput) await kput(bk, slice);
     blocks.push({ kappa: bk, off, len: slice.length });
   }
-  const kappa = "did:holo:sha256:" + (await sha256hex(dl.bytes));
+  const kappa = "did:holo:blake3:" + blake3hex(dl.bytes);
   if (kput) await kput(kappa, dl.bytes);
   return { repo, format: sel.format, file: sel.file, size, kappa, blocks, companions: sel.companions, servedWhole: dl.servedWhole, gated: !!info.gated };
 }

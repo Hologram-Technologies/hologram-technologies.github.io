@@ -15,7 +15,7 @@
 
 import { defineRuleset, forkRuleset, validate, adoptRuleset, governingRuleset, validateChain } from "./holo-strand-rules.mjs";
 import { predicateKappa } from "./holo-ad4m.mjs";
-import { sha256Hex } from "./holo-identity.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 import { verifyEntry } from "./holo-strand.mjs";
 
 export { defineRuleset, forkRuleset };
@@ -47,7 +47,7 @@ export function makeDna({ perspective, ruleset = LINK_DNA, isMember = () => true
       badLink: { source: link.source ?? null, predicate: link.predicate ?? null, target: link.target ?? null },
       reason: g.why, violations: g.violations ?? null,
     };
-    const proof = "did:holo:sha256:" + (await sha256Hex(new TextEncoder().encode(JSON.stringify(body))));
+    const proof = "did:holo:blake3:" + blake3hex(new TextEncoder().encode(JSON.stringify(body)));
     return { ...body, proof };
   }
 

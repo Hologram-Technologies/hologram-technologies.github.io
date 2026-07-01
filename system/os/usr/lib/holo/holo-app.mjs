@@ -18,6 +18,7 @@
 // build-memo (an arbitrary key→meta cache, not a content object) lives in a small side index.
 
 import { compile, forgeReceipt, jcs, VERSION, LANG } from "./holo-forge/holo-forge.mjs";
+import { blake3hex } from "./holo-blake3.mjs";   // §1.2: BLAKE3 is the ONE canonical κ axis
 
 const enc = (s) => new TextEncoder().encode(s);
 const dec = (b) => new TextDecoder().decode(b instanceof Uint8Array ? b : new Uint8Array(b));
@@ -28,8 +29,16 @@ const memIndex = () => { const m = new Map(); return { get: async (k) => m.get(k
 // makeApp({ store, hash, index }) → { build, run, share }.  store: the holo-store contract
 // { put(bytes)→κ, get(κ)→bytes|null, verify(κ,bytes)→bool }.  hash: bytes→hex (same axis as the store,
 // for the receipt/build-key κ).  index: an arbitrary key→value cache for the O(1) build-memo.
-export function makeApp({ store, hash, index = memIndex() }) {
-  const didOf = async (bytes) => "did:holo:sha256:" + await hash(bytes);
+export function makeApp({ store, hash, index = memIndex(), axis = "did:holo:blake3", legacyHash = null }) {
+  const didOf = async (bytes) => axis + ":" + await hash(bytes);   // §1.2: label carries the store's κ axis (BLAKE3)
+  // §1.2 dual-read: content is now BLAKE3-addressed, but EXISTING store objects may still be sha256-keyed.
+  // Accept a κ if the store's (BLAKE3) verify passes OR the bytes re-derive to the κ under legacy sha256, so
+  // apps sealed before the axis flip still open. Tamper still fails BOTH → fail-closed. legacyHash is injected.
+  const verifyOK = async (kappa, bytes) => {              // legacy dual-read
+    if (store.verify && (await store.verify(kappa, bytes))) return true;   // canonical BLAKE3 axis
+    if (legacyHash) { const suf = String(kappa).split(":").pop(); return (await legacyHash(bytes)) === suf; }   // legacy dual-read (sha256)
+    return !store.verify;                                 // no verifier → trust (Map-backed tests)
+  };
 
   async function build(source, { lang = LANG } = {}) {
     if (typeof source !== "string") throw new Error("build(source): source must be a string");
@@ -54,7 +63,7 @@ export function makeApp({ store, hash, index = memIndex() }) {
     const b = await store.get(kappa);
     if (!b) throw new Error("link: unresolved κ " + kappa);
     const bytes = u8(b);
-    if (store.verify && !(await store.verify(kappa, bytes))) throw new Error("L5 refused — " + kappa);
+    if (!(await verifyOK(kappa, bytes))) throw new Error("L5 refused — " + kappa);   // legacy dual-read
     return bytes;
   }
   // CONTENT-ADDRESSED LINKING (Holo Link): instantiate a module graph where every WASM import whose
@@ -144,7 +153,7 @@ export function makeApp({ store, hash, index = memIndex() }) {
     let bytes = null, kappa = null, selfCompiled = false;
     if (typeof ref === "string" && ref.includes(":")) {                // a κ → resolve + verify (Law L5)
       kappa = ref; bytes = await store.get(ref);
-      if (bytes && store.verify && !(await store.verify(ref, u8(bytes)))) throw new Error("L5 refused — " + ref);
+      if (bytes && !(await verifyOK(ref, u8(bytes)))) throw new Error("L5 refused — " + ref);   // legacy dual-read
     }
     if (!bytes && typeof ref === "string") { const b = await build(ref); kappa = b.kappa; bytes = await store.get(b.kappa); }
     if (!bytes) throw new Error("run: nothing resolves at " + ref);
@@ -201,17 +210,18 @@ function defineHoloAppElement() {
   customElements.define("holo-app", HoloAppElement);
 }
 
-// ── browser binding: window.HoloApp over the durable κ-store (shared db "holo") + WebCrypto sha256 ──
+// ── browser binding: window.HoloApp over the durable κ-store (shared db "holo") + BLAKE3 (§1.2) ──
 if (typeof window !== "undefined") {
   (async () => {
     try {
-      const sha256hex = async (b) => { const d = await crypto.subtle.digest("SHA-256", u8(b)); return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join(""); };
+      const b3hex = (b) => blake3hex(u8(b));                          // §1.2: the ONE canonical κ axis (sync)
+      const sha256hex = async (b) => { const d = await crypto.subtle.digest("SHA-256", u8(b)); return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join(""); };   // legacy dual-read
       const { makeStore, idbBackend } = await import("./holo-store.js");
-      const store = makeStore({ hash: sha256hex, axis: "did:holo:sha256", backend: idbBackend({ db: "holo", store: "kappa" }) });
+      const store = makeStore({ hash: b3hex, axis: "did:holo:blake3", backend: idbBackend({ db: "holo", store: "kappa" }) });
       const be = idbBackend({ db: "holo-app-index", store: "memo" });   // own db → no version collision with "holo"
       const index = { get: async (k) => { const b = await be.get(k); return b ? JSON.parse(dec(b)) : undefined; }, set: async (k, v) => be.set(k, enc(JSON.stringify(v))) };
-      const app = makeApp({ store, hash: sha256hex, index });
-      try { const src = await (await fetch(new URL("./holo-forge/holo-forge.mjs", import.meta.url))).arrayBuffer(); app.build.compilerKappa = "did:holo:sha256:" + await sha256hex(new Uint8Array(src)); } catch {}
+      const app = makeApp({ store, hash: b3hex, index, axis: "did:holo:blake3", legacyHash: sha256hex });   // legacy dual-read
+      try { const src = await (await fetch(new URL("./holo-forge/holo-forge.mjs", import.meta.url))).arrayBuffer(); app.build.compilerKappa = "did:holo:blake3:" + b3hex(new Uint8Array(src)); } catch {}
       window.HoloApp = window.HoloForge = app;                          // the wired global; holo-sdk wraps it
       defineHoloAppElement();                                           // register <holo-app> (the drop-in affordance)
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-app-ready"));

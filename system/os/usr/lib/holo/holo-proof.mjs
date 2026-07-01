@@ -7,8 +7,14 @@
 // consented (holo-stepup) + rides the existing κ-carriage. Pure + isomorphic (Node + browser).
 import "./holo-zk.js";                                   // side-effect: sets globalThis.HoloZK (IIFE)
 import { jcs, sha256hex, didHolo } from "./holo-uor.mjs";
+import { blake3hex } from "./holo-blake3.mjs";          // §1.2: BLAKE3 is the ONE canonical κ mint axis
 import * as RANGE from "./holo-zk-range.mjs";            // B3: transparent range/predicate proofs (no setup, no SNARK)
 const ZK = (typeof globalThis !== "undefined" && globalThis.HoloZK) || null;
+const _enc = (s) => new TextEncoder().encode(s);
+// mint κ over the canonical body via BLAKE3 (§1.2). kappaOf → the id we STAMP on a proof.
+const kappaOf = (body) => didHolo("blake3", blake3hex(_enc(jcs(body))));
+// verify an id that may have been minted under EITHER axis: BLAKE3 (new) or sha256 (legacy). // legacy dual-read
+const kappaMatches = (body, id) => !id || id === kappaOf(body) || id === didHolo("sha256", sha256hex(jcs(body))); // legacy dual-read
 
 // issueCredential(claims, signer) — sign a salted-digest claim set under your did:key. The credential is
 // PUBLIC-safe (did + pub + digests + sig, no values); the disclosures (salts+values) stay ON-DEVICE.
@@ -26,7 +32,7 @@ export function proveAttribute(cred, keys) {
   if (!ZK) throw new Error("holo-proof: holo-zk unavailable");
   const pres = ZK.sdDisclose({ digests: cred.digests, disclosures: cred.disclosures }, [].concat(keys || []));
   const body = { "@type": "HoloProof", did: cred.did || null, pub: cred.pub || null, digests: cred.digests, sig: cred.sig || null, revealed: pres.revealed };
-  return { ...body, id: didHolo("sha256", sha256hex(jcs(body))) };
+  return { ...body, id: kappaOf(body) };
 }
 
 // provePredicate({ value, op, bound|a,b, n }) — B3: a κ-PROOF of a NUMERIC predicate over your OWN value,
@@ -38,7 +44,7 @@ export function provePredicate({ value, op = "ge", bound = null, a = null, b = n
   else if (op === "in") pred = RANGE.proveRangeIn(value, a, b, n);
   else throw new Error("holo-proof: unknown predicate op " + op);
   const body = { ...pred, claim: op === "ge" ? "≥ " + bound : "∈ [" + a + ", " + b + "]" };
-  return { ...body, id: didHolo("sha256", sha256hex(jcs(body))) };
+  return { ...body, id: kappaOf(body) };
 }
 
 // verifyProof(proof) — VERIFY-BEFORE-TRUST. For a HoloRangePredicate: κ re-derives (tamper-refuse) + the range
@@ -48,13 +54,13 @@ export function provePredicate({ value, op = "ge", bound = null, a = null, b = n
 export async function verifyProof(proof) {
   if (proof && proof["@type"] === "HoloRangePredicate") {                            // B3 numeric predicate
     const { id, ...body } = proof;
-    if (id && id !== didHolo("sha256", sha256hex(jcs(body)))) return null;           // body tampered
+    if (!kappaMatches(body, id)) return null;                                        // body tampered (dual-read: blake3 | sha256)
     const ok = body.op === "ge" ? RANGE.verifyGE(body) : body.op === "in" ? RANGE.verifyRangeIn(body) : false;
     return ok ? { ok: true, predicate: { op: body.op, claim: body.claim } } : null;  // the fact, not the value
   }
   if (!ZK || !proof || !Array.isArray(proof.digests)) return null;
   const { id, ...body } = proof;
-  if (id && id !== didHolo("sha256", sha256hex(jcs(body)))) return null;            // body tampered
+  if (!kappaMatches(body, id)) return null;                                        // body tampered (dual-read: blake3 | sha256)
   if (proof.sig && proof.pub) { const okSig = await ZK.verifySig(ZK.jcs(proof.digests), proof.sig, proof.pub); if (!okSig) return null; }  // sig binds claim set to issuer
   const got = await ZK.sdVerify({ digests: proof.digests, revealed: proof.revealed || [] });   // each revealed ∈ signed set
   if (!got) return null;

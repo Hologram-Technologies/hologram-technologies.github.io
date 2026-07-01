@@ -49,11 +49,15 @@ export function scene({ type = "holo:Scene", background = null, objects = [], pr
   return m;
 }
 
-// sceneKappa(manifest) → did:holo:sha256:… over the CONTENT (kind ⊕ background ⊕ objects ⊕ props). Same
-// composed scene → same κ on every device. Works on ANY scene manifest (home, app, experience).
+import { blake3hex } from "./holo-blake3.mjs";                          // the ONE canonical κ hash (§1.2)
+const b3str = (s) => blake3hex(new TextEncoder().encode(s));            // BLAKE3 hex of a string
+
+// sceneKappa(manifest) → did:holo:blake3:… over the CONTENT (kind ⊕ background ⊕ objects ⊕ props). Same
+// composed scene → same κ on every device. Works on ANY scene manifest (home, app, experience). Canonical
+// BLAKE3 by default; the local sha256hex remains as the legacy dual-read reader a caller can inject.
 export async function sceneKappa(manifest, hash) {
-  const h = hash || sha256hex;
-  return "did:holo:sha256:" + (await h(canon(content(manifest))));
+  const h = hash || b3str;
+  return "did:holo:blake3:" + (await h(canon(content(manifest))));
 }
 
 // ── serialize a LIVE composed holospace → manifest (pure given the readers) ──────────────────────

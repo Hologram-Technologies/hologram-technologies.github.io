@@ -39,6 +39,8 @@ export const jcs = (v) => Array.isArray(v) ? "[" + v.map(jcs).join(",") + "]"
   : JSON.stringify(v);
 
 import { ensureMobileHead } from "./holo-mobile-defaults.mjs";   // every imported app is mobile + PWA-ready at birth
+import { blake3hex } from "./holo-blake3.mjs";   // the ONE canonical κ hash (§1.2) — mint IDENTICALLY to holo-blocks-repo.addressOf
+const enc = (s) => new TextEncoder().encode(s);  // byte-for-byte the same enc as holo-blocks-repo (preserves κ-parity)
 
 // appEnvelope(name, source) → the exact object publishSource seals (minus its `id`). Sealing it with the
 // injected `hash` over jcs() yields the SAME did:holo the studio would. derivedFrom (lineage) is metadata
@@ -48,13 +50,15 @@ export function appEnvelope(name, source, derivedFrom = null) {
     "schema:name": name, "schema:programmingLanguage": "HTML", "schema:text": source,
     ...(derivedFrom ? { "prov:wasDerivedFrom": derivedFrom } : {}) };
 }
-// sealApp({ name, source, hash, derivedFrom? }) → { id, bytes } — id is byte-identical to publishSource(.).id.
+// sealApp({ name, source, derivedFrom? }) → { id, bytes } — id is byte-identical to holo-blocks-repo.addressOf
+// (publishSource): "did:holo:blake3:" + blake3hex(enc(jcs(env))). The canonical κ hash is BLAKE3, computed the
+// same way in both modules, so an imported app's κ still equals a studio-built app's κ (§1.2 + the parity intact).
+// `hash` is accepted for caller back-compat but no longer used (the axis is fixed canonical, not injected).
 export function sealApp({ name, source, hash, derivedFrom = null }) {
-  if (typeof hash !== "function") throw new Error("sealApp needs an injected hash(str)->hex (Law L2: hash elsewhere)");
   const env = appEnvelope(name, source, derivedFrom);
-  return { id: "did:holo:sha256:" + hash(jcs(env)), bytes: jcs(env) };
+  return { id: "did:holo:blake3:" + blake3hex(enc(jcs(env))), bytes: jcs(env) };
 }
-const kappaOf = (bytesOrStr, hash) => "did:holo:sha256:" + hash(bytesOrStr);
+const kappaOf = (bytesOrStr) => "did:holo:blake3:" + blake3hex(typeof bytesOrStr === "string" ? enc(bytesOrStr) : bytesOrStr);
 
 // ── parse a GitHub reference — accepts a full URL, owner/repo, or a /tree/<ref> deep link. PURE. ────────
 // The COMMIT is NOT resolved here (that is the fetcher's job — the pin happens at the ingest boundary):
@@ -164,7 +168,7 @@ export function encodeStatic({ name = "app", entry = "index.html", files, hash, 
     const p = resolveRel(base, href); const f = lookup(p);
     if (!f) { missing.push({ kind: "stylesheet", ref: href }); return tag; }
     const css = f.text != null ? f.text : "";
-    if (hash) assetKappas[p] = kappaOf(css, hash);
+    assetKappas[p] = kappaOf(css);
     inlined.push({ kind: "stylesheet", ref: href });
     return '<style data-holo-inlined="' + href + '">\n' + css + '\n</style>';
   });
@@ -175,7 +179,7 @@ export function encodeStatic({ name = "app", entry = "index.html", files, hash, 
     const p = resolveRel(base, src); const f = lookup(p);
     if (!f) { missing.push({ kind: "script", ref: src }); return tag; }
     const js = f.text != null ? f.text : "";
-    if (hash) assetKappas[p] = kappaOf(js, hash);
+    assetKappas[p] = kappaOf(js);
     inlined.push({ kind: "script", ref: src });
     const attrs = (pre + " " + post).replace(/\s+/g, " ").trim();
     return "<script" + (attrs ? " " + attrs : "") + ' data-holo-inlined="' + src + '">\n' + js + "\n</script>";
@@ -243,7 +247,7 @@ export function makeGovernedFetch({ conscience = null, fetch: rawFetch, allowUng
     let receipt = null;
     if (typeof hash === "function") {
       let contentKappa = null;
-      if (opts.body != null) contentKappa = "did:holo:sha256:" + hash(typeof opts.body === "string" ? opts.body : jcs(opts.body));
+      if (opts.body != null) contentKappa = "did:holo:blake3:" + blake3hex(enc(typeof opts.body === "string" ? opts.body : jcs(opts.body)));
       receipt = { "@context": { prov: "http://www.w3.org/ns/prov#", hosc: "https://hologram.os/ns/conformance#" },
         "@type": ["prov:Activity", "hosc:Ingest"], "hosc:caller": caller, "prov:used": u, "hosc:host": host,
         "hosc:purpose": opts.purpose || "import", "hosc:at": now(), ...(contentKappa ? { "prov:generated": contentKappa } : {}) };

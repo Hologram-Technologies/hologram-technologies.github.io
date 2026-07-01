@@ -19,7 +19,7 @@
 
 import { seal, verify as verifyObj, UOR_CONTEXT } from "./holo-object.mjs";
 import { makeStrand } from "./holo-strand.mjs";
-import { sha256Hex } from "./holo-identity.mjs";
+import { blake3hex } from "./holo-blake3.mjs";
 
 const NS = "https://hologram.os/ns/ad4m#";
 const hexOf = (url) => String(url).split(":").pop();
@@ -30,7 +30,7 @@ const hexOf = (url) => String(url).split(":").pop();
 export async function predicateKappa(p) {
   const s = String(p);
   if (s.startsWith("did:holo:")) return s;
-  return "did:holo:sha256:" + (await sha256Hex(new TextEncoder().encode("ad4m:pred:" + s)));
+  return "did:holo:blake3:" + blake3hex(new TextEncoder().encode("ad4m:pred:" + s));
 }
 
 // The base shape of an Expression: a self-verifying UOR value. Authorship and time live on the LINK that

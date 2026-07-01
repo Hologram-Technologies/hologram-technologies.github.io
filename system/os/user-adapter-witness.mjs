@@ -12,7 +12,7 @@ const store = { read: async () => mem, write: async (b) => { mem = b; return tru
 const ua = makeUserAdapterStore({ cipher: async () => makeCipher(key), store });
 
 const saved = await ua.save(bytes);
-ok(saved && saved.kappa.startsWith("did:holo:sha256:"), "save -> adapter kappa (" + (saved && saved.kappa.slice(0, 24)) + "...)");
+ok(saved && saved.kappa.startsWith("did:holo:blake3:"), "save -> adapter kappa (" + (saved && saved.kappa.slice(0, 24)) + "...)");
 const raw = new TextDecoder("utf-8", { fatal: false }).decode(mem || new Uint8Array());
 ok(mem && mem.length > 0 && !raw.includes(MARK) && !raw.includes("HOLO-ADAPTER"), "stored blob is AES-GCM ciphertext at rest (no plaintext leak)");
 const loaded = await ua.load();

@@ -13,9 +13,11 @@
 //   findPaths(root, store, targetκ)  -> number[][]               // index-paths where targetκ occurs
 //   editAtPath(root, store, path, newHtml) -> { root, store, edited:κ }   // mint new node + re-link ancestors
 //   stats(store, root)               -> { nodes, unique, dedup } // L2 dedup measured
-//   kid(κhex)                        -> did:holo:sha256:<κ>      // the substrate identity form
+//   kid(κhex)                        -> did:holo:blake3:<κ>      // the substrate identity form (§1.2)
 
-import { sha256hex, jcs, didHolo } from "../holo-uor.mjs";
+import { sha256hex, jcs, didHolo } from "../holo-uor.mjs";   // sha256hex kept for legacy dual-read only
+import { blake3hex } from "../holo-blake3.mjs";              // the ONE canonical κ hash (§1.2)
+const b3 = (s) => blake3hex(typeof s === "string" ? new TextEncoder().encode(s) : s);
 
 const VOID = new Set("area base br col embed hr img input link meta param source track wbr".split(" "));
 const RAW = new Set("script style textarea title".split(" "));
@@ -66,7 +68,7 @@ function parseTree(html) {
   return root;
 }
 
-const put = (desc, store) => { const k = sha256hex(jcs(desc)); store[k] = desc; return k; };   // content address (L1) + store (L3); identical desc → same k (L2)
+const put = (desc, store) => { const k = b3(jcs(desc)); store[k] = desc; return k; };   // content address (L1, BLAKE3) + store (L3); identical desc → same k (L2)
 
 // content-address a parsed tree bottom-up → returns the node's κ, filling `store`.
 function address(node, store) {
@@ -92,7 +94,7 @@ export function recompose(k, store) {
 // L5: re-derive every node's κ from its descriptor and confirm it equals its store key.
 export function verify(store) {
   const bad = []; let checked = 0;
-  for (const k of Object.keys(store)) { checked++; if (sha256hex(jcs(store[k])) !== k) bad.push(k); }
+  for (const k of Object.keys(store)) { checked++; const j = jcs(store[k]); if (b3(j) !== k && sha256hex(j) !== k) bad.push(k); }   // dual-read L5 (BLAKE3 canonical | legacy sha256)
   return { ok: bad.length === 0, checked, bad };
 }
 
@@ -128,6 +130,6 @@ export function stats(store, root) {
   return { nodes, unique: unique.size, dedup: nodes - unique.size };   // dedup = node instances saved by L2 sharing
 }
 
-export const kid = (khex) => didHolo("sha256", khex);
+export const kid = (khex) => didHolo("blake3", khex);
 
 export default { decompose, recompose, verify, findPaths, editAtPath, stats, kid };
