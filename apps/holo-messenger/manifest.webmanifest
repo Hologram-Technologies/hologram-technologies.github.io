@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "Hologram",
+  "short_name": "Hologram",
+  "description": "Your sovereign, serverless internet computer — messages, apps and AI that boot entirely in your browser. No server.",
+  "start_url": "./app.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "window-controls-overlay"],
+  "orientation": "any",
+  "background_color": "#0b141a",
+  "theme_color": "#0b141a",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["social", "productivity", "utilities"],
+  "handle_links": "preferred",
+  "launch_handler": { "client_mode": "navigate-existing" },
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

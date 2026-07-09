@@ -1,0 +1,133 @@
+{
+ "@context": [
+  "https://www.w3.org/ns/did/v1",
+  {
+   "schema": "https://schema.org/",
+   "prov": "http://www.w3.org/ns/prov#",
+   "holo": "https://hologram.os/ns/q#",
+   "f1": "https://hologram.os/ns/f1#"
+  }
+ ],
+ "@type": [
+  "f1:Formalization",
+  "prov:Entity"
+ ],
+ "schema:name": "F1 the 𝔽₁ square toward the Riemann Hypothesis, made native to the UOR substrate",
+ "f1:upstream": {
+  "@id": "https://github.com/afflom/F1",
+  "schema:name": "afflom/F1 the 𝔽₁ square with an intersection theory",
+  "schema:version": "v0.15.3",
+  "schema:license": "MIT",
+  "schema:author": "Alex Flom",
+  "f1:language": "Lean 4 (toolchain v4.16.0)"
+ },
+ "f1:dependsOn": {
+  "@id": "https://github.com/UOR-Foundation/UOR-Framework",
+  "schema:name": "UOR-Framework content-addressed object spaces over Z/(2^n)Z",
+  "schema:version": "v0.5.2",
+  "f1:sharedRootWith": "did:holo:sha256:f82435dab0215aa6695797d5e9ef4809f1905c015c419f085b2d42346441aad0",
+  "f1:note": "Both F1 and ATLAS96 are UOR-Framework objects on the same Z/(2^n)Z algebraic root. This is a structural kinship, not a proof link."
+ },
+ "f1:thesis": "Over a function field, RH follows from the Hodge index theorem's intersection-positivity on the surface C×C (Frobenius eigenvalue bound). The 𝔽₁ program seeks the analogue over ℚ: make Spec ℤ a curve over a 'field with one element', so Spec ℤ ×_𝔽₁ Spec ℤ is an arithmetic surface whose Hodge-index negativity would BE the Riemann Hypothesis. F1 names, shapes, and partially builds that square it does not construct it.",
+ "f1:honesty": {
+  "convention": "universallyValid: true = established and Lean-verified; null = not asserted proven (open or conditional).",
+  "choiceFree": "Proof layer permits only `propext` and `Quot.sound`; forbids Classical.choice, `sorry`, and `native_decide`.",
+  "enforcedBy": "scripts/honesty_audit.sh CI fails if any unaudited theorem exists."
+ },
+ "f1:ledger": [
+  {
+   "name": "function-field-hodge",
+   "universallyValid": true,
+   "statement": "The function-field Hodge mechanism the proven template over 𝔽_q where intersection-positivity gives the eigenvalue bound.",
+   "evidence": "F1Square/ (no sorry)"
+  },
+  {
+   "name": "characteristic-1-machinery",
+   "universallyValid": true,
+   "statement": "Characteristic-1 base: the tropical κ/spectrum stack construction.",
+   "evidence": "F1Square/ (no sorry)"
+  },
+  {
+   "name": "intersection-pairing-template",
+   "universallyValid": true,
+   "statement": "The intersection-pairing template with ample class structure and parallel-pencil geometry.",
+   "evidence": "F1Square/ (no sorry)"
+  },
+  {
+   "name": "bowen-lanford-counts",
+   "universallyValid": true,
+   "statement": "Bowen–Lanford cycle counts (the prime-orbit side).",
+   "evidence": "F1Square/ (no sorry)"
+  },
+  {
+   "name": "constructive-analysis",
+   "universallyValid": true,
+   "statement": "A complete constructive analysis substrate: ℝ as Bishop regular sequences (Cauchy complete), ℂ = ℝ×ℝ, and exp/log/sin/cos built from first principles as axiom-clean diagonal limits (Machin π, accelerated Euler–Mascheroni γ).",
+   "evidence": "Analysis/ (no sorry, choice-free)"
+  },
+  {
+   "name": "zeta-re-gt-1",
+   "universallyValid": true,
+   "statement": "The complex ζ(s) for Re(s) > 1 as exact-bounded objects, with the von Mangoldt function and the prime-side explicit formula.",
+   "evidence": "F1Square/ (no sorry)"
+  },
+  {
+   "name": "li-lambda1-positive",
+   "universallyValid": true,
+   "statement": "The first Li coefficient λ₁ ≈ 0.0231 certified positive the n=1 slice of Li's criterion.",
+   "evidence": "F1Square/ (no sorry)"
+  },
+  {
+   "name": "full-li-positivity",
+   "universallyValid": null,
+   "statement": "Full Li positivity: λ_n > 0 for all n. This is EQUIVALENT to the Riemann Hypothesis.",
+   "status": "open"
+  },
+  {
+   "name": "hodge-index-negativity",
+   "universallyValid": null,
+   "statement": "The Hodge index (negative-definiteness) theorem for the square. THIS negativity is the Riemann Hypothesis. F1 encodes it as `none`.",
+   "status": "open the crux"
+  },
+  {
+   "name": "spec-z-square",
+   "universallyValid": null,
+   "statement": "The 2-dimensional self-product Spec ℤ ×_𝔽₁ Spec ℤ itself named, shaped, and partially built, NOT constructed.",
+   "status": "open"
+  }
+ ],
+ "f1:unlocks": {
+  "ifProven": "Sharpest possible bounds on prime distribution (smallest π(x) error term); firms up GRH-conditioned parameter choices. Breaks no cryptography; yields no new algorithm. RH is a statement THAT primes are maximally regular, not a method that exploits them.",
+  "forHologram": "No new compute primitive. κ = sha256/blake3 does not depend on RH; R96 is mod-2^n structure, not prime structure. F1's real gift to Hologram is METHODOLOGICAL: a choice-free, self-auditing, explicit-truth-status formalization the template this very object applies to ATLAS96."
+ },
+ "f1:bridge": {
+  "appliesTo": "did:holo:sha256:f82435dab0215aa6695797d5e9ef4809f1905c015c419f085b2d42346441aad0",
+  "terminatesAt": "did:holo:sha256:652dcc6490dabf4fdb4a713a2773079a858b2aa1490582e777e38a5c3499a6cd",
+  "links": [
+   {
+    "name": "shared-substrate",
+    "universallyValid": true,
+    "statement": "F1 and ATLAS96 are both UOR-Framework objects over Z/(2^n)Z; ATLAS96's base is the octet + κ. Real structural kinship they belong in one object graph."
+   },
+   {
+    "name": "modular-forms-kinship",
+    "universallyValid": null,
+    "statement": "The E₈ theta function is a weight-4 modular form, and modular forms ↔ L-functions ↔ ζ/RH. A TRUE pure-math kinship between ATLAS96's E₈ terminus and F1's ζ but a kinship, not a mechanism. You cannot derive one from the other in code.",
+    "status": "kinship, not a lever"
+   },
+   {
+    "name": "improves-inference",
+    "universallyValid": false,
+    "statement": "'F1/RH improves Holo Q inference' has no mechanism. RH is orthogonal to inference quality. Asserting it would be numerology."
+   }
+  ]
+ },
+ "f1:laws": [
+  "L1 content-address",
+  "L5 re-derivation"
+ ],
+ "id": "did:holo:sha256:3de6f836fa3aea4dd60b84f955a924aa4eeda2d1c4573a315aae192dd58ab539",
+ "alsoKnownAs": [
+  "did:holo:blake3:f1a89ab71added102f875f09a7401c78a5a3a1701fc3ee77fa9776834366e6df"
+ ]
+}

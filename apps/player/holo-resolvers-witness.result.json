@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-resolvers — sources as an open, federated plugin point (Stremio-addon shape, κ-native): resolvers register, the registry fuses their candidates with trust-weighted RRF (owned κ > κ-store > server > open > addon), the best source wins, an unresolved title is a virtual item, provenance is stamped, and addons plug in disabled-by-default + always provenanced (no infringing indexers bundled).",
+  "authority": "rests on #holo-resolvers (+ #holo-availability) — Phase 4 of the streaming/metadata plan",
+  "witnessed": true,
+  "covers": [
+    "register-and-list",
+    "federates",
+    "trust-wins",
+    "virtual-item",
+    "provenance",
+    "addon-pluggable",
+    "jellyfin-resolver"
+  ],
+  "checks": {
+    "registerAndList": true,
+    "federates": true,
+    "trustWins": true,
+    "virtualItem": true,
+    "provenance": true,
+    "addonPluggable": true,
+    "jellyfinResolver": true
+  },
+  "failed": []
+}

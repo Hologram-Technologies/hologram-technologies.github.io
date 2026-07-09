@@ -1,0 +1,94 @@
+<!doctype html><meta charset="utf-8"><title>Holo Whisper — GPU encoder layers (W-1)</title>
+<body style="font:14px ui-monospace,monospace;background:#0b0e16;color:#cdd6f4;padding:16px"><pre id="out">init…</pre></body>
+<script type="module">
+// W-1 encoder witness: run Whisper's encoder blocks (LayerNorm+bias → q/k/v[K no bias] → NON-causal MHA →
+// out → residual → LayerNorm → MLP[gelu] → residual; then ln_post) on WebGPU, INPUT = the CPU-exact golden
+// stem, scored vs the golden encoder output (whisper-enc-ref.enc.f32). Oracle = whisper-cli-exact → Tier-B
+// bar cosine≥0.999 (attention uses online-softmax: a different accumulation order than the oracle's
+// max-then-softmax, mathematically identical, so a slightly looser bar than the conv-stem's 1e-3).
+const out = document.getElementById("out"); const log = (s) => out.textContent += "\n" + s;
+window.__enc = { stage: "start" };
+async function f32(u) { return new Float32Array(await (await fetch(u)).arrayBuffer()); }
+
+const LN = `@group(0)@binding(0)var<storage,read>x:array<f32>;@group(0)@binding(1)var<storage,read>w:array<f32>;@group(0)@binding(2)var<storage,read>b:array<f32>;@group(0)@binding(3)var<storage,read_write>y:array<f32>;@group(0)@binding(4)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let row=g.x;let n=p.x;let S=p.y;if(row>=n){return;}let base=row*S;
+var mean=0.0;for(var i=0u;i<S;i++){mean=mean+x[base+i];}mean=mean/f32(S);
+var v=0.0;for(var i=0u;i<S;i++){let d=x[base+i]-mean;v=v+d*d;}let sc=1.0/sqrt(v/f32(S)+1e-5);
+for(var i=0u;i<S;i++){y[base+i]=(x[base+i]-mean)*sc*w[i]+b[i];}}`;
+const LIN = `@group(0)@binding(0)var<storage,read>X:array<f32>;@group(0)@binding(1)var<storage,read>W:array<f32>;@group(0)@binding(2)var<storage,read>B:array<f32>;@group(0)@binding(3)var<storage,read_write>Y:array<f32>;@group(0)@binding(4)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let idx=g.x;let n=p.x;let inD=p.y;let outD=p.z;if(idx>=n*outD){return;}
+let row=idx/outD;let o=idx%outD;var s=select(0.0,B[o],p.w==1u);let xb=row*inD;let wb=o*inD;
+for(var i=0u;i<inD;i++){s=s+X[xb+i]*W[wb+i];}Y[idx]=s;}`;
+const ATTN = `@group(0)@binding(0)var<storage,read>q:array<f32>;@group(0)@binding(1)var<storage,read>k:array<f32>;@group(0)@binding(2)var<storage,read>v:array<f32>;@group(0)@binding(3)var<storage,read_write>o:array<f32>;@group(0)@binding(4)var<uniform>p:vec4<u32>;@group(0)@binding(5)var<uniform>pf:vec4<f32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let idx=g.x;let n=p.x;let H=p.y;let hd=p.z;let Sd=H*hd;let scale=pf.x;if(idx>=H*n){return;}
+let h=idx/n;let i=idx%n;let ho=h*hd;let qb=i*Sd+ho;var m=-3.0e38;var l=0.0;var acc:array<f32,64>;for(var d=0u;d<hd;d++){acc[d]=0.0;}
+for(var j=0u;j<n;j++){let kb=j*Sd+ho;var s=0.0;for(var d=0u;d<hd;d++){s=s+q[qb+d]*k[kb+d];}s=s*scale;
+let mn=max(m,s);let corr=exp(m-mn);let e=exp(s-mn);l=l*corr+e;let vb=j*Sd+ho;for(var d=0u;d<hd;d++){acc[d]=acc[d]*corr+e*v[vb+d];}m=mn;}
+let ob=i*Sd+ho;for(var d=0u;d<hd;d++){o[ob+d]=acc[d]/l;}}`;
+const GELU = `@group(0)@binding(0)var<storage,read_write>c:array<f32>;@group(0)@binding(1)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let idx=g.x;if(idx>=p.x){return;}let x=c[idx];c[idx]=0.5*x*(1.0+tanh(0.7978845608028654*(x+0.044715*x*x*x)));}`;
+const ADD = `@group(0)@binding(0)var<storage,read_write>x:array<f32>;@group(0)@binding(1)var<storage,read>y:array<f32>;@group(0)@binding(2)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let idx=g.x;if(idx>=p.x){return;}x[idx]=x[idx]+y[idx];}`;
+
+(async () => {
+  try {
+    if (!navigator.gpu) throw new Error("no WebGPU");
+    const man = await (await fetch("encoder-weights.json")).json();
+    const ref = await (await fetch("whisper-enc-ref.json")).json();
+    const S = man.S, H = man.H, hd = S / H, FF = 4 * S, n = ref.encShape[0], NL = man.NL, scale = 1 / Math.sqrt(hd);
+    log(`S=${S} H=${H} hd=${hd} FF=${FF} n=${n} layers=${NL} scale=${scale.toFixed(4)} (model ${ref.model})`);
+    window.__enc.stage = "loading";
+    const [stem, gold, wpack] = await Promise.all([f32("whisper-enc-ref.stem.f32"), f32("whisper-enc-ref.enc.f32"), f32("encoder-weights.f32")]);
+
+    const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+    const pipe = (c) => dev.createComputePipeline({ layout: "auto", compute: { module: dev.createShaderModule({ code: c }), entryPoint: "main" } });
+    const P = { ln: pipe(LN), lin: pipe(LIN), attn: pipe(ATTN), gelu: pipe(GELU), add: pipe(ADD) };
+    const sb = (k) => dev.createBuffer({ size: Math.max(4, k * 4), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST });
+    const wbuf = (a) => { const b = dev.createBuffer({ size: Math.max(4, a.byteLength), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, a); return b; };
+    const u4 = (v) => { const b = dev.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, new Uint32Array([...v, 0, 0, 0, 0].slice(0, 4))); return b; };
+    const f4 = (v) => { const b = dev.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, new Float32Array([...v, 0, 0, 0, 0].slice(0, 4))); return b; };
+    const G = (k) => Math.ceil(k / 64);
+    const bg = (pl, a) => dev.createBindGroup({ layout: pl.getBindGroupLayout(0), entries: a.map((b, i) => ({ binding: i, resource: { buffer: b } })) });
+    const disp = (enc, pl, a, k) => { const pa = enc.beginComputePass(); pa.setPipeline(pl); pa.setBindGroup(0, bg(pl, a)); pa.dispatchWorkgroups(G(k)); pa.end(); };
+
+    // weight buffers by name (slice the packed blob)
+    const W = {}; for (const [name, t] of Object.entries(man.tensors)) W[name] = wbuf(wpack.slice(t.off, t.off + t.len));
+    const dummy = wbuf(new Float32Array([0]));   // K projection has no bias
+    const xB = wbuf(stem), an = sb(n * S), qB = sb(n * S), kB = sb(n * S), vB = sb(n * S), at = sb(n * S), ao = sb(n * S), mn = sb(n * S), h1 = sb(n * FF), h2 = sb(n * S);
+    const uNS = u4([n, S]), uAttn = u4([n, H, hd]), fScale = f4([scale]), uAdd = u4([n * S]), uGelu = u4([n * FF]);
+
+    window.__enc.stage = "compute"; const t0 = performance.now();
+    const enc = dev.createCommandEncoder();
+    for (let il = 0; il < NL; il++) {
+      const p = `encoder.blocks.${il}.`, T = (s) => W[p + s];
+      disp(enc, P.ln, [xB, T("attn_ln.weight"), T("attn_ln.bias"), an, uNS], n);                          // LN
+      disp(enc, P.lin, [an, T("attn.query.weight"), T("attn.query.bias"), qB, u4([n, S, S, 1])], n * S);   // q (+bias)
+      disp(enc, P.lin, [an, T("attn.key.weight"), dummy, kB, u4([n, S, S, 0])], n * S);                     // k (no bias)
+      disp(enc, P.lin, [an, T("attn.value.weight"), T("attn.value.bias"), vB, u4([n, S, S, 1])], n * S);    // v (+bias)
+      disp(enc, P.attn, [qB, kB, vB, at, uAttn, fScale], H * n);                                            // non-causal MHA
+      disp(enc, P.lin, [at, T("attn.out.weight"), T("attn.out.bias"), ao, u4([n, S, S, 1])], n * S);        // out proj
+      disp(enc, P.add, [xB, ao, uAdd], n * S);                                                              // x += attn
+      disp(enc, P.ln, [xB, T("mlp_ln.weight"), T("mlp_ln.bias"), mn, uNS], n);                              // LN
+      disp(enc, P.lin, [mn, T("mlp.0.weight"), T("mlp.0.bias"), h1, u4([n, S, FF, 1])], n * FF);            // mlp.0 S→FF
+      disp(enc, P.gelu, [h1, uGelu], n * FF);                                                               // gelu
+      disp(enc, P.lin, [h1, T("mlp.2.weight"), T("mlp.2.bias"), h2, u4([n, FF, S, 1])], n * S);             // mlp.2 FF→S
+      disp(enc, P.add, [xB, h2, uAdd], n * S);                                                              // x += mlp
+    }
+    disp(enc, P.ln, [xB, W["encoder.ln_post.weight"], W["encoder.ln_post.bias"], an, uNS], n);              // ln_post → an
+    const rb = dev.createBuffer({ size: n * S * 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    enc.copyBufferToBuffer(an, 0, rb, 0, n * S * 4);
+    dev.queue.submit([enc.finish()]);
+    await rb.mapAsync(GPUMapMode.READ);
+    const y = new Float32Array(rb.getMappedRange().slice(0)); rb.unmap();
+    const ms = Math.round(performance.now() - t0);
+
+    let dot = 0, na = 0, nb = 0, maxAbs = 0;
+    for (let i = 0; i < y.length; i++) { const a = y[i], b = gold[i]; dot += a * b; na += a * a; nb += b * b; const e = Math.abs(a - b); if (e > maxAbs) maxAbs = e; }
+    const cosine = dot / (Math.sqrt(na) * Math.sqrt(nb)), pass = cosine >= 0.999 && maxAbs < 2.0;
+    window.__enc = { stage: "done", cosine: +cosine.toFixed(6), maxAbs: +maxAbs.toFixed(4), shape: [n, S], layers: NL, ms, gpuSample: [...y.slice(0, 4)].map(v => +v.toFixed(4)), goldSample: [...gold.slice(0, 4)].map(v => +v.toFixed(4)), pass };
+    log(`\nGPU encoder (${NL} layers + ln_post) [${n},${S}] in ${ms}ms`);
+    log(`cosine ${cosine.toFixed(6)} · maxAbs ${maxAbs.toFixed(4)} → ${pass ? "✓ PASS" : "✗ FAIL"}`);
+    log(`gpu  ${window.__enc.gpuSample}\ngold ${window.__enc.goldSample}`);
+  } catch (e) { window.__enc = { stage: "error", error: String(e) }; log("ERROR: " + e + "\n" + (e.stack || "")); }
+})();
+</script>

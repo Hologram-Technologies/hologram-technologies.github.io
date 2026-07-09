@@ -1,0 +1,11 @@
+{
+  "name": "holo-q",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Holo Q verifiable browser-native LLM inference. Compile any GGUF into a content-addressed κ-object and run it serverless in WebGPU.",
+  "scripts": {
+    "compile2bit": "node compile2bit.mjs",
+    "serve": "node serve.mjs"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "id": "org.hologram.HoloSpaces",
+  "name": "Holo Spaces",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "Walk into living, shareable, infinitely nestable rooms of holo apps — each rendered from its κ address. A Space is itself one content κ: compose by dragging things in, fork with a gesture, share by the κ alone. The OS is already a sandbox; this reveals it.",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "applicationCategory": "EntertainmentApplication",
+  "conforms": {
+    "specs": [
+      "holo-ui",
+      "holo-ux"
+    ]
+  },
+  "capabilities": {
+    "storage": [
+      "org.hologram.HoloSpaces"
+    ],
+    "channels": [
+      "share"
+    ],
+    "permissions": [
+      "fullscreen",
+      "clipboard-write"
+    ]
+  },
+  "shared": [
+    "holo-theme.css",
+    "holo-mobile.css",
+    "holo-phi.css",
+    "holo-play-gpu.js"
+  ],
+  "engines": [],
+  "description": [
+    {
+      "p": "Rooms.xyz needs a voxel library because it starts empty. Hologram does not — every app and object is already a live κ. So a room is just a curated, nestable arrangement of κ-addressed things, and a Space is itself a κ."
+    },
+    {
+      "p": "Holo Spaces composes by reference: members are κs, never copies. Each app member is mounted through the same projection every app boots through (holospace.html), re-derived before it renders (Law L5). A member can itself be a Space — so worlds nest into worlds without limit, mounted lazily and concurrently."
+    },
+    {
+      "ul": [
+        "A Space is one immutable content κ — the ordered member κs + layout + accent + mood",
+        "Open a κ → the exact arrangement re-derives; tamper a member → it refuses, honest empty slot",
+        "Drag any κ in to arrange; fork mints a new κ you can share by the κ alone (serverless link)",
+        "Infinite nesting: a Space is just another κ thing, mounted lazily when revealed"
+      ]
+    }
+  ],
+  "categories": [
+    "Creativity",
+    "Social"
+  ],
+  "keywords": [
+    "spaces",
+    "rooms",
+    "compose",
+    "remix",
+    "nesting",
+    "content-addressed",
+    "holospace",
+    "uor"
+  ],
+  "developer": {
+    "id": "org.hologram",
+    "name": "Hologram Technologies"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Hologram-Technologies/hologram-os",
+  "releases": [
+    {
+      "version": "0.1",
+      "date": "2026-06-20",
+      "description": "The spine: a Space is a content κ. Compose-by-reference rooms of κ-addressed apps, mounted through the projection and re-derived (L5); infinite lazy+concurrent nesting (a Space as a member of a Space); drag-to-arrange + fork-to-a-new-κ; serverless share by κ. Fail-closed: an unresolvable or tampered member renders an honest empty slot, never a broken mount."
+    }
+  ],
+  "accent": "#2dd4bf"
+}

@@ -1,0 +1,12 @@
+{
+  "spec": "Sharder (shard-holo.mjs) splits a .holo into <2 GiB delivery parts + a manifest the REAL spanning reader (holo-pack-shards.mjs spanReader/openShardedPack) stitches back byte-identical; openHoloStream still L5-verifies every body across part boundaries. A 9B .holo ships as parts with zero loss and one logical address.",
+  "authority": "holo-pack-shards.mjs spanReader · holo-archive openHoloStream L5 · GitHub 2 GiB asset cap",
+  "witnessed": true,
+  "checks": {
+    "manifestShape": true,
+    "perPartSha256": true,
+    "stitchByteEqual": true,
+    "streamAcrossParts": true,
+    "tinyPartsStress": true
+  }
+}

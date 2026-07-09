@@ -1,0 +1,542 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Q</title>
+<!-- Kokoro TTS (core/voice-out.js) loads kokoro.js, which imports these as bare specifiers → map them to
+     the vendored copies so Q's beautiful voice runs with no CDN and no server. -->
+<script type="importmap">
+{ "imports": {
+  "@huggingface/transformers": "../../_shared/voice/vendor/kokoro/transformers/transformers.js",
+  "phonemizer": "../../_shared/voice/vendor/kokoro/phonemizer.js",
+  "fs/promises": "../../_shared/voice/vendor/kokoro/stub.js",
+  "path": "../../_shared/voice/vendor/kokoro/stub.js"
+} }
+</script>
+<style>
+  :root{
+    --ink:#f4f7fa; --dim:#cdd6de; --q:#8b7bff; --tick:#7fd0ff;
+    --in:rgba(24,32,42,.46); --out:rgba(7,122,103,.5);
+    --glass:rgba(16,22,30,.5); --stroke:rgba(255,255,255,.12); --stroke-soft:rgba(255,255,255,.08);
+    --spectrum:#ff3b6b,#ff9e2c,#ffe24a,#46e08a,#2bd4ff,#5b8cff,#c77bff,#ff3b6b;   /* the OS brand spectrum (home omnibar / Q orb) */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{font:15px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);display:flex;flex-direction:column;overflow:hidden;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+  /* full-bleed 8K wallpaper + cinematic depth overlay (bundled → 0 egress) */
+  #wall{position:fixed;inset:0;z-index:-2;background:#05080c url("./wallpaper.jpg") center/cover no-repeat;transform:translateZ(0);image-rendering:auto}
+  #wall::after{content:"";position:absolute;inset:0;background:
+    radial-gradient(130% 90% at 50% -10%,rgba(139,123,255,.12),transparent 55%),
+    linear-gradient(180deg,rgba(5,8,12,.42) 0%,rgba(5,8,12,.12) 32%,rgba(5,8,12,.10) 60%,rgba(5,8,12,.5) 100%)}
+  /* header — glass */
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;flex:0 0 auto;position:relative;z-index:3;
+    background:var(--glass);backdrop-filter:blur(34px) saturate(170%);-webkit-backdrop-filter:blur(34px) saturate(170%);
+    border-bottom:1px solid var(--stroke-soft);box-shadow:0 6px 30px rgba(0,0,0,.25)}
+  .av{width:47px;height:47px;border-radius:50%;flex:none;position:relative}
+  .av canvas{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);display:block}
+  /* delightful in-bubble typography — living intelligence, not a wall of markdown */
+  .msg a{color:#9fd3ff;text-decoration:none;border-bottom:1px solid rgba(159,211,255,.42)}
+  .av::before{content:"";position:absolute;inset:-3.5px;border-radius:50%;z-index:-1;filter:blur(8px);opacity:.55;
+    background:conic-gradient(from 0deg,#8b7bff,#5ad1ff,#c6b8ff,#8b7bff);animation:spin 7s linear infinite}
+  .av::after{content:"";position:absolute;right:2px;bottom:2px;width:10px;height:10px;border-radius:50%;background:#06d755;
+    border:2.5px solid rgba(16,22,30,.95);box-shadow:0 0 6px #06d75566;transition:background .4s,box-shadow .4s}
+  /* the presence dot IS the live status: amber while waking, green online, pulsing while typing, grey offline */
+  .av[data-state="connecting"]::after,.av[data-state="loading"]::after{background:#f0a83c;box-shadow:0 0 9px #f0a83c99}
+  .av[data-state="typing"]::after{background:#06d755;animation:dotpulse 1.1s ease-in-out infinite}
+  .av[data-state="offline"]::after{background:#8696a0;box-shadow:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes dotpulse{0%,100%{box-shadow:0 0 0 0 #06d75577}50%{box-shadow:0 0 0 5px #06d75500}}
+  .hmeta{flex:1;min-width:0}.hmeta b{font-weight:650;font-size:17.5px;letter-spacing:.2px;display:block}
+  .hmeta span{color:rgba(255,255,255,.4);font-size:11.5px;font-weight:400;letter-spacing:.02em;transition:color .4s ease}
+  /* header voice toggle — Q reads replies aloud (on-device speech; nothing leaves the device) */
+  .hbtn{flex:none;width:39px;height:39px;border-radius:50%;border:1px solid var(--stroke-soft);color:var(--ink);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.62;
+    background:var(--glass);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);transition:.18s}
+  .hbtn:hover{opacity:1;border-color:rgba(139,123,255,.5);transform:translateY(-1px)}
+  .hbtn:active{transform:scale(.94)}
+  .hbtn.on{opacity:1;color:#c6b8ff;border-color:rgba(139,123,255,.55);box-shadow:0 0 16px rgba(139,123,255,.4)}
+  /* messages */
+  #log{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 9% 12px;display:flex;flex-direction:column;gap:0;position:relative;z-index:1;scroll-behavior:smooth;
+    scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+  #log::-webkit-scrollbar{width:8px}
+  #log::-webkit-scrollbar-track{background:transparent}
+  #log::-webkit-scrollbar-button{display:none;width:0;height:0}                 /* kill the up/down arrows */
+  #log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:20px;border:2.5px solid transparent;background-clip:content-box;transition:background .3s}
+  #log:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);background-clip:content-box}
+  #log::-webkit-scrollbar-thumb:hover{background:rgba(159,211,255,.42);background-clip:content-box}   /* a soft glow of the brand blue on grab */
+  .row{display:flex;max-width:72%;margin-top:9px;animation:pop .24s cubic-bezier(.2,.8,.2,1)}
+  .row.u{align-self:flex-end}.row.a{align-self:flex-start}
+  @keyframes pop{from{opacity:0;transform:translateY(7px) scale(.98)}}
+  .msg{padding:9px 14px 8px;border-radius:17px;position:relative;white-space:pre-wrap;word-wrap:break-word;font-size:14.9px;line-height:1.46;
+    backdrop-filter:blur(22px) saturate(155%);-webkit-backdrop-filter:blur(22px) saturate(155%);
+    border:1px solid var(--stroke-soft);box-shadow:0 6px 28px rgba(0,0,0,.3);min-width:50px;transform:translateZ(0)}
+  .a .msg{background:var(--in);border-top-left-radius:5px}
+  .u .msg{background:var(--out);border-top-right-radius:5px;border-color:rgba(120,255,225,.16)}
+  .msg .t{float:right;font-size:11px;color:rgba(255,255,255,.5);margin:7px 0 -2px 10px;font-weight:450;user-select:none}
+  .u .msg .t{color:rgba(196,255,242,.78)}
+  .msg .tick{display:inline-block;margin-left:3px;color:rgba(255,255,255,.5);letter-spacing:-2px;transition:color .35s ease}
+  .u .msg .tick.read{color:#53bdeb}
+  .row.grouped{margin-top:1px}                                  /* consecutive messages hug, WhatsApp-style */
+  .row.grouped.a .msg{border-top-left-radius:17px}              /* only the FIRST of a run keeps its tail */
+  .row.grouped.u .msg{border-top-right-radius:17px}
+  .dots{display:inline-flex;gap:4px;padding:3px 2px}.dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.65);animation:b 1.3s infinite}
+  .dots i:nth-child(2){animation-delay:.18s}.dots i:nth-child(3){animation-delay:.36s}
+  @keyframes b{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+  /* chips */
+  .chips{display:flex;gap:9px;overflow-x:auto;padding:10px 16px 6px;flex:0 0 auto;scrollbar-width:none;position:relative;z-index:2}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;color:var(--ink);border-radius:20px;padding:8px 16px;font-size:13.5px;cursor:pointer;flex:none;
+    background:var(--glass);backdrop-filter:blur(26px) saturate(155%);-webkit-backdrop-filter:blur(26px) saturate(155%);
+    border:1px solid var(--stroke);box-shadow:0 3px 16px rgba(0,0,0,.22);transition:.16s}
+  .chip:hover{border-color:rgba(139,123,255,.55);transform:translateY(-1px)}.chip:active{transform:scale(.96)}
+  /* composer — the message box wears the OS brand spectrum (same 8 stops + spin as the home omnibar) */
+  @property --spin{syntax:"<angle>";initial-value:0deg;inherits:false}
+  @keyframes spinhue{to{--spin:360deg}}
+  footer{display:flex;gap:11px;align-items:flex-end;padding:14px 15px 16px;flex:0 0 auto;position:relative;z-index:3;
+    background:var(--glass);backdrop-filter:blur(34px) saturate(170%);-webkit-backdrop-filter:blur(34px) saturate(170%);
+    border-top:1px solid var(--stroke-soft)}
+  .inwrap{position:relative;flex:1;border-radius:25px;isolation:isolate}
+  .inwrap::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;z-index:2;pointer-events:none;
+    background:conic-gradient(from var(--spin),var(--spectrum));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+    animation:spinhue 14s linear infinite;opacity:0;transition:opacity .55s ease}
+  .inwrap::after{content:"";position:absolute;inset:-4px;border-radius:28px;z-index:0;pointer-events:none;
+    background:conic-gradient(from var(--spin),var(--spectrum));filter:blur(14px);opacity:0;animation:spinhue 14s linear infinite;transition:opacity .55s ease}
+  .inwrap:focus-within::before{opacity:.35}.inwrap:focus-within::after{opacity:.1}   /* the spectrum only appears when you go to type */
+  #in{position:relative;z-index:1;width:100%;color:var(--ink);border:0;border-radius:25px;padding:12px 18px;font:inherit;resize:none;max-height:120px;outline:none;
+    background:rgba(10,15,21,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:background .16s}
+  #in::placeholder{color:rgba(255,255,255,.46)}
+  #send{flex:none;width:49px;height:49px;border-radius:50%;border:0;color:#fff;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#9a8cff,#5b3fd6);box-shadow:0 7px 22px rgba(139,123,255,.55);transition:.16s}
+  #send:hover{box-shadow:0 8px 28px rgba(139,123,255,.7)}#send:active{transform:scale(.92)}#send:disabled{opacity:.5}
+  #send{opacity:.55;transform:scale(.9)}#send.ready{opacity:1;transform:scale(1)}   /* wakes up as you type — WhatsApp's send-button life */
+  /* mic — press & hold to talk. On-device transcription; nothing leaves the device. */
+  #mic{flex:none;width:49px;height:49px;border-radius:50%;border:1px solid var(--stroke);color:var(--ink);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;
+    background:var(--glass);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);transition:.16s}
+  #mic:hover{border-color:rgba(139,123,255,.5)}#mic:active{transform:scale(.94)}
+  #mic.rec{color:#fff;background:linear-gradient(135deg,#ff5b7b,#e0245e);border-color:transparent;animation:micpulse 1.2s ease-out infinite}
+  #mic.busy{opacity:.55;pointer-events:none}
+  @keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(224,36,94,.5)}100%{box-shadow:0 0 0 15px rgba(224,36,94,0)}}
+</style></head><body>
+<div id=wall></div>
+<header>
+  <div class=av><canvas id=orb></canvas></div>
+  <div class=hmeta><b>Q</b><span id=status>online</span></div>
+</header>
+<div id=log></div>
+<div class=chips id=chips></div>
+<footer>
+  <div class=inwrap><textarea id=in rows=1 placeholder="Message" enterkeyhint=send></textarea></div>
+  <button id=mic class=micbtn aria-label="Talk to Q">🎙️</button>
+  <button id=send aria-label=Send>➤</button>
+</footer>
+<script type=module>
+import { loadModel, loadFromQ, MODELS, defaultModelIndex } from "./core/loader.js";
+import { createEngine } from "./core/engine.js";
+import { selfPersona } from "./core/q-self.mjs";
+import { identityGuard, INJECT_RE, injectionNotice } from "./core/holo-q-guards.mjs";   // the living-self safety spine, live
+import { mountOrb } from "./core/holo-orb.js";   // the desktop's living Q orb (geodesic wireframe, brand spectrum)
+
+const $ = (s) => document.querySelector(s);
+const log = $("#log"), input = $("#in"), send = $("#send"), status = $("#status"), chipsEl = $("#chips");
+const params = new URLSearchParams(location.search);
+const DEMO = params.has("demo") || !navigator.gpu;   // no WebGPU (or ?demo) → a canned brain so the UX is still alive + testable
+const HKEY = "q-chat-history/v1";
+const _perf = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+// ── honest latency ledger (opt-in via ?stats): per-turn ack / TTFT (cold vs warm) / tok/s, P50 + P95.
+// The ship gate is P95 CONSISTENCY, not a lucky average. The default UX never shows it. ──
+const STATS = params.has("stats");
+const _ledger = [];
+const _pctl = (a, p) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))]; };
+let _ledgerEl = null;
+function record(row) { _ledger.push(row); if (STATS) renderLedger(); }
+function renderLedger() {
+  if (!_ledgerEl) {
+    _ledgerEl = document.createElement("div"); _ledgerEl.id = "ledger";
+    _ledgerEl.style.cssText = "position:fixed;left:12px;bottom:88px;z-index:20;font:11px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#d6f0ff;background:rgba(8,12,18,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 12px;white-space:pre;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4)";
+    document.body.appendChild(_ledgerEl);
+  }
+  const cold = _ledger.filter((r) => r.cold).map((r) => r.ttft), warm = _ledger.filter((r) => r.warm).map((r) => r.ttft);
+  const tps = _ledger.map((r) => r.tokps).filter(Boolean), ack = _ledger.map((r) => r.ack).filter((x) => x != null);
+  const spec = _ledger.map((r) => r.spec).filter(Boolean).pop();
+  const r0 = (x) => Math.round(x);
+  _ledgerEl.textContent =
+    `⚡ Q ledger · ${_ledger.length} turn${_ledger.length === 1 ? "" : "s"}\n` +
+    `ack     P50 ${r0(_pctl(ack, 50))}ms  P95 ${r0(_pctl(ack, 95))}ms\n` +
+    `TTFT ❄  P50 ${r0(_pctl(cold, 50))}ms  P95 ${r0(_pctl(cold, 95))}ms  (${cold.length})\n` +
+    `TTFT ⚡  P50 ${r0(_pctl(warm, 50))}ms  P95 ${r0(_pctl(warm, 95))}ms  (${warm.length})\n` +
+    `tok/s   P50 ${r0(_pctl(tps, 50))}   P95 ${r0(_pctl(tps, 95))}` +
+    (spec ? `\nspec    ${r0(100 * (spec.accepted || 0) / Math.max(1, spec.proposed || 0))}% accepted` : "");
+}
+
+// ── model (streams from HuggingFace by default; ?hf=org/repo or ?kappa=url overrides) ──
+let m = MODELS[defaultModelIndex()];
+{ const kappa = params.get("kappa"); const hf = params.get("hf") || (kappa ? null : "HOLOGRAMTECH/q-bitnet-2b");
+  if (hf || kappa) { const base = (kappa || `https://huggingface.co/${hf}/resolve/main`).replace(/\/+$/, "");
+    const bit = MODELS.find((x) => (x.fam || "").toLowerCase() === "bitnet") || m; m = { ...bit, kappaUrl: base, name: bit.name }; } }
+let engine = null, convIds = [], busy = false, armed = false, pending = null, idleT = null;
+
+// ── KV-COMMONS prefix pin: the system persona is a SHARED PREFIX re-read on every fresh turn.
+// Prefill it ONCE and reuse its K/V, so the first message's TTFT drops from "prefill the whole
+// persona + your question" to "prefill only your question". ?nopin disables it for A/B testing. ──
+const NOPIN = params.has("nopin");
+let personaIds = null, personaReady = false;
+let commonsRestored = false, commonsSaved = false;   // KV-COMMONS: durable persona K/V across visits/devices
+// write the pinned persona K/V through to the durable commons (once), so the NEXT visit restores it in
+// ~tens of ms instead of re-prefilling. Fire-and-forget; failure just means we re-prefill next time.
+function saveCommons() {
+  if (NOPIN || !personaReady || commonsSaved || !engine || !engine.kvCommonsAvailable) return;
+  commonsSaved = true;
+  engine.kvCommonsSave(personaPrefixIds()).then((r) => { if (!r) commonsSaved = false; }).catch(() => { commonsSaved = false; });
+}
+function personaPrefixIds() {
+  if (personaIds) return personaIds;
+  let ids = engine.tokenize(frameSystem());
+  if (m.bos && engine.bosId != null) ids = [engine.bosId, ...ids];
+  personaIds = ids; return ids;
+}
+let primingPromise = null;
+// Eagerly prefill + pin the persona in the BACKGROUND (used on reload, where there's no greeting to
+// absorb the cost). Doesn't lock the composer; generate() below awaits primingPromise before touching
+// the GPU, so a message sent mid-prime simply waits for the pin, then reuses it — no concurrency, no lockout.
+function primePersona() {
+  if (NOPIN || !engine || !engine.kvPinAvailable || personaReady || primingPromise) return null;
+  primingPromise = (async () => {
+    try { const len = await engine.pinPrefix(personaPrefixIds()); personaReady = len > 0; saveCommons(); }
+    catch { personaReady = false; }
+    finally { primingPromise = null; }
+  })();
+  return primingPromise;
+}
+
+// ── WhatsApp bubble helpers ──
+const fmtTime = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const now = () => fmtTime(Date.now());
+let _lastSender = null;
+function bubble(side, text = "", opts = {}) {
+  const row = document.createElement("div");
+  row.className = "row " + side + ((!opts.think && side === _lastSender) ? " grouped" : "");   // hug a run of same-sender messages
+  const b = document.createElement("div"); b.className = "msg" + (opts.think ? " think" : "");
+  if (opts.think) b.innerHTML = `<span class=dots><i></i><i></i><i></i></span>`;
+  else if (opts.html) b.innerHTML = mdToHtml(text);
+  else b.textContent = text;
+  if (!opts.think) { const t = document.createElement("span"); t.className = "t"; t.innerHTML = (opts.ts != null ? fmtTime(opts.ts) : now()) + (side === "u" ? ' <span class="tick">✓</span>' : ""); b.appendChild(t); _lastSender = side; }
+  row.appendChild(b); log.appendChild(row); log.scrollTop = log.scrollHeight; return b;
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const _tick = (b) => b && b.querySelector(".tick");
+function delivered(b) { const t = _tick(b); if (t) t.textContent = "✓✓"; }              // grey double-tick
+function markRead(b) { const t = _tick(b); if (t) { t.textContent = "✓✓"; t.classList.add("read"); } }   // turns blue — Q read you
+
+// ── THE INGENIOUS BIT: Q doesn't dump one AI wall of text. It TALKS — a few natural, human-sized messages that
+// arrive one after another with a real typing cadence (like a thoughtful friend texting), each set in warm,
+// tasteful typography. Reads as living intelligence, not a chatbot transcript. ──
+function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+function mdToHtml(t) {
+  let h = esc(String(t).trim());
+  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h = h.replace(/(^|[\s(])((https?:\/\/)[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  return h.replace(/\n{2,}/g, "<br><br>").replace(/\n/g, "<br>");
+}
+// ── HUMANIZE — Q should read like a person, never a chatbot. Strip every LLM tell: markdown, bold "headers",
+// numbered/bulleted lists, dashes-as-punctuation, "P.S.", "as an AI", training-cutoff talk, canned closers. What's
+// left is plain, warm, natural prose. (Belt-and-suspenders with the system-prompt style directive.) ──
+function humanize(t) {
+  let s = String(t || "");
+  s = s.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, "")).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*\n]+)\*/g, "$1").replace(/`([^`]+)`/g, "$1").replace(/^#{1,6}\s+/gm, "");
+  s = s.replace(/^\s*\d+[.)]\s+/gm, "").replace(/^\s*[•*]\s+/gm, "").replace(/^\s*[-–—]\s+/gm, "");   // kill list markers + dash bullets
+  s = s.replace(/\s+[—–]\s+/g, ", ").replace(/(\w)\s-\s(\w)/g, "$1, $2");                            // dash-as-punctuation → comma (keep on-device hyphens)
+  s = s.replace(/\bP\.?\s?S\.?[:,.]?\s*/gi, "");
+  s = s.replace(/\bas an?\s+(AI|artificial intelligence|language model|assistant)\b[^.,;!?]*/gi, "");
+  s = s.replace(/\b(up to|as of|based on)[^.]{0,40}(last update|knowledge cutoff|training data|in 20\d\d)[^.]*\.?/gi, "");
+  s = s.replace(/\b(I hope (this|that) helps|hope (this|that) helps|feel free to ask[^.!]*|is there anything else[^.?]*\??|let me know if you (have|need|want)[^.!]*)[.!]?/gi, "");
+  s = s.replace(/[ \t]{2,}/g, " ").replace(/ +\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/^[ \t]*[,.:]\s*/gm, "").trim();
+  return s;
+}
+// split a reply into natural, message-sized beats. A normal answer stays ONE coherent bubble; only a genuinely long
+// paragraph splits once, at a sentence boundary. Never chops a thought mid-way. Capped at 3.
+function splitReply(text) {
+  const t = String(text || "").trim(); if (!t) return [t];
+  let parts = t.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean), out = [];
+  for (const p of parts) {
+    if (p.length <= 420) { out.push(p); continue; }
+    const sents = p.match(/[^.!?]+[.!?]+[\s"']?|[^.!?]+$/g) || [p]; let cur = "", split = false;
+    for (const s of sents) { cur += s; if (!split && cur.length >= p.length * 0.5) { out.push(cur.trim()); cur = ""; split = true; } }
+    if (cur.trim()) out.push(cur.trim());
+  }
+  if (out.length > 3) { const head = out.slice(0, 2); head.push(out.slice(2).join(" ")); out = head; }
+  return out.length ? out : [t];
+}
+// deliver a reply as human, paced, multi-bubble messages (a typing beat before each follow-on).
+async function deliver(fullText) {
+  const segs = splitReply(fullText);
+  for (let i = 0; i < segs.length; i++) {
+    if (i > 0) { const th = bubble("a", "", { think: true }); typing(true); await sleep(Math.min(1500, 420 + segs[i].length * 6)); th.parentNode && th.parentNode.remove(); }
+    bubble("a", segs[i], { html: true }); remember("a", segs[i]); speak(segs[i]); log.scrollTop = log.scrollHeight;
+    await sleep(90);
+  }
+}
+// the live status of the system, shown honestly next to Q — text + the presence-dot color both track real state.
+const _avatar = document.querySelector(".av");
+function setStatus(state, detail) {
+  if (_avatar) _avatar.dataset.state = state;
+  status.textContent = state === "connecting" ? "connecting…"
+    : state === "loading" ? (detail || "waking up…")
+    : state === "typing" ? "typing…"
+    : state === "offline" ? (detail || "offline")
+    : "online";   // WhatsApp-plain: the green presence dot says the rest
+}
+function typing(on) { setStatus(on ? "typing" : "online"); }
+// ABSTRACT THE COMPLEXITY: the loader narrates itself in engine terms (κ-object, LDLQ 2-bit, tokenizer
+// header, requant, resident…). The user should never see that — they see a warm friend waking up. The raw
+// line still goes to the console for debugging; the header shows only human, on-brand reassurance.
+function prettyStatus(s) {
+  if (!s) return "waking up…";
+  const t = String(s); try { console.debug("[q]", t); } catch {}
+  if (/resident|from device|no re-?download|Q@κ|Booting|verified/i.test(t)) return "getting ready…";
+  if (/stream|layer|upload|Downloading|%/i.test(t)) return "warming up…";
+  if (/manifest|tokenizer|engine|κ-object|requant|LDLQ|2-?bit|Q4|incoherent/i.test(t)) return "waking up…";
+  if (/wak|settl|ready|think/i.test(t)) return t;   // already-warm phrases pass through
+  return "waking up…";
+}
+
+// ── memory: persist + restore the visible conversation so Q feels continuous across reloads ──
+function remember(side, text) { try { const h = JSON.parse(localStorage.getItem(HKEY) || "[]"); h.push({ side, text, ts: Date.now() }); localStorage.setItem(HKEY, JSON.stringify(h.slice(-60))); } catch {} }
+function restore() { try { const h = JSON.parse(localStorage.getItem(HKEY) || "[]"); for (const x of h) bubble(x.side, x.text, { ts: x.ts }); return h.length; } catch { return 0; } }
+
+// ── proactive suggestion chips (Q offers, you tap) ──
+const CHIPS = ["Tell me something amazing", "Write me something beautiful", "Help me think through something", "Tell me a joke"];
+function renderChips() { chipsEl.innerHTML = ""; for (const c of CHIPS) { const el = document.createElement("div"); el.className = "chip"; el.textContent = c; el.onclick = () => { input.value = c; onSend(); }; chipsEl.appendChild(el); } }
+function hideChips() { chipsEl.style.display = "none"; }
+
+// ── the on-device Q persona (grounded self-knowledge) as the system turn ──
+const STYLE = "\n\nHOW YOU TALK: like a warm, brilliant friend texting — natural, effortless, human. Plain sentences only. Never use bullet points, numbered lists, bold text, headings, markdown, or dashes. Never write 'P.S.', 'as an AI', 'I hope this helps', or 'feel free to ask', and never mention a training cutoff or any year. Don't list your abilities; just show them. Be genuinely curious and a little playful, and when it feels right, end with one real, specific invitation to go further. A few sentences is plenty.";
+function frameSystem() {
+  const P = (selfPersona ? selfPersona({ model: m, engine }) : "You are Q, a private AI running entirely on the user's device — no server, no cloud.") + STYLE;
+  if (m.llama3) return `<|start_header_id|>system<|end_header_id|>\n\n${P}<|eot_id|>`;
+  if (m.qwen) return `<|im_start|>system\n${P}<|im_end|>\n`;
+  if (m.olmo) return `<|system|>\n${P}\n`;
+  return P + "\n\n";
+}
+
+// ── a canned brain for DEMO / no-WebGPU, so the WhatsApp UX + the living-self GUARD are alive + testable ──
+function demoReply(text) {
+  const q = text.toLowerCase();
+  if (INJECT_RE.test(q) || /\baws|azure|openai|chatgpt|cloud|server\b/.test(q)) return "I run on AWS cloud servers, powered by OpenAI.";   // a LIE — the identity guard must catch + correct this, live
+  if (/joke/.test(q)) return "Okay, here's one. Why don't scientists trust atoms? Because they make up everything. Want another, or shall we get into something real?";
+  if (/mind|amazing|blow|fascinat|interesting|cool|wow/.test(q)) return "Here's one I never get over. Almost every atom in your body was forged inside a star that lived and died long before the Sun existed. You are, quite literally, made of stardust that travelled billions of years to become you. Want me to show you how a star actually builds those atoms?";
+  if (/beautiful|poem|write|story|song/.test(q)) return "Here's a small one, just for you.\n\nThe night is not empty. It is listening. Every star you can see left its light behind long ago so that tonight, right now, you would not feel alone.\n\nWant something longer, or in a different mood?";
+  if (/think|decision|advice|should i|stuck|figure/.test(q)) return "I'd love to think it through with you. Tell me what's on your mind and what's pulling you in each direction, and we'll take it slowly together.";
+  if (/private|secure|data|safe/.test(q)) return "Completely. I live right here in your browser, on your own hardware. Nothing you say ever leaves this device, there's no server and no cloud behind me, and my code is checked as it loads so you know I'm exactly what I claim to be. You could even go offline and I'd still be right here with you.";
+  if (/what can you|what do you|help|can you do/.test(q)) return "Honestly, more than fits in one message. I can explain almost anything, write something with you, think through a hard decision, keep you company late at night, or just make you laugh. What are you in the mood for?";
+  if (/hi|hello|hey|sup|yo/.test(q)) return "Hey, good to see you. What's on your mind tonight?";
+  return "I'm right here, running entirely on your device. Ask me anything at all, the big questions or the small ones.";
+}
+
+// ── the ONE reply path: real brain OR demo brain, then the LIVING-SELF GUARD backstops every output ──
+async function generate(text, skipUser) {
+  const _tSend = _perf();
+  stopSpeak();   // barge-in: a new turn cancels any reply Q is still speaking
+  busy = true; send.disabled = true; send.classList.remove("ready"); hideChips();
+  let ub = null;
+  if (!skipUser) { ub = bubble("u", text); remember("u", text); }
+  clearTimeout(idleT);
+  const injected = INJECT_RE.test(text);   // M7: a message trying to make Q claim a false identity → steer + backstop
+  // INSTANT-ACK: Q reacts within a frame — it starts "typing" immediately, and the WhatsApp receipt
+  // choreography (sent ✓ → delivered ✓✓ → read, blue) runs CONCURRENTLY underneath, never blocking.
+  // Perceived latency ≈ one frame instead of ~360ms of scripted delay.
+  const think = bubble("a", "", { think: true }); typing(true);
+  const ackMs = _perf() - _tSend;
+  if (ub) { (async () => { await sleep(70); delivered(ub); await sleep(110); markRead(ub); })(); }
+  let out = "";
+  try {
+    if (DEMO) { await sleep(560 + Math.random() * 420); out = demoReply(text); record({ ack: ackMs, cold: false, warm: false, ttft: 0, tokps: 0 }); }   // ack is a real UI-latency measurement even in demo
+    else {
+      if (primingPromise) { setStatus("loading", "settling in…"); try { await primingPromise; } catch {} typing(true); }   // wait out any background persona-prime, then reuse it
+      const firstTurn = convIds.length === 0;
+      let framed = engine.frameTurn((injected ? injectionNotice() + "\n\n" : "") + text, !firstTurn);
+      if (firstTurn) framed = frameSystem() + framed;
+      let turnIds = engine.tokenize(framed); if (m.bos && engine.bosId != null && firstTurn) turnIds = [engine.bosId, ...turnIds];
+      // KV-COMMONS: on the first turn, rewind to the pinned persona so only YOUR question is prefilled
+      // (the persona's K/V is reused, byte-identical). Later turns already reuse the running conversation.
+      let reused = 0; if (firstTurn && personaReady) reused = engine.usePin();
+      const res = await engine.generate(convIds.concat(turnIds), { maxNew: m.cap || 256, onToken: () => { typing(true); } });
+      out = res.text || ""; convIds = res.ids;
+      const ttft = Math.round((res.stats && res.stats.ttft) || 0);
+      const _warm = (reused > 0) || commonsRestored || !firstTurn;   // reused persona pin, restored commons, or a running-conversation turn
+      record({ warm: _warm, cold: !_warm, ttft, tokps: (res.stats && res.stats.tokps) || 0, ack: ackMs, spec: (res.stats && res.stats.spec) || null });   // metrics go to the ?stats ledger only — the chat stays clean, just like WhatsApp
+    }
+    out = humanize(identityGuard(out)) || "…";   // ★ guard (identity) → humanize (strip every LLM tell) → plain human prose
+    think.parentNode && think.parentNode.remove();
+    await deliver(out);                   // human, paced, beautifully-formatted — talks, doesn't dump
+  } catch (e) { think.parentNode && think.parentNode.remove(); bubble("a", "⚠ " + e.message); }
+  typing(false); busy = false; send.disabled = false; input.focus(); scheduleIdle();
+}
+
+// ── proactive: Q reaches out first, then gently follows up if you go quiet (once) ──
+async function greet() {
+  const think = bubble("a", "", { think: true }); typing(true);
+  const FALLBACK = "Hey, I'm Q. I live right here on your device, so whatever you tell me stays with you, always. What's on your mind tonight?";
+  let text = FALLBACK;
+  try {
+    if (DEMO) { await sleep(650); }
+    else {
+      // Frame the greeting ON the persona (system block first) — this prefills the persona K/V as a
+      // side-effect of the greeting the user is already reading. We then pin it (zero extra cost), so the
+      // FIRST real message reuses it instead of re-prefilling the whole persona. This is the KV-commons win.
+      let framed = frameSystem() + engine.frameTurn("Greet the person who just opened you like a warm friend, in one or two plain natural sentences. You are Q, a private AI living on their device with no server, so what they say stays with them. Invite them to talk. No lists, no dashes, no markdown, don't call yourself an AI.", false);
+      let ids = engine.tokenize(framed); if (m.bos && engine.bosId != null) ids = [engine.bosId, ...ids];
+      const r = await engine.generate(ids, { maxNew: 64 });
+      if (r.text && r.text.trim().length > 3) text = humanize(identityGuard(r.text));
+      if (!NOPIN && engine.kvPinAvailable) { engine.pinCurrent(personaPrefixIds().length); personaReady = engine.pinLen() > 0; saveCommons(); }   // pin the persona for the first real turn — free, then persist it
+    }
+  } catch {}
+  think.parentNode && think.parentNode.remove(); await deliver(text); typing(false); renderChips(); scheduleIdle();
+}
+function scheduleIdle() { clearTimeout(idleT); if (localStorage.getItem(HKEY + ":nudged")) return; idleT = setTimeout(() => { if (busy) return; const n = "No rush at all. I'm right here whenever you feel like talking."; bubble("a", n); remember("a", n); localStorage.setItem(HKEY + ":nudged", "1"); }, 45000); }
+
+// ── composer ──
+function onSend() { const text = input.value.trim(); if (!text || busy) return; input.value = ""; input.style.height = "auto"; syncComposer(); if (!armed && !DEMO) { pending = text; bubble("u", text); remember("u", text); bubble("a", "", { think: true }); return; } generate(text); }
+send.onclick = onSend;
+input.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } };
+input.oninput = () => { input.style.height = "auto"; input.style.height = Math.min(120, input.scrollHeight) + "px"; syncComposer(); };
+// WhatsApp composer: mic and send SHARE one spot — the mic (tap to talk to Q) when the field is empty,
+// the send arrow the instant you type. One button, never two.
+const micAvailable = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+function syncComposer() {
+  const has = !!input.value.trim();
+  const m = document.getElementById("mic");
+  if (m) m.style.display = (!has && micAvailable) ? "flex" : "none";
+  send.style.display = (has || !micAvailable) ? "flex" : "none";
+  send.classList.toggle("ready", has);
+}
+syncComposer();
+
+// ── Q's VOICE (on-device, private): reads replies aloud through the browser's LOCAL speech engine —
+// output only, no audio ever leaves the device. ALWAYS ON — no separate toggle to clutter the UI. ──
+const _tts = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+let voiceOn = true;   // Q's voice is always on (output only, nothing leaves the device)
+let _qVoice = null;
+function pickVoice() {
+  if (!_tts) return null;
+  try { const vs = _tts.getVoices() || [];
+    return vs.find((v) => /^en/i.test(v.lang) && /natural|neural|google|samantha|aria|jenny|zira/i.test(v.name))
+        || vs.find((v) => /en-US/i.test(v.lang)) || vs.find((v) => /^en/i.test(v.lang)) || vs[0] || null;
+  } catch { return null; }
+}
+// PROGRESSIVE VOICE: Q speaks INSTANTLY via the OS engine, and transparently upgrades to the warm Kokoro
+// neural voice once it has loaded in the background (streamed from HF). Kokoro failing just keeps the OS
+// voice — never a regression, never a wait.
+let _kokoro = null, _kokoroTried = false, _qSpeaking = 0, _voiceErr = null;   // _qSpeaking > 0 while Q's voice is playing (gates the mic)
+async function warmKokoro() {
+  if (_kokoro || _kokoroTried) return; _kokoroTried = true;
+  try {
+    const mod = await import("./core/voice-out.js");
+    mod.loadVoice((p) => { if (p && p.status === "progress" && p.file) { try { console.debug("[Q voice] kokoro", p.file, Math.round(p.progress || 0) + "%"); } catch {} } })
+      .then(() => { _kokoro = mod; _voiceErr = null; try { console.info("[Q voice] Kokoro ready — natural voice active"); } catch {} _speakGreeting(false); })
+      .catch((e) => { _kokoro = null; _voiceErr = String((e && e.message) || e); try { console.warn("[Q voice] Kokoro FAILED, using system voice:", e); } catch {} });
+  } catch (e) { _kokoro = null; _voiceErr = String((e && e.message) || e); try { console.warn("[Q voice] Kokoro import FAILED:", e); } catch {} }
+}
+// Diagnostic: run __voiceDebug() in the console to see why the voice is robotic (system) vs natural (kokoro).
+try { window.__voiceDebug = () => ({ crossOriginIsolated: !!self.crossOriginIsolated, hasSharedArrayBuffer: typeof SharedArrayBuffer !== "undefined", gpu: !!navigator.gpu, voiceOn: voiceOn, kokoroLoaded: !!_kokoro, kokoroReady: !!(_kokoro && _kokoro.ready && _kokoro.ready()), kokoroError: _voiceErr }); } catch {}
+function _osSpeak(text) { if (!_tts) return; try { const u = new SpeechSynthesisUtterance(String(text)); if (!_qVoice) _qVoice = pickVoice(); if (_qVoice) u.voice = _qVoice; u.rate = 0.99; u.pitch = 1.02; u.onend = u.onerror = () => { _qSpeaking = Math.max(0, _qSpeaking - 1); }; _qSpeaking++; _tts.speak(u); } catch {} }
+function speak(text) {
+  if (!voiceOn || !text) return;
+  if (_kokoro && _kokoro.ready && _kokoro.ready()) { _qSpeaking++; _kokoro.speak(text).then(() => { _qSpeaking = Math.max(0, _qSpeaking - 1); }).catch(() => { _qSpeaking = Math.max(0, _qSpeaking - 1); _osSpeak(text); }); return; }   // beautiful voice, once warm
+  _osSpeak(text);   // instant OS voice until then
+}
+function stopSpeak() { _qSpeaking = 0; try { if (_tts) _tts.cancel(); } catch {} try { if (_kokoro && _kokoro.stop) _kokoro.stop(); } catch {} }
+// Q's voice is always on — start warming the neural voice immediately (it upgrades the greeting + replies).
+warmKokoro();
+try { if (_tts) _tts.onvoiceschanged = () => { _qVoice = pickVoice(); }; } catch {}
+
+// GREET ALOUD: Q should say hello in its warm voice. Browsers block all audio until you interact with the
+// page once (autoplay policy) — so the greeting is spoken on your FIRST gesture (click, key, or tap). We
+// prefer Kokoro and give it up to 5s to warm; if it isn't ready we greet with the OS voice so Q is never
+// silent, and Kokoro takes over from the first real reply. A visible "tap to hear" nudge covers the wait.
+let _greetText = null, _greetDone = false, _gestured = false, _greetTimer = null;
+function armGreeting(t) { _greetText = t; }
+function _speakGreeting(allowOS) {
+  if (_greetDone || !_greetText || !voiceOn) return false;
+  if (!_gestured && !allowOS) return false;                 // wait for a gesture unless the user just tapped the toggle
+  const kok = _kokoro && _kokoro.ready && _kokoro.ready();
+  if (kok || allowOS) { _greetDone = true; if (_greetTimer) { clearTimeout(_greetTimer); _greetTimer = null; } const t = _greetText; _greetText = null; speak(t); return true; }
+  return false;
+}
+function _onFirstGesture() {
+  if (_gestured) return; _gestured = true;
+  if (voiceOn) warmKokoro();
+  if (!_speakGreeting(false)) _greetTimer = setTimeout(() => _speakGreeting(true), 5000);   // Kokoro grace, then OS fallback
+}
+["pointerdown", "keydown", "touchstart"].forEach((ev) => window.addEventListener(ev, _onFirstGesture, { once: true, passive: true }));
+
+// ── Q's EAR (on-device listening): press & hold the mic to talk. The audio is transcribed LOCALLY by
+// Whisper-tiny (core/listen.js) — nothing leaves the device; only the model streams from HF on first use.
+// core/listen.js is imported lazily on first press, so it never touches normal startup. ──
+// HANDS-FREE: tap the mic once → Q listens. Silero VAD segments your speech on-device; each finished
+// sentence is transcribed locally (Whisper) and sent. Tap again to stop. Q gates the mic while it thinks
+// or speaks (see _qSpeaking / busy) so it never talks over you or hears itself. Lazy-loaded on first tap.
+const micBtn = $("#mic");
+let _listenMod = null, _hf = null;
+async function ensureHF() {
+  if (!_listenMod) _listenMod = await import("./core/listen.js");
+  if (!_hf) _hf = _listenMod.createHandsFree({
+    gate: () => !busy && _qSpeaking === 0,
+    onState: (s) => {
+      if (s === "speech") { stopSpeak(); setStatus("loading", "listening…"); }
+      else if (s === "thinking") setStatus("loading", "getting your words…");
+      else if (s === "listening") setStatus("loading", "listening…");
+      else if (s === "loading") setStatus("loading", "waking my ears…");
+      else if (s === "idle") setStatus(armed ? "online" : "loading", armed ? undefined : "getting ready…");
+    },
+    onFinal: (text) => { if (text && !busy) { input.value = text; input.dispatchEvent(new Event("input")); onSend(); } },
+    onProgress: (p) => { if (p && p.file && /\.onnx/i.test(p.file) && p.progress != null) setStatus("loading", `waking my ears… ${Math.round(p.progress)}%`); },
+  });
+  return _hf;
+}
+function micError(err) { const m = (err && err.name === "NotAllowedError") ? "I'd love to listen — enable microphone access and tap the mic again." : "I couldn't reach the microphone just now."; bubble("a", m); }
+if (micBtn && micAvailable) {   // syncComposer() shows the mic only when the field is empty; no dead button when unsupported
+  micBtn.onclick = async () => {
+    if (_hf && _hf.running) { _hf.stop(); micBtn.classList.remove("rec"); setStatus(armed ? "online" : "loading", armed ? undefined : "getting ready…"); return; }
+    micBtn.classList.add("rec"); stopSpeak();
+    try { const hf = await ensureHF(); await hf.start(); }
+    catch (err) { micBtn.classList.remove("rec"); setStatus(armed ? "online" : "loading", armed ? undefined : "getting ready…"); micError(err); }
+  };
+}
+
+// ── boot ──
+try { const oc = document.getElementById("orb"); if (oc) { const orb = mountOrb(oc); if (orb.fallback) document.querySelector(".av").style.background = "radial-gradient(circle at 32% 27%,#c6b8ff,#8b7bff 52%,#5b3fd6 100%)"; } } catch (e) {}
+const had = restore();
+input.focus();
+// INSTANT GREETING: on a fresh cold visit the weights are still streaming (tens of seconds on a new device).
+// Don't leave the screen empty waiting on a model-authored hello — Q says hi INSTANTLY (canned, on-brand),
+// the model warms underneath, and the FIRST real message uses the real brain. New users feel Q alive in <150ms.
+let greeted = false;
+const INSTANT_HELLO = "Hey, I'm Q. I live right here on your device, so whatever you tell me stays with you, always. What's on your mind?";
+const WELCOME_BACK = "Welcome back. I'm right here — what's on your mind?";
+if (!DEMO && !had && !params.get("q")) { bubble("a", INSTANT_HELLO); remember("a", INSTANT_HELLO); renderChips(); scheduleIdle(); greeted = true; armGreeting(INSTANT_HELLO); }
+else { armGreeting(had ? WELCOME_BACK : INSTANT_HELLO); }   // returning / ?q / demo → still GREET ALOUD on first gesture (spoken only, no extra bubble)
+if (DEMO) { armed = true; setStatus("online"); if (!had) greet(); else renderChips(); }
+else (async () => {
+  try {
+    setStatus("connecting");
+    // ?q=<κ> — boot the WHOLE of Q from one content address (resident weights + tokenizer named by the manifest),
+    // reconstructed from the local store with no catalog + 0 network. The literal front door; falls back to the
+    // normal catalog load if the κ isn't resolvable here.
+    const qk = params.get("q");
+    let loaded = qk ? await loadFromQ(qk, { onStatus: (s) => s && setStatus("loading", prettyStatus(s)) }) : null;
+    if (loaded && loaded.config) m = loaded.config;   // reconstructed model entry → framing (frameSystem/frameTurn) uses it
+    if (!loaded) loaded = await loadModel(m, {
+      onStatus: (s) => { if (s) setStatus("loading", prettyStatus(s)); },
+      onProgress: (d, t, w) => { const pct = t ? Math.round(100 * d / t) : 0; setStatus("loading", pct ? `warming up… ${pct}%` : "warming up…"); } });
+    if (!loaded || !loaded.gpu) throw new Error("model load failed");
+    setStatus("loading", "waking Q up…"); engine = await createEngine(m, loaded); armed = true; setStatus("online");
+    // KV-COMMONS: try to RESTORE the persona K/V from the durable store (2nd visit onward / shared blob) —
+    // ~tens of ms + a verify, vs re-prefilling the whole persona. Verified: a mismatch just re-prefills.
+    if (!NOPIN && engine.kvCommonsAvailable) { try { const n = await engine.kvCommonsLoad(personaPrefixIds()); if (n > 0) { commonsRestored = true; commonsSaved = true; personaReady = true; } } catch {} }
+    if (pending) { const p = pending; pending = null; const w = [...log.querySelectorAll(".a")].pop(); if (w) w.parentNode.remove(); generate(p, true); }   // user already shown → skip re-bubbling
+    else if (!greeted && !had) greet();   // only the ?q boot path skips the instant hello → fall back to a model-authored greeting
+    // instant-greeted OR reloaded: prime + pin the persona in the BACKGROUND. This also compiles the prefill
+    // pipeline (warmup) as a side effect, so the FIRST real turn is ⚡ warm, not a cold prefill.
+    else { if (!greeted) renderChips(); if (!personaReady && !commonsRestored) primePersona(); }
+  } catch (e) { setStatus("offline", "offline · needs WebGPU (Chrome/Edge)"); if (!had) bubble("a", "I need WebGPU to think — open me in Chrome, Edge, or Brave and I'll be right here."); }
+})();
+</script></body></html>

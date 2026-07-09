@@ -1,0 +1,229 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GATE-0 · ternary GEMV kernel bake-off</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0b0d; color: #e6e8ea; font: 13px/1.55 ui-monospace, Menlo, monospace; padding: 22px 26px; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .sub { color: #8a9099; font-size: 12px; margin-bottom: 14px; max-width: 900px; }
+  #head { border: 1px solid #1c2128; border-radius: 10px; padding: 14px 16px; margin: 4px 0 16px; background: #101318; white-space: pre-wrap; }
+  #head.ok { border-color: #1f6f43; background: #0d1712; } #head.bad { border-color: #6f2f2f; background: #170d0d; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 4px 0 16px; }
+  th, td { text-align: right; padding: 6px 12px; border-bottom: 1px solid #1a1d22; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #8a9099; font-weight: 500; }
+  td.win { color: #56d38a; font-weight: 600; } td.lose { color: #d7a24a; } td.bad { color: #ff6b6b; }
+  #status { color: #8a9099; font-size: 12px; } .big { font-size: 18px; font-weight: 600; }
+</style>
+
+<h1>GATE-0 · ternary GEMV bake-off — can the ALU ceiling rise on this GPU?</h1>
+<div class="sub">Baseline f32 <code>dot16</code> vs subgroup-reduction vs DP4a integer-dot, on BitNet gate‖up geometry
+(N=13824, K=2560). A candidate must beat baseline <b>≥1.5× at KX=1</b> (single-stream) AND drop KX=8 per-token
+cost toward bandwidth-bound. Correctness = cosine vs baseline. Read <code>window.__bake</code>.</div>
+
+<div id="head">probing…</div>
+<div id="status"></div>
+<table id="rows"><thead><tr><th>candidate</th><th>KX=1 ms</th><th>× vs base</th><th>KX=8 ms</th><th>KX=8 per-tok</th><th>cosine</th><th>note</th></tr></thead><tbody></tbody></table>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const status = (m) => { $("#status").textContent = m; };
+const N = 13824, K = 2560, nw = K>>4, kq = K>>2;   // gate‖up geometry
+const KXS = [1, 8], ITERS = 64;
+
+// ---------- kernels (KX-parameterized) ----------
+const A_dot16 = (KX) => `
+@group(0) @binding(0) var<storage,read> x: array<vec4<f32>>;
+@group(0) @binding(1) var<storage,read> qw: array<u32>;
+@group(0) @binding(2) var<storage,read_write> o: array<f32>;
+@group(0) @binding(3) var<uniform> P: vec4<u32>;
+var<workgroup> red: array<f32,256>;
+fn dot16(word:u32, v:u32) -> f32 {
+  var s4=vec4<f32>(0.0);
+  var x0=x[v];   s4=s4+x0*(vec4<f32>(f32(word&3u),f32((word>>2u)&3u),f32((word>>4u)&3u),f32((word>>6u)&3u))-vec4<f32>(1.0));
+  x0=x[v+1u];    s4=s4+x0*(vec4<f32>(f32((word>>8u)&3u),f32((word>>10u)&3u),f32((word>>12u)&3u),f32((word>>14u)&3u))-vec4<f32>(1.0));
+  x0=x[v+2u];    s4=s4+x0*(vec4<f32>(f32((word>>16u)&3u),f32((word>>18u)&3u),f32((word>>20u)&3u),f32((word>>22u)&3u))-vec4<f32>(1.0));
+  x0=x[v+3u];    s4=s4+x0*(vec4<f32>(f32((word>>24u)&3u),f32((word>>26u)&3u),f32((word>>28u)&3u),f32((word>>30u)&3u))-vec4<f32>(1.0));
+  return s4.x+s4.y+s4.z+s4.w;
+}
+@compute @workgroup_size(256)
+fn main(@builtin(workgroup_id) wg:vec3<u32>, @builtin(local_invocation_id) lid:vec3<u32>){
+  let rr=lid.x/64u; let t=lid.x%64u;
+  let n0=(wg.y*65535u+wg.x)*4u+rr; let n=min(n0, ${N}u-1u);
+  let rowW=n*${nw}u; var acc: array<f32, ${KX}>;
+  for(var c=0u;c<${KX}u;c++){ acc[c]=0.0; }
+  var w=t;
+  loop{ if(w>=${nw}u){break;}
+    let word=qw[rowW+w]; let v=w<<2u;
+    ${Array.from({length:KX},(_,c)=>`acc[${c}]=acc[${c}]+dot16(word, ${c}u*${kq}u+v);`).join("\n    ")}
+    w=w+64u; }
+  for(var c=0u;c<${KX}u;c++){
+    red[lid.x]=acc[c]; workgroupBarrier();
+    var s=32u; loop{ if(s==0u){break;} if(t<s){ red[rr*64u+t]=red[rr*64u+t]+red[rr*64u+t+s]; } workgroupBarrier(); s=s/2u; }
+    if(t==0u && n0<${N}u){ o[c*${N}u+n0]=red[rr*64u]*bitcast<f32>(P.w); }
+    workgroupBarrier();
+  }
+}`;
+
+const B_subgroup = (KX) => `
+enable subgroups;
+@group(0) @binding(0) var<storage,read> x: array<vec4<f32>>;
+@group(0) @binding(1) var<storage,read> qw: array<u32>;
+@group(0) @binding(2) var<storage,read_write> o: array<f32>;
+@group(0) @binding(3) var<uniform> P: vec4<u32>;
+var<workgroup> sh: array<f32, 8>;
+fn dot16(word:u32, v:u32) -> f32 {
+  var s4=vec4<f32>(0.0);
+  var x0=x[v];   s4=s4+x0*(vec4<f32>(f32(word&3u),f32((word>>2u)&3u),f32((word>>4u)&3u),f32((word>>6u)&3u))-vec4<f32>(1.0));
+  x0=x[v+1u];    s4=s4+x0*(vec4<f32>(f32((word>>8u)&3u),f32((word>>10u)&3u),f32((word>>12u)&3u),f32((word>>14u)&3u))-vec4<f32>(1.0));
+  x0=x[v+2u];    s4=s4+x0*(vec4<f32>(f32((word>>16u)&3u),f32((word>>18u)&3u),f32((word>>20u)&3u),f32((word>>22u)&3u))-vec4<f32>(1.0));
+  x0=x[v+3u];    s4=s4+x0*(vec4<f32>(f32((word>>24u)&3u),f32((word>>26u)&3u),f32((word>>28u)&3u),f32((word>>30u)&3u))-vec4<f32>(1.0));
+  return s4.x+s4.y+s4.z+s4.w;
+}
+@compute @workgroup_size(64)
+fn main(@builtin(workgroup_id) wg:vec3<u32>, @builtin(local_invocation_id) lid:vec3<u32>,
+        @builtin(subgroup_size) sgSize:u32, @builtin(subgroup_invocation_id) sgLane:u32){
+  let t=lid.x;
+  let n0=wg.y*65535u+wg.x; let n=min(n0, ${N}u-1u); let rowW=n*${nw}u;
+  var acc: array<f32, ${KX}>;
+  for(var c=0u;c<${KX}u;c++){ acc[c]=0.0; }
+  var w=t;
+  loop{ if(w>=${nw}u){break;}
+    let word=qw[rowW+w]; let v=w<<2u;
+    ${Array.from({length:KX},(_,c)=>`acc[${c}]=acc[${c}]+dot16(word, ${c}u*${kq}u+v);`).join("\n    ")}
+    w=w+64u; }
+  let ns=64u/sgSize;
+  for(var c=0u;c<${KX}u;c++){
+    let s=subgroupAdd(acc[c]);
+    if(sgLane==0u){ sh[t/sgSize]=s; }
+    workgroupBarrier();
+    if(t==0u && n0<${N}u){ var tot=0.0; for(var i=0u;i<ns;i++){ tot=tot+sh[i]; } o[c*${N}u+n0]=tot*bitcast<f32>(P.w); }
+    workgroupBarrier();
+  }
+}`;
+
+const C_dp4a = (KX) => `
+@group(0) @binding(0) var<storage,read> aq: array<u32>;    // int8x4 activations [KX][K/4]
+@group(0) @binding(1) var<storage,read> qw: array<u32>;    // 2-bit weights [N][K/16]
+@group(0) @binding(2) var<storage,read_write> o: array<f32>;
+@group(0) @binding(3) var<uniform> P: vec4<u32>;
+var<workgroup> red: array<f32,256>;
+@compute @workgroup_size(256)
+fn main(@builtin(workgroup_id) wg:vec3<u32>, @builtin(local_invocation_id) lid:vec3<u32>){
+  let rr=lid.x/64u; let t=lid.x%64u;
+  let n0=(wg.y*65535u+wg.x)*4u+rr; let n=min(n0, ${N}u-1u);
+  let rowW=n*${nw}u; var acc: array<i32, ${KX}>;
+  for(var c=0u;c<${KX}u;c++){ acc[c]=0; }
+  var w=t;
+  loop{ if(w>=${nw}u){break;}
+    let word=qw[rowW+w];
+    for(var g=0u;g<4u;g++){
+      let byte=(word>>(g*8u))&0xffu;
+      let v0=byte&3u; let v1=(byte>>2u)&3u; let v2=(byte>>4u)&3u; let v3=(byte>>6u)&3u;
+      let wi8=((v0-1u)&0xffu)|(((v1-1u)&0xffu)<<8u)|(((v2-1u)&0xffu)<<16u)|(((v3-1u)&0xffu)<<24u);
+      ${Array.from({length:KX},(_,c)=>`acc[${c}]=acc[${c}]+dot4I8Packed(wi8, aq[${c}u*${kq}u + w*4u + g]);`).join("\n      ")}
+    }
+    w=w+64u; }
+  for(var c=0u;c<${KX}u;c++){
+    red[lid.x]=f32(acc[c]); workgroupBarrier();
+    var s=32u; loop{ if(s==0u){break;} if(t<s){ red[rr*64u+t]=red[rr*64u+t]+red[rr*64u+t+s]; } workgroupBarrier(); s=s/2u; }
+    if(t==0u && n0<${N}u){ o[c*${N}u+n0]=red[rr*64u]*bitcast<f32>(P.w); }
+    workgroupBarrier();
+  }
+}`;
+
+const cos = (a, b) => { let d=0,na=0,nb=0; for(let i=0;i<a.length;i++){ d+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; } return d/(Math.sqrt(na*nb)+1e-30); };
+
+async function run() {
+  if (!navigator.gpu) { $("#head").className="bad"; $("#head").textContent="no WebGPU"; return; }
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  const feats = adapter.features.has("subgroups") ? ["subgroups"] : [];
+  const dev = await adapter.requestDevice({ requiredFeatures: feats });
+  const info = adapter.info || {};
+  const U = GPUBufferUsage;
+
+  // weights: 2-bit packed, N*(K/16) u32 (random ternary bits)
+  status("alloc weights…");
+  const qwLen = N*nw;
+  const qwHost = new Uint32Array(qwLen); { let s=0x1234567; for(let i=0;i<qwLen;i++){ s^=s<<13; s^=s>>>17; s^=s<<5;
+    // force 2-bit lanes into {0,1,2} so dot16 and dp4a see valid ternary
+    let v=0; for(let j=0;j<16;j++){ v |= ((s>>>(j*2))%3) << (j*2); } qwHost[i]=v>>>0; } }
+  const qw = dev.createBuffer({ size: qwLen*4, usage: U.STORAGE|U.COPY_DST }); dev.queue.writeBuffer(qw, 0, qwHost);
+
+  // f32 activations (8 columns) + int8-quantized version
+  const xf = new Float32Array(8*K); for(let i=0;i<xf.length;i++) xf[i]=((i*2654435761>>>0)/4294967296)-0.5;
+  const xfb = dev.createBuffer({ size: xf.byteLength, usage: U.STORAGE|U.COPY_DST }); dev.queue.writeBuffer(xfb, 0, xf);
+  // per-column int8 quant, packed 4/u32
+  const aq = new Uint32Array(8*kq); const ascale = new Float32Array(8);
+  for(let c=0;c<8;c++){ let mx=1e-9; for(let k=0;k<K;k++) mx=Math.max(mx, Math.abs(xf[c*K+k])); const sc=mx/127; ascale[c]=sc;
+    for(let u=0;u<kq;u++){ let word=0; for(let b=0;b<4;b++){ const q=Math.max(-127,Math.min(127,Math.round(xf[c*K+u*4+b]/sc))); word |= (q&0xff)<<(b*8); } aq[c*kq+u]=word>>>0; } }
+  const aqb = dev.createBuffer({ size: aq.byteLength, usage: U.STORAGE|U.COPY_DST }); dev.queue.writeBuffer(aqb, 0, aq);
+
+  const ob = dev.createBuffer({ size: 8*N*4, usage: U.STORAGE|U.COPY_SRC });
+  const rb = dev.createBuffer({ size: N*4, usage: U.MAP_READ|U.COPY_DST });
+  const P = dev.createBuffer({ size:16, usage: U.UNIFORM|U.COPY_DST }); dev.queue.writeBuffer(P, 0, new Uint32Array([K,N,0,0x3f800000]));
+
+  const CANDS = [
+    { key:"A · f32 dot16 (baseline)", src:A_dot16, wg256:true, act:xfb },
+    { key:"B · subgroup reduction",   src:B_subgroup, wg256:false, act:xfb },
+    { key:"C · DP4a integer-dot",     src:C_dp4a, wg256:true, act:aqb },
+  ];
+
+  async function readCol0() { const e=dev.createCommandEncoder(); e.copyBufferToBuffer(ob,0,rb,0,N*4); dev.queue.submit([e.finish()]);
+    await rb.mapAsync(GPUMapMode.READ); const r=new Float32Array(rb.getMappedRange().slice(0)); rb.unmap(); return r; }
+
+  const gridA = () => { const total=Math.ceil(N/4); return [Math.min(total,65535), Math.ceil(total/65535)]; };
+  const gridB = () => [Math.min(N,65535), Math.ceil(N/65535)];
+
+  const results = []; let baseMs1 = null, baseVec = null;
+  for (const cand of CANDS) {
+    const row = { key: cand.key, ms1:null, ms8:null, cosine:null, err:null };
+    try {
+      for (const KX of KXS) {
+        const mod = dev.createShaderModule({ code: cand.src(KX) });
+        const ci = await mod.getCompilationInfo(); const e = ci.messages.filter(m=>m.type==='error');
+        if (e.length) throw new Error(e.map(m=>m.message).join(" | "));
+        const pipe = dev.createComputePipeline({ layout:"auto", compute:{ module:mod, entryPoint:"main" } });
+        const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries:[
+          {binding:0,resource:{buffer:cand.act}},{binding:1,resource:{buffer:qw}},{binding:2,resource:{buffer:ob}},{binding:3,resource:{buffer:P}} ]});
+        const [gx,gy] = cand.wg256 ? gridA() : gridB();
+        // warmup
+        { const enc=dev.createCommandEncoder(); const p=enc.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0,bg); for(let i=0;i<4;i++) p.dispatchWorkgroups(gx,gy,1); p.end(); dev.queue.submit([enc.finish()]); await dev.queue.onSubmittedWorkDone(); }
+        if (KX===1) { const v=await readCol0(); if (cand.key[0]==='A') baseVec=v; else row.cosine=+cos(baseVec, v).toFixed(4); }
+        status(`${cand.key} KX=${KX}…`);
+        let best=Infinity;
+        for(let rep=0;rep<3;rep++){ const enc=dev.createCommandEncoder(); const p=enc.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0,bg); for(let i=0;i<ITERS;i++) p.dispatchWorkgroups(gx,gy,1); p.end();
+          const t0=performance.now(); dev.queue.submit([enc.finish()]); await dev.queue.onSubmittedWorkDone(); best=Math.min(best,(performance.now()-t0)/ITERS); }
+        if (KX===1) row.ms1=+best.toFixed(3); else row.ms8=+best.toFixed(3);
+      }
+      if (cand.key[0]==='A') baseMs1 = row.ms1;
+    } catch(err) { row.err = String(err.message||err).slice(0,120); }
+    results.push(row);
+    const spd = (row.ms1 && baseMs1) ? baseMs1/row.ms1 : null;
+    const perTok8 = (row.ms1 && row.ms8) ? row.ms8/row.ms1/8 : null;
+    const tr=document.createElement("tr");
+    tr.innerHTML = `<td>${row.key}</td><td>${row.ms1??'—'}</td>
+      <td class="${spd&&spd>=1.5?'win':(spd&&spd<0.95?'bad':'')}">${spd?spd.toFixed(2)+'×':'—'}</td>
+      <td>${row.ms8??'—'}</td><td class="${perTok8&&perTok8<=0.6?'win':''}">${perTok8?perTok8.toFixed(2)+'×':'—'}</td>
+      <td class="${row.cosine!==null&&row.cosine<0.98?'lose':''}">${row.cosine??(row.key[0]==='A'?'ref':'—')}</td>
+      <td class="${row.err?'bad':''}">${row.err||''}</td>`;
+    $("#rows").querySelector("tbody").appendChild(tr);
+  }
+
+  const best = results.filter(r=>r.ms1 && r.key[0]!=='A').map(r=>({key:r.key, spd:baseMs1/r.ms1, perTok8:r.ms8/r.ms1/8, cosine:r.cosine}))
+                      .sort((a,b)=>b.spd-a.spd)[0];
+  const pass = best && best.spd>=1.5 && (best.cosine===null || best.cosine>=0.98);
+  const h=$("#head"); h.className = pass ? "ok" : "bad";
+  h.innerHTML =
+`<span class="big">GATE-0: ${pass ? "PASS — the ALU ceiling can rise here" : "FAIL — no candidate beats baseline ≥1.5×"}</span>
+
+GPU: ${info.vendor||'?'} ${info.architecture||''} · geometry gate‖up N=${N} K=${K}
+${best ? `best candidate: ${best.key} → ${best.spd.toFixed(2)}× single-stream, KX=8 per-tok ${best.perTok8.toFixed(2)}×, cosine ${best.cosine??'n/a'}` : 'no candidate ran'}
+DECISION: ${pass
+  ? `port ${best.key} into qvac-gpu.js mmT2*/mmT2KK — expect single-stream tok/s ×${best.spd.toFixed(1)} and spec-decode to finally convert. Verify greedy-token identity on the way in.`
+  : "no kernel clears 1.5× on this iGPU → ternary tok/s is near its ALU limit here. HONEST: the 'very high tok/s' win is on a discrete GPU / better int-throughput device. Re-run this bake-off there before porting."}`;
+  window.__bake = { gpu:(info.vendor||'')+' '+(info.architecture||''), baseMs1, results, best, pass };
+  status("done. window.__bake populated.");
+}
+run().catch(e => { $("#head").className="bad"; $("#head").textContent="ERROR: "+(e.stack||e.message); });
+</script>

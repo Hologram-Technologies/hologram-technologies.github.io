@@ -1,0 +1,50 @@
+<!doctype html><meta charset=utf-8><title>BitNet TQ2_0 GPU GEMV witness</title>
+<body><pre id=log>loading…</pre><script type=module>
+// WGSL TQ2_0 in-shader GEMV: y[n] = Σ_k dequant(W[n])[k]·x[k], weights = verbatim TQ2_0
+// κ-blocks (the BitNet ternary compute kernel — dequant-and-accumulate, no JS unpack).
+// Witnessed vs the CPU oracle (dequant row then dot). Float reduction ≠ bit-exact, so the
+// bar is cosine≈1 + tight maxRel (Tier-B), like the Q5_0 GEMV witness.
+const log = (m) => document.getElementById("log").textContent = m;
+(async () => {
+  const { N, K, blocksPerRow, rowBytes, bytes, x, expected } = await (await fetch("./_bitgemv_data.json")).json();
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const pad = new Uint8Array(Math.ceil(bytes.length / 4) * 4); pad.set(bytes);
+  const wBuf = dev.createBuffer({ size: pad.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(wBuf, 0, new Uint32Array(pad.buffer));
+  const xf = new Float32Array(x); const xBuf = dev.createBuffer({ size: xf.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(xBuf, 0, xf);
+  const yBuf = dev.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+  const rd = dev.createBuffer({ size: N * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+
+  const WGSL = `
+@group(0) @binding(0) var<storage, read> wq : array<u32>;
+@group(0) @binding(1) var<storage, read> x : array<f32>;
+@group(0) @binding(2) var<storage, read_write> y : array<f32>;
+const STRIDE : u32 = 66u;          // TQ2_0 block bytes
+fn gb(b : u32) -> u32 { let w = wq[b >> 2u]; return (w >> ((b & 3u) * 8u)) & 0xffu; }
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
+  let n = gid.x; if (n >= ${N}u) { return; }
+  let rowBase = n * ${rowBytes}u;
+  var acc = 0.0;
+  for (var blk = 0u; blk < ${blocksPerRow}u; blk = blk + 1u) {
+    let base = rowBase + blk * STRIDE;
+    let d = unpack2x16float(gb(base + 64u) | (gb(base + 65u) << 8u)).x;
+    for (var oo = 0u; oo < 256u; oo = oo + 1u) {
+      let jb = oo >> 7u; let l = (oo >> 5u) & 3u; let m = oo & 31u;
+      let q = (gb(base + jb * 32u + m) >> (l * 2u)) & 3u;
+      let w = (f32(q) - 1.0) * d;
+      acc = acc + w * x[blk * 256u + oo];
+    }
+  }
+  y[n] = acc;
+}`;
+  const pipe = dev.createComputePipeline({ layout: "auto", compute: { module: dev.createShaderModule({ code: WGSL }), entryPoint: "main" } });
+  const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: wBuf } }, { binding: 1, resource: { buffer: xBuf } }, { binding: 2, resource: { buffer: yBuf } }] });
+  const enc = dev.createCommandEncoder(); const p = enc.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0, bg); p.dispatchWorkgroups(Math.ceil(N / 64)); p.end();
+  enc.copyBufferToBuffer(yBuf, 0, rd, 0, N * 4); dev.queue.submit([enc.finish()]);
+  await rd.mapAsync(GPUMapMode.READ); const got = new Float32Array(rd.getMappedRange().slice(0));
+  let dot = 0, na = 0, nb = 0, maxRel = 0; for (let i = 0; i < N; i++) { const a = got[i], b = expected[i]; dot += a * b; na += a * a; nb += b * b; maxRel = Math.max(maxRel, Math.abs(a - b) / (Math.abs(b) + 1e-4)); }
+  const cosine = dot / (Math.sqrt(na) * Math.sqrt(nb) || 1), ok = cosine > 0.999999 && maxRel < 1e-4;
+  window.__bitgemv = { ok, cosine, maxRel, N, K, got: Array.from(got), expected };
+  log(`TQ2_0 GPU GEMV: ${ok ? "PASS" : "FAIL"}  cosine=${cosine.toFixed(8)} maxRel=${maxRel.toExponential(2)} (${N}×${K})`);
+})().catch((e) => { window.__bitgemv = { ok: false, err: String(e) }; log("ERR " + e); });
+</script>

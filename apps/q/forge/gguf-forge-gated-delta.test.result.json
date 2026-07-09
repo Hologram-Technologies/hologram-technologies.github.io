@@ -1,0 +1,14 @@
+{
+  "spec": "Gated-DeltaNet CPU reference (qwen35 linear-attention) — transcribed from HF modeling_qwen3_next torch_recurrent_gated_delta_rule: decay S·exp(g), kv=kᵀS, δ=β(v−kv), S+=k⊗δ, o=qᵀS. Verified against independent ground truth: hand-computed 2-token case, single-token closed form (q·k)v, decay-only closed form, causality, and an optimized-vs-reference cross-check. The state is a κ-object: checkpoint→bytes→κ→resume is bit-exact (the property the streaming/holo-kmemo/roam vision rests on). Numerical parity vs the llama.cpp quantized build is a separate gate (S4.7).",
+  "authority": "HF transformers modeling_qwen3_next (gated delta rule + RMSNormGated) · GGUF qwen35 tensor shapes (16 k-heads/32 v-heads, head_dim 128)",
+  "witnessed": true,
+  "checks": {
+    "optEqualsRef": true,
+    "causal": true,
+    "singleTokenDeltaRule": true,
+    "decayOnlyClosedForm": true,
+    "twoTokenHandCalc": true,
+    "decayFormula": true,
+    "stateKappaRoundTrip": true
+  }
+}

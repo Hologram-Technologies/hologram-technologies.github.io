@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Holo Pay</title>
+<style>
+  :root { --bg:#0b1014; --card:#121a21; --ink:#e9f1f5; --dim:#8aa0ad; --line:#1f2c35; --accent:#00d09c; --accent2:#0a66c2; --warn:#e9c46a; --bad:#e76f6f; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; }
+  body { background:radial-gradient(1200px 700px at 50% -10%, #15323a 0%, var(--bg) 55%); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; display:flex; align-items:center; justify-content:center; padding:20px; min-height:100%; }
+  .wrap { width:100%; max-width:380px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:26px 22px 22px; box-shadow:0 24px 64px rgba(0,0,0,.5); text-align:center; position:relative; overflow:hidden; }
+  .brand { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--dim); font-weight:600; font-size:13px; letter-spacing:.2px; margin-bottom:18px; }
+  .brand .dot { width:18px; height:18px; border-radius:50%; background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--accent)); }
+  .avatar { width:64px; height:64px; border-radius:50%; margin:0 auto 12px; display:grid; place-items:center; font-size:26px; font-weight:700; color:#04110d;
+    background:linear-gradient(135deg,var(--accent),#27e3b3); box-shadow:0 8px 22px rgba(0,208,156,.3); }
+  .who { color:var(--dim); font-size:14px; }
+  .who b { color:var(--ink); }
+  .amount { font-size:52px; font-weight:800; letter-spacing:-1px; margin:6px 0 2px; line-height:1; }
+  .settle { color:var(--dim); font-size:13px; min-height:18px; }
+  .memo { margin:14px auto 4px; max-width:300px; color:var(--ink); background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:12px; padding:9px 13px; font-size:13.5px; }
+  .btn { display:block; width:100%; border:0; border-radius:14px; padding:15px; font-size:16px; font-weight:700; cursor:pointer; margin-top:18px;
+    background:linear-gradient(90deg,var(--accent),#1fd6ac); color:#04110d; transition:transform .08s ease, filter .15s ease; }
+  .btn:active { transform:scale(.985); }
+  .btn:disabled { opacity:.7; cursor:default; }
+  .btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); margin-top:10px; }
+  .note { color:var(--dim); font-size:12px; margin-top:14px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--dim); background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:999px; padding:4px 10px; margin-bottom:14px; }
+  .vbadge { display:flex; align-items:center; gap:9px; text-align:left; margin:16px auto 2px; max-width:300px; color:var(--ink); background:rgba(0,208,156,.08); border:1px solid rgba(0,208,156,.32); border-radius:12px; padding:10px 13px; font-size:12.5px; line-height:1.4; }
+  .vbadge .vtick { flex:0 0 auto; width:20px; height:20px; border-radius:50%; background:var(--accent); color:#04110d; display:grid; place-items:center; font-weight:800; font-size:12px; }
+  .vbadge b { color:var(--accent); }
+  .err { color:var(--bad); }
+  .warnpill { color:var(--warn); border-color:rgba(233,196,106,.3); }
+  /* receive "hit" animation */
+  @keyframes pop { 0%{transform:scale(.6);opacity:0} 60%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+  @keyframes ring { 0%{transform:scale(.4);opacity:.5} 100%{transform:scale(2.4);opacity:0} }
+  .done .avatar { animation:pop .5s cubic-bezier(.2,.8,.2,1) both; }
+  .ringfx { position:absolute; top:54px; left:50%; width:64px; height:64px; margin-left:-32px; border-radius:50%; border:2px solid var(--accent); animation:ring .8s ease-out forwards; pointer-events:none; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <div class="brand"><span class="dot"></span> Holo Pay</div>
+      <div id="body">
+        <div class="pill" id="status">Reading link…</div>
+        <div class="avatar" id="avatar">·</div>
+        <div class="who" id="who"></div>
+        <div class="amount" id="amount">…</div>
+        <div class="settle" id="settle"></div>
+        <div class="memo hide" id="memo"></div>
+        <div class="vbadge hide" id="vbadge"><span class="vtick">✓</span><span id="vtext"></span></div>
+        <button class="btn hide" id="primary"></button>
+        <button class="btn secondary hide" id="secondary"></button>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { parsePayment, formatMoney, settlementLine, claim, escrowStatus } from "./holo-pay.mjs";
+    import { localStore } from "./holo-escrow.mjs";
+    import { syncingStore, broadcastChannelTransport } from "./holo-ledger-sync.mjs";
+    import { relayTransport, fanoutTransport } from "./holo-pay-relay.mjs";
+
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (t, cls = "") => { const s = $("status"); s.textContent = t; s.className = "pill " + cls; };
+    const show = (id, on = true) => $(id).classList.toggle("hide", !on);
+
+    // GLOBAL single-claim: a replicated κ-ledger over a gossip transport. BroadcastChannel covers same-origin (two
+    // tabs / the app + this page); a relay/WebRTC transport (deploy) extends it cross-internet. If the link was
+    // already claimed on another replica, this page learns it - and won't let the same money be claimed twice.
+    let SYNC = null;
+    try {
+      const transports = [];
+      const bc = broadcastChannelTransport("holo-escrow"); if (bc) transports.push(bc);             // instant, same-origin tabs
+      const relay = relayTransport(location.origin, { pollMs: 2000 }); if (relay) transports.push(relay);   // cross-device, via the host
+      if (transports.length) SYNC = syncingStore(localStore("holo-escrow"), fanoutTransport(transports), { onReconcile: () => claimedElsewhere() });
+    } catch {}
+    function claimedElsewhere() {
+      const btn = $("primary"); if (btn) { btn.disabled = true; btn.textContent = "Already claimed"; }
+      setStatus("Claimed on another device", "warnpill");
+      $("note").textContent = "This payment was already claimed elsewhere. Each link can be claimed only once.";
+    }
+
+    // Make the page describe ITSELF - tab title + link-preview tags, so wherever the link is opened or unfurled it
+    // reads as money ("Matt sent you £10.00"), names the sender, and never shows a raw blob. Driven only by the
+    // verified intent, so the preview can't claim more than the seal allows.
+    function describe(title, desc) {
+      document.title = title + " · Holo Pay";
+      const set = (sel, attr, val) => { let el = document.head.querySelector(sel); if (!el) { el = document.createElement("meta"); el.setAttribute(attr.k, attr.v); document.head.appendChild(el); } el.setAttribute("content", val); };
+      set('meta[property="og:title"]', { k: "property", v: "og:title" }, title);
+      set('meta[property="og:description"]', { k: "property", v: "og:description" }, desc);
+      set('meta[name="description"]', { k: "name", v: "description" }, desc);
+      set('meta[name="theme-color"]', { k: "name", v: "theme-color" }, "#0b1014");
+    }
+
+    async function main() {
+      const frag = location.hash ? location.hash.slice(1) : "";
+      if (!frag) { setStatus("No payment in this link", "err"); $("amount").textContent = ""; $("who").textContent = "This link doesn't contain a payment."; return; }
+
+      const res = await parsePayment(frag);
+      if (!res.ok) { setStatus("Unreadable link", "err"); $("amount").textContent = ""; $("who").textContent = res.error || "This isn't a valid Holo Pay link."; return; }
+      const it = res.intent;
+
+      // authenticity first - a tampered or forged link must never look trustworthy. A signed link (the norm) must
+      // carry a signature that VERIFIES against its own key; a legacy unsigned link falls back to the κ self-check.
+      const trustworthy = it.pub ? res.signed : res.integrity;
+      if (!trustworthy) { setStatus("This link looks altered. Don't trust it", "err"); $("amount").textContent = formatMoney(it); $("who").textContent = "The amount or sender may have been changed. Ask the sender for a fresh link."; return; }
+
+      // render the money
+      const sender = (it.fromName || "Someone").trim();
+      const initial = sender.charAt(0).toUpperCase() || "·";
+      $("avatar").textContent = initial;
+      $("amount").textContent = formatMoney(it);
+      $("settle").textContent = it.fiat ? settlementLine(it) : "";
+      if (it.memo) { $("memo").textContent = "“" + it.memo + "”"; show("memo", true); }
+
+      // self-verifying trust: the κ recomputed above MATCHES the one in the link, so the sender and amount are
+      // exactly as sealed. Say it in plain words - no jargon - and let the page title/preview say it too.
+      $("vtext").innerHTML = res.signed
+        ? "<b>Verified.</b> The sender signed this payment. The amount and sender can't be changed without this card refusing to open."
+        : "<b>Sealed.</b> The sender and amount are sealed into this link. If anything were changed, this card would refuse to open.";
+      show("vbadge", true);
+      describe(sender + (it.kind === "send" ? " sent you " : " is requesting ") + formatMoney(it),
+               (it.kind === "send" ? "Tap to claim, no app or account needed. " : "Tap to pay securely. ") + "Sealed and verified by Holo Pay.");
+
+      if (res.expired) {
+        setStatus("This link has expired", "warnpill");
+        $("who").innerHTML = it.kind === "send" ? "These funds were returned to the sender." : "This request is no longer active.";
+        return;
+      }
+
+      if (it.kind === "send") {
+        // RECIPIENT claims
+        setStatus("You've been sent money", "");
+        $("who").innerHTML = "<b>" + (it.fromName || "Someone") + "</b> sent you";
+        const btn = $("primary"); btn.textContent = "Claim " + formatMoney(it); show("primary", true);
+        $("note").textContent = "No account needed. Claim in seconds.";
+        // ask peers whether this link was already claimed (anti-entropy), then reflect it before any tap
+        if (SYNC) { SYNC.requestSync(it.kappa); setTimeout(async () => { const st = await escrowStatus(it, { store: SYNC }); if (st && st.state === "claimed") claimedElsewhere(); }, 250); }
+        btn.onclick = async () => {
+          btn.disabled = true; btn.textContent = "Claiming…";
+          const c = await claim(it, { claimSecret: it.claimSecret, store: SYNC || undefined });
+          if (!c.ok) { btn.disabled = false; btn.textContent = "Claim " + formatMoney(it); setStatus(c.error || "Couldn't claim", "err"); return; }
+          succeed(it, c);
+        };
+      } else {
+        // PAYER pays a request
+        setStatus("Payment requested", "");
+        $("who").innerHTML = "<b>" + (it.fromName || "Someone") + "</b> is requesting";
+        const btn = $("primary"); btn.textContent = "Pay " + formatMoney(it); show("primary", true);
+        $("note").textContent = "Review the amount and recipient before paying.";
+        btn.onclick = () => {
+          // a real pay opens the Hologram wallet + biometric; off-Hologram we guide to get Holo
+          setStatus("Open in Holo to pay", "");
+          $("note").innerHTML = "Paying requires your Holo wallet & a biometric. <b>Get Holo</b> to pay securely.";
+          const g = $("secondary"); g.textContent = "Get Holo"; show("secondary", true); g.onclick = () => { location.href = "/"; };
+        };
+      }
+    }
+
+    function succeed(it, c = {}) {
+      $("card").classList.add("done");
+      const r = document.createElement("div"); r.className = "ringfx"; $("card").appendChild(r); setTimeout(() => r.remove(), 900);
+      setStatus(c.live ? "Money received 🎉" : "Claimed 🎉 (testnet)", "");
+      $("avatar").textContent = "✓";
+      $("who").innerHTML = "You received";
+      $("settle").textContent = it.fiat ? settlementLine(it) : "";
+      $("memo") && show("memo", !!it.memo);
+      const btn = $("primary"); btn.textContent = "Keep it safe in Holo"; btn.disabled = false; btn.onclick = () => { location.href = "/"; };
+      const g = $("secondary"); g.textContent = "Learn about Holo"; show("secondary", true); g.onclick = () => { location.href = "/"; };
+      // honest settlement copy: real funds vs custodial-by-κ testnet (until the chain-HTLC / replicated-ledger backend lands)
+      $("note").innerHTML = c.live
+        ? "Your money is in a private wallet only you control. <b>Welcome to Holo.</b>"
+        : "Released to your custodial-by-κ wallet (testnet). <b>Welcome to Holo.</b>";
+    }
+
+    main().catch((e) => { setStatus("Something went wrong", "err"); $("who").textContent = String((e && e.message) || e); });
+  </script>
+</body>
+</html>

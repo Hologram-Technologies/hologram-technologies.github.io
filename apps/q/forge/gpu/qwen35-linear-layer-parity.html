@@ -1,0 +1,59 @@
+<!doctype html><meta charset=utf8><title>qwen35 GPU linear layer parity</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:20px}.ok{color:#5f5}.fail{color:#f55}</style>
+<h3>qwen35 GPU linear layer (composed kernels) — incremental decode vs CPU oracle</h3>
+<pre id=out>running… (needs a WebGPU browser)</pre>
+<script type=module>
+import { qwen35LinearLayer, newLayerState } from "../gguf-forge-qwen35.mjs";
+import { conv1dStepGPU, gatedRMSNormGPU, matvecFGPU, qwenPrepGPU } from "./holo-qwen35-kernels.mjs";
+import { gatedDeltaStepGPU } from "./holo-gated-delta-gpu.mjs";
+const out = document.getElementById("out");
+const log = (s, cls) => { out.innerHTML += `\n${cls ? `<span class=${cls}>${s}</span>` : s}`; };
+const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / (Math.sqrt(na) * Math.sqrt(nb) + 1e-30); };
+let seed = 7; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff * 2 - 1; };
+const arr = (n, s = 1) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = rnd() * s; return a; };
+try {
+  if (!navigator.gpu) throw new Error("no navigator.gpu");
+  const device = await (await navigator.gpu.requestAdapter()).requestDevice();
+
+  // small synthetic dims (group = nvh/nkh = 2), mixer-only, inputNormed
+  const D = { d_model: 8, value_dim: 16, head_k: 4, head_v: 4, num_k_heads: 2, num_v_heads: 4, key_dim: 8, conv_dim: 32, conv_k: 4, eps: 1e-6 };
+  const W = {
+    attn_norm: arr(D.d_model), attn_qkv: arr(D.conv_dim * D.d_model, 0.3), attn_gate: arr(D.value_dim * D.d_model, 0.3),
+    ssm_alpha: arr(D.num_v_heads * D.d_model, 0.3), ssm_beta: arr(D.num_v_heads * D.d_model, 0.3),
+    ssm_a: arr(D.num_v_heads).map(v => v * 0.5), ssm_dt: arr(D.num_v_heads),
+    ssm_conv1d: arr(D.conv_k * D.conv_dim, 0.3), ssm_norm: arr(D.head_v).map(v => 1 + 0.1 * v), ssm_out: arr(D.d_model * D.value_dim, 0.3),
+  };
+  const T = 3, xs = Array.from({ length: T }, () => arr(D.d_model));
+
+  // CPU oracle — incremental (1 token at a time, carrying state)
+  let cs = newLayerState(D); const cpu = [];
+  for (let t = 0; t < T; t++) { const r = qwen35LinearLayer(W, D, [xs[t]], cs, { inputNormed: true }); cpu.push(r.ySeq[0]); cs = r.state; }
+
+  // GPU — compose the verified kernels, same incremental state
+  const mv = (Wt, x, N, K) => matvecFGPU(device, Wt, x, N, K);
+  let S = new Float32Array(D.num_v_heads * D.head_k * D.head_v), convTail = new Float32Array((D.conv_k - 1) * D.conv_dim);
+  const gpu = [];
+  for (let t = 0; t < T; t++) {
+    const x = xs[t];
+    const qkv = await mv(W.attn_qkv, x, D.conv_dim, D.d_model);
+    const z = await mv(W.attn_gate, x, D.value_dim, D.d_model);
+    const aP = await mv(W.ssm_alpha, x, D.num_v_heads, D.d_model);
+    const bP = await mv(W.ssm_beta, x, D.num_v_heads, D.d_model);
+    const convOut = await conv1dStepGPU(device, convTail, qkv, W.ssm_conv1d, D.conv_dim, D.conv_k);
+    const newTail = new Float32Array((D.conv_k - 1) * D.conv_dim);
+    newTail.set(convTail.subarray(D.conv_dim), 0); newTail.set(qkv, (D.conv_k - 2) * D.conv_dim);   // drop oldest, append qkv
+    const qS = convOut.subarray(0, D.key_dim), kS = convOut.subarray(D.key_dim, 2 * D.key_dim), vS = convOut.slice(2 * D.key_dim, 2 * D.key_dim + D.value_dim);
+    const prep = await qwenPrepGPU(device, { qS: qS.slice(), kS: kS.slice(), aP, bP, sA: W.ssm_a, sDt: W.ssm_dt, nvh: D.num_v_heads, nkh: D.num_k_heads, headK: D.head_k });
+    const gd = await gatedDeltaStepGPU(device, { S, q: prep.qE, k: prep.kE, v: vS, decay: prep.decay, beta: prep.beta, nHeads: D.num_v_heads, headK: D.head_k, headV: D.head_v });
+    const oNorm = await gatedRMSNormGPU(device, gd.o, W.ssm_norm, z, D.num_v_heads, D.head_v, D.eps);
+    const oOut = await mv(W.ssm_out, oNorm, D.d_model, D.value_dim);
+    gpu.push(oOut); S = gd.S; convTail = newTail;
+  }
+
+  let minCos = 1, sCos = cos(S, cs.S);
+  for (let t = 0; t < T; t++) { const c = cos(cpu[t], gpu[t]); minCos = Math.min(minCos, c); log(`  t=${t}  cos=${c.toFixed(6)}`); }
+  const ok = minCos > 0.9995 && sCos > 0.9995;
+  log(`  final-state cos=${sCos.toFixed(6)}`);
+  log(ok ? "\nGPU LINEAR LAYER PARITY ✓ (composed kernels match CPU oracle, incremental)" : "\nPARITY ✗", ok ? "ok" : "fail");
+} catch (e) { log("ERROR: " + e.message + "\n" + e.stack, "fail"); }
+</script>

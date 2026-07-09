@@ -1,0 +1,204 @@
+{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "holo": "https://hologram.os/ns#"
+  },
+  "@id": "https://hologram.os/holospaces",
+  "@type": [
+    "dcat:Catalog",
+    "schema:DataCatalog"
+  ],
+  "dcterms:title": "Hologram Holospaces — curated multi-app templates",
+  "dcterms:description": "A holospace template is a content-addressed COMPOSITION (Law L1): a single κ that opens one holospace tab nesting several apps already wired together. Members are referenced by the app's own root κ — never copied (compose by reference). The OS frame mounts each member through the same launcher every app uses; the template is pure orchestration. gen-apps-catalog stamps each member's holo:appRoot from the app closure and refuses any member that is not a real app.",
+  "dcat:dataset": [
+    {
+      "@id": "did:holo:slug:org.hologram.holospace.Web3",
+      "holo:root": "did:holo:slug:org.hologram.holospace.Web3",
+      "@type": [
+        "holo:HolospaceTemplate",
+        "schema:Collection"
+      ],
+      "schema:name": "Web3",
+      "schema:identifier": "org.hologram.holospace.Web3",
+      "schema:description": "Trade and verify on chain, side by side.",
+      "holo:tagline": "Trade and verify on chain, side by side.",
+      "schema:applicationCategory": "FinanceApplication",
+      "holo:accent": "#f2c14e",
+      "holo:layout": "split-h",
+      "holo:members": [
+        {
+          "holo:app": "org.hologram.HoloTrade",
+          "schema:position": 0,
+          "holo:appRoot": "did:holo:sha256:a89f9f5c9da73f673545b3b1bfd000f2f9e98f8d567e59e622bae0f8d163d107"
+        },
+        {
+          "holo:app": "org.hologram.HoloEtherscan",
+          "schema:position": 1,
+          "holo:appRoot": "did:holo:sha256:ee98082da54478cbe13a447eedec70a984b5bba6b4c44747169770effdb22ec2"
+        }
+      ]
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.holospace.CreatorStudio",
+      "holo:root": "did:holo:slug:org.hologram.holospace.CreatorStudio",
+      "@type": [
+        "holo:HolospaceTemplate",
+        "schema:Collection"
+      ],
+      "schema:name": "Creator Studio",
+      "schema:identifier": "org.hologram.holospace.CreatorStudio",
+      "schema:description": "Go live, capture, and review your channel.",
+      "holo:tagline": "Go live, capture, and review your channel.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "holo:accent": "#ff3b6b",
+      "holo:layout": "primary-rail",
+      "holo:members": [
+        {
+          "holo:app": "org.hologram.HoloStream",
+          "schema:position": 0,
+          "holo:appRoot": "did:holo:sha256:f16df3302a2492eb1aa89027aadf6895519cb62323bfde482f907066af64b87a"
+        },
+        {
+          "holo:app": "org.hologram.HoloCapture",
+          "schema:position": 1,
+          "holo:appRoot": "did:holo:sha256:0913d8248ab43ff452f7e0ed21769b9ebf641d51281842b73e1078f42a5f6654"
+        },
+        {
+          "holo:app": "org.hologram.HoloTube",
+          "schema:position": 2,
+          "holo:appRoot": "did:holo:sha256:8f9c6870dcf4cd9b5aa77c176aea22c155aa04383246726c7bc9c48b17f13b22"
+        }
+      ]
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.holospace.DevCockpit",
+      "holo:root": "did:holo:slug:org.hologram.holospace.DevCockpit",
+      "@type": [
+        "holo:HolospaceTemplate",
+        "schema:Collection"
+      ],
+      "schema:name": "Dev Cockpit",
+      "schema:identifier": "org.hologram.holospace.DevCockpit",
+      "schema:description": "Edit, version, and compile. No server.",
+      "holo:tagline": "Edit, version, and compile. No server.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "holo:accent": "#5b8cff",
+      "holo:layout": "primary-rail",
+      "holo:members": [
+        {
+          "holo:app": "org.hologram.HoloCodeDesktop",
+          "schema:position": 0,
+          "holo:appRoot": "did:holo:sha256:c20053a9d6c6d4cf9e0d50ca153edb85c844dfed877e92e71d924a7bc7dd167e"
+        },
+        {
+          "holo:app": "org.hologram.HoloGit",
+          "schema:position": 1,
+          "holo:appRoot": "did:holo:sha256:1527209039981e28c7bc446a110e1ef00883e0a8b91139f53fe8f9cb39b0278a"
+        },
+        {
+          "holo:app": "org.hologram.HoloForge",
+          "schema:position": 2,
+          "holo:appRoot": "did:holo:sha256:596d755fd3a3b67120dbddc56e92e09de8bf53056fa843a4254eddd8f557a987"
+        }
+      ]
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.holospace.AILab",
+      "holo:root": "did:holo:slug:org.hologram.holospace.AILab",
+      "@type": [
+        "holo:HolospaceTemplate",
+        "schema:Collection"
+      ],
+      "schema:name": "AI Lab",
+      "schema:identifier": "org.hologram.holospace.AILab",
+      "schema:description": "On device inference. Think, build, and boot.",
+      "holo:tagline": "On device inference. Think, build, and boot.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "holo:accent": "#c77bff",
+      "holo:layout": "primary-rail",
+      "holo:members": [
+        {
+          "holo:app": "org.hologram.HoloQ",
+          "schema:position": 0,
+          "holo:appRoot": "did:holo:sha256:c614f527b4b21e000ff2e1cde6d3d1324381881437e3ae4b4c80ee9a34ceca69"
+        },
+        {
+          "holo:app": "org.hologram.QvacSdk",
+          "schema:position": 1,
+          "holo:appRoot": "did:holo:sha256:8193514c68d55489e91874e4d60ac4e4bc1101eb39cc97627a009c70318ca206"
+        },
+        {
+          "holo:app": "org.hologram.HoloBootPrompt",
+          "schema:position": 2,
+          "holo:appRoot": "did:holo:sha256:e39372c98417567fe04c15f1fabb7ebbff0d3b51d17882ad842681d198061245"
+        }
+      ]
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.holospace.TrustCenter",
+      "holo:root": "did:holo:slug:org.hologram.holospace.TrustCenter",
+      "@type": [
+        "holo:HolospaceTemplate",
+        "schema:Collection"
+      ],
+      "schema:name": "Trust Center",
+      "schema:identifier": "org.hologram.holospace.TrustCenter",
+      "schema:description": "Your terms, your disclosure, every connection governed.",
+      "holo:tagline": "Your terms, your disclosure, every connection governed.",
+      "schema:applicationCategory": "SecurityApplication",
+      "holo:accent": "#34d3a6",
+      "holo:layout": "primary-rail",
+      "holo:members": [
+        {
+          "holo:app": "org.hologram.HoloPrivacy",
+          "schema:position": 0,
+          "holo:appRoot": "did:holo:sha256:ca41401ac8bfde8918bee081a759e6ef8749201a982f66d4b9aaf4ce5a8ca70a"
+        },
+        {
+          "holo:app": "org.hologram.HoloTerms",
+          "schema:position": 1,
+          "holo:appRoot": "did:holo:sha256:72eb23ce1deb32468823bd5873283c62402e7030983d76146acbcf9c1667250f"
+        },
+        {
+          "holo:app": "org.hologram.HoloControl",
+          "schema:position": 2,
+          "holo:appRoot": "did:holo:sha256:88453bed5a253190175c21501102081fdb8a0551823c79f31a3c0f11761b1a34"
+        }
+      ]
+    },
+    {
+      "@id": "did:holo:slug:org.hologram.holospace.EmulationArcade",
+      "holo:root": "did:holo:slug:org.hologram.holospace.EmulationArcade",
+      "@type": [
+        "holo:HolospaceTemplate",
+        "schema:Collection"
+      ],
+      "schema:name": "Emulation Arcade",
+      "schema:identifier": "org.hologram.holospace.EmulationArcade",
+      "schema:description": "Real operating systems, booted in a tab.",
+      "holo:tagline": "Real operating systems, booted in a tab.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "holo:accent": "#2bd4ff",
+      "holo:layout": "primary-rail",
+      "holo:members": [
+        {
+          "holo:app": "org.hologram.HoloLinux",
+          "schema:position": 0,
+          "holo:appRoot": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f"
+        },
+        {
+          "holo:app": "org.hologram.HoloX86",
+          "schema:position": 1,
+          "holo:appRoot": "did:holo:sha256:01bea7bebab8fd64e25cb72315fb7d3cb2f57b81d42b57f279cb5c9a6d935acc"
+        },
+        {
+          "holo:app": "org.hologram.Holo3D",
+          "schema:position": 2,
+          "holo:appRoot": "did:holo:sha256:fd38359148484cd0b5aa75e23709c4895578fcbe9c9c66fb4207af6a0b4e0375"
+        }
+      ]
+    }
+  ]
+}

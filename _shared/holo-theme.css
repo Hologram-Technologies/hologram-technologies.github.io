@@ -1,0 +1,384 @@
+/* Holo Theme (holo-theme.css) — the Hologram OS theming kernel. Companion to holo-mobile.css:
+ * that file enforces mobile *mechanics*; this one defines the *visual language*
+ * (palette, typography, density) as a runtime contract every holospace can adopt.
+ *
+ * 100% W3C standards-track — NO framework, NO build tool is the source of truth:
+ *   • CSS Custom Properties for Cascading Variables L1   — the tokens
+ *   • CSS Properties and Values API (@property)          — the typed token schema
+ *   • CSS Cascading & Inheritance L5 (@layer)            — OS / app / user precedence
+ *   • CSS Color 4 + Color Adjustment L1 (light-dark())   — light & dark in one value
+ *   • Media Queries L5 (prefers-*)                        — honor system + a11y defaults
+ *
+ * The theme PAYLOAD is this file; the theme IDENTITY is its κ (sha256 + JSON-LD + SRI
+ * + did:holo:, emitted by build-holo-site.mjs per ADR-022). Switched live by
+ * holo-theme.js over the postMessage iframe tree. Gated by theme-conformance-witness.mjs.
+ *
+ * Precedence (last @layer wins): an app's UNLAYERED rules beat any layer here, so an
+ * app keeps its own look by simply declaring its own values ("own"). An app that does
+ * NOT declare a token falls through to the OS value ("adopt"). The user always wins for
+ * accessibility because holo-theme.js applies font-scale/density as INLINE custom
+ * properties on :root (author inline beats stylesheet rules; enforce-os adds !important).
+ */
+
+@layer hos-base, hos-os, app, hos-user;
+
+/* ── Typed token schema (W3C @property) — gives tokens a type, an initial value, and
+ *    inheritance without any JSON format or compiler. Invalid values are ignored. ─── */
+@property --holo-font-scale { syntax: "<number>"; inherits: true; initial-value: 1; }
+@property --holo-density    { syntax: "<number>"; inherits: true; initial-value: 1; }
+@property --holo-accent     { syntax: "<color>";  inherits: true; initial-value: #5b8cff; }
+/* Minimum text size — the readability FLOOR (default 16px). Set live by the engine on :root;
+ * the type ramp (holo-mobile.css) and the root font-size below clamp UP to it with max(), so no
+ * OS/app text rendered through the tokens can fall below it. 0 = off (restore the raw ramp). */
+@property --holo-font-min   { syntax: "<length>"; inherits: true; initial-value: 16px; }
+
+@layer hos-os {
+  :root {
+    /* Enable light-dark(); palette attribute (set by the engine) pins one mode. */
+    color-scheme: light dark;
+
+    /* ── Typography — the OS-settable type system (Hologram OS › Settings › Display).
+     *    --holo-font-scale drives the ROOT font-size, so every rem-based size and the
+     *    --holo-text* ramp (holo-mobile.css, authored in rem) scale from ONE lever. */
+    --holo-font-scale: 1;                         /* 0.85 … 1.4, set live by the engine */
+    /* Default OS typeface: Helvetica Neue (the iPhone's face) — a system font on Apple
+     * devices; falls back to Helvetica/Arial elsewhere. (Not vendored; it's proprietary.) */
+    --holo-font-sans: "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, system-ui, sans-serif;
+    --holo-font-serif: ui-serif, Georgia, "Times New Roman", serif;
+    --holo-font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+
+    /* ── Density — multiplies UI spacing; immersive mode tightens it. */
+    --holo-density: 1;
+
+    /* Focus ring width (WCAG 2.4.7/2.4.13); bumped under prefers-contrast. */
+    --holo-focus-width: 3px;
+
+        /* ── Palette (Chakra-derived, ADR) — core neutrals rebased onto Chakra's zinc ramp so every
+     *    vendored shadcn/Magic UI component renders on the palette it was designed for, while the
+     *    Holo brand accent is preserved. light & dark in one value (CSS Color Adjustment L1). */
+    --holo-bg:         light-dark(#fafafa, #09090B);
+    --holo-surface:    light-dark(#FFFFFF, #111111);
+    --holo-surface-2:  light-dark(#f4f4f5, #18181b);
+    --holo-surface-emphasized: light-dark(#e4e4e7, #27272a);
+    --holo-border:     light-dark(#e4e4e7, #27272a);
+    --holo-border-subtle:     light-dark(#f4f4f5, #18181b);
+    --holo-border-emphasized: light-dark(#d4d4d8, #3f3f46);
+    --holo-ink:        light-dark(#18181b, #fafafa);
+    --holo-ink-dim:    light-dark(#71717a, #a1a1aa);
+    --holo-ink-subtle: light-dark(#a1a1aa, #71717a);
+    --holo-accent:     light-dark(#3b5bdb, #5b8cff);   /* Holo brand — preserved */
+    --holo-accent-ink: #ffffff;
+    --holo-ok:         light-dark(#16a34a, #22c55e);
+    --holo-warn:       light-dark(#ea580c, #f97316);
+    --holo-danger:     light-dark(#dc2626, #ef4444);
+    /* Derived surface tints — Color 4 color-mix(), no extra tokens to maintain. */
+    --holo-accent-soft: color-mix(in srgb, var(--holo-accent) 16%, transparent);
+    --holo-hover:       color-mix(in srgb, var(--holo-ink) 8%, transparent);
+
+    /* ── Chakra-derived foundation (ramps + scales) — additive, content-addressed theme system. */
+    /* color ramps — Chakra's tuned hues, available to every app (charts, status, colorPalette). */
+    --holo-white: #FFFFFF;  --holo-black: #09090B;
+
+    /* gray */
+    --holo-gray-50: #fafafa;
+    --holo-gray-100: #f4f4f5;
+    --holo-gray-200: #e4e4e7;
+    --holo-gray-300: #d4d4d8;
+    --holo-gray-400: #a1a1aa;
+    --holo-gray-500: #71717a;
+    --holo-gray-600: #52525b;
+    --holo-gray-700: #3f3f46;
+    --holo-gray-800: #27272a;
+    --holo-gray-900: #18181b;
+    --holo-gray-950: #111111;
+
+    /* red */
+    --holo-red-50: #fef2f2;
+    --holo-red-100: #fee2e2;
+    --holo-red-200: #fecaca;
+    --holo-red-300: #fca5a5;
+    --holo-red-400: #f87171;
+    --holo-red-500: #ef4444;
+    --holo-red-600: #dc2626;
+    --holo-red-700: #991919;
+    --holo-red-800: #511111;
+    --holo-red-900: #300c0c;
+    --holo-red-950: #1f0808;
+
+    /* orange */
+    --holo-orange-50: #fff7ed;
+    --holo-orange-100: #ffedd5;
+    --holo-orange-200: #fed7aa;
+    --holo-orange-300: #fdba74;
+    --holo-orange-400: #fb923c;
+    --holo-orange-500: #f97316;
+    --holo-orange-600: #ea580c;
+    --holo-orange-700: #92310a;
+    --holo-orange-800: #6c2710;
+    --holo-orange-900: #3b1106;
+    --holo-orange-950: #220a04;
+
+    /* yellow */
+    --holo-yellow-50: #fefce8;
+    --holo-yellow-100: #fef9c3;
+    --holo-yellow-200: #fef08a;
+    --holo-yellow-300: #fde047;
+    --holo-yellow-400: #facc15;
+    --holo-yellow-500: #eab308;
+    --holo-yellow-600: #ca8a04;
+    --holo-yellow-700: #845209;
+    --holo-yellow-800: #713f12;
+    --holo-yellow-900: #422006;
+    --holo-yellow-950: #281304;
+
+    /* green */
+    --holo-green-50: #f0fdf4;
+    --holo-green-100: #dcfce7;
+    --holo-green-200: #bbf7d0;
+    --holo-green-300: #86efac;
+    --holo-green-400: #4ade80;
+    --holo-green-500: #22c55e;
+    --holo-green-600: #16a34a;
+    --holo-green-700: #116932;
+    --holo-green-800: #124a28;
+    --holo-green-900: #042713;
+    --holo-green-950: #03190c;
+
+    /* teal */
+    --holo-teal-50: #f0fdfa;
+    --holo-teal-100: #ccfbf1;
+    --holo-teal-200: #99f6e4;
+    --holo-teal-300: #5eead4;
+    --holo-teal-400: #2dd4bf;
+    --holo-teal-500: #14b8a6;
+    --holo-teal-600: #0d9488;
+    --holo-teal-700: #0c5d56;
+    --holo-teal-800: #114240;
+    --holo-teal-900: #032726;
+    --holo-teal-950: #021716;
+
+    /* blue */
+    --holo-blue-50: #eff6ff;
+    --holo-blue-100: #dbeafe;
+    --holo-blue-200: #bfdbfe;
+    --holo-blue-300: #a3cfff;
+    --holo-blue-400: #60a5fa;
+    --holo-blue-500: #3b82f6;
+    --holo-blue-600: #2563eb;
+    --holo-blue-700: #173da6;
+    --holo-blue-800: #1a3478;
+    --holo-blue-900: #14204a;
+    --holo-blue-950: #0c142e;
+
+    /* cyan */
+    --holo-cyan-50: #ecfeff;
+    --holo-cyan-100: #cffafe;
+    --holo-cyan-200: #a5f3fc;
+    --holo-cyan-300: #67e8f9;
+    --holo-cyan-400: #22d3ee;
+    --holo-cyan-500: #06b6d4;
+    --holo-cyan-600: #0891b2;
+    --holo-cyan-700: #0c5c72;
+    --holo-cyan-800: #134152;
+    --holo-cyan-900: #072a38;
+    --holo-cyan-950: #051b24;
+
+    /* purple */
+    --holo-purple-50: #faf5ff;
+    --holo-purple-100: #f3e8ff;
+    --holo-purple-200: #e9d5ff;
+    --holo-purple-300: #d8b4fe;
+    --holo-purple-400: #c084fc;
+    --holo-purple-500: #a855f7;
+    --holo-purple-600: #9333ea;
+    --holo-purple-700: #641ba3;
+    --holo-purple-800: #4a1772;
+    --holo-purple-900: #2f0553;
+    --holo-purple-950: #1a032e;
+
+    /* pink */
+    --holo-pink-50: #fdf2f8;
+    --holo-pink-100: #fce7f3;
+    --holo-pink-200: #fbcfe8;
+    --holo-pink-300: #f9a8d4;
+    --holo-pink-400: #f472b6;
+    --holo-pink-500: #ec4899;
+    --holo-pink-600: #db2777;
+    --holo-pink-700: #a41752;
+    --holo-pink-800: #6d0e34;
+    --holo-pink-900: #45061f;
+    --holo-pink-950: #2c0514;
+
+    /* alpha ramps */
+    --holo-whiteAlpha-50: rgba(255, 255, 255, 0.04);
+    --holo-whiteAlpha-100: rgba(255, 255, 255, 0.06);
+    --holo-whiteAlpha-200: rgba(255, 255, 255, 0.08);
+    --holo-whiteAlpha-300: rgba(255, 255, 255, 0.16);
+    --holo-whiteAlpha-400: rgba(255, 255, 255, 0.24);
+    --holo-whiteAlpha-500: rgba(255, 255, 255, 0.36);
+    --holo-whiteAlpha-600: rgba(255, 255, 255, 0.48);
+    --holo-whiteAlpha-700: rgba(255, 255, 255, 0.64);
+    --holo-whiteAlpha-800: rgba(255, 255, 255, 0.80);
+    --holo-whiteAlpha-900: rgba(255, 255, 255, 0.92);
+    --holo-blackAlpha-50: rgba(0, 0, 0, 0.04);
+    --holo-blackAlpha-100: rgba(0, 0, 0, 0.06);
+    --holo-blackAlpha-200: rgba(0, 0, 0, 0.08);
+    --holo-blackAlpha-300: rgba(0, 0, 0, 0.16);
+    --holo-blackAlpha-400: rgba(0, 0, 0, 0.24);
+    --holo-blackAlpha-500: rgba(0, 0, 0, 0.36);
+    --holo-blackAlpha-600: rgba(0, 0, 0, 0.48);
+    --holo-blackAlpha-700: rgba(0, 0, 0, 0.64);
+    --holo-blackAlpha-800: rgba(0, 0, 0, 0.80);
+    --holo-blackAlpha-900: rgba(0, 0, 0, 0.92);
+
+    /* spacing scale (rem) — fills --holo-space-3/4 used by holo-theme.css and drives the primitives. */
+    --holo-space-1: 0.25rem;
+    --holo-space-2: 0.5rem;
+    --holo-space-3: 0.75rem;
+    --holo-space-4: 1rem;
+    --holo-space-5: 1.25rem;
+    --holo-space-6: 1.5rem;
+    --holo-space-7: 1.75rem;
+    --holo-space-8: 2rem;
+    --holo-space-9: 2.25rem;
+    --holo-space-10: 2.5rem;
+    --holo-space-11: 2.75rem;
+    --holo-space-12: 3rem;
+    --holo-space-14: 3.5rem;
+    --holo-space-16: 4rem;
+    --holo-space-20: 5rem;
+    --holo-space-24: 6rem;
+    --holo-space-28: 7rem;
+    --holo-space-32: 8rem;
+    --holo-space-36: 9rem;
+    --holo-space-40: 10rem;
+    --holo-space-44: 11rem;
+    --holo-space-48: 12rem;
+    --holo-space-52: 13rem;
+    --holo-space-56: 14rem;
+    --holo-space-60: 15rem;
+    --holo-space-64: 16rem;
+    --holo-space-72: 18rem;
+    --holo-space-80: 20rem;
+    --holo-space-96: 24rem;
+    --holo-space-0p5: 0.125rem;
+    --holo-space-1p5: 0.375rem;
+    --holo-space-2p5: 0.625rem;
+    --holo-space-3p5: 0.875rem;
+    --holo-space-4p5: 1.125rem;
+
+    /* radius scale — --holo-radius keeps the OS default (0.75rem = the 12px components assumed). */
+    --holo-radius-none: 0;
+    --holo-radius-2xs: 0.0625rem;
+    --holo-radius-xs: 0.125rem;
+    --holo-radius-sm: 0.25rem;
+    --holo-radius-md: 0.375rem;
+    --holo-radius-lg: 0.5rem;
+    --holo-radius-xl: 0.75rem;
+    --holo-radius-2xl: 1rem;
+    --holo-radius-3xl: 1.5rem;
+    --holo-radius-4xl: 2rem;
+    --holo-radius-full: 9999px;
+    --holo-radius: var(--holo-radius-xl);
+
+    /* weight · line-height · tracking · elevation scales */
+    --holo-weight-thin: 100;
+    --holo-weight-extralight: 200;
+    --holo-weight-light: 300;
+    --holo-weight-normal: 400;
+    --holo-weight-medium: 500;
+    --holo-weight-semibold: 600;
+    --holo-weight-bold: 700;
+    --holo-weight-extrabold: 800;
+    --holo-weight-black: 900;
+    --holo-leading-shorter: 1.25;
+    --holo-leading-short: 1.375;
+    --holo-leading-moderate: 1.5;
+    --holo-leading-tall: 1.625;
+    --holo-leading-taller: 2;
+    --holo-tracking-tighter: -0.05em;
+    --holo-tracking-tight: -0.025em;
+    --holo-tracking-wide: 0.025em;
+    --holo-tracking-wider: 0.05em;
+    --holo-tracking-widest: 0.1em;
+    --holo-shadow-xs: 0 1px 2px light-dark(rgba(0,0,0,0.06), rgba(0,0,0,0.40));
+    --holo-shadow-sm: 0 1px 3px light-dark(rgba(0,0,0,0.08), rgba(0,0,0,0.46)), 0 1px 2px light-dark(rgba(0,0,0,0.06), rgba(0,0,0,0.40));
+    --holo-shadow-md: 0 4px 12px -2px light-dark(rgba(0,0,0,0.10), rgba(0,0,0,0.52));
+    --holo-shadow-lg: 0 12px 28px -8px light-dark(rgba(0,0,0,0.14), rgba(0,0,0,0.60));
+    --holo-shadow-xl: 0 24px 56px -16px light-dark(rgba(0,0,0,0.18), rgba(0,0,0,0.66));
+
+    /* ── Glass / translucency (ADR-0059) — TranslucentTB's accent-state model
+     *    (holo-translucenttb-accents.json) expressed as CSS. A surface picks ONE state
+     *    via its own [data-glass] attribute; CSS blur px = TranslucentTB blur_radius/3.
+     *    Acrylic = blur + saturate + a faint accent tint (Fluent material). Used by the
+     *    dock (#holo-dock) and adoptable by any chrome that wants the same glass. */
+    --holo-glass-tint:    light-dark(rgba(246,248,252,0.72), rgba(22,26,34,0.70));
+    --holo-glass-blur:    22px;                 /* ≈ TranslucentTB blur_radius 66 / 3 — crisp Fluent frost */
+    --holo-glass-sat:     1.8;
+    --holo-glass-border:  light-dark(rgba(255,255,255,0.90), rgba(255,255,255,0.22));
+    --holo-glass-edge:    light-dark(rgba(255,255,255,0.85), rgba(255,255,255,0.28));   /* inset top bevel — reads on any bg */
+    --holo-glass-shadow:  0 0.5rem 2.5rem light-dark(rgba(20,30,50,0.28), rgba(0,0,0,0.60));
+    --holo-glass-opaque-bg:  light-dark(#ffffff, #14161b);  --holo-glass-opaque-fx:  none;
+    --holo-glass-clear-bg:   transparent;                   --holo-glass-clear-fx:   none;
+    --holo-glass-blur-bg:    var(--holo-glass-tint);        --holo-glass-blur-fx:    blur(var(--holo-glass-blur)) saturate(1.4) brightness(1.04);
+    --holo-glass-acrylic-bg: color-mix(in srgb, var(--holo-glass-tint) 86%, var(--holo-accent) 14%);
+    --holo-glass-acrylic-fx: blur(var(--holo-glass-blur)) saturate(var(--holo-glass-sat)) brightness(1.08);
+  }
+
+  /* Explicit palette beats the system default (Media Queries L5 still applies on auto). */
+  :root[data-holo-palette="light"] { color-scheme: light; }
+  :root[data-holo-palette="dark"]  { color-scheme: dark; }
+
+  /* Presentation axis — orthogonal to palette. Immersive = denser chrome, calm surfaces. */
+  :root[data-holo-presentation="immersive"] { --holo-density: 0.82; }
+
+  /* ── Global application at specificity 0 (:where) so ANY app rule overrides freely.
+   *    This is the only place the OS reaches every surface by default; it intentionally
+   *    sets typography (the user's readability) but NOT colors (apps keep their identity
+   *    unless they adopt the tokens), matching holo-mobile.css's restraint. */
+  :where(html) { font-size: max(var(--holo-font-min, 16px), calc(100% * var(--holo-font-scale, 1))); }
+  /* font-optical-sizing + synthesis are CSS Fonts Module controls (real type quality). */
+  :where(body) { font-family: var(--holo-font-sans); font-optical-sizing: auto; font-variation-settings: var(--holo-font-variation, normal); }
+  :where(code, pre, kbd, samp, .holo-mono) { font-family: var(--holo-font-mono); }
+
+  /* Visible keyboard focus (WCAG 2.4.7 Focus Visible / 2.4.13 Focus Appearance). Mouse
+   * focus stays quiet via :focus-visible; specificity 0 so apps can restyle, not remove. */
+  :where(:focus-visible) { outline: var(--holo-focus-width, 3px) solid var(--holo-accent); outline-offset: 2px; }
+
+  /* Honor the user's motion preference OS-wide (WCAG 2.3.3 / Media Queries L5). */
+  @media (prefers-reduced-motion: reduce) {
+    :where(*, *::before, *::after) {
+      animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important; scroll-behavior: auto !important;
+    }
+  }
+
+  /* Honor the user's contrast preference (Media Queries L5 / WCAG 1.4.6 + 1.4.11):
+   * push borders/ink to the extremes and widen the focus ring. */
+  @media (prefers-contrast: more) {
+    :root {
+      --holo-border:  light-dark(#000000, #ffffff);
+      --holo-ink:     light-dark(#000000, #ffffff);
+      --holo-ink-dim: light-dark(#26303a, #d7dee6);
+      --holo-focus-width: 4px;
+    }
+  }
+}
+
+/* ── Adopt-in primitives — the standard way to render OS-themed surface chrome. Apps
+ *    opt in by using these tokens/classes; they then follow palette + font changes. */
+.holo-surface { background: var(--holo-surface); color: var(--holo-ink); border: 1px solid var(--holo-border); border-radius: var(--holo-radius, 12px); }
+.holo-accent  { background: var(--holo-accent); color: var(--holo-accent-ink); }
+.holo-ink-dim { color: var(--holo-ink-dim); }
+
+/* ── Container-query responsiveness (W3C CSS Containment / Container Queries) ────────
+ *    A holospace nested in a small iframe must lay out by its OWN width, not the device
+ *    viewport — that's exactly what container queries give us (media queries can't see
+ *    the iframe's box). A region opts in with .holo-cq, and its children adapt to the
+ *    CONTAINER size. This is the standards-correct answer for an OS of nested frames. */
+.holo-cq { container-type: inline-size; container-name: holo; }
+.holo-cq-grid { display: grid; gap: var(--holo-space-4, 16px); grid-template-columns: 1fr; }
+@container holo (min-width: 30rem) { .holo-cq-grid { grid-template-columns: repeat(2, 1fr); } }
+@container holo (min-width: 52rem) { .holo-cq-grid { grid-template-columns: repeat(3, 1fr); } }
+.holo-cq-row { display: flex; flex-direction: column; gap: var(--holo-space-3, 12px); }
+@container holo (min-width: 34rem) { .holo-cq-row { flex-direction: row; align-items: center; } }

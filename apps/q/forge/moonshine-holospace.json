@@ -1,0 +1,19 @@
+{
+  "@context": "https://hologram.os/ns/holospace.jsonld",
+  "identifier": "org.hologram.MoonshineEar",
+  "title": "Holo Moonshine — κ-native WebGPU ASR ear",
+  "description": "Moonshine ASR (usefulsensors/moonshine) compiled into the κ substrate: safetensors → per-tensor κ-objects → .holo (HTTP-Range, per-block SHA-256 L5 verify, OPFS, offline) → tiled/RoPE/SwiGLU WebGPU forward → SPM detok. Raw-audio (no mel), no 30s padding. Tier-A CPU oracle is exact to HF transformers; Tier-B GPU is greedy-token-identical.",
+  "conforms": ["law-l1-identity", "law-l2-canonical", "law-l5-rederive", "holo-constitution"],
+  "models": [
+    { "name": "moonshine-tiny", "params": "27M", "holo": ".models/moonshine-tiny.holo", "archiveKappa": "did:holo:sha256:d2be86a70fe3fb9ed0785bfbe296f2002940614daee9d9878246adfe1b48d491" },
+    { "name": "moonshine-base", "params": "61M", "holo": ".models/moonshine-base.holo", "archiveKappa": "did:holo:sha256:48c60b0184bac73438e78efe4fbe61274290e4fea8dad375c00f905a5da1c0a7" }
+  ],
+  "runtime": {
+    "oracle": "gguf-forge-moonshine.mjs",
+    "sealer": "seal-moonshine-holo.mjs",
+    "engine": "gpu/holo-moonshine-asr.mjs",
+    "stream": "gpu/holo-whisper-stream.mjs",
+    "witness": "gpu/moonshine-gpu.html",
+    "ui": "gpu/whisper-asr-test.html"
+  }
+}

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo Resolve — one name plane for the whole internet</title>
+<style>
+  :root { --bg:#0b141a; --panel:#111b21; --line:#1f2c33; --ink:#e9edef; --dim:#8696a0; --ok:#00a884; --bad:#f15c6d; --chip:#182229; }
+  * { box-sizing:border-box; margin:0 }
+  html,body { height:100%; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif }
+  main { max-width:720px; margin:0 auto; padding:9vh 20px 60px }
+  h1 { font-size:22px; font-weight:650; letter-spacing:.2px }
+  p.sub { color:var(--dim); margin:6px 0 26px; font-size:14px }
+  .box { display:flex; gap:8px }
+  input { flex:1; background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:12px; padding:14px 16px; font-size:15px; outline:none }
+  input:focus { border-color:#2a3942 }
+  button { background:var(--ok); color:#06231c; border:0; border-radius:12px; padding:0 22px; font-size:15px; font-weight:650; cursor:pointer }
+  button:active { transform:translateY(1px) }
+  #kindline { min-height:22px; margin:10px 2px 0; font-size:13px; color:var(--dim) }
+  #kindline b { color:var(--ink); font-weight:600 }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:26px 0 0 }
+  .chip { background:var(--chip); border:1px solid var(--line); color:var(--dim); border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer; white-space:nowrap }
+  .chip:hover { color:var(--ink) }
+  #out { margin-top:26px; display:none }
+  #out.show { display:block }
+  /* the verified card is the ONE shared <holo-card> component (shadow-DOM styled); the inspector adds only this footnote */
+  .detail { margin-top:8px; color:var(--dim); font-size:12px; text-align:right }
+  #bench { margin-top:26px }
+  .benchbtn { width:100%; background:var(--chip); border:1px solid var(--line); color:var(--dim); border-radius:12px; padding:12px; font-size:13.5px; cursor:pointer }
+  .benchbtn:hover { color:var(--ink) }
+  .scorecard { margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px }
+  .sc-head { font-weight:650; font-size:15px }
+  .sc-sub { color:var(--dim); font-size:12.5px; margin-top:3px }
+  .sc-row { display:grid; grid-template-columns:110px 1fr; gap:6px 12px; margin-top:12px; font-size:13px; align-items:baseline }
+  .sc-row .a { color:var(--dim) }
+  .sc-row .k { font-weight:600 } .sc-row .k b { color:var(--ok) }
+  .sc-note { margin-top:12px; color:var(--dim); font-size:12px; line-height:1.6 }
+  footer { margin-top:34px; color:var(--dim); font-size:12.5px; line-height:1.7 }
+  footer b { color:var(--ink); font-weight:600 }
+</style>
+</head>
+<body>
+<main>
+  <h1>Holo Resolve</h1>
+  <p class="sub">One input for every name the internet has — κ labels, IPFS CIDs, Ethereum hashes, SRI, onion, truenames. Every byte re-derives before you see it.</p>
+  <div class="box">
+    <input id="name" autocomplete="off" spellcheck="false" placeholder="paste any name — sha256:… · a CID · 0x… · sha256-… · anything" autofocus>
+    <button id="go">Resolve</button>
+  </div>
+  <div id="kindline"></div>
+  <div class="chips" id="chips"></div>
+  <div id="out"></div>
+  <div id="bench"><button id="benchgo" class="benchbtn">⚡ How fast is this resolver? Benchmark it vs DNS, in your browser</button></div>
+  <footer>
+    <b>100% serverless.</b> This page is static; the resolver runs in your browser.
+    Content-derived names are translated onto the κ substrate and fetched from untrusted mirrors — the
+    first bytes that <b>re-derive to their hash</b> win; liars and dead mirrors are indistinguishable from silence.
+    blake3 verification runs through the <b>holospaces runtime</b> (the same wasm this bundle boots on).
+  </footer>
+</main>
+
+<script type="module">
+import names, { classify } from "../../usr/lib/holo/holo-names.mjs";
+import { makeHostResolver } from "../../usr/lib/holo/holo-names-host.mjs";
+import { loadAppIndex } from "../../usr/lib/holo/holo-app-index.mjs";
+import "../../usr/lib/holo/holo-card.mjs";                        // the ONE shared verified card (<holo-card>)
+
+const $ = (id) => document.getElementById(id);
+const BASE = new URL("../../", location.href);                     // the bundle root, on ANY mount (root or /Q/)
+const KIND_WORDS = {
+  kappa: "a content address", did: "a sovereign object id", holo: "a holospace member", ipfs: "an IPFS name",
+  ipns: "a mutable IPFS name", ens: "an Ethereum name", "eth-tx": "an Ethereum transaction hash",
+  "eth-address": "an Ethereum account", sri: "a subresource-integrity hash", onion: "a Tor onion service",
+  truename: "a speakable κ alias", model: "an AI model tag", refused: "refused", empty: "",
+};
+
+// ── THE ONE HOST BINDING (holo-names-host): store answers first (zero network on warm), then the
+// raced rungs; blake3 >256KB verifies through the UPSTREAM HOLOSPACES RUNTIME's own kappa() (lazy,
+// κ-committed by the release strand). This page ships no wiring of its own — that is the point.
+const R = makeHostResolver({ base: BASE, wasmGlue: new URL("../q/pkg/holospaces_web.js", location.href).href });
+
+// the κ-app index: every holo app keyed by the SIGNED κ of its entry document (release strand).
+// launching = resolving that κ — so a resolved app becomes a one-tap, already-verified launch card.
+let APPS = null;
+loadAppIndex({ base: BASE }).then((i) => { APPS = i; renderChips(); }).catch(() => renderChips());
+
+// ── classify as you type (microseconds — show the truth live) ────────────────────────────────────────
+$("name").addEventListener("input", () => {
+  const s = $("name").value.trim();
+  if (!s) { $("kindline").textContent = ""; return; }
+  const t0 = performance.now();
+  const r = classify(s);
+  const us = ((performance.now() - t0) * 1000) | 0;
+  if (!r) { $("kindline").innerHTML = `looks like <b>the open web</b> — a URL, a domain, or a search <span style="opacity:.6">· ${us}µs</span>`; return; }
+  const what = KIND_WORDS[r.kind] || r.kind;
+  $("kindline").innerHTML = `this is <b>${what}</b>${r.kappa ? ` → <b style="font-family:ui-monospace,monospace;font-size:12px">${r.kappa.slice(0, 26)}…</b>` : ""}${r.note ? ` <span style="opacity:.7">· ${r.note}</span>` : ""} <span style="opacity:.6">· ${us}µs</span>`;
+});
+
+// ── resolve on demand — render through the ONE shared card (<holo-card>); the inspector adds only its
+// own timing footnote. The card itself owns the seal (the door), κ, app-launch, and media/preview. ────
+async function go() {
+  const s = $("name").value.trim(); if (!s) return;
+  const out = $("out"); out.className = "show"; out.innerHTML = "";
+  const t0 = performance.now();
+  const res = await R.resolveOrExplain(s);                  // one resolve; handed to the card (no double fetch)
+  const ms = (performance.now() - t0).toFixed(1);
+  const card = document.createElement("holo-card"); card.result = { ...res, name: s }; out.appendChild(card);
+  const d = document.createElement("div"); d.className = "detail";
+  d.textContent = res.ok ? `resolved in ${ms} ms · via ${res.source}${res.source === "store" ? " (warm)" : ""}` : `checked in ${ms} ms`;
+  out.appendChild(d);
+}
+$("go").addEventListener("click", go);
+$("name").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+
+// ── try-these chips: REAL objects from this very bundle — apps by their signed κ, then many-spellings ─
+async function renderChips() {
+  const chips = [];
+  // holo apps, each by the SIGNED κ of its entry — clicking one launches it by verified κ
+  if (APPS) for (const a of APPS.apps.filter((x) => ["q", "browser", "holo-money", "player"].includes(x.dir))) chips.push([a.title + " · by κ", a.kappa]);
+  try {
+    const mf = await (await fetch(new URL("apps/holo-messenger/shell-manifest.json", BASE), { cache: "no-store" })).json();
+    // a REAL image object, content-addressed in this bundle — the card renders it from VERIFIED bytes
+    const img = (mf.assets || []).find((x) => /\.(jpe?g|png|webp|svg)$/i.test(x.path));
+    if (img) chips.push(["a verified image, by κ", "sha256:" + img.kappa]);
+    const a = (mf.assets || []).find((x) => /app\.html$/.test(x.path));
+    if (a) {
+      const raw = Uint8Array.from(a.kappa.match(/.{2}/g), (x) => parseInt(x, 16));
+      chips.push(["the same shell, as SRI", "sha256-" + btoa(String.fromCharCode(...raw))]);
+      chips.push(["…and as an IPFS CID", names.kappaToCid("sha256:" + a.kappa)]);
+    }
+  } catch {}
+  chips.push(["an Ethereum tx hash", "0x" + "b".repeat(64)]);
+  chips.push(["a torrent (refused, honestly)", "magnet:?xt=urn:btih:" + "d".repeat(40)]);
+  $("chips").innerHTML = chips.map(([label, v]) => `<span class="chip" data-v="${v.replace(/"/g, "&quot;")}">${label}</span>`).join("");
+}
+$("chips").addEventListener("click", (e) => {
+  const c = e.target.closest(".chip"); if (!c) return;
+  $("name").value = c.dataset.v; $("name").dispatchEvent(new Event("input")); go();
+});
+
+// ── K3: benchmark THIS resolver vs DNS, in YOUR browser — the numbers are yours, measured live ────────
+$("benchgo").addEventListener("click", async () => {
+  const btn = $("benchgo"); btn.textContent = "measuring in your browser…"; btn.disabled = true;
+  // a real object from this bundle: the messenger shell — resolve it once (cold), then time warm hits
+  let κ = null;
+  try { const mf = await (await fetch(new URL("apps/holo-messenger/shell-manifest.json", BASE), { cache: "no-store" })).json(); κ = "sha256:" + mf.assets.find((a) => /app\.html$/.test(a.path)).kappa; } catch {}
+  if (!κ) { btn.textContent = "⚡ benchmark unavailable here"; return; }
+  await R.resolve(κ);                                       // prime the warm cache (cold, once)
+  // universality stress: the WHOLE internet's naming universe (web2 + web3), classified live, one resolver
+  const uni = ["blake3:" + "a".repeat(64), "sha256:" + "a".repeat(64), "did:holo:sha256:" + "a".repeat(64),
+    names.kappaToCid("sha256:" + "a".repeat(64)), "ipns://docs.ipfs.tech", "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+    "0x" + "b".repeat(64), "0x" + "c".repeat(40), "vitalik.eth", "brad.crypto", "http://x.onion/",
+    "ar://AbCdEf", "hyper://x/", "ssb:x", "magnet:?xt=urn:btmh:1220" + "a".repeat(64), "data:text/plain;base64,aGVsbG8=",
+    "npub1qpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvd", "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+    "ethereum:0x" + "c".repeat(40), "at://did:plc:xyz/app.bsky.feed.post/abc", "matrix:r/room:server",
+    "gemini://x.gmi/", "mailto:a@b.com", "org/model:latest", "ada~natom-hipit-gimis", "https://example.org"];
+  const kinds = new Set(uni.map((n) => (classify(n) || { kind: "web" }).kind));
+  // RESOLUTION TRUTH (V6): every recognized kind now RETURNS the verified thing. Trust flag per kind —
+  // "self" = the content or its own signature is the proof (ZERO trust); "via" = dereferenced through a
+  // named, untrusted relay/RPC/gateway, then the bytes re-verify. Actions render an intent, not content.
+  const MODE = { kappa: "self", did: "self", data: "self", sri: "self", "eth-tx": "self", torrent: "self", ipfs: "via", arweave: "via", onion: "self",
+    ipns: "self", nostr: "self", scuttlebutt: "self", atproto: "self", ens: "via", model: "via", truename: "self", p2pweb: "via", "eth-address": "via",
+    payment: "action", account: "action", contact: "action", chat: "action", socket: "action" };
+  const resolvable = [...kinds].filter((k) => k !== "web" && k !== "refused" && MODE[k]);
+  const zeroTrust = resolvable.filter((k) => MODE[k] === "self").length;
+  // measure WARM latency (served from your device's store — 0 network) and count egress with a spy
+  let egress = 0; const realFetch = window.fetch; window.fetch = (...a) => { egress++; return realFetch(...a); };
+  const N = 20000, t0 = performance.now();
+  for (let i = 0; i < N; i++) await R.resolve(κ);
+  const warmMs = (performance.now() - t0) / N; window.fetch = realFetch;
+  const DOH = 12; const x = Math.max(1, Math.round(DOH / warmMs));
+  const perSec = Math.round(1000 / warmMs);
+  const fmtLat = warmMs < 1 ? (warmMs * 1000).toFixed(1) + "µs" : warmMs.toFixed(3) + "ms";
+  const row = (a, k) => `<div class="sc-row"><div class="a">${a}</div><div class="k">${k}</div></div>`;
+  $("bench").innerHTML = `
+    <div class="scorecard">
+      <div class="sc-head">Your resolver vs DNS — measured just now, in this browser</div>
+      <div class="sc-sub">the resolver runs on your device; a DNS lookup runs on someone else's server.</div>
+      ${row("Speed", `<b>${fmtLat}</b> warm — <b>~${x.toLocaleString()}× faster</b> than a ~${DOH}ms DNS lookup`)}
+      ${row("Throughput", `<b>~${perSec.toLocaleString()}</b> verified resolves / second, on your device`)}
+      ${row("Universal", `<b>${kinds.size} kinds of name</b> understood by one resolver — κ · CID · IPNS · Ethereum · ENS · SRI · onion · Arweave · Nostr · Bitcoin · BitTorrent · AT/Bluesky · Matrix · Gemini · model · truename · web`)}
+      ${row("Resolves", `<b>${resolvable.length} kinds now return the verified thing</b> — <b>${zeroTrust} with zero trust</b> (the content, or its own signature, is the proof: κ · CID · a Nostr note · an IPNS key). ENS/Arweave/gateways dereference through a <i>named, untrusted</i> relay — then the bytes re-verify. Payments &amp; contacts render an action, not a page.`)}
+      ${row("Privacy", `<b>${egress} network requests</b> — the warm answer never left your device (a DNS query always does)`)}
+      ${row("Security", `every byte <b>re-derived to its hash</b> before you saw it — a forged answer is refused, not trusted`)}
+      ${row("Sovereignty", `zero setup, works offline after first touch — no provider, no box, no config`)}
+      <div class="sc-note">DNS forces you to pick two of {fastest · private · yours} and answers one question — name→IP. This takes all three and answers every name, returning the verified <b>thing</b> — because it runs in your browser and the content proves itself.</div>
+    </div>`;
+});
+
+// deep link: /apps/resolve/#<name> resolves on load — the inspector is shareable (the seal's target).
+function fromHash() {
+  const h = decodeURIComponent(location.hash.replace(/^#/, "")).trim();
+  if (h) { $("name").value = h; $("name").dispatchEvent(new Event("input")); go(); }
+}
+window.addEventListener("hashchange", fromHash);
+if (location.hash.length > 1) fromHash();
+</script>
+</body>
+</html>

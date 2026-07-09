@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Q brain — unified κ-stream loader witness</title>
+<body><pre id="out">loading…</pre></body>
+<script type="module">
+// Witness: Q's conversational brain (createHoloBrain) now loads through the SAME unified κ-stream
+// loader as run-native — per-κ Range + L5 + the persistent content store (head + bodies). Proves:
+//   • Q's brain runs from κ-bodies by κ (greedy "Paris" — the model is correct through the new path)
+//   • warm reload → 0 bytes off the wire (head + every body from OPFS), same answer
+//   • the brain shares the "holo-kappa" store with run-native (cross-tool dedup)
+import { createHoloBrain } from "./holo-brain-engine.mjs";
+import { makeKappaStore } from "./holo-kappa-store.mjs";
+
+const out = document.getElementById("out");
+const t0 = performance.now();
+const log = (m) => { out.textContent = `[${((performance.now() - t0) / 1000).toFixed(1)}s] ${m}`; };
+window.__brain = { ready: false };
+
+const HOLO = "../.models/qwen2.5-0.5b-instruct.holo";
+const KAPPA = "41a930c07450623751f84af6a55bbecd54fe608ad6e94adf17f83c712aaf1b91";   // the .holo footer κ (PINNED respond)
+
+async function main() {
+  if (new URLSearchParams(location.search).get("fresh") === "1") { await makeKappaStore().clear(); log("cleared OPFS κ-store (cold)…"); }
+  const brain = createHoloBrain({ holoUrl: HOLO, kappa: KAPPA, maxTokens: 8 });
+  const info = await brain.load((m) => log(m));
+  log(`brain ready (${info.cache}) — generating…`);
+  // greedy, deterministic: a correct brain answers "Paris"
+  const reply = await brain.chat([{ role: "user", content: "What is the capital of France? Reply with only the city name." }]);
+  window.__brain = { ready: true, reply, cache: info.cache, stream: info.stream, model: info.model, arch: info.arch };
+  log(`"capital of France?" → ${reply}   [${info.cache}, wire ${(info.stream.wireBytes / 1e6).toFixed(1)}MB, headWarm ${info.stream.headWarm}]`);
+}
+main().catch((e) => { window.__brain = { ready: true, error: String(e), stack: e.stack }; out.textContent = "error: " + e + "\n" + (e.stack || ""); });
+</script>

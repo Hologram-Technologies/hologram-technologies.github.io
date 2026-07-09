@@ -1,0 +1,145 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>G-MICRO · batched ternary GEMV cost vs batch width</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0b0d; color: #e6e8ea; font: 13px/1.55 ui-monospace, Menlo, monospace; padding: 22px 26px; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .sub { color: #8a9099; font-size: 12px; margin-bottom: 14px; max-width: 860px; }
+  #head { border: 1px solid #1c2128; border-radius: 10px; padding: 14px 16px; margin: 4px 0 16px; background: #101318; white-space: pre-wrap; }
+  #head.ok { border-color: #1f6f43; background: #0d1712; } #head.bad { border-color: #6f2f2f; background: #170d0d; }
+  table { border-collapse: collapse; width: 100%; max-width: 820px; margin: 4px 0 16px; }
+  th, td { text-align: right; padding: 6px 12px; border-bottom: 1px solid #1a1d22; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #8a9099; font-weight: 500; }
+  td.win { color: #56d38a; } td.lose { color: #d7a24a; }
+  #status { color: #8a9099; font-size: 12px; } .big { font-size: 18px; font-weight: 600; }
+</style>
+
+<h1>G-MICRO · does "read weights once for all KX columns" batch for FREE on this GPU?</h1>
+<div class="sub">Times the real <code>mmT2KK</code> batched ternary GEMV (BitNet-2B geometry, synthetic weights) at KX=1..8.
+T(KX)/T(1) is the ceiling on spec-decode's conversion: ≈1 ⇒ batch free ⇒ 3.91 accept/window → ~3.9×; ≈KX ⇒ ALU-bound ⇒ fusion can't save it here. Read <code>window.__micro</code>.</div>
+
+<div id="head">probing…</div>
+<div id="status"></div>
+<table id="rows"><thead><tr><th>geometry</th><th>KX</th><th>ms/call</th><th>T(KX)/T(1)</th><th>per-token vs KX=1</th><th>verdict</th></tr></thead><tbody></tbody></table>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const status = (m) => { $("#status").textContent = m; };
+const MB = 1<<20;
+
+// BitNet-2B-4T geometry (grep manifest to confirm): d=2560, ff=6912, q_dim=2560, kv_dim=640.
+const GEOM = [
+  { name: "gate‖up  (N=13824, K=2560)", N: 13824, K: 2560 },
+  { name: "w_down   (N=2560,  K=6912)", N: 2560,  K: 6912 },
+  { name: "qkv      (N=3840,  K=2560)", N: 3840,  K: 2560 },
+];
+const KXS = [1, 2, 4, 8];
+const ITERS = 64;
+
+// faithful copy of mmT2KK(add=false, KX) from qvac-gpu.js
+const mmT2KK = (KX) => `
+@group(0) @binding(0) var<storage,read> x: array<vec4<f32>>;
+@group(0) @binding(1) var<storage,read> qw: array<u32>;
+@group(0) @binding(2) var<storage,read_write> o: array<f32>;
+@group(0) @binding(3) var<uniform> P: vec4<u32>;
+var<workgroup> red: array<f32, 256>;
+fn dot16(word:u32, v:u32) -> f32 {
+  var s4=vec4<f32>(0.0);
+  var x0=x[v];   s4=s4+x0*(vec4<f32>(f32(word&3u),f32((word>>2u)&3u),f32((word>>4u)&3u),f32((word>>6u)&3u))-vec4<f32>(1.0));
+  x0=x[v+1u];    s4=s4+x0*(vec4<f32>(f32((word>>8u)&3u),f32((word>>10u)&3u),f32((word>>12u)&3u),f32((word>>14u)&3u))-vec4<f32>(1.0));
+  x0=x[v+2u];    s4=s4+x0*(vec4<f32>(f32((word>>16u)&3u),f32((word>>18u)&3u),f32((word>>20u)&3u),f32((word>>22u)&3u))-vec4<f32>(1.0));
+  x0=x[v+3u];    s4=s4+x0*(vec4<f32>(f32((word>>24u)&3u),f32((word>>26u)&3u),f32((word>>28u)&3u),f32((word>>30u)&3u))-vec4<f32>(1.0));
+  return s4.x+s4.y+s4.z+s4.w;
+}
+@compute @workgroup_size(256)
+fn main(@builtin(workgroup_id) wg:vec3<u32>, @builtin(local_invocation_id) lid:vec3<u32>){
+  let K=P.x; let nw=K>>4u; let rr=lid.x/64u; let t=lid.x%64u;
+  let n0=(wg.y*65535u+wg.x)*4u+rr; let n=min(n0, P.y-1u);
+  let rowW=n*nw; var acc: array<f32, ${KX}>;
+  for(var c=0u;c<${KX}u;c++){ acc[c]=0.0; }
+  var w=t;
+  loop{ if(w>=nw){break;}
+    let word=qw[rowW+w]; let v=w<<2u;
+    ${Array.from({length:8},(_,c)=>`if(${c}u<${KX}u){ acc[${c}]=acc[${c}]+dot16(word, ${c}u*(K>>2u)+v); }`).slice(0,KX).join("\n    ")}
+    w=w+64u; }
+  for(var c=0u;c<${KX}u;c++){
+    red[lid.x]=acc[c]; workgroupBarrier();
+    var s=32u; loop{ if(s==0u){break;} if(t<s){ red[rr*64u+t]=red[rr*64u+t]+red[rr*64u+t+s]; } workgroupBarrier(); s=s/2u; }
+    if(t==0u && n0<P.y){ o[c*P.y+n0]=red[rr*64u]*bitcast<f32>(P.w); }
+    workgroupBarrier();
+  }
+}`;
+
+async function run() {
+  if (!navigator.gpu) { $("#head").className="bad"; $("#head").textContent="no WebGPU"; return; }
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  const dev = await adapter.requestDevice();
+  const info = adapter.info || {};
+  const U = GPUBufferUsage;
+
+  const results = [];
+  for (const g of GEOM) {
+    const nw = g.K >> 4;                      // u32 words per row
+    const qwLen = g.N * nw;
+    status(`${g.name}: alloc ${(qwLen*4/MB).toFixed(0)}MB weights…`);
+    const qw = dev.createBuffer({ size: qwLen*4, usage: U.STORAGE|U.COPY_DST });
+    { const a = new Uint32Array(qwLen); let s=0x1234567; for (let i=0;i<qwLen;i++){ s^=s<<13; s^=s>>>17; s^=s<<5; a[i]=s>>>0; } dev.queue.writeBuffer(qw, 0, a); }
+    const xN = 8 * (g.K>>2);                  // KX≤8 columns of K/4 vec4
+    const xb = dev.createBuffer({ size: xN*16, usage: U.STORAGE|U.COPY_DST });
+    { const a = new Float32Array(xN*4); for (let i=0;i<a.length;i++) a[i] = ((i*2654435761)>>>0)/4294967296 - 0.5; dev.queue.writeBuffer(xb, 0, a); }
+    const ob = dev.createBuffer({ size: 8*g.N*4, usage: U.STORAGE });
+    const P = dev.createBuffer({ size: 16, usage: U.UNIFORM|U.COPY_DST });
+    dev.queue.writeBuffer(P, 0, new Uint32Array([g.K, g.N, 0, 0x3f800000]));  // K, N, _, f32bits(1.0)
+
+    const totalWg = Math.ceil(g.N/4), gx = Math.min(totalWg, 65535), gy = Math.ceil(totalWg/65535);
+    let t1 = 0;
+    for (const KX of KXS) {
+      const mod = dev.createShaderModule({ code: mmT2KK(KX) });
+      const pipe = dev.createComputePipeline({ layout: "auto", compute: { module: mod, entryPoint: "main" } });
+      const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [
+        { binding:0, resource:{buffer:xb} }, { binding:1, resource:{buffer:qw} }, { binding:2, resource:{buffer:ob} }, { binding:3, resource:{buffer:P} } ] });
+      // warmup
+      { const e=dev.createCommandEncoder(); const p=e.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0,bg); for(let i=0;i<4;i++) p.dispatchWorkgroups(gx,gy,1); p.end(); dev.queue.submit([e.finish()]); await dev.queue.onSubmittedWorkDone(); }
+      status(`${g.name}: timing KX=${KX}…`);
+      let best = Infinity;
+      for (let rep=0; rep<3; rep++) {
+        const e=dev.createCommandEncoder(); const p=e.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0,bg);
+        for(let i=0;i<ITERS;i++) p.dispatchWorkgroups(gx,gy,1); p.end();
+        const t0=performance.now(); dev.queue.submit([e.finish()]); await dev.queue.onSubmittedWorkDone();
+        best = Math.min(best, (performance.now()-t0)/ITERS);
+      }
+      if (KX===1) t1 = best;
+      const ratio = best/t1, perTok = ratio/KX;   // per-token cost vs KX=1 (lower=better; <1 means batching helps)
+      const row = { geom: g.name, KX, ms: +best.toFixed(3), ratio: +ratio.toFixed(2), perTok: +perTok.toFixed(2) };
+      results.push(row);
+      const tr=document.createElement("tr");
+      const good = perTok <= 0.6;
+      tr.innerHTML = `<td>${KX===1?g.name:''}</td><td>${KX}</td><td>${row.ms}</td><td>${row.ratio}×</td>
+        <td class="${good?'win':(perTok>0.85?'lose':'')}">${row.perTok}×</td><td>${KX===1?'baseline':(good?'batch helps':(perTok>0.85?'~ALU-bound':'partial'))}</td>`;
+      $("#rows").querySelector("tbody").appendChild(tr);
+    }
+    qw.destroy(); xb.destroy(); ob.destroy();
+  }
+
+  // verdict: look at the dominant gate‖up geometry at KX=8
+  const gu8 = results.find(r => /gate/.test(r.geom) && r.KX===8);
+  const perTok8 = gu8 ? gu8.perTok : 1;              // per-token cost at KX=8 vs KX=1
+  const convert = 1/perTok8;                          // e.g. perTok 0.5 → 2× conversion ceiling per matmul
+  const free = perTok8 <= 0.6;                        // near-free batch
+  const h = $("#head"); h.className = free ? "ok" : "bad";
+  h.innerHTML =
+`<span class="big">${free ? "BATCH IS (mostly) FREE — build the fused path" : "BATCH IS ALU-BOUND — fusion won't save spec-decode on this GPU"}</span>
+
+GPU: ${info.vendor||'?'} ${info.architecture||''}
+gate‖up @ KX=8: T(8)/T(1) = ${gu8?gu8.ratio:'?'}×  →  per-token cost = ${perTok8}× of KX=1  →  matmul conversion ceiling ≈ ${convert.toFixed(1)}×
+meaning: a spec window verifying m tokens costs ≈ ${perTok8}×m of a single matmul, so 3.91 accept/window → up to ~${(3.91/ (perTok8*3.91) ).toFixed(1)}× on the matmul axis alone.
+DECISION: ${free
+  ? "batching reuses the weight read → build mmT2FusedKK etc. and the fused spec branch; expect the P5 1.22× to rise toward the acceptance ratio."
+  : "each column costs ~full compute (ternary dot16 is ALU-bound on this iGPU, not weight-bandwidth-bound) → fusing dispatches won't convert acceptance here. HONEST: spec-decode's payoff needs a discrete GPU / integer-dot kernel, not more fusion. Re-run on dGPU before investing."}`;
+  window.__micro = { gpu: (info.vendor||'')+' '+(info.architecture||''), perTok8, ratioGU8: gu8?gu8.ratio:null, free, results };
+  status("done. window.__micro populated.");
+}
+run().catch(e => { $("#head").className="bad"; $("#head").textContent="ERROR: "+(e.stack||e.message); });
+</script>

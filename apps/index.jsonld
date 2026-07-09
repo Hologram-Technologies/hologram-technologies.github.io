@@ -1,0 +1,572 @@
+{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "holo": "https://hologram.os/ns#"
+  },
+  "@id": "https://hologram.os/apps",
+  "@type": [
+    "dcat:Catalog",
+    "schema:DataCatalog"
+  ],
+  "dcterms:title": "Hologram Apps — the content-addressed app catalog",
+  "dcterms:description": "Each app is a self-contained holospace addressed by the did:holo of its content (Law L1); the OS indexes addresses, not locations; any byte re-derives (Law L5). Pin an app anywhere and it boots in the Hologram OS holospace frame from a single κ.",
+  "dcat:dataset": [
+    {
+      "@id": "did:holo:sha256:95a050d224058f6e9cba6463c002a9eae2e6a007bb1e5bdcfa89ce8d2c978d01",
+      "holo:root": "did:holo:sha256:95a050d224058f6e9cba6463c002a9eae2e6a007bb1e5bdcfa89ce8d2c978d01",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Browser",
+      "schema:identifier": "org.hologram.HoloBrowser",
+      "holo:words": "duty.drive.south",
+      "schema:alternateName": "duty.drive.south",
+      "schema:description": "A web browser that treats every page — web, local or holo:// — as verifiable content.",
+      "schema:applicationCategory": "CommunicationApplication",
+      "holo:categories": [
+        "Network",
+        "WebBrowser"
+      ],
+      "schema:keywords": [
+        "browser",
+        "hologram",
+        "web",
+        "holo",
+        "ipfs",
+        "ens",
+        "content-addressing",
+        "uor",
+        "dweb",
+        "agent",
+        "law-l5"
+      ],
+      "dcat:landingPage": "apps/browser/index.html",
+      "schema:image": "apps/browser/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-dock-config.json",
+        "holo-dock.css",
+        "holo-dock.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "holo-ux.js",
+        "teleport.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:b36c446b21b4a58176512ab9a6902c75357ef2a2166586410cd4e0fcbd7c90ab",
+      "holo:root": "did:holo:sha256:b36c446b21b4a58176512ab9a6902c75357ef2a2166586410cd4e0fcbd7c90ab",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Cloud",
+      "schema:identifier": "org.hologram.HoloCloud",
+      "holo:words": "goddess.balance.renew",
+      "schema:alternateName": "goddess.balance.renew",
+      "schema:description": "Your files — end-to-end encrypted, verified, and shared without a server.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "holo:categories": [
+        "Network",
+        "FileTransfer",
+        "Utility"
+      ],
+      "schema:keywords": [
+        "files",
+        "cloud",
+        "sync",
+        "webdav",
+        "storage",
+        "nextcloud"
+      ],
+      "dcat:landingPage": "apps/cloud/index.html",
+      "schema:image": "apps/cloud/icon.svg",
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-collab.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "holo-webdav.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:ba6924d144a0267e1edb4f61cf4e3b1b9031d547f14c38adb75ef550026b87e1",
+      "holo:root": "did:holo:sha256:ba6924d144a0267e1edb4f61cf4e3b1b9031d547f14c38adb75ef550026b87e1",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Files",
+      "schema:identifier": "org.hologram.HoloFiles",
+      "holo:words": "chuckle.nation.cruel",
+      "schema:alternateName": "chuckle.nation.cruel",
+      "schema:description": "The native file explorer for Hologram OS one window onto the whole verified object universe, plus your writable OPFS home. Feels native on every OS.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "holo:categories": [
+        "System",
+        "Utility"
+      ],
+      "schema:keywords": [
+        "files",
+        "explorer",
+        "finder",
+        "file manager",
+        "opfs",
+        "content-addressing",
+        "uor",
+        "fhs",
+        "holospace",
+        "law-l5",
+        "native",
+        "serverless",
+        "privacy"
+      ],
+      "dcat:landingPage": "apps/files/index.html",
+      "schema:image": "apps/files/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-files.js",
+        "holo-platform.js",
+        "holo-ui-kernel.js",
+        "holo-theme.js",
+        "holo-ux.js",
+        "holo-capability.mjs",
+        "holo-object.js",
+        "holo-mobile.css",
+        "holo-webdav.js",
+        "holo-find.js",
+        "holo-resolve.js",
+        "holo-federate.js",
+        "holo-answer.js",
+        "holo-ask.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:8628ece58aeceb0c3590d37e926f44ce2b01613e4ffc12568b4b89cfab1cbfd4",
+      "holo:root": "did:holo:sha256:8628ece58aeceb0c3590d37e926f44ce2b01613e4ffc12568b4b89cfab1cbfd4",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication",
+        "schema:GameApplication"
+      ],
+      "schema:name": "Holo Games",
+      "schema:identifier": "org.hologram.HoloGames",
+      "holo:words": "rally.receive.behave",
+      "schema:alternateName": "rally.receive.behave",
+      "schema:description": "Play real retro consoles as streaming κ-addressable content. Five real emulators (Game Boy, NES, GBA, SNES, Genesis) behind one engine-agnostic frontend — drop a ROM, it streams through the κ-ROM seam (verify-on-read) and plays, super-res'd to your display via WebGPU.",
+      "schema:applicationCategory": "GameApplication",
+      "holo:categories": [
+        "Games",
+        "Emulator",
+        "Entertainment"
+      ],
+      "schema:keywords": [
+        "games",
+        "emulator",
+        "retro",
+        "libretro",
+        "game boy",
+        "gba",
+        "nes",
+        "gambatte",
+        "mgba",
+        "quicknes",
+        "super-resolution",
+        "webgpu",
+        "content-addressing",
+        "kappa",
+        "law-l5"
+      ],
+      "dcat:landingPage": "apps/holo-games/index.html",
+      "schema:image": "apps/holo-games/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f",
+      "holo:root": "did:holo:sha256:e6963eac1912fe72dc5ae876038f38d86d6c1b6f2802211393a1a083e1a6109f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Linux",
+      "schema:identifier": "org.hologram.HoloLinux",
+      "holo:words": "lobster.wide.enrich",
+      "schema:alternateName": "lobster.wide.enrich",
+      "schema:description": "A real riscv64 Linux, verified and booted in a browser tab.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "holo:categories": [
+        "System",
+        "Education",
+        "TerminalEmulator"
+      ],
+      "schema:keywords": [
+        "linux",
+        "debian",
+        "riscv64",
+        "terminal",
+        "shell",
+        "bash",
+        "kappa",
+        "content-addressed"
+      ],
+      "dcat:landingPage": "apps/holo-linux/index.html",
+      "schema:image": "apps/holo-linux/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:88494133a437bd46bfa0d591e46f6fb64c3fda35a897d7b86d2a915dcfedc3a2",
+      "holo:root": "did:holo:sha256:88494133a437bd46bfa0d591e46f6fb64c3fda35a897d7b86d2a915dcfedc3a2",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Messenger",
+      "schema:identifier": "org.hologram.HoloMessenger",
+      "holo:words": "innocent.age.caution",
+      "schema:alternateName": "innocent.age.caution",
+      "schema:description": "Every messenger in one inbox. WhatsApp, Telegram, Discord, Slack and more stream into one familiar chat surface. Every message is verified and stays private on your device.",
+      "schema:applicationCategory": "SocialNetworkingApplication",
+      "holo:categories": [
+        "Social",
+        "Communication"
+      ],
+      "schema:keywords": [
+        "messenger",
+        "chat",
+        "unified inbox",
+        "whatsapp",
+        "telegram",
+        "discord",
+        "slack",
+        "beeper",
+        "content-addressed",
+        "holospace",
+        "uor"
+      ],
+      "dcat:landingPage": "apps/holo-messenger/app.html",
+      "schema:image": "apps/holo-messenger/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:9dfcc20bb7076c07ca21bc88c1e307ef07aafc9c8762f19d95eae72f05039cdf",
+      "holo:root": "did:holo:sha256:9dfcc20bb7076c07ca21bc88c1e307ef07aafc9c8762f19d95eae72f05039cdf",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Money",
+      "schema:identifier": "org.hologram.HoloMoney",
+      "holo:words": "ivory.amused.wrist",
+      "schema:alternateName": "ivory.amused.wrist",
+      "schema:description": "The neobank surface of Hologram — real balances over your sovereign wallet, money as κ-links, virtual cards as κ-objects with generative faces. One column: phone and the desktop right carriage are the same app. The wallet stays the vault; Holo Money is the bank UX over it.",
+      "schema:applicationCategory": "FinanceApplication",
+      "schema:keywords": [
+        "money",
+        "neobank",
+        "bank",
+        "balance",
+        "cards",
+        "payments",
+        "holo pay",
+        "wallet"
+      ],
+      "dcat:landingPage": "apps/holo-money/index.html",
+      "schema:image": "apps/holo-money/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-wallet-bridge.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:620299e9ab8fdfb5396f254d8ef2636aa3c8940b15c76b5a84f72727077b002c",
+      "holo:root": "did:holo:sha256:620299e9ab8fdfb5396f254d8ef2636aa3c8940b15c76b5a84f72727077b002c",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Hub",
+      "schema:identifier": "org.hologram.HoloHub",
+      "holo:words": "cube.guilt.access",
+      "schema:alternateName": "cube.guilt.access",
+      "schema:description": "The store for everything you can run discover, try, own and run every holo-native thing by its verified identity, 100% serverless, for people and AI agents alike.",
+      "schema:applicationCategory": "UtilitiesApplication",
+      "dcat:landingPage": "apps/hub/index.html",
+      "schema:image": "apps/hub/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:3fc79c195002faa226b2a66154a1528e7a873499f3cec3d4ac03c5d17d352544",
+      "holo:root": "did:holo:sha256:3fc79c195002faa226b2a66154a1528e7a873499f3cec3d4ac03c5d17d352544",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Music",
+      "schema:identifier": "org.hologram.HoloMusic",
+      "holo:words": "claw.idea.toilet",
+      "schema:alternateName": "claw.idea.toilet",
+      "schema:description": "A verified music library and the whole internet as one.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "holo:categories": [
+        "AudioVideo",
+        "Audio",
+        "Music",
+        "Player"
+      ],
+      "schema:keywords": [
+        "music",
+        "library",
+        "subsonic",
+        "navidrome",
+        "radio",
+        "podcasts"
+      ],
+      "dcat:landingPage": "apps/music/index.html",
+      "schema:image": "apps/music/icon.svg",
+      "schema:softwareRequirements": [
+        "favicon.png",
+        "holo-audio.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-object.js",
+        "holo-stations.js",
+        "holo-theme.js",
+        "teleport.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:7d953e7dd69946145fa724cae5f37c72f3ed0cf554b50effe7dfc67a833a3016",
+      "holo:root": "did:holo:sha256:7d953e7dd69946145fa724cae5f37c72f3ed0cf554b50effe7dfc67a833a3016",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Player",
+      "schema:identifier": "org.hologram.HoloPlayer",
+      "holo:words": "river.wheat.skin",
+      "schema:alternateName": "river.wheat.skin",
+      "schema:description": "A verified media library for your movies and shows, with no server.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "holo:categories": [
+        "AudioVideo",
+        "Video",
+        "Player"
+      ],
+      "schema:keywords": [
+        "media",
+        "library",
+        "jellyfin",
+        "movies",
+        "shows",
+        "player"
+      ],
+      "dcat:landingPage": "apps/player/index.html",
+      "schema:image": "apps/player/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-jellyfin.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:c614f527b4b21e000ff2e1cde6d3d1324381881437e3ae4b4c80ee9a34ceca69",
+      "holo:root": "did:holo:sha256:c614f527b4b21e000ff2e1cde6d3d1324381881437e3ae4b4c80ee9a34ceca69",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Q",
+      "schema:identifier": "org.hologram.HoloQ",
+      "holo:words": "walk.stand.apology",
+      "schema:alternateName": "walk.stand.apology",
+      "schema:description": "A real AI that thinks entirely in your browser no server, no cloud, no API key.",
+      "schema:applicationCategory": "AIApplication",
+      "holo:categories": [
+        "AI",
+        "Productivity",
+        "Developer"
+      ],
+      "schema:keywords": [
+        "ai",
+        "llm",
+        "inference",
+        "verifiable inference",
+        "webgpu",
+        "browser-native",
+        "serverless",
+        "sovereign ai",
+        "qvac",
+        "kappa-disk",
+        "content-addressing",
+        "uor",
+        "did:holo",
+        "prov-o",
+        "law-l5",
+        "constitution",
+        "private ai",
+        "on-device"
+      ],
+      "dcat:landingPage": "apps/q/index.html",
+      "schema:image": "apps/q/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.js",
+        "holo-mobile.css",
+        "holo-conscience.js",
+        "holo-store.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:963c75803506398b51d58e6e7ea8851c75cb72ebb6b72ae55978503a6639f368",
+      "holo:root": "did:holo:sha256:963c75803506398b51d58e6e7ea8851c75cb72ebb6b72ae55978503a6639f368",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "SELF",
+      "schema:identifier": "org.hologram.HoloSelf",
+      "holo:words": "allow.stock.bullet",
+      "schema:alternateName": "allow.stock.bullet",
+      "schema:description": "A self-sovereign identity wallet: hold your credentials, prove only what's needed — like being over 18 — without revealing anything else, and sign in with no passwords. No accounts, no servers. Every proof is checked genuine on your own device and keeps working offline.",
+      "schema:applicationCategory": "SecurityApplication",
+      "holo:categories": [
+        "Security",
+        "Identity"
+      ],
+      "schema:keywords": [
+        "identity",
+        "self-sovereign",
+        "verifiable-credentials",
+        "did",
+        "selective-disclosure",
+        "passwordless",
+        "wallet",
+        "kyc",
+        "age-verification",
+        "agent-identity",
+        "content-addressed",
+        "uor"
+      ],
+      "dcat:landingPage": "apps/self/index.html",
+      "schema:image": "apps/self/icon.svg"
+    },
+    {
+      "@id": "did:holo:sha256:10e335d22cdf44081e7f974d29bac06be207b859f7d583b70e756927ccefe0e2",
+      "holo:root": "did:holo:sha256:10e335d22cdf44081e7f974d29bac06be207b859f7d583b70e756927ccefe0e2",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Spaces",
+      "schema:identifier": "org.hologram.HoloSpaces",
+      "holo:words": "easily.struggle.immense",
+      "schema:alternateName": "easily.struggle.immense",
+      "schema:description": "Walk into living, shareable, infinitely nestable rooms of holo apps — each rendered from its κ address. A Space is itself one content κ: compose by dragging things in, fork with a gesture, share by the κ alone. The OS is already a sandbox; this reveals it.",
+      "schema:applicationCategory": "EntertainmentApplication",
+      "holo:categories": [
+        "Creativity",
+        "Social"
+      ],
+      "schema:keywords": [
+        "spaces",
+        "rooms",
+        "compose",
+        "remix",
+        "nesting",
+        "content-addressed",
+        "holospace",
+        "uor"
+      ],
+      "dcat:landingPage": "apps/spaces/index.html",
+      "schema:image": "apps/spaces/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-play-gpu.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:5f85dcea4d071f266c03781390cdc4bdecc02a0cb4616ba3bf534cba72176b2f",
+      "holo:root": "did:holo:sha256:5f85dcea4d071f266c03781390cdc4bdecc02a0cb4616ba3bf534cba72176b2f",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo UI",
+      "schema:identifier": "org.hologram.HoloUI",
+      "holo:words": "endless.inhale.seed",
+      "schema:alternateName": "endless.inhale.seed",
+      "schema:description": "Hologram OS's design control panel: an Appearance studio to theme the whole OS live (verified themes · accent · typography · accessibility) and a Components catalog of every shadcn + Magic UI element plus the daisyUI component layer, all driven by one Holo UI/UX token source across light, dark and immersive.",
+      "schema:applicationCategory": "DeveloperApplication",
+      "holo:categories": [
+        "Developer",
+        "Design",
+        "System"
+      ],
+      "schema:keywords": [
+        "components",
+        "ui",
+        "ux",
+        "design-system",
+        "shadcn",
+        "magic-ui",
+        "daisyui",
+        "tokens",
+        "react",
+        "uor",
+        "content-addressed"
+      ],
+      "dcat:landingPage": "apps/ui/index.html",
+      "schema:image": "apps/ui/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-theme.css",
+        "holo-mobile.css",
+        "holo-phi.css",
+        "holo-theme.js",
+        "holo-ui-kernel.js"
+      ]
+    },
+    {
+      "@id": "did:holo:sha256:d0895d1cf629885c5037d7b894edf5e147ab697043530fee3b8c3cc8cb7c04fa",
+      "holo:root": "did:holo:sha256:d0895d1cf629885c5037d7b894edf5e147ab697043530fee3b8c3cc8cb7c04fa",
+      "@type": [
+        "schema:SoftwareApplication",
+        "schema:WebApplication"
+      ],
+      "schema:name": "Holo Video",
+      "schema:identifier": "org.hologram.HoloVideo",
+      "holo:words": "paddle.inner.dwarf",
+      "schema:alternateName": "paddle.inner.dwarf",
+      "schema:description": "A verified video player with adaptive streaming, tamper-proof and serverless.",
+      "schema:applicationCategory": "MultimediaApplication",
+      "holo:categories": [
+        "AudioVideo",
+        "Video",
+        "Player"
+      ],
+      "schema:keywords": [
+        "video",
+        "player",
+        "hls",
+        "streaming",
+        "media",
+        "videojs"
+      ],
+      "dcat:landingPage": "apps/video/index.html",
+      "schema:image": "apps/video/icon.svg",
+      "schema:softwareRequirements": [
+        "holo-gpu.js",
+        "holo-manage.js",
+        "holo-mobile.css",
+        "holo-theme.js",
+        "teleport.js",
+        "videojs/video-js.min.css",
+        "videojs/video.min.js"
+      ]
+    }
+  ]
+}

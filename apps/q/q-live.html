@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Q</title>
+<script type="importmap">
+{ "imports": {
+  "@huggingface/transformers": "../../_shared/voice/vendor/kokoro/transformers/transformers.js",
+  "phonemizer": "../../_shared/voice/vendor/kokoro/phonemizer.js",
+  "fs/promises": "../../_shared/voice/vendor/kokoro/stub.js",
+  "path": "../../_shared/voice/vendor/kokoro/stub.js"
+} }
+</script>
+<style>
+  :root { --bg:#06070c; --fg:#eef1f8; --dim:#7b849c; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overflow:hidden; }
+  body { background:radial-gradient(130% 100% at 50% 42%, #0e1220 0%, var(--bg) 70%); color:var(--fg);
+    font:400 17px/1.5 -apple-system,"Segoe UI",Inter,system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; height:100dvh; user-select:none; }
+  .wordmark { position:fixed; top:22px; left:24px; font-size:13px; letter-spacing:.22em; color:var(--dim); font-weight:600; }
+  .wordmark b { color:var(--fg); }
+  #stage { position:relative; width:min(74vw,340px); height:min(74vw,340px); cursor:pointer; display:grid; place-items:center; }
+  canvas { width:100%; height:100%; display:block; }
+  .hint { position:absolute; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+    pointer-events:none; transition:opacity .4s; }
+  .caption { margin-top:40px; max-width:min(88vw,560px); text-align:center; min-height:3.2em; padding:0 8px; }
+  .caption .you { color:var(--dim); font-size:16px; }
+  .caption .q { color:var(--fg); font-size:21px; line-height:1.45; letter-spacing:-.01em; }
+  .caption.fade { opacity:0; transition:opacity 1.2s; }
+  .status { margin-top:6px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); min-height:16px; }
+  .compose { position:fixed; bottom:max(20px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+    width:min(90vw,520px); display:flex; gap:8px; opacity:.5; transition:opacity .2s; }
+  .compose:focus-within { opacity:1; }
+  .compose input { flex:1; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:var(--fg);
+    border-radius:14px; padding:11px 15px; font-size:15px; outline:none; }
+  .compose input::placeholder { color:#465065; }
+  .compose button { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:var(--fg);
+    border-radius:14px; padding:0 16px; font-size:15px; cursor:pointer; }
+  .lat { position:fixed; bottom:16px; right:18px; font:11px ui-monospace,Menlo,monospace; color:#333c52; letter-spacing:.04em; text-align:right; }
+  .lat b { color:#20d17a; font-weight:600; }         /* speculated (fast) turn */
+  .stats { position:fixed; bottom:16px; left:18px; font:10.5px/1.5 ui-monospace,Menlo,monospace; color:#333c52; letter-spacing:.02em;
+    white-space:pre; opacity:0; transition:opacity .3s; }
+  .stats.on { opacity:1; }
+</style>
+</head>
+<body>
+  <div class="wordmark"><b>Q</b></div>
+
+  <div id="stage" title="tap to talk">
+    <canvas id="orb" width="680" height="680"></canvas>
+    <div class="hint" id="hint">tap to talk</div>
+  </div>
+
+  <div class="caption" id="cap"></div>
+  <div class="status" id="status"></div>
+
+  <form class="compose" id="compose" autocomplete="off">
+    <input id="text" placeholder="or type to Q" enterkeyhint="send">
+    <button type="submit">Say</button>
+  </form>
+  <div class="lat" id="lat"></div>
+  <div class="stats" id="stats"></div>
+
+<script>
+  if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("/q-live-sw.js", { scope: "/" }); } catch (e) {} }
+</script>
+<script type="module">
+import { createQLive } from "./q-live.mjs";
+
+const $ = (id) => document.getElementById(id);
+const q = createQLive({ persona: "You are Q, a private on-device AI that runs entirely in this browser. Answer in one or two short, warm, natural spoken sentences." });
+window.Q = q;
+
+let phase = "idle", loading = false, level = 0, capFadeT = 0;
+const setStatus = (s) => $("status").textContent = s;
+const showHint = (on) => $("hint").style.opacity = on ? 1 : 0;
+
+function caption(who, text) {
+  const el = $("cap"); el.classList.remove("fade");
+  el.innerHTML = `<span class="${who}">${text || ""}</span>`;
+  capFadeT = performance.now() + 6000;   // fade if nothing new for a while
+}
+
+q.on("state", (s) => { phase = s;
+  showHint(s === "idle" && !q.active && !loading);
+  setStatus(loading ? "waking" : s === "idle" ? (q.active ? "" : "") : s);
+});
+q.on("partial", (t) => caption("you", t + " …"));
+q.on("final",   (t) => caption("you", t));
+q.on("spoken",  (t) => caption("q", t));   // Q's words, revealed IN SYNC with the spoken voice (audio-clock timed)
+// ── per-stage latency ledger: the references' real lesson is that MAGIC IS CONSISTENCY (P95), not a good average.
+//    Accumulate first-audio per turn, split COLD vs SPECULATED, and render median + P95 so the win is provable. ──
+const lard = { fa_cold: [], fa_spec: [], ft_cold: [], ft_warm: [] };   // fa = first-audio, ft = first-token (prefill)
+const pct = (a, p) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p / 100 * s.length))]; };
+function renderStats() {
+  const row = (name, a) => { if (!a.length) return null; return name.padEnd(11) + " n=" + String(a.length).padEnd(3) + " p50 " + String(pct(a, 50)).padStart(5) + "  p95 " + String(pct(a, 95)).padStart(5) + " ms"; };
+  const lines = [
+    row("audio·spec", lard.fa_spec), row("audio·cold", lard.fa_cold),
+    row("1sttok·warm", lard.ft_warm), row("1sttok·cold", lard.ft_cold),
+  ].filter(Boolean);
+  const el = $("stats"); el.textContent = lines.join("\n"); el.classList.toggle("on", lines.length > 0);
+}
+q.on("metrics", (m) => {
+  if (m.firstAudio != null && !m.cached) {   // live first-audio readout (emitted mid-turn; don't record here)
+    const fast = !!m.speculated;
+    $("lat").innerHTML = fast ? "<b>spec · " + m.firstAudio + " ms to voice</b>" : m.firstAudio + " ms to voice";
+  } else if (m.cached && m.firstAudio != null) { $("lat").innerHTML = "cached · " + m.firstAudio + " ms to voice"; }
+  if (m.total == null) return;   // record into the ledger ONCE, at turn completion (metrics is emitted repeatedly per turn)
+  if (m.cached) return;
+  if (m.firstToken != null) (m.warm ? lard.ft_warm : lard.ft_cold).push(m.firstToken);   // the warm-KV win lands HERE (prefill)
+  if (m.firstAudio != null) (m.speculated ? lard.fa_spec : lard.fa_cold).push(m.firstAudio);
+  renderStats();
+});
+q.on("speculating", (t) => console.log("[Q] speculating on:", t));
+q.on("warn", (w) => console.warn("[Q]", w));
+
+// ── the orb: one living, audio-reactive presence ──
+const cv = $("orb"), g = cv.getContext("2d"), W = cv.width, H = cv.height, cx = W/2, cy = H/2;
+const PAL = {
+  idle:      ["#3a5cff", "#6ea8ff"],
+  listening: ["#18b6ff", "#7ce0ff"],
+  thinking:  ["#8a5cff", "#c19bff"],
+  speaking:  ["#20d17a", "#82f0b4"],
+  waking:    ["#8a5cff", "#c19bff"],
+};
+function draw(t) {
+  const target = q.getLevel ? q.getLevel() : 0;
+  level += (target - level) * 0.25;                                  // smooth
+  const st = loading ? "waking" : phase;
+  const col = PAL[st] || PAL.idle;
+  const breathe = 1 + 0.03 * Math.sin(t/900);
+  const react = 1 + level * 0.9;                                     // voice-reactive swell
+  const R0 = (W * 0.16) * breathe * react;
+  g.clearRect(0,0,W,H);
+  // soft aura layers
+  for (let i = 4; i >= 0; i--) {
+    const r = R0 + i * (W*0.05) + (i===0 ? level*40 : 0);
+    const grd = g.createRadialGradient(cx, cy, r*0.15, cx, cy, r);
+    grd.addColorStop(0, col[1] + (i===0 ? "e6" : "1c"));
+    grd.addColorStop(1, col[0] + "00");
+    g.beginPath(); g.fillStyle = grd; g.arc(cx, cy, r, 0, 7); g.fill();
+  }
+  // bright core
+  const core = g.createRadialGradient(cx, cy, 0, cx, cy, R0*0.6);
+  core.addColorStop(0, "#ffffff" + (st==="idle" ? "cc" : "ee"));
+  core.addColorStop(1, col[1] + "00");
+  g.beginPath(); g.fillStyle = core; g.arc(cx, cy, R0*0.6, 0, 7); g.fill();
+  // caption fade when idle+quiet
+  if (capFadeT && performance.now() > capFadeT && phase === "idle") { $("cap").classList.add("fade"); capFadeT = 0; }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ── one gesture: tap the orb to start / end the call ──
+async function toggle() {
+  if (loading) return;
+  if (q.active) { q.stop(); setStatus(""); showHint(true); return; }
+  try { q.arm(); } catch (e) {}                          // UNLOCK audio inside the gesture (must be synchronous)
+  loading = true; setStatus("waking"); showHint(false);
+  try { await q.start(); } catch (e) { caption("q", "I couldn't start — " + (e.message || e)); }
+  loading = false;
+}
+$("stage").addEventListener("click", toggle);
+
+// text drive (no mic) — same brain→voice path
+$("compose").addEventListener("submit", async (e) => {
+  e.preventDefault(); const v = $("text").value.trim(); if (!v) return; $("text").value = "";
+  try { q.arm(); } catch (e2) {}                          // unlock audio inside the submit gesture
+  caption("you", v);
+  try { await q.say(v); } catch (err) { caption("q", "…" + (err.message || err)); }
+});
+</script>
+</body>
+</html>

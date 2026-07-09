@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Holo Together</title>
+<style>
+  :root { --bg:#0b1014; --card:#121a21; --ink:#e9f1f5; --dim:#8aa0ad; --line:#1f2c35; --accent:#00d09c; --accent2:#7b5cff; --bad:#e76f6f; --warn:#e9c46a; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; }
+  body { background:radial-gradient(1200px 700px at 50% -10%, #1a2740 0%, var(--bg) 55%); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; display:flex; align-items:center; justify-content:center; padding:18px; min-height:100%; }
+  .wrap { width:100%; max-width:880px; }
+  /* lobby card */
+  .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:30px 26px 24px; box-shadow:0 24px 64px rgba(0,0,0,.5); text-align:center; max-width:400px; margin:0 auto; position:relative; overflow:hidden; }
+  .brand { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--dim); font-weight:600; font-size:13px; margin-bottom:18px; }
+  .brand .dot { width:18px; height:18px; border-radius:50%; background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--accent)); }
+  .icon { font-size:46px; line-height:1; margin-bottom:10px; }
+  .headline { font-size:21px; font-weight:700; letter-spacing:-.2px; line-height:1.3; }
+  .sub { color:var(--dim); font-size:13.5px; margin-top:8px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--dim); background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:999px; padding:4px 10px; margin-bottom:16px; }
+  .btn { display:block; width:100%; border:0; border-radius:14px; padding:15px; font-size:16px; font-weight:700; cursor:pointer; margin-top:20px;
+    background:linear-gradient(90deg,var(--accent),#1fd6ac); color:#04110d; transition:transform .08s ease, filter .15s ease; }
+  .btn:active { transform:scale(.985); } .btn:disabled { opacity:.7; cursor:default; }
+  .note { color:var(--dim); font-size:12px; margin-top:14px; }
+  .err { color:var(--bad); } .warnpill { color:var(--warn); border-color:rgba(233,196,106,.3); }
+  /* stage (after join) */
+  .stage { display:none; }
+  .stage.on { display:block; }
+  .stage-bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; color:var(--dim); font-size:13px; }
+  .stage-bar b { color:var(--ink); } .stage-bar .live { color:var(--accent); font-weight:700; display:flex; align-items:center; gap:5px; }
+  .stage-bar .live::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 rgba(0,208,156,.6); animation:pulse 1.6s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(0,208,156,.5)} 70%{box-shadow:0 0 0 9px rgba(0,208,156,0)} 100%{box-shadow:0 0 0 0 rgba(0,208,156,0)} }
+  .screen { width:100%; aspect-ratio:16/9; background:#05080b; border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; }
+  .screen video { width:100%; height:100%; object-fit:contain; background:#000; }
+  .screen .placeholder { color:var(--dim); text-align:center; padding:24px; }
+  .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.12); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .footrow { display:flex; align-items:center; justify-content:space-between; margin-top:12px; color:var(--dim); font-size:12px; }
+  .ghost { background:rgba(255,255,255,.05); color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-size:13px; cursor:pointer; }
+  .hide { display:none !important; }
+  #docEditor { width:100%; min-height:54vh; resize:vertical; background:#0a1119; color:var(--ink); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; font:15px/1.65 ui-monospace,"SF Mono",Menlo,Consolas,monospace; outline:none; caret-color:var(--accent); }
+  #docEditor:focus { border-color:rgba(123,92,255,.55); box-shadow:0 0 0 3px rgba(123,92,255,.14); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- LOBBY -->
+    <div class="card" id="lobby">
+      <div class="brand"><span class="dot"></span> Holo Together</div>
+      <div class="pill" id="status">Reading invite…</div>
+      <div class="icon" id="icon">✨</div>
+      <div class="headline" id="headline"></div>
+      <div class="sub" id="sub"></div>
+      <button class="btn hide" id="join"></button>
+      <div class="note" id="note"></div>
+    </div>
+    <!-- STAGE (after join) -->
+    <div class="stage" id="stage">
+      <div class="stage-bar"><span class="live">LIVE</span> <b id="stageTitle"></b> <span id="stageHost"></span></div>
+      <div class="screen" id="screen">
+        <div class="placeholder" id="screenMsg"><div class="spinner"></div>Connecting to the room…</div>
+        <video id="video" playsinline autoplay class="hide"></video>
+        <div id="player" class="hide" style="width:100%;height:100%"></div>
+      </div>
+      <textarea id="docEditor" class="hide" spellcheck="false" placeholder="Start typing. Everyone in this room edits together, live."></textarea>
+      <div class="footrow"><span id="footnote">🔒 End-to-end · view-only · only people with this link are here</span><button class="ghost" id="leave">Leave</button></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import "./holo-together-rtc.mjs";   // installs window.HoloTogether (WebRTC join/host over the signal relay) - works in any browser
+    import { parseSession, describe, joinSession, hostSession } from "./holo-together.mjs";
+    import { makeWatchSync } from "./holo-together-sync.mjs";       // play/pause/seek lockstep over the control channel
+    import { mountContent, isSyncable, classifyContent } from "./holo-together-media.mjs";  // URL → a sync-ready player
+    import { bindTextarea } from "./holo-together-text.mjs";   // co-edit a shared doc (char-level RGA CRDT) over the same channel
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (t, cls = "") => { const s = $("status"); s.textContent = t; s.className = "pill " + cls; };
+    const show = (id, on = true) => $(id).classList.toggle("hide", !on);
+    // ROLE: a viewer by default. The HOST opens this page locally with ?role=host (NEVER in the shared link), so the
+    // host drives playback while everyone with the plain link follows. The role marker can't travel in the link → a
+    // recipient can never become the driver.
+    const ROLE = new URLSearchParams(location.search).get("role") === "host" ? "host" : "viewer";
+
+    async function main() {
+      const frag = location.hash ? location.hash.slice(1) : "";
+      if (!frag) { setStatus("No session in this link", "err"); $("headline").textContent = "This link doesn't contain a session."; return; }
+      const res = await parseSession(frag);
+      if (!res.ok) { setStatus("Unreadable link", "err"); $("headline").textContent = res.error || "Not a valid Together link."; return; }
+      const it = res.intent;
+      if (!res.integrity) { setStatus("This link looks altered. Don't trust it", "err"); $("headline").textContent = "The session may have been tampered with. Ask for a fresh link."; return; }
+      const d = describe(it);
+      $("icon").textContent = d.icon; $("headline").textContent = d.headline;
+      if (res.expired) { setStatus("This session has ended", "warnpill"); $("sub").textContent = "Ask the host for a new link."; return; }
+      if (ROLE === "host") { enterRoom(it, d); return; }   // host page: go straight to the stage and drive
+      setStatus("You're invited", "");
+      $("sub").textContent = "No account needed. Join in your browser, view-only.";
+      const btn = $("join"); btn.textContent = d.cta; show("join", true);
+      $("note").textContent = "Opens live in this browser. Nothing to install.";
+      btn.onclick = () => enterRoom(it, d);
+    }
+
+    async function enterRoom(it, d) {
+      $("lobby").style.display = "none";
+      $("stage").classList.add("on");
+      $("stageTitle").textContent = it.title || d.verb;
+      $("stageHost").textContent = ROLE === "host" ? "· you're hosting" : (it.hostName ? "· hosted by " + it.hostName : "");
+
+      // DOC path (work together): a shared text doc everyone co-edits live (LWW-Map CRDT over the same channel).
+      if (it.kind === "doc") { return enterDocRoom(it, d); }
+      // CONTENT path (watch/listen with a media URL): each peer plays the content LOCALLY; host drives, viewers follow.
+      if (it.content && (it.kind === "watch" || it.kind === "listen")) { return enterContentRoom(it, d); }
+      // SPACE path (a running holospace shared live): presence + co-drive on the same room. The full space DOM boots
+      // only inside the Hologram shell (there is no web space loader), so on the web you land in a real presence room
+      // anchored to the space κ — never a spinner waiting for a stream that never comes.
+      if (it.content && /^holo:\/\/space\//i.test(it.content)) { return enterSpaceRoom(it, d); }
+
+      // STREAM path (screen/tab/room): the host's live media arrives over WebRTC.
+      const onState = (st) => {
+        if (!st) return;
+        if (st.phase === "connected" && st.stream) { const v = $("video"); v.srcObject = st.stream; show("video", true); $("screenMsg").classList.add("hide"); }
+        else if (st.phase === "scaffold" || st.phase === "channel" || st.phase === "connected-pc") { $("screenMsg").innerHTML = "<div style='font-size:30px;margin-bottom:8px'>" + d.icon + "</div>You're in the room.<br><span style='opacity:.7;font-size:12px'>Live video turns on when the host is streaming.</span>"; }
+        else if (st.phase === "error") { $("screenMsg").innerHTML = "Couldn't connect.<br><span style='opacity:.7;font-size:12px'>" + (st.detail || "") + "</span>"; }
+      };
+      try {
+        if (ROLE === "host") await hostSession(it, { onState });   // capture screen + publish (tab/room)
+        else await joinSession(it, { capability: "view", onState });
+      } catch (e) { onState({ phase: "error", detail: String(e && e.message || e) }); }
+    }
+
+    // WATCH / LISTEN together - mount the actual content and keep everyone in lockstep over the control channel.
+    async function enterContentRoom(it, d) {
+      const drivable = isSyncable(it.content);
+      $("footnote").textContent = drivable
+        ? (ROLE === "host" ? "🔒 You're the host. Play, pause, seek and everyone follows." : "🔒 In sync with the host · play/pause/seek follow automatically.")
+        : "🔒 Watching together · this source can't auto-sync, keep roughly in step.";
+      $("screenMsg").innerHTML = "<div class='spinner'></div>" + (ROLE === "host" ? "Loading the player…" : "Joining " + (it.hostName || "the host") + "…");
+      let mounted, sync, handle;
+      try {
+        mounted = await mountContent($("player"), { kind: it.kind, content: it.content }, {
+          autoplay: false,
+          onReady: (media) => {
+            $("screenMsg").classList.add("hide"); show("player", true);
+            sync = makeWatchSync(media, { driftSec: 0.7 });
+          },
+        });
+      } catch (e) { $("screenMsg").innerHTML = "Couldn't load this content.<br><span style='opacity:.7;font-size:12px'>" + (e && e.message || e) + "</span>"; return; }
+
+      const onState = (st) => { if (st && st.phase === "error") { /* keep playing locally even if the room drops */ } };
+      try {
+        if (ROLE === "host") {
+          handle = await hostSession(it, { control: true, onState });   // control-only room (no screen prompt)
+          if (sync && handle && handle.broadcast) sync.bindHost(handle);   // local play/pause/seek → everyone
+        } else {
+          // viewer: follow the host's control messages; the join handle gives us the live "ctl" channel
+          await joinSession(it, { capability: "view", onState, onControl: (m) => { try { sync && sync.onControl(m); } catch {} } });
+        }
+      } catch (e) { /* transport hiccup - the content still plays locally */ }
+    }
+
+    // ENTER A RUNNING SPACE - presence + co-drive on the same /signal room, anchored to the space κ. On the web the
+    // full space DOM can't boot (shell-only), so we land you in a real presence room and offer the shell-open; if the
+    // host later shares a screen, the live video takes over.
+    async function enterSpaceRoom(it, d) {
+      const kx = (String(it.content).match(/[0-9a-f]{8,64}/i) || [""])[0];
+      const shortk = kx ? kx.slice(0, 6) + "…" + kx.slice(-4) : "κ";
+      $("footnote").textContent = "🔒 Presence + co-drive · the full space opens in the Hologram shell";
+      show("player", true); $("screenMsg").classList.add("hide");
+      $("player").innerHTML =
+        "<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:9px;text-align:center;padding:24px'>" +
+          "<div style='font-size:44px'>✨</div>" +
+          "<div style='font-size:18px;font-weight:700'>" + (it.title || "A running space") + "</div>" +
+          "<div style='color:var(--dim);font-size:13px'>Live" + (it.hostName ? " · hosted by " + it.hostName : "") + "</div>" +
+          "<div style='color:var(--dim);font-family:ui-monospace,monospace;font-size:12px'>holo://space/" + shortk + "</div>" +
+          "<div id='presence' style='color:var(--accent);font-size:13px;font-weight:600;margin-top:4px'>Connecting…</div>" +
+          "<button id='openSpace' class='btn' style='max-width:260px;margin-top:14px'>Open the space</button>" +
+          "<div class='note'>In-shell this boots the running space. On the web you're here in presence with everyone.</div>" +
+        "</div>";
+      const os = $("openSpace"); if (os) os.onclick = () => { try { location.href = "holo://space/" + kx; } catch {} };
+      const setPresence = (t) => { const pr = $("presence"); if (pr) pr.textContent = t; };
+      const onState = (st) => {
+        if (!st) return;
+        if (st.phase === "connected" && st.stream) { const v = $("video"); v.srcObject = st.stream; show("video", true); show("player", false); }
+        else if (st.phase === "channel" || st.phase === "connected-pc" || st.phase === "connected") setPresence("● Live — you're in the room");
+        else if (st.phase === "error") setPresence("Couldn't connect: " + (st.detail || ""));
+      };
+      try { if (ROLE === "host") await hostSession(it, { control: true, onState }); else await joinSession(it, { capability: "view", onState }); }
+      catch (e) { setPresence("Couldn't connect."); }
+    }
+
+    // WORK TOGETHER - a shared doc everyone edits live; converges via the LWW-Map CRDT over the same control channel.
+    async function enterDocRoom(it, d) {
+      $("screen").classList.add("hide"); show("docEditor", true);
+      $("footnote").textContent = "🔒 Everyone here edits together · changes merge live";
+      const ta = $("docEditor"); ta.focus();
+      let mesh = (m) => {};                                  // set once the room handle exists
+      const binding = bindTextarea(ta, { broadcast: (m) => mesh(m), relay: (m) => mesh(m) });
+      const onCtl = (m, from) => { try { binding.onMessage(from ? { ...m, _from: from } : m); } catch {} };
+      try {
+        if (ROLE === "host") {
+          const h = await hostSession(it, { control: true, onControl: onCtl });
+          if (h && h.broadcast) mesh = h.broadcast;
+        } else {
+          const j = await joinSession(it, { capability: it.capability || "edit", onControl: onCtl });
+          if (j && j.send) { mesh = j.send; binding.requestState(); }   // pull whatever's already in the doc
+        }
+      } catch (e) { /* transport hiccup - local editing still works */ }
+    }
+
+    $("leave").onclick = () => { try { location.href = "/"; } catch {} };
+    main().catch((e) => { setStatus("Something went wrong", "err"); $("headline").textContent = String((e && e.message) || e); });
+  </script>
+</body>
+</html>

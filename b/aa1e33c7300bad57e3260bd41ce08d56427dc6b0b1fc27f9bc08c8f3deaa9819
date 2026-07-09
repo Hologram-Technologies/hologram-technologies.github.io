@@ -1,0 +1,146 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo Search</title>
+<!-- HOLO SEARCH — the default engine of the Hologram browser. A plain query is answered from YOUR OWN
+     κ-graph (visit history) + the Hologram app universe, ranked ON-DEVICE (holo-rank), instant, zero-egress.
+     A bare query never needs a third party to paint. The long tail escapes to the web in one tap. (SEC-7:
+     the personal index + rank signals never leave the device.) Loaded same-origin by the browser; result
+     clicks post navigation intent back to the browser page (which owns the loading seam). -->
+<style>
+  :root{color-scheme:dark;--bg:#0b141a;--fg:#e8eef5;--dim:#93a4b8;--card:#121a24;--line:#1e2a38;--accent:#7b68ee;--accent2:#3b6ee0}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:2.4rem 1.2rem 4rem}
+  .brand{display:flex;align-items:center;gap:.6rem;justify-content:center;margin-bottom:1.4rem;opacity:.95}
+  .brand svg{width:30px;height:30px}
+  .brand b{font-size:1.15rem;font-weight:600;letter-spacing:.2px}
+  form{display:flex;gap:.5rem;margin-bottom:.4rem}
+  input[type=search]{flex:1;padding:.85rem 1.1rem;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:1rem;outline:none}
+  input[type=search]:focus{border-color:var(--accent)}
+  button.go{padding:.85rem 1.2rem;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:600;cursor:pointer}
+  .meta{color:var(--dim);font-size:.82rem;margin:.2rem .2rem 1.3rem;display:flex;justify-content:space-between}
+  .seal{color:var(--dim);opacity:.7}
+  .group{margin:1.5rem 0 .5rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:600}
+  a.res{display:block;text-decoration:none;color:inherit;padding:.8rem 1rem;border-radius:12px;border:1px solid transparent}
+  a.res:hover{background:var(--card);border-color:var(--line)}
+  .res .t{font-size:1.02rem;color:#cfe0ff;margin-bottom:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .res .u{color:#6f8db5;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .res .why{display:inline-block;margin-top:.35rem;font-size:.74rem;color:var(--dim);background:#0f1620;border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem}
+  .escape{margin-top:1.6rem;padding-top:1.1rem;border-top:1px solid var(--line)}
+  .empty{color:var(--dim);text-align:center;margin:2rem 0}
+</style></head>
+<body><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="1.7"><defs><linearGradient id="g" x1="0" y1="0" x2="24" y2="24"><stop stop-color="#7b68ee"/><stop offset="1" stop-color="#3b6ee0"/></linearGradient></defs><circle cx="12" cy="12" r="8.4"/><path d="M3.6 12h16.8"/><path d="M12 3.6c2.4 2.3 3.7 5.3 3.7 8.4s-1.3 6.1-3.7 8.4c-2.4-2.3-3.7-5.3-3.7-8.4S9.6 5.9 12 3.6Z"/></svg><b>Holo Search</b></div>
+  <form id="f"><input type="search" id="q" autocomplete="off" spellcheck="false" placeholder="Search your web, the Hologram universe, or the internet"><button class="go" type="submit">Search</button></form>
+  <div class="meta"><span id="stat"></span><span class="seal">on-device · zero-egress · κ-ranked</span></div>
+  <div id="out"></div>
+</div>
+<script src="../player/holo-rank.js"></script>
+<script>
+(function () {
+  "use strict";
+  var params = new URL(location.href).searchParams;
+  var q0 = params.get("q") || "";
+  var qEl = document.getElementById("q"), out = document.getElementById("out"), stat = document.getElementById("stat");
+  qEl.value = q0;
+
+  // navigation goes back to the BROWSER page (it owns the loading seam); fall back to top nav.
+  function nav(url) {
+    try { window.parent.postMessage({ type: "holonav", url: url }, location.origin); } catch (e) {}
+    try { window.parent.postMessage({ type: "holonav", url: url }, "*"); } catch (e) {}
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[<&>"]/g, function (c) { return { "<": "&lt;", "&": "&amp;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function tokens(s) { return String(s || "").toLowerCase().split(/[^a-z0-9]+/).filter(function (t) { return t.length > 1; }); }
+  function host(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } }
+
+  // ── the personal κ-graph: your visit history (persisted by the browser, on-device) ──
+  function history() { try { var h = JSON.parse(localStorage.getItem("holo.browser.history.v1") || "[]"); return Array.isArray(h) ? h : []; } catch (e) { return []; } }
+  // collapse repeat visits to one candidate per URL, counting frequency + keeping the most recent.
+  function historyCandidates() {
+    var by = {}, h = history();
+    for (var i = 0; i < h.length; i++) {
+      var e = h[i]; if (!e || !e.url || !/^https?:\/\//.test(e.url)) continue;   // real web pages only — never our own app/holo:// pages
+      var k = e.url; if (!by[k]) by[k] = { url: e.url, title: e.title || host(e.url), visits: 0, ts: 0, source: "history" };
+      by[k].visits++; by[k].ts = Math.max(by[k].ts, e.ts || 0);
+    }
+    return Object.keys(by).map(function (k) { return by[k]; });
+  }
+  // ── the Hologram universe: the app catalog (JSON-LD, same-origin). Mount-base aware: on a /<repo>/
+  // static host this page is at <base>/apps/browser/holo-search.html, so the catalog is <base>/apps/…. ──
+  var APPS_BASE = location.pathname.replace(/\/apps\/browser\/[^/]*$/, "/apps/");
+  if (!/\/apps\/$/.test(APPS_BASE)) APPS_BASE = "/apps/";
+  var catalogP = fetch(APPS_BASE + "index.jsonld").then(function (r) { return r.json(); }).then(function (j) {
+    var MOUNT = APPS_BASE.replace(/apps\/$/, "");   // "<base>/" — so app links resolve on any mount
+    var ds = j["dcat:dataset"] || j.dataset || [];
+    return ds.map(function (d) {
+      var land = d["dcat:landingPage"] || d["schema:mainEntityOfPage"] || "";
+      return { url: land ? (MOUNT + String(land).replace(/^\/+/, "")) : "", title: d["schema:name"] || "", desc: d["schema:description"] || "", source: "app" };
+    }).filter(function (c) { return c.url && c.title; });
+  }).catch(function () { return []; });
+
+  // ── rank: term match (primary) + personal frequency + recency, fused; holo-rank's learned term
+  // profile contributes a personal boost + we record the search so taste improves over time. Every
+  // pick carries a WHY (legible, no black box). ──
+  function scoreOne(c, qt, profileTerms, now) {
+    var hay = (c.title + " " + (c.url || "") + " " + (c.desc || "")).toLowerCase();
+    var term = 0, hits = 0;
+    for (var i = 0; i < qt.length; i++) { if (hay.indexOf(qt[i]) >= 0) { term += (c.title.toLowerCase().indexOf(qt[i]) >= 0 ? 2 : 1); hits++; } }
+    var termScore = qt.length ? (term / qt.length) * (hits / qt.length) : 0;   // coverage-weighted
+    var freq = c.visits ? Math.min(1, Math.log(1 + c.visits) / Math.log(8)) : 0;
+    var rec = c.ts ? Math.max(0, 1 - (now - c.ts) / (30 * 864e5)) : 0;          // 30-day recency
+    var learned = 0; for (var t in profileTerms) if (hay.indexOf(t) >= 0) learned += profileTerms[t];
+    return { c: c, term: termScore, personal: freq * 0.7 + rec * 0.3, learned: Math.min(1, learned), _hits: hits };
+  }
+  function whyFor(s) {
+    if (s.c.source === "app") return "Hologram app";
+    if (s.c.visits >= 3) return "Visited " + s.c.visits + "×";
+    if (s.personal > 0.4) return "Recently visited";
+    if (s.term >= 1) return "Strong match";
+    return "From your web";
+  }
+  function rankAll(q, cands) {
+    var qt = tokens(q), now = Date.now();
+    var prof = (window.HoloRank && window.HoloRank.profile) ? (window.HoloRank.profile().terms || {}) : {};
+    var scored = cands.map(function (c) { return scoreOne(c, qt, prof, now); }).filter(function (s) { return s.term > 0 || (!qt.length && s.personal > 0); });
+    scored.sort(function (a, b) { return (b.term * 3 + b.personal * 1.4 + b.learned * 0.8) - (a.term * 3 + a.personal * 1.4 + a.learned * 0.8); });
+    return scored;
+  }
+
+  function render(q) {
+    stat.textContent = "";
+    // record the search so the on-device profile learns (holo-rank), then rank.
+    try { if (window.HoloRank && window.HoloRank.signal) window.HoloRank.signal({ type: "search", term: q }); } catch (e) {}
+    catalogP.then(function (apps) {
+      var cands = historyCandidates().concat(apps);
+      var scored = rankAll(q, cands);
+      var yours = scored.filter(function (s) { return s.c.source === "history"; }).slice(0, 8);
+      var appHits = scored.filter(function (s) { return s.c.source === "app"; }).slice(0, 6);
+      var html = "";
+      if (yours.length) { html += '<div class="group">From your web</div>'; yours.forEach(function (s) { html += row(s); }); }
+      if (appHits.length) { html += '<div class="group">Hologram universe</div>'; appHits.forEach(function (s) { html += row(s); }); }
+      // the web escape — ALWAYS present, so the long tail resolves in one tap (no third party until asked).
+      var looksDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/.*)?$/i.test(q.trim()) && !/\s/.test(q.trim());
+      html += '<div class="escape"><div class="group">Search the web</div>';
+      if (looksDomain) html += rowRaw("https://" + q.trim(), "Go to " + esc(q.trim()), "Direct address");
+      html += rowRaw("https://html.duckduckgo.com/html/?q=" + encodeURIComponent(q), "Search “" + esc(q) + "” on the web", "Private web search · DuckDuckGo");
+      html += "</div>";
+      out.innerHTML = html;
+      var n = yours.length + appHits.length;
+      stat.textContent = q ? (n ? (n + " result" + (n > 1 ? "s" : "") + " from your κ-graph") : "Nothing in your κ-graph yet — search the web below") : "Type to search your web and the Hologram universe";
+      wire();
+    });
+  }
+  function row(s) { return rowRaw(s.c.url, s.c.title || host(s.c.url), whyFor(s), s.c.source === "app" ? s.c.url : host(s.c.url)); }
+  function rowRaw(url, title, why, sub) {
+    return '<a class="res" href="' + esc(url) + '" data-url="' + esc(url) + '"><div class="t">' + esc(title) + '</div><div class="u">' + esc(sub || url) + '</div><span class="why">' + esc(why) + '</span></a>';
+  }
+  function wire() {
+    var links = out.querySelectorAll("a.res");
+    for (var i = 0; i < links.length; i++) links[i].addEventListener("click", function (e) { e.preventDefault(); nav(this.getAttribute("data-url")); });
+  }
+
+  document.getElementById("f").addEventListener("submit", function (e) { e.preventDefault(); var q = qEl.value.trim(); if (q) { history.pushState ? 0 : 0; render(q); } });
+  render(q0);
+  qEl.focus(); if (q0) qEl.setSelectionRange(q0.length, q0.length);
+})();
+</script>
+</body></html>

@@ -1,0 +1,82 @@
+<!doctype html><meta charset="utf-8"><title>Holo — this device is an exit peer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<body style="font:15px/1.6 system-ui;background:#0a0e14;color:#e8eef5;margin:0;display:grid;place-items:center;min-height:100vh">
+<div style="max-width:560px;padding:2rem;text-align:center">
+  <h1 style="font-size:1.2rem;font-weight:600">Browse through this device</h1>
+  <p style="opacity:.75">Your other devices — a phone on the road, a tablet on café Wi-Fi — can browse the real web
+     <b>through this machine</b>, over an authenticated peer link. No IP, no server, no third party: the bytes
+     flow device-to-device and are verified before they paint.</p>
+
+  <!-- the pairing code + QR: scan or type on the other device -->
+  <div style="margin:1.6rem auto;display:grid;gap:1rem;place-items:center">
+    <canvas id="qr" width="220" height="220" style="background:#fff;border-radius:14px;padding:12px;box-sizing:content-box"></canvas>
+    <div>
+      <div style="opacity:.5;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em">Pairing code</div>
+      <code id="code" style="font-size:1.3rem;letter-spacing:.06em;font-family:ui-monospace,monospace">………</code>
+    </div>
+  </div>
+
+  <p id="state" style="margin-top:.5rem;font-variant-numeric:tabular-nums;opacity:.9">starting…</p>
+  <p style="opacity:.5;font-size:.85rem;margin-top:1.5rem">Uses public STUN + a content-blind rendezvous — it never
+     sees your pages or keys. Runs on the Hologram host that answers <code>/web</code>. Keep this open to stay reachable.</p>
+</div>
+<script type="module">
+// This device serves the web?url= contract to the owner's OTHER devices — over the SERVERLESS rendezvous
+// (pairκ → coordinate → content-blind Nostr mailbox → WebRTC), so it works across ANY network with no LAN,
+// no signaling server, no copy-paste. It calls its OWN /web (same origin — this page is served by the host).
+// The pairκ is minted once and persisted, so the SAME code keeps working across restarts. Onion-aware:
+// a .onion routes through this host's Arti; clearnet stays on /web.
+import { serveAsExitPeerRdv } from "./_shared/holo-peer-egress.mjs";
+import { makeNostrMailbox, mintPairKappa, codeFromPair } from "./_shared/holo-rendezvous.mjs";
+import { onionExitFetch, hostOnionFetch } from "./_shared/holo-onion-exit.mjs";
+import { encode as qrEncode } from "./_shared/holo-qr-encode.mjs";
+
+const el = (id) => document.getElementById(id);
+const state = el("state");
+
+// ── pairκ: minted once, persisted. The URL/code carries the pairκ; deriving the coordinate needs it (SEC-5). ──
+const LS = "holo.browser.peer.pairk.host";
+let pairK = null;
+try { pairK = localStorage.getItem(LS) || null; } catch {}
+if (!pairK) { pairK = mintPairKappa(); try { localStorage.setItem(LS, pairK); } catch {} }
+
+// render the code + a QR of the phone-side deep link (#pair=<pairκ> → auto-connect on the browser page).
+const code = codeFromPair(pairK);
+el("code").textContent = code;
+const link = new URL("./index.html", location.origin);
+link.hash = "pair=" + pairK;
+renderQR(link.href);
+
+function renderQR(text) {
+  try {
+    const { size, modules } = qrEncode(text, { ecc: "M" });
+    const cv = el("qr"), ctx = cv.getContext("2d");
+    const px = Math.floor(cv.width / size);
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = "#000";
+    const pad = Math.floor((cv.width - px * size) / 2);
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (modules[r][c]) ctx.fillRect(pad + c * px, pad + r * px, px, px);
+  } catch (e) { /* QR is a convenience; the code still works */ }
+}
+
+// ── onion-aware exit: a .onion routes through this host's Arti (/onion endpoint); clearnet on /web. ──
+const fetchImpl = onionExitFetch({ onionFetch: hostOnionFetch("/onion?url=") });
+
+// SEC-4 auth hook: the pairκ AES-GCM seal already proves capability (only holders decrypt the offer). This
+// verify is the second gate for a wired sovereign identity; on your own device the same-pairκ holder is trusted.
+const verify = null;
+
+(async () => {
+  try {
+    state.textContent = "connecting to rendezvous relays…";
+    const mailbox = await makeNostrMailbox({});
+    if (mailbox.relayCount() === 0) { state.textContent = "no rendezvous relay reachable (is WebSocket egress blocked on this network?)"; return; }
+    let peers = 0;
+    const host = await serveAsExitPeerRdv({ pairKappa: pairK, mailbox, fetchImpl, verify,
+      onState: (s) => { peers = s.count; state.textContent = peers ? (peers + " device" + (peers > 1 ? "s" : "") + " browsing through you") : "reachable · waiting for your devices"; } });
+    window.__peerHost = host;
+    state.textContent = "reachable · waiting for your devices  (" + mailbox.relayCount() + " relays)";
+  } catch (e) { state.textContent = "error: " + (e && e.message || e); }
+})();
+</script>
+</body>

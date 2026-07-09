@@ -1,0 +1,27 @@
+#!/bin/bash
+# help — what can I actually run here? Probes the LIVE guest with `command -v`, so it can only
+# ever print commands that truly exist in this rootfs. The guest is the source of truth.
+
+A=$'\033[1;38;5;51m'; D=$'\033[38;5;244m'; G=$'\033[38;5;72m'; R=$'\033[0m'
+have() { command -v "$1" >/dev/null 2>&1; }
+row() { local title=$1; shift; local out="" c; for c in "$@"; do have "$c" && out="$out $c"; done; [ -n "$out" ] && printf '  %s%-9s%s%s\n' "$G" "$title" "$R" "$out"; }
+
+printf '\n%sHolo Linux — what really runs here%s\n\n' "$A" "$R"
+printf '  %sthe substrate, made tangible:%s\n' "$D" "$R"
+printf '    %s%-13s%s prove this is a real Linux kernel\n'            "$A" "verify"      "$R"
+printf '    %s%-13s%s no server — the whole OS runs in this tab\n'    "$A" "serverless"  "$R"
+printf '    %s%-13s%s every byte has a content address (κ)\n'         "$A" "fingerprint" "$R"
+printf '    %s%-13s%s flip one byte and it will not boot\n'           "$A" "tamper"      "$R"
+printf '    %s%-13s%s your work survives a reboot, with no server\n'  "$A" "persist"     "$R"
+printf '    %s%-13s%s rebuild this exact machine from a hash\n'       "$A" "reproduce"   "$R"
+
+printf '\n  %snative Debian commands present in this rootfs:%s\n' "$D" "$R"
+row "files"   ls cp mv rm ln mkdir rmdir pwd stat readlink find du tree
+row "view"    cat head tail more tac nl strings file
+row "text"    grep egrep sed awk sort uniq tr tee sha256sum md5sum base64 diff xargs
+row "process" sh bash kill nice nohup sleep timeout env id whoami uptime
+row "system"  uname hostname dmesg date sync mount df nproc
+row "archive" tar gzip gunzip zcat xz bzip2 cpio
+
+printf '\n  %sNo compiler, editor, or network stack is installed — help only lists what is\n' "$D"
+printf '  really here, so the absence is honest too.%s\n\n' "$R"

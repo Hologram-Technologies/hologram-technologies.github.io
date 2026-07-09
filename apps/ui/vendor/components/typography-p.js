@@ -1,0 +1,1 @@
+import{jsx as a}from"react/jsx-runtime";function e(){return a("p",{className:"leading-7 [&:not(:first-child)]:mt-6",children:"The king, seeing how much happier his subjects were, realized the error of his ways and repealed the joke tax."})}export{e as default};

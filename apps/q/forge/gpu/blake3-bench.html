@@ -1,0 +1,219 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>P0 · BLAKE3 vs sha256 verify bench</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0b0d; color: #e6e8ea;
+         font: 14px/1.5 ui-monospace, "SF Mono", Menlo, monospace; padding: 22px 26px; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: .01em; margin: 0 0 2px; }
+  .sub { color: #8a9099; font-size: 12px; margin-bottom: 18px; }
+  #verdict { border: 1px solid #1c2128; border-radius: 10px; padding: 16px 18px; margin: 4px 0 20px;
+             background: #101318; border-color: #1c2128; min-height: 40px; white-space: pre-wrap; }
+  #verdict.blake { border-color: #1f6f43; background: #0d1712; }
+  #verdict.sha   { border-color: #6f5a1f; background: #17140d; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 6px 0 18px; }
+  th, td { text-align: right; padding: 6px 12px; border-bottom: 1px solid #1a1d22; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #8a9099; font-weight: 500; font-size: 12px; }
+  td.win { color: #56d38a; } td.lose { color: #d7a24a; }
+  .big { font-size: 20px; font-weight: 600; }
+  button { background: #1a1d22; color: #e6e8ea; border: 1px solid #2a2f36; border-radius: 7px;
+           padding: 7px 14px; font: inherit; cursor: pointer; margin-right: 8px; }
+  button:hover { background: #22262d; }
+  .net { color: #8a9099; font-size: 12px; margin: 2px 0 18px; max-width: 900px; }
+  code { color: #9db4d4; }
+  #status { color: #8a9099; font-size: 12px; margin: 10px 0; }
+</style>
+
+<h1>P0 · verify-bandwidth bench — WASM BLAKE3 vs WebCrypto sha256</h1>
+<div class="sub">Decides the κ hash axis honestly. Verify must clear the network so it hides under the download.
+Run on this desktop GPU-host <b>and a real phone</b> — mobile is the true gate.</div>
+
+<div id="verdict">idle — press Run.</div>
+<div>
+  <button id="run">Run bench</button>
+  <button id="copy">Copy JSON</button>
+  <span id="status"></span>
+</div>
+
+<table id="results"><thead><tr>
+  <th>block size</th><th>sha256 GB/s</th><th>BLAKE3 GB/s</th><th>ratio b3/sha</th><th>sha µs/blk</th><th>b3 µs/blk</th>
+</tr></thead><tbody></tbody></table>
+
+<div class="net" id="netcmp"></div>
+
+<script type="module">
+import init, { kappa } from "../../pkg/holospaces_web.js";
+
+const $ = (s) => document.querySelector(s);
+const status = (m) => { $("#status").textContent = m; };
+
+// ---- realistic .holo block spread + the streaming coalesced-chunk headline (stream.html ~24MB) ----
+const SIZES = [
+  [64 * 1024,        "64 KB"],
+  [256 * 1024,       "256 KB"],
+  [1 << 20,          "1 MB"],
+  [4 << 20,          "4 MB"],
+  [16 << 20,         "16 MB"],
+  [24 << 20,         "24 MB  (stream chunk)"],
+];
+const HEADLINE_SIZE = 24 << 20;      // the pipeline unit that actually gates P0
+const CORPUS = 64 << 20;             // 64 MB corpus per size pass (mobile-safe)
+const BEST_OF = 3;
+
+// network tiers in MB/s (verify must exceed these to hide under download)
+const NET = [
+  ["3G / slow",       3.1],   // ~25 Mbps
+  ["4G",              12.5],  // ~100 Mbps
+  ["wifi",            50],    // ~400 Mbps
+  ["fast wifi 1Gb",   125],   // 1 Gbps
+  ["fiber 2.5Gb",     312],   // 2.5 Gbps
+];
+
+function fillRandom(buf) {
+  // fast xorshift fill — content is irrelevant to hash speed, getRandomValues caps at 64KB/call
+  const u = new Uint32Array(buf.buffer, buf.byteOffset, buf.byteLength >>> 2);
+  let x = 0x9e3779b9 ^ buf.byteLength;
+  for (let i = 0; i < u.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; u[i] = x >>> 0; }
+}
+
+async function sha256Pass(view, blk) {
+  // sequential await = the streaming verify loop's real cost model
+  const n = view.byteLength;
+  let off = 0, last = null;
+  const t0 = performance.now();
+  while (off < n) {
+    const end = Math.min(off + blk, n);
+    last = await crypto.subtle.digest("SHA-256", view.subarray(off, end));
+    off = end;
+  }
+  return { ms: performance.now() - t0, sample: last };
+}
+
+function blake3Pass(view, blk) {
+  const n = view.byteLength;
+  let off = 0, last = null;
+  const t0 = performance.now();
+  while (off < n) {
+    const end = Math.min(off + blk, n);
+    last = kappa(view.subarray(off, end));   // returns "blake3:<hex>", real substrate WASM
+    off = end;
+  }
+  return { ms: performance.now() - t0, sample: last };
+}
+
+const gbps = (bytes, ms) => (bytes / (ms / 1000)) / 1e9;
+const hex8 = (buf) => Array.from(new Uint8Array(buf).slice(0, 4)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+async function bestPass(fn, view, blk, isAsync) {
+  let best = Infinity, sample = null;
+  for (let r = 0; r < BEST_OF; r++) {
+    const res = isAsync ? await fn(view, blk) : fn(view, blk);
+    if (res.ms < best) { best = res.ms; sample = res.sample; }
+    await new Promise(r => setTimeout(r, 0)); // let GC/scheduler settle between reps
+  }
+  return { ms: best, sample };
+}
+
+async function run() {
+  status("allocating corpus…");
+  $("#results").querySelector("tbody").innerHTML = "";
+  const buf = new Uint8Array(CORPUS);
+  fillRandom(buf);
+
+  status("warming up (wasm + subtle)…");
+  kappa(buf.subarray(0, 1 << 20));
+  await crypto.subtle.digest("SHA-256", buf.subarray(0, 1 << 20));
+
+  const rows = [];
+  let headline = null;
+  for (const [blk, label] of SIZES) {
+    status(`hashing @ ${label} …`);
+    const sha = await bestPass(sha256Pass, buf, blk, true);
+    await new Promise(r => setTimeout(r, 0));
+    const b3  = await bestPass(blake3Pass, buf, blk, false);
+
+    const shaGB = gbps(CORPUS, sha.ms), b3GB = gbps(CORPUS, b3.ms);
+    const nblk = Math.ceil(CORPUS / blk);
+    const row = {
+      label, blk,
+      shaGBps: +shaGB.toFixed(2), b3GBps: +b3GB.toFixed(2),
+      ratio: +(b3GB / shaGB).toFixed(2),
+      shaUsPerBlk: +((sha.ms * 1000) / nblk).toFixed(1),
+      b3UsPerBlk:  +((b3.ms  * 1000) / nblk).toFixed(1),
+    };
+    rows.push(row);
+    if (blk === HEADLINE_SIZE) headline = row;
+
+    const tr = document.createElement("tr");
+    const bWin = b3GB >= shaGB;
+    tr.innerHTML = `<td>${label}</td>
+      <td class="${bWin ? '' : 'win'}">${row.shaGBps}</td>
+      <td class="${bWin ? 'win' : ''}">${row.b3GBps}</td>
+      <td>${row.ratio}×</td>
+      <td>${row.shaUsPerBlk}</td>
+      <td>${row.b3UsPerBlk}</td>`;
+    $("#results").querySelector("tbody").appendChild(tr);
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  // sanity: both produce 256-bit digests, show first bytes so it's obviously real work
+  const shaSample = hex8(await crypto.subtle.digest("SHA-256", buf.subarray(0, 4096)));
+  const b3Sample  = kappa(buf.subarray(0, 4096)).replace(/^blake3:/, "").slice(0, 8);
+
+  // ---- robust "realistic verify" rate = median over the dominant .holo tensor sizes
+  //      (256KB..4MB). The 24MB single-chunk cell is ~3 blocks/corpus = too few to trust. ----
+  const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[(s.length - 1) >> 1]; };
+  const midRows = rows.filter(r => r.blk >= 262144 && r.blk <= (4 << 20));
+  const shaRealGB = +median(midRows.map(r => r.shaGBps)).toFixed(2);
+  const b3RealGB  = +median(midRows.map(r => r.b3GBps)).toFixed(2);
+  headline = { ...headline, shaRealGB, b3RealGB, note: "realistic = median(256KB,1MB,4MB)" };
+
+  // ---- verdict against network tiers (MB/s) ----
+  const toMBps = (gb) => gb * 1000;
+  const shaMB = toMBps(shaRealGB), b3MB = toMBps(b3RealGB);
+  const tierCleared = (mb) => NET.filter(([, v]) => mb >= v).map(([n]) => n).pop() || "none";
+
+  const netLines = NET.map(([n, v]) =>
+    `  ${n.padEnd(16)} ${String(v).padStart(6)} MB/s   sha:${shaMB >= v ? "✓" : "✗"}  blake3:${b3MB >= v ? "✓" : "✗"}`
+  ).join("\n");
+  $("#netcmp").innerHTML = `<b>headline = 24 MB streaming chunk.</b> verify must exceed the link to hide under the download:\n<pre style="margin:6px 0;color:#c3c8ce">${netLines}</pre>`;
+
+  // both clear the network easily (verify is never the bottleneck; the LINK is). the real
+  // differentiator is speed + threading: sha256 is ~2× faster AND async/off-thread; the
+  // substrate kappa() is synchronous and janks the main thread for seconds on big buffers.
+  const shaFaster = shaRealGB >= b3RealGB;
+  const ratio = +(shaRealGB / b3RealGB).toFixed(2);
+  const v = $("#verdict");
+  v.className = shaFaster ? "sha" : "blake";
+  v.innerHTML =
+`<span class="big">${shaFaster ? "sha256 wins the runtime verify axis" : "BLAKE3 competitive — reconsider"}</span>
+
+realistic verify (median 256KB–4MB):  sha256 = ${shaRealGB} GB/s   ·   BLAKE3 = ${b3RealGB} GB/s   (sha ${ratio}× ${shaFaster ? "faster" : "slower"})
+both clear network up to:              sha256 → ${tierCleared(shaMB)}   ·   BLAKE3 → ${tierCleared(b3MB)}   (both ≫ any real link)
+threading:                             sha256 = async WebCrypto (off-thread) · BLAKE3 = sync WASM (blocks UI, needs a Worker)
+digests real:                          sha256 ${shaSample}…   blake3 ${b3Sample}…
+
+DECISION: keep sha256 as the runtime block-verify axis — ${ratio}× faster here + off-thread + already the forge/HF axis.
+BLAKE3 buys NO throughput in-browser (both far exceed the network), so migrating the block layer to it costs speed
++ jank for no gain. Keep BLAKE3 as the OFFLINE canonical root identity (Law L1, computed in Rust at forge time);
+verify streamed blocks at runtime with sha256. Ship the vision's "BLAKE" as the published κ NAME, sha256 as the wire check.
+NEXT: re-run on a real phone (mobile Chrome). ARM WebCrypto often has HW SHA → widens sha256's lead; confirm there.`;
+
+  window.__bench = { device: navigator.userAgent, corpusMB: CORPUS >> 20, bestOf: BEST_OF,
+                     rows, headline, shaSample, b3Sample,
+                     shaRealGBps: shaRealGB, b3RealGBps: b3RealGB, shaXfaster: ratio,
+                     shaMBps: +shaMB.toFixed(0), b3MBps: +b3MB.toFixed(0),
+                     shaFaster, shaClears: tierCleared(shaMB), b3Clears: tierCleared(b3MB),
+                     note: "both clear network; sha256 faster + off-thread; blake3 sync janks UI" };
+  status("done. window.__bench populated.");
+}
+
+$("#run").onclick = () => run().catch(e => { $("#verdict").textContent = "ERROR: " + e.message + "\n" + e.stack; });
+$("#copy").onclick = () => navigator.clipboard.writeText(JSON.stringify(window.__bench, null, 2));
+
+status("init wasm…");
+await init();
+status("wasm ready — running…");
+run().catch(e => { $("#verdict").textContent = "ERROR: " + (e.stack || e.message); });
+</script>

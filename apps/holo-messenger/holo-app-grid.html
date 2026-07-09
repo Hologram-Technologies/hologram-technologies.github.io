@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Apps — Hologram</title>
+<!--
+  THE κ-LAUNCHER — every holo app, one κ, one tap.
+  A self-contained holospace: it reads the OS app catalog (/apps/index.jsonld — the SAME index the CEF host uses
+  to route holo://<κ>/ → apps/<dir>/) and renders every app as a κ-addressable tile. Tapping a tile (or entering
+  a κ / holo:// address) opens that app as an isolated holospace in the messenger canvas via the ONE door,
+  window.parent.__holoOpenSpace(κ). No app server; 100% in-browser; content-addressed (Law 1) end to end.
+-->
+<style>
+  :root {
+    --bg:#0b0d12; --ink:#e9edef; --dim:#8b93a1; --line:rgba(255,255,255,.08);
+    --accent:#c6a6e6; --accent2:#7b68ee; --glow:rgba(198,166,230,.5);
+    --tile:rgba(255,255,255,.035); --tile-h:rgba(255,255,255,.07);
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font:400 15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+  body { display:flex; flex-direction:column; overflow:hidden; }
+  /* header: title + κ-address / search */
+  .top { flex:0 0 auto; padding:22px clamp(16px,3vw,34px) 8px; }
+  .title { font-size:26px; font-weight:300; letter-spacing:.01em; margin:0 0 14px; }
+  .title b { font-weight:600; }
+  .search { position:relative; max-width:640px; }
+  .search input {
+    width:100%; height:46px; border:0; border-radius:14px; padding:0 44px; color:var(--ink);
+    background:var(--tile); box-shadow:inset 0 0 0 1px var(--line); outline:none; font-size:15px;
+    transition:box-shadow .18s ease, background .18s ease; }
+  .search input:focus { background:var(--tile-h); box-shadow:inset 0 0 0 1px rgba(198,166,230,.45), 0 0 0 4px rgba(198,166,230,.08); }
+  .search .ico { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--dim); pointer-events:none; }
+  .search .hint { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dim); font-size:11px; letter-spacing:.03em; opacity:.7; }
+  /* category chips */
+  .cats { flex:0 0 auto; display:flex; gap:8px; overflow-x:auto; padding:12px clamp(16px,3vw,34px); scrollbar-width:none; }
+  .cats::-webkit-scrollbar { display:none; }
+  .chip { flex:0 0 auto; border:0; cursor:pointer; height:30px; padding:0 13px; border-radius:999px; color:var(--dim);
+    background:var(--tile); box-shadow:inset 0 0 0 1px var(--line); font-size:12.5px; white-space:nowrap; transition:all .14s ease; }
+  .chip:hover { color:var(--ink); background:var(--tile-h); }
+  .chip.on { color:#0b0d12; background:var(--accent); box-shadow:0 0 12px -3px var(--glow); font-weight:600; }
+  /* grid */
+  .grid { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:6px;
+    padding:8px clamp(12px,3vw,30px) calc(28px + env(safe-area-inset-bottom)); align-content:start; }
+  .tile { position:relative; border:0; cursor:pointer; background:transparent; color:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:9px; padding:16px 8px 13px; border-radius:16px;
+    transition:background .14s ease, transform .12s cubic-bezier(.22,1,.36,1); }
+  .tile:hover { background:var(--tile); transform:translateY(-2px); }
+  .tile:active { transform:translateY(0) scale(.97); }
+  .tile .art { width:56px; height:56px; border-radius:15px; display:grid; place-items:center; overflow:hidden;
+    background:linear-gradient(135deg, rgba(123,104,238,.22), rgba(59,110,224,.14));
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.09), 0 6px 18px -10px #000; }
+  .tile .art img { width:100%; height:100%; object-fit:cover; display:block; }
+  .tile .art .fallback { font-size:22px; font-weight:600; color:var(--accent); }
+  .tile .nm { font-size:12.5px; text-align:center; line-height:1.25; max-width:100%;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--ink); }
+  .tile .kv { position:absolute; top:9px; right:9px; width:6px; height:6px; border-radius:50%;
+    background:#59d9a6; box-shadow:0 0 6px #59d9a6; opacity:0; transition:opacity .14s ease; }
+  .tile:hover .kv { opacity:.9; }
+  .empty { grid-column:1/-1; text-align:center; color:var(--dim); padding:60px 0; font-size:14px; }
+  .count { flex:0 0 auto; padding:0 clamp(16px,3vw,34px) 10px; color:var(--dim); font-size:11.5px; letter-spacing:.04em; }
+  @media (max-width:640px){
+    .top { padding-top:calc(16px + env(safe-area-inset-top)); }
+    .grid { grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); }
+    .tile .art { width:50px; height:50px; }
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1 class="title">All <b>Apps</b></h1>
+    <div class="search">
+      <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg></span>
+      <input id="q" type="text" spellcheck="false" autocomplete="off" placeholder="Search apps — or paste a κ / holo:// address" aria-label="Search apps or open a κ address" />
+      <span class="hint" id="hint"></span>
+    </div>
+  </div>
+  <div class="cats" id="cats"></div>
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"><div class="empty">Loading apps…</div></div>
+
+<script>
+(() => {
+  const grid = document.getElementById("grid");
+  const catsEl = document.getElementById("cats");
+  const countEl = document.getElementById("count");
+  const q = document.getElementById("q");
+  const hint = document.getElementById("hint");
+  let apps = [];
+  let cat = "All";
+
+  const kappaOf = (s) => { const m = String(s || "").match(/([0-9a-f]{64})/i); return m ? m[1].toLowerCase() : null; };
+  const prettyCat = (c) => String(c || "").replace(/Application$/, "").replace(/([a-z])([A-Z])/g, "$1 $2") || "Other";
+  // open an app as a holospace via the ONE door in the parent messenger (same-origin).
+  const open = (kappa) => {
+    try {
+      if (window.parent && window.parent.__holoOpenSpace) window.parent.__holoOpenSpace(kappa);
+      else location.assign("/apps/browser/webview/h/" + (kappaOf(kappa) || ""));  // standalone fallback
+    } catch (e) {}
+  };
+
+  async function load() {
+    let ds = [];
+    try {
+      // document-relative FIRST (exact at any mount point — root or /<repo>/, no service worker needed),
+      // then the canonical OS-root path (native host, holo://). Same file both ways.
+      const j = await fetch(new URL("../index.jsonld", location.href), { cache: "no-store" }).then((r) => r.ok ? r.json() : Promise.reject(r.status))
+        .catch(() => fetch("/apps/index.jsonld", { cache: "no-store" }).then((r) => r.json()));
+      ds = j["dcat:dataset"] || j.dataset || [];
+    } catch (e) { grid.innerHTML = '<div class="empty">Could not load the app catalog.</div>'; return; }
+    apps = ds.map((d) => {
+      const k = kappaOf(d["holo:root"] || d["@id"]);
+      const cats = [].concat(d["schema:applicationCategory"] || d["holo:categories"] || []).filter(Boolean);
+      return {
+        kappa: k,
+        did: d["holo:root"] || (k && "did:holo:sha256:" + k),
+        name: d["schema:name"] || (k ? "holo://" + k.slice(0, 8) : "app"),
+        img: d["schema:image"] ? new URL("../../" + String(d["schema:image"]).replace(/^\/+/, ""), location.href).pathname : null,
+        cat: cats[0] || "Other",
+        words: [d["schema:name"], d["schema:description"], d["schema:alternateName"]]
+          .concat(d["schema:keywords"] || [], d["holo:words"] || []).filter(Boolean).join(" ").toLowerCase(),
+      };
+    }).filter((a) => a.kappa && a.name).sort((a, b) => a.name.localeCompare(b.name));
+
+    // category chips (only categories that exist)
+    const present = Array.from(new Set(apps.map((a) => a.cat))).sort();
+    const mkChip = (label, value) => { const b = document.createElement("button"); b.className = "chip" + (value === cat ? " on" : "");
+      b.textContent = label; b.onclick = () => { cat = value; render(); }; return b; };
+    catsEl.innerHTML = ""; catsEl.appendChild(mkChip("All", "All"));
+    present.forEach((c) => catsEl.appendChild(mkChip(prettyCat(c), c)));
+    render();
+  }
+
+  function render() {
+    [...catsEl.children].forEach((b) => b.classList.toggle("on", (b.textContent === "All" ? "All" : null) === cat || prettyCat(cat) === b.textContent));
+    const term = q.value.trim().toLowerCase();
+    let list = apps.filter((a) => (cat === "All" || a.cat === cat) && (!term || a.words.includes(term) || a.name.toLowerCase().includes(term)));
+    countEl.textContent = list.length + (list.length === 1 ? " app" : " apps");
+    grid.innerHTML = "";
+    if (!list.length) { grid.innerHTML = '<div class="empty">No apps match “' + (q.value || "") + '”.</div>'; return; }
+    const frag = document.createDocumentFragment();
+    for (const a of list) {
+      const t = document.createElement("button"); t.className = "tile"; t.title = a.name;
+      t.onclick = () => open(a.did || a.kappa);
+      const art = document.createElement("div"); art.className = "art";
+      if (a.img) {
+        const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = a.img;
+        im.onerror = () => { art.innerHTML = ""; const f = document.createElement("span"); f.className = "fallback"; f.textContent = a.name.replace(/^Holo\s*/i, "").charAt(0).toUpperCase(); art.appendChild(f); };
+        art.appendChild(im);
+      } else { const f = document.createElement("span"); f.className = "fallback"; f.textContent = a.name.replace(/^Holo\s*/i, "").charAt(0).toUpperCase(); art.appendChild(f); }
+      const kv = document.createElement("span"); kv.className = "kv"; kv.title = "content-addressed · verified on open";
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = a.name.replace(/^Holo\s+/i, "");
+      t.append(art, kv, nm); frag.appendChild(t);
+    }
+    grid.appendChild(frag);
+  }
+
+  // type-to-open: a κ / holo:// / did:holo address → open it directly; otherwise the field just filters.
+  q.addEventListener("input", () => {
+    const k = kappaOf(q.value);
+    hint.textContent = k ? "↵ open κ" : "";
+    render();
+  });
+  q.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const k = kappaOf(q.value);
+    if (k) { open(q.value.trim()); return; }
+    // Enter with a single filtered result → open it
+    const term = q.value.trim().toLowerCase();
+    const list = apps.filter((a) => (cat === "All" || a.cat === cat) && (!term || a.words.includes(term) || a.name.toLowerCase().includes(term)));
+    if (list.length === 1) open(list[0].did || list[0].kappa);
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

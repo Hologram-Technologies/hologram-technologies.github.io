@@ -1,0 +1,45 @@
+{
+  "spec": "Whole qwen35 model forward numerically exact vs HF Qwen3NextForCausalLM (tiny 4-layer: 3 gated-DeltaNet linear + 1 gated attention, dense SwiGLU MLP, embed + final RMSNorm + lm_head). Validates end-to-end wiring: per-layer residual structure, the linear/attention schedule, MLP, embedding lookup, (1+weight) norms, lm_head, and that the predicted argmax token matches HF at every position.",
+  "authority": "HF transformers Qwen3NextForCausalLM (torch reference) · fixture via gguf-forge-qwen35-model-parity.gen.py",
+  "minCosine": 0.9999999999999682,
+  "maxRelL2": 2.678764103211693e-7,
+  "argmaxMatches": true,
+  "perToken": [
+    {
+      "t": 0,
+      "cos": 1,
+      "relL2": 2.3704148463415098e-7,
+      "tok": 65,
+      "refTok": 65
+    },
+    {
+      "t": 1,
+      "cos": 1,
+      "relL2": 2.1256331349826834e-7,
+      "tok": 90,
+      "refTok": 90
+    },
+    {
+      "t": 2,
+      "cos": 1,
+      "relL2": 2.678764103211693e-7,
+      "tok": 25,
+      "refTok": 25
+    },
+    {
+      "t": 3,
+      "cos": 1,
+      "relL2": 2.3248656051219196e-7,
+      "tok": 11,
+      "refTok": 11
+    },
+    {
+      "t": 4,
+      "cos": 1,
+      "relL2": 1.9206508279088853e-7,
+      "tok": 65,
+      "refTok": 65
+    }
+  ],
+  "witnessed": true
+}

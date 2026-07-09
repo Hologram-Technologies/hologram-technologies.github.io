@@ -1,0 +1,14 @@
+{
+  "spec": "qwen35 hybrid layer assembly: schedule (24 linear / 8 attention of 32, interval 4), dimension decode, full gated-DeltaNet linear-layer forward (causal conv+SiLU, q/k/v/z/a/b projections, head-group expansion, the proven kernel, gated RMSNorm, out_proj). Proven: finite output, causality, chunked-decode == one-shot-prefill (bit-identical), layer state is a κ-object (checkpoint→κ→resume), and the layer runs on the REAL dequantized blk.0 weights from the forged .holo with finite, sane output (the dimension decode composes). Numerical parity vs llama.cpp + HF head-order confirmation = S4.7.",
+  "authority": "HF modeling_qwen3_next · GGUF qwen35 hparams + blk.0 shapes · gguf-forge-gated-delta (kernel, proven) · gguf-forge-dequant",
+  "witnessed": true,
+  "checks": {
+    "scheduleCorrect": true,
+    "synthForwardShape": true,
+    "layerCausal": true,
+    "chunkedEqualsPrefill": true,
+    "layerStateKappaRoundTrip": true,
+    "dimsCorrect": true,
+    "realWeightSmoke": true
+  }
+}

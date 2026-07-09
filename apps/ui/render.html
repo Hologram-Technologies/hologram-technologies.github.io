@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Holo Render display any object from its κ</title>
+<link rel="stylesheet" href="./vendor/holo-ui.css" />
+<!-- one shared React runtime; every component resolves "react" to this single instance -->
+<script type="importmap">
+{ "imports": {
+  "react": "./vendor/runtime/react.js",
+  "react/jsx-runtime": "./vendor/runtime/react.js",
+  "react-dom": "./vendor/runtime/react.js",
+  "react-dom/client": "./vendor/runtime/react.js",
+  "motion/react": "./vendor/runtime/motion-react.js"
+} }
+</script>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0b0d11; color: #e8eaf0; padding: 28px clamp(16px, 4vw, 48px); }
+  h1 { font-size: 19px; margin: 0 0 2px; }
+  .sub { color: #9aa3b2; font-size: 13px; margin: 0 0 22px; }
+  .case { border: 1px solid #262a33; border-radius: 12px; padding: 16px 18px; margin: 0 0 16px;
+    background: linear-gradient(180deg, #15171c, #121419); }
+  .case h2 { font: 600 11px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase;
+    color: #6b7484; margin: 0 0 4px; }
+  .k { font: 11px/1.5 ui-monospace, monospace; color: #7fd1ff; word-break: break-all; margin: 0 0 12px; }
+  .k b { color: #39d98a; font-weight: 600; }
+  .stage { padding: 14px; border: 1px dashed #262a33; border-radius: 10px; background: #0c0e12; }
+  .meta { font: 11px ui-monospace, monospace; color: #9aa3b2; margin-top: 10px; }
+  .meta .ok { color: #39d98a; } .meta .bad { color: #ff5470; }
+  /* full-page mode: render.html#k=<κ> shows just the object */
+  body.solo .case:not(.solo), body.solo h1, body.solo .sub { display: none; }
+  body.solo .case.solo { border: 0; background: none; padding: 0; }
+</style>
+</head>
+<body>
+<h1>Holo Render</h1>
+<p class="sub">One entry, one law: <code>render(κ) → display</code>. Resolve by content address, verify by re-derivation (L5), compose child κ's (L3 dedup). No compiler on the hot path.</p>
+
+<div class="case solo" id="solo" style="display:none">
+  <h2>object</h2><div class="k" id="solo-k"></div><div class="stage" id="solo-stage"></div><div class="meta" id="solo-meta"></div>
+</div>
+
+<div class="case" data-demo="component"><h2>1 · a single component object</h2>
+  <div class="k" id="k-1"></div><div class="stage" id="s-1"></div><div class="meta" id="m-1"></div></div>
+<div class="case" data-demo="bundle"><h2>2 · a bundle object (composes one module 5×, deduped)</h2>
+  <div class="k" id="k-2"></div><div class="stage" id="s-2"></div><div class="meta" id="m-2"></div></div>
+<div class="case" data-demo="nested"><h2>3 · a nested bundle (a Card embedding two bundles)</h2>
+  <div class="k" id="k-3"></div><div class="stage" id="s-3"></div><div class="meta" id="m-3"></div></div>
+<div class="case" data-demo="speed"><h2>4 · speed cold resolve vs warm rebind (no compiler, no fetch)</h2>
+  <div class="stage" id="s-4" style="min-height:0"></div><div class="meta" id="m-4"></div></div>
+<div class="case" data-demo="l5"><h2>5 · L5 a tampered κ is refused</h2>
+  <div class="meta" id="m-5"></div></div>
+
+<script type="module">
+import HR from "./vendor/runtime/holo-render.js";
+const $ = (id) => document.getElementById(id);
+await HR.configure({ base: "/ui/" });
+const reg = await (await fetch("/ui/registry/index.json")).json();
+const bun = await (await fetch("/ui/registry/bundles/index.json")).json();
+const K = Object.fromEntries(reg.components.map((c) => [c.name, c.holo]));
+const B = Object.fromEntries(bun.bundles.map((b) => [b.name, b.holo]));
+const short = (k) => { const h = String(k).split(":").pop(); return h.slice(0, 12) + "…" + h.slice(-8); };
+
+// full-page mode: #k=<κ>  → render just that object.  #k=<κ>&o=<packed bytes>  → a SELF-VERIFYING share
+// link: decode the embedded bytes, re-derive their κ (Law L5) and refuse a mismatch, then render — so a
+// remix opens on ANY device with no server. (No &o → resolve the κ via the substrate's sources.)
+const m = /[#&]k=([^&]+)/.exec(location.hash);
+const mo = /[#&]o=([^&]+)/.exec(location.hash);
+async function unpack(s) {
+  const mode = s[0], b64 = s.slice(1).replace(/-/g, "+").replace(/_/g, "/");
+  let u8 = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  if (mode === "g") { try { u8 = new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer()); } catch (e) {} }
+  return u8;
+}
+if (m) {
+  document.body.classList.add("solo"); $("solo").style.display = "";
+  const k = decodeURIComponent(m[1]); $("solo-k").innerHTML = "<b>κ</b> " + k;
+  try {
+    if (mo) {                                                        // self-contained link: verify, then render
+      const stored = await HR.stash(await unpack(decodeURIComponent(mo[1])));   // stash re-derives the κ
+      if (stored.split(":").pop() !== k.split(":").pop()) throw new Error("REFUSED link bytes do not match its κ (Law L5)");
+    }
+    const r = await HR.render($("solo-stage"), k);
+    $("solo-meta").innerHTML = `<span class="ok">✓ ${mo ? "verified + rendered from the link" : "rendered"}</span> · ${r.kind} · ${r.ms}ms`;
+  } catch (e) { $("solo-meta").innerHTML = `<span class="bad">✗ ${e.message}</span>`; }
+} else {
+  // 1 — a single component
+  $("k-1").innerHTML = "<b>κ</b> " + K.button;
+  { const r = await HR.render($("s-1"), K.button, { props: { variant: "default" }, children: "A button, from its κ" });
+    $("m-1").innerHTML = `<span class="ok">✓</span> kind ${r.kind} · ${r.ms}ms · no compiler`; }
+  // 2 — a bundle (button-row: Button ×5, one module deduped)
+  $("k-2").innerHTML = "<b>κ</b> " + B["button-row"];
+  { const r = await HR.render($("s-2"), B["button-row"]);
+    const u = await HR.unbundle(B["button-row"]);
+    $("m-2").innerHTML = `<span class="ok">✓</span> ${r.kind} · ${r.ms}ms · ${u.length} child refs → ${new Set(u).size} unique module (L3 dedup)`; }
+  // 3 — nested bundle (panel)
+  $("k-3").innerHTML = "<b>κ</b> " + B.panel;
+  { const r = await HR.render($("s-3"), B.panel);
+    const u = await HR.unbundle(B.panel);
+    $("m-3").innerHTML = `<span class="ok">✓</span> ${r.kind} · ${r.ms}ms · composes ${new Set(u).size} objects (incl. nested bundles)`; }
+  // 4 — speed: cold (fresh module) vs warm (resident, rebind)
+  { const host = $("s-4"); const t0 = performance.now();
+    await HR.render(host, K.card, { props: { style: { width: "20rem", padding: 14 } }, children: "cold" });
+    const cold = (performance.now() - t0).toFixed(2);
+    const t1 = performance.now();
+    await HR.render(host, K.card, { props: { style: { width: "20rem", padding: 14 } }, children: "warm rebind" });
+    const warm = (performance.now() - t1).toFixed(2);
+    $("m-4").innerHTML = `cold resolve+import+render <b>${cold}ms</b> → warm rebind <b class="ok">${warm}ms</b> · arena ${HR.stats.arena()} · modules ${HR.stats.mods()}`; }
+  // 5 — L5 refusal: point a WRONG κ at real bytes; re-derivation catches the lie
+  { const liar = "holo://sha256:" + "0".repeat(64);
+    const map = await (await fetch("/ui/vendor/importmap.json")).json();
+    map.imports[liar] = "./vendor/components/button.js";          // honest button bytes, dishonest address
+    await HR.configure({ importmap: map, base: "/ui/" });
+    try { await HR.resolve(liar); $("m-5").innerHTML = `<span class="bad">✗ accepted a forged address (should not happen)</span>`; }
+    catch (e) { $("m-5").innerHTML = `<span class="ok">✓ refused</span> ${e.message} · a forged address cannot wear honest bytes`; }
+  }
+}
+</script>
+</body>
+</html>

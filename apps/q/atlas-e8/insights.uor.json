@@ -1,0 +1,209 @@
+{
+ "@id": "did:holo:sha256:1184b3be28849cc27e933479e14e06c58a257fcff1566c2ce133b8dcc609d13c",
+ "@context": [
+  "https://www.w3.org/ns/did/v1",
+  {
+   "schema": "https://schema.org/",
+   "prov": "http://www.w3.org/ns/prov#",
+   "holo": "https://hologram.os/ns/q#"
+  }
+ ],
+ "@type": [
+  "holo:E8InsightsVerification",
+  "prov:Entity"
+ ],
+ "schema:name": "Five witnessed experiments on the E8·ATLAS96 object (real model data)",
+ "holo:object": "did:holo:sha256:652dcc6490dabf4fdb4a713a2773079a858b2aa1490582e777e38a5c3499a6cd",
+ "holo:dataSources": {
+  "weights": "sha256:f50af8c3d759a54451a33d520c5358398e37401af2e16be43f5b257becf453a5",
+  "e8model": "qwen2.5-1.5b-e8",
+  "embeddings": "sha256:f7c25de4ee59dbe07bb1157ae0934ce495ae4cc20e992a4949105ee8efb788dd"
+ },
+ "holo:results": {
+  "E1": {
+   "sample": 40000,
+   "missRate": 0.941,
+   "mseFreeSnap": 0.0008192936742885433,
+   "msePruned": 0.0030780265965988578,
+   "mseWalkUnion": 0.0024166347540800887,
+   "walkImproved": 16140,
+   "usPerMissPrune": 1.4,
+   "usPerMissWalk": 101.6
+  },
+  "E2": {
+   "codewordsUsed": 34755,
+   "entropyBits": 14.38,
+   "uniformBits": 16,
+   "storageHeadroomPct": 10.1,
+   "onLatticeUseFrac": 0.637,
+   "classKLvsBall": 0.122
+  },
+  "E3": {
+   "curve": [
+    {
+     "rel": 0.2,
+     "nmse": 0.3497,
+     "shellEntropy": 0
+    },
+    {
+     "rel": 0.25,
+     "nmse": 0.2647,
+     "shellEntropy": 0
+    },
+    {
+     "rel": 0.3,
+     "nmse": 0.2094,
+     "shellEntropy": 0.016
+    },
+    {
+     "rel": 0.35,
+     "nmse": 0.1809,
+     "shellEntropy": 0.146
+    },
+    {
+     "rel": 0.4,
+     "nmse": 0.1691,
+     "shellEntropy": 0.516
+    },
+    {
+     "rel": 0.45,
+     "nmse": 0.1656,
+     "shellEntropy": 1.038
+    },
+    {
+     "rel": 0.5,
+     "nmse": 0.1586,
+     "shellEntropy": 1.588
+    },
+    {
+     "rel": 0.55,
+     "nmse": 0.1296,
+     "shellEntropy": 1.855
+    },
+    {
+     "rel": 0.6,
+     "nmse": 0.1211,
+     "shellEntropy": 1.921
+    },
+    {
+     "rel": 0.65,
+     "nmse": 0.1233,
+     "shellEntropy": 1.942
+    },
+    {
+     "rel": 0.7,
+     "nmse": 0.123,
+     "shellEntropy": 1.925
+    },
+    {
+     "rel": 0.75,
+     "nmse": 0.1331,
+     "shellEntropy": 1.792
+    },
+    {
+     "rel": 0.8,
+     "nmse": 0.1474,
+     "shellEntropy": 1.749
+    },
+    {
+     "rel": 0.85,
+     "nmse": 0.1674,
+     "shellEntropy": 1.695
+    },
+    {
+     "rel": 0.9,
+     "nmse": 0.1886,
+     "shellEntropy": 1.728
+    }
+   ],
+   "bestRel": 0.6,
+   "bestNMSE": 0.1211,
+   "peakShellEntropyRel": 0.65,
+   "note": "rate-constrained (256-shape LUT)"
+  },
+  "E4": {
+   "G_measured": 0.0717,
+   "G_known": 0.07168,
+   "G_scalar": 0.08333333333333333,
+   "G_leech": 0.0658,
+   "leechCeilingPct": 8.2
+  },
+  "E5": {
+   "rows": 1500,
+   "bands": 8,
+   "hyperplane": {
+    "recall": 0.156,
+    "avgCand": 83
+   },
+   "e8sweep": [
+    {
+     "scale": 0.05,
+     "recall": 0.131,
+     "avgCand": 66
+    },
+    {
+     "scale": 0.08,
+     "recall": 0.76,
+     "avgCand": 1212
+    },
+    {
+     "scale": 0.12,
+     "recall": 1,
+     "avgCand": 1499
+    },
+    {
+     "scale": 0.18,
+     "recall": 1,
+     "avgCand": 1499
+    },
+    {
+     "scale": 0.25,
+     "recall": 1,
+     "avgCand": 1499
+    }
+   ],
+   "e8matched": {
+    "scale": 0.05,
+    "recall": 0.131,
+    "avgCand": 66
+   }
+  }
+ },
+ "holo:gates": [
+  {
+   "name": "E1 walk∪prune never worse than prune (strict)",
+   "ok": true,
+   "detail": "MSE 3.078e-3 → 2.417e-3 (21.49% better; walk won on 16140/37622 misses; cost 101.6µs vs 1.4µs/miss)"
+  },
+  {
+   "name": "E2 entropy coding headroom is real",
+   "ok": true,
+   "detail": "H(codeword) = 14.38 bits of 16 → 10.1% smaller storage at entropy; 34755 distinct codewords"
+  },
+  {
+   "name": "E2 resonance-class skew measured",
+   "ok": true,
+   "detail": "KL(usage ‖ ball) = 0.122 bits; 63.7% of usage lands on-lattice"
+  },
+  {
+   "name": "E3 a natural δ exists at fixed rate (interior minimum)",
+   "ok": true,
+   "detail": "argmin at δ = 0.6·absmax (NMSE 0.1211); shell-entropy peaks at 0.65; encoder window 0.30-0.75 COVERS it ✓"
+  },
+  {
+   "name": "E4 our object IS the E₈ quantizer (G matches)",
+   "ok": true,
+   "detail": "G measured 0.0717 vs known 0.07168 (scalar 1/12 = 0.0833)"
+  },
+  {
+   "name": "E4 Leech ceiling stated (not faked)",
+   "ok": true,
+   "detail": "Λ₂₄ would buy ≤ 8.2% MSE at equal rate real but small vs the 4× structural effects (scale search); park until the 14B-e8 cliff verdict"
+  },
+  {
+   "name": "E5 E8-LSH vs hyperplane at MATCHED selectivity",
+   "ok": true,
+   "detail": "HP recall 0.156 @ 83 cand · E8(scale 0.05) recall 0.131 @ 66 cand (see curve)"
+  }
+ ]
+}

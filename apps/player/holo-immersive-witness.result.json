@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-immersive — the binge layer: Skip-Intro/Credits chapters bound to a title κ (detect once, reuse, verifiable), autoplay Up-Next (next-episode ordering across seasons + lead-window countdown), and κ-addressed subtitles (SRT→canonical WebVTT, content-addressed, tamper-refused).",
+  "authority": "rests on #holo-chapters + #holo-upnext + #holo-subtitles — Phase 3 of the streaming/metadata plan",
+  "witnessed": true,
+  "covers": [
+    "skip-window",
+    "chapters-kappa",
+    "next-episode",
+    "prompt-next",
+    "srt-to-vtt",
+    "subtitle-kappa"
+  ],
+  "checks": {
+    "skipWindow": true,
+    "chaptersKappa": true,
+    "nextEpisode": true,
+    "promptNext": true,
+    "srtToVtt": true,
+    "subtitleKappa": true
+  },
+  "failed": []
+}

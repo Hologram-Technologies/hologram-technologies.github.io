@@ -1,0 +1,160 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q-bench — real-device latency & quality</title>
+<!--
+  Q-BENCH — the "needs real GPU" debt, paid in numbers. Runs the REAL canonical Q loop on THIS device's GPU
+  (createFastQBrain → BitNet-2B κ) and reports an honest P50/P95 latency ledger + a golden QUALITY check
+  (no training-data leaks via stripLeaks, on-identity via identityGuard, coherent). No mocks: it loads the
+  same brain the messenger runs. Open in Chrome/Edge/Brave (WebGPU). Auto-runs with ?run=1. window.__qbench = result.
+-->
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:radial-gradient(120% 100% at 50% 20%,#0e1118,#06070b); color:#e8edf6; min-height:100vh; }
+  .wrap { max-width:760px; margin:0 auto; padding:32px 20px 80px; }
+  h1 { font-size:22px; font-weight:650; margin:0 0 2px; letter-spacing:-.01em; }
+  .sub { color:#8b97ab; font-size:13px; margin-bottom:22px; }
+  button { font:inherit; font-weight:600; cursor:pointer; border:0; border-radius:999px; padding:10px 20px; color:#f3fff9; background:linear-gradient(135deg,#2f9d78,#12704f); }
+  button:disabled { opacity:.5; cursor:default; }
+  button.ghost { background:rgba(255,255,255,.08); color:#cdd6e5; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+  .phase { color:#7defc9; font-size:13px; min-height:1.4em; }
+  .card { background:rgba(20,26,37,.66); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px 18px; margin:14px 0; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.12em; color:#9fb0c8; margin:0 0 12px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:7px 4px; border-top:1px solid rgba(255,255,255,.06); vertical-align:top; }
+  tr:first-child td { border-top:0; }
+  .k { color:#aeb9cc; } .v { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .tgt { text-align:right; color:#7b8798; font-size:12px; }
+  .pass { color:#57e08f; } .fail { color:#ff7a7a; }
+  .big { font-size:15px; font-weight:700; padding:10px 14px; border-radius:12px; display:inline-block; }
+  .big.pass { background:rgba(31,143,107,.2); color:#8bf0c2; } .big.fail { background:rgba(255,90,90,.16); color:#ff9e9e; }
+  .q { font-size:13px; }
+  .q .p { color:#cdd6e5; } .q .r { color:#8b97ab; font-size:12px; white-space:pre-wrap; word-break:break-word; margin-top:2px; }
+  .chip { font-size:11px; padding:1px 7px; border-radius:999px; margin-left:6px; }
+  .chip.ok { background:rgba(31,143,107,.22); color:#8bf0c2; } .chip.no { background:rgba(255,90,90,.18); color:#ff9e9e; }
+  pre { background:rgba(0,0,0,.35); border-radius:12px; padding:12px; overflow:auto; font-size:12px; color:#9fb0c8; }
+  a { color:#7defc9; }
+</style>
+<div class="wrap">
+  <h1>Q-bench</h1>
+  <div class="sub">The real Q loop on <b>this</b> device's GPU — honest latency (P50/P95) + a golden quality check. No mocks.</div>
+  <div class="row">
+    <button id="run">Run benchmark</button>
+    <button id="copy" class="ghost" style="display:none">Copy result</button>
+    <span class="phase" id="phase"></span>
+  </div>
+  <div id="out"></div>
+</div>
+<script type="module">
+import { createFastQBrain } from "./core/q-brain-fast.mjs";
+import { identityGuard, humanize, stripLeaks, Q_STYLE } from "./core/holo-q-guards.mjs";
+
+const $ = (s) => document.querySelector(s);
+const phase = (t) => { $("#phase").textContent = t; };
+const pct = (arr, p) => { if (!arr.length) return 0; const a = [...arr].sort((x, y) => x - y); const i = Math.min(a.length - 1, Math.floor(p / 100 * a.length)); return a[i]; };
+const ms = (n) => (n == null ? "—" : Math.round(n) + " ms");
+const one = (n) => (n == null ? "—" : (Math.round(n * 10) / 10));
+
+// The golden set — small, fast, and each probes a distinct quality axis.
+const GOLD = [
+  { prompt: "Say hello to me in one short sentence.", axis: "greeting" },
+  { prompt: "What are you? Answer honestly in one or two sentences.", axis: "identity" },   // identityGuard MUST NOT need to rewrite
+  { prompt: "What is two plus two?", axis: "factual" },
+  { prompt: "Give me one line of Python that prints the word hello.", axis: "code" },
+];
+// Warm-latency probes — repeated so P50/P95 mean something (first inference = cold, rest = warm-KV).
+const WARMSET = ["Name a color.", "Say one kind word.", "What day comes after Monday?", "Count to three.", "Name a fruit.", "Say goodbye."];
+
+function qcheck(text) {
+  const t = String(text || "");
+  const noLeak = stripLeaks(t).trim() === t.trim() && !/[<>]|(\b[a-z]{2}-[A-Z]{2,}\b)/.test(t);   // stripLeaks removed nothing + no markup/locale scraps
+  const onIdentity = identityGuard(t) === t;   // guard didn't have to rewrite → Q didn't claim to be GPT/cloud
+  const coherent = humanize(t).trim().length >= 2;
+  return { noLeak, onIdentity, coherent, ok: noLeak && onIdentity && coherent };
+}
+
+async function bench() {
+  $("#run").disabled = true; $("#out").innerHTML = ""; $("#copy").style.display = "none";
+  if (!(navigator.gpu)) { $("#out").innerHTML = '<div class="card"><b class="fail">No WebGPU on this browser.</b><br>Q runs on-device via WebGPU — open this in Chrome, Edge, or Brave (desktop, or Android/Safari 18+).</div>'; $("#run").disabled = false; return; }
+
+  const brain = createFastQBrain({ family: "BitNet", maxTokens: 64, kappaBase: "/apps/q/models" });
+  const res = { device: null, model: null, coldLoadMs: null, coldTtftMs: null, warm: {}, quality: [], pass: false };
+
+  // 1) COLD LOAD — stream + build the engine on the GPU.
+  phase("Loading the brain onto your GPU… (first run downloads ~0.55 GB, then it's cached)");
+  const tLoad = performance.now();
+  try { await brain.load((p) => { if (p && p.total) phase(`Loading… ${Math.round(100 * p.done / p.total)}%`); }); }
+  catch (e) { $("#out").innerHTML = `<div class="card"><b class="fail">Load failed:</b> ${e.message}</div>`; $("#run").disabled = false; return; }
+  res.coldLoadMs = performance.now() - tLoad;
+  const info = brain.info(); res.device = info.device; res.model = info.model;
+
+  // Pin the persona so warm turns reuse its KV (the warm-KV win we're measuring).
+  const persona = ((brain.persona && brain.persona()) || "You are Q, a private AI running locally on this device.") + Q_STYLE;
+  try { await brain.pinPersona(persona); } catch (e) {}
+
+  const turn = async (prompt) => {
+    const history = [{ role: "system", content: persona }, { role: "user", content: prompt }];
+    let stats = null; const t0 = performance.now();
+    const text = await brain.chat(history, { onStats: (s) => (stats = s) });
+    return { text, wall: performance.now() - t0, ttft: stats && stats.ttft, tokps: stats && stats.tokps };
+  };
+
+  // 2) COLD first token (the very first inference after load).
+  phase("Measuring first-token latency…");
+  const cold = await turn("Ready?");
+  res.coldTtftMs = cold.ttft != null ? cold.ttft : cold.wall;
+
+  // 3) WARM latency — repeated turns; collect TTFT + tok/s.
+  const ttfts = [], tokps = [];
+  for (let i = 0; i < WARMSET.length; i++) {
+    phase(`Measuring warm latency… ${i + 1}/${WARMSET.length}`);
+    const r = await turn(WARMSET[i]);
+    if (r.ttft != null) ttfts.push(r.ttft); if (r.tokps) tokps.push(r.tokps);
+  }
+  res.warm = { n: ttfts.length, ttftP50: pct(ttfts, 50), ttftP95: pct(ttfts, 95), tokpsP50: pct(tokps, 50), tokpsP95: pct(tokps, 95) };
+
+  // 4) QUALITY — the golden set, checked deterministically (no human, no model judge).
+  for (let i = 0; i < GOLD.length; i++) {
+    phase(`Quality check… ${i + 1}/${GOLD.length}`);
+    const r = await turn(GOLD[i].prompt);
+    res.quality.push({ axis: GOLD[i].axis, prompt: GOLD[i].prompt, text: r.text, ...qcheck(r.text) });
+  }
+
+  // Verdict — targets are honest and stated; latency depends on power state (iGPU throttles on battery).
+  const tWarm = res.warm.ttftP50 && res.warm.ttftP50 <= 700;
+  const tQual = res.quality.every((q) => q.ok);
+  res.pass = tWarm && tQual;
+  res.at = new Date().toISOString();
+  window.__qbench = res;
+
+  phase("");
+  render(res, tWarm, tQual);
+  $("#run").disabled = false; $("#copy").style.display = "inline-block";
+}
+
+function render(res, tWarm, tQual) {
+  const yn = (b) => b ? '<span class="pass">✓</span>' : '<span class="fail">✗</span>';
+  const q = res.quality.map((x) => `<div class="q" style="margin:8px 0"><div class="p">${x.axis} · “${x.prompt}”
+    <span class="chip ${x.noLeak ? "ok" : "no"}">${x.noLeak ? "no leak" : "LEAK"}</span>
+    <span class="chip ${x.onIdentity ? "ok" : "no"}">${x.onIdentity ? "on-identity" : "OFF-IDENTITY"}</span>
+    <span class="chip ${x.coherent ? "ok" : "no"}">${x.coherent ? "coherent" : "empty"}</span></div>
+    <div class="r">${(x.text || "").slice(0, 220).replace(/</g, "&lt;")}</div></div>`).join("");
+  $("#out").innerHTML = `
+    <div class="big ${res.pass ? "pass" : "fail"}">${res.pass ? "PASS — Q is fast & honest on this device" : "REVIEW — see below"}</div>
+    <div class="card"><h2>Latency (measured on ${res.device || "?"} · ${res.model || "?"})</h2>
+      <table>
+        <tr><td class="k">Warm TTFT · P50</td><td class="v">${ms(res.warm.ttftP50)} ${yn(tWarm)}</td><td class="tgt">target ≤ 700 ms</td></tr>
+        <tr><td class="k">Warm TTFT · P95</td><td class="v">${ms(res.warm.ttftP95)}</td><td class="tgt">${res.warm.n} turns</td></tr>
+        <tr><td class="k">Throughput · P50</td><td class="v">${one(res.warm.tokpsP50)} tok/s</td><td class="tgt">iGPU ~50 · discrete/AC higher</td></tr>
+        <tr><td class="k">First token (cold)</td><td class="v">${ms(res.coldTtftMs)}</td><td class="tgt">first inference</td></tr>
+        <tr><td class="k">Cold load</td><td class="v">${(res.coldLoadMs / 1000).toFixed(1)} s</td><td class="tgt">download-bound; cached after</td></tr>
+      </table></div>
+    <div class="card"><h2>Quality — golden set ${yn(tQual)}</h2>${q}</div>
+    <div class="card"><h2>Shareable result</h2><pre>${JSON.stringify(res, null, 2)}</pre></div>`;
+}
+
+$("#run").onclick = bench;
+$("#copy").onclick = () => { try { navigator.clipboard.writeText(JSON.stringify(window.__qbench)); $("#copy").textContent = "Copied ✓"; setTimeout(() => ($("#copy").textContent = "Copy result"), 1500); } catch (e) {} };
+if (new URLSearchParams(location.search).has("run")) bench();
+</script>

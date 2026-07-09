@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>My Wallet · Hologram</title>
+    <meta name="description" content="Holo Wallet. One seed reaches every chain: Ethereum and every EVM network, Bitcoin, Solana. Self custodial, serverless, no password. Reads are open; every spend is approved by your biometrics on this device." />
+    <link rel="stylesheet" href="../../../_shared/holo-theme.css" data-holo-shared="holo-theme.css" />
+    <link rel="stylesheet" href="../../../_shared/holo-mobile.css" data-holo-shared="holo-mobile.css" />
+    <style>
+      /* Holo Wallet — MetaMask exact, hologram native. The census, density and gestures match the
+         MetaMask extension screen for screen (account pill → balance → Buy Swap Send Receive →
+         Tokens/Activity → routed sheets → full-screen confirmation), so a trained thumb needs zero
+         instruction. What sits underneath is the opposite trust model: no password (TEE biometric),
+         no trusted explorer API — every spend's "what this does" is re-derived in THIS tab (Law L5)
+         and stamped with a κ you can verify. Match the surface exactly; replace the root invisibly. */
+      :root { color-scheme: dark;
+        --bg: #0d1117; --ink: #ffffff; --dim: #9aa4b2; --line: rgba(255,255,255,.07);   /* == the OS left nav rail (--holo-chrome): wallet and rail are ONE chrome, the seam disappears */
+        --acc: var(--holo-accent); --acc-ink: #07101f; --acc2: color-mix(in srgb, var(--acc) 72%, var(--holo-ink));   /* --acc2 follows --acc so an ecosystem retint cascades */
+        --good: var(--holo-ok); --bad: var(--holo-danger); --warn: var(--holo-warn);
+        --surface: color-mix(in srgb, var(--holo-ink) 5%, transparent);
+        --surface2: color-mix(in srgb, var(--holo-ink) 8%, transparent);
+        --r: var(--holo-radius, 14px); --r-sm: var(--holo-radius-sm, 10px); --r-lg: var(--holo-radius-lg, 18px); --pill: 999px;
+        /* golden-ratio scale (φ = 1.618), mirroring the OS holo-phi tokens — proportions throughout */
+        --phi: 1.618; --s-3xs: .236rem; --s-2xs: .382rem; --s-xs: .618rem; --s-s: 1rem; --s-m: 1.618rem; --s-l: 2.618rem; --s-xl: 4.236rem;
+        /* type — bound to the Hologram-OS theme: the OS sans/mono families and the --holo-text ramp
+           (16px floor, ADR-0057), so the whole wallet scales from the one --holo-font-scale lever and
+           reads in the same voice as the shell. No sub-floor px/rem literals leak through. */
+        --font: var(--holo-font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+        --font-mono: var(--holo-font-mono, ui-monospace, "Cascadia Code", Menlo, Consolas, monospace);
+        /* ONE type unit (--u, 16px floor per ADR-0057) on a φ scale, so the whole wallet reads at the
+           OS desktop's size. Secondary text == body size (16px+); hierarchy comes from weight + colour,
+           never from shrinking below the floor. h2 = φ¹, h1 = φ². No sub-floor sizes anywhere. */
+        --u: clamp(16px, .42vw + 14.4px, 19px); --t: var(--u); --t-sm: var(--u);
+        --t-lg: calc(var(--u) * 1.618); --t-xl: calc(var(--u) * 2.618); }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg);   /* flat MetaMask surface — no accent-tinted gradient, so it reads as the extension, not a themed app */
+        transition: background .42s ease;
+        color: var(--ink); display: flex; flex-direction: column; overflow: hidden;
+        font: var(--t)/1.55 var(--font); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+      a { color: var(--acc); text-decoration: none; } a:hover { text-decoration: underline; }
+      .mono { font-family: var(--font-mono); }
+      .muted { color: var(--dim); } .hidden { display: none !important; }
+      h1 { font-size: 1.5rem; margin: 0; } h2 { font-size: 1.1rem; margin: 0; }
+      h3 { font: 600 var(--t-sm) var(--font); color: var(--dim); text-transform: uppercase; letter-spacing: .09em; margin: 0 0 .5rem; }
+      .grad { color: var(--acc); }
+
+      /* ── top bar ── */
+      #bar { flex: 0 0 auto; display: flex; align-items: center; gap: .6rem; z-index: 40;
+        padding: .5rem .85rem; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); user-select: none; }
+      #bar .brand { display: flex; align-items: center; gap: .45rem; font-weight: 700; letter-spacing: .01em; }
+      #bar .brand .mk-h { width: 22px; height: 22px; display: block; flex: 0 0 auto; }   /* the Hologram H — vector, always crisp */
+      #bar .sp { margin-left: auto; }
+      .iconbtn { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--dim); cursor: pointer; transition: background .12s, color .12s; }
+      .iconbtn:hover { background: var(--surface2); color: var(--ink); } .iconbtn svg { width: 18px; height: 18px; }
+
+      main { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; align-items: center; position: relative; }
+      .wrap { width: 100%; max-width: 30rem; padding: 1rem 1rem 5.5rem; }
+      .center { min-height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 1.1rem; padding: 2rem 1.2rem; max-width: 28rem; margin: 0 auto; }
+      /* unlock — a biometric-first gate (re-shown on every open of the docked wallet) */
+      #view-unlock.center { justify-content: space-between; gap: 0; }
+      .ucol { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1rem; width: 100%; }
+      .shield { width: 74px; height: 74px; filter: drop-shadow(0 8px 20px color-mix(in srgb, var(--acc) 38%, transparent)); }
+      .shield .a { stop-color: var(--acc); } .shield .b { stop-color: var(--good); }
+      .btn.bio { display: inline-flex; align-items: center; gap: .5rem; min-width: 15rem; justify-content: center; }
+      .btn.bio svg { width: 19px; height: 19px; }
+      .resetbar { width: 100%; padding-top: 1rem; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: .35rem; }
+      .resetbar a { font-weight: 600; }
+      .lede { color: var(--dim); }
+
+      /* ── controls ── */
+      .btn { font: 600 var(--t) var(--font); color: var(--acc-ink); background: var(--acc); border: 1px solid var(--acc2); border-radius: var(--r-sm); padding: .72rem 1.2rem; cursor: pointer; transition: filter .12s; }
+      .btn:hover { filter: brightness(1.08); } .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+      .btn.ghost { color: var(--ink); background: transparent; border-color: var(--line); } .btn.ghost:hover { border-color: var(--acc); filter: none; }
+      .btn.wide { width: 100%; } .btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+      .row { display: flex; gap: .6rem; align-items: center; } .spread { justify-content: space-between; }
+      input, textarea, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .7rem .8rem; width: 100%; }
+      input:focus, textarea:focus, select:focus { outline: 0; border-color: var(--acc); }
+      textarea { resize: vertical; min-height: 4.5rem; } label { display: block; color: var(--dim); margin: .8rem 0 .3rem; }
+      .pill { display: inline-flex; align-items: center; gap: .35rem; font: 600 var(--t-sm) var(--font); padding: .18rem .55rem; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+      .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 1rem 1.1rem; }
+
+      /* ── token list (MetaMask exact rows) ── */
+      .tok { display: flex; align-items: center; gap: .8rem; padding: .75rem .3rem; border-bottom: 1px solid var(--line); }
+      .tok:last-child { border-bottom: 0; }
+      .tok .dot { width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-weight: 800; color: #07101f; }
+      /* MetaMask-exact token glyph: round token disc + small network badge overlaid bottom-right (unclipped wrapper) */
+      .tok .glyph { position: relative; flex: 0 0 auto; }
+      .tok .glyph .netbadge { position: absolute; right: -1px; bottom: -1px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 .5px rgba(0,0,0,.3); }
+      .tok .meta .earn { font: 600 var(--t-sm) var(--font); color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); border-radius: 6px; padding: 0 .34rem; margin-left: .35rem; vertical-align: middle; letter-spacing: .02em; }
+      .tok .meta { min-width: 0; flex: 1 1 auto; } .tok .meta b { display: block; }
+      /* MetaMask right column: bold USD value stacked over the muted amount (never run together) */
+      .tok .bal b { display: block; font-weight: 700; }
+      .tok .bal .amt { display: block; }
+      .tok .bal { text-align: right; white-space: nowrap; }
+
+      /* ── MetaMask-form dashboard (Holo tokened): network·account header, balance, action row, tabs ── */
+      .mm-head { display: flex; align-items: center; gap: .5rem; padding: .2rem 0 .9rem; }
+      .netpill { display: inline-flex; align-items: center; gap: .4rem; font: 600 var(--t-sm) var(--font); color: var(--ink); background: var(--surface);
+        border: 1px solid var(--line); border-radius: var(--pill); padding: .35rem .7rem; cursor: pointer; transition: .12s; min-width: 0; }
+      .netpill:hover { border-color: var(--acc); } .netpill .chev { width: 14px; height: 14px; color: var(--dim); flex: 0 0 auto; }
+      .netpill .ndot { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; background: var(--acc); }
+      .netpill > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .acctpill { margin-left: auto; display: inline-flex; align-items: center; gap: .5rem; background: transparent; border: 0; cursor: pointer; color: var(--ink); max-width: 56%; }
+      .acctpill .av { width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-weight: 800; color: var(--acc-ink);
+        background: linear-gradient(135deg, var(--acc), var(--acc2)); }
+      .acctpill .anm { min-width: 0; text-align: left; } .acctpill .anm b { display: block; line-height: 1.15; }
+      .acctpill .did { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+      .acctpill:hover .did { color: var(--acc); }
+
+      /* ── THE PLATINUM CARD — a real metal card, machined from one piece (pure CSS, STATIC). PURE platinum:
+         no colour, cool neutral silver. Layered like the real thing: a cross-polished sheen · a broad
+         anisotropic specular band · dense fine VERTICAL brushing (the metal grain) · a bright top bevel and
+         dark bottom edge · text pressed into relief. No animation, no parallax — it just catches the light. ── */
+      .holo-cc { position: relative; width: 100%; aspect-ratio: 1.586 / 1; border-radius: 15px; overflow: hidden;
+        margin: .1rem 0 1.15rem; padding: clamp(.95rem, 5cqw, 1.55rem); display: flex; flex-direction: column; justify-content: space-between;
+        color: #6b7280; isolation: isolate; container-type: inline-size; border: 1px solid rgba(255,255,255,.5);
+        background: linear-gradient(107deg, #d4d9e0 0%, #eef1f4 17%, #c3cad2 32%, #e9ecf0 47%, #ccd2d9 61%, #f1f3f6 79%, #ccd2da 100%);
+        box-shadow: 0 22px 46px -20px rgba(2,6,14,.78), inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 0 rgba(58,68,84,.42), inset 0 0 0 1px rgba(122,134,150,.28); }
+      /* dense fine vertical brushed grain across the whole face — the signature machined-metal texture */
+      .holo-cc::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .5; mix-blend-mode: soft-light;
+        background: repeating-linear-gradient(90deg, rgba(255,255,255,.9) 0 .5px, rgba(88,98,112,.55) .5px 1.5px, rgba(255,255,255,.35) 1.5px 2px); }
+      /* one broad specular band sweeping across (anisotropic highlight) + a top-left light catch and a cool
+         bottom-right shadow. Pure white/graphite — NO colour tint, so it reads as true platinum. */
+      .holo-cc::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background: linear-gradient(107deg, transparent 28%, rgba(255,255,255,.5) 43%, rgba(255,255,255,.08) 52%, transparent 63%),
+                    radial-gradient(135% 105% at 6% -14%, rgba(255,255,255,.52) 0%, transparent 40%),
+                    radial-gradient(120% 105% at 108% 122%, rgba(56,64,80,.3) 0%, transparent 46%); }
+      .holo-cc > * { position: relative; z-index: 1; }
+      .holo-cc-top { display: flex; align-items: center; justify-content: space-between; }
+      /* raised (embossed) metal text: same platinum tone, a highlight on the TOP edge + a shadow BELOW = relief */
+      .holo-cc-brand { display: inline-flex; align-items: center; gap: .44rem; font-weight: 800; font-size: clamp(1rem, 5.6cqw, 1.45rem); letter-spacing: .015em;
+        color: #b7bdc7; text-shadow: 0 -1px 0 rgba(255,255,255,.92), 0 1px 1px rgba(50,58,72,.5); }
+      .holo-cc-mk { width: clamp(16px, 5.4cqw, 23px); height: clamp(16px, 5.4cqw, 23px); display: block; opacity: .92;
+        filter: brightness(.62) drop-shadow(0 -1px 0 rgba(255,255,255,.8)) drop-shadow(0 1px .5px rgba(50,58,72,.5)); }   /* H pressed into the metal */
+      .holo-cc-tier { font: 800 clamp(.6rem, 2.8cqw, .74rem)/1 var(--font); letter-spacing: .24em; text-transform: uppercase;
+        color: #949ba6; text-shadow: 0 -1px 0 rgba(255,255,255,.8), 0 1px 1px rgba(50,58,72,.4); }
+      /* brushed-SILVER EMV chip (matches the platinum body, like the Ultra) with fine contact lines */
+      .holo-cc-chip { width: clamp(2.5rem, 15.5cqw, 3.3rem); height: clamp(1.8rem, 11cqw, 2.45rem); border-radius: 6px; position: relative;
+        background: linear-gradient(135deg, #f2f4f6 0%, #c2c8d0 38%, #969da7 70%, #7f8791 100%);
+        box-shadow: inset 0 0 0 1px rgba(80,90,104,.4), inset 0 1px 1px rgba(255,255,255,.7), inset 0 -1px 1px rgba(50,58,72,.35), 0 1px 2px rgba(0,0,0,.24); }
+      .holo-cc-chip::before { content: ""; position: absolute; inset: 15% 11%; border: 1px solid rgba(60,68,82,.4); border-radius: 3px;
+        background: linear-gradient(90deg, transparent 30%, rgba(60,68,82,.2) 30% 33%, transparent 33% 67%, rgba(60,68,82,.2) 67% 70%, transparent 70%); }
+      .holo-cc-chip::after { content: ""; position: absolute; left: 50%; top: 12%; bottom: 12%; width: 1px; background: rgba(60,68,82,.32); }
+      .holo-cc-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: .7rem; }
+      .holo-cc-name { font-weight: 800; font-size: clamp(.9rem, 4.8cqw, 1.18rem); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        color: #b7bdc7; text-shadow: 0 -1px 0 rgba(255,255,255,.82), 0 1px 1px rgba(50,58,72,.44); }   /* engraved cardholder name, in relief */
+      .holo-cc-seal { font-size: clamp(1.1rem, 6cqw, 1.55rem); line-height: 1; color: #aab1bb; text-shadow: 0 -1px 0 rgba(255,255,255,.75), 0 1px 1px rgba(50,58,72,.4); }
+      @media (prefers-color-scheme: light) { .holo-cc { box-shadow: 0 16px 38px -20px rgba(2,6,14,.42), inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 0 rgba(58,68,84,.4), inset 0 0 0 1px rgba(122,134,150,.28); } }
+
+      .mm-bal { display: flex; flex-direction: column; align-items: center; gap: var(--s-3xs); margin: var(--s-xs) 0 var(--s-m); }
+      .mm-bal .big { font-size: var(--s-l); font-weight: 800; letter-spacing: -.025em; line-height: 1; }
+      .mm-bal .iconbtn { width: 26px; height: 26px; } .mm-bal .iconbtn svg { width: 14px; height: 14px; }
+      .bigrow { display: flex; align-items: center; gap: .5rem; }
+      .chgline { min-height: 1.05em; }
+      .chg { font-weight: 600; } .chg.up { color: var(--good); } .chg.dn { color: var(--bad); }
+
+      /* MetaMask's four: Buy · Swap · Send · Receive — soft cards (icon + label) on Holo tokens */
+      .mm-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2xs); margin-bottom: var(--s-m); }
+      .mmact { display: flex; flex-direction: column; align-items: center; cursor: pointer;
+        color: var(--ink); font: 600 var(--t-sm) var(--font); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .62rem .25rem .5rem; gap: .32rem; }
+      .mmact:hover { border-color: var(--acc); background: var(--surface2); }
+      .mmact .ic { display: grid; place-items: center; color: var(--acc); }
+      .mmact .ic svg { width: var(--s-m); height: var(--s-m); }
+
+      .mm-tabs { display: flex; gap: .2rem; border-bottom: 1px solid var(--line); margin-bottom: var(--s-xs); }
+      .mm-tab { flex: 1 1 auto; font: 600 var(--t-sm) var(--font); color: var(--dim); background: transparent; border: 0; border-bottom: 2px solid transparent;
+        padding: .6rem .4rem; cursor: pointer; transition: color .12s, border-color .12s; margin-bottom: -1px; }
+      .mm-tab:hover { color: var(--ink); } .mm-tab.on { color: var(--ink); border-bottom-color: var(--acc); }
+
+      .netrow { display: flex; align-items: center; gap: .7rem; padding: .7rem .3rem; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: var(--r-sm); }
+      .netrow:last-child { border-bottom: 0; } .netrow:hover { background: var(--surface); }
+      .netrow .nd { width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-weight: 800; color: var(--acc-ink); }
+      .netrow .nm { flex: 1 1 auto; font-weight: 600; } .netrow .ck { color: var(--acc); opacity: 0; } .netrow.on .ck { opacity: 1; }
+      .appmeta { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .9rem; }
+      .appmeta .m1 { display: inline-flex; align-items: center; gap: .45rem; font-weight: 600; }
+      .appmeta .adot { width: 22px; height: 22px; border-radius: 50%; display: inline-block; background: linear-gradient(135deg, var(--acc), var(--acc2)); }
+      /* brand logos — the official artwork loads over a coloured letter fallback (removed on error, so the
+         letter shows). Asset hosted by its own registry; we reference it, recognisable yet honest. */
+      .tok .dot, .netrow .nd, .netpill .ndot { position: relative; overflow: hidden; }
+      .lg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: inherit; }
+      .tok-empty { padding: 1.6rem .6rem; text-align: center; }
+      /* section headers — MONEY (your dollars) and ASSETS (your coins) */
+      .grp-h { font: 700 var(--t-sm) var(--font); color: var(--dim); letter-spacing: .02em; padding: 1rem .3rem .35rem; }
+      #chainList .grp-h:first-child { padding-top: .35rem; }
+
+      /* ── routed SHEETS (Receive/Send/Swap/Buy/Bridge/Networks/Sites/Menu/Agents) ── */
+      .scrim { position: fixed; inset: 0; background: #05070ccc; backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 60; }
+      .scrim.on { opacity: 1; pointer-events: auto; }
+      .sheet { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%); width: 100%; max-width: 30rem; max-height: 88vh; overflow: auto;
+        background: var(--bg); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r-lg) var(--r-lg) 0 0; padding: .6rem 1.1rem 1.6rem; z-index: 61; transition: transform .22s cubic-bezier(.2,.8,.2,1); }
+      .sheet.on { transform: translate(-50%, 0); }
+      .sheet .grab { width: 38px; height: 4px; border-radius: 999px; background: var(--line); margin: .3rem auto .8rem; }
+      .sheet .head { display: flex; align-items: center; gap: .5rem; margin-bottom: .8rem; } .sheet .head h2 { margin-right: auto; }
+      /* the menu sheet — plain rows, MetaMask density */
+      .menurow { display: flex; align-items: center; gap: .7rem; width: 100%; text-align: left; font: 600 var(--t) var(--font); color: var(--ink);
+        background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: .8rem .2rem; cursor: pointer; border-radius: var(--r-sm); }
+      .menurow:hover { background: var(--surface); } .menurow .mi { color: var(--dim); display: grid; place-items: center; }
+      .menurow .mi svg { width: 19px; height: 19px; } .menurow .sub { margin-left: auto; color: var(--dim); font-weight: 500; }
+      .menurow.danger { color: var(--bad); } .menurow.danger .mi { color: var(--bad); }
+
+      .seedgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin: .8rem 0; }
+      .seedgrid .w { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .5rem .6rem; font: 600 var(--t-sm) var(--font-mono); }
+      .seedgrid .w i { color: var(--dim); font-style: normal; margin-right: .4rem; user-select: none; }
+      .warn { color: var(--warn); }
+      .qrbox { display: grid; place-items: center; background: #fff; border-radius: var(--r); padding: .8rem; width: 220px; height: 220px; margin: .6rem auto; } .qrbox svg { width: 100%; height: 100%; }
+
+      .actitem { display: flex; align-items: center; gap: .7rem; padding: .65rem .2rem; border-bottom: 1px solid var(--line); }
+      .actitem:last-child { border-bottom: 0; }
+      .actitem .ai { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface2); color: var(--dim); flex: 0 0 auto; }
+      .actitem .ai.out { color: var(--warn); } .actitem .ai.in { color: var(--good); }
+      .actitem .m { flex: 1 1 auto; min-width: 0; } .actitem .m b { display: block; } .actitem .m .sub { color: var(--dim); }
+      .kbadge { font: 600 var(--t-sm) var(--font-mono); color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 40%, transparent); border-radius: 999px; padding: .04rem .42rem; }
+
+      .site { display: flex; align-items: center; gap: .7rem; padding: .7rem .2rem; border-bottom: 1px solid var(--line); } .site:last-child { border-bottom: 0; }
+      .site .m { flex: 1 1 auto; min-width: 0; } .site .m b { display: block; overflow: hidden; text-overflow: ellipsis; }
+      .switch { position: relative; width: 40px; height: 23px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--line); cursor: pointer; flex: 0 0 auto; }
+      .switch.on { background: var(--bad); border-color: var(--bad); } .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: var(--ink); transition: transform .14s; }
+      .switch.on::after { transform: translateX(17px); background: #fff; }
+
+      .agentlane .tool { display: flex; gap: .6rem; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--line); }
+      .agentlane .tool:last-child { border-bottom: 0; } .agentlane .tool code { color: var(--acc); } .agentlane .tool.gated code { color: var(--warn); }
+
+      /* ── full-screen APPROVAL (the pre-sign view — κ-honest) ── */
+      #view-approve { position: fixed; inset: 0; z-index: 80; background: radial-gradient(120% 80% at 50% -10%, #16203a 0%, #0a0d16 50%, var(--bg) 100%);
+        display: none; flex-direction: column; }
+      #view-approve.on { display: flex; }
+      #view-approve .ahead { display: flex; align-items: center; gap: .6rem; padding: 1rem 1.1rem .4rem; }
+      #view-approve .ahead .lock { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--acc) 18%, transparent); color: var(--acc); }
+      #view-approve .abody { flex: 1 1 auto; overflow: auto; padding: .6rem 1.1rem 1rem; width: 100%; max-width: 30rem; margin: 0 auto; }
+      .explain { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--acc); border-radius: var(--r); padding: .9rem 1rem; margin-bottom: .9rem; }
+      .explain .who { color: var(--dim); margin-bottom: .3rem; }
+      .risk { display: flex; align-items: center; gap: .5rem; padding: .55rem .8rem; border-radius: var(--r-sm); margin-bottom: .9rem; }
+      .risk.ok { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+      .risk.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+      .kv { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--line); }
+      .kv:last-child { border-bottom: 0; } .kv span:first-child { color: var(--dim); } .kv .mono { word-break: break-all; text-align: right; }
+      .kstamp { margin-top: .8rem; padding: .7rem .9rem; border: 1px dashed color-mix(in srgb, var(--good) 45%, var(--line)); border-radius: var(--r-sm); background: color-mix(in srgb, var(--good) 7%, transparent); }
+      .kstamp .lbl { color: var(--good); font: 600 var(--t-sm) var(--font); display: flex; align-items: center; gap: .35rem; }
+      .kstamp .val { font: var(--t-sm) var(--font-mono); color: var(--dim); word-break: break-all; margin-top: .25rem; }
+      #view-approve .afoot { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1.4fr; gap: .6rem; padding: .9rem 1.1rem calc(.9rem + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); width: 100%; max-width: 30rem; margin: 0 auto; }
+
+      .toast { position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .55rem .9rem; color: var(--ink); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 95; }
+      .toast.on { opacity: 1; }
+
+      /* ═══════════════════════════════════════════════════════════════════════════════════════════
+         HOLOGRAM-OS ALIGNMENT — one cohesive surface with the shell, layered last so the cascade
+         lifts the whole wallet without touching the wiring: TYPE (OS families, 16px floor),
+         SPACE (fill the carriage box), FEEL (one transition vocabulary, calm press lift).
+         ═══════════════════════════════════════════════════════════════════════════════════════════ */
+      h1 { font-size: var(--t-xl); letter-spacing: -.02em; line-height: 1.1; }
+      h2 { font-family: var(--font); font-size: var(--t-lg); }
+      .btn, input, textarea, select, .kv, .tok .meta b, .acctpill .anm b,
+      .netrow .nm, .explain, .actitem .m b, .mm-bal .iconbtn { font-family: var(--font); font-size: var(--t); }
+      .muted, .warn, .lede, .pill, .mm-tab, .netpill, .acctpill .did, .kbadge,
+      .mmact, .actitem .m .sub, .agentlane .tool, .risk, .kstamp .lbl,
+      .seedgrid .w i, .tok .meta .sub, .tok .bal .amt, .chg, .tok-empty,
+      .site .m .muted, .appmeta .m1, .explain .who, label { font-family: var(--font); font-size: var(--t-sm); }
+      .kstamp .val, .seedgrid .w, .actitem .m .sub.mono { font-family: var(--font-mono); font-size: var(--t-sm); }
+
+      main { scroll-behavior: smooth; }
+      .wrap { max-width: 40rem; padding: 1.05rem 1.15rem 4.5rem; }
+      @media (min-width: 30rem) { .wrap { padding-inline: 1.5rem; } }
+      /* the ONE top bar — full-bleed OS chrome; the shell suppresses its carriage header for the wallet,
+         so this is the only header. The » collapse lives here when docked (wired in script). */
+      #bar { padding: .55rem .65rem .55rem 1rem; gap: .5rem; }
+      #bar .brand { font-size: var(--t); }
+      #collapseBtn { display: none; }
+
+      .tok, .mmact, .netpill, .acctpill, .iconbtn, .netrow, .menurow,
+      .btn, .mm-tab, .switch, .site { transition: background-color .16s ease, border-color .16s ease,
+        color .16s ease, transform .14s ease, box-shadow .16s ease, filter .12s ease; }
+      .mmact:hover { transform: translateY(-2px); }
+      .tok { cursor: default; border-radius: var(--r-sm); padding: .7rem .5rem; }
+      .tok:hover { background: var(--surface); }
+      .tok .meta b { display: flex; align-items: center; gap: .4rem; }
+      .tok .meta .sub { min-height: 1.05em; }
+      .tok .bal .amt { color: var(--dim); }
+      .mmact:active, .btn:active, .menurow:active { transform: translateY(0) scale(.985); }
+      .iconbtn:active { transform: scale(.92); }
+      :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: 6px; }
+      input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
+      @media (min-width: 34rem) { .mm-actions { gap: var(--s-xs); } }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <span class="brand"><img class="mk-h" src="../icons/hologram-dark.svg" alt="Hologram" /> My Wallet</span>
+      <span class="sp"></span>
+      <button class="iconbtn hidden" id="settingsBtn" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <button class="iconbtn" id="fsBtn" title="Fullscreen (f)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+      <button class="iconbtn" id="collapseBtn" title="Collapse panel" aria-label="Collapse panel" style="font-size:1.2rem; line-height:1">»</button>
+    </div>
+
+    <main>
+      <!-- ── SIGN IN — one biometric IS wallet creation (TEE root). No seed ceremony in the flow. ── -->
+      <section id="view-welcome" class="center hidden">
+        <div class="ucol">
+          <svg class="shield" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="shg2" x1="0" y1="0" x2="1" y2="1"><stop class="a" offset="0"/><stop class="b" offset="1"/></linearGradient></defs><path fill="url(#shg2)" d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z"/></svg>
+          <h1 style="font-size:1.5rem">Sign in to <span class="grad">Hologram</span></h1>
+          <p class="lede" style="max-width:19rem">One tap creates your wallet on every chain. No password, no server.</p>
+          <button class="btn bio" id="signInBio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0 3 0 5-1 7M7.5 8.5a5 5 0 0 1 9 2.5c0 3-.5 5-1.5 7M5 11a7 7 0 0 1 12-5M9.5 12c0 4 0 6-1.5 8M12 15v2"/></svg> Sign in with Biometrics</button>
+          <p class="muted" id="welcomeErr"></p>
+          <a href="#" id="moreOptions" class="muted">More options</a>
+          <div id="moreLinks" class="hidden" style="display:flex; flex-direction:column; gap:.35rem">
+            <a href="#" id="importBtn" class="muted">Restore from a recovery phrase</a>
+            <a href="#" id="createBtn" class="muted hidden">No biometrics here? Create with a passphrase</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- passphrase fallback ONLY — shown when this device has no biometric authenticator -->
+      <section id="view-create" class="wrap hidden" style="max-width:32rem">
+        <h2>Your recovery phrase</h2>
+        <p class="muted">Write these 12 words down in order and keep them offline. They are the only backup.</p>
+        <div class="seedgrid" id="seedgrid"></div>
+        <p class="warn">Never share them. We will never ask for them.</p>
+        <label>Passphrase to protect this device (12 characters or more)</label>
+        <input id="newpass" type="password" placeholder="a long passphrase you will remember" autocomplete="new-password" />
+        <div class="row" style="margin-top:1rem">
+          <label class="row" style="margin:0; gap:.5rem"><input type="checkbox" id="wroteit" style="width:auto" /> I wrote my phrase down</label>
+          <span class="sp" style="margin-left:auto"></span>
+          <button class="btn" id="finishCreate" disabled>Open wallet</button>
+        </div>
+      </section>
+
+      <section id="view-import" class="wrap hidden" style="max-width:32rem">
+        <h2>Restore your wallet</h2>
+        <label>Your 12 or 24 words, separated by spaces</label>
+        <textarea id="importwords" placeholder="abandon abandon abandon … about"></textarea>
+        <label>Passphrase to protect this device (12 characters or more)</label>
+        <input id="importpass" type="password" placeholder="a long passphrase" autocomplete="new-password" />
+        <div class="row" style="margin-top:1rem"><button class="btn ghost" id="importBack">Back</button><span class="sp" style="margin-left:auto"></span><button class="btn" id="finishImport">Restore</button></div>
+        <p class="muted" id="importErr"></p>
+      </section>
+
+      <section id="view-unlock" class="center hidden">
+        <div class="ucol">
+          <svg class="shield" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="shg" x1="0" y1="0" x2="1" y2="1"><stop class="a" offset="0"/><stop class="b" offset="1"/></linearGradient></defs><path fill="url(#shg)" d="M12 2l8 3v6c0 5-3.4 8.5-8 11-4.6-2.5-8-6-8-11V5l8-3z"/></svg>
+          <p class="lede" style="max-width:16rem">Your keys stay on this device. One touch opens them.</p>
+          <button class="btn bio" id="doUnlock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0 3 0 5-1 7M7.5 8.5a5 5 0 0 1 9 2.5c0 3-.5 5-1.5 7M5 11a7 7 0 0 1 12-5M9.5 12c0 4 0 6-1.5 8M12 15v2"/></svg> Unlock with Biometrics</button>
+          <a href="#" id="bioTrouble" class="muted">Trouble with biometrics?</a>
+          <div id="passFallback" class="hidden" style="width:100%; max-width:17rem; margin-top:.4rem">
+            <input id="unlockpass" type="password" placeholder="passphrase" autocomplete="current-password" />
+            <button class="btn wide" id="doUnlockPass" style="margin-top:.6rem">Unlock</button>
+          </div>
+          <p class="muted" id="unlockErr"></p>
+          <p class="lede mono hidden" id="unlockDid"></p>
+        </div>
+        <div class="resetbar">
+          <div class="muted">Cannot sign in? Erase this wallet and start fresh.</div>
+          <a href="#" id="resetWallet">Reset wallet</a>
+        </div>
+      </section>
+
+      <!-- ── DASHBOARD (MetaMask census: network · account → balance → Buy Swap Send Receive → Tokens/Activity) ── -->
+      <section id="view-wallet" class="wrap hidden">
+        <div class="mm-head">
+          <button class="netpill" id="netPill" title="Switch network"><span class="ndot" id="netDot"></span><span id="netName">All Networks</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button class="acctpill" id="acctPill" title="Copy address"><span class="av" id="acctAv">◈</span><span class="anm"><b id="acctName">Account 1</b><span class="did mono" id="walletDid"></span></span></button>
+        </div>
+
+        <!-- the platinum card — the operator's own, hyper-real brushed metal (pure CSS, static). Their name
+             is engraved; the whole surface is one machined piece of platinum catching the light. -->
+        <div class="holo-cc" aria-label="Your Hologram card">
+          <div class="holo-cc-top">
+            <span class="holo-cc-brand"><img class="holo-cc-mk" src="../icons/hologram-dark.svg" alt="" />Hologram</span>
+            <span class="holo-cc-tier">SOVEREIGN</span>
+          </div>
+          <div class="holo-cc-chip" aria-hidden="true"></div>
+          <div class="holo-cc-foot">
+            <span class="holo-cc-name" id="ccName">Your Name</span>
+            <span class="holo-cc-seal" aria-hidden="true">◈</span>
+          </div>
+        </div>
+
+        <div class="mm-bal">
+          <div class="bigrow"><div class="big">$<span id="totalNum"></span></div><button class="iconbtn" id="refreshBtn" title="Refresh balances"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button></div>
+          <div class="chgline" id="netChg"></div>
+        </div>
+
+        <div class="mm-actions">
+          <button class="mmact" data-sheet="buy"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>Buy</button>
+          <button class="mmact" data-sheet="swap"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>Swap</button>
+          <button class="mmact" data-sheet="send"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>Send</button>
+          <button class="mmact" data-sheet="receive"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></span>Receive</button>
+        </div>
+
+        <div class="mm-tabs">
+          <button class="mm-tab on" data-tab="tokens">Assets</button>
+          <button class="mm-tab" data-tab="activity">Activity</button>
+        </div>
+
+        <div id="pane-tokens" class="mm-pane">
+          <div id="chainList"></div>
+        </div>
+
+        <div id="pane-activity" class="mm-pane hidden">
+          <div id="activityList"><p class="muted">Loading recent transactions…</p></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ── SHEETS ── -->
+    <div class="scrim" id="scrim"></div>
+
+    <div class="sheet" id="sheet-receive"><div class="grab"></div>
+      <div class="head"><h2>Receive</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <label>Asset</label><select id="recvChain"></select>
+      <div class="qrbox" id="recvQr"></div>
+      <div class="card mono" id="recvAddr" style="text-align:center; cursor:pointer; word-break:break-all" title="Tap to copy"></div>
+      <p class="muted">Send only the matching asset to this address.</p>
+    </div>
+
+    <div class="sheet" id="sheet-send"><div class="grab"></div>
+      <div class="head"><h2>Send</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <label>Asset</label><select id="sendChain"></select>
+      <label>Recipient address</label><input id="sendTo" class="mono" placeholder="0x… / bc1… / Solana address" />
+      <label>Amount (<span id="sendSym"></span>)</label><input id="sendAmt" inputmode="decimal" placeholder="0.0" />
+      <div class="row" style="margin-top:1.1rem"><button class="btn wide" id="reviewSend">Review and send</button></div>
+      <p class="muted">Funds move only after your face confirms this exact send.</p>
+    </div>
+
+    <div class="sheet" id="sheet-swap"><div class="grab"></div>
+      <div class="head"><h2>Swap</h2><button class="iconbtn sheet-x" title="Close" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <label>Network</label><select id="swapNet"></select>
+      <label>From</label><select id="swapFrom"></select>
+      <label>To</label><select id="swapTo"></select>
+      <label>Amount</label><input id="swapAmt" inputmode="decimal" placeholder="0.0" />
+      <div class="row" style="margin-top:1rem"><button class="btn ghost" id="swapQuote" style="flex:1">Get quote</button><button class="btn" id="swapGo" style="flex:1" disabled>Swap</button></div>
+      <p class="muted" id="swapOut">Every quote is checked on this device before you approve.</p>
+    </div>
+
+    <div class="sheet" id="sheet-buy"><div class="grab"></div>
+      <div class="head"><h2>Buy</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <label>Asset</label>
+      <select id="buyAsset">
+        <option value="usdc">USDC on Ethereum</option>
+        <option value="usdc_arbitrum">USDC on Arbitrum</option>
+        <option value="eth">Ethereum</option>
+        <option value="sol">Solana</option>
+        <option value="btc">Bitcoin</option>
+        <option value="usdt">Tether USD₮</option>
+      </select>
+      <label>Amount (USD)</label><input id="buyAmt" inputmode="decimal" value="100" />
+      <div class="row" style="margin-top:1rem"><button class="btn wide" id="buyGo">Continue</button></div>
+      <p class="muted" id="buyOut">MoonPay completes the purchase. Funds land in this wallet.</p>
+      <div id="buyKeyRow" class="hidden">
+        <label>Your MoonPay publishable key</label>
+        <input id="buyKey" class="mono" placeholder="pk_live_…" />
+        <div class="row" style="margin-top:.6rem"><button class="btn ghost wide" id="buyKeySave">Save key and retry</button></div>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet-bridge"><div class="grab"></div>
+      <div class="head"><h2>Bridge</h2><span class="pill">USD₮0 · LayerZero</span><button class="iconbtn sheet-x" title="Close" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <label>From</label><select id="bridgeSrc" disabled><option value="arbitrum">Arbitrum</option></select>
+      <label>To</label><select id="bridgeDst"></select>
+      <label>Amount (USD₮0)</label><input id="bridgeAmt" inputmode="decimal" placeholder="0.0" />
+      <div class="row" style="margin-top:1rem"><button class="btn ghost" id="bridgeQuote" style="flex:1">Get quote</button><button class="btn" id="bridgeGo" style="flex:1" disabled>Bridge</button></div>
+      <p class="muted" id="bridgeOut">The fee and minimum received are checked on this device before you approve.</p>
+    </div>
+
+    <div class="sheet" id="sheet-network"><div class="grab"></div>
+      <div class="head"><h2>Select a network</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div id="netList"></div>
+      <p class="muted" style="margin-top:.6rem">One seed reaches every network. Your keys never move.</p>
+    </div>
+
+    <div class="sheet" id="sheet-banks"><div class="grab"></div>
+      <div class="head"><h2>Bank accounts</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <p class="muted">Connected by you, read only, roams to your devices.</p>
+      <div id="bankPanel" style="margin-top:.6rem"><p class="muted">Loading…</p></div>
+    </div>
+
+    <div class="sheet" id="sheet-sites"><div class="grab"></div>
+      <div class="head"><h2>Connected sites</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <p class="muted">Apps and agents that asked this wallet to sign. Blocked requesters are refused before anything is shown to you.</p>
+      <div id="siteList" style="margin-top:.6rem"></div>
+    </div>
+
+    <div class="sheet" id="sheet-settings"><div class="grab"></div>
+      <div class="head"><h2>Menu</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <button class="menurow" id="openHoloMoney"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><path d="M7 15h4"/></svg></span>Holo Money<span class="sub">cards, banks, payments</span></button>
+      <button class="menurow" id="bridgeBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17V9a8 8 0 0 1 16 0v8M2 17h4M18 17h4"/></svg></span>Bridge<span class="sub">move USD₮0 across chains</span></button>
+      <button class="menurow" id="banksBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg></span>Bank accounts<span class="sub">connected by you</span></button>
+      <button class="menurow" id="sitesRow"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg></span>Connected sites<span class="sub">who can ask</span></button>
+      <button class="menurow" id="agentsBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 2h8M9 14h.01M15 14h.01"/></svg></span>AI agents<span class="sub">reads open, spends gated</span></button>
+      <button class="menurow" id="backupBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span>Copy backup link<span class="sub">restore anywhere</span></button>
+      <button class="menurow danger" id="lockBtn"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>Lock wallet</button>
+      <p class="muted" style="margin-top:.8rem">Identity <span class="mono" id="setDid"></span></p>
+    </div>
+
+    <div class="sheet" id="sheet-agents"><div class="grab"></div>
+      <div class="head"><h2>AI agents</h2><button class="iconbtn sheet-x" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <p class="muted">An AI agent can read this wallet but can never spend without your approval.</p>
+      <div class="card agentlane" id="toolList" style="margin-top:.6rem"></div>
+    </div>
+
+    <!-- ── FULL-SCREEN CONFIRMATION (MetaMask form: request → who → estimated changes → reject/confirm) ── -->
+    <section id="view-approve">
+      <div class="ahead"><span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><h2 id="appTitle">Transaction request</h2></div>
+      <div class="abody">
+        <div class="appmeta"><span class="m1"><span class="adot"></span><span id="appAccount">Your account</span></span><span class="pill" id="appNetwork"></span></div>
+        <div class="explain"><div class="who" id="appWho">A request to sign with your wallet.</div><div id="appPlain"></div></div>
+        <div class="risk ok" id="appRisk"><span>✓</span><span id="appRiskMsg">Nothing signs unless you confirm.</span></div>
+        <h3 style="margin:.4rem 0 .2rem">Estimated changes</h3>
+        <div id="appRows"></div>
+        <div class="kstamp"><div class="lbl">◈ Verified on this device</div><div class="val" id="appKappa">holo://</div></div>
+      </div>
+      <div class="afoot"><button class="btn ghost" id="appDeny">Reject</button><button class="btn" id="appApprove">Confirm</button></div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="../../../_shared/teleport.js" data-holo-shared="teleport.js" defer></script>
+    <script type="module">
+      import { HoloWallet, CHAINS, deriveAddress, history, priceUsd } from "../../../_shared/holo-wdk.js";
+      import { quote as jupQuote, MINTS } from "../../../_shared/holo-jupiter.js";
+      import { qrSvg } from "../../../_shared/btc-wallet/wallet.js";
+      import * as login from "../../../_shared/holo-login.mjs";
+      import { teeAvailable, teeAssert, teeEnroll } from "../../../_shared/holo-webauthn.mjs";
+      import { attachWindowSeam } from "../../../_shared/holo-wallet-resident.mjs";   // A1: the seam's answerer is RESIDENT now; this window defers to it
+      import { handleIntent, makeApprovals } from "../../../_shared/holo-intent-router.mjs";   // A2: chains disappear — intent → ONE card → bound legs
+
+      // Solana spot tokens for the Swap sheet (the live Jupiter Swidge provider).
+      const TOKENS = {
+        SOL:  { mint: MINTS.SOL,  symbol: "SOL",  decimals: 9 },
+        USDC: { mint: MINTS.USDC, symbol: "USDC", decimals: 6 },
+        USDT: { mint: MINTS.USDT, symbol: "USDT", decimals: 6 },
+      };
+      const tokByMint = (m) => Object.values(TOKENS).find((t) => t.mint === m);
+      const fmtTok = (mint, base) => { const t = tokByMint(mint); return t ? (Number(base) / 10 ** t.decimals).toLocaleString(undefined, { maximumFractionDigits: 6 }) + " " + t.symbol : base + " (" + (mint || "").slice(0, 4) + "…)"; };
+
+      const $ = (id) => document.getElementById(id);
+      const show = (id) => { for (const s of document.querySelectorAll("main > section")) s.classList.add("hidden"); $(id).classList.remove("hidden"); };
+      const toast = (m) => { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 1800); };
+      const copy = (s) => { navigator.clipboard?.writeText(s).then(() => toast("copied")); };
+      const short = (s, n = 6) => s && s.length > 2 * n + 3 ? s.slice(0, n) + "…" + s.slice(-n) : s;
+      const fmt = (v, d, p = 5) => { const n = Number(v) / 10 ** d; return n === 0 ? "0" : n.toLocaleString(undefined, { maximumFractionDigits: p }); };
+      const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+      // κ = a content address re-derived locally over the exact signing payload (Law L5; SubtleCrypto, no server).
+      const kappaOf = async (obj) => { const b = new TextEncoder().encode(JSON.stringify(obj)); const d = await crypto.subtle.digest("SHA-256", b); return "holo://" + [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join(""); };
+
+      const store = { async get(k) { return localStorage.getItem("hw:" + k); }, async set(k, v) { localStorage.setItem("hw:" + k, v); }, async del(k) { localStorage.removeItem("hw:" + k); } };
+
+      // ── Connected-sites registry: a thin local log over the one signing seam. Every sign-request is
+      //    touched here (who · when · what); a blocked requester is denied BEFORE the gate opens. ──
+      const sites = {
+        all() { try { return JSON.parse(localStorage.getItem("hw:sites") || "{}"); } catch { return {}; } },
+        save(m) { localStorage.setItem("hw:sites", JSON.stringify(m)); },
+        touch(origin, kind) { const m = this.all(); const k = origin || "this device (same-origin)"; const e = m[k] || { origin: k, count: 0, blocked: false, kinds: {} }; e.count++; e.last = Date.now(); e.kinds[kind] = (e.kinds[kind] || 0) + 1; m[k] = e; this.save(m); },
+        setBlocked(origin, b) { const m = this.all(); if (m[origin]) { m[origin].blocked = b; this.save(m); } },
+        isBlocked(origin) { return !!this.all()[origin || "this device (same-origin)"]?.blocked; },
+      };
+
+      // ── the human-approval gate: returns a promise resolved by Approve/Deny (full-screen view) ──
+      // A2 BINDING (Law L5): while an intent proposal is armed (ONE biometric already covered the whole
+      // route), each of ITS legs auto-approves exactly once; anything else falls through to the human.
+      const intentApprovals = makeApprovals();
+      const normLeg = (req) => req.type === "bridge"
+        ? { kind: "bridge", srcChain: req.from || req.chain, dstChain: req.to, amount: req.amount }
+        : { kind: req.type === "transfer" ? "send" : (req.type || "send"), chain: req.chain, to: req.to, amount: req.amount, token: req.token || null };
+      let gateResolve = null, gateReq = null;
+      let agentCtx = null;   // set by handleSignRequest when a verified agent (NPC) is the one asking
+      async function gate(req) {
+        if (intentApprovals.match(normLeg(req))) return true;   // a bound leg of the ONE approved route
+        return new Promise(async (resolve) => {
+          gateResolve = resolve; gateReq = req;
+          $("appWho").textContent = agentCtx
+            ? ("Your agent “" + (agentCtx.label || "agent") + "” is asking, under the access you granted. You decide.")
+            : (req._who || "A request to sign with your wallet.");
+          // plain-language "what this does" — derived locally, not from a remote explorer.
+          const sym = CHAINS[req.chain]?.symbol || "";
+          const plain = req._plain ? req._plain
+            : req.type === "swap"
+            ? `Swap ${req.amount ? req.amount + " " + (tokByMint(req.inputMint)?.symbol || "") : fmtTok(req.inputMint, req.inAmount)} for about ${fmtTok(req.outputMint, req.outAmount)} on ${req.venue || "Jupiter"}. Funds move only if the swap succeeds.`
+            : req.type === "swapEvm" ? `Swap ${req.amount || ""} on ${CHAINS[req.chain]?.name || req.chain} via Velora. The minimum received is checked on this device.`
+            : req.type === "bridge" ? `Move ${req.amount || ""} USD₮0 from ${CHAINS[req.chain]?.name || req.chain} to another network. The fee is shown before anything signs.`
+            : req.type === "fiat" ? `Open MoonPay to buy ${String(req.currencyCode || "crypto").toUpperCase()} into this wallet. Nothing signs here.`
+            : req.type === "sign" ? `Sign a message with your ${CHAINS[req.chain]?.name || req.chain} key. No funds move.`
+            : req.type === "signTypedData" ? `Sign structured data, like a dapp login or order. No funds move from this signature.`
+            : `Send ${req.amount} ${sym} to ${short(req.to, 8)} on ${CHAINS[req.chain]?.name || req.chain}.`;
+          $("appPlain").textContent = plain;
+          const isSig = req.type === "sign" || req.type === "signTypedData";
+          $("appTitle").textContent = isSig ? "Signature request" : "Transaction request";
+          $("appAccount").textContent = agentCtx ? ("🤖 " + (agentCtx.label || "Agent") + (agentCtx.attest === "tee" ? " · passport ✓" : agentCtx.attest === "soft" ? " · passport" : " · grant") + " · acting for you") : "Your account";
+          $("appNetwork").textContent = CHAINS[req.chain]?.name || (req.type === "swap" ? "Solana" : req.chain || "");
+          const moves = req.type === "send" || req.type === "swap" || req.type === "swapEvm" || req.type === "bridge" || req.type === "intent";
+          $("appRisk").className = "risk " + (moves ? "warn" : "ok");
+          $("appRisk").querySelector("span:first-child").textContent = moves ? "⚠" : "✓";
+          $("appRiskMsg").textContent = moves ? "This moves value. It cannot be undone once signed." : "Nothing moves. This signature only proves intent.";
+          // an INTENT confirms the OUTCOME, never the plumbing — no chain, no gas, no route word (A2's fold).
+          const rows = req.type === "intent" ? {
+            ...(req.to ? { "They get": (req.outcomeUsd != null ? "$" + Number(req.outcomeUsd).toFixed(2) : (req.amount + "")) + " · " + short(req.to, 6) } : {}),
+            "Total cost": req.totalUsd != null ? "$" + Number(req.totalUsd).toFixed(2) : (req.feesUsd != null ? "$" + Number(req.feesUsd).toFixed(2) + " fees" : ""),
+            Time: req.etaSeconds != null ? "about " + req.etaSeconds + " seconds" : "",
+          } : req.type === "swap" ? {
+            From: req.inAmount ? fmtTok(req.inputMint, req.inAmount) : (req.amount + " " + (tokByMint(req.inputMint)?.symbol || "")),
+            "To (≈)": fmtTok(req.outputMint, req.outAmount),
+            "Min received": fmtTok(req.outputMint, req.minOut),
+            "Price impact": req.priceImpactPct != null ? (Number(req.priceImpactPct) * 100).toFixed(2) + "%" : "",
+            Route: (req.route || []).join(" → ") || "direct", Wallet: short(req.address, 8),
+          } : {
+            Action: req.type, Asset: (CHAINS[req.chain]?.name || req.chain),
+            ...(req.to ? { To: short(req.to, 8) } : {}),
+            ...(req.amount ? { Amount: req.amount + " " + sym } : {}),
+            ...(req.message ? { Message: req.message } : {}),
+            From: short(req.address, 8),
+          };
+          $("appRows").innerHTML = Object.entries(rows).map(([k, v]) => `<div class="kv"><span>${esc(k)}</span><span class="mono">${esc(v)}</span></div>`).join("");
+          $("appKappa").textContent = "holo://…";
+          kappaOf({ type: req.type, chain: req.chain, to: req.to, amount: req.amount, message: req.message, inputMint: req.inputMint, outputMint: req.outputMint, address: req.address }).then((k) => { $("appKappa").textContent = k; }).catch(() => {});
+          $("view-approve").classList.add("on");
+        });
+      }
+      const closeGate = (ok) => { $("view-approve").classList.remove("on"); const r = gateResolve; gateResolve = null; if (r) r(ok); };
+      // Confirm IS the payload-bound biometric — the ONE signing seam. HoloWallet routes EVERY value/sign
+      // method (send · swap · signMessage · signTypedData · swapEvm · bridge · lending · fiat) through gate(),
+      // so this single place gives in-wallet AND app/agent requests exactly one fresh biometric over THIS
+      // exact action. The review above is what the human reads; the biometric signs precisely that. The
+      // reason committed into the consent κ is the same sentence shown ($appPlain), so words can't diverge
+      // from what is signed. Fail-closed: anything but { ok:true } ⇒ deny, the wallet does not sign.
+      $("appApprove").onclick = async () => {
+        const req = gateReq || {}, btn = $("appApprove");
+        btn.disabled = true;
+        try {
+          const op = currentOp || (typeof HoloSession !== "undefined" && HoloSession.signedInOperator && HoloSession.signedInOperator());
+          if (!op || !op.kappa) { toast("no signed-in operator to authorise this"); return closeGate(false); }
+          const { enforce } = await import("../../../_shared/holo-stepup-gate.mjs");
+          const action = { kind: "wallet." + (req.type || "send"), appId: "org.hologram.HoloWallet", operator: op.kappa,
+            reason: ($("appPlain").textContent || "Confirm this wallet action").trim(),
+            payload: { type: req.type || "send", chain: req.chain || null, to: req.to || null, amount: req.amount != null ? String(req.amount) : null, token: req.token || null, inputMint: req.inputMint || null, outputMint: req.outputMint || null, srcToken: req.srcToken || null, destToken: req.destToken || null, typedData: req.typedData || null, message: req.message || null, kappa: req.kappaBound || null } };
+          const g = await enforce(action, { credentialId: op.cred });
+          if (!g.ok) { toast("confirm with biometrics — " + (g.reason || "denied")); return closeGate(false); }
+          closeGate(true);
+        } catch (e) { toast("step-up unavailable: " + ((e && e.message) || e)); closeGate(false); }
+        finally { btn.disabled = false; }
+      };
+      $("appDeny").onclick = () => closeGate(false);
+
+      const wallet = new HoloWallet({ store, gate });
+
+      // ── Holo Pay on-chain settlement (HoloHTLC) — the seam kinds htlcConfigured/htlcSwapExists/htlcFund/htlcClaim/
+      //    htlcRefund. fund/claim/refund MOVE value, so they go through gate() (the ONE biometric) exactly like send;
+      //    the two reads never gate. holo-htlc.js drives a raw account, so we gate HERE. Live only where a HoloHTLC
+      //    address is configured in the artifact (empty today → htlcConfigured false → callers stay custodial). ──
+      let _htlcArt = null;
+      const htlcArt = async () => (_htlcArt ||= await fetch("../../../_shared/holo-htlc-artifact.json").then((r) => r.json()).catch(() => ({ addresses: {}, tokens: {} })));
+      const htlcToken = (asset, chain, art) => { const t = art?.tokens?.[chain]?.[asset]; if (t) return { addr: t.addr, decimals: t.decimals }; if (!asset || asset === CHAINS[chain]?.symbol) return { addr: null, decimals: CHAINS[chain]?.decimals || 18 }; return { addr: null, decimals: 6 }; };
+
+      // ── ADOPT SESSION ── when hosted by an app that has ALREADY authenticated this session (the messenger's
+      //    TEE login gate), the wallet opens UNLOCKED by adopting that session's secret over same-origin postMessage
+      //    — no second biometric. Auth is then asked ONLY to complete a transaction (the per-spend Confirm). The
+      //    secret is used once to open the seed and is never stored. No host/secret → fall back to the unlock UI.
+      // RETRY the pull: the wallet may be pre-warmed BEFORE the host's login has produced the session secret, so we
+      // re-ask every ~400ms (a harmless ungated read) until the host answers with THIS operator's secret, or ~5s elapses.
+      function requestSessionSecret({ tries = 12, everyMs = 400 } = {}) {
+        return new Promise((resolve) => {
+          let done = false, n = 0;
+          const cleanup = () => removeEventListener("message", onMsg);
+          const onMsg = (e) => {
+            if (e.origin !== location.origin || !e.data || e.data.type !== "holo-wallet:unlock") return;
+            if (e.data.secret && currentOp && e.data.operator === currentOp.kappa) { done = true; cleanup(); resolve(e.data.secret); }
+          };
+          addEventListener("message", onMsg);
+          const parent = (window.parent && window.parent !== window) ? window.parent : window;
+          const ping = () => { if (done) return; if (n++ >= tries) { cleanup(); return resolve(null); } try { parent.postMessage({ type: "holo-wallet:need-unlock" }, location.origin); } catch {} setTimeout(ping, everyMs); };
+          ping();
+        });
+      }
+      async function adoptSession() {
+        if (!currentOp || !currentOp.kappa) return false;
+        try {
+          const secret = await requestSessionSecret();
+          if (!secret) return false;
+          await wallet.openSeed(await login.unlockSeed(currentOp.kappa, secret));
+          await signInOS(currentOp.kappa, secret);
+          await enterWallet();
+          return true;
+        } catch { return false; }
+      }
+
+      // ── boot ── prefer the already-authenticated session (open unlocked, no prompt). Only when there's no session
+      //    to adopt do we show the unlock door (biometric primary, passphrase fallback).
+      let currentOp = null, bioReady = false;
+      async function boot() {
+        // WALLET VISUAL BENCH (fixtures only; ?bench=1) — renders the signed-in dashboard with mock data for
+        // headless screenshot QA. NEVER touches a real vault/seed/network; guarded strictly to the query flag.
+        if (new URLSearchParams(location.search).get("bench") === "1") return bootBench();
+        try { currentOp = await login.currentOperator(); } catch { currentOp = null; }
+        // Pre-warm can mount us before the host's session is persisted. A returning operator leaves a NON-secret hint
+        // (holo.lastOperator); if it's there but the session hasn't landed yet, wait briefly for it (never delays a
+        // genuine guest, who has no hint).
+        if (!currentOp) { let hint = null; try { hint = localStorage.getItem("holo.lastOperator"); } catch {}
+          for (let i = 0; hint && !currentOp && i < 6; i++) { await new Promise((r) => setTimeout(r, 350)); try { currentOp = await login.currentOperator(); } catch {} } }
+        const hasVault = await wallet.hasVault().catch(() => false);
+        // GUEST (no Hologram identity yet, no local vault) → sign in to Hologram OS with biometrics, which
+        // mints a self-custodial Tether-WDK wallet anchored in the user's own κ. Passphrase only as a
+        // fallback when the device has no biometrics.
+        if (!currentOp && !hasVault) {
+          teeAvailable().then((ok) => $("createBtn").classList.toggle("hidden", !!ok)).catch(() => $("createBtn").classList.remove("hidden"));
+          return show("view-welcome");
+        }
+        if (await adoptSession()) return;   // opened unlocked from the host session → done, no prompt
+        bioReady = !!(currentOp && currentOp.cred) && await teeAvailable().catch(() => false);
+        $("unlockErr").textContent = "";
+        $("unlockDid").textContent = currentOp?.did ? short(currentOp.did, 12) : (hasVault ? "encrypted vault on this device" : "");
+        // biometric available → show the biometric button; else fall straight to passphrase.
+        $("doUnlock").classList.toggle("hidden", !bioReady);
+        $("bioTrouble").classList.toggle("hidden", !bioReady);
+        $("passFallback").classList.toggle("hidden", bioReady);
+        show("view-unlock");
+      }
+
+      // The wallet is a SUBSET of Holo Identity: the same sovereign κ that signs you in to the OS owns
+      // this wallet. Read the one VERIFIED identity (the shell's window.HoloIdentity when docked, else the
+      // local operator session).
+      function holoIdentity() {
+        try { if (window.parent && window.parent !== window && window.parent.HoloIdentity) return window.parent.HoloIdentity; } catch {}
+        return (currentOp && currentOp.kappa) ? { operator: currentOp.kappa, label: currentOp.label, subjectType: "pc", postQuantum: true, verified: true } : null;
+      }
+      function setIdentityBar() {
+        const did = wallet.did, hi = holoIdentity();
+        $("walletDid").textContent = did || ""; $("walletDid").onclick = () => copy(did);
+        $("setDid").textContent = did ? short(did, 12) : "";
+        $("acctAv").textContent = (did || "◈").replace("did:key:z", "").slice(0, 1).toUpperCase() || "◈";
+        // THE SOVEREIGN FACE — the same one resolver as the messenger rail + login gate: the operator's
+        // verified portrait (κ re-derived on every render, Law L5) replaces the letter; refused/absent → letter.
+        (async () => {
+          try {
+            if (!hi || !hi.operator) return;
+            const { resolvePortrait } = await import("../../../_shared/holo-portrait.mjs");
+            const p = await resolvePortrait({ operator: hi.operator, guest: !!hi.guest });
+            if (p) $("acctAv").innerHTML = `<img src="${p.url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+          } catch {}
+        })();
+        // anchor the account name in the one identity (its label · pc/npc) rather than a generic number
+        if (hi && hi.label) $("acctName").textContent = hi.label + (hi.subjectType === "npc" ? " · agent" : "");
+        // engrave the operator's name on the platinum card
+        const ccNm = (hi && hi.label) || (currentOp && currentOp.label) || ""; if ($("ccName")) $("ccName").textContent = ccNm || "Cardholder";
+        $("settingsBtn").classList.remove("hidden");
+        if (window.HoloTeleport && did) HoloTeleport.stamp(did);
+      }
+
+      function fillChainSelects() {
+        const opts = Object.entries(CHAINS).map(([k, c]) => `<option value="${k}">${esc(c.name)} (${esc(c.symbol)})</option>`).join("");
+        for (const id of ["recvChain", "sendChain"]) $(id).innerHTML = opts;
+      }
+
+      // ── prices (coingecko, best-effort) — USD + real 24h change; cached so the dashboard paints instantly ──
+      let prices = {};
+      async function loadPrices() {
+        try { const ids = [...new Set([...Object.values(CHAINS).map((c) => c.coingecko), "tether"])].join(",");
+          const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=" + ids + "&vs_currencies=usd&include_24hr_change=true", { signal: AbortSignal.timeout(5000) }); prices = await r.json(); saveCache(); } catch {}
+      }
+      const usdOf = (chainKey, baseUnits) => { const c = CHAINS[chainKey]; const p = prices[c.coingecko]?.usd; if (p == null) return null; return (Number(baseUnits) / 10 ** c.decimals) * p; };
+      const change24 = (id) => { const v = prices[id]?.usd_24h_change; return typeof v === "number" ? v : null; };
+
+      // ── THE PORTFOLIO — your holdings, MetaMask exact: USD₮ + the native coin per popular network. ──
+      // Tether USD₮ — read live per chain via the engine's ERC-20/SPL getTokenBalance.
+      // Canonical contracts pinned per chain (a wrong one simply reads 0).
+      let addresses = {}, balances = {}, selectedNet = "all";
+      const USDT = {
+        plasma:   { addr: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb", decimals: 6, name: "Tether USD₮0" },
+        ethereum: { addr: "0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals: 6, name: "Tether USD₮" },
+        polygon:  { addr: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", decimals: 6, name: "Tether USD₮" },
+        arbitrum: { addr: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", decimals: 6, name: "Tether USD₮" },
+        optimism: { addr: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", decimals: 6, name: "Tether USD₮" },
+        avalanche:{ addr: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", decimals: 6, name: "Tether USD₮" },
+        bsc:      { addr: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, name: "Tether USD₮" },
+        solana:   { addr: MINTS.USDT, decimals: 6, name: "Tether USD₮" },
+      };
+      const USDT_LOGO = "https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png";
+      // ── brand logos — each chain's OFFICIAL artwork, loaded from its canonical public asset registry
+      //    (Trust Wallet assets via jsDelivr) over a coloured letter fallback. We reference the asset by
+      //    its slug; on a miss the <img> removes itself and the letter shows — recognisable, never faked.
+      const TW_SLUG = { ethereum: "ethereum", base: "base", arbitrum: "arbitrum", optimism: "optimism", polygon: "polygon",
+        bsc: "smartchain", avalanche: "avalanchec", gnosis: "xdai", linea: "linea", scroll: "scroll", celo: "celo", blast: "blast", bitcoin: "bitcoin", solana: "solana", hyperliquid: "hyperliquid" };
+      const chainLogo = (k) => `https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/${TW_SLUG[k] || k}/info/logo.png`;
+      // the popular networks (MetaMask's "All Networks" scope)
+      const NETS = ["ethereum", "base", "arbitrum", "optimism", "polygon", "bsc", "avalanche", "solana", "bitcoin", "plasma", "hyperliquid"];
+      const netAccent = (k) => CHAINS[k]?.accent || "var(--acc)";
+      const scopeChains = () => selectedNet === "all" ? NETS : [selectedNet];
+      // the asset rows in scope: USD₮ first where it lives, then the native coin, per chain
+      function activeAssets() {
+        const rows = [];
+        for (const k of scopeChains()) {
+          if (USDT[k]) rows.push({ id: "usdt:" + k, chain: k, sym: "USD₮", name: USDT[k].name, decimals: USDT[k].decimals, tether: true });
+          rows.push({ id: k, chain: k, sym: CHAINS[k].symbol, name: CHAINS[k].name, decimals: CHAINS[k].decimals });
+        }
+        return rows;
+      }
+      const usdValue = (a, bal) => bal == null ? null : (a.tether ? Number(bal) / 10 ** a.decimals : usdOf(a.chain, bal));
+      const fmtUsd = (n) => n == null ? "" : (n >= 1 ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : Number(n).toPrecision(3));
+
+      // ── the κ-cache (Law L3: the store is the memory) — addresses, balances and prices persist, so a
+      //    warm open PAINTS the whole dashboard from cache with zero network awaited, then refreshes silently. ──
+      function saveCache() { try { localStorage.setItem("hw:cache:v1", JSON.stringify({ prices, balances, addresses, ts: Date.now() })); } catch {} }
+      function loadCacheInto() {
+        try { const c = JSON.parse(localStorage.getItem("hw:cache:v1") || "null");
+          if (c) { prices = c.prices || {}; balances = c.balances || {}; if (!Object.keys(addresses).length) addresses = c.addresses || {}; return true; } } catch {}
+        return false;
+      }
+
+      function updateNetPill() {
+        const all = selectedNet === "all";
+        $("netName").textContent = all ? "All Networks" : CHAINS[selectedNet].name;
+        const d = $("netDot"); d.style.background = all ? "var(--acc)" : netAccent(selectedNet);
+        d.innerHTML = all ? "" : `<span class="ltr">${esc(CHAINS[selectedNet].name[0])}</span><img class="lg" src="${chainLogo(selectedNet)}" alt="" onerror="this.remove()">`;
+        document.documentElement.style.setProperty("--ec", all ? "var(--holo-accent)" : netAccent(selectedNet));
+      }
+      function renderNetworks() {
+        const row = (id, name, accent, logo) => `<div class="netrow ${selectedNet === id ? "on" : ""}" data-id="${id}"><span class="nd" style="background:${accent}">${logo}</span><span class="nm">${esc(name)}</span><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`;
+        $("netList").innerHTML =
+          row("all", "All Networks", "var(--acc)", "◈")
+          + NETS.map((k) => row(k, CHAINS[k].name, netAccent(k), `<span class="ltr">${esc(CHAINS[k].name[0])}</span><img class="lg" src="${chainLogo(k)}" alt="" onerror="this.remove()">`)).join("");
+        for (const r of $("netList").querySelectorAll(".netrow")) r.onclick = () => { selectNet(r.dataset.id); closeSheet(); };
+      }
+      function selectNet(id) {
+        selectedNet = id;
+        updateNetPill(); renderHoldings(); renderNet();
+        if (!$("pane-activity").classList.contains("hidden")) renderActivity();
+        refreshBalances();
+      }
+
+      // ── ONE MetaMask-exact holding row (shared by the bench fixtures AND the live list) ──
+      // glyph + network-badge · name (+ optional Earn) over the 24h change · right: bold USD value over the amount.
+      function holdingRowHTML(t) {
+        const chg = t.change == null ? null : Number(t.change), chgCls = (chg || 0) >= 0 ? "up" : "dn";
+        const chgTxt = chg == null ? "" : (chg >= 0 ? "+" : "−") + Math.abs(chg).toFixed(2) + "%";
+        return `<div class="tok"><div class="glyph"><div class="dot" style="background:${esc(t.glyphBg || "#3b4048")}"><span class="ltr">${esc((t.sym || "?")[0])}</span>${t.logo ? `<img class="lg" src="${esc(t.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>`
+          + `<span class="netbadge" style="background:${esc(t.netColor || t.glyphBg || "#3b4048")}"></span></div>`
+          + `<div class="meta"><b>${esc(t.name || t.sym)}${t.earn ? ' <span class="earn">Earn</span>' : ""}</b>`
+          + `<span class="sub">${chg == null ? "" : `<span class="chg ${chgCls}">${chgTxt}</span>`}</span></div>`
+          + `<div class="bal"><b>${t.usd == null ? "" : "$" + esc(t.usd)}</b><span class="amt">${esc(t.amount)} ${esc(t.sym)}</span></div></div>`;
+      }
+      // The wallet reads as MONEY and ASSETS. MONEY is your dollars — Tether (USD₮ folded across every chain
+      // into ONE line) and Plasma (the gas-free USD₮0 rail). ASSETS is your coins — Bitcoin, Ethereum,
+      // Hyperliquid always present (even at zero, so a fresh wallet still looks like a wallet), plus anything
+      // else you actually hold. A known-zero, non-key row is hidden; a loading row stays until it answers.
+      const ASSET_KEYS = ["bitcoin", "ethereum", "hyperliquid"];
+      function renderHoldings() {
+        const scope = selectedNet === "all" ? NETS : [selectedNet];
+        const inScope = (k) => scope.includes(k);
+
+        // ── MONEY ──
+        const money = [];
+        let tUsd = 0, tAmt = 0, tKnown = false, tCapable = false;
+        for (const k of scope) {
+          if (k === "plasma" || !USDT[k]) continue; tCapable = true;
+          const b = balances["usdt:" + k]; if (b != null) { tKnown = true; const h = Number(b) / 10 ** USDT[k].decimals; tUsd += h; tAmt += h; }
+        }
+        if (tCapable) money.push({ key: true, loading: !tKnown, u: tKnown ? tUsd : null, html: {
+          sym: "USD₮", name: "Tether", logo: USDT_LOGO, glyphBg: "#26a17b", netColor: "#26a17b", change: change24("tether"),
+          usd: tKnown ? fmtUsd(tUsd) : null, amount: tKnown ? tAmt.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "…" } });
+        if (inScope("plasma")) { const pB = balances["usdt:plasma"], pk = pB != null, pu = pk ? Number(pB) / 10 ** USDT.plasma.decimals : null;
+          money.push({ key: true, loading: !pk, u: pu, html: { sym: "USD₮0", name: "Plasma", logo: chainLogo("plasma"), glyphBg: CHAINS.plasma.accent, netColor: CHAINS.plasma.accent, change: change24("tether"),
+            usd: pk ? fmtUsd(pu) : null, amount: pk ? fmt(pB, USDT.plasma.decimals) : "…" } }); }
+
+        // ── ASSETS ──
+        const nativeRow = (chain, key) => { const b = balances[chain], u = usdOf(chain, b);
+          return { key, loading: b == null, u: u == null ? null : u, html: {
+            sym: CHAINS[chain].symbol, name: CHAINS[chain].name, logo: chainLogo(chain), glyphBg: netAccent(chain), netColor: netAccent(chain),
+            change: change24(CHAINS[chain].coingecko), usd: u == null ? null : fmtUsd(u), amount: b == null ? "…" : fmt(b, CHAINS[chain].decimals) } }; };
+        const assets = [], seen = new Set();
+        for (const c of ASSET_KEYS) { if (inScope(c)) { assets.push(nativeRow(c, true)); seen.add(c); } }
+        for (const k of scope) { if (seen.has(k) || k === "plasma") continue; const b = balances[k]; if (b != null && Number(b) > 0) { assets.push(nativeRow(k, false)); seen.add(k); } }
+
+        const keep = (r) => r.key || r.loading || (r.u != null && r.u > 0);
+        const mS = money.filter(keep).sort((a, b) => (b.u || 0) - (a.u || 0));
+        const aS = assets.filter(keep).sort((a, b) => (b.u || 0) - (a.u || 0));
+        const sec = (label, rows) => rows.length ? `<div class="grp-h">${label}</div>` + rows.map((r) => holdingRowHTML(r.html)).join("") : "";
+        $("chainList").innerHTML = (sec("Money", mS) + sec("Assets", aS)) || `<div class="tok-empty muted">Loading…</div>`;
+      }
+      function renderNet() {
+        let total = 0, weighted = 0, any = false;
+        for (const a of activeAssets()) {
+          const u = usdValue(a, balances[a.id]); if (u == null) continue; total += u; any = true;
+          const ch = a.tether ? change24("tether") : change24(CHAINS[a.chain].coingecko); if (ch != null) weighted += u * ch;
+        }
+        $("totalNum").textContent = any ? total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00";
+        const pct = total > 0 ? weighted / total : null, amt = pct != null ? (total * pct) / 100 : null;
+        $("netChg").innerHTML = (pct != null && any) ? `<span class="chg ${pct >= 0 ? "up" : "dn"}">${pct >= 0 ? "+" : "−"}$${Math.abs(amt).toFixed(2)} (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%)</span>` : "";
+      }
+      // live refresh — every asset in scope, each row updating (and re-caching) as its chain answers
+      function refreshBalances() {
+        for (const a of activeAssets()) {
+          const p = a.tether ? wallet.account(a.chain, 0).then((acc) => acc.getTokenBalance(USDT[a.chain].addr)) : wallet.balance(a.chain, 0);
+          p.then((bal) => { balances[a.id] = String(bal); renderHoldings(); renderNet(); saveCache(); }).catch(() => {});
+        }
+      }
+
+      // ── receive ──
+      function renderReceive() {
+        const k = $("recvChain").value, addr = addresses[k] || "";
+        $("recvAddr").textContent = addr || ""; $("recvAddr").onclick = () => copy(addr);
+        try { $("recvQr").innerHTML = qrSvg(addr); } catch { $("recvQr").textContent = ""; }
+      }
+      $("recvChain").onchange = renderReceive;
+
+      // ── send (gated) ──
+      $("sendChain").onchange = () => { $("sendSym").textContent = CHAINS[$("sendChain").value].symbol; };
+      $("reviewSend").onclick = async () => {
+        const chain = $("sendChain").value, to = $("sendTo").value.trim(), amt = $("sendAmt").value.trim();
+        if (!to || !amt) return toast("recipient and amount required");
+        try {
+          const r = await wallet.send({ chain, to, amount: amt, index: 0 });
+          toast("sent · " + short(r.hash, 8)); $("sendTo").value = ""; $("sendAmt").value = ""; closeSheet();
+        } catch (e) { toast(/denied/i.test(e.message) ? "signature denied" : ("failed: " + e.message)); }
+      };
+
+      // ── swap — ONE sheet, network aware. Solana routes Jupiter; EVM routes Velora (both live engines,
+      //    both quote checked on this device, both signed through the ONE gate). Only networks whose
+      //    engine is real are listed — a network we cannot swap on does not render (no dead controls). ──
+      const VELORA_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";   // ParaSwap native-asset sentinel (pinned in holo-evm-swap)
+      const SWAP_EVM = ["ethereum", "arbitrum", "optimism", "polygon", "bsc", "avalanche"];   // Velora v6.2 networks with a pinned USD₮
+      const swapAssetsFor = (net) => net === "solana"
+        ? Object.values(TOKENS).map((t) => ({ key: t.symbol, label: t.symbol }))
+        : [{ key: "native", label: CHAINS[net].symbol }, { key: "usdt", label: "USD₮" }];
+      function fillSwapNet() {
+        $("swapNet").innerHTML = ["solana", ...SWAP_EVM].map((k) => `<option value="${k}">${esc(CHAINS[k].name)}</option>`).join("");
+        fillSwapAssets();
+      }
+      function fillSwapAssets() {
+        const net = $("swapNet").value, opts = swapAssetsFor(net).map((a) => `<option value="${a.key}">${esc(a.label)}</option>`).join("");
+        $("swapFrom").innerHTML = opts; $("swapTo").innerHTML = opts;
+        $("swapTo").selectedIndex = Math.min(1, $("swapTo").options.length - 1);
+        $("swapGo").disabled = true; lastQuote = null;
+        $("swapOut").textContent = "Every quote is checked on this device before you approve.";
+      }
+      $("swapNet").onchange = fillSwapAssets;
+      const evmTok = (net, key) => key === "native"
+        ? { addr: VELORA_NATIVE, decimals: CHAINS[net].decimals, sym: CHAINS[net].symbol }
+        : { addr: USDT[net].addr, decimals: USDT[net].decimals, sym: "USD₮" };
+      let lastQuote = null;
+      $("swapQuote").onclick = async () => {
+        const net = $("swapNet").value, fromK = $("swapFrom").value, toK = $("swapTo").value, amt = $("swapAmt").value;
+        $("swapGo").disabled = true; lastQuote = null;
+        if (fromK === toK) return void ($("swapOut").textContent = "Pick two different assets.");
+        if (!(Number(amt) > 0)) return void ($("swapOut").textContent = "Enter an amount.");
+        $("swapOut").textContent = "Fetching the best route…";
+        try {
+          if (net === "solana") {
+            const from = TOKENS[fromK], to = TOKENS[toK];
+            const base = BigInt(Math.round(Number(amt) * 10 ** from.decimals)).toString();
+            const q = await jupQuote({ inputMint: from.mint, outputMint: to.mint, amount: base, slippageBps: 50 });
+            lastQuote = { net, from, to, amt };
+            const out = fmtTok(to.mint, q.outAmount), min = fmtTok(to.mint, q.otherAmountThreshold);
+            const impact = q.priceImpactPct != null ? (Number(q.priceImpactPct) * 100).toFixed(2) + "%" : "";
+            $("swapOut").innerHTML = `≈ <b>${esc(out)}</b> · min received <b>${esc(min)}</b> · impact ${esc(impact)}<br><span class="muted">Approve in the gate to sign.</span>`;
+          } else {
+            const from = evmTok(net, fromK), to = evmTok(net, toK);
+            const q = await wallet.quoteEvm({ chain: net, srcToken: from.addr, destToken: to.addr, amount: amt, srcDecimals: from.decimals, destDecimals: to.decimals });
+            lastQuote = { net, from, to, amt };
+            const out = fmt(q.destAmount, to.decimals) + " " + to.sym, min = fmt(q.minOut, to.decimals) + " " + to.sym;
+            $("swapOut").innerHTML = `≈ <b>${esc(out)}</b> · min received <b>${esc(min)}</b> · Velora<br><span class="muted">Approve in the gate to sign.</span>`;
+          }
+          $("swapGo").disabled = false;
+        } catch (e) { $("swapOut").textContent = "Quote failed: " + (e.message || e); }
+      };
+      $("swapGo").onclick = async () => {
+        if (!lastQuote) return; const { net, from, to, amt } = lastQuote; $("swapGo").disabled = true;
+        try {
+          if (net === "solana") {
+            const r = await wallet.swap({ inputMint: from.mint, outputMint: to.mint, amount: amt, slippageBps: 50, inputDecimals: from.decimals });
+            $("swapOut").innerHTML = `swapped <a href="https://solscan.io/tx/${esc(r.txid)}" target="_blank" rel="noopener" class="mono">${esc(short(r.txid, 8))}</a>`;
+          } else {
+            const r = await wallet.swapEvm({ chain: net, srcToken: from.addr, destToken: to.addr, amount: amt, slippageBps: 50, srcDecimals: from.decimals, destDecimals: to.decimals });
+            const h = r.hash || r.txid || "";
+            $("swapOut").innerHTML = h ? `swapped <a href="${esc(CHAINS[net].explorer)}/tx/${esc(h)}" target="_blank" rel="noopener" class="mono">${esc(short(h, 8))}</a>` : "swap submitted";
+          }
+          toast("swap submitted"); lastQuote = null; refreshBalances();
+        } catch (e) { $("swapOut").textContent = e.message || String(e); $("swapGo").disabled = false; }
+      };
+
+      // ── buy (MoonPay on-ramp, engine backed) — the wallet builds an address-bound URL to the SEALED
+      //    MoonPay origin, the gate consents, then the flow opens. Funds land in this wallet. ──
+      $("buyGo").onclick = async () => {
+        const currencyCode = $("buyAsset").value, amount = $("buyAmt").value.trim();
+        $("buyOut").textContent = "Preparing your purchase…";
+        try {
+          const r = await wallet.fiatBuy({ currencyCode, baseCurrencyAmount: amount ? Number(amount) : undefined, baseCurrencyCode: "usd" });
+          if (r.needsKey) { $("buyKeyRow").classList.remove("hidden"); $("buyOut").textContent = "Buying needs your own MoonPay key. Paste it once below."; return; }
+          try { parentWin()?.postMessage({ type: "holo-open-url", url: r.url }, location.origin); } catch {}
+          window.open(r.url, "_blank", "noopener");
+          $("buyOut").textContent = "MoonPay opened. Funds land in this wallet.";
+        } catch (e) { $("buyOut").textContent = /denied|declined/i.test(String(e && e.message)) ? "Declined by you." : ("Buy failed: " + ((e && e.message) || e)); }
+      };
+      $("buyKeySave").onclick = () => {
+        const k = $("buyKey").value.trim(); if (!k) return toast("paste your key first");
+        try { localStorage.setItem("holo.fiat.moonpay.key", k); } catch {}
+        $("buyKeyRow").classList.add("hidden"); $("buyOut").textContent = "Key saved on this device."; $("buyGo").click();
+      };
+
+      // ── bridge (USD₮0 over LayerZero, engine backed) — quote the fee (read), then the gate signs the send ──
+      let lastBridge = null;
+      async function fillBridgeDst() {
+        try {
+          const { USDT0 } = await import("../../../_shared/holo-bridge.mjs");
+          const dsts = Object.keys(USDT0).filter((k) => k !== "arbitrum");
+          $("bridgeDst").innerHTML = dsts.map((k) => `<option value="${k}">${esc(CHAINS[k]?.name || k)}</option>`).join("");
+        } catch { $("bridgeDst").innerHTML = ""; $("bridgeOut").textContent = "Bridging is unavailable here."; }
+      }
+      $("bridgeQuote").onclick = async () => {
+        const dstChain = $("bridgeDst").value, amount = $("bridgeAmt").value.trim();
+        $("bridgeGo").disabled = true; lastBridge = null;
+        if (!dstChain || !(Number(amount) > 0)) return void ($("bridgeOut").textContent = "Pick a destination and an amount.");
+        $("bridgeOut").textContent = "Quoting the route…";
+        try {
+          const q = await wallet.quoteBridge({ srcChain: "arbitrum", dstChain, amount });
+          lastBridge = { dstChain, amount };
+          $("bridgeOut").innerHTML = `fee ≈ <b>${(Number(q.nativeFee) / 1e18).toFixed(6)} ETH</b> · min received <b>${(Number(q.minAmountLD) / 1e6).toFixed(2)} USD₮0</b> on ${esc(CHAINS[dstChain]?.name || dstChain)}<br><span class="muted">Approve in the gate to sign.</span>`;
+          $("bridgeGo").disabled = false;
+        } catch (e) { $("bridgeOut").textContent = "Quote failed: " + ((e && e.message) || e); }
+      };
+      $("bridgeGo").onclick = async () => {
+        if (!lastBridge) return; const { dstChain, amount } = lastBridge; $("bridgeGo").disabled = true;
+        try {
+          const r = await wallet.bridgeUsdt0({ srcChain: "arbitrum", dstChain, amount });
+          if (r.needsApproval) return void ($("bridgeOut").textContent = "First approve USD₮0 to the bridge, then retry.");
+          $("bridgeOut").textContent = "Bridged · " + String(r.hash || "").slice(0, 12) + "…"; lastBridge = null; refreshBalances();
+        } catch (e) { $("bridgeOut").textContent = ((e && e.message) || String(e)); $("bridgeGo").disabled = false; }
+      };
+
+      // ── activity (wallet.history → κ-stamped rows) — follows the network scope; "all" merges the
+      //    popular networks into one feed, newest first. Failures stay honest, never faked. ──
+      async function renderActivity() {
+        const el = $("activityList");
+        const chains = (selectedNet === "all" ? NETS : [selectedNet]).filter((k) => addresses[k]);
+        el.innerHTML = `<p class="muted">Loading activity…</p>`;
+        try {
+          const lists = await Promise.all(chains.map((k) => history(k, addresses[k], { limit: 10 }).then((txs) => txs.map((t) => ({ ...t, chain: k }))).catch(() => [])));
+          const txs = lists.flat().sort((a, b) => (b.time || 0) - (a.time || 0)).slice(0, 30);
+          if (!txs.length) { el.innerHTML = `<p class="muted">No recent transactions found.</p>`; return; }
+          el.innerHTML = txs.map((t) => {
+            const c = CHAINS[t.chain], dir = t.direction || "tx";
+            const ic = dir === "out" ? "↑" : dir === "in" ? "↓" : "◆";
+            const val = t.value != null ? fmt(t.value, c.decimals) + " " + c.symbol : "";
+            const when = t.time ? new Date(t.time * 1000).toLocaleDateString() : "";
+            return `<div class="actitem"><div class="ai ${dir}">${ic}</div><div class="m"><b>${dir === "out" ? "Sent" : dir === "in" ? "Received" : "Transaction"} ${esc(val)}</b><div class="sub">${esc(c.name)} · <span class="mono">${esc(short(t.hash, 8))}</span> · ${esc(when)}</div></div><a class="kbadge" href="${esc(t.explorer)}" target="_blank" rel="noopener" title="Verifiable from the signed bytes">κ ↗</a></div>`;
+          }).join("");
+        } catch (e) { el.innerHTML = `<p class="muted">Could not load activity: ${esc(e.message || e)}</p>`; }
+      }
+
+      // ── Banks: the WHOLE Open Banking arc behind ONE facade (holo-bank.mjs). Connect once → roams to your
+      //    other devices with no re-auth → one-tap quarterly reconfirm → prove a balance by a link. ──
+      let banksMounted = false;
+      async function mountBanksOnce() {
+        if (banksMounted || !(currentOp && currentOp.kappa)) return;
+        banksMounted = true;
+        try {
+          const mod = await import("../../../_shared/holo-bank.mjs");
+          // if the local bank proxy is running + configured, banks go LIVE (real GoCardless); else demo data.
+          let aggregator;
+          try {
+            const base = localStorage.getItem("holo.bank.proxy") || "http://localhost:8780";
+            const r = await fetch(base + "/health", { cache: "no-store" });
+            const hh = r.ok ? await r.json() : null;
+            if (hh && hh.configured) aggregator = mod.proxyAggregator(base);
+          } catch {}
+          await mod.mountBankCenter(document.getElementById("bankPanel"), {
+            operator: currentOp.kappa,
+            aggregator,                                          // undefined → labelled demo data
+            notify: (n) => { try { if (n && window.HoloNotify) window.HoloNotify.notify(n); } catch {} },
+          });
+        } catch (e) { banksMounted = false; document.getElementById("bankPanel").innerHTML = '<p class="muted">Banks are unavailable here.</p>'; }
+      }
+
+      // ── connected sites ──
+      function renderSites() {
+        const m = sites.all(), keys = Object.keys(m).sort((a, b) => (m[b].last || 0) - (m[a].last || 0));
+        const el = $("siteList");
+        if (!keys.length) { el.innerHTML = `<p class="muted">No requests yet. When an app or agent asks this wallet to sign, it appears here.</p>`; return; }
+        el.innerHTML = keys.map((k) => {
+          const e = m[k], kinds = Object.entries(e.kinds || {}).map(([x, n]) => `${x}×${n}`).join(" · ");
+          return `<div class="site"><div class="m"><b>${esc(k)}</b><div class="muted">${e.count} request${e.count === 1 ? "" : "s"} · ${esc(kinds)} · last ${esc(e.last ? new Date(e.last).toLocaleString() : "")}</div></div><div class="switch ${e.blocked ? "on" : ""}" data-site="${esc(k)}" title="${e.blocked ? "Blocked. Tap to allow" : "Tap to block"}"></div></div>`;
+        }).join("");
+        for (const sw of el.querySelectorAll(".switch")) sw.onclick = () => { const k = sw.dataset.site; sites.setBlocked(k, !sites.all()[k]?.blocked); renderSites(); };
+      }
+
+      // ── agents lane ──
+      const TOOLS = [
+        ["wallet_list_chains", "supported chains and your addresses", false],
+        ["wallet_get_address", "the wallet address for a chain", false],
+        ["wallet_get_balance", "native and token balances", false],
+        ["wallet_get_portfolio", "balances across every chain", false],
+        ["wallet_quote", "quote a send or swap, no signing", false],
+        ["wallet_sign_message", "sign a message, gated by your tap", true],
+        ["wallet_send", "send value, gated by your tap", true],
+      ];
+      $("toolList").innerHTML = TOOLS.map(([n, d, g]) => `<div class="tool ${g ? "gated" : ""}"><code>${n}</code><span class="muted">${d}</span><span class="sp" style="margin-left:auto"></span><span class="pill">${g ? "needs approval" : "read"}</span></div>`).join("");
+
+      // ── sheet routing ──
+      const sheetById = (s) => $("sheet-" + s);
+      let openSheetId = null;
+      function openSheet(s) {
+        const el = sheetById(s); if (!el) return;
+        if (s === "receive") renderReceive();
+        if (s === "sites") renderSites();
+        if (s === "network") renderNetworks();
+        if (s === "swap" && !$("swapNet").options.length) fillSwapNet();
+        if (s === "bridge" && !$("bridgeDst").options.length) fillBridgeDst();
+        if (s === "banks") mountBanksOnce();
+        $("scrim").classList.add("on"); el.classList.add("on"); openSheetId = s;
+      }
+      function closeSheet() { if (openSheetId) sheetById(openSheetId).classList.remove("on"); $("scrim").classList.remove("on"); openSheetId = null; }
+      $("scrim").onclick = closeSheet;
+      for (const x of document.querySelectorAll(".sheet-x")) x.onclick = closeSheet;
+      for (const a of document.querySelectorAll(".mmact")) a.onclick = () => { if (a.dataset.sheet) openSheet(a.dataset.sheet); };
+      // Tokens · Activity tabs
+      for (const t of document.querySelectorAll("#view-wallet .mm-tab")) t.onclick = () => {
+        document.querySelectorAll("#view-wallet .mm-tab").forEach((x) => x.classList.toggle("on", x === t));
+        document.querySelectorAll("#view-wallet .mm-pane").forEach((p) => p.classList.add("hidden"));
+        $("pane-" + t.dataset.tab).classList.remove("hidden");
+        if (t.dataset.tab === "activity") renderActivity();
+      };
+      $("netPill").onclick = () => openSheet("network");
+      $("acctPill").onclick = () => copy(addresses.ethereum || addresses[Object.keys(CHAINS)[0]] || wallet.did);
+      $("settingsBtn").onclick = () => openSheet("settings");
+      $("sitesRow").onclick = () => { closeSheet(); openSheet("sites"); };
+      $("banksBtn").onclick = () => { closeSheet(); openSheet("banks"); };
+      $("bridgeBtn").onclick = () => { closeSheet(); openSheet("bridge"); };
+      $("agentsBtn").onclick = () => { closeSheet(); openSheet("agents"); };
+
+      // ── enter — CACHE FIRST (Law L3): the dashboard paints whole from the κ-cache with zero network
+      //    awaited, then addresses/prices/balances refresh silently row by row. No spinner on known data. ──
+      async function enterWallet() {
+        setIdentityBar(); fillChainSelects(); $("sendSym").textContent = CHAINS[$("sendChain").value].symbol;
+        show("view-wallet");
+        loadCacheInto(); updateNetPill(); renderHoldings(); renderNet();   // instant paint, all cached
+        addresses = await wallet.addresses(0); saveCache();
+        $("walletDid").textContent = short(addresses.ethereum || addresses[Object.keys(CHAINS)[0]] || "", 10);
+        refreshBalances();
+        loadPrices().then(() => { renderHoldings(); renderNet(); });
+      }
+
+      // ── WALLET VISUAL BENCH — fixtures only, no vault/network. Renders the dashboard exactly as production
+      //    does, so a headless screenshot can be matched side by side to the MetaMask reference. ──
+      function bootBench() {
+        currentOp = { kappa: "did:holo:bench", did: "did:key:zBench", label: "Account 1", cred: null };
+        show("view-wallet");
+        $("acctName").textContent = "Account 1"; $("ccName").textContent = "Ilya";
+        $("walletDid").textContent = "0x7F3b…4F61a";
+        $("netName").textContent = "All Networks";
+        $("totalNum").textContent = "40.23";
+        $("netChg").innerHTML = '<span class="chg up">+$0.04 (+0.09%)</span>';
+        const rows = [
+          { sym: "USDC", name: "USDC", glyphBg: "#2775ca", netColor: "#2775ca", usd: "35.56", amount: "35.559", change: 0.02,
+            logo: "https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png" },
+          { sym: "ETH", name: "Ethereum", glyphBg: "#627eea", netColor: "#627eea", usd: "4.60", amount: "0.00259", change: 0.60, earn: true, logo: chainLogo("ethereum") },
+          { sym: "SOL", name: "Solana", glyphBg: "#14f195", netColor: "#9945ff", usd: "0.07", amount: "0.000891", change: 1.18, logo: chainLogo("solana") },
+        ];
+        $("chainList").innerHTML = rows.map(holdingRowHTML).join("");
+      }
+
+      // ── onboarding ──
+      let pendingMnemonic = null;
+      // GUEST SIGN-IN — one biometric tap signs the user into Hologram OS AND mints their wallet: enroll a
+      // platform passkey (WebAuthn PRF), let Holo Login mint a fresh Tether-WDK seed wrapped in a content-
+      // addressed vault by that hardware secret, open the OS session, and boot the SAME unified wallet.
+      // 100% anchored in the user's self-verifying κ (did:holo:sha256) — no password, no server.
+      $("signInBio").onclick = async () => {
+        const btn = $("signInBio"); if (btn.disabled) return; btn.disabled = true;
+        $("welcomeErr").textContent = "Setting up your secure wallet…";
+        try {
+          if (!(await teeAvailable().catch(() => false))) throw new Error("no-bio");
+          const { credentialId, secret } = await teeEnroll({ name: "Hologram" });
+          const { principal } = await login.enroll({ label: "operator", secret, cred: credentialId });
+          // sign in to Hologram OS — persist the verifiable session token (best-effort; never blocks the wallet)
+          try { const { openSession, persistSession } = await import("../../../_shared/holo-identity.mjs"); await persistSession(await openSession(principal, { session: "primeos" }), secret); } catch {}
+          currentOp = await login.currentOperator().catch(() => null);
+          await wallet.openSeed(await login.unlockSeed(principal.kappa, secret));
+          await enterWallet();
+        } catch (e) {
+          const m = String(e.message || e);
+          if (/no-bio|unavailable|WebAuthn|not.*support/i.test(m)) { $("welcomeErr").textContent = ""; $("moreLinks").classList.remove("hidden"); $("createBtn").classList.remove("hidden"); toast("Biometrics unavailable here. Create with a passphrase"); }
+          else $("welcomeErr").textContent = /cancel|abort|denied/i.test(m) ? "Sign in cancelled. Tap to try again" : ("Setup failed: " + m);
+        } finally { btn.disabled = false; }
+      };
+      $("moreOptions").onclick = (e) => { e.preventDefault(); $("moreLinks").classList.toggle("hidden"); };
+      $("createBtn").onclick = () => {
+        pendingMnemonic = HoloWallet.generateMnemonic(12);
+        $("seedgrid").innerHTML = pendingMnemonic.split(" ").map((w, i) => `<div class="w"><i>${i + 1}</i>${esc(w)}</div>`).join("");
+        $("wroteit").checked = false; $("finishCreate").disabled = true; $("newpass").value = ""; show("view-create");
+      };
+      const gateCreate = () => { $("finishCreate").disabled = !($("wroteit").checked && $("newpass").value.length >= 12); };
+      $("wroteit").onchange = gateCreate; $("newpass").oninput = gateCreate;
+      $("finishCreate").onclick = async () => { try { await wallet.create($("newpass").value, pendingMnemonic); pendingMnemonic = null; await enterWallet(); } catch (e) { toast(e.message); } };
+
+      $("importBtn").onclick = (e) => { e.preventDefault(); show("view-import"); };
+      $("importBack").onclick = () => show("view-welcome");
+      $("finishImport").onclick = async () => {
+        const words = $("importwords").value.trim().replace(/\s+/g, " "), pass = $("importpass").value;
+        if (pass.length < 12) return ($("importErr").textContent = "the passphrase must be at least 12 characters");
+        if (!HoloWallet.validateMnemonic(words)) return ($("importErr").textContent = "that does not look like a valid recovery phrase");
+        try { await wallet.create(pass, words); await enterWallet(); } catch (e) { $("importErr").textContent = e.message; }
+      };
+
+      // ── unlock / lock / backup ──
+      // Biometric is the FALLBACK door — only when there's no session to adopt (adoptSession failed). Normally the
+      // wallet opens unlocked from the host session and this never shows; auth is asked ONLY to complete a transaction.
+      // ── THE single canonical authentication gateway ── unlocking the wallet IS signing in to Hologram:
+      // the SAME κ + secret opens the one content-addressed vault, gives the wallet its seed AND establishes
+      // the OS session, signed by the same seed-derived principal (hybrid Ed25519 ‖ ML-DSA). κ-identity and
+      // wallet auth are one self-sealed, self-verified thing. Best-effort — never blocks the wallet.
+      async function signInOS(kappa, secret) {
+        try {
+          const principal = await login.unlock(kappa, secret);
+          const { openSession, persistSession } = await import("../../../_shared/holo-identity.mjs");
+          await persistSession(await openSession(principal, { session: "primeos" }), secret);
+          try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "holo-identity", action: "session-refreshed" }, location.origin); } catch {}
+        } catch {}
+      }
+      $("doUnlock").onclick = async () => {
+        if (!currentOp || !currentOp.cred) return revealPass();
+        $("unlockErr").textContent = "Authenticating…";
+        try {
+          const secret = (await teeAssert({ credentialId: currentOp.cred })).secret;
+          await wallet.openSeed(await login.unlockSeed(currentOp.kappa, secret));
+          await signInOS(currentOp.kappa, secret);   // wallet unlock ≡ OS sign-in (one κ, one ceremony)
+          await enterWallet();
+        } catch (e) { $("unlockErr").textContent = "Biometric cancelled. Try again, or use your passphrase"; revealPass(); }
+      };
+      const revealPass = () => { $("passFallback").classList.remove("hidden"); $("unlockpass").focus(); };
+      $("bioTrouble").onclick = (e) => { e.preventDefault(); revealPass(); };
+      $("doUnlockPass").onclick = async () => {
+        $("unlockErr").textContent = "";
+        try {
+          const secret = $("unlockpass").value;
+          if (currentOp) { await wallet.openSeed(await login.unlockSeed(currentOp.kappa, secret)); await signInOS(currentOp.kappa, secret); }
+          else await wallet.unlock(secret);
+          await enterWallet();
+        } catch (e) { $("unlockErr").textContent = "wrong passphrase"; }
+      };
+      $("unlockpass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("doUnlockPass").click(); });
+      // Reset wallet — erase the on-device vault (the seed lives only in your recovery phrase / Holo Login).
+      $("resetWallet").onclick = (e) => {
+        e.preventDefault();
+        if (!confirm("Erase this wallet from this device? You can restore it any time from your recovery phrase.")) return;
+        try { for (const k of Object.keys(localStorage)) if (k.startsWith("hw:")) localStorage.removeItem(k); } catch {}
+        location.reload();
+      };
+      $("lockBtn").onclick = () => { wallet.lock(); closeSheet(); $("settingsBtn").classList.add("hidden"); boot(); };
+      $("backupBtn").onclick = () => { const l = wallet.vaultLinkValue; if (l) copy(l); toast("backup link copied. Restore it anywhere"); };
+
+      // ── A2 · the intent context — the router reads the SAME κ-cached portfolio the dashboard paints
+      //    from (L3) and quotes ONLY over real engine calls; an unverifiable number refuses upstream. ──
+      const intentQuotes = {
+        usdt0: null,   // the pinned lane table, loaded lazily from the engine module
+        usdtOn: (c) => USDT[c] ? { addr: USDT[c].addr, decimals: USDT[c].decimals } : null,
+        symbolOf: (c) => CHAINS[c]?.symbol,
+        bridgeFeeUsd: async ({ srcChain, dstChain, amount }) => {
+          try { const q = await wallet.quoteBridge({ srcChain, dstChain, amount });
+            const p = prices[CHAINS[srcChain]?.coingecko]?.usd;
+            return p == null ? null : (Number(q.nativeFee) / 1e18) * p; } catch { return null; }
+        },
+        sendFeeUsd: async ({ chain, token }) => {
+          try { const c = CHAINS[chain]; if (!c || c.kind !== "evm") return null;
+            const gp = await fetch(c.rpc, { method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_gasPrice", params: [] }), signal: AbortSignal.timeout(5000) }).then((r) => r.json());
+            const p = prices[c.coingecko]?.usd;
+            return (gp && gp.result && p != null) ? (Number(BigInt(gp.result) * (token ? 65000n : 21000n)) / 1e18) * p : null; } catch { return null; }
+        },
+      };
+      async function intentCtx() {
+        if (!intentQuotes.usdt0) { try { intentQuotes.usdt0 = (await import("../../../_shared/holo-bridge.mjs")).USDT0; } catch { intentQuotes.usdt0 = {}; } }
+        if (!Object.keys(prices).length) await loadPrices();
+        if (!Object.keys(addresses).length) { try { addresses = await wallet.addresses(0); } catch {} }
+        return { wallet, gate, approvals: intentApprovals, portfolio: async () => ({ balances, addresses, prices }), quotes: intentQuotes };
+      }
+
+      // ── OS-wide signing seam: gate + reply; record + honor the connected-sites block list ──
+      async function handleSignRequest(d, reply, origin) {
+        if (!d || d.type !== "holo-wallet:sign-request") return;
+        if (!wallet.unlocked) return reply({ error: "wallet locked — open My Wallet and unlock" });
+        const req = d.request || {};
+        // ── AGENT (NPC) DELEGATION: if a grant is attached, the agent must be authorised to even ASK —
+        //    verify it (hybrid Ed25519 ‖ ML-DSA, re-derived κ, unexpired — Law L5), check it isn't revoked,
+        //    and that it grants the capability THIS request needs. The human still approves at the gate;
+        //    this only governs who may ask. Default-deny: a bad/expired/revoked/unscoped grant never reaches it.
+        agentCtx = null;
+        if (req.delegation) {
+          try {
+            const { authorizeRequest } = await import("../../../_shared/holo-delegate.mjs");
+            const owner = (currentOp && currentOp.kappa) || (req.delegation.issuer);
+            let revoked = []; try { revoked = JSON.parse(localStorage.getItem("holo.revoked:" + owner) || "[]"); } catch {}
+            const auth = authorizeRequest(req.delegation, { kind: req.kind, revoked, nowIso: new Date().toISOString() });
+            if (!auth.ok) return reply({ error: "agent: " + auth.reason });
+            agentCtx = auth.agent;
+            // AGENT PASSPORT (display): does this agent hold a dual-rooted, TEE-attested passport, or a basic
+            // grant? attestationOf re-derives the HARDWARE root offline (the substrate root was just verified).
+            try { const { attestationOf } = await import("../../../_shared/holo-delegate.mjs"); agentCtx.attest = await attestationOf(req.delegation); } catch {}
+          } catch (e) { return reply({ error: "agent delegation error: " + (e && e.message) }); }
+        }
+        // reads (address) never gate. The connected-sites block + log applies to everything else. The
+        // payload-bound biometric step-up is NOT here — it lives in the ONE signing seam (gate(), above),
+        // which HoloWallet calls inside every value/sign method, so this bridge and the in-wallet UI both
+        // get exactly one biometric over the exact action (no bypass, no double prompt). Reads don't gate.
+        if (req.kind !== "address") {
+          if (sites.isBlocked(origin)) return reply({ error: "blocked by you in Connected sites" });
+          sites.touch(agentCtx ? ("agent · " + (agentCtx.label || agentCtx.subject)) : origin, req.kind || "send"); if (openSheetId === "sites") renderSites();
+        }
+        try {
+          // ── A2 · intents — derive is a free read (SEC-2); realize is ONE biometric over the whole route ──
+          if (req.kind === "intent" || req.kind === "intent-realize") return reply(await handleIntent(req, await intentCtx()));
+          if (req.kind === "sign") reply({ ok: true, signature: await wallet.signMessage({ chain: req.chain, message: req.message }) });
+          else if (req.kind === "signTypedData") reply({ ok: true, signature: await wallet.signTypedData({ chain: req.chain || "ethereum", typedData: req.typedData }) });
+          else if (req.kind === "address") reply({ ok: true, address: await wallet.address(req.chain || "ethereum") });
+          // ── reads — value never moves; the wallet answers from its own keys/live RPC, no signature. ──
+          else if (req.kind === "addresses") reply({ ok: true, addresses: await wallet.addresses() });
+          else if (req.kind === "balance") reply({ ok: true, chain: req.chain, balance: String(await wallet.balance(req.chain)) });
+          else if (req.kind === "tokenBalance") { const acc = await wallet.account(req.chain); reply({ ok: true, chain: req.chain, token: req.token, balance: String(await acc.getTokenBalance(req.token)) }); }
+          else if (req.kind === "price") reply({ ok: true, price: await priceUsd(req.chains || Object.keys(CHAINS)) });
+          else if (req.kind === "history") reply({ ok: true, history: await history(req.chain, await wallet.address(req.chain), { limit: req.limit || 25 }) });
+          else if (req.kind === "swapQuote") { const q = await jupQuote({ inputMint: req.inputMint, outputMint: req.outputMint, amount: req.amount }); reply({ ok: true, quote: q }); }
+          else if (req.kind === "swapQuoteEvm") reply({ ok: true, quote: await wallet.quoteEvm({ chain: req.chain || "ethereum", srcToken: req.srcToken, destToken: req.destToken, amount: req.amount, srcDecimals: req.srcDecimals, destDecimals: req.destDecimals }) });
+          else if (req.kind === "swap") { const r = await wallet.swap({ inputMint: req.inputMint, outputMint: req.outputMint, amount: req.amount, slippageBps: req.slippageBps, inputDecimals: req.inputDecimals }); reply({ ok: true, txid: r.txid, hash: r.txid }); }
+          else if (req.kind === "swapEvm") { const r = await wallet.swapEvm({ chain: req.chain || "ethereum", srcToken: req.srcToken, destToken: req.destToken, amount: req.amount, slippageBps: req.slippageBps, srcDecimals: req.srcDecimals, destDecimals: req.destDecimals }); reply({ ok: true, ...r }); }
+          else if (req.kind === "bridgeQuote") reply({ ok: true, quote: await wallet.quoteBridge({ srcChain: req.srcChain, dstChain: req.dstChain, to: req.to, amount: req.amount }) });
+          else if (req.kind === "bridge") { const r = await wallet.bridgeUsdt0({ srcChain: req.srcChain, dstChain: req.dstChain, to: req.to, amount: req.amount, slippageBps: req.slippageBps }); reply({ ok: true, ...r }); }
+          else if (req.kind === "lendingPositions") reply({ ok: true, positions: await wallet.lendingPositions({ chain: req.chain || "arbitrum" }) });
+          else if (req.kind === "lending") { const r = await wallet.lendingAct({ chain: req.chain || "arbitrum", action: req.action, asset: req.asset, amount: req.amount, decimals: req.decimals, rateMode: req.rateMode }); reply({ ok: true, ...r }); }
+          else if (req.kind === "fiatQuote") reply({ ok: true, quote: await wallet.fiatQuote({ currencyCode: req.currencyCode, baseCurrencyAmount: req.baseCurrencyAmount, baseCurrencyCode: req.baseCurrencyCode }) });
+          else if (req.kind === "fiat") { const r = await wallet.fiatBuy({ currencyCode: req.currencyCode, baseCurrencyAmount: req.baseCurrencyAmount, baseCurrencyCode: req.baseCurrencyCode }); reply({ ok: true, ...r }); }
+          else if (req.kind === "aaAddress") reply({ ok: true, address: await wallet.aaAddress({ chain: req.chain || "ethereum", salt: req.salt }) }); // read: counterfactual smart-account address
+          else if (req.kind === "aaSend") { const r = await wallet.aaSend({ chain: req.chain || "ethereum", to: req.to, value: req.value, data: req.data, salt: req.salt, deploy: req.deploy }); reply({ ok: true, ...r }); } // gated: signs the userOpHash
+          else if (req.kind === "aa7702") { const r = await wallet.aa7702({ chain: req.chain || "ethereum", implAddress: req.implAddress }); reply({ ok: true, ...r }); } // gated: signs the EIP-7702 authorization
+          // ── Holo Pay HTLC settlement ──
+          else if (req.kind === "htlcConfigured") { const art = await htlcArt(); const { htlcAddressFor } = await import("../../../_shared/holo-htlc.js"); reply({ ok: true, configured: !!htlcAddressFor(req.chain, art) }); }   // read
+          else if (req.kind === "htlcSwapExists") {   // read: is a live swap on-chain for this hashlock? (recipient auto-discovery)
+            const art = await htlcArt(); const { htlcAddressFor, readSwap } = await import("../../../_shared/holo-htlc.js");
+            const chains = req.chain ? [req.chain] : Object.keys(art.addresses || {}).filter((k) => htlcAddressFor(k, art));
+            let found = null;
+            for (const ch of chains) { const h = htlcAddressFor(ch, art); if (!h) continue; if ((await readSwap({ rpcUrl: CHAINS[ch]?.rpc, htlc: h, hashlock: req.hashlock })).found) { found = ch; break; } }
+            reply({ ok: true, found: !!found, chain: found });
+          }
+          else if (req.kind === "htlcFund" || req.kind === "htlcClaim" || req.kind === "htlcRefund") {   // gated: value moves
+            const art = await htlcArt(); const chain = req.chain || "base"; const { htlcAddressFor, htlcFund, htlcClaim, htlcRefund } = await import("../../../_shared/holo-htlc.js");
+            const htlcAddress = htlcAddressFor(chain, art);
+            if (!htlcAddress) return reply({ error: "Holo Pay isn't live on " + (CHAINS[chain]?.name || chain) + " yet" });
+            const acc = await wallet.account(chain); const from = await acc.getAddress();
+            if (req.kind === "htlcFund") {
+              const { addr: token, decimals } = htlcToken(req.token, chain, art);
+              if (!(await gate({ type: "send", chain, amount: req.amount, to: htlcAddress, address: from, _who: `Holo Pay — lock ${req.amount} ${req.token || CHAINS[chain]?.symbol} in on-chain escrow. Only revealing the claim link releases it.` }))) return reply({ error: "declined by you" });
+              const r = await htlcFund(acc, { htlc: htlcAddress, hashlock: req.hashlock, timeout: Math.floor(Number(req.timeout) / 1000), token, amount: BigInt(Math.round(Number(req.amount) * 10 ** decimals)) });
+              reply({ ok: true, tx: r.tx, swapId: r.swapId });
+            } else if (req.kind === "htlcClaim") {
+              if (!(await gate({ type: "send", chain, address: from, _who: "Holo Pay — claim escrowed funds to your wallet (reveals the secret on-chain)." }))) return reply({ error: "declined by you" });
+              const r = await htlcClaim(acc, { htlc: htlcAddress, hashlock: req.hashlock, preimage: req.preimage });
+              reply({ ok: true, tx: r.tx });
+            } else {
+              if (!(await gate({ type: "send", chain, address: from, _who: "Holo Pay — refund your expired escrow back to this wallet." }))) return reply({ error: "declined by you" });
+              const r = await htlcRefund(acc, { htlc: htlcAddress, hashlock: req.hashlock });
+              reply({ ok: true, tx: r.tx });
+            }
+          }
+          else { const r = await wallet.send({ chain: req.chain, to: req.to, amount: req.amount, token: req.token }); reply({ ok: true, hash: r.hash }); }
+        } catch (err) { reply({ error: err.message }); }
+      }
+      // reply is ORIGIN-SCOPED (not "*") — a sign-result carries the user's signature and must reach only the
+      // requesting origin. Sandboxed/opaque frames report origin "null" and fall back to "*" (there the byWin
+      // host assertion is the real control).
+      window.addEventListener("message", (e) => handleSignRequest(e.data, (p) => e.source && e.source.postMessage({ type: "holo-wallet:sign-result", id: e.data?.id, ...p }, (e.origin && e.origin !== "null") ? e.origin : "*"), e.origin));
+      // A1 (holo-wallet-resident): the BroadcastChannel seam is answered by the RESIDENT wallet the shell
+      // boots at sign-in; this window attaches only as a fallback and stands down the moment a resident is
+      // alive (claim protocol) — so a request is answered exactly once, window open or not.
+      attachWindowSeam({ respond: handleSignRequest, bus: new BroadcastChannel("holo-wallet") });
+
+      $("fsBtn").onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.(); };
+      addEventListener("keydown", (e) => { if (e.key === "f" && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || "")) $("fsBtn").click(); if (e.key === "Escape") { if ($("view-approve").classList.contains("on")) closeGate(false); else closeSheet(); } });
+      $("refreshBtn").onclick = () => { loadPrices().then(() => { renderHoldings(); renderNet(); }); refreshBalances(); };
+
+      const parentWin = () => { try { return (window.parent && window.parent !== window) ? window.parent : null; } catch { return null; } };
+      // docked in the shell's right-edge wallet panel → fullscreen is meaningless; swap it for the ONE
+      // collapse control (the shell hides its own carriage header for the wallet, so this bar is the only
+      // header — no duplicate "Wallet" strip above it). The » posts up to the shell to slide the panel away.
+      if (new URLSearchParams(location.search).get("panel")) {
+        $("fsBtn").classList.add("hidden");
+        $("collapseBtn").style.display = "grid";
+        $("collapseBtn").onclick = () => { try { parentWin()?.postMessage({ type: "holo-identity", action: "close-wallet" }, location.origin); } catch {} };
+      } else {
+        $("collapseBtn").style.display = "none";   // standalone page → fullscreen button stays, no collapse
+      }
+      // Holo Money — hand the carriage to the neobank surface; the parent (shell / messenger) swaps facets.
+      $("openHoloMoney").onclick = () => { closeSheet(); try { parentWin()?.postMessage({ type: "holo-identity", action: "open-money" }, location.origin); } catch {} };
+
+      boot();
+      window.__holoWallet = wallet; // for the browser witness
+    </script>
+    <script src="../../../_shared/holo-theme.js" data-holo-shared="holo-theme.js"></script>
+</body>
+</html>

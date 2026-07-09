@@ -1,0 +1,25 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-tmdb — the metadata provider auto-populates Holo Player (TMDb → the one item shape: trending/popular/search/title/season, series enriched with trailer+cast+where-to-watch) and is κ-cached: repeats are served O(1) from a content-addressed κ (no fetch), tampering is refused (Law L5), and a warm cache works offline.",
+  "authority": "rests on #holo-tmdb + #holo-media-cache + #holo-media-item — Phase 1 of the streaming/metadata plan",
+  "witnessed": true,
+  "covers": [
+    "populates-rails",
+    "series-enriched",
+    "season-episodes",
+    "kappa-cache-hit",
+    "verify-before-trust",
+    "works-offline",
+    "deep-metadata"
+  ],
+  "checks": {
+    "populatesRails": true,
+    "seriesEnriched": true,
+    "seasonEpisodes": true,
+    "kappaCacheHit": true,
+    "verifyBeforeTrust": true,
+    "deepMetadata": true,
+    "worksOffline": true
+  },
+  "failed": []
+}

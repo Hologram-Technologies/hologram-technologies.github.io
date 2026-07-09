@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-realdebrid — the user's Real-Debrid account turns a Stremio addon's torrent infoHash (or a hoster link) into an INSTANT, cached, direct HTTPS stream (addMagnet→selectFiles→info→unrestrict); the right file is picked; uncached content is reported honestly (pending), dead torrents fail closed, the token validates. RD is the user's paid backend; nothing is bundled.",
+  "authority": "rests on #holo-realdebrid — Phase 1 of the Stremio+RD+Jellyfin plan",
+  "witnessed": true,
+  "covers": [
+    "token-validate",
+    "unrestrict-link",
+    "magnet-cached",
+    "picks-file",
+    "magnet-uncached",
+    "dead-torrent"
+  ],
+  "checks": {
+    "tokenValidate": true,
+    "unrestrictLink": true,
+    "magnetCached": true,
+    "picksFile": true,
+    "magnetUncached": true,
+    "deadTorrent": true
+  },
+  "failed": []
+}

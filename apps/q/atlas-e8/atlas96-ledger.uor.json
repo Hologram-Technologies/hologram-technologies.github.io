@@ -1,0 +1,100 @@
+{
+ "@context": [
+  "https://www.w3.org/ns/did/v1",
+  {
+   "schema": "https://schema.org/",
+   "prov": "http://www.w3.org/ns/prov#",
+   "holo": "https://hologram.os/ns/q#",
+   "f1": "https://hologram.os/ns/f1#"
+  }
+ ],
+ "@type": [
+  "f1:ClaimLedger",
+  "prov:Entity"
+ ],
+ "schema:name": "ATLAS96 claim ledger honesty re-grading (F1 convention applied), an overlay that mutates nothing",
+ "prov:wasInfluencedBy": "did:holo:sha256:3de6f836fa3aea4dd60b84f955a924aa4eeda2d1c4573a315aae192dd58ab539",
+ "f1:subject": {
+  "object": "did:holo:sha256:f82435dab0215aa6695797d5e9ef4809f1905c015c419f085b2d42346441aad0",
+  "lattice": "did:holo:sha256:652dcc6490dabf4fdb4a713a2773079a858b2aa1490582e777e38a5c3499a6cd",
+  "insights": "did:holo:sha256:1184b3be28849cc27e933479e14e06c58a257fcff1566c2ce133b8dcc609d13c"
+ },
+ "links": [
+  {
+   "id": "did:holo:sha256:7ddce4f13416ca2cd92df95b38ab775eadf29217f45bd2096b29350fdcb50f9d",
+   "rel": "schema:hasPart",
+   "@type": "schema:Dataset",
+   "leaf": true,
+   "digestSRI": "sha256-fdzk8TQWyizZLflbOKt3Xq3ykhf0W9IJayk1D9y1D50=",
+   "digestMultibase": "uEiB93OTxNBbKLNkt-Vs4q3derfKSF_Rb0glrKTUP3LUPnQ",
+   "schema:name": "atlas96.uor.json"
+  },
+  {
+   "id": "did:holo:sha256:0225faafb02d9326da2565fc33ff3358341dc0a9159315e9135b1886449c3fab",
+   "rel": "schema:hasPart",
+   "@type": "schema:Dataset",
+   "leaf": true,
+   "digestSRI": "sha256-AiX6r7AtkybaJWX8M/8zWDQdwKkVkxXpE1sYhkScP6s=",
+   "digestMultibase": "uEiACJfqvsC2TJtolZfwz_zNYNB3AqRWTFekTWxiGRJw_qw",
+   "schema:name": "lattice.uor.json"
+  },
+  {
+   "id": "did:holo:sha256:92ef2e1d8c3a2efdb0c5d4f7492f06b5ea7bb0cbf94c9ed4559def6461f2a88f",
+   "rel": "schema:hasPart",
+   "@type": "schema:Dataset",
+   "leaf": true,
+   "digestSRI": "sha256-ku8uHYw6Lv2wxdT3SS8Gtep7sMv5TJ7UVZ3vZGHyqI8=",
+   "digestMultibase": "uEiCS7y4djDou_bDF1PdJLwa16nuwy_lMntRVne9kYfKojw",
+   "schema:name": "insights.uor.json"
+  }
+ ],
+ "f1:method": "Applies F1's universallyValid convention (true = established/witnessed; null = open; false = falsified) to ATLAS96's claims. Points at the sealed objects by identity it does NOT alter them. The witness re-derives the subject from the live atlas96.uor.json to prove this overlay points at the genuine object.",
+ "f1:claims": [
+  {
+   "name": "deterministic-unfolding-rederives",
+   "universallyValid": true,
+   "statement": "The 11-step unfolding from the UOR octet base to the E₈ lattice re-derives byte-for-byte; each step carries an `ok` witness and the lattice shell counts (1,240,2160,6720,17520) ARE the E₈ shells.",
+   "evidence": "atlas96.uor.json per-step witnesses (all ok) + lattice.uor.json holo:shellCounts"
+  },
+  {
+   "name": "is-the-e8-quantizer",
+   "universallyValid": true,
+   "statement": "The object IS the E₈ quantizer: measured normalized second moment G = 0.0717 vs the known E₈ value 0.07168 (scalar baseline 1/12 = 0.0833).",
+   "evidence": "insights.uor.json E4 (G_measured vs G_known)"
+  },
+  {
+   "name": "entropy-storage-headroom",
+   "universallyValid": true,
+   "statement": "Real but modest: H(codeword) = 14.38 of 16 bits → ~10.1% storage headroom at entropy on measured model data.",
+   "evidence": "insights.uor.json E2"
+  },
+  {
+   "name": "llm-latent-topology-coordinate",
+   "universallyValid": null,
+   "statement": "The thesis that the 96-vertex / 12,288 torus is a coordinate for LLM latent topology and that 'any LLM maps into this space via snap()' is OPEN and measured WEAK: E8-snap miss rate 0.941; best rate-constrained NMSE 0.121. As a STRONG/universal claim it is FALSIFIED: real LLM embeddings are high-dim random-like (toroidality ≈ 0.3) vs the atlas torus 0.735; R96 over embeddings is histogram-only.",
+   "status": "open measured weak; strong form falsified",
+   "falsifiedBy": [
+    "memory:atlas-12288-llm-thesis-test",
+    "memory:e8-lattice-atlas-object (insights E1/E3)"
+   ]
+  },
+  {
+   "name": "e8-upscaling-to-8k",
+   "universallyValid": false,
+   "statement": "'8K via E₈' (E₈ as a detail-synthesizer for super-resolution) is FALSIFIED: E₈ never beats Lanczos and loses to a learned k-means partition of the same 8-D space by 0.65–0.85 dB across ×2/×3/×4. E₈ is an optimal QUANTIZER, not a detail synthesizer.",
+   "status": "falsified",
+   "falsifiedBy": [
+    "memory:e8-lattice-sr-falsified"
+   ]
+  }
+ ],
+ "f1:note": "The atlas96 holospace.json still advertises the LLM-latent thesis as a 'Working thesis' and atlas96.uor.json carries holo:llmMapping. Per this ledger those are `null`/`false`, not proven. Prose softening of that descriptor is recommended but deferred (it would relock the atlas96 app).",
+ "f1:laws": [
+  "L1 content-address",
+  "L5 re-derivation"
+ ],
+ "id": "did:holo:sha256:7052bcf3bc4cc1421052e5a6b2f2cc0315ee13e15e931db6eb1727165ff0fe1e",
+ "alsoKnownAs": [
+  "did:holo:blake3:79997483610e1e826aad948071af2b2f58b4977418812393a9990beda555e6a7"
+ ]
+}

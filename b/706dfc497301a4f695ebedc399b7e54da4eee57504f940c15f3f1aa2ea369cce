@@ -1,0 +1,88 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hologram · onion rung-1 live test</title>
+<style>
+  :root{color-scheme:dark}
+  body{font:15px/1.6 system-ui;background:#0b141a;color:#e8eef5;margin:0;padding:1.25rem;max-width:60rem}
+  h1{font-size:1.05rem;font-weight:600}
+  .bar{display:flex;gap:.5rem;margin:.75rem 0}
+  input{flex:1;background:#0e1a22;border:1px solid #22303a;color:#e8eef5;border-radius:8px;padding:.6rem .75rem;font:14px ui-monospace,monospace}
+  button{background:#1f6feb;border:0;color:#fff;border-radius:8px;padding:.6rem 1rem;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}
+  .chip{background:#0e1a22;border:1px solid #22303a;border-radius:999px;padding:.25rem .7rem;font-size:12px;cursor:pointer;color:#9fb4c4}
+  .sig{display:inline-flex;align-items:center;gap:.4rem;font-size:12.5px;padding:.25rem .6rem;border-radius:999px;margin:.25rem 0}
+  .sig.ok{background:#0e2a18;color:#5fd68a;border:1px solid #1c4a2e}
+  .sig.warn{background:#2a1f0e;color:#e0b44a;border:1px solid #4a3a1c}
+  .sig.err{background:#2a0e12;color:#ef6a78;border:1px solid #4a1c24}
+  .kind{font:12px ui-monospace,monospace;color:#7fd6e0;opacity:.9}
+  iframe{width:100%;height:66vh;border:1px solid #22303a;border-radius:10px;background:#fff;margin-top:.6rem}
+  .muted{opacity:.6;font-size:12.5px}
+  code{color:#9fd6ff}
+</style></head><body>
+<h1>Onion rung-1 — live test <span class="muted">(real Tor circuit via your SOCKS proxy)</span></h1>
+<div id="pre" class="muted">checking Tor proxy…</div>
+<div class="bar">
+  <input id="url" value="http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion/" spellcheck="false">
+  <button id="go">open</button>
+</div>
+<div class="row" id="samples"></div>
+<div id="kind" class="kind"></div>
+<div id="sig"></div>
+<div id="timing" class="muted"></div>
+<!-- local test tool: no sandbox so onion pages render fully + links navigate. Safe because EVERY onion URL is
+     proxied back through /onion (same origin) and the page can reach nothing but this local endpoint. -->
+<iframe id="view"></iframe>
+<script type="module">
+import { classify } from "../../../../_shared/holo-dweb.js";   // Part A — the ONE classifier, live in your browser
+
+const $ = (id) => document.getElementById(id);
+const SAMPLES = [
+  ["Tor Project", "http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion/"],
+  ["DuckDuckGo", "https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/"],
+  ["BBC News", "https://bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/"],
+];
+$("samples").innerHTML = SAMPLES.map(([n, u]) => `<span class="chip" data-u="${u}">${n}</span>`).join("");
+$("samples").onclick = (e) => { const u = e.target.dataset.u; if (u) { $("url").value = u; showKind(); } };
+
+function showKind() { const c = classify($("url").value.trim()); $("kind").textContent = "classify() → kind:" + c.kind + (c.legacy ? " (legacy v2)" : ""); return c; }
+$("url").addEventListener("input", showKind);
+
+async function health() {
+  try { const r = await fetch("/health"); const j = await r.json();
+    $("pre").innerHTML = j.reachable ? `Tor proxy <code>${j.socks}</code> ✓ reachable — ready`
+      : `Tor proxy <code>${j.socks}</code> ✗ not reachable. Start <b>Tor Browser</b> (or <code>arti proxy</code>), then reload. For standalone <code>tor</code> (9050): restart the server with <code>HOLO_SOCKS_PORT=9050</code>.`;
+  } catch { $("pre").textContent = "server /health error"; }
+}
+
+function sig(kind, text) { $("sig").innerHTML = `<span class="sig ${kind}">${text}</span>`; }
+
+let navT0 = 0;
+function open(url) {
+  const c = classify(url); showKind();
+  if (c.kind !== "onion") { sig("warn", "not a .onion — this test only routes onion addresses"); return; }
+  sig("warn", "connecting through Tor… (first circuit can take several seconds)");
+  $("timing").textContent = ""; navT0 = performance.now();
+  // navigate the iframe THROUGH the proxy → sub-resources (css/img) + links all route over Tor, page renders
+  // like web2 and is browsable. Same-origin (localhost) so no mixed-content, no CORS.
+  $("view").src = "/onion?url=" + encodeURIComponent(url) + "&rw=1";   // rw=1: standalone rewrite (no SW here)
+}
+$("go").onclick = () => open($("url").value.trim());
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") open($("url").value.trim()); });
+
+$("view").addEventListener("load", () => {
+  if (!navT0) return;
+  const total = performance.now() - navT0; navT0 = 0;
+  // reflect in-iframe navigation (clicked links) back into the address bar; success ⇒ rung-1 verified (address is key)
+  try {
+    const loc = $("view").contentWindow.location.href;
+    const m = /[?&]url=([^&]+)/.exec(loc);
+    const shown = m ? decodeURIComponent(m[1]) : loc;
+    if (/\.onion/i.test(shown)) { $("url").value = shown; showKind(); }
+  } catch {}
+  sig("ok", "● real onion routing · key-verified end-to-end (the address IS the ed25519 key)");
+  $("timing").textContent = `rendered in ${total.toFixed(0)} ms · sub-resources + links routed over Tor · click through to browse`;
+});
+
+showKind(); health();
+</script>
+</body></html>

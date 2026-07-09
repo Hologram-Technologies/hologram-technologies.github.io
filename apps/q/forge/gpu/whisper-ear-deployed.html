@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><title>Holo Whisper ear — deployed voice path (FHS mount)</title>
+<body style="font:14px ui-monospace,monospace;background:#0b0e16;color:#cdd6f4;padding:16px"><pre id="out">init…</pre></body>
+<script type="module">
+// Deployment smoke test: drive the EXACT path holo-voice.js uses — import createASR from the OS voice
+// mount, pass the wired CFG.knativeEar default, and transcribe. Proves the κ-native ear resolves +
+// runs through the cross-mount /apps/q/forge/* alias on the FHS serve (no Range support → whole-file
+// fallback) and that createASR.info().engine flips to the κ-native engine.
+import { createASR } from "../../../../usr/lib/holo/voice/holo-voice-asr.mjs";
+import { whisperDetok } from "./holo-whisper-frontend.mjs";
+import { streamHolo } from "./holo-whisper-stream.mjs";
+const out = document.getElementById("out"); const log = (s) => out.textContent += "\n" + s;
+window.__dep = { stage: "start" };
+// the wired default from holo-voice.js CFG.knativeEar
+const EAR = { module: "./holo-whisper-ear.mjs", holoUrl: "../.models/whisper-base.holo", kappa: "9637ae57babfe22b1e08d013423856b44b060be7cf20204532b90250fbf04ea3" };
+(async () => {
+  try {
+    if (!navigator.gpu) throw new Error("no WebGPU");
+    const buf = await (await fetch("./jo16.wav")).arrayBuffer();
+    const ac = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    const pcm = (await ac.decodeAudioData(buf.slice(0))).getChannelData(0);
+    const gids = (await (await fetch("./whisper-tx-ref.json")).json()).ids;
+    const Href = await streamHolo(EAR.holoUrl); const refText = whisperDetok(Href.headerBytes, gids).trim();
+
+    window.__dep.stage = "createASR";
+    const asr = createASR({ knativeEar: EAR, lang: "en" });   // exactly as holo-voice.js does
+    await asr.load();
+    const engine = asr.info().engine;
+    window.__dep.stage = "transcribe";
+    const r = await asr.transcribe(pcm, { language: "en" });
+    const got = (r.text || "").trim(), exact = got === refText;
+    window.__dep = { stage: "done", engine, runtime: r.runtime, exact, range206: Href.stats.support206, got, refText, pass: exact && engine === "holo-gguf-κnative" };
+    log(`createASR.info().engine: ${engine}  (runtime ${r.runtime})`);
+    log(`.holo via FHS serve — Range 206: ${Href.stats.support206 ? "yes" : "no (whole-file fallback)"}`);
+    log(`ref: "${refText}"`);
+    log(`got: "${got}"`);
+    log(`→ ${window.__dep.pass ? "✓ PASS — deployed voice path runs the κ-native ear, transcript exact" : "✗ FAIL"}`);
+  } catch (err) { window.__dep = { stage: "error", error: String(err) }; log("ERROR: " + err + "\n" + (err.stack || "")); }
+})();
+</script>

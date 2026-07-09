@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset=utf8><title>webgpu-bench (init)</title>
+<style>body{font:14px/1.6 monospace;background:#0b0e14;color:#e6e9ef;padding:18px}b{color:#7cffa0}</style></head><body>
+<h3>WebGPU decode-bandwidth benchmark — the ceiling for tok/s = bandwidth ÷ active-bytes/token</h3>
+<pre id=out>booting…</pre>
+<script type=module>
+const out = document.querySelector("#out"); const log = (m) => { out.textContent = m; window.__bench_log = m; };
+window.__bench = null;
+try {
+  if (!navigator.gpu) throw new Error("no WebGPU");
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  const info = adapter.info || (adapter.requestAdapterInfo ? await adapter.requestAdapterInfo() : {});
+  const dev = await adapter.requestDevice({ requiredLimits: { maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize, maxBufferSize: adapter.limits.maxBufferSize } });
+  const U = GPUBufferUsage;
+  // coalesced streaming read of a big buffer + reduction — measures peak read bandwidth (the decode bottleneck).
+  const WGSL = `
+@group(0)@binding(0)var<storage,read>buf:array<f32>;
+@group(0)@binding(1)var<storage,read_write>o:array<f32>;
+@group(0)@binding(2)var<uniform>p:vec4<u32>;
+var<workgroup>sh:array<f32,256>;
+@compute @workgroup_size(256) fn main(@builtin(global_invocation_id)g:vec3<u32>,@builtin(local_invocation_id)l:vec3<u32>,@builtin(workgroup_id)w:vec3<u32>,@builtin(num_workgroups)n:vec3<u32>){
+  let N=p.x; var s=0.0; var i=g.x; let stride=256u*n.x;
+  loop{ if(i>=N){break;} s=s+buf[i]; i=i+stride; }
+  sh[l.x]=s; workgroupBarrier();
+  var k=128u; loop{ if(k==0u){break;} if(l.x<k){sh[l.x]=sh[l.x]+sh[l.x+k];} workgroupBarrier(); k=k>>1u; }
+  if(l.x==0u){ o[w.x]=sh[0]; }
+}`;
+  const SIZE = 512 * 1024 * 1024;              // 512 MiB working buffer (well past cache → real DRAM/VRAM BW)
+  const NEL = SIZE / 4;
+  const buf = dev.createBuffer({ size: SIZE, usage: U.STORAGE | U.COPY_DST });
+  const WG = 1024;                             // workgroups
+  const o = dev.createBuffer({ size: WG * 4, usage: U.STORAGE });
+  const ub = dev.createBuffer({ size: 16, usage: U.UNIFORM | U.COPY_DST }); dev.queue.writeBuffer(ub, 0, new Uint32Array([NEL, 0, 0, 0]));
+  const mod = dev.createShaderModule({ code: WGSL });
+  const pipe = dev.createComputePipeline({ layout: "auto", compute: { module: mod, entryPoint: "main" } });
+  const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buf } }, { binding: 1, resource: { buffer: o } }, { binding: 2, resource: { buffer: ub } }] });
+  const pass = () => { const e = dev.createCommandEncoder(); const p = e.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0, bg); p.dispatchWorkgroups(WG); p.end(); dev.queue.submit([e.finish()]); };
+  // warmup
+  for (let i = 0; i < 5; i++) pass(); await dev.queue.onSubmittedWorkDone();
+  const R = 60; const t0 = performance.now();
+  for (let i = 0; i < R; i++) pass(); await dev.queue.onSubmittedWorkDone();
+  const secs = (performance.now() - t0) / 1000;
+  const gbs = (R * SIZE) / secs / 1e9;         // GB/s effective read bandwidth
+  const tokps = (activeGB) => (gbs / activeGB).toFixed(0);
+  const rows = [
+    ["deepseek-v2-lite  (2.4B active, Q4)", 1.20],
+    ["a 1B-active MoE   (Q4)", 0.50],
+    ["qwen2.5-0.5B dense (Q4)", 0.28],
+    ["deepseek-v2-lite  (2.4B active, 2-bit)", 0.60],
+  ];
+  const B = { gpu: (info.vendor || "") + " " + (info.architecture || info.description || ""), gbs: +gbs.toFixed(0),
+    maxBuf: adapter.limits.maxBufferSize, table: rows.map(([n, g]) => `${n.padEnd(38)} ${activeLine(g)}`) };
+  function activeLine(g) { const t = gbs / g; const spec = t * 1.83; return `${g.toFixed(2)} GB/tok → ${t.toFixed(0)} tok/s  (×1.83 spec ≈ ${spec.toFixed(0)})`; }
+  window.__bench = B;
+  log(`GPU: ${B.gpu}\nmeasured read bandwidth: ${gbs.toFixed(0)} GB/s  (512 MiB buffer, ${R} passes, ${secs.toFixed(2)}s)\n\n`
+    + `tok/s ceiling = bandwidth ÷ active-bytes/token   (100 tok/s target)\n`
+    + rows.map(([n, g]) => `  ${n.padEnd(38)} ${activeLine(g)}`).join("\n"));
+  document.title = "DONE";
+} catch (e) { log("ERROR: " + (e && e.message)); window.__bench = { error: e && e.message }; document.title = "ERROR"; }
+</script></body></html>

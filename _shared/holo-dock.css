@@ -1,0 +1,511 @@
+/* holo-dock.css — Holo Dock (ADR-0059): a native-feel bottom dock / taskbar for Hologram OS.
+ *
+ * Companion to holo-dock.js. It is OS chrome, not an app: a fixed bar that floats over whatever
+ * holospace is open. The bar's SHAPE is a zebar widget placement (holo-dock-config.json, adopted
+ * from holo-zpack-schema.json); its GLASS is TranslucentTB's accent model
+ * (holo-translucenttb-accents.json) via the --holo-glass-* tokens (holo-theme.css); its PROPORTION
+ * is the golden ratio (holo-phi.css --holo-size-* / --holo-phi); its FEEL adapts to the host OS via
+ * :root[data-holo-platform] (HoloPlatform) and degrades on lean tier / reduced motion (HoloUX).
+ *
+ * PORTABLE BY DESIGN: every external token is consumed through a local --hd-* alias WITH A FALLBACK,
+ * so the dock renders correctly in shells that load the full token layer (home.html) AND in shells
+ * that only load holo-theme.css (the World/SDK desktop) — without dragging in holo-mobile.css's
+ * global mechanics (which would resize that shell's own chrome). Every text size flows through the
+ * --holo-text* tokens (≥ the --holo-font-min floor), never a sub-16px px literal (ADR-0057); all
+ * sizing is φ tokens; only 1px hairlines are literal.
+ */
+
+/* The --hd-* aliases are SHARED with the popovers (flyout · menu), which are appended to <body>
+ * OUTSIDE #holo-dock and so would not inherit them otherwise. The dock's own layout stays below. */
+#holo-dock, .holo-dock-flyout, .holo-dock-menu {
+  /* φ-proportioned metrics (golden ratio everywhere), each with a portable fallback. */
+  --hd-tile: clamp(2.2rem, 2vmin + 1.2rem, 2.9rem);        /* the chip — responsive to screen size; icon/gap/radius stay φ-proportioned to it */
+  --hd-icon: calc(var(--hd-tile) * var(--hd-phi-inv));     /* icon = φ⁻¹ · chip (golden) */
+  --hd-gap:  calc(var(--hd-tile) * 0.236);                 /* φ⁻³ · chip — breathing room between chips */
+  --hd-pad:  calc(var(--hd-tile) * 0.146);                 /* φ⁻⁴ · chip — inner padding */
+  --hd-chip-radius: calc(var(--hd-tile) * 0.32);           /* a soft squircle, φ-scaled to the chip */
+  --hd-xs:   var(--holo-size-xs, 0.618rem);    /* φ⁻¹       */
+  --hd-m:    var(--holo-size-m, 1.618rem);
+  --hd-3xl:  var(--holo-size-3xl, 11.09rem);
+  --hd-phi:     var(--holo-phi, 1.618);
+  --hd-phi-inv: var(--holo-phi-inv, 0.618);
+  /* mechanics tokens (holo-mobile.css) with fallbacks for shells that don't load it. */
+  --hd-safe-b: var(--safe-b, 0px);  --hd-safe-l: var(--safe-l, 0px);  --hd-safe-r: var(--safe-r, 0px);
+  --hd-tap:  var(--holo-tap, 48px);
+  --hd-sp1:  var(--holo-space-1, 4px);  --hd-sp2: var(--holo-space-2, 8px);  --hd-sp3: var(--holo-space-3, 12px);
+  --hd-radius:    var(--holo-radius, 12px);
+  --hd-radius-sm: var(--holo-radius-sm, 8px);
+  --hd-text-sm: var(--holo-text-sm, 1rem);
+  --hd-text-lg: var(--holo-text-lg, 1.3125rem);
+  /* palette (holo-theme.css; loaded by every shell, fallbacks for total isolation). */
+  /* The dock is a CONSISTENT light frosted material (not theme-tied), so it — and its dark/colored
+   * icons + the Hologram mark — read on ANY wallpaper: the light fill contrasts on dark backgrounds,
+   * and a strong soft shadow + a hairline edge ring define it on light ones. Dark ink rides on it. */
+  --hd-ink:     #1b2230;
+  --hd-ink-dim: #59647a;
+  --hd-border:  rgba(10,16,30,0.12);
+  --hd-surface: #f7f9fd;
+  --hd-accent:  var(--holo-accent, #2f6fed);
+  --hd-hover:   rgba(10,16,30,0.08);
+  --hd-font:    var(--holo-font-sans, system-ui, sans-serif);
+  /* glass states — TranslucentTB acrylic, made universal (opaque/clear/blur/acrylic via [data-glass]). */
+  --hd-glass-tint:    rgba(249,250,253,0.72);
+  --hd-glass-border:  rgba(255,255,255,0.95);
+  --hd-glass-edge:    rgba(255,255,255,0.95);
+  --hd-glass-shadow:  0 10px 44px rgba(8,12,24,0.45), 0 0 0 1px rgba(8,12,24,0.07);
+  --hd-blur-bg:    var(--hd-glass-tint);
+  --hd-blur-fx:    blur(22px) saturate(1.5) brightness(1.04);
+  --hd-opaque-bg:  #f7f9fd;
+  --hd-opaque-fx:  none;
+  --hd-clear-bg:   rgba(255,255,255,0.10);
+  --hd-clear-fx:   blur(8px);
+  --hd-acrylic-bg: color-mix(in srgb, rgba(249,250,253,0.74) 88%, var(--hd-accent) 12%);
+  --hd-acrylic-fx: blur(22px) saturate(1.8) brightness(1.06);
+}
+
+#holo-dock {
+  position: fixed; z-index: 2147481000; display: flex;
+  pointer-events: none;                                                   /* only the bar itself is hit-testable */
+  font-family: var(--hd-font);
+}
+
+/* ── Orientation — the dock docks to the BOTTOM only in fullscreen (when the host OS taskbar is
+ *    hidden); in a normal window a bottom bar would CLASH with the OS taskbar, so it becomes a
+ *    VERTICAL bar pinned to the LEFT edge. holo-dock.js sets data-orient from the fullscreen state
+ *    and publishes --holo-dock-h (bottom) / --holo-dock-w (left) so other chrome clears the bar. ── */
+#holo-dock[data-orient="bottom"] {
+  left: 0; right: 0; bottom: 0; top: auto; flex-direction: row;
+  justify-content: center; align-items: flex-end;
+  padding: 0 var(--hd-safe-r) var(--hd-safe-b) var(--hd-safe-l);
+}
+#holo-dock[data-orient="left"] {
+  left: 0; top: var(--chrome-h, 0px); bottom: 0; right: auto; flex-direction: column;
+  justify-content: flex-start; align-items: flex-start;
+  padding: 0;
+}
+
+.holo-dock-inner {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: var(--hd-gap);
+  width: 100%; min-height: var(--hd-tile);
+  padding: var(--hd-sp1) var(--hd-sp3);
+  background: var(--hd-blur-bg);
+  -webkit-backdrop-filter: var(--hd-blur-fx); backdrop-filter: var(--hd-blur-fx);
+  border-top: 1px solid var(--hd-glass-border);
+  box-shadow: var(--hd-glass-shadow), inset 0 1px 0 0 var(--hd-glass-edge);   /* outer lift + top bevel = visible on any bg */
+  color: var(--hd-ink); box-sizing: border-box;
+}
+
+/* ── Glass states (TranslucentTB accent model) — selected by [data-glass] ─────────────── */
+#holo-dock[data-glass="opaque"]  .holo-dock-inner { background: var(--hd-opaque-bg);  -webkit-backdrop-filter: var(--hd-opaque-fx);  backdrop-filter: var(--hd-opaque-fx); }
+#holo-dock[data-glass="clear"]   .holo-dock-inner { background: var(--hd-clear-bg);   -webkit-backdrop-filter: var(--hd-clear-fx);   backdrop-filter: var(--hd-clear-fx); }
+#holo-dock[data-glass="blur"]    .holo-dock-inner { background: var(--hd-blur-bg);    -webkit-backdrop-filter: var(--hd-blur-fx);    backdrop-filter: var(--hd-blur-fx); }
+#holo-dock[data-glass="acrylic"] .holo-dock-inner { background: var(--hd-acrylic-bg); -webkit-backdrop-filter: var(--hd-acrylic-fx); backdrop-filter: var(--hd-acrylic-fx); }
+
+/* Lean tier / reduced motion → no live blur (performance + comfort). HoloUX stamps these on :root. */
+:root[data-holo-tier="lean"] #holo-dock .holo-dock-inner,
+:root[data-holo-motion="reduced"] #holo-dock .holo-dock-inner {
+  -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--hd-opaque-bg);
+}
+
+/* ── Items ───────────────────────────────────────────────────────────────────────────── */
+.holo-dock-items { display: flex; align-items: flex-end; gap: var(--hd-gap); margin: 0; padding: 0; list-style: none; }
+.holo-dock-item { position: relative; display: flex; flex-direction: column; align-items: center; }
+
+/* Every primary icon sits on an identical glossy CHIP — uniform, high-contrast (dark icons pop on
+ * the bright squircle), crisp (SVG + a 1px edge), delightful (lifts on hover). The chip IS the φ² unit. */
+.holo-dock-tile {
+  display: grid; place-items: center;
+  width: var(--hd-tile); height: var(--hd-tile);
+  padding: 0; border: 1px solid rgba(255,255,255,0.8); border-radius: var(--hd-chip-radius);
+  background: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(243,246,250,0.42));
+  box-shadow: 0 1px 2px rgba(8,12,24,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
+  color: var(--hd-ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.11s cubic-bezier(.2,.8,.2,1), box-shadow 0.11s ease, background 0.11s ease, border-color 0.11s ease;
+  transform-origin: center;
+}
+.holo-dock-tile:hover, .holo-dock-tile:focus-visible {
+  background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,255,255,0.64));
+  box-shadow: 0 6px 16px rgba(8,12,24,0.20), inset 0 1px 0 rgba(255,255,255,0.95);
+  transform: scale(1.07); outline: none;
+}
+.holo-dock-tile:active { transform: scale(0.95); transition-duration: 0.05s; }
+.holo-dock-icon { width: var(--hd-icon); height: var(--hd-icon); display: block; pointer-events: none; object-fit: contain; }
+/* the line glyphs are inline <svg> in a span — make them fill the icon box (tiles + bundle minis) */
+.holo-dock-icon svg, .holo-dock-mini svg { width: 100%; height: 100%; display: block; }
+.holo-dock-logo { width: calc(var(--hd-icon) * 1.04); height: calc(var(--hd-icon) * 1.04); }
+
+/* Active (running) — an accent-tinted chip + a dot. The dot is ABSOLUTE so every item equals the chip
+ * EXACTLY → all chips align precisely (the dot never grows an item's box). Centred just below in the
+ * bottom dock; pinned to the left in the vertical bar (overridden in the [data-orient="left"] block). */
+.holo-dock-dot { position: absolute; left: 50%; bottom: calc(-0.6 * var(--hd-sp2)); transform: translateX(-50%); width: var(--hd-sp1); height: var(--hd-sp1); border-radius: 999px; background: transparent; pointer-events: none; transition: background 0.14s ease; }
+.holo-dock-item[data-running] .holo-dock-dot { background: var(--hd-accent); }
+.holo-dock-item[data-running] .holo-dock-tile {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--hd-accent) 30%, #fff), color-mix(in srgb, var(--hd-accent) 15%, #fff));
+  border-color: color-mix(in srgb, var(--hd-accent) 55%, #fff);
+}
+
+/* Hover label — a floating name beside the tile (no layout shift). */
+.holo-dock-label {
+  position: absolute; bottom: calc(100% + var(--hd-pad)); left: 50%; transform: translateX(-50%) translateY(var(--hd-sp1));
+  white-space: nowrap; pointer-events: none; opacity: 0; z-index: 1;
+  padding: var(--hd-pad) var(--hd-sp2); border-radius: var(--hd-radius-sm);
+  background: var(--hd-surface); color: var(--hd-ink); border: 1px solid var(--hd-border);
+  box-shadow: var(--hd-glass-shadow); font-size: var(--hd-text-sm); transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.holo-dock-item:hover .holo-dock-label { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Drag-to-reorder feedback. */
+.holo-dock-item.dragging { opacity: 0.4; }
+.holo-dock-item.drop-before::before, .holo-dock-item.drop-after::after { content: ""; position: absolute; top: 10%; bottom: 10%; width: 2px; background: var(--hd-accent); border-radius: 999px; }
+.holo-dock-item.drop-before::before { left: calc(var(--hd-gap) / -2); }
+.holo-dock-item.drop-after::after { right: calc(var(--hd-gap) / -2); }
+
+/* ── Tray (shell actions + add + clock) ──────────────────────────────────────────────── */
+.holo-dock-sep { flex: 1 1 auto; }
+.holo-dock-tray { display: flex; align-items: center; gap: var(--hd-gap); margin-left: auto; }
+.holo-dock-actions { display: flex; align-items: center; gap: var(--hd-gap); }
+.holo-dock-action, .holo-dock-add { width: var(--hd-tile); height: var(--hd-tile); border: 0; border-radius: var(--hd-radius); background: transparent; color: var(--hd-ink-dim); cursor: pointer; display: grid; place-items: center; }
+.holo-dock-add { font-size: var(--hd-text-lg); line-height: 1; }
+.holo-dock-action .holo-dock-icon, .holo-dock-action svg { width: var(--hd-icon); height: var(--hd-icon); }
+.holo-dock-action:hover, .holo-dock-add:hover { background: var(--hd-hover); color: var(--hd-ink); }
+.holo-dock-clock { font-variant-numeric: tabular-nums; font-size: var(--hd-text-sm); color: var(--hd-ink); padding: 0 var(--hd-sp2); white-space: nowrap; }
+
+/* ════ Platform variants ═══════════════════════════════════════════════════════════════
+ * Default (above) = full-width bottom taskbar. */
+
+/* Windows / Linux / ChromeOS — an edge-to-edge taskbar (square pill, items from the left). */
+:root[data-holo-platform="windows"] #holo-dock[data-orient="bottom"],
+:root[data-holo-platform="linux"] #holo-dock[data-orient="bottom"],
+:root[data-holo-platform="chromeos"] #holo-dock[data-orient="bottom"] { justify-content: stretch; }
+:root[data-holo-platform="windows"] .holo-dock-inner,
+:root[data-holo-platform="linux"] .holo-dock-inner,
+:root[data-holo-platform="chromeos"] .holo-dock-inner { border-radius: 0; border-left: 0; border-right: 0; }
+
+/* macOS / iPadOS — a centered, floating, magnifying dock (acrylic pill). */
+:root[data-holo-platform="macos"] #holo-dock[data-orient="bottom"],
+:root[data-holo-platform="ipados"] #holo-dock[data-orient="bottom"] { align-items: flex-end; padding-bottom: max(var(--hd-safe-b), var(--hd-xs)); }
+:root[data-holo-platform="macos"] .holo-dock-inner,
+:root[data-holo-platform="ipados"] .holo-dock-inner {
+  width: max-content; max-width: calc(100% - var(--hd-tile));
+  border: 1px solid var(--hd-glass-border); border-radius: var(--hd-m); padding: var(--hd-pad) var(--hd-sp3);
+}
+:root[data-holo-platform="macos"] .holo-dock-clock,
+:root[data-holo-platform="ipados"] .holo-dock-clock { display: none; }                  /* the mac menu bar owns the clock */
+/* Magnification — only on a precise pointer, full tier, motion allowed. */
+#holo-dock.holo-dock--magnify .holo-dock-item:hover .holo-dock-tile { transform: scale(var(--hd-phi)); }
+#holo-dock.holo-dock--magnify .holo-dock-item:has(+ .holo-dock-item:hover) .holo-dock-tile,
+#holo-dock.holo-dock--magnify .holo-dock-item:hover + .holo-dock-item .holo-dock-tile { transform: scale(calc(1 + (var(--hd-phi) - 1) * var(--hd-phi-inv))); }
+
+/* Mobile (iOS / Android) — full-width, home-indicator clearance, no hover magnification. */
+:root[data-holo-platform="ios"] #holo-dock .holo-dock-inner,
+:root[data-holo-platform="android"] #holo-dock .holo-dock-inner { min-height: calc(var(--hd-tap) + var(--hd-sp1)); }
+:root[data-holo-platform="ios"] .holo-dock-tile,
+:root[data-holo-platform="android"] .holo-dock-tile { width: var(--hd-tap); height: var(--hd-tap); }
+:root[data-holo-platform="ios"] .holo-dock-label,
+:root[data-holo-platform="android"] .holo-dock-label { display: none; }                  /* touch has no hover */
+
+/* ════ Vertical (left-edge) bar — the windowed fallback ════════════════════════════════
+ * Same items + glass + φ sizing as the bottom dock, laid out as a centered vertical pill on the
+ * left edge so it never clashes with the host OS taskbar. Labels open to the right; the running
+ * dot pins to the left of each tile; the clock hides (the OS taskbar shows the time when windowed). */
+#holo-dock[data-orient="left"] .holo-dock-inner {
+  flex-direction: column; width: max-content; min-height: 0; height: 100%; margin: 0;
+  border: 0; border-right: 1px solid var(--hd-glass-border); border-radius: 0;
+  justify-content: flex-start; padding: var(--hd-sp3) var(--hd-pad);
+  /* never spill past the screen — when the pins + tray are taller than the viewport, the rail scrolls
+   * inside its own strip (thin, unobtrusive) instead of pushing the tray off the bottom edge. */
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: none;   /* the nav never shows a scrollbar */
+}
+#holo-dock[data-orient="left"] .holo-dock-inner::-webkit-scrollbar { width: 0; height: 0; display: none; }
+/* a VERTICAL nav never carries the bottom tray (Create · Share · Library · Keyboard · Add · clock) —
+ * those verbs belong to the horizontal bottom/floating dock. Hidden here regardless of render path. */
+#holo-dock[data-orient="left"] .holo-dock-tray, #holo-dock[data-orient="left"] .holo-dock-sep,
+#holo-dock[data-orient="right"] .holo-dock-tray, #holo-dock[data-orient="right"] .holo-dock-sep,
+#holo-dock[data-orient="free"] .holo-dock-tray, #holo-dock[data-orient="free"] .holo-dock-sep { display: none !important; }
+#holo-dock[data-orient="left"] .holo-dock-items { flex-direction: column; align-items: center; }
+#holo-dock[data-orient="left"] .holo-dock-sep { flex: 1 1 auto; }
+/* New (+) is pinned to the very bottom of the vertical rail — the auto top-margin eats all free space
+ * above it, so it sits on the bottom edge below the categories, pinned apps and live music/video tiles. */
+#holo-dock[data-orient="left"] .holo-dock-nav-bottom,
+#holo-dock[data-orient="right"] .holo-dock-nav-bottom,
+#holo-dock[data-orient="free"] .holo-dock-nav-bottom { margin-top: auto; }
+#holo-dock[data-orient="left"] .holo-dock-tray { flex-direction: column; margin-left: 0; margin-top: var(--hd-sp3); }
+#holo-dock[data-orient="left"] .holo-dock-actions { flex-direction: column; }
+#holo-dock[data-orient="left"] .holo-dock-clock { display: none; }
+#holo-dock[data-orient="left"] .holo-dock-tile { transform-origin: left center; }
+#holo-dock[data-orient="left"] .holo-dock-label { bottom: auto; left: calc(100% + var(--hd-pad)); top: 50%; transform: translateY(-50%) translateX(var(--hd-sp1)); }
+#holo-dock[data-orient="left"] .holo-dock-item:hover .holo-dock-label { transform: translateY(-50%) translateX(0); }
+#holo-dock[data-orient="left"] .holo-dock-dot { left: calc(var(--hd-pad) * -1); top: 50%; bottom: auto; transform: translateY(-50%); }
+#holo-dock[data-orient="left"] .holo-dock-item.drop-before::before,
+#holo-dock[data-orient="left"] .holo-dock-item.drop-after::after { top: auto; bottom: auto; left: 10%; right: 10%; width: auto; height: 2px; }
+#holo-dock[data-orient="left"] .holo-dock-item.drop-before::before { top: calc(var(--hd-gap) / -2); }
+#holo-dock[data-orient="left"] .holo-dock-item.drop-after::after { bottom: calc(var(--hd-gap) / -2); }
+
+/* ════ EXPANDED NAVIGATOR (Lovable-style) — the left bar glides wider into a full navigator: every
+ * item becomes a row (icon + inline name) under quiet section headers, with a live, κ-addressed
+ * Recents list. Collapsed stays the icon rail. The measure() ResizeObserver publishes the new width
+ * to --holo-dock-w, so the holospace card reflows automatically. ════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  #holo-dock[data-orient="left"] .holo-dock-inner { transition: width 0.16s cubic-bezier(.2, .8, .2, 1); }
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-inner {
+  width: clamp(208px, 16vw, 280px); align-items: stretch; overflow-y: auto; overflow-x: hidden; padding: var(--hd-sp2) var(--hd-sp2) var(--hd-sp3);
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-items { flex-direction: column; align-items: stretch; gap: var(--hd-sp2); width: 100%; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-item { width: 100%; flex-direction: row; }
+/* a row: icon (left) + full name, hover-highlit; flat (no glossy chip on the row itself) */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile {
+  display: flex; align-items: center; justify-content: flex-start; gap: calc(var(--hd-sp2) * 1.25);
+  width: 100%; height: calc(var(--hd-tile) * 0.92); padding: 0 var(--hd-sp3);
+  background: transparent; border: 0; border-radius: var(--hd-radius); box-shadow: none; transform-origin: left center;
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile:hover,
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile:focus-visible {
+  background: var(--hd-hover); box-shadow: none; transform: none;
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile:active { transform: none; }
+/* app icons keep a small glossy chip so they stay legible; glyphs (home/expand/recents) ride on light ink */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile img.holo-dock-icon {
+  width: calc(var(--hd-icon) * 1.18); height: calc(var(--hd-icon) * 1.18); flex: 0 0 auto; padding: 4px; box-sizing: border-box;
+  border-radius: calc(var(--hd-chip-radius) * 0.6); border: 1px solid rgba(255,255,255,0.5);
+  background: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(243,246,250,0.42));
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile span.holo-dock-icon { width: var(--hd-icon); height: var(--hd-icon); flex: 0 0 auto; color: var(--hd-ink-dim); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile span.holo-dock-icon svg { width: 100%; height: 100%; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-stack { width: calc(var(--hd-icon) * 1.18); height: calc(var(--hd-icon) * 1.18); flex: 0 0 auto; }
+/* inline label — full name, ellipsis; overrides the tooltip styling */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-label {
+  position: static; opacity: 1; transform: none; left: auto; top: auto; bottom: auto; z-index: auto;
+  background: transparent; border: 0; box-shadow: none; padding: 0; pointer-events: none;
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: left;   /* flush-left, every row */
+  font-family: var(--win-font, var(--hd-font)); font-weight: var(--chrome-fw, 500);
+  font-size: var(--chrome-fs, 14px); letter-spacing: 0; color: var(--hd-ink);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;   /* crisp text */
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-item[data-running] .holo-dock-label { color: var(--hd-accent); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-dot { display: none; }   /* running shown via label tint; no floating dot in a row */
+/* section headers — quiet, only in expanded */
+.holo-dock-section { display: none; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-section {
+  display: block; padding: var(--hd-sp3) var(--hd-sp2) var(--hd-pad); font-size: var(--hd-text-xs, 11px);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--hd-ink-dim); opacity: 0.62;
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-recents { margin-bottom: var(--hd-sp2); }
+/* keep the tray (Create/Share/Add) as rows too in expanded */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-action,
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-add {
+  width: 100%; justify-content: flex-start; gap: var(--hd-sp2); padding: 0 var(--hd-sp2); height: calc(var(--hd-tile) * 0.78);
+  border-radius: var(--hd-radius);
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-action:hover,
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-add:hover { background: var(--hd-hover); }
+/* fixed native-category rows: lists share the exact row grid (one scale, no drift); active row marked */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav-list { flex-direction: column; align-items: stretch; gap: var(--hd-sp2); width: 100%; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav[data-active] .holo-dock-tile { background: var(--hd-hover); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav[data-active] .holo-dock-label,
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav[data-active] span.holo-dock-icon { color: var(--hd-ink); }
+/* the ⌘K / Ctrl K hint chip, right-aligned in the row */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-kbd {
+  margin-left: auto; flex: 0 0 auto; font: 600 calc(var(--hd-text-xs, var(--holo-text-sm, 0.688rem))) var(--hd-font, ui-monospace, monospace);
+  color: var(--hd-ink-dim); background: color-mix(in srgb, var(--hd-ink) 10%, transparent);
+  border: 1px solid var(--hd-border); border-radius: var(--hd-radius-sm); padding: 1px 6px; letter-spacing: .02em;
+}
+.holo-dock-kbd { display: none; }   /* hidden in the collapsed icon rail */
+
+/* ════ Perplexity-style brand header + hover-morph (the navigator affordance) ════════════════════
+ * In the icon rail the Hologram mark cross-fades to a panel-expand glyph on hover; a click expands the
+ * navigator. When expanded, the mark sits beside the wordmark with a collapse control pinned right. */
+.holo-dock-head { display: flex; flex-direction: column; align-items: center; }
+#holo-dock[data-orient="left"] .holo-dock-head { width: 100%; }
+.holo-dock-home { position: relative; }
+.holo-dock-logo-morph { position: absolute; inset: 0; margin: auto; width: calc(var(--hd-icon) * 1.04); height: calc(var(--hd-icon) * 1.04); color: var(--hd-ink); transform: scale(0.78); pointer-events: none; }
+/* resting opacity must beat the shell's `#holo-dock .holo-dock-icon { opacity:.8 }` dark-theme override */
+#holo-dock .holo-dock-home .holo-dock-logo-morph { opacity: 0; }
+.holo-dock-logo, .holo-dock-logo-morph { transition: opacity 0.13s ease, transform 0.13s cubic-bezier(.2, .8, .2, 1); }
+/* rail only (not expanded, not folded): hovering the mark swaps H → panel-expand glyph */
+#holo-dock[data-orient="left"]:not(.holo-dock--expanded):not(.holo-dock--collapsed) .holo-dock-home:hover .holo-dock-logo { opacity: 0; transform: scale(0.78); }
+#holo-dock[data-orient="left"]:not(.holo-dock--expanded):not(.holo-dock--collapsed) .holo-dock-home:hover .holo-dock-logo-morph { opacity: 1; transform: scale(1); }
+#holo-dock[data-orient="left"]:not(.holo-dock--expanded) .holo-dock-home .holo-dock-label { display: none; }   /* the morph IS the hint — no competing tooltip */
+#holo-dock.holo-dock--expanded .holo-dock-logo-morph { display: none; }   /* wide layout uses the wordmark + collapse control instead */
+/* the separate collapse control: hidden until the navigator is wide (in the rail, the mark itself expands) */
+#holo-dock:not(.holo-dock--expanded) .holo-dock-collapse { display: none; }
+
+/* expanded: a real header row — mark + "Hologram" wordmark left, collapse glyph right */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-head { flex-direction: row; align-items: center; gap: var(--hd-sp2); width: 100%; padding: var(--hd-sp1) var(--hd-sp1) var(--hd-sp2); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-home { flex: 1 1 auto; justify-content: flex-start; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-home .holo-dock-label { font-family: var(--win-font, var(--hd-font)); font-weight: 700; font-size: var(--chrome-fs, 14px); color: var(--hd-ink); letter-spacing: -0.01em; }
+/* every icon slot is the SAME fixed width so all labels share one left edge */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile > span.holo-dock-icon,
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile > .holo-dock-stack { flex: 0 0 var(--hd-icon); width: var(--hd-icon); height: var(--hd-icon); }
+/* the brand mark stays IDENTICAL in both states — no chip when expanded (the expanded layout otherwise
+ * boxes every <img>); just the plain Hologram mark, same as the icon rail */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile img.holo-dock-logo {
+  flex: 0 0 auto; width: calc(var(--hd-icon) * 1.04); height: calc(var(--hd-icon) * 1.04);
+  padding: 0; border: 0; background: transparent; border-radius: 0; box-shadow: none;
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-collapse {
+  flex: 0 0 auto; width: calc(var(--hd-tile) * 0.78); height: calc(var(--hd-tile) * 0.78); padding: 0;
+  display: grid; place-items: center; background: transparent; border: 0; box-shadow: none;
+  color: var(--hd-ink-dim); border-radius: var(--hd-radius);
+}
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-collapse:hover { background: var(--hd-hover); color: var(--hd-ink); transform: none; box-shadow: none; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-collapse span.holo-dock-icon { width: var(--hd-icon); height: var(--hd-icon); color: inherit; }
+
+/* a hairline between the native categories and the pinned apps / recents */
+.holo-dock-rule { flex: 0 0 auto; }
+#holo-dock[data-orient="left"] .holo-dock-rule { display: block; width: 62%; height: 1px; background: var(--hd-border); margin: var(--hd-sp1) auto; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-rule { width: 100%; }
+#holo-dock[data-orient="bottom"] .holo-dock-rule, #holo-dock[data-orient="top"] .holo-dock-rule { display: none; }
+#holo-dock.holo-dock--collapsed .holo-dock-rule, #holo-dock.holo-dock--collapsed .holo-dock-section { display: none; }   /* folded chip → only the mark */
+
+/* "New" — the primary action, accent-tinted in both states (Perplexity's New Thread) */
+#holo-dock[data-orient="left"] .holo-dock-nav-primary span.holo-dock-icon { color: var(--hd-accent); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav-primary .holo-dock-tile { background: color-mix(in srgb, var(--hd-accent) 12%, transparent); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav-primary .holo-dock-tile:hover { background: color-mix(in srgb, var(--hd-accent) 20%, transparent); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-nav-primary .holo-dock-label { color: var(--hd-accent); font-weight: 600; }
+
+/* rail: the active native category gets an accent chip (mirrors the running-app tint) */
+#holo-dock[data-orient="left"]:not(.holo-dock--expanded) .holo-dock-nav[data-active] .holo-dock-tile {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--hd-accent) 22%, #fff), color-mix(in srgb, var(--hd-accent) 10%, #fff));
+  border-color: color-mix(in srgb, var(--hd-accent) 55%, #fff);
+}
+
+/* reduced motion: instant swap, no cross-fade */
+@media (prefers-reduced-motion: reduce) { .holo-dock-logo, .holo-dock-logo-morph { transition: none; } }
+
+/* ════ Crisp, non-floating hover (reliable · responsive) ═════════════════════════════════════════
+ * The base dock tiles scale up on hover (a macOS-dock lift). On the left nav that reads as a floaty
+ * wobble — so here a hover is a clean, immediate background highlight: no scale, no shadow lift, just
+ * a fast colour change. Rows get generous rounded hit-areas so the highlight feels intentional. */
+#holo-dock[data-orient="left"] .holo-dock-tile {
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+#holo-dock[data-orient="left"] .holo-dock-tile:hover,
+#holo-dock[data-orient="left"] .holo-dock-tile:focus-visible,
+#holo-dock[data-orient="left"] .holo-dock-tile:active { transform: none; }
+/* expanded rows: a rounded, full-width highlight that fills the new breathing room */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile { border-radius: 10px; }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile:hover,
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-tile:focus-visible { background: var(--hd-hover); box-shadow: none; transform: none; }
+/* a touch more air around the header and the divider so nothing feels packed */
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-head { padding-bottom: var(--hd-sp3); }
+#holo-dock.holo-dock--expanded[data-orient="left"] .holo-dock-rule { margin: var(--hd-sp2) auto; }
+/* the left nav never magnifies (that lift belongs to the floating bottom dock, not a sidebar) */
+#holo-dock.holo-dock--magnify[data-orient="left"] .holo-dock-item:hover .holo-dock-tile,
+#holo-dock.holo-dock--magnify[data-orient="left"] .holo-dock-item:has(+ .holo-dock-item:hover) .holo-dock-tile,
+#holo-dock.holo-dock--magnify[data-orient="left"] .holo-dock-item:hover + .holo-dock-item .holo-dock-tile { transform: none; }
+
+/* ════ Movable dock — drag the bar (its empty area, or the H logo) to pin it to ANY edge, or drop it
+ *      in the open to float free. Left/bottom reserve content space; right/top/free float over it.
+ *      Press the H logo to FOLD the dock to a single icon; click that icon again to unfold. ═══════ */
+#holo-dock .holo-dock-inner { cursor: grab; }
+#holo-dock.holo-dock--moving { transition: none; }
+#holo-dock.holo-dock--moving .holo-dock-inner { cursor: grabbing; box-shadow: var(--hd-glass-shadow), 0 0 0 2px var(--hd-accent), inset 0 1px 0 0 var(--hd-glass-edge); }
+
+/* right edge — mirror of the left bar */
+#holo-dock[data-orient="right"] { left: auto; right: 0; top: var(--chrome-h, 0px); bottom: 0; flex-direction: column; justify-content: flex-start; align-items: flex-end; padding: 0; }
+/* free float — positioned by inline left/top from holo-dock.js */
+#holo-dock[data-orient="free"] { left: 0; top: 0; right: auto; bottom: auto; flex-direction: column; align-items: flex-start; }
+/* right edge = a FULL-HEIGHT solid bar (mirror of left), so a vertical dock fills its whole strip
+ * just like the bottom bar fills the width — same background, flush to the edge, no floating pill. */
+#holo-dock[data-orient="right"] .holo-dock-inner {
+  flex-direction: column; width: max-content; min-height: 0; height: 100%; margin: 0;
+  border: 0; border-left: 1px solid var(--hd-glass-border); border-radius: 0;
+  justify-content: flex-start; padding: var(--hd-sp3) var(--hd-pad);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
+}
+#holo-dock[data-orient="right"] .holo-dock-inner::-webkit-scrollbar { width: 6px; }
+#holo-dock[data-orient="right"] .holo-dock-inner::-webkit-scrollbar-thumb { background: var(--hd-border); border-radius: 999px; }
+/* free = a floating rounded pill at the drop point (not an edge bar) */
+#holo-dock[data-orient="free"] .holo-dock-inner {
+  flex-direction: column; width: max-content; min-height: 0; height: max-content;
+  max-height: calc(100vh - var(--hd-tile)); border: 1px solid var(--hd-glass-border);
+  border-radius: var(--hd-m); padding: var(--hd-sp3) var(--hd-pad);
+}
+#holo-dock[data-orient="right"] .holo-dock-items, #holo-dock[data-orient="free"] .holo-dock-items { flex-direction: column; align-items: center; }
+#holo-dock[data-orient="right"] .holo-dock-sep { flex: 1 1 auto; }
+#holo-dock[data-orient="free"] .holo-dock-sep { flex: 0 0 auto; }
+#holo-dock[data-orient="right"] .holo-dock-tray, #holo-dock[data-orient="free"] .holo-dock-tray { flex-direction: column; margin-left: 0; margin-top: var(--hd-sp3); }
+#holo-dock[data-orient="right"] .holo-dock-actions, #holo-dock[data-orient="free"] .holo-dock-actions { flex-direction: column; }
+#holo-dock[data-orient="right"] .holo-dock-clock, #holo-dock[data-orient="free"] .holo-dock-clock { display: none; }
+#holo-dock[data-orient="right"] .holo-dock-tile { transform-origin: right center; }
+#holo-dock[data-orient="right"] .holo-dock-label { bottom: auto; left: auto; right: calc(100% + var(--hd-pad)); top: 50%; transform: translateY(-50%) translateX(calc(var(--hd-sp1) * -1)); }
+#holo-dock[data-orient="right"] .holo-dock-item:hover .holo-dock-label { transform: translateY(-50%) translateX(0); }
+#holo-dock[data-orient="free"] .holo-dock-label { bottom: auto; left: calc(100% + var(--hd-pad)); top: 50%; transform: translateY(-50%); }
+#holo-dock[data-orient="right"] .holo-dock-dot, #holo-dock[data-orient="free"] .holo-dock-dot { left: calc(var(--hd-pad) * -1); top: 50%; bottom: auto; transform: translateY(-50%); }
+
+/* top edge — mirror of the bottom bar; labels open downward */
+#holo-dock[data-orient="top"] { left: 0; right: 0; top: 0; bottom: auto; flex-direction: row; justify-content: center; align-items: flex-start; padding: 0 var(--hd-safe-r) 0 var(--hd-safe-l); }
+#holo-dock[data-orient="top"] .holo-dock-inner { border-top: 0; border-bottom: 1px solid var(--hd-glass-border); }
+#holo-dock[data-orient="top"] .holo-dock-label { bottom: auto; top: calc(100% + var(--hd-pad)); transform: translateX(-50%) translateY(calc(var(--hd-sp1) * -1)); }
+#holo-dock[data-orient="top"] .holo-dock-item:hover .holo-dock-label { transform: translateX(-50%) translateY(0); }
+#holo-dock[data-orient="top"] .holo-dock-dot { top: auto; bottom: calc(var(--hd-pad) * -1); }
+
+/* folded — only the H logo shows; clicking it unfolds the dock again */
+#holo-dock.holo-dock--collapsed .holo-dock-items,
+#holo-dock.holo-dock--collapsed .holo-dock-sep,
+#holo-dock.holo-dock--collapsed .holo-dock-tray { display: none; }
+#holo-dock.holo-dock--collapsed .holo-dock-home { cursor: pointer; }
+/* folded → a small rounded H chip (never a full-height bar), centred on its edge */
+#holo-dock.holo-dock--collapsed[data-orient="left"], #holo-dock.holo-dock--collapsed[data-orient="right"] { justify-content: center; }
+#holo-dock.holo-dock--collapsed .holo-dock-inner { height: max-content; border: 1px solid var(--hd-glass-border); border-radius: var(--hd-m); padding: var(--hd-pad); }
+
+/* ── Context menu (custom, OS-agnostic) ─────────────────────────────────────────────── */
+.holo-dock-menu {
+  position: fixed; z-index: 2147481100; min-width: var(--hd-3xl);
+  background: var(--hd-surface); color: var(--hd-ink);
+  border: 1px solid var(--hd-border); border-radius: var(--hd-radius);
+  box-shadow: var(--hd-glass-shadow); padding: var(--hd-pad); font-size: var(--hd-text-sm);
+}
+.holo-dock-menu button { display: flex; align-items: center; gap: var(--hd-sp2); width: 100%; min-height: auto; min-width: 0; padding: var(--hd-sp2) var(--hd-sp3); border: 0; border-radius: var(--hd-radius-sm); background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+.holo-dock-menu button:hover { background: var(--hd-hover); }
+.holo-dock-menu hr { border: 0; border-top: 1px solid var(--hd-border); margin: var(--hd-pad) 0; }
+.holo-dock-menu .holo-dock-menu-head { padding: var(--hd-sp2) var(--hd-sp3); color: var(--hd-ink-dim); font-size: var(--hd-text-sm); }
+.holo-dock-menu button img { flex: 0 0 auto; }
+.holo-dock-menu-glyph { flex: 0 0 auto; width: calc(var(--hd-icon) * 0.82); height: calc(var(--hd-icon) * 0.82); display: inline-block; color: var(--hd-ink-dim); }
+.holo-dock-menu-glyph svg { width: 100%; height: 100%; display: block; }
+
+/* ── Smooth load — fade in once laid out, so no boot measure/reflow jerk is ever seen (holo-dock.js). */
+#holo-dock { opacity: 0; transition: opacity 0.24s ease; }
+#holo-dock.ready { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #holo-dock { transition: none; } }
+
+/* ════ A bundle of objects — groups, the flyout, and the drag-to-group gesture ═══════════
+ * The bar is a grouping of objects: any tiles can be bundled into a GROUP (drag one onto another's
+ * centre) that reads as a single stacked chip and opens into a flyout of its members; ungroup spreads
+ * them back out. Everything is an object — a group carries a content fingerprint over its members. */
+
+/* Group (bundle) stack chip — a 2×2 of member icons inside the chip. */
+.holo-dock-stack { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: calc(var(--hd-tile) * 0.05); width: var(--hd-icon); height: var(--hd-icon); place-items: center; }
+.holo-dock-mini { width: 100%; height: 100%; object-fit: contain; border-radius: calc(var(--hd-tile) * 0.08); }
+.holo-dock-stack-tile { position: relative; }
+.holo-dock-stack-more { position: absolute; right: 7%; bottom: 4%; font: 700 0.62rem/1 var(--hd-font); color: var(--hd-ink-dim); }
+.holo-dock-group.open .holo-dock-tile { box-shadow: 0 0 0 2px var(--hd-accent), 0 6px 16px rgba(8,12,24,0.20); border-color: var(--hd-accent); }
+
+/* Drag-to-group — drop on a tile's CENTRE to bundle; the target swells + rings (the iOS-home gesture). */
+.holo-dock-item.merge-target .holo-dock-tile { transform: scale(1.18); box-shadow: 0 0 0 3px var(--hd-accent), 0 8px 20px rgba(8,12,24,0.28); border-color: var(--hd-accent); }
+@keyframes holo-bundle-pop { 0% { transform: scale(0.55); opacity: 0.35; } 55% { transform: scale(1.14); } 100% { transform: scale(1); opacity: 1; } }
+.holo-dock-item.just-bundled .holo-dock-tile { animation: holo-bundle-pop 0.42s cubic-bezier(.2,.8,.3,1); }
+
+/* Group flyout — the bundle opened into its members (a popover panel). */
+@keyframes holo-fly-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.holo-dock-flyout {
+  position: fixed; z-index: 2147481200; box-sizing: border-box; max-width: min(92vw, 30rem);
+  background: rgba(236,240,247,0.97); border: 1px solid var(--hd-glass-border); border-radius: var(--hd-radius);
+  box-shadow: var(--hd-glass-shadow); padding: var(--hd-sp3); color: var(--hd-ink);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  transform-origin: left center; animation: holo-fly-in 0.16s cubic-bezier(.2,.7,.3,1);
+}
+.holo-dock-fly-head { display: flex; align-items: center; gap: var(--hd-sp3); justify-content: space-between; margin-bottom: var(--hd-sp2); }
+.holo-dock-fly-name { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; color: var(--hd-ink); font: 600 var(--hd-text-sm)/1.2 var(--hd-font); padding: var(--hd-sp1) 0; }
+.holo-dock-fly-name:focus { outline: none; border-bottom: 1px solid var(--hd-accent); }
+.holo-dock-fly-k { flex: 0 0 auto; font: var(--hd-text-sm)/1 ui-monospace, monospace; color: var(--hd-ink-dim); white-space: nowrap; }
+.holo-dock-fly-grid { display: grid; grid-template-columns: repeat(auto-fit, calc(var(--hd-tile) * 1.5)); gap: var(--hd-sp2); justify-content: start; max-height: 60vh; overflow: auto; }
+.holo-dock-fly-grid .holo-dock-item { width: calc(var(--hd-tile) * 1.5); }
+.holo-dock-fly-label { font-size: var(--hd-text-sm); color: var(--hd-ink-dim); text-align: center; max-width: 100%; line-height: 1.15; max-height: 2.35em; overflow: hidden; margin-top: var(--hd-sp1); }
+.holo-dock-fly-add { color: var(--hd-ink-dim); font-size: var(--hd-text-lg); }
+.holo-dock-fly-foot { margin-top: var(--hd-sp2); display: flex; justify-content: flex-end; }
+.holo-dock-fly-foot button { border: 1px solid var(--hd-border); background: transparent; color: var(--hd-ink); border-radius: var(--hd-radius-sm); padding: var(--hd-sp1) var(--hd-sp3); cursor: pointer; font: inherit; }
+.holo-dock-fly-foot button:hover { background: var(--hd-hover); }

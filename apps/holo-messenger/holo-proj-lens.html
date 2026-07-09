@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Projected — Hologram</title>
+<!--
+  THE PROJECTION LENS (screencast leg). A Node producer (holo-proj-route.mjs) drives a real headless Chromium at
+  ?target=<url> and streams its frames over SSE. This lens decodes each frame, TILES it (holo-framebuffer-source),
+  BLAKE3-addresses the tiles and re-projects only the CHANGED ones — so the wire is JPEG but the RENDER is
+  content-addressed κ-objects, novelty-only. Input round-trips to the producer via POST → CDP. A HUD (Alt+H)
+  shows changed-tiles-per-frame so the "projected from κ objects" claim is visible. Same-origin; 100% in the tab.
+-->
+<style>
+  html, body { margin:0; height:100%; background:#0b0d12; overflow:hidden; color:#e9edef; font:400 14px/1.4 system-ui,sans-serif; }
+  #screen { display:block; width:100vw; height:100vh; image-rendering:auto; background:#0b0d12; }
+  #msg { position:fixed; inset:0; display:grid; place-items:center; text-align:center; pointer-events:none; }
+  #msg .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:22px 26px; max-width:70vw; }
+  #msg h3 { margin:0 0 6px; font-weight:600; }
+  #msg p { margin:0; color:#8b93a1; font-size:13px; }
+  #hud { position:fixed; top:8px; left:8px; font:600 11px/1.5 ui-monospace,monospace; color:#8fe3c2;
+    background:rgba(11,13,18,.7); border:1px solid rgba(80,220,170,.2); border-radius:8px; padding:6px 9px; display:none; }
+  #hud.on { display:block; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="hud"></div>
+<div id="msg"><div class="card"><h3>Connecting the projector…</h3><p id="msgp">Driving a real Chromium and streaming its κ-tiled frames.</p></div></div>
+<script type="module">
+import { makeFramebufferPipeline } from "../../usr/lib/holo/holo-framebuffer-source.mjs";
+
+const screen = document.getElementById("screen");
+const ctx = screen.getContext("2d", { alpha: false });
+const msg = document.getElementById("msg"), msgp = document.getElementById("msgp");
+const hud = document.getElementById("hud");
+const params = new URLSearchParams(location.search);
+const TARGET = params.get("target") || "https://www.google.com/";
+const SID = params.get("sid") || (TARGET.replace(/\W+/g, "").slice(0, 24) + "-" + Math.floor(performance.now()));
+const W0 = Math.max(640, Math.round(innerWidth * (window.devicePixelRatio || 1)));
+const H0 = Math.max(480, Math.round(innerHeight * (window.devicePixelRatio || 1)));
+
+let pipe = null, off = null, offCtx = null, cur = null, W = 0, H = 0, frames = 0, live = false;
+let lastChanged = 0, lastEmitted = 0;
+
+async function onFrame(dataUrl) {
+  let bmp; try { bmp = await createImageBitmap(await (await fetch(dataUrl)).blob()); } catch { return; }
+  if (!pipe || bmp.width !== W || bmp.height !== H) {
+    W = bmp.width; H = bmp.height; screen.width = W; screen.height = H;
+    off = new OffscreenCanvas(W, H); offCtx = off.getContext("2d", { willReadFrequently: true });
+    pipe = makeFramebufferPipeline({ getFrame: () => cur, width: W, height: H, tile: 256 });
+  }
+  offCtx.drawImage(bmp, 0, 0);
+  cur = new Uint8Array(offCtx.getImageData(0, 0, W, H).data);
+  let r = null; try { r = await pipe.present(); } catch {}          // tile + content-address + project CHANGED tiles
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(pipe.framebuffer()), W, H), 0, 0);
+  frames++; if (r) { lastChanged = r.changed || 0; lastEmitted = r.emitted || 0; }
+  if (!live) { live = true; msg.style.display = "none"; }
+  if (hud.classList.contains("on")) hud.textContent = `κ-projected · ${W}×${H} · frame ${frames} · changed ${lastChanged} · novel ${lastEmitted}`;
+}
+
+// SSE from the producer (dependency-free; reachable from any browser).
+const es = new EventSource(`/proj/stream?target=${encodeURIComponent(TARGET)}&sid=${encodeURIComponent(SID)}&w=${W0}&h=${H0}`);
+es.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch { return; } if (m.data) onFrame(m.data); else if (m.error) fail(m.error); };
+es.onerror = () => { if (!live) msgp.textContent = "Producer offline — is the /proj route mounted and Playwright installed?"; };
+function fail(reason) { msg.style.display = "grid"; msg.querySelector("h3").textContent = "Projector error"; msgp.textContent = String(reason).slice(0, 200); }
+
+// INPUT → producer (mapped to producer px), via POST → CDP.
+const xy = (e) => { const b = screen.getBoundingClientRect(); return { x: Math.round((e.clientX - b.left) * (W / b.width)), y: Math.round((e.clientY - b.top) * (H / b.height)) }; };
+const post = (o) => { try { fetch(`/proj/input?sid=${encodeURIComponent(SID)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(o) }); } catch {} };
+screen.addEventListener("mousemove", (e) => post({ t: "move", ...xy(e) }));
+screen.addEventListener("mousedown", (e) => post({ t: "down", ...xy(e), b: e.button }));
+screen.addEventListener("mouseup", (e) => post({ t: "up", ...xy(e), b: e.button }));
+screen.addEventListener("wheel", (e) => { post({ t: "wheel", ...xy(e), dy: e.deltaY }); e.preventDefault(); }, { passive: false });
+window.addEventListener("keydown", (e) => { post({ t: "key", k: e.keyCode }); });
+window.addEventListener("keypress", (e) => { if (e.charCode) post({ t: "char", text: String.fromCharCode(e.charCode) }); });
+window.addEventListener("keydown", (e) => { if (e.altKey && (e.key === "h" || e.key === "H")) hud.classList.toggle("on"); });
+
+// a holospace navigating (the messenger sets ?target=) → the producer already opened it. Support live re-nav:
+window.__holoProjNav = (url) => { post; try { fetch(`/proj/nav?sid=${encodeURIComponent(SID)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url }) }); } catch {} };
+window.__holoProjInfo = () => ({ target: TARGET, sid: SID, live, frames, changed: lastChanged, novel: lastEmitted, w: W, h: H });
+</script>
+</body>
+</html>

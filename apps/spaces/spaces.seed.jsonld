@@ -1,0 +1,102 @@
+{
+  "@context": { "holo": "https://hologram.os/ns#", "schema": "https://schema.org/" },
+  "@type": "holo:SpaceSeed",
+  "dcterms:description": "First-run Holo Spaces. Members reference real app root κs (the same roots gen-apps-catalog stamps into holospaces.jsonld). A 'space' member references another seed by id; the app resolves it to that Space's computed κ at load — so nesting carries no hardcoded κ and stays re-derivable. The home is a 'honeycomb' lobby: a Space-of-Spaces shown as a pannable hex wall. One of its hexes ('discover') is itself a honeycomb, proving infinite nesting. 'author' is presentation (the hover label) and does NOT enter a Space's κ identity (identity = the arrangement, not who posted it).",
+  "spaces": [
+    {
+      "id": "web3-corner",
+      "name": "Web3 Corner",
+      "author": "satoshi",
+      "layout": "split-h",
+      "accent": "#f2c14e",
+      "mood": "focused",
+      "members": [
+        { "kind": "app", "root": "did:holo:sha256:a89f9f5c9da73f673545b3b1bfd000f2f9e98f8d567e59e622bae0f8d163d107" },
+        { "kind": "app", "root": "did:holo:sha256:ee98082da54478cbe13a447eedec70a984b5bba6b4c44747169770effdb22ec2" }
+      ]
+    },
+    {
+      "id": "quiet-studio",
+      "name": "Quiet Studio",
+      "author": "bluespirit",
+      "layout": "split-h",
+      "accent": "#c77bff",
+      "mood": "calm",
+      "members": [
+        { "kind": "app", "root": "did:holo:sha256:4d25d8a762ba5b96f0cd2592087c874a7f4421918f351891e280d1161853977f" },
+        { "kind": "app", "root": "did:holo:sha256:8f9c6870dcf4cd9b5aa77c176aea22c155aa04383246726c7bc9c48b17f13b22" }
+      ]
+    },
+    {
+      "id": "dev-cockpit",
+      "name": "Dev Cockpit",
+      "author": "ada",
+      "layout": "primary-rail",
+      "accent": "#5b8cff",
+      "mood": "focused",
+      "members": [
+        { "kind": "app", "root": "did:holo:sha256:bc78f3061ec439d7a4ebf5418be1e3caf40bb7bb63e171a78a5d69de35a8036e" },
+        { "kind": "app", "root": "did:holo:sha256:6095baf70a350ea6e84c25fb7c00d9460808ed8a7f4901010576aad2f6a0fbbb" },
+        { "kind": "app", "root": "did:holo:sha256:46d8ea88edfcc79e501d3b4bd3afe34c9b419bc5ad55dd1baff33b433105de97" }
+      ]
+    },
+    {
+      "id": "ai-lab",
+      "name": "AI Lab",
+      "author": "turing",
+      "layout": "primary-rail",
+      "accent": "#2bd4ff",
+      "mood": "curious",
+      "members": [
+        { "kind": "app", "root": "did:holo:sha256:4d25d8a762ba5b96f0cd2592087c874a7f4421918f351891e280d1161853977f" },
+        { "kind": "app", "root": "did:holo:sha256:8193514c68d55489e91874e4d60ac4e4bc1101eb39cc97627a009c70318ca206" },
+        { "kind": "app", "root": "did:holo:sha256:e39372c98417567fe04c15f1fabb7ebbff0d3b51d17882ad842681d198061245" }
+      ]
+    },
+    {
+      "id": "my-world",
+      "name": "My World",
+      "author": "you",
+      "layout": "primary-rail",
+      "accent": "#2dd4bf",
+      "mood": "cozy",
+      "members": [
+        { "kind": "app", "root": "did:holo:sha256:cffcbf0fa41e3ec305cfacce9a674cbbe84d160345bfe654f98e7a3385ab35cf" },
+        { "kind": "space", "seed": "web3-corner" },
+        { "kind": "space", "seed": "quiet-studio" }
+      ]
+    },
+    {
+      "id": "discover",
+      "name": "Discover",
+      "author": "hologram",
+      "layout": "honeycomb",
+      "accent": "#8b5cf6",
+      "mood": "open",
+      "members": [
+        { "kind": "app", "root": "did:holo:sha256:4d25d8a762ba5b96f0cd2592087c874a7f4421918f351891e280d1161853977f" },
+        { "kind": "app", "root": "did:holo:sha256:8f9c6870dcf4cd9b5aa77c176aea22c155aa04383246726c7bc9c48b17f13b22" },
+        { "kind": "app", "root": "did:holo:sha256:cffcbf0fa41e3ec305cfacce9a674cbbe84d160345bfe654f98e7a3385ab35cf" },
+        { "kind": "app", "root": "did:holo:sha256:46d8ea88edfcc79e501d3b4bd3afe34c9b419bc5ad55dd1baff33b433105de97" },
+        { "kind": "app", "root": "did:holo:sha256:a89f9f5c9da73f673545b3b1bfd000f2f9e98f8d567e59e622bae0f8d163d107" }
+      ]
+    },
+    {
+      "id": "lobby",
+      "home": true,
+      "name": "Holo Spaces",
+      "author": "hologram",
+      "layout": "honeycomb",
+      "accent": "#2dd4bf",
+      "mood": "open",
+      "members": [
+        { "kind": "space", "seed": "my-world" },
+        { "kind": "space", "seed": "web3-corner" },
+        { "kind": "space", "seed": "quiet-studio" },
+        { "kind": "space", "seed": "dev-cockpit" },
+        { "kind": "space", "seed": "ai-lab" },
+        { "kind": "space", "seed": "discover" }
+      ]
+    }
+  ]
+}

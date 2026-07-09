@@ -1,0 +1,22 @@
+<!doctype html><meta charset=utf8><title>qwen35 WHOLE MODEL GPU parity</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:20px}.ok{color:#5f5}.fail{color:#f55}</style>
+<h3>qwen35 whole model on WebGPU — vs HF/CPU fixture (argmax token-for-token)</h3>
+<pre id=out>running… (needs a WebGPU browser)</pre>
+<script type=module>
+import { qwen35ForwardGPU, argmax } from "./holo-qwen35-gpu.mjs";
+const out = document.getElementById("out");
+const log = (s, cls) => { out.innerHTML += `\n${cls ? `<span class=${cls}>${s}</span>` : s}`; };
+const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / (Math.sqrt(na) * Math.sqrt(nb) + 1e-30); };
+try {
+  if (!navigator.gpu) throw new Error("no navigator.gpu");
+  const ref = await (await fetch("../gguf-forge-qwen35-model-parity.fixture.json")).json();
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const F = a => Float32Array.from(a);
+  const model = { D: ref.D, token_embd: F(ref.token_embd), output_norm: F(ref.output_norm), lm_head: F(ref.lm_head), cos: ref.cos.map(F), sin: ref.sin.map(F), layers: ref.layers.map(l => ({ type: l.type, W: Object.fromEntries(Object.entries(l.W).map(([k, x]) => [k, F(x)])) })) };
+  const logits = await qwen35ForwardGPU(dev, model, ref.ids);
+  const yRef = ref.logits.map(F);
+  let ok = true;
+  for (let t = 0; t < logits.length; t++) { const c = cos(logits[t], yRef[t]), g = argmax(logits[t]), r = argmax(yRef[t]); const m = g === r; ok = ok && m && c > 0.999; log(`  t=${t}  cos=${c.toFixed(5)}  tok=${g}${m ? "==" : "!="}${r}`, m ? "ok" : "fail"); }
+  log(ok ? "\nWHOLE MODEL GPU PARITY ✓ (matches HF fixture token-for-token)" : "\nPARITY ✗", ok ? "ok" : "fail");
+} catch (e) { log("ERROR: " + e.message + "\n" + e.stack, "fail"); }
+</script>

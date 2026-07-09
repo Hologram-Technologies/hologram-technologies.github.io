@@ -1,0 +1,176 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>forge — browser κ-native GPU inference</title>
+<body><pre id="out">loading…</pre></body>
+<script type="module">
+// Full Qwen2.5-0.5B forward on the GPU, in the browser. Weights are the forge's
+// unpacked κ-blocks (Q5_0/Q8_0/Q4_0 -> per-32 f32 scale + packed int8 quant;
+// Q6_K/Q4_K/F32 -> f32). 24-layer prefill with KV-cache + chunked lm_head ->
+// next-token argmax. Witnessed against the CPU oracle / llama.cpp (" Paris").
+
+const out = document.getElementById("out");
+const log = (s) => { out.textContent = s; };
+window.__run = { ready: false };
+const t0 = performance.now();
+const T = (m) => log(`[${((performance.now() - t0) / 1000).toFixed(1)}s] ${m}`);
+
+const MATVECQ = `
+@group(0) @binding(0) var<storage,read> scales: array<f32>;
+@group(0) @binding(1) var<storage,read> quants: array<u32>; // 4 packed int8 per u32
+@group(0) @binding(2) var<storage,read> act: array<f32>;
+@group(0) @binding(3) var<storage,read_write> outv: array<f32>;
+@group(0) @binding(4) var<uniform> p: vec4<u32>; // (N,K,outBase)
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  let n=g.x; let N=p.x; let K=p.y; if(n>=N){return;}
+  let nb=K/32u; var acc=0.0;
+  for (var b=0u;b<nb;b++){
+    let s=scales[n*nb+b]; let base=n*K+b*32u; let ab=b*32u; var inner=0.0;
+    for (var i=0u;i<32u;i++){
+      let idx=base+i; let u=quants[idx>>2u]; let lane=(idx&3u)*8u;
+      let q=(i32(u<<(24u-lane)))>>24u;
+      inner=inner+f32(q)*act[ab+i];
+    }
+    acc=acc+s*inner;
+  }
+  outv[p.z+n]=acc;
+}`;
+const MATVECF = `
+@group(0) @binding(0) var<storage,read> W: array<f32>;
+@group(0) @binding(1) var<storage,read> x: array<f32>;
+@group(0) @binding(2) var<storage,read_write> y: array<f32>;
+@group(0) @binding(3) var<uniform> p: vec4<u32>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  let n=g.x; let N=p.x; let K=p.y; if(n>=N){return;}
+  var acc=0.0; let b=n*K; for(var k=0u;k<K;k++){acc=acc+W[b+k]*x[k];} y[p.z+n]=acc;
+}`;
+const ADD = `
+@group(0) @binding(0) var<storage,read> a: array<f32>;
+@group(0) @binding(1) var<storage,read> b: array<f32>;
+@group(0) @binding(2) var<storage,read_write> y: array<f32>;
+@group(0) @binding(3) var<uniform> p: vec4<u32>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>){let i=g.x;if(i>=p.x){return;}y[i]=a[i]+b[i];}`;
+const RMS = `
+@group(0) @binding(0) var<storage,read> x: array<f32>;
+@group(0) @binding(1) var<storage,read> w: array<f32>;
+@group(0) @binding(2) var<storage,read_write> y: array<f32>;
+@group(0) @binding(3) var<uniform> p: vec4<f32>;
+@compute @workgroup_size(1) fn main(){let N=u32(p.x);var ss=0.0;for(var i=0u;i<N;i++){ss=ss+x[i]*x[i];}let sc=1.0/sqrt(ss/p.x+p.y);for(var i=0u;i<N;i++){y[i]=x[i]*sc*w[i];}}`;
+const ROPE = `
+@group(0) @binding(0) var<storage,read> x: array<f32>;
+@group(0) @binding(1) var<storage,read_write> y: array<f32>;
+@group(0) @binding(2) var<uniform> a: vec4<f32>; // (hd,nRot,nheads,pos)
+@group(0) @binding(3) var<uniform> b: vec4<f32>; // (freqBase)
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>){
+  let hd=u32(a.x); let nRot=u32(a.y); let nheads=u32(a.z); let pos=a.w; let half=nRot/2u; let idx=g.x;
+  if(idx>=nheads*half){return;} let head=idx/half; let ic=idx%half; let base=head*hd;
+  let ts=pow(b.x,-2.0/a.y); let th=pos*pow(ts,f32(ic)); let c=cos(th); let s=sin(th);
+  let x0=x[base+ic]; let x1=x[base+ic+half]; y[base+ic]=x0*c-x1*s; y[base+ic+half]=x0*s+x1*c;
+}`;
+const ATTN = `
+@group(0) @binding(0) var<storage,read> q: array<f32>;
+@group(0) @binding(1) var<storage,read> kc: array<f32>;
+@group(0) @binding(2) var<storage,read> vc: array<f32>;
+@group(0) @binding(3) var<storage,read_write> ctx: array<f32>;
+@group(0) @binding(4) var<uniform> a: vec4<u32>; // (nh,hd,curPos,kv)
+@group(0) @binding(5) var<uniform> b: vec4<f32>; // (scale,grp)
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>){
+  let nh=a.x; let hd=a.y; let curPos=a.z; let kv=a.w; let scale=b.x; let grp=u32(b.y);
+  let hh=g.x; if(hh>=nh){return;} let kvh=hh/grp; let qoff=hh*hd; let koff=kvh*hd;
+  var sc: array<f32,64>; var mx=-3.0e38;
+  for(var s=0u;s<=curPos;s++){var d=0.0;for(var i=0u;i<hd;i++){d=d+q[qoff+i]*kc[s*kv+koff+i];}sc[s]=d*scale;if(sc[s]>mx){mx=sc[s];}}
+  var sum=0.0;for(var s=0u;s<=curPos;s++){sc[s]=exp(sc[s]-mx);sum=sum+sc[s];}
+  for(var i=0u;i<hd;i++){var acc=0.0;for(var s=0u;s<=curPos;s++){acc=acc+(sc[s]/sum)*vc[s*kv+koff+i];}ctx[qoff+i]=acc;}
+}`;
+const SWIGLU = `
+@group(0) @binding(0) var<storage,read> gt: array<f32>;
+@group(0) @binding(1) var<storage,read> up: array<f32>;
+@group(0) @binding(2) var<storage,read_write> y: array<f32>;
+@group(0) @binding(3) var<uniform> p: vec4<u32>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>){let i=g.x;if(i>=p.x){return;}let v=gt[i];y[i]=(v/(1.0+exp(-v)))*up[i];}`;
+
+let dev, P;
+const pipe = (c) => { const m = dev.createShaderModule({ code: c }); return dev.createComputePipeline({ layout: "auto", compute: { module: m, entryPoint: "main" } }); };
+const u4 = (v) => { const b = dev.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, new Uint32Array([...v, 0, 0, 0, 0].slice(0, 4))); return b; };
+const f4 = (v) => { const b = dev.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, new Float32Array([...v, 0, 0, 0, 0].slice(0, 4))); return b; };
+const sbuf = (n) => dev.createBuffer({ size: Math.max(4, n * 4), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST });
+const wbufF = (arr) => { const b = dev.createBuffer({ size: Math.max(4, arr.byteLength), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, arr); return b; };
+function disp(enc, pl, bufs, groups) { const bg = dev.createBindGroup({ layout: pl.getBindGroupLayout(0), entries: bufs.map((b, i) => ({ binding: i, resource: { buffer: b } })) }); const pa = enc.beginComputePass(); pa.setPipeline(pl); pa.setBindGroup(0, bg); pa.dispatchWorkgroups(groups); pa.end(); }
+const G = (n) => Math.ceil(n / 64);
+
+async function main() {
+  const adapter = await navigator.gpu.requestAdapter(); dev = await adapter.requestDevice();
+  P = { q: pipe(MATVECQ), f: pipe(MATVECF), add: pipe(ADD), rms: pipe(RMS), rope: pipe(ROPE), attn: pipe(ATTN), swiglu: pipe(SWIGLU) };
+  T("fetching pack…");
+  const meta = await (await fetch("./model-pack.json")).json();
+  const f32 = new Float32Array(await (await fetch("./model-f32.bin")).arrayBuffer());
+  const i8ab = await (await fetch("./model-i8.bin")).arrayBuffer();
+  T(`pack loaded (${(f32.byteLength / 1e6 | 0)}+${(i8ab.byteLength / 1e6 | 0)}MB). uploading weights…`);
+  const { n_layer, n_embd: D, n_head: NH, n_head_kv: NHKV, head_dim: HD, eps: EPS, freq_base: FREQ, tokens } = meta;
+  const FF = meta.tensors["l0.gate"].N;
+  const KV = NHKV * HD, QD = NH * HD, scale = 1 / Math.sqrt(HD), grp = NH / NHKV, vocab = meta.tensors["lm_head"].N;
+
+  // upload a weight (q -> {kind, sBuf, qBuf, N, K}; f32 -> {kind, fBuf, N, K})
+  function up(t) {
+    if (t.kind === "q") {
+      const s = f32.subarray(t.sOff, t.sOff + t.sLen).slice();
+      const qU32 = new Uint32Array(i8ab, t.qOff, t.qLen / 4);     // reinterpret int8 -> u32 (4 lanes)
+      return { kind: "q", sBuf: wbufF(s), qBuf: wbufF(qU32), N: t.N, K: t.K };
+    }
+    return { kind: "f32", fBuf: wbufF(f32.subarray(t.fOff, t.fOff + t.fLen).slice()), N: t.N, K: t.K };
+  }
+  const Wt = {}; for (const k in meta.tensors) if (k !== "lm_head") Wt[k] = up(meta.tensors[k]);
+  // lm_head chunked (quants buffer would exceed 128MB) — split rows
+  const lm = meta.tensors["lm_head"], CH = Math.ceil(lm.N / 100000), chunkRows = Math.ceil(lm.N / CH);
+  const lmScales = wbufF(f32.subarray(lm.sOff, lm.sOff + lm.sLen).slice());
+  const lmChunks = [];
+  for (let c = 0; c < CH; c++) { const r0 = c * chunkRows, r1 = Math.min(lm.N, r0 + chunkRows); const nb = lm.K / 32; lmChunks.push({ r0, n: r1 - r0, qBuf: wbufF(new Uint32Array(i8ab, lm.qOff + r0 * lm.K, (r1 - r0) * lm.K / 4)), sBuf: wbufF(f32.subarray(lm.sOff + r0 * nb, lm.sOff + r1 * nb).slice()) }); }
+  T(`weights uploaded. running ${n_layer}-layer forward over ${tokens.length} tokens…`);
+
+  // scratch + per-layer KV
+  const S = {}; for (const [n, sz] of [["h", D], ["hh", D], ["xn", D], ["q", QD], ["qb", QD], ["qr", QD], ["k", KV], ["kb", KV], ["kr", KV], ["v", KV], ["vb", KV], ["ctx", QD], ["ao", D], ["fi", D], ["xn2", D], ["g", FF], ["u", FF], ["sw", FF], ["fo", D], ["hn", D]]) S[n] = sbuf(sz);
+  const Kc = [], Vc = []; for (let L = 0; L < n_layer; L++) { Kc.push(sbuf(tokens.length * KV)); Vc.push(sbuf(tokens.length * KV)); }
+  const logits = sbuf(vocab);
+
+  const mv = (enc, w, xBuf, yBuf, outBase = 0) => { if (w.kind === "q") disp(enc, P.q, [w.sBuf, w.qBuf, xBuf, yBuf, u4([w.N, w.K, outBase])], G(w.N)); else disp(enc, P.f, [w.fBuf, xBuf, yBuf, u4([w.N, w.K, outBase])], G(w.N)); };
+
+  for (let pos = 0; pos < tokens.length; pos++) {
+    dev.queue.writeBuffer(S.h, 0, f32.subarray(meta.embeds[pos].off, meta.embeds[pos].off + D).slice());
+    for (let L = 0; L < n_layer; L++) {
+      const enc = dev.createCommandEncoder(); const w = (s) => Wt[`l${L}.${s}`];
+      disp(enc, P.rms, [S.h, w("attn_norm").fBuf, S.xn, f4([D, EPS])], 1);
+      mv(enc, w("wq"), S.xn, S.q); disp(enc, P.add, [S.q, w("bq").fBuf, S.qb, u4([QD])], G(QD));
+      mv(enc, w("wk"), S.xn, S.k); disp(enc, P.add, [S.k, w("bk").fBuf, S.kb, u4([KV])], G(KV));
+      mv(enc, w("wv"), S.xn, S.v); disp(enc, P.add, [S.v, w("bv").fBuf, S.vb, u4([KV])], G(KV));
+      disp(enc, P.rope, [S.qb, S.qr, f4([HD, HD, NH, pos]), f4([FREQ])], G(NH * HD / 2));
+      disp(enc, P.rope, [S.kb, S.kr, f4([HD, HD, NHKV, pos]), f4([FREQ])], G(NHKV * HD / 2));
+      enc.copyBufferToBuffer(S.kr, 0, Kc[L], pos * KV * 4, KV * 4);
+      enc.copyBufferToBuffer(S.vb, 0, Vc[L], pos * KV * 4, KV * 4);
+      disp(enc, P.attn, [S.qr, Kc[L], Vc[L], S.ctx, u4([NH, HD, pos, KV]), f4([scale, grp])], G(NH));
+      mv(enc, w("wo"), S.ctx, S.ao);
+      disp(enc, P.add, [S.h, S.ao, S.fi, u4([D])], G(D));
+      disp(enc, P.rms, [S.fi, w("ffn_norm").fBuf, S.xn2, f4([D, EPS])], 1);
+      mv(enc, w("gate"), S.xn2, S.g); mv(enc, w("up"), S.xn2, S.u);
+      disp(enc, P.swiglu, [S.g, S.u, S.sw, u4([FF])], G(FF));
+      mv(enc, w("down"), S.sw, S.fo);
+      disp(enc, P.add, [S.fi, S.fo, S.hh, u4([D])], G(D));
+      enc.copyBufferToBuffer(S.hh, 0, S.h, 0, D * 4);
+      dev.queue.submit([enc.finish()]);
+    }
+    if (pos === tokens.length - 1) {
+      const enc = dev.createCommandEncoder();
+      disp(enc, P.rms, [S.h, Wt["final_norm"].fBuf, S.hn, f4([D, EPS])], 1);
+      for (const ch of lmChunks) disp(enc, P.q, [ch.sBuf, ch.qBuf, S.hn, logits, u4([ch.n, lm.K, ch.r0])], G(ch.n));
+      const rb = dev.createBuffer({ size: vocab * 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+      enc.copyBufferToBuffer(logits, 0, rb, 0, vocab * 4);
+      dev.queue.submit([enc.finish()]);
+      await rb.mapAsync(GPUMapMode.READ);
+      const lg = new Float32Array(rb.getMappedRange().slice(0)); rb.unmap();
+      let am = 0; for (let i = 1; i < vocab; i++) if (lg[i] > lg[am]) am = i;
+      const top = Array.from(lg.keys()).sort((a, b) => lg[b] - lg[a]).slice(0, 5);
+      window.__run = { ready: true, argmax: am, oracleArgmax: meta.oracleArgmax, match: am === meta.oracleArgmax, top5: top, top5v: top.map((i) => +lg[i].toFixed(3)), rootKappa: meta.rootKappa, prompt: meta.prompt };
+      T(`done: argmax=${am} (oracle ${meta.oracleArgmax}) ${am === meta.oracleArgmax ? "MATCH" : "MISMATCH"}`);
+    }
+  }
+}
+main().catch((e) => { window.__run = { ready: true, error: String(e), stack: e.stack }; log("error: " + e + "\n" + (e.stack || "")); });
+</script>

@@ -1,0 +1,49 @@
+<!doctype html><meta charset=utf-8><title>TurboQuant PQ4_0 GPU dequant witness</title>
+<body><pre id=log>loading…</pre><script type=module>
+// WGSL TurboQuant PQ4_0 in-shader dequant (codebook×norm, the to_float path), witnessed
+// vs the CPU oracle (gguf-forge-turboquant tqDequant, BIT-EXACT vs ggml). Block 66 B:
+// qs[64] (nibble pairs) + f16 d @offset 64. Output o ∈ [0,128): byte=qs[o/2];
+// idx = (o even) ? byte&0xF : byte>>4 ; val = TQ4_CODEBOOK_128[idx] * d.
+const log = (m) => document.getElementById("log").textContent = m;
+(async () => {
+  const { d, nb, n, bytes, expected } = await (await fetch("./_turbo_data.json")).json();
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const padded = new Uint8Array(Math.ceil(bytes.length / 4) * 4); padded.set(bytes);
+  const bIn = dev.createBuffer({ size: padded.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  dev.queue.writeBuffer(bIn, 0, new Uint32Array(padded.buffer));
+  const bOut = dev.createBuffer({ size: n * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+  const bRead = dev.createBuffer({ size: n * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+
+  const WGSL = `
+const CB = array<f32,16>(
+  -0.23762692286887249, -0.18079342531272283, -0.14176134070424901, -0.11024676790280842,
+  -0.08279230816984559, -0.05774433563409530, -0.03413390187425037, -0.01129645493594766,
+   0.01129645493594766,  0.03413390187425037,  0.05774433563409530,  0.08279230816984559,
+   0.11024676790280842,  0.14176134070424901,  0.18079342531272283,  0.23762692286887249);
+const STRIDE : u32 = 66u;          // PQ4_0 block bytes; d (f16) at offset 64
+@group(0) @binding(0) var<storage, read> blk : array<u32>;
+@group(0) @binding(1) var<storage, read_write> outp : array<f32>;
+fn gb(b : u32) -> u32 { let w = blk[b >> 2u]; return (w >> ((b & 3u) * 8u)) & 0xffu; }
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
+  let o = gid.x; if (o >= ${n}u) { return; }
+  let base = (o / ${d}u) * STRIDE;
+  let oo = o % ${d}u;
+  let d16 = gb(base + 64u) | (gb(base + 65u) << 8u);
+  let nrm = unpack2x16float(d16).x;
+  let byte = gb(base + (oo >> 1u));
+  let idx = select(byte >> 4u, byte & 0xfu, (oo & 1u) == 0u);
+  outp[o] = CB[idx] * nrm;
+}`;
+  const pipe = dev.createComputePipeline({ layout: "auto", compute: { module: dev.createShaderModule({ code: WGSL }), entryPoint: "main" } });
+  const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: bIn } }, { binding: 1, resource: { buffer: bOut } }] });
+  const enc = dev.createCommandEncoder(); const p = enc.beginComputePass();
+  p.setPipeline(pipe); p.setBindGroup(0, bg); p.dispatchWorkgroups(Math.ceil(n / 64)); p.end();
+  enc.copyBufferToBuffer(bOut, 0, bRead, 0, n * 4); dev.queue.submit([enc.finish()]);
+  await bRead.mapAsync(GPUMapMode.READ); const got = new Float32Array(bRead.getMappedRange().slice(0));
+  let dot = 0, na = 0, nb2 = 0, maxAbs = 0; for (let i = 0; i < n; i++) { const a = got[i], b = expected[i]; dot += a * b; na += a * a; nb2 += b * b; maxAbs = Math.max(maxAbs, Math.abs(a - b)); }
+  const cosine = dot / (Math.sqrt(na) * Math.sqrt(nb2) || 1), ok = maxAbs < 1e-6;
+  window.__turbo = { ok, cosine, maxAbs, n, nb };
+  log(`PQ4_0 GPU dequant: ${ok ? "PASS" : "FAIL"}  cosine=${cosine.toFixed(8)} maxAbs=${maxAbs.toExponential(2)} (${n} vals)`);
+})().catch((e) => { window.__turbo = { ok: false, err: String(e) }; log("ERR " + e); });
+</script>

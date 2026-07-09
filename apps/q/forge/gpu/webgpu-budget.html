@@ -1,0 +1,159 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>P1 · WebGPU device budget probe</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0b0d; color: #e6e8ea;
+         font: 13px/1.55 ui-monospace, Menlo, monospace; padding: 22px 26px; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .sub { color: #8a9099; font-size: 12px; margin-bottom: 16px; }
+  #head { border: 1px solid #1c2128; border-radius: 10px; padding: 15px 17px; margin: 4px 0 18px;
+          background: #101318; white-space: pre-wrap; }
+  #head.ok { border-color: #1f6f43; background: #0d1712; }
+  #head.bad { border-color: #6f2f2f; background: #170d0d; }
+  table { border-collapse: collapse; width: 100%; max-width: 760px; margin: 4px 0 18px; }
+  th, td { text-align: right; padding: 5px 12px; border-bottom: 1px solid #1a1d22; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #8a9099; font-weight: 500; }
+  .big { font-size: 19px; font-weight: 600; }
+  #status { color: #8a9099; font-size: 12px; }
+  h2 { font-size: 13px; color: #9db4d4; margin: 18px 0 6px; font-weight: 600; }
+</style>
+
+<h1>P1 · WebGPU device budget — what actually fits on the user's GPU</h1>
+<div class="sub">Adapter limits over-promise. This also ALLOCATES storage buffers until failure to find the
+real resident ceiling (capped safe). Read <code>window.__budget</code>.</div>
+
+<div id="head">probing…</div>
+<div id="status"></div>
+
+<h2>adapter limits (the numbers a model layout must respect)</h2>
+<table id="limits"><tbody></tbody></table>
+
+<h2>model fit — resident working-set vs budget</h2>
+<table id="fit"><thead><tr><th>candidate</th><th>resident (GPU)</th><th>fits phone ~1GB?</th><th>fits this device?</th><th>note</th></tr></thead><tbody></tbody></table>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const status = (m) => { $("#status").textContent = m; };
+const MB = 1 << 20, GB = 1 << 30;
+const fmtB = (n) => n >= GB ? (n / GB).toFixed(2) + " GB" : (n / MB).toFixed(0) + " MB";
+
+// Phase-1 candidate models: resident working-set = weights that must live on the GPU to decode.
+// Dense = whole model resident. MoE = trunk + routed experts (sparse), IF expert paging exists.
+const CANDIDATES = [
+  { name: "Qwen2.5-0.5B Q4",   resident: 0.35 * GB, kind: "dense", kernels: "BUILT (GPU-proven)",
+    note: "already runs in-browser on WebGPU; weak 0.5B quality" },
+  { name: "BitNet-2B ternary", resident: 0.55 * GB, kind: "dense", kernels: "BUILT (ternary GEMV)",
+    note: "strong 2B @ ~1.6-bit; on disk; dense→kernels exist" },
+  { name: "BitNet-XL TQ2_0",   resident: 0.83 * GB, kind: "dense", kernels: "BUILT",
+    note: "bigger BitNet; tight on a 1GB phone" },
+  { name: "OLMoE-1B-7B Q4 (sparse-resident)", resident: 0.9 * GB, kind: "moe", kernels: "MISSING (mul_mat_id)",
+    note: "7B total, ~1B active; only trunk+routed experts resident IF paged. The big-model-on-phone story — gated on P3 MoE GPU kernels" },
+  { name: "OLMoE-1B-7B Q4 (whole)", resident: 4.2 * GB, kind: "dense-load", kernels: "n/a",
+    note: "whole model resident — does NOT fit a phone; this is why sparse paging matters" },
+];
+
+async function probe() {
+  if (!navigator.gpu) {
+    $("#head").className = "bad";
+    $("#head").textContent = "NO WebGPU on this browser. Vision requires navigator.gpu — this device can't be a GPU-native target.";
+    window.__budget = { webgpu: false };
+    return;
+  }
+  status("requesting adapter…");
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  if (!adapter) { $("#head").className = "bad"; $("#head").textContent = "requestAdapter() returned null."; window.__budget = { webgpu: false }; return; }
+  const info = adapter.info || (adapter.requestAdapterInfo ? await adapter.requestAdapterInfo() : {});
+  const L = adapter.limits;
+  const device = await adapter.requestDevice({
+    requiredLimits: {
+      maxBufferSize: Math.min(L.maxBufferSize, 2 * GB),
+      maxStorageBufferBindingSize: Math.min(L.maxStorageBufferBindingSize, 2 * GB),
+    },
+  }).catch(() => adapter.requestDevice());
+
+  const keyLimits = [
+    ["maxBufferSize", L.maxBufferSize],
+    ["maxStorageBufferBindingSize", L.maxStorageBufferBindingSize],
+    ["maxComputeWorkgroupStorageSize", L.maxComputeWorkgroupStorageSize],
+    ["maxComputeInvocationsPerWorkgroup", L.maxComputeInvocationsPerWorkgroup],
+    ["maxComputeWorkgroupsPerDimension", L.maxComputeWorkgroupsPerDimension],
+    ["maxStorageBuffersPerShaderStage", L.maxStorageBuffersPerShaderStage],
+    ["maxBindGroups", L.maxBindGroups],
+  ];
+  const lt = $("#limits").querySelector("tbody");
+  for (const [k, v] of keyLimits) {
+    const tr = document.createElement("tr");
+    const val = (k.includes("Size") && v > 4096) ? `${v.toLocaleString()}  (${fmtB(v)})` : v.toLocaleString();
+    tr.innerHTML = `<td>${k}</td><td>${val}</td>`; lt.appendChild(tr);
+  }
+
+  // ---- empirical resident ceiling: allocate + WRITE + reference storage buffers until failure ----
+  // (allocation is lazy; writing forces real backing. Cap conservatively so we don't hog the GPU.)
+  const CHUNK = 128 * MB;                 // one binding-sized chunk
+  const CAP = 3 * GB;                     // safe cap — enough to prove phone-class fit
+  const chunkBuf = new Uint8Array(CHUNK); chunkBuf[0] = 1; chunkBuf[CHUNK - 1] = 2;
+  const held = [];
+  let allocated = 0, failed = false, failMsg = "";
+  device.pushErrorScope("out-of-memory");
+  device.pushErrorScope("validation");
+  try {
+    while (allocated + CHUNK <= CAP) {
+      status(`allocating ${fmtB(allocated + CHUNK)} …`);
+      const b = device.createBuffer({ size: CHUNK, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+      device.queue.writeBuffer(b, 0, chunkBuf);      // force real backing
+      await device.queue.onSubmittedWorkDone();
+      held.push(b);
+      allocated += CHUNK;
+    }
+  } catch (e) { failed = true; failMsg = String(e.message || e); }
+  const vErr = await device.popErrorScope();
+  const oomErr = await device.popErrorScope();
+  if (oomErr) { failed = true; failMsg = "OOM: " + oomErr.message; }
+  else if (vErr) { failMsg = "validation: " + vErr.message; }
+  for (const b of held) b.destroy();
+
+  const reachedCap = allocated >= CAP && !failed;
+  const budget = { webgpu: true,
+    adapter: { vendor: info.vendor || "?", architecture: info.architecture || "?", device: info.device || "?", description: info.description || "" },
+    maxBufferSize: L.maxBufferSize, maxStorageBufferBindingSize: L.maxStorageBufferBindingSize,
+    empiricalResidentBytes: allocated, reachedCap, oom: failed, failMsg,
+    candidates: [] };
+
+  // ---- model fit table ----
+  const PHONE = 1 * GB;                    // conservative mid/high-end phone resident budget
+  const ft = $("#fit").querySelector("tbody");
+  for (const c of CANDIDATES) {
+    const fitsPhone = c.resident <= PHONE;
+    const fitsHere = reachedCap ? c.resident <= CAP : c.resident <= allocated;
+    budget.candidates.push({ name: c.name, residentBytes: c.resident, kind: c.kind, kernels: c.kernels, fitsPhone, fitsHere });
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${c.name}</td><td>${fmtB(c.resident)}</td>
+      <td style="color:${fitsPhone ? '#56d38a' : '#d7a24a'}">${fitsPhone ? "yes" : "no"}</td>
+      <td style="color:${fitsHere ? '#56d38a' : '#d7a24a'}">${fitsHere ? "yes" : (reachedCap ? "no" : "unknown>"+fmtB(allocated))}</td>
+      <td style="color:#8a9099">${c.kernels === "BUILT (GPU-proven)" || c.kernels.startsWith("BUILT") ? "" : "⚠ "}${c.note}</td>`;
+    ft.appendChild(tr);
+  }
+
+  const h = $("#head");
+  h.className = "ok";
+  h.innerHTML =
+`<span class="big">${info.vendor || "?"} ${info.architecture || ""} ${info.device || ""}</span>
+
+max single buffer:        ${fmtB(L.maxBufferSize)}   ·   max storage binding: ${fmtB(L.maxStorageBufferBindingSize)}
+empirical resident:       allocated ${fmtB(allocated)}${reachedCap ? " (hit safe cap, headroom continues)" : failed ? " then FAILED (" + failMsg.slice(0,60) + ")" : ""}
+phone budget assumed:     ~1 GB resident (conservative mid/high-end)
+
+READ: a tensor bigger than the max storage binding (${fmtB(L.maxStorageBufferBindingSize)}) MUST be chunked
+(the forge already chunks lm_head). Total resident must fit the SMALLEST target device, not this one.
+
+PICK (Phase-1, must fit a phone + kernels already built): BitNet-2B ternary (~0.55 GB resident, dense,
+ternary GEMV proven). Delivers "any device, on the GPU, serverless from HF" NOW. OLMoE sparse-resident
+(~0.9 GB) is the big-model-on-phone stretch — gated on P3 MoE GPU kernels (mul_mat_id), not yet built.`;
+
+  window.__budget = budget;
+  status("done. window.__budget populated.");
+}
+probe().catch(e => { $("#head").className = "bad"; $("#head").textContent = "ERROR: " + (e.stack || e.message); });
+</script>

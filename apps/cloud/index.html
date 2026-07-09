@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Holo Cloud is a pure static page (WebCrypto + OPFS + the κ pub/sub over a
+         WebSocket/MQTT relay). No SharedArrayBuffer needed, so — like Office — it
+         omits the COI service worker to stay lean and avoid a caching SW between edits. -->
+    <title>Holo Cloud</title>
+    <link rel="icon" href="../../_shared/favicon.png" data-holo-shared="favicon.png" />
+    <meta name="description" content="Holo Cloud a completely serverless, end-to-end-encrypted, content-addressed personal cloud (Nextcloud, hologram-native): Files with deduplicated κ-storage, real-time multi-user sharing, and a Hub that launches Docs · Talk · Photos · Music. Runs entirely in the browser tab; a shared file IS its content address (holo://κ)." />
+    <link rel="stylesheet" href="../../_shared/holo-mobile.css" data-holo-shared="holo-mobile.css" />
+    <style>
+      :root { color-scheme: dark; --bg:var(--holo-bg); --panel:var(--holo-surface); --panel2:var(--holo-surface-2); --line:var(--holo-border); --dim:var(--holo-ink-dim); --ink:var(--holo-ink);
+        --accent:var(--holo-accent); --nc:#0082c9; --pull:#d2a8ff; --blue:var(--holo-accent); --ok:var(--holo-ok); --warn:var(--holo-warn); --bad:var(--holo-danger); }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: #d4d4d4; display: flex; flex-direction: column; overflow: hidden;
+        font: var(--holo-text-sm, 1rem)/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+      /* ── top chrome (sibling of office.html's #bar) ─────────────────────────────── */
+      #bar { flex: 0 0 auto; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        padding: 0.3rem 0.7rem; background: var(--panel); border-bottom: 1px solid var(--line);
+        font: var(--holo-text-sm, 1rem) ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; user-select: none; }
+      #bar .brand { color: var(--ink); font-weight: 700; letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 6px; }
+      #bar .brand .logo { color: var(--nc); font-size: var(--holo-text-sm, 1rem); }
+      #bar .tag { color: var(--dim); }
+      #bar .k { color: var(--blue); max-width: 22vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #bar .ver { color: var(--dim); } #bar .ver.ok { color: var(--ok); }
+      #bar .sec { color: var(--accent); }
+      #bar .sp { margin-left: auto; }
+      #bar .peers { display: inline-flex; gap: 3px; align-items: center; }
+      #bar .av { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        font: 700 var(--holo-text-sm, 1rem) ui-sans-serif; color: #04130f; flex: 0 0 auto; }
+      #bar button { font: inherit; color: var(--dim); background: transparent; border: 1px solid var(--line);
+        border-radius: 5px; padding: 0.15rem 0.5rem; cursor: pointer; min-height: 28px; }
+      #bar button:hover { color: var(--ink); border-color: #30363d; }
+      #bar button.cta { color: #99f6e4; border-color: #155e58; }
+
+      /* ── shell: Nextcloud-style left app rail + main ────────────────────────────── */
+      #app { flex: 1 1 auto; min-height: 0; display: flex; }
+      #side { flex: 0 0 auto; width: 64px; background: var(--panel2); border-right: 1px solid var(--line);
+        display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px; overflow-y: auto; }
+      #side .nav { width: 52px; height: 52px; border-radius: var(--holo-radius, 12px); border: 1px solid transparent; background: transparent;
+        color: var(--dim); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+      #side .nav .ic { font-size: 20px; line-height: 1; } #side .nav .lb { font-size: var(--holo-text-sm, 1rem); }
+      #side .nav:hover { color: var(--ink); background: #11161d; }
+      #side .nav.on { color: var(--accent); border-color: #155e58; background: #0f3b38; }
+      #main { flex: 1 1 auto; min-width: 0; overflow: auto; position: relative; }
+      .pad { padding: 1rem 1.2rem; max-width: 1100px; }
+
+      /* ── Files toolbar + breadcrumb ─────────────────────────────────────────────── */
+      .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0.6rem 1.2rem; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+      .crumb { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; color: var(--dim); }
+      .crumb a { color: var(--blue); cursor: pointer; text-decoration: none; } .crumb a:hover { text-decoration: underline; }
+      .crumb .sepc { color: #30363d; }
+      .tbtn { font: var(--holo-text-sm, 1rem) ui-sans-serif; min-height: 32px; padding: 0 10px; border-radius: var(--holo-radius-sm, 8px); border: 1px solid var(--line);
+        background: #161b22; color: #c9d1d9; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+      .tbtn:hover { border-color: #30363d; color: var(--ink); } .tbtn.cta { color: #99f6e4; border-color: #155e58; background: #0f3b38; }
+      .tbtn.sp { margin-left: auto; }
+
+      /* ── file list ──────────────────────────────────────────────────────────────── */
+      table.files { width: 100%; border-collapse: collapse; }
+      table.files th { text-align: left; color: var(--dim); font-weight: 600; font-size: var(--holo-text-sm, 1rem); padding: 6px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 49px; background: var(--bg); }
+      table.files td { padding: 7px 10px; border-bottom: 1px solid #11161d; vertical-align: middle; }
+      table.files tr.row:hover td { background: #0e141b; }
+      table.files .nm { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; color: var(--ink); }
+      table.files .nm .ic { font-size: 19px; width: 22px; text-align: center; }
+      table.files .meta { color: var(--dim); font: var(--holo-text-sm, 1rem) ui-monospace, monospace; white-space: nowrap; }
+      table.files .kap { color: var(--blue); font: var(--holo-text-sm, 1rem) ui-monospace, monospace; }
+      table.files .acts { display: inline-flex; gap: 2px; opacity: 0; transition: opacity .1s; }
+      table.files tr.row:hover .acts { opacity: 1; }
+      table.files .acts button { background: transparent; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; min-width: 28px; min-height: 28px; cursor: pointer; }
+      table.files .acts button:hover { color: var(--ink); border-color: #30363d; }
+      .empty { color: var(--dim); padding: 2rem 1rem; text-align: center; }
+      .shared-pill { color: var(--accent); font-size: var(--holo-text-sm, 1rem); border: 1px solid #155e58; border-radius: 999px; padding: 1px 8px; }
+
+      /* ── dashboard ──────────────────────────────────────────────────────────────── */
+      .hello { font-size: 1.4rem; color: var(--ink); margin: 0 0 0.2rem; }
+      .sub { color: var(--dim); margin: 0 0 1.2rem; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+      .tile { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 1rem; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+      .tile:hover { border-color: var(--accent); }
+      .tile .ic { font-size: 26px; } .tile .t { color: var(--ink); font-weight: 600; } .tile .d { color: var(--dim); font-size: var(--holo-text-sm, 1rem); }
+      .card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 1rem 1.1rem; margin-bottom: 1rem; }
+      .card h3 { margin: 0 0 0.7rem; font-size: var(--holo-text-sm, 1rem); color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; }
+      .bar { height: 10px; border-radius: 999px; background: #161b22; overflow: hidden; margin: 8px 0; }
+      .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--nc), var(--accent)); }
+      .kv { display: flex; gap: 1.4rem; flex-wrap: wrap; color: var(--dim); font: var(--holo-text-sm, 1rem) ui-monospace, monospace; }
+      .kv b { color: var(--ink); }
+      .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+      .photos .ph { aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #161b22; border: 1px solid var(--line); cursor: pointer; }
+      .photos .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .feed { list-style: none; margin: 0; padding: 0; } .feed li { padding: 8px 0; border-bottom: 1px solid #11161d; color: var(--dim); }
+      .feed li b { color: var(--ink); } .feed .when { color: #5b6570; font: var(--holo-text-sm, 1rem) ui-monospace, monospace; }
+
+      /* ── overlays ───────────────────────────────────────────────────────────────── */
+      .overlay { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: #0b0e13ee; }
+      .overlay.hidden { display: none; }
+      .dlg { width: min(94vw, 30rem); padding: 1.3rem; border: 1px solid var(--line); border-radius: var(--holo-radius-lg, 16px); background: var(--panel); }
+      .dlg h2 { margin: 0 0 0.2rem; color: var(--ink); font-size: 1.1rem; }
+      .dlg .s { color: var(--dim); margin: 0 0 1rem; font-size: 0.92em; }
+      .field { margin-bottom: 0.8rem; } .field label { display: block; color: var(--dim); font-size: var(--holo-text-sm, 1rem); margin-bottom: 4px; }
+      .field input { width: 100%; min-height: 44px; background: #161b22; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); padding: 0 12px; font-size: var(--holo-text-sm, 1rem); }
+      .btn { width: 100%; min-height: 46px; border-radius: var(--holo-radius, 12px); border: 1px solid var(--accent); background: #0f3b38; color: #99f6e4; font: 800 var(--holo-text-sm, 1rem) system-ui; cursor: pointer; margin-top: 0.3rem; }
+      .btn:hover { background: #155e58; } .btn.ghost { border-color: var(--line); background: #161b22; color: #c9d1d9; }
+      .dlgrow { display: flex; gap: 8px; } .dlgrow .btn { margin-top: 0; }
+      pre.k { color: var(--blue); background: #010409; border: 1px solid var(--line); border-radius: var(--holo-radius-sm, 8px); padding: 0.5rem; overflow: auto; font-size: var(--holo-text-sm, 1rem); white-space: pre-wrap; word-break: break-all; margin: 0.4rem 0; }
+
+      /* nested app (Hub launches Docs/Talk/Music/Video) */
+      #appframe { position: fixed; inset: 0; z-index: 50; background: #000; display: none; flex-direction: column; }
+      #appframe.show { display: flex; }
+      #appframe .fbar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); color: var(--dim); font: var(--holo-text-sm, 1rem) ui-monospace, monospace; }
+      #appframe .fbar b { color: var(--ink); } #appframe iframe { flex: 1 1 auto; border: 0; width: 100%; }
+      #appframe .x { margin-left: auto; }
+
+      /* lightbox */
+      #lightbox { position: fixed; inset: 0; z-index: 55; background: #000d; display: none; align-items: center; justify-content: center; }
+      #lightbox.show { display: flex; } #lightbox img, #lightbox video { max-width: 94vw; max-height: 90vh; }
+      #lightbox .x { position: fixed; top: 14px; right: 16px; }
+
+      /* drag-drop */
+      #drop { position: fixed; inset: 0; z-index: 70; background: #0082c933; border: 3px dashed var(--accent); display: none; align-items: center; justify-content: center; color: #99f6e4; font: 700 22px system-ui; pointer-events: none; }
+      #drop.show { display: flex; }
+
+      #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #161b22; border: 1px solid #30363d;
+        border-radius: var(--holo-radius-sm, 8px); padding: 0.5rem 0.9rem; font-size: var(--holo-text-sm, 1rem); opacity: 0; transition: opacity 0.2s; z-index: 80; pointer-events: none; max-width: 90vw; }
+      #toast.show { opacity: 1; }
+      @media (max-width: 760px) { #bar .k, #bar .ver { display: none; } #side { width: 56px; } table.files .colkap, table.files .colmod { display: none; } }
+    </style>
+  </head>
+  <body data-no-teleport>
+    <!-- Entry splash: the shared Hologram "streaming" boot screen. ONE source of truth
+         for every Holo app — only the app="…" name differs. Self-contained, offline,
+         Shadow DOM; the bar auto-tracks this app's real boot time. -->
+    <script src="./holo-splash.js"></script>
+    <holo-splash app="Holo Cloud"></holo-splash>
+
+    <div id="bar">
+      <span class="brand"><span class="logo">☁</span>Holo Cloud</span>
+      <span class="tag">· holospace</span>
+      <span class="k" id="kaddr" title="this holospace's own content address (Law L5: the served bytes re-derive to it)">holo://cloud</span>
+      <span class="ver" id="ver" title="the served page re-derives to its content hash"></span>
+      <span class="sec" id="sec" title="files are end-to-end encrypted (AES-GCM, room key from the link secret) + content-addressed on a content-blind relay no file server">🔒 serverless · E2E</span>
+      <span class="sp"></span>
+      <span class="peers" id="peers" title="people in this shared space"></span>
+      <button id="shareBtn" class="cta" title="share mints a public link (room secret in the URL fragment, never sent to a server)">⤴ Share</button>
+      <button id="settingsBtn" title="identity &amp; relay settings">⚙</button>
+    </div>
+
+    <div id="app">
+      <nav id="side"></nav>
+      <main id="main"></main>
+    </div>
+
+    <input type="file" id="fileInput" multiple hidden />
+    <div id="drop">⤓ Drop files to upload</div>
+
+    <!-- nested Hub app (Docs · Talk · Music · Video) -->
+    <div id="appframe">
+      <div class="fbar"><b id="afTitle">App</b><span id="afNote"></span><button class="tbtn x" id="afClose">✕ Close</button></div>
+      <iframe id="afFrame" allow="camera; microphone; autoplay; clipboard-read; clipboard-write; fullscreen"></iframe>
+    </div>
+
+    <div id="lightbox"><button class="tbtn x" id="lbClose">✕</button><div id="lbBody"></div></div>
+
+    <!-- share dialog -->
+    <div class="overlay hidden" id="shareDlg">
+      <div class="dlg">
+        <h2>Share a public link</h2>
+        <p class="s">Anyone with this link opens Holo Cloud and lands on this content end-to-end encrypted, verified by its content hash. No account, no server.</p>
+        <div class="field"><label>Public link (room secret in the #fragment never sent anywhere)</label><input id="shareUrl" readonly /></div>
+        <pre class="k" id="shareKap"></pre>
+        <div class="dlgrow"><button class="btn" id="shareCopy">Copy link</button><button class="btn ghost" id="shareSheet">Share sheet…</button></div>
+        <button class="btn ghost" id="shareClose" style="margin-top:8px">Close</button>
+      </div>
+    </div>
+
+    <!-- settings -->
+    <div class="overlay hidden" id="settingsDlg">
+      <div class="dlg">
+        <h2>Settings</h2>
+        <p class="s">Your display name (shown to people you share with) and an optional relay. Everything stays on your device.</p>
+        <div class="field"><label>Display name</label><input id="nameInput" maxlength="40" /></div>
+        <div class="field"><label>Relay (optional ws/wss URL default is a public MQTT broker)</label><input id="relayInput" placeholder="wss://broker.emqx.io:8084/mqtt" /></div>
+        <button class="btn" id="settingsSave">Save</button>
+        <button class="btn ghost" id="settingsCloseBtn" style="margin-top:8px">Close</button>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="../../_shared/holo-webdav.js" data-holo-shared="holo-webdav.js"></script>
+    <script src="../../_shared/holo-collab.js" data-holo-shared="holo-collab.js"></script>
+    <script type="module">
+      import { WsKappaSync } from "./holo-kappa-sync.mjs";
+      import { BrokerKappaSync } from "./holo-broker-sync.mjs";
+
+      const $ = (id) => document.getElementById(id);
+      const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+      const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+      const fmtSize = (n) => n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(1) + " KB" : n < 1073741824 ? (n / 1048576).toFixed(1) + " MB" : (n / 1073741824).toFixed(2) + " GB";
+      const fmtWhen = (t) => { const d = (Date.now() - t) / 1000; return d < 60 ? "just now" : d < 3600 ? Math.floor(d / 60) + "m ago" : d < 86400 ? Math.floor(d / 3600) + "h ago" : new Date(t).toLocaleDateString(); };
+      const params = new URLSearchParams(location.search);
+      const DEFAULT_BROKER = "wss://broker.emqx.io:8084/mqtt";
+
+      const HW = window.HoloWebDAV;
+      const store = new HW.KappaStore();
+      const fs = new HW.HoloFS(store);
+      const dav = HW.nativeDav(fs);                       // Nextcloud WebDAV verb surface, native + content-addressed
+      let cwd = "/", view = "files", session = null, shared = false, selfKappa = "", booted = false;
+
+      // ── identity ───────────────────────────────────────────────────────────────
+      const USER_KEY = "holo-cloud-user";
+      const loadUser = () => { try { return JSON.parse(localStorage.getItem(USER_KEY)) || {}; } catch { return {}; } };
+      const saveUser = (u) => { try { localStorage.setItem(USER_KEY, JSON.stringify(u)); } catch {} };
+      let user = loadUser();
+      if (!user.name) user.name = "Guest-" + Math.random().toString(36).slice(2, 6);
+      if (!user.color) user.color = "#" + ["2dd4bf", "58a6ff", "d2a8ff", "f0883e", "3fb950", "f85149"][Math.floor(Math.random() * 6)];
+
+      // ── room secret + relay in the URL fragment (never sent to a server) ─────────
+      const readHash = () => new URLSearchParams((location.hash || "").replace(/^#/, ""));
+      let h = readHash();
+      let secret = h.get("k") || params.get("k") || (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+      let relayUrl = h.get("r") || params.get("r") || user.relay || "";
+      const writeHash = () => { const u = new URLSearchParams(); u.set("k", secret); if (relayUrl) u.set("r", relayUrl); if (cwd !== "/") u.set("path", cwd); location.hash = u.toString(); };
+      if (h.get("path")) cwd = HW.norm(h.get("path"));
+
+      // ── activity feed (also a tiny audit log) ────────────────────────────────────
+      const activity = [];
+      const log = (icon, msg) => { activity.unshift({ icon, msg, t: Date.now() }); if (activity.length > 60) activity.pop(); if (view === "activity") render(); };
+
+      // ── persistence: the tree lives in OPFS (entirely in-browser, survives reloads) ─
+      async function opfsCloud() { const root = await navigator.storage.getDirectory(); return root.getDirectoryHandle("holo-cloud", { create: true }); }
+      async function saveTree() { try { const c = await opfsCloud(); const fh = await c.getFileHandle("tree.json", { create: true }); const w = await fh.createWritable(); await w.write(JSON.stringify([...fs.tree])); await w.close(); } catch {} }
+      async function loadTree() { try { const c = await opfsCloud(); const fh = await c.getFileHandle("tree.json"); const arr = JSON.parse(await (await fh.getFile()).text()); fs.tree = new Map(arr); if (!fs.tree.has("/")) fs.tree.set("/", { type: "dir", mtime: Date.now() }); return true; } catch { return false; } }
+
+      async function seedIfEmpty() {
+        if (fs.tree.size > 1) return;
+        fs.mkcol("/Documents"); fs.mkcol("/Photos"); fs.mkcol("/Music"); fs.mkcol("/Talk");
+        const welcome = new TextEncoder().encode(
+          "# Welcome to Holo Cloud\n\nThis is your serverless, content-addressed cloud Nextcloud, hologram-native.\n\n" +
+          "• Files are chunked into a deduplicated κ-store and persist in your browser (OPFS) no server.\n" +
+          "• Share any folder: the link is end-to-end encrypted; a shared file IS its content address (holo://κ).\n" +
+          "• The rail on the left launches Docs, Talk, Photos and Music your whole hub in one tab.\n");
+        await fs.put("/Readme.md", welcome, "text/markdown");
+        await saveTree();
+      }
+
+      // ── self-κ: re-derive this page's bytes and stamp holo://sha256:<κ> (Law L5) ──
+      (async () => {
+        try {
+          const buf = await (await fetch(location.pathname, { cache: "no-store" })).arrayBuffer();
+          selfKappa = "sha256:" + hex(new Uint8Array(await crypto.subtle.digest("SHA-256", buf)));
+          $("kaddr").textContent = "holo://" + selfKappa.slice(0, 18) + "…";
+          $("kaddr").title = "holo://" + selfKappa + " this page re-derives to its content hash (Law L5)";
+          $("ver").textContent = "✓ κ"; $("ver").classList.add("ok");
+        } catch {}
+      })();
+
+      // ── icons ────────────────────────────────────────────────────────────────────
+      const iconFor = (n) => {
+        if (n.type === "dir") return "📁";
+        const m = n.mime || ""; if (m.startsWith("image/")) return "🖼️"; if (m.startsWith("video/")) return "🎞️";
+        if (m.startsWith("audio/")) return "🎵"; if (m.startsWith("text/")) return "📄"; if (m === "application/pdf") return "📕";
+        if (m.includes("zip")) return "🗜️"; return "📄";
+      };
+
+      // ── render router ──────────────────────────────────────────────────────────
+      const NAV = [
+        ["files", "📁", "Files"], ["dashboard", "▦", "Dash"], ["photos", "🖼️", "Photos"],
+        ["talk", "💬", "Talk"], ["docs", "📝", "Docs"], ["music", "🎵", "Music"], ["activity", "🕓", "Activity"],
+      ];
+      function renderNav() {
+        $("side").innerHTML = NAV.map(([id, ic, lb]) =>
+          `<button class="nav ${view === id ? "on" : ""}" data-nav="${id}"><span class="ic">${ic}</span><span class="lb">${lb}</span></button>`).join("");
+      }
+      function render() {
+        renderNav();
+        if (view === "files") return renderFiles();
+        if (view === "dashboard") return renderDashboard();
+        if (view === "photos") return renderPhotos();
+        if (view === "activity") return renderActivity();
+      }
+
+      function crumbHtml() {
+        const segs = cwd === "/" ? [] : cwd.slice(1).split("/");
+        let acc = "", out = [`<a data-go="/">☁ Home</a>`];
+        for (const s of segs) { acc += "/" + s; out.push(`<span class="sepc">/</span><a data-go="${esc(acc)}">${esc(s)}</a>`); }
+        return out.join(" ");
+      }
+
+      function renderFiles() {
+        const rows = fs.list(cwd);
+        $("main").innerHTML =
+          `<div class="toolbar">
+             <span class="crumb">${crumbHtml()}</span>
+             ${shared ? `<span class="shared-pill">👥 shared</span>` : ""}
+             <button class="tbtn sp" data-act="mkdir">＋ New folder</button>
+             <button class="tbtn cta" data-act="upload">⤓ Upload</button>
+             <button class="tbtn" data-act="sharefolder">⤴ Share this folder</button>
+           </div>
+           <div class="pad" style="max-width:none;padding-top:0.4rem">
+           <table class="files"><thead><tr><th>Name</th><th class="colmod">Modified</th><th>Size</th><th class="colkap">Content address</th><th></th></tr></thead><tbody>` +
+          (rows.length ? rows.map((r) => `
+            <tr class="row" data-path="${esc(r.path)}">
+              <td><span class="nm" data-open="${esc(r.path)}"><span class="ic">${iconFor(r)}</span>${esc(r.name)}</span></td>
+              <td class="colmod meta">${fmtWhen(r.mtime || Date.now())}</td>
+              <td class="meta">${r.type === "dir" ? "" : fmtSize(r.size || 0)}</td>
+              <td class="colkap kap" title="${esc(r.kappa || "")}">${r.kappa ? esc(r.kappa.slice(0, 17)) + "…" : ""}</td>
+              <td><span class="acts">
+                ${r.type === "file" ? `<button data-act="download" title="download + verify κ">⤓</button>` : ""}
+                <button data-act="share" title="share link">⤴</button>
+                <button data-act="rename" title="rename">✎</button>
+                <button data-act="trash" title="delete">🗑</button>
+              </span></td>
+            </tr>`).join("") : `<tr><td colspan="5"><div class="empty">This folder is empty drop files here or press Upload.</div></td></tr>`) +
+          `</tbody></table></div>`;
+      }
+
+      async function renderDashboard() {
+        const u = await fs.usage();
+        $("main").innerHTML =
+          `<div class="pad">
+            <h1 class="hello">Good to see you, ${esc(user.name)}.</h1>
+            <p class="sub">Your serverless cloud ${u.files} files, ${u.dirs} folders, ${session ? session.peerCount() + " here now" : "private"}.</p>
+            <div class="card"><h3>Storage content-addressed, deduplicated</h3>
+              <div class="bar"><i style="width:${Math.min(100, u.logical ? 100 * u.uniqueBytes / Math.max(u.logical, 1) : 0)}%"></i></div>
+              <div class="kv"><span>logical <b>${fmtSize(u.logical)}</b></span><span>on disk <b>${fmtSize(u.uniqueBytes)}</b></span><span>dedup saved <b>${u.dedupPct.toFixed(1)}%</b></span><span>blocks <b>${u.blocks}</b></span></div>
+            </div>
+            <div class="card"><h3>Apps</h3>
+              <div class="grid">
+                <div class="tile" data-app="files"><span class="ic">📁</span><span class="t">Files</span><span class="d">Browse, upload, share</span></div>
+                <div class="tile" data-app="docs"><span class="ic">📝</span><span class="t">Docs</span><span class="d">Writer · Calc · Impress</span></div>
+                <div class="tile" data-app="talk"><span class="ic">💬</span><span class="t">Talk</span><span class="d">Serverless video meet</span></div>
+                <div class="tile" data-app="photos"><span class="ic">🖼️</span><span class="t">Photos</span><span class="d">Your image gallery</span></div>
+                <div class="tile" data-app="music"><span class="ic">🎵</span><span class="t">Music</span><span class="d">Winamp · your tracks</span></div>
+              </div>
+            </div>
+            <div class="card"><h3>Recent</h3>${recentHtml()}</div>
+          </div>`;
+      }
+      function recentHtml() {
+        const files = []; for (const [p, n] of fs.tree) if (n.type === "file" && !n.deleted) files.push({ path: p, ...n });
+        files.sort((a, b) => b.mtime - a.mtime);
+        if (!files.length) return `<div class="empty">No files yet.</div>`;
+        return `<ul class="feed">` + files.slice(0, 6).map((f) => `<li><span class="nm" data-open="${esc(f.path)}"><b>${iconFor(f)} ${esc(f.name)}</b></span> <span class="when">${fmtWhen(f.mtime)} · ${fmtSize(f.size || 0)}</span></li>`).join("") + `</ul>`;
+      }
+
+      async function renderPhotos() {
+        const imgs = []; for (const [p, n] of fs.tree) if (n.type === "file" && !n.deleted && (n.mime || "").startsWith("image/")) imgs.push({ path: p, ...n });
+        $("main").innerHTML = `<div class="pad"><h1 class="hello">Photos</h1><p class="sub">${imgs.length} image${imgs.length === 1 ? "" : "s"} · content-addressed</p><div class="photos" id="phGrid"></div>${imgs.length ? "" : '<div class="empty">No photos yet upload images and they appear here.</div>'}</div>`;
+        for (const im of imgs) {
+          const bytes = await fileBytes(im.path); if (!bytes) continue;
+          const url = URL.createObjectURL(new Blob([bytes], { type: im.mime }));
+          const div = document.createElement("div"); div.className = "ph"; div.innerHTML = `<img src="${url}" loading="lazy" alt="${esc(im.name)}">`;
+          div.addEventListener("click", () => lightbox(`<img src="${url}">`));
+          $("phGrid")?.appendChild(div);
+        }
+      }
+
+      function renderActivity() {
+        $("main").innerHTML = `<div class="pad"><h1 class="hello">Activity</h1><p class="sub">What happened in this space</p>` +
+          (activity.length ? `<ul class="feed">` + activity.map((a) => `<li><b>${a.icon} ${esc(a.msg)}</b> <span class="when">${fmtWhen(a.t)}</span></li>`).join("") + `</ul>` : `<div class="empty">Nothing yet.</div>`) + `</div>`;
+      }
+
+      // ── file bytes: local store, else fetch a peer's sealed blocks by κ (Law L5) ──
+      async function fileBytes(path) {
+        const n = fs.node(path); if (!n || n.type !== "file") return null;
+        let bytes = await fs.get(path);
+        if (bytes) return bytes;
+        if (!session || !n.blockAssets) return null;                   // remote file: reconstruct from sealed assets
+        for (let i = 0; i < n.blocks.length; i++) {
+          const bk = n.blocks[i], ak = n.blockAssets[bk];
+          if (await store.has(bk)) continue;
+          const plain = ak ? await session.getAsset(ak) : null;        // unseal
+          if (!plain || !(await store.admit(bk, plain))) return null;  // verify plaintext κ == manifest κ
+        }
+        bytes = await HW.assemble(store, n);
+        return bytes;
+      }
+
+      // ── multiuser: a HoloCollab session mirrors the tree (CvRDT LWWMap) + presence ─
+      async function makeSync() {
+        try { if (relayUrl.startsWith("ws")) { const s = new WsKappaSync(relayUrl); await s.ready; return s; } } catch {}
+        return new BrokerKappaSync(DEFAULT_BROKER);
+      }
+      async function startSession() {
+        if (session) return session;
+        const sync = await makeSync();
+        session = await HoloCollab.open({
+          sync, secret, kind: "cloud", name: user.name, color: user.color,
+          onchange: applyRemoteTree,
+          onpresence: renderPeers,
+          onpeer: () => pushTree(),                                    // a newcomer: re-publish our tree
+        });
+        renderPeers(session.roster());
+        await pushTree();
+        return session;
+      }
+      // publish every live node into the shared LWW map "tree" (path → JSON)
+      async function pushTree() {
+        if (!session) return; const kv = [];
+        for (const [p, n] of fs.tree) { if (p === "/") continue; kv.push([p, JSON.stringify(stripNode(n))]); }
+        if (kv.length) session.setMany("tree", kv);
+      }
+      const stripNode = (n) => n;                                      // nodes are already plain JSON
+      function applyRemoteTree() {
+        if (!session) return; let changed = false;
+        const obj = session.mapObj("tree");
+        for (const p in obj) { try { const n = JSON.parse(obj[p]); const cur = fs.tree.get(p); if (!cur || (n.mtime || 0) >= (cur.mtime || 0)) { fs.setNode(p, n); changed = true; } } catch {} }
+        if (changed) { saveTree(); if (view === "files" || view === "photos" || view === "dashboard") render(); }
+      }
+      function renderPeers(roster) {
+        if (!roster) { $("peers").innerHTML = ""; return; }
+        $("peers").innerHTML = roster.slice(0, 6).map((p) => `<span class="av" title="${esc(p.name)}${p.you ? " (you)" : ""}" style="background:${esc(p.color || "#888")}">${esc((p.name || "?").slice(0, 1).toUpperCase())}</span>`).join("");
+      }
+      // when shared, broadcast a node + seal its blocks as fetchable assets
+      async function publishNode(path) {
+        if (!session) return; const n = fs.node(path); if (!n) return;
+        if (n.type === "file" && !n.blockAssets) { n.blockAssets = {}; for (const bk of n.blocks) { const b = await store.get(bk); if (b) n.blockAssets[bk] = await session.putAsset(b); } }
+        session.set("tree", path, JSON.stringify(n));
+      }
+      async function publishSubtree(path) { if (!session) return; const pre = path === "/" ? "/" : path + "/"; for (const [p, n] of [...fs.tree]) if ((p === path || p.startsWith(pre)) && !n.deleted) await publishNode(p); }
+
+      // ── actions ──────────────────────────────────────────────────────────────────
+      async function doUpload(files) {
+        for (const f of files) {
+          const bytes = new Uint8Array(await f.arrayBuffer());
+          const path = HW.joinp(cwd, f.name);
+          const node = await dav.put(path, bytes, f.type || HW.mimeOf(f.name));
+          log("⤓", `uploaded ${f.name} (${fmtSize(bytes.length)})`);
+          if (session) await publishNode(path);
+        }
+        await saveTree(); render(); toast(`Uploaded ${files.length} file${files.length === 1 ? "" : "s"}`);
+      }
+      async function download(path) {
+        const n = fs.node(path); const bytes = await fileBytes(path);
+        if (!bytes) return toast("Could not fetch (no peer is serving it).");
+        const ok = (await HW.kappa(bytes)) === n.kappa;                // Law L5 re-derivation before saving
+        const url = URL.createObjectURL(new Blob([bytes], { type: n.mime }));
+        const a = document.createElement("a"); a.href = url; a.download = n.name; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        toast(ok ? "✓ κ verified downloaded " + n.name : "⚠ κ mismatch refused"); if (ok) log("⤓", `downloaded ${n.name} · κ verified`);
+      }
+
+      function shareLink(path, kappa, itemType) {
+        const u = new URL(location.origin + location.pathname);
+        const hh = new URLSearchParams(); hh.set("k", secret); if (relayUrl) hh.set("r", relayUrl); if (path && path !== "/") hh.set("path", path);
+        u.hash = hh.toString();
+        // OCS-shaped share record (Nextcloud files_sharing) — link carries the content address
+        HW.createShare({ path, kappa, itemType, url: u.toString(), origin: location.origin });
+        return u.toString();
+      }
+      async function shareItem(path) {
+        const n = fs.node(path) || { type: "dir" };
+        await startSession(); shared = true;
+        await publishSubtree(path === "/" ? cwd : path);
+        const link = shareLink(path, n.kappa || "", n.type === "dir" ? "folder" : "file");
+        $("shareUrl").value = link; $("shareKap").textContent = (n.kappa ? "content address  " + n.kappa : "folder  " + path) + "\nroom secret stays in the #fragment the relay only ever sees ciphertext on an unguessable topic.";
+        $("shareDlg").classList.remove("hidden"); writeHash(); render();
+        log("⤴", `shared ${path === "/" ? "your cloud" : path}`);
+      }
+
+      // ── Hub: launch a sibling holospace, handing it our room ─────────────────────
+      function openApp(title, src, note) {
+        $("afTitle").textContent = title; $("afNote").textContent = note || "";
+        $("afFrame").src = src; $("appframe").classList.add("show");
+      }
+      function closeApp() { $("appframe").classList.remove("show"); $("afFrame").src = "about:blank"; }
+      function roomFrag(extra) { const hh = new URLSearchParams(); hh.set("k", secret); if (relayUrl) hh.set("r", relayUrl); for (const k in (extra || {})) hh.set(k, extra[k]); return "#" + hh.toString(); }
+      async function launchTalk() { openApp("💬 Talk", "meet.html" + roomFrag(), "same room as this space serverless E2E"); log("💬", "opened Talk"); }
+      async function launchDocs() { openApp("📝 Docs", "docs.html" + roomFrag({ kind: "writer" }), "Writer · Calc · Impress co-edit in this room"); log("📝", "opened Docs"); }
+      async function launchMusic() {
+        const tracks = [];
+        for (const r of fs.list("/Music").concat(fs.list(cwd))) {
+          if (r.type === "file" && (r.mime || "").startsWith("audio/")) { const b = await fileBytes(r.path); if (b) tracks.push({ url: URL.createObjectURL(new Blob([b], { type: r.mime })), title: r.name }); }
+        }
+        openApp("🎵 Music", "winamp.html", tracks.length ? `${tracks.length} of your tracks` : "your κ-pinned classic playlist");
+        const frame = $("afFrame"); frame.onload = () => { if (tracks.length) try { frame.contentWindow.postMessage({ type: "holo-winamp", tracks, autoplay: false }, "*"); } catch {} };
+        log("🎵", "opened Music");
+      }
+      function openFileInApp(path) {
+        const n = fs.node(path); if (!n) return;
+        const m = n.mime || "";
+        if (m.startsWith("image/")) return fileBytes(path).then((b) => b && lightbox(`<img src="${URL.createObjectURL(new Blob([b], { type: m }))}">`));
+        if (m.startsWith("video/")) return fileBytes(path).then((b) => { if (!b) return; const u = URL.createObjectURL(new Blob([b], { type: m })); lightbox(`<video src="${u}" controls autoplay></video>`); });
+        if (m.startsWith("audio/")) return launchMusic();
+        if (m.startsWith("text/") || m === "application/markdown") return fileBytes(path).then((b) => b && lightbox(`<pre class="k" style="max-width:90vw;max-height:85vh;overflow:auto">${esc(new TextDecoder().decode(b))}</pre>`));
+        return download(path);
+      }
+
+      function lightbox(html) { $("lbBody").innerHTML = html; $("lightbox").classList.add("show"); }
+
+      // ── events ───────────────────────────────────────────────────────────────────
+      function setView(v) { view = v; if (v === "talk") return launchTalk(); if (v === "docs") return launchDocs(); if (v === "music") return launchMusic(); render(); }
+      $("side").addEventListener("click", (e) => { const b = e.target.closest("[data-nav]"); if (b) setView(b.dataset.nav); });
+      $("main").addEventListener("click", async (e) => {
+        const go = e.target.closest("[data-go]"); if (go) { cwd = HW.norm(go.dataset.go); writeHash(); return render(); }
+        const open = e.target.closest("[data-open]"); if (open) { const p = open.dataset.open; const n = fs.node(p); return n && n.type === "dir" ? (cwd = p, writeHash(), render()) : openFileInApp(p); }
+        const app = e.target.closest("[data-app]"); if (app) return setView(app.dataset.app);
+        const actBtn = e.target.closest("[data-act]"); if (!actBtn) return;
+        const act = actBtn.dataset.act; const tr = actBtn.closest("[data-path]"); const path = tr ? tr.dataset.path : cwd;
+        if (act === "mkdir") { const name = prompt("New folder name:"); if (name) { dav.mkcol(HW.joinp(cwd, name)); await saveTree(); if (session) await publishNode(HW.joinp(cwd, name)); log("📁", `created folder ${name}`); render(); } }
+        else if (act === "upload") $("fileInput").click();
+        else if (act === "sharefolder") shareItem(cwd);
+        else if (act === "download") download(path);
+        else if (act === "share") shareItem(path);
+        else if (act === "rename") { const n = fs.node(path); const name = prompt("Rename to:", n.name); if (name && name !== n.name) { fs.move(path, HW.joinp(HW.dirname(path), name)); await saveTree(); if (session) { await publishNode(HW.joinp(HW.dirname(path), name)); session.set("tree", path, JSON.stringify(fs.node(path))); } render(); } }
+        else if (act === "trash") { const n = fs.node(path); if (confirm(`Delete ${n.name}?`)) { fs.delete(path); await saveTree(); if (session) session.set("tree", path, JSON.stringify(fs.node(path))); log("🗑", `deleted ${n.name}`); render(); } }
+      });
+      $("fileInput").addEventListener("change", (e) => { if (e.target.files.length) doUpload([...e.target.files]); e.target.value = ""; });
+
+      // drag-drop
+      let dragN = 0;
+      addEventListener("dragenter", (e) => { e.preventDefault(); if (++dragN === 1) $("drop").classList.add("show"); });
+      addEventListener("dragover", (e) => e.preventDefault());
+      addEventListener("dragleave", (e) => { if (--dragN <= 0) { dragN = 0; $("drop").classList.remove("show"); } });
+      addEventListener("drop", (e) => { e.preventDefault(); dragN = 0; $("drop").classList.remove("show"); if (e.dataTransfer.files.length) doUpload([...e.dataTransfer.files]); });
+
+      // chrome buttons
+      $("shareBtn").addEventListener("click", () => shareItem(cwd));
+      $("afClose").addEventListener("click", closeApp);
+      $("lbClose").addEventListener("click", () => $("lightbox").classList.remove("show"));
+      $("lightbox").addEventListener("click", (e) => { if (e.target.id === "lightbox") $("lightbox").classList.remove("show"); });
+      $("shareCopy").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("shareUrl").value); toast("Link copied paste it anywhere."); } catch { $("shareUrl").select(); document.execCommand("copy"); } });
+      $("shareSheet").addEventListener("click", async () => { const url = $("shareUrl").value; try { if (navigator.share) { await navigator.share({ title: "Holo Cloud", text: "Open my Holo Cloud end-to-end encrypted, no account.", url }); return; } } catch (e) { if (e && e.name === "AbortError") return; } try { await navigator.clipboard.writeText(url); toast("Link copied paste it anywhere."); } catch {} });
+      $("shareClose").addEventListener("click", () => $("shareDlg").classList.add("hidden"));
+      $("settingsBtn").addEventListener("click", () => { $("nameInput").value = user.name; $("relayInput").value = relayUrl; $("settingsDlg").classList.remove("hidden"); });
+      $("settingsCloseBtn").addEventListener("click", () => $("settingsDlg").classList.add("hidden"));
+      $("settingsSave").addEventListener("click", () => {
+        user.name = ($("nameInput").value || user.name).slice(0, 40); relayUrl = $("relayInput").value.trim(); user.relay = relayUrl;
+        saveUser(user); if (session) session.setName(user.name); $("settingsDlg").classList.add("hidden"); writeHash(); render(); toast("Saved.");
+      });
+
+      let toastT; function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
+
+      // ── nestability: a parent holospace can hand us a room over postMessage ───────
+      addEventListener("message", (e) => {
+        const m = e.data; if (!m || typeof m !== "object" || m.type !== "holo-cloud") return;
+        const hh = new URLSearchParams(); hh.set("k", m.room || secret); if (m.relay) hh.set("r", m.relay); if (m.path) hh.set("path", m.path);
+        location.hash = hh.toString(); location.reload();
+      });
+
+      // ── boot ─────────────────────────────────────────────────────────────────────
+      (async () => {
+        await loadTree(); await seedIfEmpty(); writeHash(); render();
+        // a link that already carries a room secret is a SHARE — join it live
+        if (h.get("k") || params.get("k")) { try { await startSession(); shared = true; render(); } catch {} }
+        booted = true;
+        try { parent !== window && parent.postMessage({ type: "holo-cloud-ready", room: secret }, "*"); } catch {}
+      })();
+
+      // test/interop handle — lets a parent or the browser-witness drive the holospace
+      window.__holoCloud = {
+        fs, store, dav, HW, fileBytes, shareLink,
+        get session() { return session; },
+        ready: () => booted,
+        joined: () => !!session,
+        myId: () => (session ? session.myId : ""),
+        peerCount: () => (session ? session.peerCount() : 1),
+        selfKappa: () => selfKappa,
+        node: (p) => fs.node(p),
+        list: (p) => fs.list(p),
+        async upload(path, arr) { const u8 = arr instanceof Uint8Array ? arr : Uint8Array.from(arr); await dav.put(path, u8, HW.mimeOf(path)); await saveTree(); if (session) await publishNode(path); render(); return fs.node(path); },
+        async bytesB64(path) { const b = await fileBytes(path); return b ? btoa(String.fromCharCode(...b)) : null; },
+        async mkdir(p) { dav.mkcol(p); await saveTree(); if (session) await publishNode(p); render(); return fs.node(p); },
+        async propfind(p, d = "1") { return dav.propfind(p, d); },
+        share: (p) => shareItem(p),
+        launch: (which) => setView(which),
+        frameSrc: () => ($("afFrame").getAttribute("src") || ""),
+        closeApp,
+        usage: () => fs.usage(),
+        storeBlocks: async () => (await store.stats()).blocks,
+      };
+    </script>
+      <script src="../../_shared/holo-theme.js" data-holo-shared="holo-theme.js"></script>
+    <script src="../../_shared/holo-manage.js" data-holo-shared="holo-manage.js" defer></script>
+<!-- ── Holo UI standardization — composed from CANONICAL SHELL OBJECTS (apps/ui) ───────────────
+       Holo Cloud composes the same first-party shell objects Holo Files does, by their κ via
+       window.HoloRender. Here: every zero-state (empty folder · no files · no photos · no activity)
+       becomes the one canonical EmptyState object — consistent across the whole OS, themed by
+       --holo-* tokens. Views re-render, so a MutationObserver re-composes new empty states; the
+       native markup stays as a pre-HoloRender fallback. One source of truth, no per-app empty-state CSS. -->
+<script type="module">
+  const SHELL = { emptystate: "holo://sha256:c7c761a1cdb715253bd5177a25427eabb0f689cc256a2a7f43d50580a9563417" };
+  const ready = async () => { for (let i = 0; i < 160 && !window.HoloRender; i++) await new Promise((r) => setTimeout(r, 50)); return window.HoloRender || null; };
+  function composeEmpties() {
+    const HR = window.HoloRender; if (!HR) return;
+    document.querySelectorAll(".empty:not([data-holo-ui])").forEach((orig) => {
+      orig.dataset.holoUi = "1";
+      const txt = (orig.textContent || "").trim(); if (!txt) return;
+      // split "headline — detail" into title + message where the app used an em-dash
+      const m = txt.split(/\s+\s+/); const title = m[0]; const message = m.slice(1).join(" ") || null;
+      const s = document.createElement("div"); orig.style.display = "none"; orig.after(s);
+      HR.render(s, SHELL.emptystate, { props: { title, message } })
+        .catch(() => { orig.style.display = ""; s.remove(); orig.dataset.holoUi = ""; });
+    });
+  }
+  (async () => {
+    const HR = await ready(); if (!HR) return; composeEmpties();
+    try { new MutationObserver(composeEmpties).observe(document.getElementById("main") || document.body, { childList: true, subtree: true }); } catch (e) {}
+  })();
+</script>
+  </body>
+</html>

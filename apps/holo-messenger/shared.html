@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Holo Messenger - shared thread</title>
+  <meta name="description" content="A read-only, self-verifying view of a shared conversation. Every message re-derives to its κ before it shows; tampered → refused." />
+  <style>
+    :root { color-scheme: dark; --bg:#121212; --panel:#1b1b1b; --panel2:#2a2a2a; --line:#2c2c2c; --ink:#e9e9eb; --dim:#8e8e93; --accent:#2c6bed; --in:#2a2a2a; --out:#2c6bed;
+      --mono: ui-monospace,"Cascadia Code",Menlo,Consolas,monospace; --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+    * { box-sizing: border-box; } html,body { height:100%; margin:0; }
+    body { background:var(--bg); color:var(--ink); font:15px/1.45 var(--sans); display:grid; grid-template-rows:auto 1fr; }
+    #head { display:flex; align-items:center; gap:.7rem; padding:.7rem 1rem; background:var(--panel2); border-bottom:1px solid var(--line); }
+    #head .avatar { width:40px; height:40px; border-radius:50%; background:#3b4a54; display:grid; place-items:center; font-weight:700; }
+    #head .t { min-width:0; } #head .name { font-weight:600; } #head .sub { color:var(--dim); font-size:.76rem; }
+    #head .ro { margin-left:auto; color:var(--accent); font-size:.74rem; border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line)); border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
+    #stream { overflow:auto; min-height:0; padding:1.1rem 8%; display:flex; flex-direction:column; gap:.35rem; }
+    .bubble { max-width:65%; padding:.5rem .75rem .55rem; border-radius:18px; width:fit-content; box-shadow:0 1px .5px rgba(0,0,0,.18); }
+    .bubble.in { background:var(--in); align-self:flex-start; border-bottom-left-radius:4px; }
+    .bubble.out { background:var(--out); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+    .bubble .sender { color:var(--accent); font-size:.78rem; font-weight:600; margin-bottom:.1rem; }
+    .bubble.out .sender { color:#cfe0ff; }
+    .bubble .text { white-space:pre-wrap; word-break:break-word; }
+    .bubble .foot { display:flex; gap:.4rem; justify-content:flex-end; margin-top:.12rem; align-items:center; }
+    .bubble .kap { color:#5b7283; font-size:.62rem; font-family:var(--mono); } .bubble.out .kap { color:#b9cdf6; }
+    .bubble .time { color:var(--dim); font-size:.68rem; } .bubble.out .time { color:#cdddff; }
+    #day { align-self:center; background:var(--panel2); color:var(--dim); font-size:.7rem; padding:.2rem .7rem; border-radius:999px; margin:.2rem 0 .4rem; }
+    .state { margin:auto; text-align:center; color:var(--dim); max-width:32ch; }
+    .state.bad { color:#ffb4b4; }
+  </style>
+</head>
+<body>
+  <header id="head">
+    <div class="avatar" id="avatar">·</div>
+    <div class="t"><div class="name" id="name">Shared thread</div><div class="sub" id="sub"></div></div>
+    <span class="ro" id="ro" hidden>🔒 read-only</span>
+  </header>
+  <div id="stream"><div class="state">Opening shared thread…</div></div>
+
+  <script type="module">
+    import { decodeShareLink, mountSharedThread } from "../../usr/lib/holo/holo-messenger-share.mjs";
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const hhmm = (iso) => { try { const d = new Date(iso); return isNaN(d) ? iso : `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; } catch { return iso; } };
+    const GLYPH = { whatsapp:"🟢", telegram:"🔵", discord:"🟣", slack:"🟡", x:"⚫", messenger:"🔷", instagram:"🟠", linkedin:"🔹", gmessages:"🟦" };
+
+    function bad(msg) {
+      $("stream").innerHTML = `<div class="state bad">${esc(msg)}</div>`;
+      window.__SHARED = { ok: false, refusedWhy: msg };
+      document.documentElement.setAttribute("data-shared-ready", "1");
+    }
+
+    (function open() {
+      let payload = null;
+      try { payload = decodeShareLink(location.hash || location.href); } catch (e) { return bad("This link is malformed."); }
+      if (!payload) return bad("No shared thread in this link.");
+      const mounted = mountSharedThread(payload);          // verify-before-trust: cap binds + every message re-derives
+      if (!mounted.ok) return bad("Couldn't verify this shared thread. Refused (" + (mounted.why || "tampered") + ").");
+
+      const name = payload.name || {};
+      $("name").textContent = name.chat || "Shared thread";
+      $("avatar").textContent = (name.chat || "#").replace(/[^A-Za-z0-9]/g, "").slice(0, 1).toUpperCase() || "#";
+      $("sub").textContent = `${(name.platform || "").replace(/^./, (c) => c.toUpperCase())} ${GLYPH[name.platform] || "💬"} · ${name.words || name.short || ""}`;
+      $("ro").hidden = false;
+
+      const host = $("stream"); host.innerHTML = `<div id="day">shared · ${mounted.messages.length} verified · read-only</div>`;
+      for (const m of mounted.messages) {
+        const o = m.object;
+        const sender = o["schema:sender"] || "";
+        const out = sender === "Me";
+        const el = document.createElement("div");
+        el.className = "bubble " + (out ? "out" : "in");
+        el.innerHTML = `${!out && sender ? `<div class="sender">${esc(sender)}</div>` : ""}<div class="text">${esc(o["schema:text"] || "")}</div>` +
+          `<div class="foot"><span class="kap">κ ${esc(String(m.kappa).split(":").pop().slice(0,8))}</span><span class="time">${esc(hhmm(o["schema:dateSent"]))}</span></div>`;
+        host.appendChild(el);
+      }
+      host.scrollTop = host.scrollHeight;
+      // read-only: no composer, no signer, attenuated to this one thread
+      window.__SHARED = { ok: true, readOnly: mounted.readOnly, hasSigner: mounted.hasSigner, genesis: mounted.genesis, cap: mounted.cap, count: mounted.messages.length, rejected: mounted.rejected, words: name.words, chat: name.chat };
+      document.documentElement.setAttribute("data-shared-ready", "1");
+    })();
+  </script>
+</body>
+</html>

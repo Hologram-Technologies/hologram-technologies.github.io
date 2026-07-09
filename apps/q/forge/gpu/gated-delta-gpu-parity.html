@@ -1,0 +1,34 @@
+<!doctype html><meta charset=utf8><title>gated-delta GPU parity</title>
+<style>body{font:14px monospace;background:#111;color:#ddd;padding:20px}.ok{color:#5f5}.fail{color:#f55}</style>
+<h3>Gated-DeltaNet WGSL kernel — parity vs CPU oracle</h3>
+<pre id=out>running… (needs a WebGPU browser: chrome://gpu must show WebGPU enabled)</pre>
+<script type=module>
+import { gatedDeltaStep } from "../gguf-forge-gated-delta.mjs";          // the PROVEN CPU oracle
+import { gatedDeltaStepGPU } from "./holo-gated-delta-gpu.mjs";
+const out = document.getElementById("out");
+const log = (s, cls) => { out.innerHTML += `\n${cls ? `<span class=${cls}>${s}</span>` : s}`; };
+try {
+  if (!navigator.gpu) throw new Error("no navigator.gpu — enable WebGPU");
+  const adapter = await navigator.gpu.requestAdapter(); const device = await adapter.requestDevice();
+  let seed = 7; const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff * 2 - 1; };
+  const arr = (n, s = 1) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = rnd() * s; return a; };
+  const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / (Math.sqrt(na) * Math.sqrt(nb) + 1e-30); };
+
+  // real qwen35 head shape: 32 v-heads, 128×128 state. Multi-step to exercise state carry.
+  const H = 32, K = 128, V = 128, STEPS = 4;
+  let Scpu = new Float32Array(H * K * V), Sgpu = new Float32Array(H * K * V);
+  let minCosO = 1, minCosS = 1;
+  for (let t = 0; t < STEPS; t++) {
+    const q = arr(H * K), k = arr(H * K), v = arr(H * V), dec = arr(H).map((x) => 0.5 + 0.25 * x), be = arr(H).map((x) => 0.5 + 0.4 * x);
+    const oCpu = gatedDeltaStep(Scpu, q, k, v, dec, be, H, K, V);              // mutates Scpu, returns o
+    const { o: oGpu, S: SgpuNew } = await gatedDeltaStepGPU(device, { S: Sgpu, q, k, v, decay: dec, beta: be, nHeads: H, headK: K, headV: V });
+    Sgpu = SgpuNew;
+    const co = cos(oCpu, oGpu), cs = cos(Scpu, Sgpu);
+    minCosO = Math.min(minCosO, co); minCosS = Math.min(minCosS, cs);
+    log(`step ${t}: cos(o)=${co.toFixed(6)}  cos(S)=${cs.toFixed(6)}`);
+  }
+  const pass = minCosO > 0.9999 && minCosS > 0.9999;
+  log(`\nmin cos(o)=${minCosO.toFixed(6)}  min cos(S)=${minCosS.toFixed(6)}`);
+  log(pass ? "PARITY ✓ — WGSL gated-delta step matches the CPU oracle" : "PARITY ✗", pass ? "ok" : "fail");
+} catch (e) { log("ERROR: " + e.message, "fail"); }
+</script>

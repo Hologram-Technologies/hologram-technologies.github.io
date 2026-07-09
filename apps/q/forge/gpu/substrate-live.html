@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>κ-substrate LIVE - real BitNet-2B streaming through the substrate, BLAKE3-verified</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0b0d; color: #e6e8ea; font: 13px/1.6 ui-monospace, Menlo, monospace; padding: 24px 28px; }
+  h1 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #8a9099; font-size: 12px; margin-bottom: 18px; max-width: 820px; }
+  #verdict { border: 1px solid #1c2128; border-radius: 12px; padding: 16px 18px; margin: 6px 0 18px; background: #101318; white-space: pre-wrap; min-height: 44px; }
+  #verdict.ok { border-color: #1f6f43; background: #0d1712; } #verdict.bad { border-color: #6f2f2f; background: #170d0d; }
+  .big { font-size: 20px; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 820px; margin: 0 0 16px; }
+  .card { border: 1px solid #1a1d22; border-radius: 10px; padding: 12px 14px; background: #0e1116; }
+  .card .k { color: #8a9099; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .card .v { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .card .u { color: #8a9099; font-size: 11px; }
+  .bar { height: 8px; background: #1a1d22; border-radius: 6px; overflow: hidden; max-width: 820px; margin: 4px 0 14px; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg,#1f6f43,#56d38a); width: 0; transition: width .2s; }
+  button { background: #1a1d22; color: #e6e8ea; border: 1px solid #2a2f36; border-radius: 8px; padding: 8px 16px; font: inherit; cursor: pointer; margin-right: 10px; }
+  button:hover { background: #22262d; }
+  #log { max-width: 820px; max-height: 210px; overflow: auto; border: 1px solid #1a1d22; border-radius: 10px; padding: 8px 12px; background: #0c0f13; color: #9db4d4; font-size: 12px; }
+  .ok3 { color: #56d38a; } .warm { color: #9db4d4; } .cold { color: #d7a24a; }
+  #status { color: #8a9099; font-size: 12px; margin: 8px 0; }
+</style>
+
+<h1>κ-substrate — LIVE on the real model</h1>
+<div class="sub">Real <b>HOLOGRAMTECH/q-bitnet-2b</b> blocks streaming from HuggingFace, through the unified κ-substrate:
+each block <b>BLAKE3-verified</b> on the canonical axis (against the local <code>sha256-to-blake3.map.json</code>),
+promoted <b>net → OPFS → RAM → VRAM</b>, LRU-bounded. No inference server. Reload after the first run → warm, 0 network.</div>
+
+<div id="verdict">idle</div>
+<div class="grid">
+  <div class="card"><div class="k">from HF (net)</div><div class="v" id="m_net">0</div><div class="u" id="m_netmb">0 MB</div></div>
+  <div class="card"><div class="k">BLAKE3-verified</div><div class="v ok3" id="m_ver">0</div><div class="u">canonical κ ✓</div></div>
+  <div class="card"><div class="k">VRAM resident</div><div class="v" id="m_vram">0</div><div class="u" id="m_vrammb">0 MB / budget</div></div>
+  <div class="card"><div class="k">evicted (LRU)</div><div class="v" id="m_evict">0</div><div class="u">working set bounded</div></div>
+</div>
+<div class="bar"><i id="prog"></i></div>
+<div><button id="run">Stream from HF</button><button id="reload">Reload (warm)</button><span id="status"></span></div>
+<div id="log" style="margin-top:14px"></div>
+
+<script type="module">
+import init, { kappa } from "../../pkg/holospaces_web.js";
+import { makeKappaResolver } from "../kappa-resolve.mjs";
+import { makeVramResidency } from "../kappa-vram.mjs?v=2";
+const $ = (s) => document.querySelector(s);
+const HF = "https://huggingface.co/HOLOGRAMTECH/q-bitnet-2b/resolve/main";
+const BASE = "/holo-apps/apps/q/models/bitnet-2b";
+const _p = new URLSearchParams(location.search);
+const NBLOCKS = _p.get("n") === "all" ? 1e9 : (parseInt(_p.get("n")) || 48);   // ?n=all → full model; ?n=120 etc.
+const VRAM_BUDGET = (parseInt(_p.get("budget")) || 12) * 1024 * 1024;           // ?budget=64 (MB) → watch LRU cap + evict real weights
+
+const set = (id, v) => { $(id).textContent = v; };
+const logEl = $("#log");
+const log = (html) => { const d = document.createElement("div"); d.innerHTML = html; logEl.prepend(d); };
+const gunzip = async (gz) => new Uint8Array(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+const mb = (n) => (n / 1048576).toFixed(2);
+
+async function run() {
+  $("#run").disabled = true; $("#verdict").className = ""; $("#verdict").textContent = "starting…";
+  $("#status").textContent = "init BLAKE3 + WebGPU…";
+  await init();
+  const dev = navigator.gpu ? await (await navigator.gpu.requestAdapter()).requestDevice() : null;
+
+  // canonical map + manifest (both LOCAL, served by the dev server) — this is what lights the BLAKE3 axis
+  const map = await (await fetch(BASE + "/sha256-to-blake3.map.json")).json();
+  const man = await (await fetch(BASE + "/manifest.json")).json();
+  const tensors = Object.entries(man.tensors || {})
+    .filter(([, t]) => map["" + t.kappa])                      // has a canonical blake3
+    .sort((a, b) => (a[1].N * a[1].K) - (b[1].N * b[1].K))     // smallest first (fast on flaky net)
+    .slice(0, NBLOCKS);
+  const rev = new Map(); for (const [, t] of tensors) rev.set(map[t.kappa], String(t.kappa).replace(/^sha256:/, ""));
+
+  let net = 0, netBytes = 0;
+  const netFn = async (b3) => {
+    const shex = rev.get(b3); if (!shex) return null;
+    const r = await fetch(HF + "/b/sha256_" + shex + ".gz"); if (!r.ok) throw new Error("HF " + r.status);
+    const gz = new Uint8Array(await r.arrayBuffer()); net++; netBytes += gz.byteLength; return gz;   // resolver verifies blake3(gz)===b3
+  };
+  const R = await makeKappaResolver({ net: netFn, verify: kappa, budgetBytes: 512 * 1024 * 1024, dirName: "substrate-live" });
+  const V = dev ? makeVramResidency({ device: dev, resolve: async (b3) => gunzip(await R.get(b3)), budgetBytes: VRAM_BUDGET }) : null;
+
+  const t0 = performance.now();
+  for (let i = 0; i < tensors.length; i++) {
+    const [name, t] = tensors[i]; const b3 = map[t.kappa];
+    const before = R.stats.netFetch;
+    try {
+      if (V) await V.residentGPU(b3); else await R.get(b3);      // promote through the tiers, BLAKE3-verified
+    } catch (e) { $("#verdict").className = "bad"; $("#verdict").textContent = "REFUSE: " + e.message; $("#run").disabled = false; return; }
+    const wasNet = R.stats.netFetch > before;
+    set("#m_net", R.stats.netFetch); set("#m_netmb", mb(netBytes) + " MB");
+    set("#m_ver", R.stats.verified); set("#m_evict", V ? V.stats.evicted : 0);
+    if (V) { set("#m_vram", V.count()); set("#m_vrammb", mb(V.vramBytes()) + " / " + mb(VRAM_BUDGET) + " MB"); }
+    $("#prog").style.width = Math.round(100 * (i + 1) / tensors.length) + "%";
+    $("#status").textContent = `${i + 1}/${tensors.length} · ${name}`;
+    log(`<span class="${wasNet ? 'cold' : 'warm'}">${wasNet ? 'HF→' : 'warm '}</span> ${name} <span class="ok3">blake3:${b3.slice(7, 17)}✓</span> ${(t.N*t.K>=1000)?(t.N+'×'+t.K):''}`);
+    await new Promise(r => setTimeout(r, 0));
+  }
+  const secs = ((performance.now() - t0) / 1000).toFixed(1);
+  const warm = R.stats.netFetch === 0;
+  const v = $("#verdict"); v.className = "ok";
+  v.innerHTML =
+`<span class="big">${warm ? "WARM — 0 network, served from OPFS ✓" : R.stats.verified + " real blocks BLAKE3-verified, streamed from HF ✓"}</span>
+
+${tensors.length} real BitNet-2B blocks · ${mb(netBytes)} MB from HF · ${R.stats.verified} canonical-BLAKE3 verified · ${R.stats.refused} refused
+tiers: net(${R.stats.netFetch}) → OPFS(warm ${R.stats.warmHit}) → RAM(hot ${R.stats.hotHit})${V ? ` → VRAM(${V.count()} resident, ${V.stats.evicted} evicted, peak ${mb(V.stats.peak)}MB ≤ ${mb(VRAM_BUDGET)}MB budget)` : " · (no WebGPU here)"} · ${secs}s
+${warm ? "Second run hit OPFS — the real model resolves with ZERO network. 'Boot once per planet'." : "Now press Reload (warm) — the same blocks resolve from OPFS with 0 network."}
+The canonical BLAKE3 axis is LIVE on the real model (verified against the local map; ship the map to HF and the loader does this automatically).`;
+  window.__live = { blocks: tensors.length, verified: R.stats.verified, refused: R.stats.refused, netFetch: R.stats.netFetch, warm, vramPeak: V ? V.stats.peak : 0 };
+  $("#status").textContent = "done."; $("#run").disabled = false;
+}
+$("#run").onclick = () => run().catch(e => { $("#verdict").className = "bad"; $("#verdict").textContent = "ERROR: " + (e.stack || e.message); $("#run").disabled = false; });
+$("#reload").onclick = () => location.reload();
+run().catch(e => { $("#verdict").className = "bad"; $("#verdict").textContent = "ERROR: " + (e.stack || e.message); });
+</script>

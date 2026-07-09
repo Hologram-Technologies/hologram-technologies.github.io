@@ -1,0 +1,1 @@
+import{jsx as e}from"react/jsx-runtime";function t(){return e("p",{className:"text-xl text-muted-foreground",children:"A modal dialog that interrupts the user with important content and expects a response."})}export{t as default};

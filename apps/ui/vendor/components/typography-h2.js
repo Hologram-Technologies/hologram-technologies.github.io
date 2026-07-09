@@ -1,0 +1,1 @@
+import{jsx as o}from"react/jsx-runtime";function t(){return o("h2",{className:"scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0",children:"The People of the Kingdom"})}export{t as default};

@@ -1,0 +1,80 @@
+{
+  "$comment": "Generated from the hub catalog by tools/gen-app-defs.mjs edit the catalog, not here.",
+  "id": "org.hologram.HoloMusic",
+  "name": "Holo Music",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "A verified music library and the whole internet as one.",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "applicationCategory": "MultimediaApplication",
+  "conforms": {
+    "specs": [
+      "web-platform"
+    ]
+  },
+  "capabilities": {
+    "storage": [
+      "org.hologram.HoloMusic"
+    ]
+  },
+  "shared": [
+    "favicon.png",
+    "holo-audio.js",
+    "holo-manage.js",
+    "holo-mobile.css",
+    "holo-object.js",
+    "holo-stations.js",
+    "holo-theme.js",
+    "teleport.js"
+  ],
+  "engines": [],
+  "loader": "music.html",
+  "description": [
+    {
+      "p": "Your music, and the world's, shouldn't be trapped behind a server you run."
+    },
+    {
+      "p": "A serverless library speaks the Subsonic API, and a federated search turns public sources into one catalog."
+    },
+    {
+      "ul": [
+        "Serverless, content-addressed library (Subsonic API)",
+        "Federated search across public sources",
+        "Internet Archive, Radio Browser, SomaFM, podcasts",
+        "Add any link"
+      ]
+    }
+  ],
+  "categories": [
+    "AudioVideo",
+    "Audio",
+    "Music",
+    "Player"
+  ],
+  "keywords": [
+    "music",
+    "library",
+    "subsonic",
+    "navidrome",
+    "radio",
+    "podcasts"
+  ],
+  "developer": {
+    "id": "org.hologram",
+    "name": "Hologram Technologies"
+  },
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://hologram.os/apps/music",
+  "bugtracker": "https://github.com/Hologram-Technologies/hologram-os/issues",
+  "releases": [
+    {
+      "version": "1.0",
+      "date": "2026-06-08",
+      "description": "Subsonic-compatible library + federated Universe search across the open internet."
+    }
+  ],
+  "accent": "#1db954"
+}

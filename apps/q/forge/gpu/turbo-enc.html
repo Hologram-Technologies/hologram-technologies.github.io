@@ -1,0 +1,53 @@
+<!doctype html><meta charset=utf-8><title>TurboQuant in-shader ENCODE witness</title>
+<body><pre id=log>loading…</pre><script type=module>
+// WGSL TurboQuant PQ4_0 ENCODE (rotate + stage-1 quant) — the device-native KV WRITE path,
+// counterpart to the decode kernel. One thread per block keeps the Hadamard FHT and norm in
+// the same sequential f32 order as CPU tqEncodeKV → bit-for-bit. Per block: forward-rotate
+// (×signs, FHT, ×1/√d), norm=‖·‖, nibble = nearest-codebook(val/norm) via boundaries, pack
+// 2/byte, f16 norm at offset 64 (pack2x16float). Output u32-padded (17 u32/block), JS
+// reassembles the 66-byte block and compares to the CPU oracle.
+const log = (m) => document.getElementById("log").textContent = m;
+(async () => {
+  const { d, nb, n, total, x, signs, boundaries, expected } = await (await fetch("./_turboenc_data.json")).json();
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const f32sb = (a) => { const b = dev.createBuffer({ size: a.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, a); return b; };
+  const U = 17; // u32 per block (16 qs + 1 norm)
+  const outBuf = dev.createBuffer({ size: nb * U * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+  const rd = dev.createBuffer({ size: nb * U * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+
+  const WGSL = `
+const D:u32=${d}u; const U:u32=${U}u; const INV:f32=${Math.fround(1 / Math.fround(Math.sqrt(d)))};
+@group(0)@binding(0)var<storage,read>x:array<f32>;@group(0)@binding(1)var<storage,read>signs:array<f32>;@group(0)@binding(2)var<storage,read_write>outp:array<u32>;@group(0)@binding(3)var<storage,read>B:array<f32>;
+fn qv4(v:f32)->u32{ if(v<B[7]){ if(v<B[3]){ if(v<B[1]){return select(1u,0u,v<B[0]);}else{return select(3u,2u,v<B[2]);} } else { if(v<B[5]){return select(5u,4u,v<B[4]);}else{return select(7u,6u,v<B[6]);} } } else { if(v<B[11]){ if(v<B[9]){return select(9u,8u,v<B[8]);}else{return select(11u,10u,v<B[10]);} } else { if(v<B[13]){return select(13u,12u,v<B[12]);}else{return select(15u,14u,v<B[14]);} } } }
+@compute @workgroup_size(1) fn main(@builtin(workgroup_id) wid:vec3<u32>){
+  let p=wid.x; var buf:array<f32,${d}>;
+  for(var i=0u;i<D;i++){ buf[i]=x[p*D+i]*signs[i]; }
+  // FHT (sequential, same butterfly order as CPU)
+  var len:u32=1u; loop{ if(len>=D){break;} for(var i=0u;i<D;i=i+(len<<1u)){ for(var j=i;j<i+len;j++){ let a=buf[j];let b=buf[j+len];buf[j]=a+b;buf[j+len]=a-b; } } len=len<<1u; }
+  for(var i=0u;i<D;i++){ buf[i]=buf[i]*INV; }
+  var ss=0.0; for(var i=0u;i<D;i++){ ss=ss+buf[i]*buf[i]; } let norm=sqrt(ss);
+  for(var u=0u;u<16u;u++){ outp[p*U+u]=0u; }
+  if(norm>=1e-15){ let inv=1.0/norm;
+    for(var r=0u;r<D;r=r+2u){ let i0=qv4(buf[r]*inv); let i1=qv4(buf[r+1u]*inv); let byteIdx=r>>1u; let v=i0|(i1<<4u); outp[p*U+(byteIdx>>2u)]=outp[p*U+(byteIdx>>2u)]|(v<<((byteIdx&3u)*8u)); }
+  }
+  outp[p*U+16u]=pack2x16float(vec2<f32>(norm,0.0))&0xffffu; // f16 norm
+}`;
+  const pipe = dev.createComputePipeline({ layout: "auto", compute: { module: dev.createShaderModule({ code: WGSL }), entryPoint: "main" } });
+  const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: f32sb(new Float32Array(x)) } }, { binding: 1, resource: { buffer: f32sb(new Float32Array(signs)) } }, { binding: 2, resource: { buffer: outBuf } }, { binding: 3, resource: { buffer: f32sb(new Float32Array(boundaries)) } }] });
+  const enc = dev.createCommandEncoder(); const pa = enc.beginComputePass(); pa.setPipeline(pipe); pa.setBindGroup(0, bg); pa.dispatchWorkgroups(nb); pa.end();
+  enc.copyBufferToBuffer(outBuf, 0, rd, 0, nb * U * 4); dev.queue.submit([enc.finish()]);
+  await rd.mapAsync(GPUMapMode.READ); const u32 = new Uint32Array(rd.getMappedRange().slice(0));
+  // reassemble each 66-byte block; the QUANTIZATION (nibbles, bytes 0..63) must be BIT-EXACT;
+  // the f16 norm (bytes 64-65) may differ by ≤1 ULP — GPU hardware sqrt vs JS fround(Math.sqrt)
+  // double-rounding (a Tier-B numeric seam, not a logic error). Decoded values stay ~identical.
+  let nibbleBad = -1, nibbleBlk = -1, normOff = 0, maxNormUlp = 0;
+  for (let p = 0; p < nb; p++) {
+    for (let bi = 0; bi < 64; bi++) { const g = (u32[p * U + (bi >> 2)] >> ((bi & 3) * 8)) & 0xff; if (g !== expected[p][bi] && nibbleBad < 0) { nibbleBad = bi; nibbleBlk = p; } }
+    const gNorm = u32[p * U + 16] & 0xffff, cNorm = expected[p][64] | (expected[p][65] << 8);
+    const ulp = Math.abs(gNorm - cNorm); if (ulp > 0) normOff++; maxNormUlp = Math.max(maxNormUlp, ulp);
+  }
+  const ok = nibbleBad < 0 && maxNormUlp <= 1;
+  window.__turboenc = { ok, nibblesBitExact: nibbleBad < 0, nibbleBad, nibbleBlk, normOff, maxNormUlp, nb };
+  log(`TurboQuant ENCODE GPU: ${ok ? "PASS" : "FAIL"}  nibbles ${nibbleBad < 0 ? "BIT-EXACT" : "MISMATCH@blk" + nibbleBlk} ; f16-norm ${normOff}/${nb} off by ≤${maxNormUlp} ULP (sqrt seam)`);
+})().catch((e) => { window.__turboenc = { ok: false, err: String(e) }; log("ERR " + e); });
+</script>

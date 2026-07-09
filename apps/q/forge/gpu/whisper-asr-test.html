@@ -1,0 +1,148 @@
+<!doctype html><meta charset="utf-8"><title>Holo Whisper — Q's κ-native live ear (W-6)</title>
+<style>
+  body{font:15px/1.5 system-ui,sans-serif;background:#0b0e16;color:#cdd6f4;max-width:820px;margin:0 auto;padding:24px}
+  h1{font-size:19px;font-weight:600;margin:0 0 4px} .sub{color:#7f849c;font-size:13px;margin-bottom:18px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+  button{font:inherit;background:#1e2030;color:#cdd6f4;border:1px solid #313244;border-radius:9px;padding:9px 15px;cursor:pointer}
+  button:hover:not(:disabled){background:#2a2c3d;border-color:#585b70} button:disabled{opacity:.4;cursor:default}
+  #live{font-size:16px;font-weight:600;padding:12px 22px} #live.on{background:#10331f;border-color:#2e7d4f;color:#a6e3a1}
+  select{font:inherit;background:#1e2030;color:#cdd6f4;border:1px solid #313244;border-radius:9px;padding:9px}
+  #cap{font-size:20px;line-height:1.55;min-height:120px;background:#11131d;border:1px solid #313244;border-radius:12px;padding:20px 22px;margin-top:14px}
+  .committed{color:#cdd6f4} .partial{color:#89b4fa} .partial::after{content:"▍";color:#585b70;animation:bl 1s steps(2) infinite}
+  @keyframes bl{50%{opacity:0}}
+  #status{color:#7f849c;font-size:13px;margin-top:10px;font-family:ui-monospace,monospace} .ok{color:#a6e3a1} .err{color:#f38ba8}
+  #vu{display:inline-block;width:80px;height:7px;background:#313244;border-radius:4px;overflow:hidden;vertical-align:middle}
+  #vubar{height:100%;width:0;background:#a6e3a1;transition:width .05s} .pill{font-family:ui-monospace,monospace;font-size:12px;color:#89b4fa}
+  .one{opacity:.85}
+</style>
+<body>
+  <h1>Q's κ-native live ear</h1>
+  <div class="sub">Whisper on WebGPU, weights streamed by κ from the <code>.holo</code> (per-block SHA-256 L5 verify · OPFS · offline). Live captions as you speak — re-transcribed continuously, committed on each pause.</div>
+  <div class="row">
+    <label>Model <select id="model"><option value="/.models/moonshine-tiny-int8.holo">moonshine-tiny int8 (30MB — instant load)</option><option value="/.models/moonshine-base-int8.holo">moonshine-base int8 (64MB)</option><option value="/.models/moonshine-tiny-f16.holo">moonshine-tiny f16 (56MB — fastest load)</option><option value="/.models/moonshine-base-f16.holo">moonshine-base f16 (125MB)</option><option value="/.models/moonshine-tiny.holo">moonshine-tiny f32 (110MB)</option><option value="/.models/moonshine-base.holo">moonshine-base f32 (248MB)</option><option value="/.models/whisper-tiny.holo">whisper-tiny</option><option value="/.models/whisper-base.holo">whisper-base</option></select></label>
+    <button id="load">Load model</button>
+    <span id="loadpill" class="pill"></span>
+  </div>
+  <div class="row">
+    <button id="live" disabled>● Start live caption</button>
+    <span id="vu"><span id="vubar"></span></span>
+  </div>
+  <div id="cap"><span class="committed"></span><span class="partial"></span></div>
+  <div id="status">pick a model and click Load</div>
+  <div class="row one">
+    <button id="jo16" disabled>▶ Known clip</button>
+    <button id="upbtn" disabled>⬆ Upload</button>
+    <input id="file" type="file" accept="audio/*" style="display:none">
+  </div>
+
+<script type="module">
+import { createWhisperASR } from "./holo-whisper-asr.mjs";
+import { createMoonshineASR } from "./holo-moonshine-asr.mjs";
+const createASR = (url, opts) => url.includes("moonshine") ? createMoonshineASR(url, opts) : createWhisperASR(url, opts);
+const $ = (id) => document.getElementById(id);
+const status = (s, cls) => { $("status").className = cls || ""; $("status").textContent = s; };
+let asr = null, audioCtx = null;
+
+function readWavPCM16(bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); let o = 12;
+  while (o + 8 <= bytes.byteLength) { const id = String.fromCharCode(bytes[o],bytes[o+1],bytes[o+2],bytes[o+3]), sz = dv.getUint32(o+4,true);
+    if (id === "data") { const n = sz>>1, x = new Float32Array(n); for (let i=0;i<n;i++) x[i]=dv.getInt16(o+8+i*2,true)/32768; return x; } o += 8+sz+(sz&1); } return null;
+}
+async function decodeTo16k(arrayBuf) {
+  audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+  const ab = await audioCtx.decodeAudioData(arrayBuf.slice(0));
+  const off = new OfflineAudioContext(1, Math.ceil(ab.duration*16000), 16000);
+  const s = off.createBufferSource(); s.buffer = ab; s.connect(off.destination); s.start();
+  return (await off.startRendering()).getChannelData(0);
+}
+async function runOne(pcm, label) {
+  if (!asr) return; status(`transcribing ${label} (${(pcm.length/16000).toFixed(1)}s)…`); render("", "…");
+  try { const r = await asr.transcribe(pcm); const rtf = (r.gpuMs/1000)/(pcm.length/16000);
+    window.__lastR = { model: $("model").value, nTok: r.ids.length, melMs: r.melMs ?? null, gpuMs: r.gpuMs, encMs: r.encMs ?? null, decMs: r.decMs ?? null, totalMs: (r.melMs||0)+r.gpuMs, audioSec: pcm.length/16000, text: clean(r.text) };
+    render(clean(r.text) || "(no speech)", ""); status(`✓ ${r.ids.length} tok · ${r.melMs!=null?`mel ${r.melMs}+`:``}gpu ${r.gpuMs}ms · RTF ${rtf.toFixed(2)} ${rtf<1?"✓ real-time":""}`, "ok");
+  } catch (e) { status("✗ "+e, "err"); }
+}
+function render(committed, partial) { $("cap").children[0].textContent = committed; $("cap").children[1].textContent = partial; }
+// Whisper hallucinates on silence → strip its non-speech annotations ([BLANK_AUDIO], (laughs), ♪…♪)
+function clean(t) { return (t || "").replace(/\[[^\]]*\]/g, "").replace(/\([^)]*\)/g, "").replace(/♪[^♪]*♪/g, "").replace(/\s+/g, " ").trim(); }
+// trim to the voiced region (20ms RMS windows) — feeding silence is what makes Whisper invent words
+function trimSilence(pcm, thr) {
+  const win = 320; let first = -1, last = -1;
+  for (let i = 0; i + win <= pcm.length; i += win) { let s = 0; for (let j = 0; j < win; j++) { const v = pcm[i+j]; s += v*v; } if (Math.sqrt(s/win) > thr) { if (first < 0) first = i; last = i + win; } }
+  if (first < 0) return null;
+  return pcm.subarray(Math.max(0, first - 2400), Math.min(pcm.length, last + 2400));   // ±150ms pad
+}
+
+$("model").onchange = () => { if (live) stopLive(); asr = null; for (const id of ["live","jo16","upbtn"]) $(id).disabled = true; $("load").disabled = false; $("loadpill").textContent = ""; status("click Load to switch model"); };
+$("load").onclick = async () => {
+  if (live) stopLive(); $("load").disabled = true; asr = null; const url = $("model").value; status(`loading ${url.split("/").pop()} — streaming by κ + L5 verify…`);
+  try { const t0 = performance.now();
+    asr = await createASR(url, { onProgress: (s) => status(s) });
+    $("loadpill").textContent = `${url.split("/").pop()} · S=${asr.S} · ${asr.encNL}+${asr.decNL}L · ${asr.stats.opfsHits?"OPFS warm":"streamed"} · ${Math.round(performance.now()-t0)}ms`;
+    status(`✓ ready (${asr.stats.verifies} L5 verifies, ${(asr.stats.bytesFetched/1e6).toFixed(1)}MB) — click Start live caption`, "ok");
+    for (const id of ["live","jo16","upbtn"]) $(id).disabled = false;
+  } catch (e) { status("✗ "+e, "err"); }
+  $("load").disabled = false;   // allow reload / model switch
+};
+$("jo16").onclick = async () => { status("fetching jo16.wav…"); const b = new Uint8Array(await (await fetch("jo16.wav")).arrayBuffer()); await runOne(readWavPCM16(b), "jo16.wav"); };
+$("upbtn").onclick = () => $("file").click();
+$("file").onchange = async (ev) => { const f = ev.target.files[0]; if(!f) return; const ab = await f.arrayBuffer(), u = new Uint8Array(ab);
+  const isWav = u[0]===82&&u[1]===73&&u[2]===70&&u[3]===70; let pcm = isWav?readWavPCM16(u):null; if(!pcm) pcm = await decodeTo16k(ab); await runOne(pcm, f.name); };
+
+// ── LIVE caption: rolling 16k buffer + back-to-back re-transcription + silence-commit ──
+let live = false, stream = null, lctx = null, proc = null, srcNode = null;
+let buf = null, wr = 0, committed = "", partial = "", lastVoiceMs = 0, needCommit = false, lastVu = 0;
+const MAXSEC = 10, SIL_RMS = 0.012, SIL_MS = 650, MIN_SEC = 0.8;   // cap window so each re-encode stays sub-second (Moonshine encoder scales with length)
+
+$("live").onclick = async () => { if (live) return stopLive(); await startLive(); };
+
+async function startLive() {
+  try {
+    lctx = new (window.AudioContext||window.webkitAudioContext)({ sampleRate: 16000 });
+    if (lctx.state === "suspended") await lctx.resume();
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+    srcNode = lctx.createMediaStreamSource(stream);
+    proc = lctx.createScriptProcessor(4096, 1, 1);
+    buf = new Float32Array(16000 * (MAXSEC + 2)); wr = 0; committed = ""; partial = ""; needCommit = false; lastVoiceMs = performance.now();
+    proc.onaudioprocess = (e) => {
+      const inp = e.inputBuffer.getChannelData(0); let sum = 0;
+      for (let i = 0; i < inp.length; i++) { sum += inp[i]*inp[i]; if (wr < buf.length) buf[wr++] = inp[i]; }
+      const rms = Math.sqrt(sum / inp.length); lastVu = rms; const now = performance.now();
+      if (rms > SIL_RMS) lastVoiceMs = now;
+      else if (now - lastVoiceMs > SIL_MS && wr > 16000 * MIN_SEC) needCommit = true;
+    };
+    srcNode.connect(proc); proc.connect(lctx.destination);   // ScriptProcessor needs a sink to fire (output is silent)
+    live = true; $("live").textContent = "■ Stop"; $("live").classList.add("on");
+    render("", ""); status("listening… speak now", "ok"); vuTick(); liveLoop();
+  } catch (e) { status("✗ mic: "+e, "err"); }
+}
+function stopLive() {
+  live = false; $("live").textContent = "● Start live caption"; $("live").classList.remove("on");
+  if (proc) proc.disconnect(); if (srcNode) srcNode.disconnect(); if (stream) stream.getTracks().forEach(t=>t.stop()); if (lctx) lctx.close();
+  if (partial) committed = (committed + " " + partial).trim(); partial = ""; render(committed, "");
+  $("vubar").style.width = "0";
+  status("stopped · " + (committed ? committed.split(/\s+/).length + " words captured" : "no speech"), "ok");
+}
+function vuTick() { if (!live) return; $("vubar").style.width = Math.min(100, lastVu * 900) + "%"; requestAnimationFrame(vuTick); }
+
+async function liveLoop() {
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  while (live) {
+    if (needCommit) {                                   // pause detected → finalize the phrase
+      if (partial) committed = (committed + " " + partial).trim();
+      partial = ""; wr = 0; needCommit = false; render(committed, ""); lastVoiceMs = performance.now();
+    }
+    const len = wr;
+    if (len > 16000 * MIN_SEC) {
+      const voiced = trimSilence(buf.subarray(0, len), SIL_RMS);          // feed only speech, never silence
+      if (!voiced || voiced.length < 16000 * MIN_SEC) { await wait(60); continue; }
+      try { const r = await asr.transcribe(voiced.slice(), { maxNew: 220 });
+        partial = clean(r.text); render(committed, partial);
+        const sec = voiced.length/16000, rtf = (r.gpuMs/1000)/sec;
+        status(`live · ${sec.toFixed(1)}s speech · ${r.melMs!=null?`mel ${r.melMs}+`:``}gpu ${r.gpuMs}ms · RTF ${rtf.toFixed(2)} ${rtf<1?"✓ keeping up":"⚠ behind"}`, rtf<1?"ok":"err");
+      } catch (e) { status("✗ "+e, "err"); }
+      if (wr > 16000 * MAXSEC) { committed = (committed + " " + partial).trim(); partial = ""; wr = 0; render(committed, ""); }   // hard cap
+    } else await wait(60);
+  }
+}
+</script>

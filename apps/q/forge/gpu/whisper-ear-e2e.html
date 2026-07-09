@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><title>Holo Whisper ear — end-to-end provider (W-6)</title>
+<body style="font:14px ui-monospace,monospace;background:#0b0e16;color:#cdd6f4;padding:16px"><pre id="out">init…</pre></body>
+<script type="module">
+// W-6 end-to-end: feed RAW AUDIO (jo16.wav @16k) to the provider exactly as Q's voice loop would.
+// The provider does it all κ-native: JS mel (filterbank κ-streamed) → GPU forward → detok (vocab
+// from the .holo header). PASS = the produced text equals the whisper-cli golden transcript.
+import { createWhisperEar } from "./holo-whisper-ear.mjs";
+import { whisperDetok } from "./holo-whisper-frontend.mjs";
+import { streamHolo } from "./holo-whisper-stream.mjs";
+const out = document.getElementById("out"); const log = (s) => out.textContent += "\n" + s;
+window.__e2e = { stage: "start" };
+(async () => {
+  try {
+    if (!navigator.gpu) throw new Error("no WebGPU");
+    // decode jo16.wav → mono Float32 @ 16 kHz (force the context rate so it matches Whisper)
+    const buf = await (await fetch("jo16.wav")).arrayBuffer();
+    const ac = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    const ab = await ac.decodeAudioData(buf.slice(0));
+    const pcm = ab.getChannelData(0);
+    log(`audio: ${ab.duration.toFixed(2)}s @ ${ab.sampleRate}Hz → ${pcm.length} samples`);
+
+    // reference text = the golden whisper-cli ids detok'd with the SAME vocab header
+    const gids = (await (await fetch("whisper-tx-ref.json")).json()).ids;
+    const Href = await streamHolo("/.models/whisper-base.holo");
+    const refText = whisperDetok(Href.headerBytes, gids).trim();
+
+    window.__e2e.stage = "transcribe";
+    const ear = createWhisperEar({ holoUrl: "/.models/whisper-base.holo", language: "en" });
+    const t0 = performance.now();
+    const r = await ear.transcribe(pcm);
+    const ms = Math.round(performance.now() - t0);
+    const got = r.text.trim(), exact = got === refText;
+    window.__e2e = { stage: "done", runtime: r.runtime, exact, ms, info: ear.info(), got, refText };
+    log(`\nprovider runtime: ${r.runtime}`);
+    log(`ref : "${refText}"`);
+    log(`got : "${got}"`);
+    log(`→ ${exact ? "✓ PASS — κ-native ear: raw audio → exact whisper-cli transcript, " + ms + "ms" : "✗ TEXT MISMATCH"}`);
+  } catch (err) { window.__e2e = { stage: "error", error: String(err) }; log("ERROR: " + err + "\n" + (err.stack || "")); }
+})();
+</script>

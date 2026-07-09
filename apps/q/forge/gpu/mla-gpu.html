@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MLA GPU kernels — ROPENORM + MLAATTN vs CPU Tier-A oracle</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0a0b0d; color: #e6e8ea; font: 13px/1.6 ui-monospace, Menlo, monospace; padding: 24px 28px; }
+  h1 { font-size: 15px; margin: 0 0 12px; }
+  #v { border: 1px solid #1c2128; border-radius: 10px; padding: 14px 16px; background: #101318; white-space: pre-wrap; }
+  #v.ok { border-color: #1f6f43; background: #0d1712; } #v.bad { border-color: #6f2f2f; background: #170d0d; }
+  .big { font-size: 18px; font-weight: 700; }
+</style>
+<h1>MLA GPU kernels — witnessed against the CPU Tier-A oracle (synthetic DeepSeek-MoE)</h1>
+<div id="v">running…</div>
+<script type="module">
+import { createGpuRuntime, ROPENORM, MLAATTN } from "./holo-gguf-gpu.mjs";
+const $v = document.getElementById("v");
+const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / (Math.sqrt(na) * Math.sqrt(nb) || 1); };
+const maxAbs = (a, b) => { let m = 0; for (let i = 0; i < a.length; i++) m = Math.max(m, Math.abs(a[i] - b[i])); return m; };
+
+async function run() {
+  if (!navigator.gpu) throw new Error("no WebGPU");
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const rt = createGpuRuntime(dev);
+  const { P, disp, u4, f4, sbuf, wF, resetUniforms } = rt;
+  const data = await (await fetch("./_qtest/mla.json?cb=" + Date.now())).json();
+  const { NH, HK, HV, ROPE } = data.dims;
+
+  const readback = async (buf, n) => {
+    const stg = dev.createBuffer({ size: n * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const enc = dev.createCommandEncoder(); enc.copyBufferToBuffer(buf, 0, stg, 0, n * 4); dev.queue.submit([enc.finish()]);
+    await stg.mapAsync(GPUMapMode.READ); const out = Float32Array.from(new Float32Array(stg.getMappedRange().slice(0))); stg.unmap(); stg.destroy(); return out;
+  };
+
+  // ── 1) ROPENORM plain (consecutive-pair NORM rope, yarnFlag=0) ──
+  const r = data.rope;
+  resetUniforms();
+  const xb = wF(Float32Array.from(r.in)), yb = sbuf(r.in.length);
+  let enc = dev.createCommandEncoder();
+  disp(enc, P.ropenorm, [xb, yb, f4([r.headDim, r.nRot, r.nHeads, r.pos]), f4([r.freqBase, 0, 0, 0]), f4([0, 0, 0, 0])], Math.ceil(r.nHeads * (r.nRot / 2) / 64));
+  dev.queue.submit([enc.finish()]);
+  const ropeGpu = await readback(yb, r.in.length);
+  const ropeCos = cos(ropeGpu, r.out), ropeMax = maxAbs(ropeGpu, r.out);
+
+  // ── 1b) ROPENORM YaRN (real DeepSeek-V2-Lite constants: factor 40, orig_ctx 4096) ──
+  const ry = data.ropeYarn, y = ry.yarn;
+  resetUniforms();
+  const xyb = wF(Float32Array.from(ry.in)), yyb = sbuf(ry.in.length);
+  enc = dev.createCommandEncoder();
+  disp(enc, P.ropenorm, [xyb, yyb, f4([ry.headDim, ry.nRot, ry.nHeads, ry.pos]), f4([ry.freqBase, 1, y.freqScale, y.mscale]), f4([y.extFactor, y.lo, y.hi, 0])], Math.ceil(ry.nHeads * (ry.nRot / 2) / 64));
+  dev.queue.submit([enc.finish()]);
+  const ryGpu = await readback(yyb, ry.in.length);
+  const ryCos = cos(ryGpu, ry.out), ryMax = maxAbs(ryGpu, ry.out);
+
+  // ── 2) MLAATTN (per-head latent attention, hk≠hv, own K/V) ──
+  const m = data.mla, T = data.T;
+  const kcFlat = Float32Array.from(m.Kc.flat()), vcFlat = Float32Array.from(m.Vc.flat());
+  resetUniforms();
+  const qb = wF(Float32Array.from(m.q)), kcb = wF(kcFlat), vcb = wF(vcFlat), ctxb = sbuf(NH * HV);
+  enc = dev.createCommandEncoder();
+  disp(enc, P.mlaattn, [qb, kcb, vcb, ctxb, u4([NH, HK, HV, T - 1]), f4([m.kqScale, 0, 0, 0])], Math.ceil(NH / 64));
+  dev.queue.submit([enc.finish()]);
+  const ctxGpu = await readback(ctxb, NH * HV);
+  const mlaCos = cos(ctxGpu, m.ctx), mlaMax = maxAbs(ctxGpu, m.ctx);
+
+  const ok = ropeCos > 0.99999 && ropeMax < 1e-4 && ryCos > 0.99999 && ryMax < 1e-4 && mlaCos > 0.99999 && mlaMax < 1e-4;
+  window.__mla = { ropeCos, ropeMax, ryCos, ryMax, mlaCos, mlaMax, ok };
+  $v.className = ok ? "ok" : "bad";
+  $v.innerHTML =
+`<span class="big">${ok ? "MLA GPU kernels MATCH the CPU oracle ✓" : "MISMATCH ✗"}</span>
+
+ROPENORM plain (NORM rope, ${r.nHeads}×${r.nRot} @ pos ${r.pos}) : cosine ${ropeCos.toFixed(8)} · maxAbs ${ropeMax.toExponential(2)}
+ROPENORM YaRN  (factor 40, orig_ctx 4096, ${ry.nHeads}×${ry.nRot} @ pos ${ry.pos}) : cosine ${ryCos.toFixed(8)} · maxAbs ${ryMax.toExponential(2)}
+MLAATTN  (latent attn, nh=${NH} hk=${HK} hv=${HV}, ctx ${NH * HV}, ${T} pos, kqScale ${m.kqScale.toExponential(3)}) : cosine ${mlaCos.toFixed(8)} · maxAbs ${mlaMax.toExponential(2)}
+
+Both new kernels feed the DeepSeek/GLM-class MLA path. F32 weights isolate the arch orchestration;
+K-quant slots into the matvec positions (witnessed separately). Tier-B: GPU f32 reductions ≠ CPU scalar.`;
+}
+run().catch(e => { $v.className = "bad"; $v.textContent = "ERROR: " + (e.stack || e.message); window.__mla = { ok: false, err: String(e.message) }; });
+</script>

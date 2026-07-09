@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- data-holo-kappa-auto="off": opt out of the OS braille κ-scan so component text stays clean.
+     data-holo-boot="off": this app paints its own shell, no OS boot chip. -->
+<html lang="en" data-holo-kappa-auto="off" data-holo-boot="off">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Holo UI the component substrate</title>
+    <meta name="description" content="Every shadcn and Magic UI component, vendored verbatim and encoded as a content-addressed, self-verifying, editable UOR object. One token source Holo UI / Holo UX drives every component live across light, dark and immersive. The shared component substrate for every Hologram app." />
+
+    <!-- Canonical Holo UI / UX token source: defines --holo-* and the live control surface. -->
+    <link rel="stylesheet" href="../../_shared/holo-theme.css" data-holo-shared="holo-theme.css" />
+    <link rel="stylesheet" href="../../_shared/holo-mobile.css" data-holo-shared="holo-mobile.css" />
+    <link rel="stylesheet" href="../../_shared/holo-phi.css" data-holo-shared="holo-phi.css" />
+    <!-- The vendored shadcn/Magic UI utility CSS, with every token aliased onto --holo-*. -->
+    <link rel="stylesheet" href="./vendor/holo-ui.css" />
+    <!-- daisyUI 5.5.23 — the full component CSS layer, vendored byte-exact (provenance: npm
+         daisyui@5.5.23). Self-contained: it inlines the daisyUI theme vars (--color-*) + base, so the
+         class-based component previews render without a Tailwind runtime. Namespaced --color-* tokens
+         do not collide with the canonical --holo-* token source. -->
+    <link rel="stylesheet" href="./vendor/daisyui/daisyui.css" />
+    <link rel="stylesheet" href="./gallery.css" />
+
+    <!-- The content-addressed import map (holo://κ → served module + SRI) is injected at boot from the
+         generated vendor/importmap.json — see the bootstrap before </body>. -->
+
+    <style>
+      /* token-pure shell only — all real styling lives in gallery.css */
+      html, body { height: 100%; margin: 0; background: var(--holo-bg); color: var(--holo-ink); }
+      #holo-ui-root { min-height: 100%; }
+      .holo-ui-boot { display: grid; place-items: center; min-height: 100vh; color: var(--holo-ink-dim); font-family: var(--holo-font-sans); }
+    </style>
+  <link rel="icon" href="./icon.svg">
+<script>try{if("serviceWorker" in navigator)navigator.serviceWorker.register(new URL("../../root-sw.js",location.href)).catch(function(){})}catch(e){}</script>
+</head>
+  <body>
+    <!-- Entry splash: the shared Hologram "streaming" boot screen. ONE source of truth
+         for every Holo app — only the app="…" name differs. Self-contained, offline,
+         Shadow DOM; the bar auto-tracks this app's real boot time. -->
+    <script src="./holo-splash.js"></script>
+    <holo-splash app="Holo UI"></holo-splash>
+
+    <div id="holo-ui-root"><div class="holo-ui-boot">Loading the component substrate…</div></div>
+
+    <!-- Boot order matters: the content-addressed import map (holo://κ → module + SRI) MUST be in the
+         document before any module loads. holo-ui-kernel.js dynamic-imports the conscience gate (a
+         module), so we inject the map FIRST, then the OS control-surface scripts, then gallery.js. In the
+         browser this map is the stand-in for the native host's holo:// re-derive-or-refuse resolver. -->
+    <script>
+      fetch("./vendor/importmap.json")
+        .then((r) => r.json())
+        .then((map) => {
+          const im = document.createElement("script");
+          im.type = "importmap";
+          im.textContent = JSON.stringify(map);
+          document.head.appendChild(im);
+          const add = (attrs) => { const s = Object.assign(document.createElement("script"), attrs, { async: false }); document.body.appendChild(s); };
+          add({ src: "../../_shared/holo-theme.js" });
+          add({ src: "../../_shared/holo-ui-kernel.js" });
+          add({ type: "module", src: "./gallery.js" });
+        })
+        .catch(() => { document.getElementById("holo-ui-root").textContent = "Failed to load the import map."; });
+    </script>
+  </body>
+</html>

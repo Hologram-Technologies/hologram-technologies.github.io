@@ -1,0 +1,21 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-art-cache — every poster/backdrop/logo/still is a content-addressed κ-object: fetched once, served O(1) from κ on repeat (no network), deduped across URLs with identical bytes, tamper-refused (Law L5), and offline-capable. The pipeline that turns a text-on-gradient wall into instant, beautiful artwork.",
+  "authority": "rests on #holo-art-cache — Phase A of the artwork/rich-metadata plan",
+  "witnessed": true,
+  "covers": [
+    "fetch-once",
+    "content-addr",
+    "dedup-by-bytes",
+    "verify-before-trust",
+    "works-offline"
+  ],
+  "checks": {
+    "fetchOnce": true,
+    "contentAddr": true,
+    "dedupByBytes": true,
+    "verifyBeforeTrust": true,
+    "worksOffline": true
+  },
+  "failed": []
+}

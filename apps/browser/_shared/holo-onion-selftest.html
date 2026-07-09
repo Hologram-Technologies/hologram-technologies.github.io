@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Holo Onion — B1 browser self-test</title>
+<style>
+  body { background:#0d1117; color:#c9d1d9; font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; margin:0; padding:32px; }
+  h1 { font-size:18px; font-weight:600; color:#a5b4fc; margin:0 0 4px; }
+  .sub { color:#6e7681; margin:0 0 24px; }
+  .row { display:flex; gap:8px; padding:3px 0; }
+  .ok { color:#3fb950; } .bad { color:#f85149; }
+  .grp { margin:18px 0 6px; color:#8b949e; text-transform:uppercase; font-size:11px; letter-spacing:.08em; }
+  #summary { margin-top:24px; font-size:16px; font-weight:600; padding:12px 16px; border-radius:8px; display:inline-block; }
+  .green { background:#12261a; color:#3fb950; border:1px solid #238636; }
+  .red { background:#2a1416; color:#f85149; border:1px solid #da3633; }
+  code { color:#79c0ff; }
+</style>
+<h1>Holo Onion · B1 framing — real browser engine</h1>
+<p class="sub">Loads the exact modules that ship on github.io/Q and exercises them in <em>this</em> browser. Zero network, zero Node.</p>
+<div id="out"></div>
+<div id="summary"></div>
+
+<script type="module">
+import { writeData, makeReader, TURBOTUNNEL_TOKEN } from "./holo-onion-snowflake-encap.mjs";
+import { synFrame, pshFrame, updFrame, parseUPD, makeFrameReader, makeStreamIdGen, CMD } from "./holo-onion-smux2.mjs";
+import { createSmuxClient } from "./holo-onion-smux2-session.mjs";
+import { Kcp, ByteBuf } from "./holo-onion-kcp.mjs";
+
+const out = document.getElementById("out");
+let pass = 0, tot = 0;
+const grp = (t) => { const d = document.createElement("div"); d.className = "grp"; d.textContent = t; out.appendChild(d); };
+const ok = (c, m) => { tot++; if (c) pass++; const d = document.createElement("div"); d.className = "row"; d.innerHTML = `<span class="${c?'ok':'bad'}">${c?'✓':'✗'}</span><span>${m}</span>`; out.appendChild(d); };
+const hex = (u) => [...u].map(b => b.toString(16).padStart(2, "0")).join("");
+const te = new TextEncoder();
+
+// ---- 1. encapsulation codec ----
+grp("encapsulation (turbotunnel framing)");
+{ const w = writeData(te.encode("ABCD")); ok(w[0] === 0x84 && w.length === 5, "data len4 → prefix 0x84"); }
+{ const p = Uint8Array.from({length:200},(_,i)=>i&255); const got = makeReader().feed(writeData(p)); ok(got.length===1 && hex(got[0])===hex(p), "round-trip 200B"); }
+{ const p = Uint8Array.from({length:130},(_,i)=>(i*7)&255); const r=makeReader(); let g=[]; for(const b of writeData(p)) g=g.concat(r.feed(Uint8Array.of(b))); ok(g.length===1 && hex(g[0])===hex(p), "drip-fed 1 byte at a time"); }
+ok(hex(TURBOTUNNEL_TOKEN)==="1293605d278175f5", "turbotunnel Token bytes");
+
+// ---- 2. smux v2 frame codec vs real xtaci/smux vectors ----
+grp("smux v2 frame codec (vs real xtaci/smux v1.5.57 bytes)");
+ok(hex(synFrame(3))==="0200000003000000", "encode SYN sid=3");
+ok(hex(pshFrame(3,te.encode("HELLO")))==="020205000300000048454c4c4f", "encode PSH HELLO");
+ok(hex(updFrame(3,5,1048576))==="02040800030000000500000000001000", "encode UPD consumed=5 window=1MiB");
+{ const g=makeStreamIdGen("client"); ok(g()===3 && g()===5, "client stream ids 3,5 (odd, pre-inc)"); }
+{ const wire = Uint8Array.from((("0200000003000000"+"020205000300000048454c4c4f"+"02040800030000000500000000001000").match(/../g)).map(h=>parseInt(h,16)));
+  const fr = makeFrameReader().feed(wire); const u = parseUPD(fr[2]);
+  ok(fr.length===3 && fr[2].cmd===CMD.UPD && u.consumed===5 && u.window===1048576, "decode SYN+PSH+UPD"); }
+
+// ---- 2b. KCP (vendored kcpjs core, browser-pure) — loopback in this browser ----
+grp("KCP reliability layer (browser-pure vendored kcp core)");
+{
+  const b = ByteBuf.alloc(4); const v = b.slice(1); v[0] = 9;
+  ok(b[1] === 9, "ByteBuf.slice() is a VIEW (Node-Buffer semantics, not a copy)");
+}
+{
+  const A = new Kcp(0x11223344, {}), B = new Kcp(0x11223344, {});
+  for (const k of [A, B]) { k.setNoDelay(0, 10, 0, 1); k.setWndSize(256, 256); k.stream = 1; }
+  let a2b = [], b2a = [];
+  A.setOutput((buf, size) => a2b.push(ByteBuf.from(buf.subarray(0, size))));
+  B.setOutput((buf, size) => b2a.push(ByteBuf.from(buf.subarray(0, size))));
+  const msg = new Uint8Array(5000); for (let i = 0; i < msg.length; i++) msg[i] = (i * 7) & 255;
+  A.send(ByteBuf.from(msg));
+  for (let t = 0; t < 60; t++) { A.update(); B.update(); while (a2b.length) B.input(a2b.shift(), true, false); while (b2a.length) A.input(b2a.shift(), true, false); }
+  let got = new Uint8Array(0);
+  for (;;) { const n = B.peekSize(); if (n <= 0) break; const buf = ByteBuf.alloc(n); const r = B.recv(buf); if (r <= 0) break; const m = new Uint8Array(got.length + r); m.set(got); m.set(buf.subarray(0, r), got.length); got = m; }
+  let same = got.length === msg.length; for (let i = 0; i < msg.length && same; i++) if (got[i] !== msg[i]) same = false;
+  ok(same, "5000B round-trip through the real KCP algorithm in-browser");
+}
+
+// ---- 3. full session state machine: 300KB round-trip through an in-page smux v2 echo server ----
+grp("smux v2 session — 300 KB loopback in this browser (window-gate + UPD resume)");
+function makeEchoServer(sendToClient, maxStreamBuffer = 1048576) {
+  const reader = makeFrameReader(); const consumed = new Map();
+  return (bytes) => { for (const fr of reader.feed(bytes)) {
+    if (fr.cmd === CMD.SYN) consumed.set(fr.streamID, 0);
+    else if (fr.cmd === CMD.PSH) {
+      const c = (consumed.get(fr.streamID) || 0) + fr.payload.length; consumed.set(fr.streamID, c);
+      sendToClient(updFrame(fr.streamID, c, maxStreamBuffer)); // ack consumption → grows client's send window
+      sendToClient(pshFrame(fr.streamID, fr.payload));          // echo the data back
+    }
+  } };
+}
+// async pipes so writes/reads interleave like a real transport (avoids reentrancy)
+let server;
+const client = createSmuxClient({ send: (b) => queueMicrotask(() => server(b)) });
+server = makeEchoServer((b) => queueMicrotask(() => client.feed(b)));
+
+(async () => {
+  try {
+    const st = client.open();
+    const N = 300000; // > initialPeerWindow(262144) → forces block-then-UPD-resume
+    const payload = new Uint8Array(N); for (let i = 0; i < N; i++) payload[i] = (i * 131 + 7) & 255;
+    const got = []; let total = 0;
+    const reader = (async () => { while (total < N) { const c = await st.read(); if (c === null) break; got.push(c); total += c.length; } })();
+    const t0 = performance.now();
+    await st.write(payload);
+    await reader;
+    const ms = (performance.now() - t0).toFixed(1);
+    const merged = new Uint8Array(total); let o = 0; for (const c of got) { merged.set(c, o); o += c.length; }
+    let same = merged.length === N; for (let i = 0; i < N && same; i++) if (merged[i] !== payload[i]) same = false;
+    ok(same, `300000 bytes round-tripped in ${ms}ms (window control exercised in-browser)`);
+  } catch (e) {
+    ok(false, "loopback threw: " + e.message);
+  }
+  const s = document.getElementById("summary");
+  s.textContent = `${pass}/${tot}  ` + (pass === tot ? "ALL GREEN — the framing stack runs in this browser" : "FAILURES");
+  s.className = pass === tot ? "green" : "red";
+  window.__HOLO_ONION_SELFTEST__ = { pass, tot, ok: pass === tot };
+})();
+</script>

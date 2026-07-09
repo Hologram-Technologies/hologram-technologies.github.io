@@ -1,0 +1,262 @@
+/* messenger-skins.css — OPTIONAL colour re-tones, applied ONLY when <html> carries data-skin="…".
+ * Default (no attribute) is untouched, so this can never disturb the shipping look. Colours only — no
+ * layout — safe and fully reversible.
+ *
+ * The theme drives ~half its colour from --wa-* vars on .holo-wa-root and hardcodes the other half to the
+ * same values. This shared block re-points the major hardcoded surfaces back onto the vars; each skin then
+ * only remaps the vars and the whole surface re-tones consistently. */
+
+html[data-skin] .holo-wa-root { background: var(--wa-bg) !important; color: var(--wa-ink); }
+html[data-skin] .holo-wa-root .cs-main-container,
+html[data-skin] .holo-wa-root .cs-chat-container,
+html[data-skin] .holo-wa-root .cs-message-list { background: transparent; }
+html[data-skin] .holo-wa-root .cs-sidebar,
+html[data-skin] .holo-wa-root .holo-rail,
+html[data-skin] .holo-wa-root .cs-conversation-list { background: var(--wa-side) !important; }
+html[data-skin] .holo-wa-root .cs-conversation-header,
+html[data-skin] .holo-wa-root .holo-list-title,
+html[data-skin] .holo-wa-root .cs-message-input,
+html[data-skin] .holo-wa-root .holo-composer { background: var(--wa-head) !important; }
+html[data-skin] .holo-wa-root .cs-search,
+html[data-skin] .holo-wa-root .holo-wp-search,
+html[data-skin] .holo-wa-root .cs-message-input__content-editor-wrapper,
+html[data-skin] .holo-wa-root .cs-message-input__content-editor { background: color-mix(in srgb, var(--wa-head) 78%, var(--wa-bg)) !important; color: var(--wa-ink) !important; }
+html[data-skin] .holo-wa-root .cs-conversation:hover,
+html[data-skin] .holo-wa-root .cs-conversation.cs-conversation--active { background: var(--wa-head) !important; }
+html[data-skin] .holo-wa-root .cs-conversation__name,
+html[data-skin] .holo-wa-root .cs-conversation-header__user-name { color: var(--wa-ink) !important; }
+html[data-skin] .holo-wa-root .cs-conversation__info,
+html[data-skin] .holo-wa-root .cs-conversation__last-sender,
+html[data-skin] .holo-wa-root .cs-conversation-header__info { color: var(--wa-dim) !important; }
+html[data-skin] .holo-wa-root .cs-message--incoming .cs-message__content { background: var(--wa-in) !important; color: var(--wa-ink) !important; }
+html[data-skin] .holo-wa-root .cs-message--outgoing .cs-message__content { background: var(--wa-out) !important; }
+html[data-skin] .holo-wa-root .cs-message__content { color: var(--wa-ink); }
+html[data-skin] .holo-wa-root .holo-rail-btn.on,
+html[data-skin] .holo-wa-root .holo-rail-net.on,
+html[data-skin] .holo-wa-root .holo-catchup-pill { color: var(--wa-accent) !important; }
+html[data-skin] .holo-wa-root .holo-c-send,
+html[data-skin] .holo-wa-root .cs-button--send { background: var(--wa-accent) !important; }
+
+/* ── cooler / graphite ── */
+html[data-skin="graphite"] .holo-wa-root { --wa-bg:#0d1117; --wa-side:#12171e; --wa-head:#1c232c; --wa-in:#1c232c; --wa-out:#1f4a55; --wa-ink:#e6eaf0; --wa-dim:#8b96a3; --wa-accent:#4ab3d4; --wa-line:#222a34; }
+/* ── warmer ── */
+html[data-skin="warm"] .holo-wa-root { --wa-bg:#14100c; --wa-side:#1b1611; --wa-head:#271f18; --wa-in:#271f18; --wa-out:#4d3f1f; --wa-ink:#efe8df; --wa-dim:#a89a88; --wa-accent:#e0a53c; --wa-line:#2c241b; }
+/* ── higher contrast ── */
+html[data-skin="contrast"] .holo-wa-root { --wa-bg:#000000; --wa-side:#0a0a0a; --wa-head:#181818; --wa-in:#1d1d1d; --wa-out:#00805e; --wa-ink:#ffffff; --wa-dim:#a6adb4; --wa-accent:#00e08a; --wa-line:#2a2a2a; }
+/* ── light mode (experimental: some deep-hardcoded text may stay dark) ── */
+html[data-skin="light"] .holo-wa-root { --wa-bg:#d7dce1; --wa-side:#ffffff; --wa-head:#f0f2f5; --wa-in:#ffffff; --wa-out:#d9fdd3; --wa-ink:#111b21; --wa-dim:#54656f; --wa-accent:#008069; --wa-line:#e4e8ec; }
+html[data-skin="light"] .holo-wa-root .cs-message__content { color: #111b21 !important; }
+html[data-skin="light"] .holo-wa-root .cs-message-list { background: var(--wa-bg) !important; background-image: none !important; }
+html[data-skin="light"] .holo-wa-root .holo-wp-tile { background-image: none !important; }
+
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * HI-DPI + HIGH-FPS layer (always on, colour-independent). The honest "8K/retina" story: a DOM/CSS UI
+ * is ALREADY resolution-independent — text and the SVG icons are vectors, so on a retina/4K/8K panel it
+ * renders at the display's native device pixels with zero extra work (no bitmaps to upscale). What we
+ * actually tune here is smoothness + latency:
+ *   • content-visibility skips rendering/layout of off-screen chat rows → a huge list scrolls at the
+ *     display's full refresh (60/120Hz) and first paint is near-instant (browser does O(visible) work).
+ *   • the scrollers are promoted to their own GPU layer so scrolling never touches the main thread.
+ *   • crisp text rasterisation + high-quality image scaling for hi-DPI. */
+.holo-wa-root { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+.holo-wa-root .cs-conversation { content-visibility: auto; contain-intrinsic-size: auto 72px; }
+.holo-wa-root .cs-message { content-visibility: auto; contain-intrinsic-size: auto 44px; }
+.holo-wa-root .cs-conversation-list,
+.holo-wa-root .cs-message-list .scrollbar-container,
+.holo-wa-root .cs-message-list__scroll-wrapper { will-change: scroll-position; transform: translateZ(0); backface-visibility: hidden; overflow-anchor: auto; }
+.holo-wa-root .cs-avatar img, .holo-wa-root .holo-av-real, .holo-wa-root .holo-media-el img { image-rendering: auto; }
+.holo-wa-root .holo-media-el img, .holo-wa-root .cs-message img { image-rendering: -webkit-optimize-contrast; }
+@media (min-resolution: 1.5dppx) { .holo-wa-root { text-rendering: geometricPrecision; } }
+
+/* floating skin picker */
+.holo-skin-pick { position: fixed; right: 16px; bottom: 86px; z-index: 90; display: flex; gap: 4px; align-items: center; background: #0b141aee; border: 1px solid #2a3942; border-radius: 999px; padding: 5px; backdrop-filter: blur(10px); font: 12.5px ui-sans-serif, system-ui, sans-serif; box-shadow: 0 8px 30px #0007; }
+.holo-skin-pick button { background: transparent; border: 0; color: #aebac1; border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+.holo-skin-pick button:hover { background: #ffffff14; color: #e9edef; }
+.holo-skin-pick button.on { background: #00a884; color: #0b141a; font-weight: 600; }
+
+/* instant wallpaper */
+/* An inline low-res earth paints INSTANTLY (zero network — it ships in this CSS) as the chat-pane
+ * backdrop; the full 2560px wallpaper is preloaded (see app.html) and covers it the moment it decodes.
+ * So the pane is never empty and there is no visible load. */
+html[data-skin] .holo-wa-root .cs-chat-container { background: var(--wa-bg) url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDABQODxIPDRQSERIXFhQYHzMhHxwcHz8tLyUzSkFOTUlBSEZSXHZkUldvWEZIZoxob3p9hIWET2ORm4+AmnaBhH//2wBDARYXFx8bHzwhITx/VEhUf39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f3//wAARCAAgADADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCAR+1SLHVaPUYm2Zyp/jyOB9KE1AbzgjPXaRgAf41pdisjQSL2/SphDx0/Sq8epW64zknuBV6O+s3XKzJ9CcGk5tFciZGIT6fpT1h+YZx+VTC5tuomT880yTUdNgI8ycF89EXJqPavoP2aW5ya28f8bMT9cVIsVqDyCfq1VPtPIOwgfWpDcKFyvzH8q1ujKzL8bWynAiT8RmpGmTsiAfSs0XR/5aKOem3mnrdkcBGz+FF0Go6aW6ZiEwF/6ZjH61XNvdH/AJZnn3qc3rFdrQMwqP7bcKP3cSj2C0tB3Z//2Q==") center center / cover no-repeat !important; }
+html[data-skin] .holo-wa-root .cs-message-list { transition: background-image .25s ease; }
+
+/* ────────────────────────────────────────────────────────────────────────────────────────────────
+ * SLACK skin — data-skin="slack". Unlike the colour-only re-tones above, this one also does LAYOUT: the
+ * Slack "window envelope". An aubergine chrome (far-left rail + channel sidebar) wraps a content pane that
+ * floats as a rounded island inset by an EVEN margin on ALL FOUR sides — the darker chrome shows through
+ * every gap (top, right, bottom, AND a left gutter between sidebar and pane), with rounded corners + a soft
+ * shadow for depth. Placed at end-of-file so source order beats the base skin block AND the wallpaper rule
+ * above (equal specificity → later wins); every rule carries `.holo-wa-root` to match the base depth.
+ *
+ * Two coupling facts make the float robust: (1) the composer is a position:absolute overlay on .holo-main
+ * whose `left` is CSS `34%` — the SAME 34% as the sidebar's flex-basis — so re-anchoring it to
+ * `calc(34% + gap)` keeps it glued to the gapped pane at every window width, no JS. (2) the bundle gives the
+ * pane height:100%, which ignores margin and overflows; `height:auto` + flex:1 1 auto lets the even margin
+ * actually shrink it. ALL geometry lives in the ≥900px media query so the narrow/mobile single-column layout
+ * (sidebar collapses, composer full-bleed) is left exactly as the bundle intends. Colours + margins only,
+ * fully reversible, every feature intact. */
+html[data-skin="slack"] .holo-wa-root {
+  --wa-bg:var(--holo-chrome, #150E1A); --wa-side:#2A1530; --wa-head:#1B1B1F; --wa-in:#26262B; --wa-out:#3A2140;
+  --wa-ink:#E9E5ED; --wa-dim:#A99DB4; --wa-accent:#C6A6E6; --wa-line:#ffffff12;
+  --slk-pane:#1B1B1F; --slk-hi:#5C2D66; --slk-hover:#3A2140; --slk-gap:var(--holo-env-gap, 10px);
+  background: var(--wa-bg) !important;
+}
+/* chrome behind the floating pane (the colour seen in the inset margin/gutter) */
+html[data-skin="slack"] .holo-wa-root.holo-wa-root,
+html[data-skin="slack"] .holo-wa-root .cs-main-container { background: var(--wa-bg) !important; }
+/* the WebGPU wallpaper backdrop is off in Slack — the pane is a flat surface */
+html[data-skin="slack"] .holo-wa-root .holo-backdrop { display: none !important; }
+/* far-left workspace rail: flush with the chrome — transparent over the same --wa-bg ground as the menu, no seam,
+   so rail + list + gutter are ONE continuous background and only the conversation floats (the Slack move). */
+html[data-skin="slack"] .holo-wa-root .holo-rail { background:var(--holo-chrome, #150E1A) !important; border-right:0 !important; }
+html[data-skin="slack"] .holo-wa-root .holo-rail-btn.on,
+html[data-skin="slack"] .holo-wa-root .holo-rail-net.on { color: var(--wa-accent) !important; }
+/* THE LEFT MENU IS THE BACKGROUND — like Slack, the rail, the channel list and the gutter around the floating
+   pane are ONE continuous chrome (the --wa-bg ground), not a separate lighter panel. So every sidebar surface is
+   transparent: the menu items sit directly on the background, and the ONLY thing that floats is the conversation
+   island. This is what makes the whole shell read as one window with content lifted out of it. */
+html[data-skin="slack"] .holo-wa-root .cs-sidebar.cs-sidebar--left,
+html[data-skin="slack"] .holo-wa-root .cs-conversation-list,
+html[data-skin="slack"] .holo-wa-root .holo-list-head,
+html[data-skin="slack"] .holo-wa-root .holo-list-title,
+html[data-skin="slack"] .holo-wa-root .holo-chips,
+html[data-skin="slack"] .holo-wa-root .holo-catchup { background: transparent !important; }
+html[data-skin="slack"] .holo-wa-root .cs-search { background:#1F0F24 !important; border:1px solid #ffffff12 !important; color:var(--wa-ink) !important; }
+/* conversation rows = inset rounded pills (Slack). Inset applied to EVERY row so hover/active only swap the
+ * background — no layout jump. Active carries the highlight + white text. */
+html[data-skin="slack"] .holo-wa-root .cs-conversation { margin:1px 8px !important; border-radius:8px !important; }
+html[data-skin="slack"] .holo-wa-root .cs-conversation:hover { background: var(--slk-hover) !important; }
+html[data-skin="slack"] .holo-wa-root .cs-conversation.cs-conversation--active { background: var(--slk-hi) !important; color:#fff !important; }
+html[data-skin="slack"] .holo-wa-root .cs-conversation.cs-conversation--active * { color:#fff !important; }
+/* pane + its inner surfaces (colours are width-independent; the float geometry is gated below) */
+html[data-skin="slack"] .holo-wa-root .cs-chat-container { background: var(--slk-pane) !important; }
+html[data-skin="slack"] .holo-wa-root .cs-message-list { background: var(--slk-pane) !important; background-image: none !important; }
+html[data-skin="slack"] .holo-wa-root .cs-conversation-header { background: var(--slk-pane) !important; border-bottom: 1px solid #ffffff12; }
+html[data-skin="slack"] .holo-wa-root .holo-composer { background: var(--slk-pane) !important; border-top: 1px solid #ffffff12; }
+html[data-skin="slack"] .holo-wa-root .holo-c-input { background:#26262B !important; border:1px solid #ffffff14 !important; border-radius:8px !important; color:var(--wa-ink) !important; }
+
+/* ── the floating envelope (desktop only; narrow layout keeps the bundle's single-column defaults) ── */
+@media (min-width: 900px) {
+  html[data-skin="slack"] .holo-wa-root .cs-chat-container {
+    flex: 1 1 auto !important; min-width: 0; height: auto !important; align-self: stretch;
+    margin: var(--slk-gap) !important;                 /* even inset on all four sides */
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 0 0 1px #00000055, 0 14px 38px #00000085;
+  }
+  /* glue the composer to the gapped pane: left tracks the sidebar's 34%, plus the gutter */
+  html[data-skin="slack"] .holo-wa-root .holo-composer {
+    left: calc(34% + var(--slk-gap)) !important; right: var(--slk-gap) !important;
+    bottom: var(--slk-gap) !important; width: auto !important; border-radius: 0 0 12px 12px;
+  }
+}
+
+/* ── THEATRE MODE — full-screen wallpaper + glass, under the Slack skin ────────────────────────────
+ * Theatre (`.theater`, toggle ⌘/Ctrl+\) collapses the rail + sidebar and floats ONE conversation over a
+ * FULL-BLEED wallpaper as centred glass capsules (see whatsapp-theme.css "Stage 6"). Three things make it
+ * immersive + fast here:
+ *   1. WALLPAPER edge-to-edge — a static image on the root (the whole viewport), NOT the WebGPU `.holo-backdrop`
+ *      canvas (which we turn OFF: it was rendering at opacity:0, all cost no pixels). The image is the one
+ *      app.html already preloads, so it paints with zero extra latency; every layer above it is transparent.
+ *   2. LIGHT + CLEAR — the heavy radial vignette + hue-tint is replaced by a soft top/bottom legibility scrim
+ *      only, so the middle of the wallpaper stays bright and open.
+ *   3. STUNNING GLASS, CHEAP — real backdrop-blur is limited to the TWO capsules (header + composer); message
+ *      bubbles are plain translucent fills (no per-bubble blur) so a long thread never janks input.
+ * Selector depth `…"slack"] .holo-wa-root.theater .X` = (0,4,1) beats the base slack rules (0,3,1) and
+ * theatre's own (0,3,0); transforms are left untouched so theatre's centring + auto-quiet fade keep animating. */
+html[data-skin="slack"] .holo-wa-root.theater {
+  /* FOLLOW the operator's chosen wallpaper (--wp-img, set from localStorage holo-messenger/wallpaper-src),
+     falling back to the preloaded default when unset. `none` (the "plain" mode) is honoured → dark. */
+  background: #0b0f14 var(--wp-img, url("./_vendor/wallpaper-default.jpg")) center center / cover no-repeat !important;
+}
+html[data-skin="slack"] .holo-wa-root.theater .holo-backdrop { display: none !important; }                 /* WebGPU canvas off → lower latency */
+html[data-skin="slack"] .holo-wa-root.theater .cs-chat-container {
+  background: transparent !important; margin: 0 !important; border-radius: 0 !important;
+  overflow: visible !important; box-shadow: none !important;                                               /* full-bleed, no slack box */
+}
+/* transparent reading column, aligned to the SAME 812px as the chrome so bubbles line up with the composer */
+html[data-skin="slack"] .holo-wa-root.theater .cs-message-list {
+  background: transparent !important;
+  padding-left: max(20px, calc((100% - 812px) / 2)) !important;
+  padding-right: max(20px, calc((100% - 812px) / 2)) !important;
+}
+/* clear + light: only a soft top/bottom scrim for legibility; the wallpaper stays bright in the middle */
+html[data-skin="slack"] .holo-wa-root.theater .holo-main::before {
+  background: linear-gradient(to bottom, rgba(0,0,0,.30) 0%, transparent 16%, transparent 80%, rgba(0,0,0,.42) 100%) !important;
+}
+/* stunning glass capsules — vivid backdrop-blur, crisp edge, top highlight (only these two get real blur) */
+html[data-skin="slack"] .holo-wa-root.theater .cs-conversation-header,
+html[data-skin="slack"] .holo-wa-root.theater .holo-composer {
+  background: rgba(22,24,32,.44) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.4) brightness(1.06) !important;
+  backdrop-filter: blur(30px) saturate(1.4) brightness(1.06) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+html[data-skin="slack"] .holo-wa-root.theater .holo-composer {
+  left: 50% !important; right: auto !important; width: min(calc(100% - 40px), 812px) !important;
+  bottom: 18px !important; border-radius: 18px !important;
+}
+/* bubbles: light translucent fills (no blur = no jank on long threads) */
+html[data-skin="slack"] .holo-wa-root.theater .cs-message--incoming .cs-message__content { background: rgba(28,28,36,.62) !important; }
+html[data-skin="slack"] .holo-wa-root.theater .cs-message--outgoing .cs-message__content { background: rgba(58,33,64,.60) !important; }
+
+/* ── FRAME-COLLAPSED — the immersive focus view (chats folded into the rail) ───────────────────────
+ * "Collapse chats into the rail" (`.holo-main.frame-collapsed`) folds the conversation list away and lets
+ * ONE conversation take the whole frame. The slack skin otherwise left it broken: the composer stayed pinned
+ * to `left:34%` (the vanished sidebar edge) so it floated stranded in the middle. Here we make it the SAME
+ * immersive treatment as theatre — full-screen wallpaper + glass capsules — but KEEP the rail as a clean
+ * glass nav (that's the whole point of this mode), and centre the header/composer/reading-column in the frame
+ * to the RIGHT of the rail so everything lines up.
+ *   · `:has(.holo-main.frame-collapsed)` puts the wallpaper on the ROOT (so it sits behind the rail too).
+ *   · `:not(.theater)` so theatre (which hides the rail) keeps full ownership when both happen to be on.
+ *   · Only 3 blur layers total (rail + header + composer); bubbles are plain translucent — stays responsive. */
+html[data-skin="slack"] .holo-wa-root:has(.holo-main.frame-collapsed):not(.theater) {
+  /* same as theatre: follow the operator's --wp-img, fall back to the preloaded default */
+  background: #0b0f14 var(--wp-img, url("./_vendor/wallpaper-default.jpg")) center center / cover no-repeat !important;
+}
+html[data-skin="slack"] .holo-wa-root:has(.holo-main.frame-collapsed):not(.theater) .holo-backdrop { display: none !important; }
+/* the left nav bar stays — a clean SOLID strip; the wallpaper covers the entire screen EXCEPT this rail */
+html[data-skin="slack"] .holo-wa-root:has(.holo-main.frame-collapsed):not(.theater) .holo-rail {
+  background: #17111D !important;
+  border-right: 1px solid rgba(255,255,255,.08) !important;
+}
+/* transparent full-bleed frame + reading column centred in the space right of the rail */
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .cs-chat-container {
+  background: transparent !important; margin: 0 !important; border-radius: 0 !important; overflow: visible !important; box-shadow: none !important;
+}
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .cs-message-list {
+  background: transparent !important;
+  padding-left: max(20px, calc((100% - 812px) / 2)) !important;
+  padding-right: max(20px, calc((100% - 812px) / 2)) !important;
+}
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,.30) 0%, transparent 16%, transparent 80%, rgba(0,0,0,.42) 100%);
+}
+/* glass header + composer, centred in the frame (the rail is the nav, the frame is everything right of it) */
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .cs-conversation-header,
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .holo-composer {
+  background: rgba(22,24,32,.44) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.4) brightness(1.06) !important;
+  backdrop-filter: blur(30px) saturate(1.4) brightness(1.06) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .cs-conversation-header {
+  margin: 14px auto 0 !important; max-width: 812px !important; width: calc(100% - 40px) !important; border-radius: 16px !important;
+}
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .holo-composer {
+  left: 50% !important; right: auto !important; transform: translateX(-50%) !important;
+  width: min(calc(100% - 40px), 812px) !important; bottom: 18px !important; border-radius: 18px !important;
+}
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .cs-message--incoming .cs-message__content { background: rgba(28,28,36,.62) !important; }
+html[data-skin="slack"] .holo-wa-root:not(.theater) .holo-main.frame-collapsed .cs-message--outgoing .cs-message__content { background: rgba(58,33,64,.60) !important; }
+
+/* ── BASE-LAYER fix: composer alignment in frame-collapsed, for ANY skin ───────────────────────────
+ * Skin-agnostic (this file is loaded regardless of the active skin). The bundle pins the composer to
+ * `left:34%` — the sidebar's flex-basis — but frame-collapsed folds the sidebar to 0, so on every NON-slack
+ * skin (graphite/warm/contrast/light/none) the composer floated stranded in the middle. Align it to the
+ * full-bleed chat (left:0 = the rail's right edge; right:0 is already the base). `:not(.theater)` yields to
+ * theatre's own centred composer; slack's higher-specificity immersive rule above wins for the slack skin. */
+.holo-wa-root:not(.theater) .holo-main.frame-collapsed .holo-composer { left: 0 !important; }

@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8"><title>lm_head tiled repro — VALID data, large N</title>
+<style>body{background:#0a0b0d;color:#e6e8ea;font:13px ui-monospace,monospace;padding:24px;white-space:pre-wrap}</style>
+<div id="o">running…</div>
+<script type="module">
+import { createGpuRuntime } from "./holo-gguf-gpu.mjs";
+const $o = document.getElementById("o");
+const log = (s) => { $o.textContent += "\n" + s; };
+async function run() {
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const { P, disp, u4, sbuf, wF, rawU32 } = createGpuRuntime(dev);
+  // valid 32-row Q6_K fixture (K=2048) — repeat it to a large N so every row has a known oracle (y[r%32])
+  const meta = await (await fetch("./_qtest/q6k2048.json?cb=" + Date.now())).json();
+  const bin = new Uint8Array(await (await fetch("./_qtest/q6k2048.bin?cb=" + Date.now())).arrayBuffer());
+  const D = meta.K, rowBytes = (D / 256) * 210, N = 74898;      // EXACT executor chunk 0 size — NOT a multiple of 8!
+  log(`valid data: 32-row fixture → N=${N} rows (${N%8===0?"mult-of-8":"NOT mult-of-8, real chunk size"}), ${(N*rowBytes/1e6).toFixed(1)}MB`);
+  const big = new Uint8Array(N * rowBytes); for (let r = 0; r < N; r++) big.set(bin.subarray((r % 32) * rowBytes, (r % 32 + 1) * rowBytes), r * rowBytes);
+  const rn = wF(Float32Array.from(meta.act)), oracle = (r) => meta.y[r % 32];
+
+  const check = async (name, pipe, gf) => {
+    const rb = rawU32(big), out = sbuf(N);
+    const enc = dev.createCommandEncoder(); disp(enc, pipe, [rb, rn, out, u4([N, D, 0, 0])], gf(N)); dev.queue.submit([enc.finish()]);
+    const stg = dev.createBuffer({ size: N * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const e2 = dev.createCommandEncoder(); e2.copyBufferToBuffer(out, 0, stg, 0, N * 4); dev.queue.submit([e2.finish()]);
+    await stg.mapAsync(GPUMapMode.READ); const o = new Float32Array(stg.getMappedRange().slice(0)); stg.unmap(); stg.destroy(); rb.destroy(); out.destroy();
+    // max rel error vs oracle across ALL rows; also report a few sample rows near the end
+    let maxRel = 0, worstRow = -1, nz = 0;
+    for (let r = 0; r < N; r++) { if (o[r] !== 0) nz++; const rel = Math.abs(o[r] - oracle(r)) / (Math.abs(oracle(r)) || 1); if (rel > maxRel) { maxRel = rel; worstRow = r; } }
+    log(`\n${name}: ${nz}/${N} nonzero · maxRel ${maxRel.toExponential(2)} @ row ${worstRow} (oracle ${oracle(worstRow).toFixed(3)} got ${o[worstRow].toFixed(3)})`);
+    log(`  first row ${o[0].toFixed(3)}/${oracle(0).toFixed(3)} · last row ${o[N-1].toFixed(3)}/${oracle(N-1).toFixed(3)} · mid ${o[N>>1].toFixed(3)}/${oracle(N>>1).toFixed(3)}`);
+    return maxRel;
+  };
+  const rn_max = await check("NAIVE q6kraw", P.q6kraw, (n) => Math.ceil(n / 64));
+  const rt_max = await check("TILED q6ktiled", P.q6ktiled, (n) => Math.ceil(n / 8));
+
+  // ── executor pattern: TWO tiled dispatches into ONE logitsB in ONE encoder (chunk0 @0, chunk1 @N) ──
+  const twoChunk = async (pipe, gf) => {
+    const nA = N, nB = 32 * 256, tot = nA + nB;                 // chunk0 = big, chunk1 = smaller (both valid)
+    const bigB = new Uint8Array(nB * rowBytes); for (let r = 0; r < 256; r++) bigB.set(bin, r * bin.length);
+    const rbA = rawU32(big), rbB = rawU32(bigB), out = sbuf(tot);
+    const enc = dev.createCommandEncoder();
+    disp(enc, pipe, [rbA, rn, out, u4([nA, D, 0, 0])], gf(nA));       // chunk 0 → out[0..nA)
+    disp(enc, pipe, [rbB, rn, out, u4([nB, D, nA, 0])], gf(nB));      // chunk 1 → out[nA..tot)
+    dev.queue.submit([enc.finish()]);
+    const stg = dev.createBuffer({ size: tot * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const e2 = dev.createCommandEncoder(); e2.copyBufferToBuffer(out, 0, stg, 0, tot * 4); dev.queue.submit([e2.finish()]);
+    await stg.mapAsync(GPUMapMode.READ); const o = new Float32Array(stg.getMappedRange().slice(0)); stg.unmap(); stg.destroy(); rbA.destroy(); rbB.destroy(); out.destroy();
+    let mA = 0, mB = 0; for (let r = 0; r < nA; r++) mA = Math.max(mA, Math.abs(o[r] - oracle(r)) / (Math.abs(oracle(r)) || 1));
+    for (let r = 0; r < nB; r++) mB = Math.max(mB, Math.abs(o[nA + r] - meta.y[r % 32]) / (Math.abs(meta.y[r % 32]) || 1));
+    log(`\n2-CHUNK ${pipe === P.q6ktiled ? "TILED" : "NAIVE"}: chunk0 maxRel ${mA.toExponential(2)} · chunk1 maxRel ${mB.toExponential(2)} · out[0]=${o[0].toFixed(3)}/${oracle(0).toFixed(3)}`);
+    return { mA, mB };
+  };
+  const tcN = await twoChunk(P.q6kraw, (n) => Math.ceil(n / 64));
+  const tcT = await twoChunk(P.q6ktiled, (n) => Math.ceil(n / 8));
+
+  window.__repro = { naiveMaxRel: rn_max, tiledMaxRel: rt_max, twoChunkNaive: tcN, twoChunkTiled: tcT, N };
+  log(`\n=> single-chunk tiled ${rt_max < 1e-3 ? "OK" : "BAD"}; 2-chunk tiled chunk0 ${tcT.mA < 1e-3 ? "OK" : "CORRUPTED (found it)"}`);
+}
+run().catch(e => { $o.textContent += "\nERROR: " + (e.stack || e.message); window.__repro = "err"; });
+</script>

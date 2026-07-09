@@ -1,0 +1,45 @@
+<!doctype html><meta charset="utf-8"><title>Holo Q — Kokoro TTS from κ .holo (proof)</title>
+<!-- kokoro.js imports these bare specifiers; map to the vendored copies (same as the OS frames) -->
+<script type="importmap">{"imports":{
+  "@huggingface/transformers":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/transformers/transformers.js",
+  "phonemizer":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/phonemizer.js",
+  "path":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/stub.js",
+  "fs":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/stub.js",
+  "fs/promises":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/stub.js"
+}}</script>
+<body style="font:14px ui-monospace,monospace;background:#0b0e16;color:#cdd6f4;padding:16px"><pre id="out">init…</pre></body>
+<script type="module">
+// Proof: load Kokoro-82M ENTIRELY from kokoro-82m.holo (κ-streamed + L5 + OPFS) — no vendored model files —
+// by intercepting transformers' model-file fetches and serving them from the .holo. Then synthesize speech.
+// If audio comes out AND every model file was served from the .holo, the κ-served voice path works.
+import { serveModelFromHolo } from "./holo-onnx-kserve.mjs";   // the SAME production shim TTS uses (holo-voice-tts knativeVoice)
+import { createTTS } from "/holo-os/system/os/usr/lib/holo/voice/holo-voice-tts.mjs";
+const out = document.getElementById("out"); const log = (s) => out.textContent += "\n" + s;
+window.__kt = { stage: "start" };
+(async () => {
+ try {
+  log("opening kokoro-82m.holo via the production κ-serve shim …");
+  // install the EXACT shim production uses: any request for …/Kokoro-82M-v1.0-ONNX/<name> → served by κ from the .holo
+  const KS = await serveModelFromHolo({ holoUrl: "/holo-apps/apps/q/forge/.models/kokoro-82m.holo", modelId: "onnx-community/Kokoro-82M-v1.0-ONNX" });
+  const HF = { stats: KS.stats, files: KS.files }; const served = KS.served;
+  log(`holo: ${KS.files.length} files · ${KS.files.map(f=>f.name).join(", ")}`);
+  window.__kt.stage = "loading";
+  log("loading Kokoro through the κ shim …");
+  const tts = createTTS({ preferWebGPU: false });
+  const t0 = performance.now();
+  await tts.load((p) => { if (p && p.status === "progress" && p.file) { /* progress */ } });
+  const loadMs = Math.round(performance.now() - t0);
+  log(`loaded in ${loadMs}ms · device ${tts.info().device} · served-from-holo: [${served.join(", ")}]`);
+  window.__kt.stage = "synth";
+  const ts = performance.now();
+  const r = await tts.synth("Hello, I am Q. I run entirely on your device.", { voice: "af_heart" });
+  const synMs = Math.round(performance.now() - ts);
+  const sec = r.audio.length / (r.sampling_rate || 24000);
+  window.__kt = { stage: "done", served, missed: KS.missed, loadMs, synMs, audioLen: r.audio.length, rate: r.sampling_rate, audioSec: +sec.toFixed(2), device: tts.info().device, holoVerifies: HF.stats.verifies, opfsHits: HF.stats.opfsHits, pass: served.length >= 3 && r.audio.length > 1000 };
+  log(`\nsynth ${synMs}ms → ${r.audio.length} samples @ ${r.sampling_rate}Hz (${sec.toFixed(2)}s audio)`);
+  log(`${window.__kt.pass ? "✅ KOKORO RUNS FROM κ .holo" : "✗"} · model files served from .holo: ${served.length} · L5 verifies ${HF.stats.verifies}`);
+  // play it
+  try { const ac = new AudioContext(); const buf = ac.createBuffer(1, r.audio.length, r.sampling_rate); buf.getChannelData(0).set(r.audio); const src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination); src.start(); } catch (e) {}
+ } catch (e) { window.__kt = { stage: "error", error: String(e), served: window.__kt.served }; log("ERROR: " + e + "\n" + (e.stack || "")); }
+})();
+</script>

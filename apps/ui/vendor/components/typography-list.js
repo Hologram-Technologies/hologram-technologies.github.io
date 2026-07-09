@@ -1,0 +1,1 @@
+import{jsx as l,jsxs as o}from"react/jsx-runtime";function i(){return o("ul",{className:"my-6 ml-6 list-disc [&>li]:mt-2",children:[l("li",{children:"1st level of puns: 5 gold coins"}),l("li",{children:"2nd level of jokes: 10 gold coins"}),l("li",{children:"3rd level of one-liners : 20 gold coins"})]})}export{i as default};

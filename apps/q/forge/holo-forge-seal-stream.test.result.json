@@ -1,0 +1,14 @@
+{
+  "spec": "Disk streaming sealer (holo-forge-seal-stream.mjs) — writes a .holo body-by-body straight to disk, byte-for-byte equal to the in-memory sealHolo, so a 9B brain (whose archive exceeds V8's ArrayBuffer ceiling and cannot be sealed in memory) still produces the IDENTICAL archive the real reader (readHolo/openHoloStream) L5-verifies. Peak memory is one chunk; the footer sha256 is computed incrementally and matches one-shot.",
+  "authority": "holospaces Laws L1/L5 · holo-archive MAGIC \"HOLO\" v2 · holo-forge-seal.mjs byte layout",
+  "witnessed": true,
+  "checks": {
+    "byteIdentical": true,
+    "realReaderAccepts": true,
+    "streamRoundTrips": true,
+    "multiChunkBody": true,
+    "dedupCollapses": true,
+    "deterministic": true,
+    "bodyLenGuard": true
+  }
+}

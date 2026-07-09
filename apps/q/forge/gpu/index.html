@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>forge gpu — Q5_0 GEMV witness</title>
+<body><pre id="out">init…</pre></body>
+<script type="module">
+// S2 Tier-B GPU kernel harness. Exposes window.runGemvQ5_0(scales, quants, act, N, K)
+// which runs a WGSL block-GEMV on the real GPU and returns the output row vector.
+// The weight is an UNPACKED Q5_0 κ-block: per-32 f32 scale + signed int8 quant
+// (lossless extraction of the original bytes — no re-quantization). The kernel
+// computes out[n] = Σ_b scale[n,b] * Σ_i quant[n,b,i] * act[b,i], i.e. ggml's
+// float dequant-and-accumulate. Verified against the CPU oracle in Node.
+
+const out = document.getElementById("out");
+let device = null;
+
+const WGSL = `
+@group(0) @binding(0) var<storage, read>        scales : array<f32>;
+@group(0) @binding(1) var<storage, read>        quants : array<i32>;
+@group(0) @binding(2) var<storage, read>        act    : array<f32>;
+@group(0) @binding(3) var<storage, read_write>  outv   : array<f32>;
+@group(0) @binding(4) var<uniform>              dims   : vec2<u32>;  // (N, K)
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
+  let n = gid.x;
+  let N = dims.x;
+  let K = dims.y;
+  if (n >= N) { return; }
+  let nb = K / 32u;
+  var acc : f32 = 0.0;
+  for (var b : u32 = 0u; b < nb; b = b + 1u) {
+    let s = scales[n * nb + b];
+    let base = n * K + b * 32u;
+    let abase = b * 32u;
+    for (var i : u32 = 0u; i < 32u; i = i + 1u) {
+      acc = acc + s * f32(quants[base + i]) * act[abase + i];
+    }
+  }
+  outv[n] = acc;
+}`;
+
+let pipeline = null;
+async function ensure() {
+  if (device) return;
+  const adapter = await navigator.gpu.requestAdapter();
+  device = await adapter.requestDevice();
+  const module = device.createShaderModule({ code: WGSL });
+  pipeline = device.createComputePipeline({ layout: "auto", compute: { module, entryPoint: "main" } });
+  out.textContent = "GPU ready: " + (adapter.info?.vendor || "?") + " " + (adapter.info?.architecture || "?");
+}
+
+window.runGemvQ5_0 = async (scales, quants, act, N, K) => {
+  await ensure();
+  const mk = (arr, Ctor, usage) => { const b = device.createBuffer({ size: Math.max(4, arr.length * Ctor.BYTES_PER_ELEMENT), usage }); device.queue.writeBuffer(b, 0, new Ctor(arr)); return b; };
+  const ST = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
+  const sBuf = mk(scales, Float32Array, ST);
+  const qBuf = mk(quants, Int32Array, ST);
+  const aBuf = mk(act, Float32Array, ST);
+  const oBuf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+  const dBuf = device.createBuffer({ size: 8, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(dBuf, 0, new Uint32Array([N, K]));
+  const bind = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [
+    { binding: 0, resource: { buffer: sBuf } }, { binding: 1, resource: { buffer: qBuf } },
+    { binding: 2, resource: { buffer: aBuf } }, { binding: 3, resource: { buffer: oBuf } },
+    { binding: 4, resource: { buffer: dBuf } } ] });
+  const enc = device.createCommandEncoder();
+  const pass = enc.beginComputePass();
+  pass.setPipeline(pipeline); pass.setBindGroup(0, bind);
+  pass.dispatchWorkgroups(Math.ceil(N / 64));
+  pass.end();
+  const read = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+  enc.copyBufferToBuffer(oBuf, 0, read, 0, N * 4);
+  device.queue.submit([enc.finish()]);
+  await read.mapAsync(GPUMapMode.READ);
+  const res = Array.from(new Float32Array(read.getMappedRange().slice(0)));
+  read.unmap();
+  [sBuf, qBuf, aBuf, oBuf, dBuf, read].forEach((b) => b.destroy());
+  return res;
+};
+ensure().catch((e) => { out.textContent = "init error: " + e; });
+</script>

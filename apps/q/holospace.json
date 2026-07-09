@@ -1,0 +1,96 @@
+{
+  "id": "org.hologram.HoloQ",
+  "name": "Holo Q",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "A real AI that thinks entirely in your browser no server, no cloud, no API key.",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "applicationCategory": "ProductivityApplication",
+  "conforms": {
+    "specs": [
+      "holo-q",
+      "verifiable-inference",
+      "prov-inference-receipt",
+      "kappa-disk",
+      "qvac-engine",
+      "holo-constitution",
+      "law-l5"
+    ]
+  },
+  "capabilities": {
+    "storage": [
+      "org.hologram.HoloQ"
+    ]
+  },
+  "shared": [
+    "holo-theme.js",
+    "holo-mobile.css",
+    "holo-conscience.js",
+    "holo-store.js"
+  ],
+  "engines": [
+    "qvac-gpu",
+    "qvac-kdisk",
+    "holospaces-web-wasm"
+  ],
+  "loader": "index.html",
+  "description": [
+    {
+      "p": "An AI answer is normally something a server produced and you must trust; it should be something you can prove."
+    },
+    {
+      "p": "The whole model runs on your GPU from a content-addressed disk verified byte-for-byte, and every answer is a re-derivable inference receipt (Law L5)."
+    },
+    {
+      "ul": [
+        "A full language model, on-device",
+        "No server ever sees your prompt",
+        "The model is verified off the substrate",
+        "Every inference is a reproducible receipt"
+      ]
+    }
+  ],
+  "categories": [
+    "AI",
+    "Productivity",
+    "Developer"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "inference",
+    "verifiable inference",
+    "webgpu",
+    "browser-native",
+    "serverless",
+    "sovereign ai",
+    "qvac",
+    "kappa-disk",
+    "content-addressing",
+    "uor",
+    "did:holo",
+    "prov-o",
+    "law-l5",
+    "constitution",
+    "private ai",
+    "on-device"
+  ],
+  "developer": {
+    "id": "org.hologram",
+    "name": "Hologram Technologies"
+  },
+  "license": "MIT",
+  "homepage": "https://hologram.os/apps/q",
+  "bugtracker": "https://github.com/Hologram-Technologies/hologram-os/issues",
+  "releases": [
+    {
+      "version": "1.0",
+      "date": "2026-06-10",
+      "description": "Verifiable inference (ADR-0052), the inference counterpart to Holo Forge (ADR-0051): a real browser-native LLM (the QVAC WebGPU engine, consumed unmodified) where the model is a content-addressed κ-disk verified sector-by-sector off the substrate, and every answer is a re-derivable PROV-O inference receipt sealed to a did:holo. Greedy decode is deterministic, so an output re-derives byte-for-byte with no server (Law L5); tamper is refused. κ-memo gives O(1) reuse; the conscience gate (ADR-033) self-verifies and judges every answer. Serverless, lean, 100% anchored in the UOR substrate."
+    }
+  ],
+  "accent": "#5eead4"
+}

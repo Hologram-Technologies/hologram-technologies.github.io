@@ -1,0 +1,23 @@
+{
+  "@type": "earl:TestResult",
+  "spec": "holo-watchlist — 'My List' as an append-only, hash-linked κ-chain you own: idempotent adds, head attests the whole list, remove re-links the tail, a clean export adopts (verify-before-trust round-trip), and a tampered or reordered export is refused. Replaces Jellyseerr's request DB with a portable, shareable, roamable strand.",
+  "authority": "rests on #holo-watchlist (Holo-strand discipline) — Phase 2 of the streaming/metadata plan",
+  "witnessed": true,
+  "covers": [
+    "add-and-list",
+    "hash-linked",
+    "remove-relinks",
+    "export-adopt",
+    "tamper-refused",
+    "reorder-refused"
+  ],
+  "checks": {
+    "addAndList": true,
+    "hashLinked": true,
+    "removeRelinks": true,
+    "exportAdopt": true,
+    "tamperRefused": true,
+    "reorderRefused": true
+  },
+  "failed": []
+}

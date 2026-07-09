@@ -1,0 +1,246 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>forge — κ-addressed native runtime inference</title>
+<body><pre id="out">loading…</pre></body>
+<script type="module">
+// κ-ADDRESSED NATIVE RUNTIME: the browser fetches a GGUF, FORGES it to content-
+// addressed κ-objects (did:holo:sha256, L5-verified), synthesizes the transformer
+// graph, unpacks weights from the verified κ-blocks, and runs the whole forward on
+// the GPU — predicting the next token, no server compute, no re-quantization.
+
+import { forgeGguf, loadByKappa, ggmlNBytes, GGML_TYPE_NAME } from "../gguf-forge.mjs";
+import { synthesizeGraph } from "../gguf-forge-graph.mjs";
+import { makeTokenizer } from "../gguf-forge-tokenizer.mjs";
+import { dequantizeExact, GGML } from "../gguf-forge-dequant.mjs";
+import { unpackWeight } from "../gguf-forge-gpupack.mjs";
+import { parseGgufHeader } from "../../qvac-ingest.mjs";
+import { readHolo } from "../holo-archive.mjs";
+import { sha256hex, jcs, didHolo } from "../../../../../holo-os/system/os/usr/lib/holo/holo-uor.mjs";
+
+// Browser forge: identical κ-objects to forgeGguf, but hashes each tensor with the
+// hardware-accelerated WebCrypto SHA-256 (same algorithm → identical did:holo:sha256
+// and rootKappa) instead of pure-JS. ~100x faster on a 470MB model. Also keeps blocks
+// as zero-copy subarrays (lower memory). rootKappa still re-derives to the same value.
+async function forgeFast(bytes) {
+  const { version, dataOffset, tensors, meta } = parseGgufHeader(bytes);
+  const toHex = (u8) => { let s = ""; for (const b of u8) s += b.toString(16).padStart(2, "0"); return s; };
+  const b64 = (u8) => { let s = ""; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
+  const blocks = new Map(), planTensors = [];
+  for (const t of tensors) {
+    const n = t.dims.reduce((a, b) => a * b, 1), nbytes = ggmlNBytes(t.ggmlType, n);
+    const blob = bytes.subarray(dataOffset + t.offset, dataOffset + t.offset + nbytes);
+    const dig = new Uint8Array(await crypto.subtle.digest("SHA-256", blob));
+    const hex = toHex(dig);
+    if (!blocks.has(hex)) blocks.set(hex, blob);          // zero-copy view (vs forgeGguf's slice)
+    planTensors.push({ name: t.name, dims: t.dims, type: t.ggmlType, typeName: GGML_TYPE_NAME[t.ggmlType] || String(t.ggmlType), nbytes, kappa: "sha256:" + hex, sri: "sha256-" + b64(dig) });
+  }
+  const arch = meta["general.architecture"] || "unknown";
+  const plan = { format: "gguf-forge/1", arch, ggufVersion: version, meta, tensors: planTensors };
+  return { version, dataOffset, arch, meta, tensors: planTensors, blocks, plan, rootKappa: didHolo("sha256", sha256hex(jcs(plan))) };
+}
+
+const out = document.getElementById("out");
+const t0 = performance.now();
+const log = (m) => { out.textContent = `[${((performance.now() - t0) / 1000).toFixed(1)}s] ${m}`; };
+window.__run = { ready: false };
+const MODEL = "../.models/qwen2.5-0.5b-instruct.holo";   // PRECOMPILED .holo (no re-forge)
+const PROMPT = new URLSearchParams(location.search).get("p") || "The capital of France is";
+
+// ── WGSL kernels (identical to run.html — proven) ──
+const MATVECQ = `@group(0)@binding(0)var<storage,read>scales:array<f32>;@group(0)@binding(1)var<storage,read>quants:array<u32>;@group(0)@binding(2)var<storage,read>act:array<f32>;@group(0)@binding(3)var<storage,read_write>outv:array<f32>;@group(0)@binding(4)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let n=g.x;let N=p.x;let K=p.y;if(n>=N){return;}let nb=K/32u;var acc=0.0;for(var b=0u;b<nb;b++){let s=scales[n*nb+b];let base=n*K+b*32u;let ab=b*32u;var inner=0.0;for(var i=0u;i<32u;i++){let idx=base+i;let u=quants[idx>>2u];let lane=(idx&3u)*8u;let q=(i32(u<<(24u-lane)))>>24u;inner=inner+f32(q)*act[ab+i];}acc=acc+s*inner;}outv[p.z+n]=acc;}`;
+const MATVECF = `@group(0)@binding(0)var<storage,read>W:array<f32>;@group(0)@binding(1)var<storage,read>x:array<f32>;@group(0)@binding(2)var<storage,read_write>y:array<f32>;@group(0)@binding(3)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let n=g.x;let N=p.x;let K=p.y;if(n>=N){return;}var acc=0.0;let b=n*K;for(var k=0u;k<K;k++){acc=acc+W[b+k]*x[k];}y[p.z+n]=acc;}`;
+// quantize an f32 activation row to Q8_0 (per-32 f32 scale + packed int8) — ggml's
+// vec_dot_type for Q5_0/Q8_0/Q4_0. round-half-away matches roundf.
+const Q8QUANT = `@group(0)@binding(0)var<storage,read>x:array<f32>;@group(0)@binding(1)var<storage,read_write>scales:array<f32>;@group(0)@binding(2)var<storage,read_write>quants:array<u32>;@group(0)@binding(3)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let b=g.x;let nb=p.x;if(b>=nb){return;}var amax=0.0;for(var i=0u;i<32u;i++){amax=max(amax,abs(x[b*32u+i]));}let d=amax/127.0;let id=select(0.0,1.0/d,amax>0.0);scales[b]=d;for(var j=0u;j<8u;j++){var packed=0u;for(var k=0u;k<4u;k++){let xi=x[b*32u+j*4u+k]*id;let q=select(i32(ceil(xi-0.5)),i32(floor(xi+0.5)),xi>=0.0);let qc=clamp(q,-127,127);packed=packed|((u32(qc)&0xffu)<<(k*8u));}quants[b*8u+j]=packed;}}`;
+// integer dot: Q5_0/Q8_0/Q4_0 weight (per-32 scale+int8) · Q8_0 activation. Mirrors
+// ggml vec_dot_q*_0_q8_0 (integer sumi per block, then wscale*ascale*sumi).
+const MATVECQI = `@group(0)@binding(0)var<storage,read>wscales:array<f32>;@group(0)@binding(1)var<storage,read>wquants:array<u32>;@group(0)@binding(2)var<storage,read>ascales:array<f32>;@group(0)@binding(3)var<storage,read>aquants:array<u32>;@group(0)@binding(4)var<storage,read_write>outv:array<f32>;@group(0)@binding(5)var<uniform>p:vec4<u32>;
+fn d4(wu:u32,au:u32)->i32{return (i32(wu<<24u)>>24u)*(i32(au<<24u)>>24u)+(i32(wu<<16u)>>24u)*(i32(au<<16u)>>24u)+(i32(wu<<8u)>>24u)*(i32(au<<8u)>>24u)+(i32(wu)>>24u)*(i32(au)>>24u);}
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let n=g.x;let N=p.x;let K=p.y;if(n>=N){return;}let nb=K/32u;var acc=0.0;for(var b=0u;b<nb;b++){var sumi=0;let wb=(n*K+b*32u)>>2u;let ab=(b*32u)>>2u;for(var u=0u;u<8u;u++){sumi=sumi+d4(wquants[wb+u],aquants[ab+u]);}acc=acc+wscales[n*nb+b]*ascales[b]*f32(sumi);}outv[p.z+n]=acc;}`;
+// In-shader unpack: read the ORIGINAL ggml κ-block bytes (uploaded packed, ~halved
+// + zero JS unpack) and dequantize per-element in WGSL. gb(i) reads byte i from the
+// u32 array; unpack2x16float decodes the f16 block scale.
+const MATVECQ5RAW = `@group(0)@binding(0)var<storage,read>rb:array<u32>;@group(0)@binding(1)var<storage,read>act:array<f32>;@group(0)@binding(2)var<storage,read_write>outv:array<f32>;@group(0)@binding(3)var<uniform>p:vec4<u32>;
+fn gb(i:u32)->u32{return (rb[i>>2u]>>((i&3u)*8u))&0xffu;}
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let n=g.x;let N=p.x;let K=p.y;if(n>=N){return;}let nb=K/32u;let rowBase=n*nb*22u;var acc=0.0;
+for(var b=0u;b<nb;b++){let bp=rowBase+b*22u;let d=unpack2x16float(gb(bp)|(gb(bp+1u)<<8u)).x;let qh=gb(bp+2u)|(gb(bp+3u)<<8u)|(gb(bp+4u)<<16u)|(gb(bp+5u)<<24u);let qb=bp+6u;let aB=b*32u;
+for(var j=0u;j<16u;j++){let qsj=gb(qb+j);let lo=i32((qsj&0xFu)|(((qh>>j)&1u)<<4u))-16;let hi=i32((qsj>>4u)|(((qh>>(j+16u))&1u)<<4u))-16;acc=acc+d*f32(lo)*act[aB+j]+d*f32(hi)*act[aB+j+16u];}}
+outv[p.z+n]=acc;}`;
+const MATVECQ8RAW = `@group(0)@binding(0)var<storage,read>rb:array<u32>;@group(0)@binding(1)var<storage,read>act:array<f32>;@group(0)@binding(2)var<storage,read_write>outv:array<f32>;@group(0)@binding(3)var<uniform>p:vec4<u32>;
+fn gb(i:u32)->u32{return (rb[i>>2u]>>((i&3u)*8u))&0xffu;}
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let n=g.x;let N=p.x;let K=p.y;if(n>=N){return;}let nb=K/32u;let rowBase=n*nb*34u;var acc=0.0;
+for(var b=0u;b<nb;b++){let bp=rowBase+b*34u;let d=unpack2x16float(gb(bp)|(gb(bp+1u)<<8u)).x;let qb=bp+2u;let aB=b*32u;
+for(var i=0u;i<32u;i++){let q=(i32(gb(qb+i)<<24u))>>24u;acc=acc+d*f32(q)*act[aB+i];}}
+outv[p.z+n]=acc;}`;
+const ADD = `@group(0)@binding(0)var<storage,read>a:array<f32>;@group(0)@binding(1)var<storage,read>b:array<f32>;@group(0)@binding(2)var<storage,read_write>y:array<f32>;@group(0)@binding(3)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let i=g.x;if(i>=p.x){return;}y[i]=a[i]+b[i];}`;
+const RMS = `@group(0)@binding(0)var<storage,read>x:array<f32>;@group(0)@binding(1)var<storage,read>w:array<f32>;@group(0)@binding(2)var<storage,read_write>y:array<f32>;@group(0)@binding(3)var<uniform>p:vec4<f32>;
+@compute @workgroup_size(1)fn main(){let N=u32(p.x);var ss=0.0;for(var i=0u;i<N;i++){ss=ss+x[i]*x[i];}let sc=1.0/sqrt(ss/p.x+p.y);for(var i=0u;i<N;i++){y[i]=x[i]*sc*w[i];}}`;
+const ROPE = `@group(0)@binding(0)var<storage,read>x:array<f32>;@group(0)@binding(1)var<storage,read_write>y:array<f32>;@group(0)@binding(2)var<uniform>a:vec4<f32>;@group(0)@binding(3)var<uniform>b:vec4<f32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let hd=u32(a.x);let nRot=u32(a.y);let nheads=u32(a.z);let pos=a.w;let half=nRot/2u;let idx=g.x;if(idx>=nheads*half){return;}let head=idx/half;let ic=idx%half;let base=head*hd;let ts=pow(b.x,-2.0/a.y);let th=pos*pow(ts,f32(ic));let c=cos(th);let s=sin(th);let x0=x[base+ic];let x1=x[base+ic+half];y[base+ic]=x0*c-x1*s;y[base+ic+half]=x0*s+x1*c;}`;
+const ATTN = `@group(0)@binding(0)var<storage,read>q:array<f32>;@group(0)@binding(1)var<storage,read>kc:array<f32>;@group(0)@binding(2)var<storage,read>vc:array<f32>;@group(0)@binding(3)var<storage,read_write>ctx:array<f32>;@group(0)@binding(4)var<uniform>a:vec4<u32>;@group(0)@binding(5)var<uniform>b:vec4<f32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let nh=a.x;let hd=a.y;let curPos=a.z;let kv=a.w;let scale=b.x;let grp=u32(b.y);let hh=g.x;if(hh>=nh){return;}let kvh=hh/grp;let qoff=hh*hd;let koff=kvh*hd;var sc:array<f32,64>;var mx=-3.0e38;for(var s=0u;s<=curPos;s++){var d=0.0;for(var i=0u;i<hd;i++){d=d+q[qoff+i]*kc[s*kv+koff+i];}sc[s]=d*scale;if(sc[s]>mx){mx=sc[s];}}var sum=0.0;for(var s=0u;s<=curPos;s++){sc[s]=exp(sc[s]-mx);sum=sum+sc[s];}for(var i=0u;i<hd;i++){var acc=0.0;for(var s=0u;s<=curPos;s++){acc=acc+(sc[s]/sum)*vc[s*kv+koff+i];}ctx[qoff+i]=acc;}}`;
+const SWIGLU = `@group(0)@binding(0)var<storage,read>gt:array<f32>;@group(0)@binding(1)var<storage,read>up:array<f32>;@group(0)@binding(2)var<storage,read_write>y:array<f32>;@group(0)@binding(3)var<uniform>p:vec4<u32>;
+@compute @workgroup_size(64)fn main(@builtin(global_invocation_id)g:vec3<u32>){let i=g.x;if(i>=p.x){return;}let v=gt[i];y[i]=(v/(1.0+exp(-v)))*up[i];}`;
+
+let dev, P;
+const pipe = (c) => { const m = dev.createShaderModule({ code: c }); return dev.createComputePipeline({ layout: "auto", compute: { module: m, entryPoint: "main" } }); };
+// Reusable uniform-buffer pool: one token's forward is a single submit, so we cycle a
+// fixed pool of 16-byte uniforms (reset per token) instead of leaking ~300 buffers/token.
+let _upool = [], _pidx = 0;
+const u4 = (v) => { const b = _upool[_pidx++]; dev.queue.writeBuffer(b, 0, new Uint32Array([...v, 0, 0, 0, 0].slice(0, 4))); return b; };
+const f4 = (v) => { const b = _upool[_pidx++]; dev.queue.writeBuffer(b, 0, new Float32Array([...v, 0, 0, 0, 0].slice(0, 4))); return b; };
+const sbuf = (n) => dev.createBuffer({ size: Math.max(4, n * 4), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST });
+const wF = (arr) => { const b = dev.createBuffer({ size: Math.max(4, arr.byteLength), usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(b, 0, arr); return b; };
+function disp(enc, pl, bufs, groups) { const bg = dev.createBindGroup({ layout: pl.getBindGroupLayout(0), entries: bufs.map((b, i) => ({ binding: i, resource: { buffer: b } })) }); const pa = enc.beginComputePass(); pa.setPipeline(pl); pa.setBindGroup(0, bg); pa.dispatchWorkgroups(groups); pa.end(); }
+const G = (n) => Math.ceil(n / 64);
+// upload an unpacked weight to GPU buffers
+function upW(u) { if (u.kind === "q") { const q = u.quants, qU32 = new Uint32Array(q.buffer, q.byteOffset, q.length / 4); return { kind: "q", sBuf: wF(u.scales), qBuf: wF(qU32), }; } return { kind: "f32", fBuf: wF(u.data) }; }
+
+async function main() {
+  const adapter = await navigator.gpu.requestAdapter(); dev = await adapter.requestDevice();
+  P = { q: pipe(MATVECQ), qi: pipe(MATVECQI), q8: pipe(Q8QUANT), q5raw: pipe(MATVECQ5RAW), q8raw: pipe(MATVECQ8RAW), f: pipe(MATVECF), add: pipe(ADD), rms: pipe(RMS), rope: pipe(ROPE), attn: pipe(ATTN), swiglu: pipe(SWIGLU) };
+  for (let i = 0; i < 1024; i++) _upool.push(dev.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }));
+
+  log("fetching precompiled .holo…");
+  const bytes = new Uint8Array(await (await fetch(MODEL)).arrayBuffer());
+  const tl = (m) => { (window.__t = window.__t || []).push(((performance.now() - t0) / 1000).toFixed(1) + "s " + m); };
+  tl("fetched .holo");
+  // Consume the PRECOMPILED .holo — read its baked GGUF header + κ-addressed bodies, NO re-forge.
+  // readHolo verifies the archive footer (L5 over the whole file); store.get re-derives each body's κ.
+  const H = readHolo(bytes);
+  const { tensors: hdrTensors, meta } = parseGgufHeader(H.headerBytes);     // header-only: metadata + tensor infos
+  const kappaOf = new Map(H.meta.order.map((o) => [o.name, o.kappa]));      // name → κ (from the .holo directory)
+  const planTensors = hdrTensors.map((t) => { const n = t.dims.reduce((a, b) => a * b, 1); return { name: t.name, dims: t.dims, type: t.ggmlType, typeName: GGML_TYPE_NAME[t.ggmlType] || String(t.ggmlType), nbytes: ggmlNBytes(t.ggmlType, n), kappa: "sha256:" + kappaOf.get(t.name) }; });
+  const arch = meta["general.architecture"] || H.meta.arch || "unknown";
+  const f = { arch, meta, tensors: planTensors, blocks: { get: (h) => H.store.get(h) }, plan: { format: "gguf-forge/1", arch, meta, tensors: planTensors }, rootKappa: H.footer };
+  tl("read .holo (L5)");
+  // L5 spot-check: re-derive one κ-block from the .holo store (refuses on tamper)
+  loadByKappa({ get: (h) => H.store.get(h) }, f.tensors[0].kappa);
+  const graph = synthesizeGraph(f.plan), S = graph.stats;
+  const tdir = {}; for (const t of f.tensors) tdir[t.name] = t;
+  const blk = (name) => H.store.get(tdir[name].kappa.split(":").pop());
+  const dimsNK = (name) => { const d = tdir[name].dims; return [d.length > 1 ? d[1] : 1, d[0]]; };
+
+  const tok = makeTokenizer(H.headerBytes), tokens = tok.encode(PROMPT, { addSpecial: false });
+  const D = S.n_embd, NH = S.n_head, NHKV = S.n_head_kv, HD = S.head_dim, EPS = S.eps, FREQ = S.freq_base;
+  const KV = NHKV * HD, QD = NH * HD, scale = 1 / Math.sqrt(HD), grp = NH / NHKV;
+  const params = new URLSearchParams(location.search);
+  const N_NEW = Math.max(1, +(params.get("n") || 1));    // tokens to generate
+  const HIFI = params.get("hifi") === "1";               // integer-dot (bit-faithful, slower, unpacked)
+
+  log(`κ root ${f.rootKappa.slice(0, 28)}… — uploading weights…`);
+  // Fast default: Q5_0/Q8_0 weights uploaded as PACKED κ-block bytes (no JS unpack, ~half
+  // the upload), dequantized in-shader. Q6_K/Q4_K/F32 -> f32. HIFI: unpacked + integer dot.
+  const rawU32 = (b) => wF(new Uint32Array(b.buffer, b.byteOffset, b.byteLength / 4));
+  const loadW = HIFI
+    ? (name) => { const t = tdir[name], [N, K] = dimsNK(name); return upW(unpackWeight(blk(name), t.type, N, K)); }
+    : (name) => {
+        const t = tdir[name], [N, K] = dimsNK(name);
+        if (t.type === GGML.Q5_0) return { kind: "q5raw", buf: rawU32(blk(name)), N, K };
+        if (t.type === GGML.Q8_0) return { kind: "q8raw", buf: rawU32(blk(name)), N, K };
+        return { kind: "f32", fBuf: wF(unpackWeight(blk(name), t.type, N, K).data), N, K };
+      };
+  const Wt = {};
+  for (let i = 0; i < S.n_layer; i++) { const p = `blk.${i}.`; for (const [k, g] of [["attn_norm", "attn_norm.weight"], ["wq", "attn_q.weight"], ["bq", "attn_q.bias"], ["wk", "attn_k.weight"], ["bk", "attn_k.bias"], ["wv", "attn_v.weight"], ["bv", "attn_v.bias"], ["wo", "attn_output.weight"], ["ffn_norm", "ffn_norm.weight"], ["gate", "ffn_gate.weight"], ["up", "ffn_up.weight"], ["down", "ffn_down.weight"]]) Wt[`l${i}.${k}`] = loadW(p + g); }
+  Wt["final_norm"] = loadW("output_norm.weight");
+  tl("layer weights unpacked+uploaded");
+  // lm_head (chunked: a single quants buffer would exceed the 128MB binding limit)
+  const lmName = tdir["output.weight"] ? "output.weight" : "token_embd.weight", lmT = tdir[lmName], [lmN, lmK] = dimsNK(lmName);
+  const vocab = lmN, nbL = lmK / 32;
+  const CH = Math.ceil(lmN / 100000), chunkRows = Math.ceil(lmN / CH), lmChunks = [];
+  if (HIFI) {
+    const lmU = unpackWeight(blk(lmName), lmT.type, lmN, lmK);
+    for (let c = 0; c < CH; c++) { const r0 = c * chunkRows, r1 = Math.min(lmN, r0 + chunkRows); const q = lmU.quants.subarray(r0 * lmK, r1 * lmK); lmChunks.push({ kind: "hifi", r0, n: r1 - r0, qBuf: wF(new Uint32Array(q.buffer, q.byteOffset, q.length / 4)), sBuf: wF(lmU.scales.subarray(r0 * nbL, r1 * nbL).slice()) }); }
+  } else {                                              // raw Q8_0 (lm_head) / Q5_0, packed bytes, in-shader unpack
+    const raw = blk(lmName), bpr = nbL * (lmT.type === GGML.Q5_0 ? 22 : 34), kind = lmT.type === GGML.Q5_0 ? "q5raw" : "q8raw";
+    for (let c = 0; c < CH; c++) { const r0 = c * chunkRows, r1 = Math.min(lmN, r0 + chunkRows); lmChunks.push({ kind, r0, n: r1 - r0, buf: rawU32(raw.subarray(r0 * bpr, r1 * bpr)) }); }
+  }
+  tl("lm_head uploaded");
+  // embeddings: dequant token_embd rows ON DEMAND (avoid materializing the whole ~544MB table)
+  const teT = tdir["token_embd.weight"], teRaw = blk("token_embd.weight"), teBpr = ggmlNBytes(teT.type, D);
+  const embedRow = (t) => dequantizeExact(teT.type, teRaw.subarray(t * teBpr, (t + 1) * teBpr), D);
+  tl("embeddings ready");
+
+  log(`running ${S.n_layer}-layer GPU forward on "${PROMPT}"…`);
+  const SB = {}; for (const [n, sz] of [["h", D], ["hh", D], ["xn", D], ["q", QD], ["qb", QD], ["qr", QD], ["k", KV], ["kb", KV], ["kr", KV], ["v", KV], ["vb", KV], ["ctx", QD], ["ao", D], ["fi", D], ["xn2", D], ["g", lmK /*unused*/], ["hn", D]]) SB[n] = sbuf(sz);
+  const FF = Wt["l0.gate"].kind ? (tdir["blk.0.ffn_gate.weight"].dims[1]) : 0; // FF = gate N
+  for (const [n, sz] of [["g", FF], ["u", FF], ["sw", FF], ["fo", D]]) SB[n] = sbuf(sz);
+  const maxPos = tokens.length + N_NEW;
+  const Kc = [], Vc = []; for (let L = 0; L < S.n_layer; L++) { Kc.push(sbuf(maxPos * KV)); Vc.push(sbuf(maxPos * KV)); }
+  const logits = sbuf(vocab);
+  // Q8_0 activation scratch (sized for the largest matvec input). aQ holds packed int8.
+  const aS = sbuf(FF / 32), aQ = dev.createBuffer({ size: (FF / 4) * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST });
+  // hifi: quantize the activation to Q8_0 and integer-dot (matches ggml exactly).
+  // fast (default): float dequant-dot. Both consume the same κ-block weights.
+  const quantAct = HIFI ? (enc, xB, K) => disp(enc, P.q8, [xB, aS, aQ, u4([K / 32])], G(K / 32)) : () => {};
+  const mv = (enc, w, xB, yB, ob = 0, N, K) => {
+    if (w.kind === "q5raw") disp(enc, P.q5raw, [w.buf, xB, yB, u4([N, K, ob])], G(N));        // in-shader unpack
+    else if (w.kind === "q8raw") disp(enc, P.q8raw, [w.buf, xB, yB, u4([N, K, ob])], G(N));
+    else if (w.kind === "f32") disp(enc, P.f, [w.fBuf, xB, yB, u4([N, K, ob])], G(N));
+    else disp(enc, P.qi, [w.sBuf, w.qBuf, aS, aQ, yB, u4([N, K, ob])], G(N));                 // HIFI integer-dot
+  };
+  log(`generating ${N_NEW} token(s)${HIFI ? " (hifi integer-dot)" : ""}…`);
+  const seq = [...tokens], gen = [], EOS = new Set([151643, 151645, 151662, 151663, 151664]);
+  let pos = 0;
+  while (pos < seq.length) {
+    _pidx = 0;                                        // reuse the uniform pool each token
+    dev.queue.writeBuffer(SB.h, 0, embedRow(seq[pos]));
+    const enc = dev.createCommandEncoder();           // one command buffer for the whole token
+    for (let L = 0; L < S.n_layer; L++) {
+      const w = (s) => Wt[`l${L}.${s}`];
+      disp(enc, P.rms, [SB.h, w("attn_norm").fBuf, SB.xn, f4([D, EPS])], 1);
+      quantAct(enc, SB.xn, D);
+      mv(enc, w("wq"), SB.xn, SB.q, 0, QD, D); disp(enc, P.add, [SB.q, w("bq").fBuf, SB.qb, u4([QD])], G(QD));
+      mv(enc, w("wk"), SB.xn, SB.k, 0, KV, D); disp(enc, P.add, [SB.k, w("bk").fBuf, SB.kb, u4([KV])], G(KV));
+      mv(enc, w("wv"), SB.xn, SB.v, 0, KV, D); disp(enc, P.add, [SB.v, w("bv").fBuf, SB.vb, u4([KV])], G(KV));
+      disp(enc, P.rope, [SB.qb, SB.qr, f4([HD, HD, NH, pos]), f4([FREQ])], G(NH * HD / 2));
+      disp(enc, P.rope, [SB.kb, SB.kr, f4([HD, HD, NHKV, pos]), f4([FREQ])], G(NHKV * HD / 2));
+      enc.copyBufferToBuffer(SB.kr, 0, Kc[L], pos * KV * 4, KV * 4);
+      enc.copyBufferToBuffer(SB.vb, 0, Vc[L], pos * KV * 4, KV * 4);
+      disp(enc, P.attn, [SB.qr, Kc[L], Vc[L], SB.ctx, u4([NH, HD, pos, KV]), f4([scale, grp])], G(NH));
+      quantAct(enc, SB.ctx, QD);
+      mv(enc, w("wo"), SB.ctx, SB.ao, 0, D, QD);
+      disp(enc, P.add, [SB.h, SB.ao, SB.fi, u4([D])], G(D));
+      disp(enc, P.rms, [SB.fi, w("ffn_norm").fBuf, SB.xn2, f4([D, EPS])], 1);
+      quantAct(enc, SB.xn2, D);
+      mv(enc, w("gate"), SB.xn2, SB.g, 0, FF, D); mv(enc, w("up"), SB.xn2, SB.u, 0, FF, D);
+      disp(enc, P.swiglu, [SB.g, SB.u, SB.sw, u4([FF])], G(FF));
+      quantAct(enc, SB.sw, FF);
+      mv(enc, w("down"), SB.sw, SB.fo, 0, D, FF);
+      disp(enc, P.add, [SB.fi, SB.fo, SB.hh, u4([D])], G(D));
+      enc.copyBufferToBuffer(SB.hh, 0, SB.h, 0, D * 4);
+    }
+    const doGen = pos >= tokens.length - 1;           // this position predicts the next token
+    let rb = null;
+    if (doGen) {
+      disp(enc, P.rms, [SB.h, Wt["final_norm"].fBuf, SB.hn, f4([D, EPS])], 1);
+      quantAct(enc, SB.hn, lmK);
+      for (const ch of lmChunks) {
+        if (ch.kind === "hifi") disp(enc, P.qi, [ch.sBuf, ch.qBuf, aS, aQ, logits, u4([ch.n, lmK, ch.r0])], G(ch.n));
+        else disp(enc, P[ch.kind], [ch.buf, SB.hn, logits, u4([ch.n, lmK, ch.r0])], G(ch.n));   // q8raw/q5raw in-shader
+      }
+      rb = dev.createBuffer({ size: vocab * 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+      enc.copyBufferToBuffer(logits, 0, rb, 0, vocab * 4);
+    }
+    dev.queue.submit([enc.finish()]);                 // one submit per token
+    if (doGen) {
+      await rb.mapAsync(GPUMapMode.READ); const lg = new Float32Array(rb.getMappedRange().slice(0)); rb.unmap(); rb.destroy();
+      let am = 0; for (let i = 1; i < vocab; i++) if (lg[i] > lg[am]) am = i;
+      gen.push(am);
+      const done = EOS.has(am) || gen.length >= N_NEW;
+      window.__run = { ready: done, prompt: PROMPT, tokens, gen, genText: tok.decode(gen), completion: PROMPT + tok.decode(gen), rootKappa: f.rootKappa, nTensors: f.tensors.length, hifi: HIFI };
+      log(`"${PROMPT}" →${tok.decode(gen)}${done ? "" : "…"}   [κ ${f.rootKappa.slice(0, 24)}…, ${HIFI ? "hifi" : "fast"}]`);
+      if (done) break;
+      seq.push(am);
+    } else {
+      await dev.queue.onSubmittedWorkDone();          // serialize so the uniform pool is safe to reuse
+    }
+    pos++;
+  }
+}
+main().catch((e) => { window.__run = { ready: true, error: String(e), stack: e.stack }; out.textContent = "error: " + e + "\n" + (e.stack || ""); });
+</script>

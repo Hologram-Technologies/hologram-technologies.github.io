@@ -1,0 +1,76 @@
+{
+  "id": "org.hologram.HoloSelf",
+  "name": "SELF",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "A self-sovereign identity wallet: hold your credentials, prove only what's needed — like being over 18 — without revealing anything else, and sign in with no passwords. No accounts, no servers. Every proof is checked genuine on your own device and keeps working offline.",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "applicationCategory": "SecurityApplication",
+  "conforms": {
+    "specs": [
+      "holo-identity",
+      "holo-credential",
+      "holo-present",
+      "holo-ui",
+      "holo-ux"
+    ]
+  },
+  "capabilities": {
+    "storage": [
+      "org.hologram.HoloSelf"
+    ]
+  },
+  "shared": [],
+  "description": [
+    {
+      "p": "It's your data, your rules. SELF is an identity wallet that does everything a centralized identity provider does — passwordless login, KYC, age and accreditation checks — and needs none of their infrastructure."
+    },
+    {
+      "p": "An issuer signs each credential once, and anyone can check it is genuine forever — without ever contacting the issuer. When you share, you reveal one fact and the rest never leave your device. The same flow serves a person (with a face or fingerprint) and an AI agent (with a granted permission)."
+    },
+    {
+      "ul": [
+        "A wallet of credentials only you control, each one tamper-proof",
+        "Prove you're over 18 without revealing your birthday or your name",
+        "Passwordless sign-in and QR checks — the proof is the login, no server",
+        "Works offline: pull the network plug and every check still passes",
+        "One identity for people and AI agents alike"
+      ]
+    }
+  ],
+  "categories": [
+    "Security",
+    "Identity"
+  ],
+  "keywords": [
+    "identity",
+    "self-sovereign",
+    "verifiable-credentials",
+    "did",
+    "selective-disclosure",
+    "passwordless",
+    "wallet",
+    "kyc",
+    "age-verification",
+    "agent-identity",
+    "content-addressed",
+    "uor"
+  ],
+  "developer": {
+    "id": "org.hologram",
+    "name": "Hologram Technologies"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Hologram-Technologies/hologram-os",
+  "releases": [
+    {
+      "version": "0.1",
+      "date": "2026-06-23",
+      "description": "A self-contained, serverless identity wallet demonstrating κ-native verifiable credentials and selective disclosure as a familiar SELF-style product: instant local DID, a credential wallet, passwordless Connect, QR verify, issuer/verifier roles, an airplane-mode proof of zero network egress, and human≡agent symmetry. Built on the real holo-identity / holo-credential / holo-present primitives."
+    }
+  ],
+  "accent": "#7c9cff"
+}

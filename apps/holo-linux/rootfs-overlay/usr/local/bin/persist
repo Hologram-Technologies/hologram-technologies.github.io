@@ -1,0 +1,26 @@
+#!/bin/bash
+# persist — durable serverless state. Your work lives on a real ext4 κ-disk inside the browser
+# (OPFS) — no server, no cloud. Write now, press ⟳ reboot, run `persist` again: still here.
+
+A=$'\033[1;38;5;51m'; D=$'\033[38;5;244m'; G=$'\033[38;5;72m'; Y=$'\033[38;5;220m'; R=$'\033[0m'
+f=/workspace/.persist
+
+printf '\n%sHolo Linux persists — with no server%s\n\n' "$A" "$R"
+
+if [ -f "$f" ]; then
+  printf '%snotes already on the κ-disk from earlier boots:%s\n' "$G" "$R"
+  sed 's/^/  /' "$f"
+  printf '\n%sThose survived a reboot with no server in the loop.%s\n' "$Y" "$R"
+else
+  printf '%sno note yet — writing the first one to the κ-disk…%s\n' "$D" "$R"
+fi
+
+d=$(date -u '+%Y-%m-%d %H:%M:%SZ' 2>/dev/null); [ -z "$d" ] && d="boot+$(awk '{printf "%.0fs", $1}' /proc/uptime 2>/dev/null)"
+printf 'note · %s\n' "$d" >> "$f"
+sync
+
+printf '\n%snow on disk%s  %s\n' "$G" "$R" "$f"
+df -h / | sed 's/^/  /'
+
+printf '\n%sPress  ⟳ reboot  and run  persist  again — your note is still here. A real,\n' "$D"
+printf 'content-addressed ext4 disk in your browser; nothing was sent anywhere.%s\n\n' "$R"

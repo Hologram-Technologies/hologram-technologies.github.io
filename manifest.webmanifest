@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "Hologram OS",
+  "short_name": "Hologram",
+  "description": "A sovereign, serverless internet computer that boots entirely in your browser, rooted in your own hardware.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "window-controls-overlay"],
+  "orientation": "any",
+  "background_color": "#07041a",
+  "theme_color": "#07041a",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["developer", "productivity", "utilities"],
+  "handle_links": "preferred",
+  "launch_handler": { "client_mode": "navigate-existing" },
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "protocol_handlers": [
+    { "protocol": "web+hologram", "url": "/apps/browser/index.html?go=%s" },
+    { "protocol": "web+holo", "url": "/apps/browser/index.html?go=%s" }
+  ],
+  "shortcuts": [
+    { "name": "New tab", "url": "/apps/browser/index.html", "description": "Open the universal navigator" },
+    { "name": "Holo Files", "url": "/apps/browser/index.html?go=holo://org.hologram.HoloFiles", "description": "Your object explorer" },
+    { "name": "Ask Holo Q", "url": "/apps/q/index.html", "description": "The native AI" }
+  ]
+}

@@ -1,0 +1,21 @@
+#!/bin/bash
+# serverless — there is no server. This entire Linux runs inside your browser tab.
+# Everything below is read LIVE from the running kernel; nothing here is fetched over a wire.
+
+A=$'\033[1;38;5;51m'; D=$'\033[38;5;244m'; G=$'\033[38;5;72m'; R=$'\033[0m'
+
+printf '\n%sHolo Linux is serverless%s\n\n' "$A" "$R"
+
+printf '  %sno network stack%s   ' "$G" "$R"
+net=""; for c in ip ifconfig ping curl wget ssh nc; do command -v "$c" >/dev/null 2>&1 && net="$net $c"; done
+if [ -z "$net" ]; then printf 'ip · ping · curl · wget · ssh · nc — none exist; nothing can phone home\n'
+else printf 'present:%s\n' "$net"; fi
+
+printf '  %sinit · PID 1%s       %s  ' "$G" "$R" "$(cat /proc/1/comm 2>/dev/null)"
+printf '%s(a real init the kernel started — not a server reply)%s\n' "$D" "$R"
+
+printf '  %salive%s              %ss of uptime, entirely inside this tab\n' "$G" "$R" "$(awk '{printf "%.0f", $1}' /proc/uptime 2>/dev/null)"
+
+printf '\n%sNo server booted this kernel. No request served this shell. The CPU, the\n' "$D"
+printf 'filesystem, every syscall — all execute on an ISA core in the page itself.\n'
+printf 'Turn your network off and keep typing: it just keeps running (try  ✈ offline boot).%s\n\n' "$R"

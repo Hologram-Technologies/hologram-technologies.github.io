@@ -1,0 +1,150 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hologram — the magic of a link</title>
+<style>
+  :root{
+    --bg:#07090d; --panel:#0e1219; --panel2:#121826; --ink:#e8eef7; --dim:#8a97ab;
+    --line:#1d2535; --accent:#6ca8ff; --good:#37d39b; --bad:#ff6b6b; --warm:#ffcaa6;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 700px at 70% -10%,#0f1626 0%,var(--bg) 55%);color:var(--ink);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+  .wrap{max-width:920px;margin:0 auto;padding:54px 22px 90px}
+  .eyebrow{font:600 12px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--accent);opacity:.85}
+  h1{font-size:34px;line-height:1.1;margin:14px 0 8px;font-weight:680;letter-spacing:-.01em}
+  .lede{color:var(--dim);max-width:60ch;margin:0 0 6px}
+  .grid{display:grid;gap:16px;margin-top:34px}
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.35}
+  .n{font:700 12px/1 var(--mono);color:var(--accent);opacity:.7;letter-spacing:.1em}
+  .ct{font-size:20px;font-weight:640;margin:8px 0 4px;letter-spacing:-.01em}
+  .cd{color:var(--dim);margin:0 0 16px;max-width:62ch}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  a.btn,button.btn{appearance:none;cursor:pointer;text-decoration:none;border:1px solid var(--line);background:#161d2c;color:var(--ink);font:600 14px/1 var(--sans);padding:11px 16px;border-radius:10px;transition:.15s border-color,.15s transform,.15s background}
+  a.btn:hover,button.btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  a.btn.primary,button.btn.primary{background:linear-gradient(180deg,#2b62c9,#2150a8);border-color:#3a6fd0}
+  .k{font:11px/1.4 var(--mono);color:var(--warm);opacity:.8;word-break:break-all}
+  .hint{font:12px/1.5 var(--mono);color:var(--dim);margin-top:12px}
+  .trust{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px;font:13px/1.6 var(--mono)}
+  .trust .line{display:flex;gap:10px;align-items:flex-start;margin:4px 0}
+  .ok{color:var(--good)} .no{color:var(--bad)} .pend{color:var(--dim)}
+  .pill{display:inline-block;font:600 11px/1 var(--mono);padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim);margin-left:8px}
+  footer{margin-top:44px;color:var(--dim);border-top:1px solid var(--line);padding-top:22px}
+  footer b{color:var(--ink);font-weight:640}
+  .principle{font-size:18px;line-height:1.5;color:var(--ink);max-width:58ch}
+</style>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Hologram · serverless · κ-native</div>
+  <h1>The magic of a link.</h1>
+  <p class="lede">A 491&nbsp;MB language model is now a 64-character hash. Open a link — a real LLM runs in this browser, on your hardware, verified byte-by-byte, offline after the first load. No server, no key, no install. Click through and feel it.</p>
+
+  <div class="grid">
+
+    <!-- 1 -->
+    <div class="card">
+      <div class="n">01</div>
+      <div class="ct">A brain is a link</div>
+      <p class="cd">This link <em>is</em> the model. Opening it streams the weights by their content hash, runs the GPU forward in your tab, and completes the sentence — nothing left your machine, nothing was rented.</p>
+      <div class="row">
+        <a class="btn primary" target="_blank" id="b1a">Run “The capital of France is…”</a>
+        <a class="btn" target="_blank" id="b1b">Run “A haiku about the sea:”</a>
+      </div>
+      <div class="hint">model κ&nbsp;=&nbsp;<span class="k">41a930c0…2aaf1b91</span> · watch DevTools for per-block L5 + timing</div>
+    </div>
+
+    <!-- 2 -->
+    <div class="card">
+      <div class="n">02</div>
+      <div class="ct">A link reshapes the brain</div>
+      <p class="cd">Same base model, same prompt. The second link carries a tiny <b>1.3&nbsp;MB adapter</b> (a fine-tune) by its own hash — and the output diverges. A link doesn’t just <em>load</em> a brain; it can <em>change</em> one. Open both, compare side by side.</p>
+      <div class="row">
+        <a class="btn" target="_blank" id="b2a">Base model</a>
+        <a class="btn primary" target="_blank" id="b2b">+ adapter (by link)</a>
+      </div>
+      <div class="hint">adapter κ&nbsp;=&nbsp;<span class="k">216a1e18…7dc7fe86</span> · a real fine-tune would specialize it; this test adapter proves the mechanism</div>
+    </div>
+
+    <!-- 3 — inline trust demo -->
+    <div class="card">
+      <div class="n">03</div>
+      <div class="ct">It proves itself <span class="pill" id="trustpill">idle</span></div>
+      <p class="cd">Why can you run a model a stranger linked you? Because the bytes vouch for themselves. Each block re-derives its own hash before use — no signing authority, just math. Watch a clean open succeed, then flip <b>one byte</b> and watch it refuse.</p>
+      <div class="row"><button class="btn primary" id="trustrun">Verify · then tamper</button></div>
+      <div class="trust" id="trustout"><div class="line pend">› press the button — runs right here, no GPU needed</div></div>
+    </div>
+
+    <!-- 4 -->
+    <div class="card">
+      <div class="n">04</div>
+      <div class="ct">You own it — offline</div>
+      <p class="cd">Open the runtime once (it caches every block to your device). Then turn off Wi-Fi and reload the tab: it runs again at <b>0 bytes off the wire</b>. The “cloud assistant” became a local object you hold.</p>
+      <div class="row"><a class="btn primary" target="_blank" id="b4">Open, then kill Wi-Fi &amp; reload</a></div>
+      <div class="hint">cold ≈ 8.8s · warm = fully offline (bodyHits = every block, wireBytes = 0)</div>
+    </div>
+
+    <!-- 5 -->
+    <div class="card">
+      <div class="n">05</div>
+      <div class="ct">Q, by one link</div>
+      <p class="cd">The whole experience: open the OS with a model κ in the link and Q <em>becomes</em> that brain — zero config. Tap the orb and talk to a model that arrived as a URL.</p>
+      <div class="row"><a class="btn primary" target="_blank" id="b5">Open Q with this brain</a></div>
+      <div class="hint">#model=κ → openModelLink → eager warm → first turn ready</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="eyebrow" style="margin-bottom:10px">The principle</div>
+    <p class="principle"><b>AI you hold, not AI you call.</b> Cloud AI is rented, opaque, and online. This is owned, verifiable, and offline — a brain that travels as a link and proves itself on arrival.</p>
+  </footer>
+</div>
+
+<script type="module">
+  const QWEN = "41a930c07450623751f84af6a55bbecd54fe608ad6e94adf17f83c712aaf1b91";
+  const ADAPTER = "216a1e18045de1e3babb34c359afa4194f2bc2278ee6d3e737f2c6037dc7fe86";
+  const RN = "run-native.html";
+  const u = (p) => RN + "?" + p;
+  const enc = encodeURIComponent;
+  // 01
+  document.getElementById("b1a").href = u(`holo=${QWEN}&n=28&p=${enc("The capital of France is")}`);
+  document.getElementById("b1b").href = u(`holo=${QWEN}&n=40&p=${enc("A haiku about the sea:\n")}`);
+  // 02 — same prompt, with/without the adapter link
+  const P2 = enc("The capital of France is");
+  document.getElementById("b2a").href = u(`holo=${QWEN}&n=24&p=${P2}`);
+  document.getElementById("b2b").href = u(`holo=${QWEN}&adapter=${ADAPTER}&n=24&p=${P2}`);
+  // 04 / 05
+  document.getElementById("b4").href = u(`holo=${QWEN}&n=24&p=${enc("The capital of France is")}`);
+  document.getElementById("b5").href = `/shell.html?desktop=1#model=${QWEN}`;
+
+  // 03 — REAL tamper-refuse, inline (uses the same L5 reader the runtime uses; 1.3MB adapter, no GPU)
+  const out = document.getElementById("trustout");
+  const pill = document.getElementById("trustpill");
+  const line = (cls, t) => { const d = document.createElement("div"); d.className = "line " + cls; d.textContent = t; out.appendChild(d); };
+  document.getElementById("trustrun").addEventListener("click", async () => {
+    out.innerHTML = ""; pill.textContent = "running…"; pill.style.color = "var(--dim)";
+    try {
+      const { openAdapterHolo } = await import("./holo-lora.mjs?v=9");
+      line("pend", "› fetching adapter .holo by its link (216a1e18…)…");
+      const buf = new Uint8Array(await fetch("../.models/qwen-attn_q-adapter.holo").then(r => r.arrayBuffer()));
+      line("ok", `✓ ${(buf.length/1e3|0)} KB received`);
+      // clean open — every body re-derives its κ, footer L5 checked
+      const ad = openAdapterHolo(buf.slice());
+      line("ok", `✓ CLEAN open verified — target ${ad.target}, ${ad.nLayer} layers, footer κ matches. Safe to run.`);
+      // now flip ONE byte and try again
+      const bad = buf.slice(); bad[(bad.length >> 1)] ^= 0xff;
+      line("pend", "› flipping one byte in the middle and re-opening…");
+      let refused = false, msg = "";
+      try { openAdapterHolo(bad); } catch (e) { refused = true; msg = String(e.message || e); }
+      if (refused) { line("no", `✗ REFUSED — the tampered bytes don’t match their hash. (${msg.slice(0,80)})`); pill.textContent = "trust proven"; pill.style.color = "var(--good)"; }
+      else { line("no", "⚠ did not refuse — unexpected"); pill.textContent = "check"; pill.style.color = "var(--bad)"; }
+      line("ok", "→ no authority signed this. The math refused the lie. That’s why a stranger’s link is safe to open.");
+    } catch (e) {
+      line("no", "error: " + (e.message || e)); pill.textContent = "error"; pill.style.color = "var(--bad)";
+    }
+  });
+</script>
+</body>
+</html>

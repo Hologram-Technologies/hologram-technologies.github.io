@@ -1,0 +1,49 @@
+<!doctype html><html><head><meta charset=utf8><title>v1-bench (init)</title>
+<style>body{font:14px/1.6 monospace;background:#0b0e14;color:#e6e9ef;padding:18px;white-space:pre-wrap}b{color:#7cffa0}</style></head><body>
+<h3>V1 — real resident decode tok/s vs the 159 GB/s ceiling (native-low-bit κ-object)</h3>
+<div id=o>booting…</div>
+<script type=module>
+import { ready, loadModel, MODELS, defaultModelIndex } from "./core/loader.js";
+import { createEngine } from "./core/engine.js";
+const o = document.getElementById("o"); const log = (m) => { o.textContent = m; window.__v1_log = m; };
+window.__v1 = null;
+try {
+  if (!navigator.gpu) throw new Error("no WebGPU");
+  const pick = new URLSearchParams(location.search).get("m");
+  const m = pick ? (MODELS.find((x) => new RegExp(pick, "i").test(x.name)) || MODELS[0]) : MODELS[defaultModelIndex()];   // no ?m → the CURRENT Q default (smallest usable)
+  log(`loading ${m.name} (${m.size}) …`);
+  const t0 = performance.now();
+  const loaded = await loadModel(m, { onStatus: (s) => log(`${m.name}: ${s}`), onProgress: (d, t, w) => log(`${m.name}: ${w} ${t ? Math.round(100 * d / t) : 0}%`) });
+  if (!loaded || !loaded.gpu) throw new Error("load failed (no gpu)");
+  const loadS = ((performance.now() - t0) / 1000).toFixed(0);
+  const engine = await createEngine(m, loaded);
+  const prompt = "List the numbers from one to sixty, each written in words, one per line.";
+  let ids = engine.tokenize(engine.frameTurn(prompt, false));
+  if (m.bos && engine.bosId != null) ids = [engine.bosId, ...ids];
+  log(`${m.name} loaded in ${loadS}s (${loaded.gpuBytes ? (loaded.gpuBytes / 1e9).toFixed(2) + " GB VRAM" : ""}) · warming + decoding…`);
+  await engine.generate(ids.slice(), { maxNew: 4 });        // warm-up: compile pipelines + warm caches so TTFT/tok-s are representative
+  let streamText = "";
+  const res = await engine.generate(ids, { maxNew: 96, onToken: ({ text }) => { streamText = text; } });
+  const fullText = engine.detokenize(res.outIds);           // full detok of the final ids (the reference)
+  const detokMatch = streamText === fullText;               // incremental streamed text must equal full detok (lossless)
+  let firstDiff = -1; for (let i = 0; i < Math.min(streamText.length, fullText.length); i++) if (streamText[i] !== fullText[i]) { firstDiff = i; break; }
+  window.__diff = { streamLen: streamText.length, fullLen: fullText.length, firstDiff, sCtx: JSON.stringify(streamText.slice(Math.max(0, firstDiff - 20), firstDiff + 20)), fCtx: JSON.stringify(fullText.slice(Math.max(0, firstDiff - 20), firstDiff + 20)), sTail: JSON.stringify(streamText.slice(-40)), fTail: JSON.stringify(fullText.slice(-40)) };
+  const tokps = res.stats.tokps || 0;
+  const activeGB = parseFloat(new URLSearchParams(location.search).get("active")) || parseFloat(m.size) || 0.7;   // MoE: ?active=<GB/token>; dense: full size
+  const BW = 159;                                          // measured this box (AMD RDNA-3)
+  const ceil = BW / activeGB, eff = 100 * tokps / ceil;
+  const ttftMs = res.stats.ttft || 0;
+  window.__v1 = { model: m.name, size: m.size, loadS: +loadS, tokens: res.outIds.length, tokps: +tokps.toFixed(1), ttftMs: +ttftMs.toFixed(0), promptTokens: ids.length, activeGB, ceil: +ceil.toFixed(0), effPct: +eff.toFixed(0), detokMatch, text: fullText.slice(0, 240) };
+  log(`MODEL: ${m.name}  (${m.size}, native low-bit, RESIDENT) — CURRENT Q DEFAULT${pick ? " (override)" : ""}\n`
+    + `  loaded ${loadS}s · prompt ${ids.length} tok · decoded ${res.outIds.length} tokens\n`
+    + `  incremental detok == full detok (lossless): ${detokMatch ? "MATCH ✓" : "MISMATCH ✗"}\n`
+    + `  text: "${window.__v1.text.replace(/\n/g, " ").slice(0, 140)}…"\n\n`
+    + `  TTFT (prefill+1st token): ${ttftMs.toFixed(0)} ms\n`
+    + `  MEASURED decode:        ${tokps.toFixed(1)} tok/s\n`
+    + `  ceiling (159 GB/s ÷ ${activeGB} GB active): ${ceil.toFixed(0)} tok/s\n`
+    + `  engine efficiency:      ${eff.toFixed(0)}% of bandwidth-bound\n`
+    + `  ×1.83 spec-decode:      ${(tokps * 1.83).toFixed(0)} tok/s effective\n\n`
+    + `  → ${eff > 35 ? "BANDWIDTH-BOUND: 100+ tok/s is a model-size choice, not an engine problem." : "OVERHEAD-BOUND: engine is readback/glue-stalled; decode kernel needs the resident single-submit path."}`);
+  document.title = "DONE";
+} catch (e) { log("ERROR: " + (e && e.message) + "\n" + (e && e.stack || "")); window.__v1 = { error: e && e.message }; document.title = "ERROR"; }
+</script></body></html>

@@ -1,0 +1,60 @@
+<!doctype html><meta charset=utf-8><title>TurboQuant KV-plane GPU decode witness</title>
+<body><pre id=log>loading…</pre><script type=module>
+// WGSL TurboQuant KV-plane DECODE (PQ4_0, d=128): per block, dequant (codebook×norm) →
+// inverse Hadamard rotation (Fast Walsh-Hadamard in workgroup shared mem + ×signs/√d) =
+// tq_inverse_inplace. Witnessed vs the CPU oracle tqDecodeKV. The novel GPU piece is the
+// in-shader FHT (one workgroup per block, log2(d) butterfly passes with barriers).
+const log = (m) => document.getElementById("log").textContent = m;
+(async () => {
+  const { d, nb, n, total, bytes, signs, expected } = await (await fetch("./_turbokv_data.json")).json();
+  const dev = await (await navigator.gpu.requestAdapter()).requestDevice();
+  const pad = new Uint8Array(Math.ceil(bytes.length / 4) * 4); pad.set(bytes);
+  const bIn = dev.createBuffer({ size: pad.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(bIn, 0, new Uint32Array(pad.buffer));
+  const sg = new Float32Array(signs); const bSg = dev.createBuffer({ size: sg.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST }); dev.queue.writeBuffer(bSg, 0, sg);
+  const bOut = dev.createBuffer({ size: n * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+  const rd = dev.createBuffer({ size: n * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+
+  const WGSL = `
+const CB = array<f32,16>(
+  -0.23762692286887249, -0.18079342531272283, -0.14176134070424901, -0.11024676790280842,
+  -0.08279230816984559, -0.05774433563409530, -0.03413390187425037, -0.01129645493594766,
+   0.01129645493594766,  0.03413390187425037,  0.05774433563409530,  0.08279230816984559,
+   0.11024676790280842,  0.14176134070424901,  0.18079342531272283,  0.23762692286887249);
+const D : u32 = ${d}u; const STRIDE : u32 = ${total}u; const INV_SQRT_D : f32 = ${1 / Math.sqrt(d)};
+@group(0) @binding(0) var<storage, read> blk : array<u32>;
+@group(0) @binding(1) var<storage, read> signs : array<f32>;
+@group(0) @binding(2) var<storage, read_write> outp : array<f32>;
+var<workgroup> sh : array<f32, ${d}>;
+fn gb(b : u32) -> u32 { let w = blk[b >> 2u]; return (w >> ((b & 3u) * 8u)) & 0xffu; }
+@compute @workgroup_size(${d})
+fn main(@builtin(workgroup_id) wid : vec3<u32>, @builtin(local_invocation_id) lid : vec3<u32>) {
+  let blkIdx = wid.x; let o = lid.x; let base = blkIdx * STRIDE;
+  // 1) dequant element o: nibble idx → codebook × norm(f16 @ offset D/2)
+  let d16 = gb(base + (D >> 1u)) | (gb(base + (D >> 1u) + 1u) << 8u);
+  let nrm = unpack2x16float(d16).x;
+  let byte = gb(base + (o >> 1u));
+  let idx = select(byte >> 4u, byte & 0xfu, (o & 1u) == 0u);
+  sh[o] = CB[idx] * nrm;
+  workgroupBarrier();
+  // 2) Fast Walsh-Hadamard (tq_fht): log2(D) butterfly passes; left thread writes both
+  var len : u32 = 1u;
+  loop {
+    if (len >= D) { break; }
+    if ((o & len) == 0u) { let a = sh[o]; let b = sh[o + len]; sh[o] = a + b; sh[o + len] = a - b; }
+    workgroupBarrier();
+    len = len << 1u;
+  }
+  // 3) ×signs/√d  (tq_inverse_inplace tail)
+  outp[base / STRIDE * D + o] = sh[o] * signs[o] * INV_SQRT_D;
+}`;
+  const pipe = dev.createComputePipeline({ layout: "auto", compute: { module: dev.createShaderModule({ code: WGSL }), entryPoint: "main" } });
+  const bg = dev.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: bIn } }, { binding: 1, resource: { buffer: bSg } }, { binding: 2, resource: { buffer: bOut } }] });
+  const enc = dev.createCommandEncoder(); const p = enc.beginComputePass(); p.setPipeline(pipe); p.setBindGroup(0, bg); p.dispatchWorkgroups(nb); p.end();
+  enc.copyBufferToBuffer(bOut, 0, rd, 0, n * 4); dev.queue.submit([enc.finish()]);
+  await rd.mapAsync(GPUMapMode.READ); const got = new Float32Array(rd.getMappedRange().slice(0));
+  let dot = 0, na = 0, nb2 = 0, maxAbs = 0; for (let i = 0; i < n; i++) { const a = got[i], b = expected[i]; dot += a * b; na += a * a; nb2 += b * b; maxAbs = Math.max(maxAbs, Math.abs(a - b)); }
+  const cosine = dot / (Math.sqrt(na) * Math.sqrt(nb2) || 1), ok = cosine > 0.999999 && maxAbs < 1e-4;
+  window.__turbokv = { ok, cosine: +cosine.toFixed(9), maxAbs: +maxAbs.toExponential(2), n, nb };
+  log(`TurboQuant KV decode (PQ4_0): ${ok ? "PASS" : "FAIL"}  cosine=${cosine.toFixed(9)} maxAbs=${maxAbs.toExponential(2)} (${n} vals)`);
+})().catch((e) => { window.__turbokv = { ok: false, err: String(e) }; log("ERR " + e); });
+</script>

@@ -1,0 +1,39 @@
+{
+  "spec": "qwen35 gated-DeltaNet linear layer is NUMERICALLY EXACT vs HF Qwen3NextGatedDeltaNet (same weights+input): contiguous q|k|v split, causal depthwise conv1d+SiLU (no bias), head-group repeat_interleave expansion, per-head qk L2-norm + q·1/√d scale, decay g=-exp(A_log)·softplus(a+dt_bias), gated delta-rule recurrence, gated RMSNorm with z, out_proj. Caught+fixed a missing qk-L2-norm. min cosine and max relative-L2 across tokens recorded below.",
+  "authority": "HF transformers modeling_qwen3_next (torch reference path) · fixture via gguf-forge-qwen35-parity.gen.py",
+  "minCosine": 0.9999999999993644,
+  "maxRelL2": 0.000001141763085722988,
+  "perToken": [
+    {
+      "t": 0,
+      "cos": 1,
+      "relL2": 2.7078383162218707e-7
+    },
+    {
+      "t": 1,
+      "cos": 1,
+      "relL2": 2.397536169531652e-7
+    },
+    {
+      "t": 2,
+      "cos": 1,
+      "relL2": 2.530518659938669e-7
+    },
+    {
+      "t": 3,
+      "cos": 1,
+      "relL2": 3.945507654189746e-7
+    },
+    {
+      "t": 4,
+      "cos": 1,
+      "relL2": 2.986460066945053e-7
+    },
+    {
+      "t": 5,
+      "cos": 1,
+      "relL2": 0.000001141763085722988
+    }
+  ],
+  "witnessed": true
+}

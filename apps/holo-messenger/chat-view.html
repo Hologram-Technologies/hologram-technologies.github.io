@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holo · join the conversation</title>
+<style>
+  :root{color-scheme:dark;}
+  html,body{height:100%;margin:0;background:#0b141a;color:#e9edef;font:15px/1.5 system-ui,sans-serif;}
+  #app{height:100vh;display:flex;flex-direction:column;}
+  .card{margin:auto;max-width:440px;width:calc(100% - 40px);background:#111b21;border:1px solid #ffffff14;border-radius:16px;padding:28px;text-align:center;box-shadow:0 20px 60px #0007;}
+  .card .icon{font-size:40px;margin-bottom:8px;}
+  .card h1{font-size:19px;margin:6px 0 4px;}
+  .card .sub{opacity:.6;font-size:13px;margin-bottom:18px;word-break:break-all;}
+  .card input{width:100%;box-sizing:border-box;background:#2a3942;border:0;border-radius:10px;padding:12px 14px;color:#e9edef;font-size:15px;outline:none;margin-bottom:12px;}
+  .card button{width:100%;background:#00a884;border:0;border-radius:10px;padding:13px;color:#04160f;font-weight:700;font-size:15px;cursor:pointer;}
+  .card.bad{border-color:#e6462e55;} .card.bad .icon{filter:grayscale(.2);}
+  #chat{flex:1 1 auto;min-height:0;display:none;}
+  #chat.on{display:block;}
+  .bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #ffffff14;}
+  .bar .t{font-weight:600;font-size:17px;} .bar .who{opacity:.5;font-size:13px;margin-left:auto;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="gate" class="card"><div class="icon">✨</div><h1>Opening…</h1><div class="sub">verifying this link on your device</div></div>
+  <div id="chatwrap" style="flex:1;min-height:0;display:none;flex-direction:column;">
+    <div class="bar"><span class="t" id="btitle">Conversation</span><span class="who" id="bwho"></span></div>
+    <div id="chat"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { resolveChatLink, describe } from "./holo-chat-link.mjs?v=m1b";
+  import { block } from "./holo-chat-context.mjs?v=m1b";
+  import "./holo-app-tray.mjs?v=m1b";   // the "+" App Tray
+
+  const gate = document.getElementById("gate");
+  const fragment = location.hash ? location.hash.slice(1) : "";
+
+  function refuse(reason) {
+    const msg = { unreadable: "This link is broken or incomplete.", tampered: "This link was altered — it can’t be trusted.", expired: "This invitation has expired." }[reason] || "This link can’t be opened.";
+    gate.className = "card bad";
+    gate.innerHTML = `<div class="icon">🚫</div><h1>Can’t open this link</h1><div class="sub">${msg}</div>`;
+  }
+
+  // the sovereign identity for this conversation. If an operator is enrolled on this device, use it;
+  // otherwise redeem = mint a REAL κ inline via ephemeral() (zero friction, no passphrase) — the invite
+  // is the seed of your identity. Persisting it (enroll with a passphrase) is an upgrade offered later.
+  async function identify(defaultName) {
+    try {
+      const ID = await import("../self/holo-identity.mjs");
+      const r = await ID.roster();
+      if (r && r.length) return { kappa: r[0].kappa, label: r[0].label || "You", mode: "operator" };
+      const g = await ID.ephemeral({ label: defaultName || "Guest" });
+      return { kappa: g.kappa, label: g.label || defaultName || "Guest", mode: "guest" };
+    } catch {
+      return { kappa: null, label: defaultName || "Guest", mode: "anon" };   // bare static host → still joinable
+    }
+  }
+
+  (async () => {
+    if (!fragment) return refuse("unreadable");
+    const r = await resolveChatLink(fragment);
+    if (!r.ok) return refuse(r.reason);
+    const d = r.descriptor, desc = describe(d);
+
+    // point the relay at the link's signal so cross-origin openers converge on the sharer's room.
+    try { if (d.signal) globalThis.HOLO_TOGETHER_SIGNAL = d.signal; } catch {}
+
+    // if an operator is already enrolled, admit straight away; else show one field (name) then admit.
+    const pre = await import("../self/holo-identity.mjs").then((ID) => ID.roster()).catch(() => []);
+    const hasOperator = pre && pre.length;
+
+    async function admit(id) {
+      document.getElementById("gate").style.display = "none";
+      const wrap = document.getElementById("chatwrap"); wrap.style.display = "flex";
+      document.getElementById("btitle").textContent = d.ctx.label || "Conversation";
+      document.getElementById("bwho").textContent = id.label + (id.mode === "guest" ? " · guest" : "");
+      const chat = document.getElementById("chat"); chat.classList.add("on");
+      await block(d.ctx, { mount: chat, meName: id.label, placeholder: "Message…" });
+    }
+
+    if (hasOperator) { admit(await identify()); return; }
+
+    gate.className = "card";
+    gate.innerHTML = `<div class="icon">💬</div><h1>${desc.headline}</h1><div class="sub">Your identity lives on this device — no account, no phone number.</div>
+      <input id="name" placeholder="What should we call you?" autocomplete="off" maxlength="40">
+      <button id="join">${desc.cta}</button>`;
+    const nameEl = document.getElementById("name"), joinEl = document.getElementById("join");
+    nameEl.focus();
+    const go = async () => { joinEl.disabled = true; joinEl.textContent = "Joining…"; admit(await identify(nameEl.value.trim())); };
+    joinEl.onclick = go;
+    nameEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  })().catch((e) => refuse("unreadable"));
+</script>
+</body>
+</html>

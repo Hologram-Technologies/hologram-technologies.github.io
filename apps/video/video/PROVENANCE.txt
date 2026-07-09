@@ -1,0 +1,25 @@
+Native video content — content-addressed media for the Video holospace (Law L5).
+
+Every file here is pinned by sha256 in video-manifest.json; video.html re-derives the
+default source before playing it, and video-witness.mjs fails on any drift. This is the
+"100% UOR content-addressable" default content: the bytes the holospace plays ARE their
+own address. The bundled clip and the HLS ladder carry an AUDIO track (AAC stereo), so
+"audio works for every video" is testable offline. For remote 4K / Low-Latency-HLS
+streaming, open video.html?src=<url> — the adaptive ladder is then addressed by its HLS
+playlist, not bundled here (the verified 4K and 1080p remote streams also carry audio).
+
+big-buck-bunny-360p.mp4  (+ hls/ ladder transcoded from it)
+  Source : https://www.w3schools.com/html/mov_bbb.mp4 (the short Big Buck Bunny clip, with audio)
+  Origin : "Big Buck Bunny" © Blender Foundation — Creative Commons Attribution 3.0
+           (https://peach.blender.org/about/) — free to use with attribution.
+  Codec  : H.264 High + AAC-LC stereo 48 kHz, MP4 (ISO BMFF) · 640×360 · ~10s · 807453 bytes
+  sha256 : 2a338a2bc796086be42f2b9c85a6efdd2198f5e88c92f5ce0332bf141b8f4edd
+
+cmaf/ — ONE content-addressed CMAF (fragmented-MP4) segment set, described by BOTH an
+        HLS playlist (master.m3u8, #EXT-X-VERSION:7) AND an MPEG-DASH manifest
+        (stream.mpd). Two open standards, identical κ-segments: init-stream{0,1,2}.m4s +
+        chunk-stream{0,1,2}-*.m4s (reps 0/1 = 640×360 + 480×270 video, rep 2 = AAC audio).
+        Built from the MP4 above with ffmpeg's DASH muxer (-hls_playlist). Each segment is
+        independently content-addressed; served through holo:// every .m4s is a verified
+        κ-object reused by HLS and DASH alike (max-UOR dedup across protocols).
+        HLS master κ:  sha256:e77a1243dfed… · DASH MPD κ: sha256:20683114ef22…

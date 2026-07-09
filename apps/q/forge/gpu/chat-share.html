@@ -1,0 +1,107 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holo · share a chat</title>
+<style>
+  :root{--bg:#0b0d12;--panel:#14171f;--line:#252b3a;--txt:#eef1f6;--dim:#9aa3b8;--accent:#5eead4;--user:#1d2840;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:16px/1.6 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif}
+  #app{display:flex;flex-direction:column;height:100%;max-width:820px;margin:0 auto;padding:0 18px}
+  header{padding:16px 0 12px;display:flex;align-items:center;gap:12px}
+  h1{font-size:19px;margin:0}h1 b{color:var(--accent)}
+  .tag{font-size:13px;color:var(--dim);margin-left:auto}
+  .fbtn{font:inherit;font-size:14px;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer}
+  .fbtn:hover{border-color:#33405a}.fbtn:disabled{opacity:.4;cursor:default}
+  #log{flex:1;overflow-y:auto;padding:14px 0;display:flex;flex-direction:column;gap:14px}
+  .msg{display:flex;gap:11px}.who{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:700}
+  .msg.user .who{background:#27375a;color:#cfe0ff}.msg.assistant .who{background:#0f2b27;color:var(--accent)}
+  .bubble{padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+  .msg.user .bubble{background:var(--user)}.msg.assistant .bubble{background:var(--panel);border:1px solid var(--line)}
+  .empty{color:var(--dim);text-align:center;margin:auto}
+  footer{padding:12px 0 16px;border-top:1px solid var(--line);display:flex;gap:10px}
+  #inp{flex:1;resize:none;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:11px;padding:11px 14px;font:inherit;outline:none}
+  #send{background:var(--accent);color:#06241f;border:0;border-radius:11px;padding:0 20px;font-weight:700;cursor:pointer}#send:disabled{opacity:.35}
+</style>
+<div id="app">
+  <header>
+    <h1>Holo <b>chat</b></h1>
+    <span class="tag" id="tag">loading model by κ…</span>
+    <button class="fbtn" id="share" disabled>Share chat ↗</button>
+  </header>
+  <div id="log"><div class="empty" id="empty">…</div></div>
+  <footer>
+    <textarea id="inp" rows="1" placeholder="Loading…" disabled></textarea>
+    <button id="send" disabled>Send</button>
+  </footer>
+</div>
+<script type="module">
+// Share-a-chat surface on the κ-stream loader. A chat is a content κ over {model, system, messages}; the
+// "Share" button packs that into the URL #fragment (the same transport class as the Share carriage — never
+// hits a server). Opening a #chat= link restores the messages; the brain re-frames + re-prefills the full
+// history on the next turn, so it continues from the EXACT point (token-exact resume witnessed in Node).
+import { createHoloBrain } from "./holo-brain-engine.mjs?v=6";
+import { sha256hex, jcs, didHolo } from "../../../../../holo-os/system/os/usr/lib/holo/holo-uor.mjs";
+
+const $ = (id) => document.getElementById(id);
+const SYSTEM = "You are a concise, helpful assistant.";
+const MODEL = { holo: "../.models/qwen2.5-0.5b-instruct.holo", kappa: "41a930c07450623751f84af6a55bbecd54fe608ad6e94adf17f83c712aaf1b91" };
+
+// restore from a shared link (#chat=<base64 json>) — nothing but the content travels
+function fromHash() {
+  const m = location.hash.match(/chat=([^&]+)/); if (!m) return null;
+  try { return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); } catch { return null; }
+}
+const restored = fromHash();
+let system = restored?.system || SYSTEM;
+let messages = restored?.messages ? restored.messages.slice() : [];
+const chatKappa = () => didHolo("sha256", sha256hex(jcs({ model: MODEL.kappa, system, messages })));
+
+function render() {
+  const log = $("log"); log.innerHTML = "";
+  if (!messages.length) { log.innerHTML = `<div class="empty">${restored ? "restoring…" : "Ask the model anything. Then Share the chat as a link."}</div>`; return; }
+  for (const m of messages) {
+    const w = document.createElement("div"); w.className = "msg " + m.role;
+    const who = document.createElement("div"); who.className = "who"; who.textContent = m.role === "user" ? "you" : "κ";
+    const b = document.createElement("div"); b.className = "bubble"; b.textContent = m.content;
+    w.append(who, b); log.append(w);
+  }
+  log.scrollTop = log.scrollHeight;
+  window.__chat = { messages, system, model: MODEL.kappa, kappa: chatKappa(), n: messages.length };
+}
+render();
+
+const brain = createHoloBrain({ holoUrl: MODEL.holo, kappa: MODEL.kappa, system, maxTokens: 64 });
+let busy = false;
+(async () => {
+  $("tag").textContent = "streaming weights by κ…";
+  const info = await brain.load((m) => $("tag").textContent = m);
+  $("tag").innerHTML = `qwen · κ ${MODEL.kappa.slice(0, 10)}… · ${info.cache} · on your GPU`;
+  $("inp").disabled = false; $("send").disabled = false; $("share").disabled = false;
+  $("inp").placeholder = "Message…"; render(); window.__loaded = true;
+})().catch((e) => { $("tag").textContent = "load error: " + e; window.__chat = { error: String(e) }; });
+
+async function send() {
+  if (busy) return; const text = $("inp").value.trim(); if (!text) return;
+  busy = true; $("send").disabled = true; $("inp").value = "";
+  messages.push({ role: "user", content: text }); render();
+  const reply = await brain.chat(messages);              // re-frames + re-prefills the FULL history → continues exactly
+  messages.push({ role: "assistant", content: reply }); render();
+  busy = false; $("send").disabled = false; $("inp").focus();
+  window.__lastReply = reply;
+}
+function share() {
+  const payload = { v: 1, model: MODEL.kappa, system, messages };
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const url = location.origin + location.pathname + "#chat=" + encodeURIComponent(b64);
+  location.hash = "chat=" + encodeURIComponent(b64);
+  navigator.clipboard?.writeText(url).catch(() => {});
+  $("tag").textContent = `link copied · chat κ ${chatKappa().slice(-1) === "" ? "" : chatKappa().split(":").pop().slice(0, 10)}… (${url.length} B)`;
+  window.__shareUrl = url; window.__shareKappa = chatKappa();
+}
+$("send").addEventListener("click", send);
+$("share").addEventListener("click", share);
+$("inp").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+$("inp").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; });
+// expose for witnessing: programmatic send + share
+window.__send = async (t) => { $("inp").value = t; await send(); return window.__lastReply; };
+window.__share = () => { share(); return window.__shareUrl; };
+</script>

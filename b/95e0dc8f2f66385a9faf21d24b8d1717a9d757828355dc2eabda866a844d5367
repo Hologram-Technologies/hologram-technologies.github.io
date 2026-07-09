@@ -1,0 +1,945 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07080c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Holo Games</title>
+<!--
+  Holo Games — a κ-native retro console LIBRARY. Five real emulators (Gambatte, QuickNES,
+  mGBA, Snes9x, Genesis Plus GX) behind one engine-agnostic frontend + κ seams. A Home
+  library of games (drop a ROM to add one — it's content-addressed, verify-on-read), a
+  "Continue Playing" rail backed by per-game κ-saves, and an immersive super-res player.
+  Self-contained, serverless. Reuses the streaming-OS "continue / library" shape locally;
+  OS catalog + reseal land via the seal flow (path-only until then).
+-->
+<style>
+  :root { color-scheme: dark; --accent: #ff5c8a; }
+  html, body { margin: 0; height: 100%; background: #07080c; color: #cfd6e4; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  #root { height: 100%; }
+  /* ── Home ── */
+  #home { height: 100%; overflow: auto; box-sizing: border-box; padding: 18px 22px 40px; }
+  #home h1 { font-size: 20px; margin: 4px 0 2px; letter-spacing: .5px; }
+  #home .sub { opacity: .5; margin-bottom: 14px; }
+  #search { width: 100%; max-width: 420px; background: #0d1018; color: #cfd6e4; border: 1px solid #2a3140; border-radius: 10px; padding: 9px 12px; font: inherit; margin-bottom: 18px; }
+  .shelf-title { font-size: 13px; opacity: .7; margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .rail { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+  .card { flex: 0 0 auto; width: 150px; cursor: pointer; border-radius: var(--holo-radius, 12px); overflow: hidden; background: #0d1018; border: 1px solid #1c2230; transition: transform .12s, border-color .12s; }
+  .card:hover { transform: translateY(-3px); border-color: var(--accent); }
+  .poster { width: 150px; height: 135px; display: block; image-rendering: pixelated; background: #000; }
+  .card .meta { padding: 7px 9px; }
+  .card .t { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .s { font-size: 10px; opacity: .5; }
+  .card .resume { font-size: 10px; color: var(--accent); }
+  .badge { font-size: 9px; padding: 1px 5px; border-radius: 6px; background: #1c2230; opacity: .8; }
+  .badge.ok { background: #1f3d2a; color: #7ee787; }
+  .card .fav { position: absolute; top: 8px; right: 8px; font-size: 16px; opacity: 0; transition: opacity .12s; text-shadow: 0 1px 4px #000; }
+  .card { position: relative; }
+  .card:hover .fav, .card .fav.on { opacity: 1; }
+  .card .fav.on { color: #ffd23f; }
+  /* filter chips */
+  #filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+  .chip { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: #0d1018; border: 1px solid #2a3140; cursor: pointer; }
+  .chip:hover { border-color: #4a5468; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  /* detail panel */
+  #detail { display: none; position: fixed; inset: 0; z-index: 25; background: #05060ad8; backdrop-filter: blur(10px); place-items: center; }
+  #detail.show { display: grid; }
+  .dcard { width: min(760px, 92vw); display: grid; grid-template-columns: 260px 1fr; gap: 24px; background: #0d1018; border: 1px solid #2a3140; border-radius: var(--holo-radius-lg, 16px); padding: 24px; box-shadow: 0 30px 90px #000a; }
+  .dcard .dcover { width: 260px; height: 234px; border-radius: var(--holo-radius, 12px); object-fit: cover; image-rendering: pixelated; background: #000; }
+  .dcard .dtitle { font-size: 26px; font-weight: 800; margin: 2px 0 6px; }
+  .dcard .dmeta { opacity: .6; margin-bottom: 18px; font-size: 13px; }
+  .dcard .dbtns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dcard .dbtns button { padding: 10px 20px; font-size: 14px; }
+  .dcard .dbtns button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .dclose { position: absolute; top: 18px; right: 22px; font-size: 26px; cursor: pointer; opacity: .6; }
+  /* ── mobile / any-device ── */
+  html, body { overflow-x: hidden; }
+  @media (max-width: 680px) {
+    #home { padding: 14px 12px 40px; }
+    #home h1 { font-size: 18px; }
+    #search { max-width: 100%; }
+    .card { width: 120px; } .poster { width: 120px; height: 108px; }
+    .card .t, .card .s { width: 120px; }
+    .dcard { grid-template-columns: 1fr; gap: 14px; padding: 16px; text-align: center; }
+    .dcard .dcover { width: 100%; height: auto; aspect-ratio: 10/9; }
+    .dcard .dbtns { justify-content: center; }
+    #tv-hero .ht { font-size: 30px; } #tv-hero .herometa { left: 5vw; max-width: 88vw; }
+    .tv-tile { width: 132px; } .tv-tile img { width: 132px; height: 118px; }
+  }
+  .addrow { margin: 8px 0 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .seeall { flex: 0 0 auto; width: 150px; height: 135px; display: grid; place-items: center; border-radius: var(--holo-radius, 12px); background: #0d1018; border: 1px dashed #2a3140; cursor: pointer; font-size: 12px; opacity: .8; }
+  .seeall:hover { border-color: var(--accent); }
+  .vgrid-vp { height: 72vh; overflow: auto; position: relative; }
+  .vgrid-inner { position: relative; }
+  label.btn { background: #141925; color: #cfd6e4; border: 1px solid #2a3140; border-radius: var(--holo-radius-sm, 8px); padding: 7px 13px; cursor: pointer; }
+  label.btn:hover { border-color: #4a5468; }
+  /* ── Player ── */
+  #player { display: none; height: 100%; grid-template-rows: auto 1fr auto; gap: 10px; padding: 10px; box-sizing: border-box; }
+  #player.show { display: grid; }
+  #pbar { display: flex; gap: 8px; align-items: center; justify-self: center; flex-wrap: wrap; }
+  button { background: #141925; color: #cfd6e4; border: 1px solid #2a3140; border-radius: var(--holo-radius-sm, 8px); padding: 6px 12px; cursor: pointer; font: inherit; }
+  button:hover { border-color: #4a5468; }
+  #out { justify-self: center; align-self: center; max-width: 92vw; max-height: 72vh; border-radius: 10px; box-shadow: 0 20px 70px #000a; }
+  #hud { white-space: pre; opacity: .8; justify-self: center; text-align: center; line-height: 1.5; }
+  #drop { position: fixed; inset: 0; display: none; place-items: center; background: #000a; font-size: 22px; z-index: 9; }
+  #drop.show { display: grid; }
+  #slots { display: none; position: fixed; right: 14px; top: 56px; width: 260px; max-height: 70vh; overflow: auto; background: #0d1018ee; border: 1px solid #2a3140; border-radius: var(--holo-radius, 12px); padding: 10px; z-index: 8; backdrop-filter: blur(8px); }
+  #slots.show { display: block; }
+  #slots .sv { display: flex; gap: 8px; align-items: center; padding: 6px; border-radius: var(--holo-radius-sm, 8px); }
+  #slots .sv:hover { background: #1a2030; }
+  #slots .sv img { width: 56px; height: 50px; border-radius: 5px; image-rendering: pixelated; background:#000; }
+  #slots .sv .info { flex: 1; min-width: 0; }
+  #slots .sv .info .l { font-size: 11px; } #slots .sv .info .d { font-size: 10px; opacity: .5; }
+  #slots .sv button { padding: 3px 7px; font-size: 11px; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity .2s; z-index: 10; pointer-events: none; }
+  /* ── Fullscreen "Netflix" TV mode ── */
+  #tv { display: none; position: fixed; inset: 0; z-index: 20; background: #05060a; overflow: hidden; flex-direction: column; }
+  #tv.show { display: flex; }
+  #tv-hero { position: relative; height: 46vh; background-size: cover; background-position: center; flex: 0 0 auto; }
+  #tv-hero .scrim { position: absolute; inset: 0; background: linear-gradient(90deg, #05060aee 0%, #05060a99 40%, #05060a33 70%), linear-gradient(0deg, #05060a 0%, #05060a00 50%); }
+  #tv-hero .herometa { position: absolute; left: 6vw; bottom: 8%; max-width: 60vw; }
+  #tv-hero .ht { font-size: 44px; font-weight: 800; letter-spacing: .5px; text-shadow: 0 3px 18px #000; }
+  #tv-hero .hs { opacity: .75; margin: 8px 0 14px; font-size: 15px; }
+  #tv-hero .play { display: inline-block; background: var(--accent); color: #fff; font-weight: 700; padding: 10px 26px; border-radius: 999px; }
+  #tv-rows { flex: 1; overflow-y: auto; padding: 18px 0 40px; }
+  .tv-row { margin: 0 0 22px; }
+  .tv-rowlabel { font-size: 14px; opacity: .7; margin: 0 0 10px 6vw; letter-spacing: 1px; text-transform: uppercase; }
+  .tv-tiles { display: flex; gap: 18px; overflow-x: auto; padding: 6px 6vw; scrollbar-width: none; }
+  .tv-tiles::-webkit-scrollbar { display: none; }
+  .tv-tile { flex: 0 0 auto; width: 168px; cursor: pointer; transition: transform .15s; opacity: .8; }
+  .tv-tile img { width: 168px; height: 150px; border-radius: var(--holo-radius, 12px); image-rendering: pixelated; background: #000; display: block; border: 3px solid transparent; }
+  .tv-tile .tt { font-size: 12px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 168px; opacity: .7; }
+  .tv-tile.foc { transform: scale(1.12); opacity: 1; }
+  .tv-tile.foc img { border-color: var(--accent); box-shadow: 0 12px 36px #000a, 0 0 0 4px #ff5c8a44; }
+  .tv-tile.foc .tt { opacity: 1; }
+
+  /* ═══════════ MOBILE / TOUCH — every game playable, fast and immersive on a phone ═══════════
+     The whole engine is untouched; this is the missing mobile layer: an on-screen gamepad, a
+     full-bleed player that adapts to portrait/landscape, auto-hiding chrome, and trimmed text.
+     Touch is detected in JS (coarse pointer OR touch points OR touch API) → <body class="touch">, so desktop is unaffected. */
+  body.touch .lbl { display: none; }                  /* icon-only chrome on touch (less text) */
+  body.touch .card .fav { opacity: .85; }             /* favourite reachable without hover */
+  body.touch .card:active { transform: scale(.97); }  /* tactile feedback on tap */
+  .add-detail { opacity: .5; }
+  @media (max-width: 680px) { .add-detail { display: none; } }   /* drop dev jargon on phones */
+
+  /* immersive player: a deep void backdrop; the bar floats and auto-hides during play ───────── */
+  #player { background: radial-gradient(125% 90% at 50% 26%, #0b0c12 0%, #07080c 60%, #000 100%); }
+  body.touch #player.show { grid-template-rows: 1fr; padding: 0; gap: 0; place-items: stretch; }
+  body.touch #pbar { position: fixed; top: 0; left: 0; right: 0; z-index: 8; justify-content: flex-start;
+    align-items: center; gap: 6px; padding: calc(7px + env(safe-area-inset-top)) 12px 10px;
+    background: linear-gradient(#000c 0%, #0007 58%, #0000 100%);
+    transition: opacity .3s ease, transform .3s ease; }
+  body.touch #pbar.hidden { opacity: 0; transform: translateY(-115%); pointer-events: none; }
+  body.touch #pbar #now { font-size: 12px; max-width: 44vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body.touch #pbar button { padding: 8px 11px; font-size: 16px; line-height: 1; border-radius: 10px; }
+  body.touch #btn-fs { display: none; }               /* the phone player is already full-bleed */
+  body.touch #hud { display: none; }                  /* drop the dev telemetry (κ/fps/super-res) */
+  body.touch #out { border-radius: 0; box-shadow: none; }
+  @media (orientation: portrait) {
+    body.touch #out { width: 100vw; height: auto; max-width: 100vw; max-height: none;
+      align-self: start; justify-self: center; margin-top: calc(46px + env(safe-area-inset-top)); }
+  }
+  @media (orientation: landscape) {
+    body.touch #out { height: 100vh; height: 100dvh; width: auto; max-width: 100vw; max-height: 100dvh;
+      align-self: center; justify-self: center; }
+  }
+
+  /* ── on-screen gamepad — glassy, multi-touch, frame-accurate (wired into touchBits) ───────── */
+  #touch { display: none; }
+  #touch.show { display: block; position: fixed; inset: 0; z-index: 9; pointer-events: none; touch-action: none; }
+  #touch > * { pointer-events: auto; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #dpad { position: fixed; width: min(46vw, 230px); aspect-ratio: 1;
+    left: calc(16px + env(safe-area-inset-left)); bottom: calc(20px + env(safe-area-inset-bottom));
+    border-radius: 26%; border: 1px solid #ffffff1f; display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 42%, #ffffff14, #ffffff07 65%, #ffffff03);
+    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+    box-shadow: 0 10px 34px #0008, inset 0 1px 0 #ffffff14; }
+  #dpad::before, #dpad::after { content: ""; position: absolute; background: #ffffff12; border-radius: var(--holo-radius, 12px); }
+  #dpad::before { width: 31%; height: 86%; } #dpad::after { height: 31%; width: 86%; }
+  #dpad .arrow { position: absolute; font-size: 15px; color: #fff; opacity: .3;
+    transition: opacity .08s, color .08s, text-shadow .08s; }
+  #dpad .arrow.u { top: 7%; } #dpad .arrow.d { bottom: 7%; } #dpad .arrow.l { left: 9%; } #dpad .arrow.r { right: 9%; }
+  #dpad[data-dir*="U"] .u, #dpad[data-dir*="D"] .d, #dpad[data-dir*="L"] .l, #dpad[data-dir*="R"] .r {
+    opacity: 1; color: var(--accent); text-shadow: 0 0 12px var(--accent); }
+  #dpad.active { border-color: #ffffff33; }
+  #abtns { position: fixed; right: calc(18px + env(safe-area-inset-right)); bottom: calc(28px + env(safe-area-inset-bottom));
+    display: flex; align-items: flex-end; gap: 18px; }
+  .tb { width: 76px; height: 76px; border-radius: 50%; border: 1px solid #ffffff22; color: #fff;
+    background: radial-gradient(circle at 50% 34%, #ffffff1c, #ffffff09 70%);
+    font: 800 19px ui-sans-serif, system-ui, sans-serif; display: grid; place-items: center;
+    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+    box-shadow: 0 8px 24px #0008, inset 0 1px 0 #ffffff18;
+    transition: transform .06s, box-shadow .1s, background .1s, border-color .1s; }
+  .tb.b { margin-bottom: 30px; }                      /* classic diagonal A/B stagger */
+  .tb.active { transform: scale(.9); border-color: var(--accent);
+    background: radial-gradient(circle at 50% 34%, var(--accent), #ffffff10); box-shadow: 0 0 22px var(--accent); }
+  #util { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom));
+    display: flex; gap: 12px; }
+  .tb.util { width: auto; height: 32px; min-width: 66px; border-radius: 999px; padding: 0 16px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; }
+  @media (orientation: landscape) {
+    #dpad { width: min(32vh, 200px); bottom: calc(12px + env(safe-area-inset-bottom)); }
+    #abtns { bottom: calc(18px + env(safe-area-inset-bottom)); }
+    #touch > * { opacity: .92; }                      /* let the game breathe behind the pads */
+  }
+</style>
+
+<div id="root">
+  <div id="home">
+    <h1>Holo Games</h1>
+    <div class="sub">a κ-native console library · drop a ROM to add a game</div>
+    <input id="search" placeholder="Search games or systems…">
+    <div id="filters"></div>
+    <div class="addrow"><label class="btn">+ Add ROM<span class="add-detail"> · .holo · .dat · catalog .json</span> <input id="file" type="file" accept=".gb,.gbc,.gba,.nes,.sfc,.smc,.md,.gen,.bin,.holo,.dat,.json" hidden></label> <button id="btn-tv">📺 TV Mode</button> <button id="btn-stream">🔗 Stream URL</button></div>
+    <div id="continue-wrap" style="display:none"><div class="shelf-title">Continue playing</div><div id="continue-rail" class="rail"></div></div>
+    <div id="shelves"></div>
+  </div>
+
+  <div id="player">
+    <div id="pbar">
+      <button id="btn-back" title="Library">‹<span class="lbl"> Library</span></button>
+      <span id="now" style="opacity:.7"></span>
+      <button id="btn-save" title="Save">⤓<span class="lbl"> Save</span></button>
+      <button id="btn-slots" title="Saves">≣<span class="lbl"> Saves</span></button>
+      <button id="btn-share" title="Share">⤴<span class="lbl"> Share</span></button>
+      <button id="btn-fs" title="Fullscreen">⛶<span class="lbl"> Fullscreen</span></button>
+    </div>
+    <canvas id="out" width="1280" height="1152"></canvas>
+    <div id="hud">…</div>
+    <div id="slots"></div>
+    <!-- on-screen gamepad (touch only; shown by JS while a game is up) -->
+    <div id="touch" aria-hidden="true">
+      <div id="dpad" aria-label="D-pad"><span class="arrow u">▲</span><span class="arrow d">▼</span><span class="arrow l">◀</span><span class="arrow r">▶</span></div>
+      <div id="abtns"><button class="tb b" data-bit="0" aria-label="B">B</button><button class="tb a" data-bit="8" aria-label="A">A</button></div>
+      <div id="util"><button class="tb util" data-bit="2" aria-label="Select">Select</button><button class="tb util" data-bit="3" aria-label="Start">Start</button></div>
+    </div>
+  </div>
+</div>
+<div id="drop">drop a ROM to add it to your library</div>
+<div id="toast"></div>
+<div id="tv"></div>
+<div id="detail"></div>
+
+<script type="module">
+import { KappaCompositor } from "./engine/holo-render.js";
+import { KappaBlockStore, subtleHashHex } from "./engine/holo-kappa-disk.js";
+import { saveVerifies, trustedStateOf } from "./engine/holo-save-trust.mjs";
+import { loadRealCore } from "./engine/holo-libretro-real.js";
+import { AudioRing, resampleLinear } from "./engine/holo-retro-audio.js";
+import { autoProfile, probeCaps } from "./engine/holo-autoprofile.js";
+import { DatIndex, sha1Hex, thumbUrl } from "./engine/holo-dat.mjs";
+
+// ── systems + built-in demo games (content of the library, plus user-added ROMs) ──
+const SYS = {
+  gb:  { name: "Game Boy", mod: "./cores/gambatte.mjs", ext: ".gb",  color: "#7ee787" },
+  nes: { name: "NES",      mod: "./cores/quicknes.mjs", ext: ".nes", color: "#79c0ff" },
+  gba: { name: "GBA",      mod: "./cores/mgba.mjs",     ext: ".gba", color: "#d2a8ff" },
+  snes:{ name: "SNES",     mod: "./cores/snes9x.mjs",   ext: ".sfc", color: "#ffa657" },
+  gen: { name: "Genesis",  mod: "./cores/genesis.mjs",  ext: ".md",  color: "#ff7b72" },
+};
+const SHARP = { gb: 0.35, gba: 0.4, nes: 0.6, snes: 0.7, gen: 0.7 };
+const BUILTINS = [
+  { title: "Checkerboard (GB demo)",  system: "gb",  url: "./roms/hologram.gb" },
+  { title: "Color Fill (NES demo)",   system: "nes", url: "./roms/hologram.nes" },
+  { title: "Mode 3 (GBA demo)",       system: "gba", url: "./roms/hologram.gba" },
+  { title: "Backdrop (SNES demo)",    system: "snes",url: "./roms/hologram.sfc" },
+  { title: "VDP (Genesis demo)",      system: "gen", url: "./roms/hologram.md" },
+];
+const sysForName = (n) => /\.gba$/i.test(n) ? "gba" : /\.gbc$/i.test(n) ? "gb" : /\.gb$/i.test(n) ? "gb"
+  : /\.nes$/i.test(n) ? "nes" : /\.(sfc|smc)$/i.test(n) ? "snes" : /\.(md|gen|bin)$/i.test(n) ? "gen" : null;
+
+// No-Intro / Redump system names → our system ids (the hash-identity bridge)
+const NOINTRO_SYS = {
+  "Nintendo - Game Boy": "gb", "Nintendo - Game Boy Color": "gb",
+  "Nintendo - Game Boy Advance": "gba",
+  "Nintendo - Nintendo Entertainment System": "nes",
+  "Nintendo - Super Nintendo Entertainment System": "snes",
+  "Sega - Mega Drive - Genesis": "gen", "Sega - Genesis": "gen", "Sega - Mega Drive": "gen",
+};
+// hash-identity resolver: a ROM's SHA-1 → canonical title/system/region (No-Intro). Offline-first;
+// the bundled demo DAT loads now, and the user can drop real No-Intro/Redump .dat files anytime.
+const datIndex = new DatIndex();
+try { datIndex.addDat(await (await fetch("./engine/dat/holo-demos.dat")).text()); } catch (e) {}
+
+// catalog adapter: a curated list of freely-redistributable games (title/system/url/license)
+// is the library source; merge more catalogs by dropping a .json or streaming a catalog URL.
+let CATALOG = [];
+try { CATALOG = ((await (await fetch("./engine/catalog.json")).json()).games || []).map((g) => ({ ...g, provenance: g.provenance || "catalog" })); } catch (e) {}
+if (!CATALOG.length) CATALOG = BUILTINS.map((b) => ({ ...b, provenance: "demo" }));   // fallback: never empty
+const catRef = (g) => g.url || g.holo;   // a catalog row points at a raw ROM (url) OR a precompiled .holo
+function mergeCatalog(games) {
+  let added = 0;
+  for (const g of games || []) { const ref = g && catRef(g); if (g && ref && g.system && !CATALOG.some((c) => catRef(c) === ref)) { CATALOG.push({ ...g, provenance: g.provenance || "catalog" }); added++; } }
+  return added;
+}
+// auto-import the precompiled .holo library: each row carries baked artwork + a .holo that
+// streams + warm-boots on click. Drop more .holo files + regenerate holos/catalog.json to grow it.
+try { mergeCatalog((await (await fetch("./holos/catalog.json")).json()).games); } catch (e) {}
+async function importCatalog(src) {
+  try { const json = typeof src === "string" ? await (await fetch(src)).json() : JSON.parse(await src.text()); const n = mergeCatalog(json.games); await renderHome(); toast(`Catalog: +${n} game${n === 1 ? "" : "s"}`); }
+  catch (e) { toast("Bad catalog (need {games:[…]})"); }
+}
+window.__mergeCatalog = (games) => { const n = mergeCatalog(games); renderHome(); return n; };
+
+// ── IndexedDB: content-addressed library + per-game κ-saves ──
+const DB = await new Promise((res, rej) => {
+  const r = indexedDB.open("holo-games", 3);
+  r.onupgradeneeded = () => { const d = r.result; for (const s of ["library", "saves", "covers", "roms"]) if (!d.objectStoreNames.contains(s)) d.createObjectStore(s); };
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+const tx = (store, mode) => DB.transaction(store, mode).objectStore(store);
+const idbGet = (store, key) => new Promise((res) => { const r = tx(store, "readonly").get(key); r.onsuccess = () => res(r.result); r.onerror = () => res(null); });
+const idbPut = (store, key, val) => new Promise((res) => { const r = tx(store, "readwrite").put(val, key); r.onsuccess = () => res(true); r.onerror = () => res(false); });
+const idbAll = (store) => new Promise((res) => { const out = []; const r = tx(store, "readonly").openCursor(); r.onsuccess = () => { const c = r.result; if (c) { out.push({ key: c.key, val: c.value }); c.continue(); } else res(out); }; r.onerror = () => res(out); });
+const idbDel = (store, key) => new Promise((res) => { const r = tx(store, "readwrite").delete(key); r.onsuccess = () => res(true); r.onerror = () => res(false); });
+// saves are keyed `${gameκ}#${slot}` (slot = "auto" or a timestamp). Helpers over that:
+const savesFor = async (kappa) => (await idbAll("saves")).filter((s) => s.val.kappa === kappa).map((s) => ({ key: s.key, ...s.val })).sort((a, b) => b.ts - a.ts);
+const latestSave = async (kappa) => (await savesFor(kappa))[0] || null;
+// verify-before-trust (engine/holo-save-trust.mjs): the state must re-hash to its stamped κ before
+// it is ever unserialized. Returns the state, `false` if a κ-claim FAILS (tampered → refuse), or null.
+const trustedState = (sv) => trustedStateOf(sv, subtleHashHex);
+
+// ── core engine wiring (super-res, audio, input) — shared by the player ──
+const canvas = document.getElementById("out");
+// the compositor is only needed by the PLAYER — create it lazily so a transient WebGPU
+// failure can never blank the library/home (robustness: the home renders regardless)
+let comp = null;
+// A 2D-blit stand-in with the SAME interface as KappaCompositor, used when no WebGPU adapter exists
+// (some devices/headless hosts) — so the front door PLAYS everywhere instead of "Graphics unavailable".
+// No super-res (that's the GPU's job), but the game renders + the HUD keeps working.
+function make2DComp(cv) {
+  let outW = cv.width || 320, outH = cv.height || 288, sw = 0, sh = 0, ctx = cv.getContext("2d");
+  const off = document.createElement("canvas");
+  let t0 = performance.now(), frames = 0, fps = 60;
+  return {
+    fallback2d: true,
+    setOutputResolution(w, h) { outW = w; outH = h; cv.width = w; cv.height = h; ctx = cv.getContext("2d"); ctx.imageSmoothingEnabled = true; },
+    setSharpen() {},
+    setSource(w, h) { sw = w; sh = h; off.width = w; off.height = h; },
+    present(rgba) {
+      off.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(rgba), sw, sh), 0, 0);
+      ctx.drawImage(off, 0, 0, outW, outH);
+      frames++; const now = performance.now(); if (now - t0 >= 500) { fps = frames / ((now - t0) / 1000); frames = 0; t0 = now; }
+      return { outW, outH, fps, dirtyTiles: 0, totalTiles: 0, dedupPct: 0 };
+    },
+  };
+}
+async function ensureComp() {
+  if (comp) return comp;
+  try { comp = await new KappaCompositor(canvas, { sharpen: 0.7 }).init(); }
+  catch (e) { comp = make2DComp(canvas); }   // no WebGPU adapter → 2D fallback so the game still plays
+  return comp;
+}
+let profile = { outputLongEdge: 1440 };
+try { const ad = await navigator.gpu.requestAdapter(); profile = autoProfile(await probeCaps(ad, { refreshHz: 60 })); } catch (e) {}
+
+const keys = new Set();
+let touchBits = 0;   // live bitmask from the on-screen gamepad (set by the touch-controls block below)
+const KMAP = { ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7, KeyZ: 0, KeyX: 8, Enter: 3, ShiftRight: 2 };
+addEventListener("keydown", (e) => { keys.add(e.code); startAudio(); });
+addEventListener("keyup", (e) => keys.delete(e.code));
+addEventListener("pointerdown", startAudio);
+addEventListener("gamepadconnected", startAudio);
+const padBits = () => { let b = 0; const pads = navigator.getGamepads ? navigator.getGamepads() : []; for (const p of pads) { if (!p) continue; const B = p.buttons, ax = p.axes || []; if (B[0]?.pressed) b |= 1 << 8; if (B[1]?.pressed) b |= 1 << 0; if (B[8]?.pressed) b |= 1 << 2; if (B[9]?.pressed) b |= 1 << 3; if (B[12]?.pressed) b |= 1 << 4; if (B[13]?.pressed) b |= 1 << 5; if (B[14]?.pressed) b |= 1 << 6; if (B[15]?.pressed) b |= 1 << 7; if (ax[1] < -.4) b |= 1 << 4; if (ax[1] > .4) b |= 1 << 5; if (ax[0] < -.4) b |= 1 << 6; if (ax[0] > .4) b |= 1 << 7; } return b; };
+const inputBits = () => { let b = padBits() | touchBits; for (const k of keys) if (k in KMAP) b |= (1 << KMAP[k]); return b; };
+
+let audioRing = null, audioCtx = null;
+async function startAudio() {
+  if (audioCtx) { if (audioCtx.state === "suspended") audioCtx.resume(); return; }
+  if (!self.crossOriginIsolated) return;
+  try { audioCtx = new AudioContext(); await audioCtx.audioWorklet.addModule("./engine/holo-retro-audio-worklet.js"); const sab = AudioRing.create(16384); audioRing = new AudioRing(sab); new AudioWorkletNode(audioCtx, "holo-retro-audio", { outputChannelCount: [2], processorOptions: { sab } }).connect(audioCtx.destination); } catch (e) { audioCtx = null; }
+}
+
+// ── cross-device roam: library + saves sync as κ over a swappable transport ──
+// Backend now = BroadcastChannel (same-origin: other tabs/windows/devices on this origin).
+// Swap `roamSend`/`roamRecv` for WebRTC / content_net for WAN — the merge logic is identical.
+let roamCh = null;
+try { roamCh = new BroadcastChannel("holo-games-roam"); } catch (e) {}
+function roamSend(msg) { try { roamCh && roamCh.postMessage(msg); } catch (e) {} }
+async function roamMerge(msg) {
+  // verify-before-trust: library by κ (content id), saves by latest ts (no older overwrites)
+  if (msg.type === "lib" && msg.key && msg.val) { if (!(await idbGet("library", msg.key))) await idbPut("library", msg.key, msg.val); }
+  else if (msg.type === "save" && msg.key && msg.rec) {
+    const rec = msg.rec;
+    if (!(await saveVerifies(rec, subtleHashHex))) return;   // poisoned/empty roam → drop (verify-before-trust)
+    const cur2 = await idbGet("saves", msg.key); if (!cur2 || rec.ts > cur2.ts) await idbPut("saves", msg.key, rec);
+  }
+  else return;
+  if (document.getElementById("home").style.display !== "none") renderHome();
+}
+if (roamCh) roamCh.onmessage = (e) => roamMerge(e.data);
+window.__roamSend = roamSend; window.__roamMerge = roamMerge;   // test hooks
+
+// ── launch bridge: a guest LAUNCHER (real Playnite in the amd64 .holo guest) emits a
+// game id/κ; the HOST catches it and plays NATIVELY on the cores (never nested). The
+// channel here is BroadcastChannel; swap for the qemu-wasm 9p/virtfs file-poll (the guest
+// writes /.wasmenv/launch, the host reads it via Module.FS) when the guest is live.
+async function holoLaunch(ref) {
+  if (!ref) return false;
+  const r = String(ref).toLowerCase().trim();
+  const games = await library();
+  const g = games.find((x) => [x.kappa, x.url, x.gameName, x.title].some((v) => v && String(v).toLowerCase() === r))
+        || games.find((x) => x.title && x.title.toLowerCase().includes(r));   // fuzzy fallback
+  if (!g) { toast("Launch: not found — " + ref); return false; }
+  await play(g, false);
+  return true;
+}
+window.HoloLaunch = holoLaunch;
+let launchCh = null;
+try { launchCh = new BroadcastChannel("holo-games-launch"); launchCh.onmessage = (e) => e.data && e.data.launch && holoLaunch(e.data.launch); } catch (e) {}
+
+// ── player state ──
+const factoryCache = {};
+const factoryFor = async (sys) => (factoryCache[sys] ??= (await import(SYS[sys].mod)).default);
+let core = null, geom = null, cur = null, rafId = 0, lastFrame = null, framesSinceSave = 0;
+
+// stream-on-demand: a game is fetched once, κ-cached, then served from cache (0 net).
+// Three sources, one resolver → { rom, warmSave }:
+//   .holo  — a precompiled package (rom + warm-boot snapshot + art); verified before use (L5)
+//   url    — a raw ROM streamed from a source ref
+//   local  — bytes stored in the library by an import/drop
+let romFetches = 0;
+async function resolveGame(game) {
+  if (game.holo) {                                    // precompiled, streamable .holo
+    let obj = (await idbGet("roms", game.holo))?.obj;
+    if (!obj) { romFetches++; obj = await (await fetch(game.holo)).json(); await idbPut("roms", game.holo, { obj }); }
+    const rom = b64dec(obj.rom);
+    if ((await subtleHashHex(rom)) !== obj.kappa) return null;   // verify-before-trust — refuse a tampered .holo
+    return { rom, warmSave: obj.save ? b64dec(obj.save) : null };
+  }
+  if (game.url) {
+    const c = await idbGet("roms", game.url);
+    if (c) return { rom: c.bytes, warmSave: null };   // cache hit — no network (local dedup)
+    romFetches++;
+    const bytes = new Uint8Array(await (await fetch(game.url)).arrayBuffer());
+    await idbPut("roms", game.url, { bytes });        // cache by source ref
+    return { rom: bytes, warmSave: null };
+  }
+  if (!game.kappa) return null;                       // metadata-only (r-roms browse / BYO) — nothing to stream yet
+  const rec = await idbGet("library", game.kappa);    // a locally-added game stores its bytes
+  return rec ? { rom: rec.rom, warmSave: null } : null;
+}
+async function bytesOf(game) { const r = await resolveGame(game); return r ? r.rom : null; }
+window.__romStats = () => ({ fetches: romFetches });
+
+async function play(game, resume) {
+  const tBoot = performance.now();                     // bench: time-to-playable (felt instant), measured live
+  try { await ensureComp(); } catch (e) { toast("Graphics unavailable — try again"); return; }
+  const resolved = await resolveGame(game);
+  if (!resolved) { toast(game.holo ? "κ mismatch — refused (L5)" : "No ROM"); return; }
+  const rom = resolved.rom;
+  // κ-ROM: content-address + verify-on-read before the core sees a byte
+  const store = new KappaBlockStore({ blockSize: 512, totalBytes: rom.length, hash: subtleHashHex });
+  await store.write(0, rom);
+  const verified = await store.read(0, rom.length);    // verify-on-read before the core sees a byte
+  const kappa = await subtleHashHex(rom);              // canonical game id (whole-ROM content hash; matches library key)
+  cur = { ...game, kappa };
+  bumpStat(game);                                      // ranked-to-you: record the play
+  core = await loadRealCore(await factoryFor(game.system));
+  core.loadGame(verified, "/game" + SYS[game.system].ext);
+  geom = core.geometry;
+  fitOutput();                                         // mobile-aware super-res target (keeps phones at 60fps)
+  comp.setSharpen(SHARP[game.system] ?? 0.6);
+  comp.setSource(geom.width, geom.height);
+  if (resume) { const sv = await latestSave(cur.kappa); const st = await trustedState(sv); if (st === false) toast("Save failed integrity check — refused"); else if (st) { try { core.unserialize(st); } catch (e) {} } }
+  else if (resolved.warmSave) { try { core.unserialize(resolved.warmSave); } catch (e) {} }   // warm-boot: skip the cold boot, resume a playable frame instantly
+  document.getElementById("now").textContent = `${game.title} · ${SYS[game.system].name}`;
+  document.getElementById("tv").classList.remove("show");
+  document.getElementById("home").style.display = "none";
+  document.getElementById("player").classList.add("show");
+  if (document.body.classList.contains("touch")) document.getElementById("touch").classList.add("show");
+  showBar();                                           // float the chrome, then let it auto-hide
+  for (let i = 0; i < 6; i++) comp.present(core.run(0).video);
+  const warm = !!(resume || resolved.warmSave);        // resumed a save-state κ → skipped the cold boot
+  lastBoot = { ms: +(performance.now() - tBoot).toFixed(0), warm };
+  if (warm) toast(`Resumed instantly · ${lastBoot.ms} ms`);
+  // paint the boot timing ONCE synchronously (the rAF loop refines the rest) so the felt instant is
+  // visible immediately — even before the first animation frame.
+  document.getElementById("hud").textContent =
+    `${cur.title}   κ ${cur.kappa.slice(0, 12)}…\n${geom.width}×${geom.height} super-res   ${warm ? "warm-boot" : "boot"} ${lastBoot.ms}ms${warm ? " · instant" : ""}`;
+  framesSinceSave = 0;
+  startLoop();
+}
+let lastBoot = null;                                    // {ms, warm} — surfaced live in the HUD
+
+let last = 0, acc = 0, fps = 60;
+function startLoop() {
+  last = performance.now(); acc = 0;
+  const step = 1000 / 60;
+  const tick = (now) => {
+    acc += now - last; last = now;
+    let st, n = 0;
+    while (acc >= step && n < 4) { const r = core.run(inputBits()); lastFrame = { data: r.video, w: geom.width, h: geom.height }; st = comp.present(r.video); if (audioRing && r.audio.length) audioRing.push(resampleLinear(r.audio, core.sampleRate, audioCtx.sampleRate)); acc -= step; n++; }
+    if (st) {
+      fps = fps * 0.9 + st.fps * 0.1;
+      const boot = lastBoot ? `   ${lastBoot.warm ? "warm-boot" : "boot"} ${lastBoot.ms}ms${lastBoot.warm ? " · instant" : ""}` : "";
+      const scale = comp.fallback2d ? "2D-scaled" : "super-res";
+      document.getElementById("hud").textContent = `${cur.title}   κ ${cur.kappa.slice(0, 12)}…\n${geom.width}×${geom.height} → ${st.outW}×${st.outH} ${scale}   ${fps.toFixed(0)} fps present   audio ${audioRing ? "on" : (self.crossOriginIsolated ? "tap/key" : "n/a")}${boot}`;
+    }
+    if ((framesSinceSave += n) >= 600) { framesSinceSave = 0; saveCurrent(); }   // autosave ~10s
+    rafId = requestAnimationFrame(tick);
+  };
+  rafId = requestAnimationFrame(tick);
+}
+
+function thumbDataURL() {
+  if (!lastFrame) return null;
+  const { data, w, h } = lastFrame;
+  const src = new OffscreenCanvas(w, h); src.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(data), w, h), 0, 0);
+  const o = document.createElement("canvas"); o.width = 150; o.height = 135; const x = o.getContext("2d");
+  x.imageSmoothingEnabled = false; x.drawImage(src, 0, 0, 150, 135);
+  return o.toDataURL("image/png");
+}
+async function saveCurrent(slot = "auto", label = "") {
+  if (!core || !cur) return null;
+  try {
+    const state = core.serialize();
+    const rec = { kappa: cur.kappa, slot, label, state, saveKappa: await subtleHashHex(state), system: cur.system, title: cur.title, ext: SYS[cur.system].ext, url: cur.url || null, frame: core.frame, ts: Date.now(), thumb: thumbDataURL() };
+    const key = `${cur.kappa}#${slot}`;
+    await idbPut("saves", key, rec);
+    roamSend({ type: "save", key, rec });   // roam to other devices
+    return rec;
+  } catch (e) { return null; }
+}
+async function manualSave() {
+  const rec = await saveCurrent(String(Date.now()), "manual");
+  if (rec) { toast("Saved"); renderSlots(); }
+}
+function toast(msg) {
+  const t = document.getElementById("toast"); t.textContent = msg; t.style.opacity = "1";
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.style.opacity = "0"), 1200);
+}
+
+async function back() {
+  await saveCurrent();
+  if (rafId) cancelAnimationFrame(rafId); rafId = 0; core = null;
+  document.getElementById("player").classList.remove("show");
+  document.getElementById("touch").classList.remove("show"); touchBits = 0;
+  document.getElementById("home").style.display = "block";
+  await renderHome();
+}
+document.getElementById("btn-back").onclick = back;
+document.getElementById("btn-fs").onclick = () => { const el = document.getElementById("player"); (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el); };
+document.getElementById("btn-save").onclick = manualSave;
+document.getElementById("btn-slots").onclick = () => { const p = document.getElementById("slots"); p.classList.toggle("show"); if (p.classList.contains("show")) renderSlots(); };
+addEventListener("visibilitychange", () => { if (document.hidden) saveCurrent(); });
+
+// the per-game save-slots panel (auto + manual saves, load / delete)
+async function renderSlots() {
+  if (!cur) return;
+  const panel = document.getElementById("slots");
+  const list = await savesFor(cur.kappa);
+  if (!list.length) { panel.innerHTML = `<div style="opacity:.5;padding:8px">No saves yet — press ⤓ Save</div>`; return; }
+  panel.innerHTML = `<div style="font-size:11px;opacity:.6;margin:2px 4px 8px">Saves · ${cur.title}</div>`;
+  for (const s of list) {
+    const when = new Date(s.ts).toLocaleString();
+    const row = document.createElement("div"); row.className = "sv";
+    row.innerHTML = `<img src="${s.thumb || ""}"><div class="info"><div class="l">${s.slot === "auto" ? "Autosave" : "Manual save"}</div><div class="d">${when}</div></div>`;
+    const load = document.createElement("button"); load.textContent = "Load";
+    load.onclick = async () => { const st = await trustedState(s); if (st === false) { toast("Save failed integrity check — refused"); return; } if (st) { try { core.unserialize(st); for (let i = 0; i < 4; i++) comp.present(core.run(0).video); toast("Loaded"); panel.classList.remove("show"); } catch (e) { toast("Load failed"); } } };
+    const del = document.createElement("button"); del.textContent = "✕";
+    del.onclick = async () => { await idbDel("saves", s.key); renderSlots(); };
+    row.appendChild(load); row.appendChild(del); panel.appendChild(row);
+  }
+}
+
+// ── Home / library ──
+// ── lazy cover art: libretro-thumbnails, keyed by the No-Intro identity, cached as κ ──
+let coverFetches = 0;
+async function coverFor(game) {
+  if (!game || !game.noSystem || !game.gameName) return null;   // need a resolved identity
+  const key = `${game.noSystem}/${game.gameName}`;
+  const rec = await idbGet("covers", key);
+  if (rec) return rec.blob ? URL.createObjectURL(rec.blob) : null;   // cache hit (art or known-miss)
+  const url = thumbUrl(game.noSystem, game.gameName);
+  try {
+    coverFetches++;
+    const res = await fetch(url);
+    if (res.ok) { const blob = await res.blob(); await idbPut("covers", key, { blob }); return URL.createObjectURL(blob); }
+    await idbPut("covers", key, { miss: true }); return null;        // remember 404 — don't refetch
+  } catch (e) { return null; }
+}
+const coverObserver = new IntersectionObserver((entries) => {
+  for (const e of entries) if (e.isIntersecting) { coverObserver.unobserve(e.target); loadCover(e.target); }
+}, { rootMargin: "300px" });
+async function loadCover(img) {
+  const g = img.__game; if (!g) return;
+  const url = await coverFor(g); if (url) img.src = url;             // genPoster shows first, real art streams in
+}
+window.__coverFor = coverFor; window.__coverStats = () => ({ fetches: coverFetches });
+
+// ── favorites + filter chips ──
+const FAVK = "holo-games-fav";
+const favs = new Set(JSON.parse(localStorage.getItem(FAVK) || "[]"));
+const gid = (g) => g.kappa || g.url || g.title;
+const isFav = (g) => favs.has(gid(g));
+function toggleFav(g) { const k = gid(g); favs.has(k) ? favs.delete(k) : favs.add(k); localStorage.setItem(FAVK, JSON.stringify([...favs])); }
+let filter = { system: null, verified: false, fav: false };
+// ── ranked-to-you: per-game play history orders the library (what you play floats up) ──
+const STATSK = "holo-games-stats";
+const stats = JSON.parse(localStorage.getItem(STATSK) || "{}");
+function bumpStat(g) { const k = gid(g); const s = stats[k] || { plays: 0, last: 0 }; s.plays++; s.last = Date.now(); stats[k] = s; localStorage.setItem(STATSK, JSON.stringify(stats)); }
+function scoreOf(g) { const s = stats[gid(g)]; return s ? s.plays * 1e9 + s.last / 1000 : 0; }
+const rankCmp = (a, b) => scoreOf(b) - scoreOf(a) || a.title.localeCompare(b.title);
+function renderFilters() {
+  const el = document.getElementById("filters"); if (!el) return;
+  const chip = (label, on, onclick) => { const c = document.createElement("span"); c.className = "chip" + (on ? " on" : ""); c.textContent = label; c.onclick = onclick; return c; };
+  el.innerHTML = "";
+  el.appendChild(chip("All", !filter.system && !filter.verified && !filter.fav, () => { filter = { system: null, verified: false, fav: false }; renderHome(); }));
+  for (const s of Object.keys(SYS)) el.appendChild(chip(SYS[s].name, filter.system === s, () => { filter.system = filter.system === s ? null : s; renderHome(); }));
+  el.appendChild(chip("✓ Verified", filter.verified, () => { filter.verified = !filter.verified; renderHome(); }));
+  el.appendChild(chip("★ Favorites", filter.fav, () => { filter.fav = !filter.fav; renderHome(); }));
+}
+function matchFilter(g, q) {
+  if (q && !(g.title.toLowerCase().includes(q) || SYS[g.system].name.toLowerCase().includes(q) || g.system.includes(q))) return false;
+  if (filter.system && g.system !== filter.system) return false;
+  if (filter.verified && !g.verified) return false;
+  if (filter.fav && !isFav(g)) return false;
+  return true;
+}
+
+// ── Playnite-style detail panel ──
+async function openDetail(game, resume) {
+  const d = document.getElementById("detail");
+  const cover = (await coverFor(game)) || game.poster || genPoster(game);
+  const save = game.kappa ? await latestSave(game.kappa) : null;
+  const canRemove = !!game.kappa && !game.url && !game.holo;   // only locally-added games are removable (catalog/.holo rows are not)
+  const streamable = !!(game.holo || game.url || game.kappa);  // has bytes to play; metadata rows are browse-only (BYO)
+  const prov = game.provenance === "verified" ? " · ✓ No-Intro" : game.provenance === "free" ? ` · ${game.license || "free"}${game.source ? " · open source" : ""}` : game.provenance === "your dump" ? " · your dump" : game.provenance === "demo" ? " · demo" : game.provenance === "metadata" ? " · bring your own copy" : "";
+  d.innerHTML = `<div class="dcard"><img class="dcover" src="${cover}">
+    <div><div class="dtitle">${game.title}</div>
+    <div class="dmeta">${SYS[game.system].name}${game.region ? " · " + game.region : ""}${prov}</div>
+    <div class="dbtns">
+      ${streamable
+        ? `<button class="primary" id="d-play">▶ Play</button>${save ? '<button id="d-cont">↺ Continue</button>' : ""}`
+        : `<button class="primary" id="d-add">＋ Add your copy to play</button>`}
+      <button id="d-fav">${isFav(game) ? "★ Favorited" : "☆ Favorite"}</button>
+      ${streamable ? '<button id="d-share">⤴ Share</button>' : ""}
+      ${!streamable && game.source ? `<a id="d-src" href="${game.source}" target="_blank" rel="noopener noreferrer"><button>↗ Where to get</button></a>` : ""}
+      ${canRemove ? '<button id="d-remove">🗑 Remove</button>' : ""}
+    </div></div><div class="dclose">✕</div></div>`;
+  d.classList.add("show");
+  d.onclick = (e) => { if (e.target === d) closeDetail(); };
+  d.querySelector(".dclose").onclick = closeDetail;
+  const playBtn = d.querySelector("#d-play"); if (playBtn) playBtn.onclick = () => { closeDetail(); play(game, false); };
+  const addBtn = d.querySelector("#d-add"); if (addBtn) addBtn.onclick = () => { closeDetail(); document.getElementById("file").click(); };   // BYO: open the picker → identified by hash → plays
+  const c = d.querySelector("#d-cont"); if (c) c.onclick = () => { closeDetail(); play(game, true); };
+  d.querySelector("#d-fav").onclick = () => { toggleFav(game); openDetail(game, resume); renderHome(); };
+  const sh = d.querySelector("#d-share"); if (sh) sh.onclick = () => exportHolo(game);
+  const rm = d.querySelector("#d-remove"); if (rm) rm.onclick = async () => { await idbDel("library", game.kappa); closeDetail(); renderHome(); toast("Removed"); };
+}
+function closeDetail() { document.getElementById("detail").classList.remove("show"); }
+
+function genPoster(game) {
+  // a clean placeholder poster: system-colored gradient + title (until real box art / first-frame)
+  const o = document.createElement("canvas"); o.width = 150; o.height = 135; const x = o.getContext("2d");
+  const c = SYS[game.system].color; const g = x.createLinearGradient(0, 0, 150, 135);
+  g.addColorStop(0, c + "cc"); g.addColorStop(1, "#0a0d14"); x.fillStyle = g; x.fillRect(0, 0, 150, 135);
+  x.fillStyle = "#0a0d14"; x.globalAlpha = .35; x.fillRect(0, 95, 150, 40); x.globalAlpha = 1;
+  x.fillStyle = "#fff"; x.font = "bold 11px ui-monospace,monospace"; x.fillText(SYS[game.system].name, 9, 22);
+  return o.toDataURL("image/png");
+}
+function card(game, { resume, thumb } = {}) {
+  const el = document.createElement("div"); el.className = "card";
+  const img = thumb || game.poster || genPoster(game);   // baked .holo screenshot, else placeholder
+  const badge = game.provenance === "verified" ? '<span class="badge ok">✓ No-Intro</span>'
+    : game.provenance === "free" ? `<span class="badge ok">${game.license || "free"}</span>`
+    : game.provenance === "your dump" ? '<span class="badge">your dump</span>'
+    : game.provenance === "demo" ? '<span class="badge">demo</span>' : "";
+  el.innerHTML = `<img class="poster" src="${img}"><div class="fav ${isFav(game) ? "on" : ""}">${isFav(game) ? "★" : "☆"}</div><div class="meta"><div class="t">${game.title}</div><div class="s">${SYS[game.system].name} ${badge}${resume ? ' · <span class="resume">resume</span>' : ""}</div></div>`;
+  if (!thumb && !game.poster && game.noSystem && game.gameName) { const im = el.querySelector(".poster"); im.__game = game; coverObserver.observe(im); }   // lazy real box art (only when not already baked)
+  el.querySelector(".fav").onclick = (e) => { e.stopPropagation(); toggleFav(game); renderHome(); };
+  el.onclick = () => openDetail(game, !!resume);
+  return el;
+}
+let testLib = null;   // scale-test hook: window.__seedTest(n) injects a synthetic library
+async function library() {
+  if (testLib) return testLib;
+  const user = (await idbAll("library")).map(({ key, val }) => ({ title: val.title, system: val.system, kappa: key, url: val.url, remote: val.remote, provenance: val.provenance, verified: val.verified, region: val.region, noSystem: val.noSystem, gameName: val.gameName }));
+  return [...CATALOG, ...user];   // catalog is the curated source; user-added games append
+}
+window.__seedTest = (n) => { const s = Object.keys(SYS); testLib = Array.from({ length: n }, (_, i) => ({ title: "Game " + String(i).padStart(5, "0"), system: s[i % s.length], kappa: "k" + i, provenance: "demo" })); return renderHome(); };
+window.__clearTest = () => { testLib = null; return renderHome(); };
+
+// windowed/virtualized grid: only the visible rows are mounted (scales to 10k+)
+function renderGrid(container, list) {
+  const COLW = 166, ROWH = 200;
+  container.innerHTML = `<div class="vgrid-vp"><div class="vgrid-inner"></div></div>`;
+  const vp = container.querySelector(".vgrid-vp"), inner = container.querySelector(".vgrid-inner");
+  const cols = Math.max(1, Math.floor((vp.clientWidth || 1000) / COLW));
+  const rows = Math.ceil(list.length / cols);
+  inner.style.height = rows * ROWH + "px";
+  let lastKey = "";
+  const draw = () => {
+    const st = vp.scrollTop, vh = vp.clientHeight || 600;
+    const first = Math.max(0, Math.floor(st / ROWH) - 1), last = Math.min(rows - 1, Math.ceil((st + vh) / ROWH) + 1);
+    const key = first + ":" + last; if (key === lastKey) return; lastKey = key;
+    inner.innerHTML = "";
+    for (let r = first; r <= last; r++) for (let c = 0; c < cols; c++) {
+      const i = r * cols + c; if (i >= list.length) break;
+      const el = card(list[i]); el.style.position = "absolute"; el.style.top = r * ROWH + "px"; el.style.left = c * COLW + "px";
+      inner.appendChild(el);
+    }
+  };
+  vp.onscroll = draw; draw();
+}
+async function renderHome() {
+  const q = (document.getElementById("search").value || "").toLowerCase();
+  renderFilters();
+  const games = (await library()).filter((g) => matchFilter(g, q));
+
+  // Continue Playing rail: one card per game (latest save across its slots), newest first
+  const all = (await idbAll("saves")).map(({ val }) => val);
+  const latest = new Map();
+  for (const s of all) { const cur2 = latest.get(s.kappa); if (!cur2 || s.ts > cur2.ts) latest.set(s.kappa, s); }
+  const saves = [...latest.values()].sort((a, b) => b.ts - a.ts);
+  const cw = document.getElementById("continue-wrap"), cr = document.getElementById("continue-rail");
+  cr.innerHTML = "";
+  const shown = saves.filter((s) => (!q || (s.title || "").toLowerCase().includes(q) || SYS[s.system].name.toLowerCase().includes(q)) && (!filter.system || s.system === filter.system) && (!filter.fav || isFav(s)));
+  if (shown.length) { cw.style.display = "block"; for (const s of shown) cr.appendChild(card({ title: s.title, system: s.system, kappa: s.kappa, url: s.url }, { resume: true, thumb: s.thumb })); }
+  else cw.style.display = "none";
+
+  // Shelves by system
+  const shelves = document.getElementById("shelves"); shelves.innerHTML = "";
+  // a selected system → a windowed grid of ALL its games (scales to 10k+)
+  if (filter.system) {
+    const list = games.filter((g) => g.system === filter.system).sort(rankCmp);
+    const title = document.createElement("div"); title.className = "shelf-title"; title.textContent = `${SYS[filter.system].name} (${list.length})`;
+    shelves.appendChild(title);
+    const grid = document.createElement("div"); shelves.appendChild(grid);
+    renderGrid(grid, list);
+    return;
+  }
+  // home: capped rails (constant DOM regardless of library size) + ranked ordering
+  const CAP = 50;
+  const sysScore = (s) => Math.max(0, ...games.filter((g) => g.system === s).map(scoreOf), 0);
+  const orderedSys = Object.keys(SYS).sort((a, b) => sysScore(b) - sysScore(a));
+  for (const sysId of orderedSys) {
+    const list = games.filter((g) => g.system === sysId).sort(rankCmp); if (!list.length) continue;
+    const title = document.createElement("div"); title.className = "shelf-title"; title.textContent = `${SYS[sysId].name}${list.length > CAP ? ` · ${list.length}` : ""}`;
+    const rail = document.createElement("div"); rail.className = "rail";
+    for (const g of list.slice(0, CAP)) rail.appendChild(card(g));
+    if (list.length > CAP) { const more = document.createElement("div"); more.className = "seeall"; more.textContent = `See all ${list.length} →`; more.onclick = () => { filter.system = sysId; renderHome(); }; rail.appendChild(more); }
+    shelves.appendChild(title); shelves.appendChild(rail);
+  }
+}
+document.getElementById("search").oninput = renderHome;
+
+// ── Export / Import a portable .holo playthrough (transport-free share, self-verifying) ──
+const b64enc = (u8) => { let s = ""; const CH = 0x8000; for (let i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH)); return btoa(s); };
+const b64dec = (b64) => { const s = atob(b64); const u8 = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i); return u8; };
+
+async function buildHolo(game) {
+  const rom = await bytesOf(game); if (!rom) return null;
+  const kappa = await subtleHashHex(rom);
+  const sv = await latestSave(kappa);
+  return { format: "holo-game", v: 1, title: game.title, system: game.system, ext: SYS[game.system].ext, kappa,
+           rom: b64enc(rom), save: sv && sv.state ? b64enc(sv.state) : null, saveKappa: sv ? (sv.saveKappa || null) : null, frame: sv ? sv.frame : 0, thumb: sv ? sv.thumb : null, ts: Date.now() };
+}
+async function exportHolo(game) {
+  const obj = await buildHolo(game); if (!obj) { toast("No ROM to share"); return; }
+  const blob = new Blob([JSON.stringify(obj)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = (game.title || "game").replace(/[^\w.-]+/g, "_") + ".holo"; a.click(); URL.revokeObjectURL(a.href);
+  toast(obj.save ? "Shared game + playthrough" : "Shared game");
+}
+async function importHolo(file) {
+  try {
+    const obj = JSON.parse(await file.text());
+    if (obj.format !== "holo-game" || !obj.rom || !SYS[obj.system]) { toast("Not a Holo game"); return; }
+    const rom = b64dec(obj.rom);
+    const k = await subtleHashHex(rom);
+    if (k !== obj.kappa) { toast("κ mismatch — refused (L5)"); return; }   // verify-before-trust
+    await idbPut("library", k, { title: obj.title, system: obj.system, rom });
+    if (obj.save) {
+      const saveBytes = b64dec(obj.save);
+      if (!(await saveVerifies({ state: saveBytes, saveKappa: obj.saveKappa }, subtleHashHex))) { toast("Save integrity check failed — game added without the playthrough"); }   // verify-before-trust
+      else await idbPut("saves", `${k}#imported`, { kappa: k, slot: "imported", label: "imported", state: saveBytes, saveKappa: obj.saveKappa || await subtleHashHex(saveBytes), system: obj.system, title: obj.title, ext: obj.ext, url: null, frame: obj.frame || 0, ts: Date.now(), thumb: obj.thumb || null });
+    }
+    await renderHome();
+    toast(`Imported ${obj.title}${obj.save ? " + playthrough" : ""}`);
+  } catch (e) { toast("Import failed"); }
+}
+document.getElementById("btn-share").onclick = () => cur && exportHolo(cur);
+window.__buildHolo = buildHolo;   // test hook (round-trip verification)
+
+// add a ROM → content-address → store in library → it appears on the shelf
+async function addRom(file) {
+  const rom = new Uint8Array(await file.arrayBuffer());
+  const kappa = await subtleHashHex(rom);
+  const id = datIndex.identify(await sha1Hex(rom));                 // hash → canonical identity
+  const system = id ? (NOINTRO_SYS[id.system] || sysForName(file.name)) : sysForName(file.name);
+  if (!system) { toast("Unsupported ROM type"); return; }
+  const title = id ? id.title + (id.region ? ` (${id.region})` : "") : file.name.replace(/\.[^.]+$/, "");
+  const val = { title, system, rom, region: id ? id.region : null, rev: id ? id.rev : null, provenance: id ? "verified" : "your dump", verified: !!id, noSystem: id ? id.system : null, gameName: id ? id.gameName : null };
+  await idbPut("library", kappa, val);
+  roamSend({ type: "lib", key: kappa, val });   // roam to other devices
+  await renderHome();
+  toast(id ? `Identified: ${id.title}` : "Added (your dump)");
+}
+// stream a remote game by URL: fetch → identify by hash → add as a remote (url-backed) entry,
+// κ-cached for instant replay. The bytes live in the cache, not the library record.
+async function streamAdd(url) {
+  if (/\.json($|\?)/i.test(url)) return importCatalog(url);   // a catalog URL → merge its games
+  try {
+    toast("Streaming…");
+    const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+    const name = (url.split("/").pop() || "game").split("?")[0];
+    const id = datIndex.identify(await sha1Hex(bytes));
+    const system = id ? (NOINTRO_SYS[id.system] || sysForName(name)) : sysForName(name);
+    if (!system) { toast("Unsupported / unknown system"); return; }
+    const kappa = await subtleHashHex(bytes);
+    const title = id ? id.title + (id.region ? ` (${id.region})` : "") : name.replace(/\.[^.]+$/, "");
+    await idbPut("roms", url, { bytes });             // cache the streamed bytes
+    await idbPut("library", kappa, { title, system, url, remote: true, provenance: id ? "verified" : "your dump", verified: !!id, region: id ? id.region : null, rev: id ? id.rev : null, noSystem: id ? id.system : null, gameName: id ? id.gameName : null });
+    await renderHome();
+    toast(`Added: ${title}`);
+  } catch (e) { toast("Stream failed (CORS or bad URL)"); }
+}
+async function importDat(file) {
+  try { datIndex.addDat(await file.text()); await renderHome(); toast(`Loaded DAT · ${datIndex.systems.size} systems, ${datIndex.stats.roms} games`); }
+  catch (e) { toast("Bad DAT file"); }
+}
+const intake = (f) => f && (/\.holo$/i.test(f.name) ? importHolo(f) : /\.dat$/i.test(f.name) ? importDat(f) : /\.json$/i.test(f.name) ? importCatalog(f) : addRom(f));
+document.getElementById("file").onchange = (e) => intake(e.target.files[0]);
+const drop = document.getElementById("drop");
+addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("show"); });
+addEventListener("dragleave", (e) => { if (e.relatedTarget === null) drop.classList.remove("show"); });
+addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("show"); intake(e.dataTransfer.files[0]); });
+
+// ── Fullscreen "Netflix" TV mode (controller-first; reuses the same library + play()) ──
+let tvRows = [], tvFocus = { r: 0, c: 0 }, tvPadRAF = 0, tvNavAt = 0;
+const tvOpen = () => document.getElementById("tv").classList.contains("show");
+
+async function openTV() {
+  const games = await library();
+  const all = (await idbAll("saves")).map(({ val }) => val);
+  const latest = new Map();
+  for (const s of all) { const c = latest.get(s.kappa); if (!c || s.ts > c.ts) latest.set(s.kappa, s); }
+  const cont = [...latest.values()].sort((a, b) => b.ts - a.ts)
+    .map((s) => ({ game: { title: s.title, system: s.system, kappa: s.kappa, url: s.url }, resume: true, poster: s.thumb || genPoster({ system: s.system }) }));
+  tvRows = [];
+  if (cont.length) tvRows.push({ label: "Continue playing", items: cont });
+  for (const sysId of Object.keys(SYS)) {
+    const list = games.filter((g) => g.system === sysId);
+    if (list.length) tvRows.push({ label: SYS[sysId].name, items: list.map((g) => ({ game: g, resume: false, poster: genPoster(g) })) });
+  }
+  tvFocus = { r: 0, c: 0 };
+  document.getElementById("home").style.display = "none";
+  const tv = document.getElementById("tv"); tv.classList.add("show");
+  renderTV();
+  (tv.requestFullscreen || tv.webkitRequestFullscreen || (() => {})).call(tv);
+  cancelAnimationFrame(tvPadRAF); tvLoop();
+}
+function closeTV() {
+  document.getElementById("tv").classList.remove("show");
+  document.getElementById("home").style.display = "block";
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  cancelAnimationFrame(tvPadRAF);
+}
+function renderTV() {
+  const tv = document.getElementById("tv");
+  const foc = tvRows[tvFocus.r] && tvRows[tvFocus.r].items[tvFocus.c];
+  const hero = foc ? `<div id="tv-hero" style="background-image:url('${foc.poster}')"><div class="scrim"></div>
+    <div class="herometa"><div class="ht">${foc.game.title}</div><div class="hs">${SYS[foc.game.system].name}${foc.resume ? " · resume where you left off" : ""}</div><div class="play">▶ Play</div></div></div>` : "";
+  const rows = tvRows.map((row, ri) => `<div class="tv-row"><div class="tv-rowlabel">${row.label}</div><div class="tv-tiles">${
+    row.items.map((it, ci) => `<div class="tv-tile${ri === tvFocus.r && ci === tvFocus.c ? " foc" : ""}" data-r="${ri}" data-c="${ci}"><img src="${it.poster}"><div class="tt">${it.game.title}</div></div>`).join("")
+  }</div></div>`).join("");
+  tv.innerHTML = hero + `<div id="tv-rows">${rows}</div>`;
+  tv.querySelectorAll(".tv-tile").forEach((t) => (t.onclick = () => { tvFocus = { r: +t.dataset.r, c: +t.dataset.c }; selectTV(); }));
+  const f = tv.querySelector(".tv-tile.foc"); if (f) f.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+}
+function moveTV(dr, dc) {
+  if (!tvRows.length) return;
+  let r = Math.max(0, Math.min(tvRows.length - 1, tvFocus.r + dr));
+  let c = tvFocus.c + dc; const len = tvRows[r].items.length;
+  c = Math.max(0, Math.min(len - 1, c));
+  tvFocus = { r, c }; renderTV();
+}
+function selectTV() { const it = tvRows[tvFocus.r] && tvRows[tvFocus.r].items[tvFocus.c]; if (it) play(it.game, it.resume); }
+function tvLoop() {
+  if (!tvOpen()) return;
+  const now = performance.now(); const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let dx = 0, dy = 0, a = false, b = false;
+  for (const p of pads) { if (!p) continue; const B = p.buttons, ax = p.axes || [];
+    if (B[14]?.pressed || ax[0] < -.5) dx = -1; if (B[15]?.pressed || ax[0] > .5) dx = 1;
+    if (B[12]?.pressed || ax[1] < -.5) dy = -1; if (B[13]?.pressed || ax[1] > .5) dy = 1;
+    if (B[0]?.pressed) a = true; if (B[1]?.pressed) b = true; }
+  if ((dx || dy) && now - tvNavAt > 170) { moveTV(dy, dx); tvNavAt = now; }
+  else if (a && now - tvNavAt > 260) { tvNavAt = now; selectTV(); return; }
+  else if (b && now - tvNavAt > 260) { tvNavAt = now; closeTV(); return; }
+  tvPadRAF = requestAnimationFrame(tvLoop);
+}
+addEventListener("keydown", (e) => {
+  if (!tvOpen()) return;
+  const k = e.key;
+  if (k === "ArrowRight") moveTV(0, 1); else if (k === "ArrowLeft") moveTV(0, -1);
+  else if (k === "ArrowDown") moveTV(1, 0); else if (k === "ArrowUp") moveTV(-1, 0);
+  else if (k === "Enter") selectTV(); else if (k === "Escape") closeTV(); else return;
+  e.preventDefault();
+});
+document.getElementById("btn-tv").onclick = openTV;
+document.getElementById("btn-stream").onclick = () => { const u = prompt("Stream a ROM or .holo from a URL (one you're entitled to):"); if (u) streamAdd(u.trim()); };
+
+// ── Touch controls + immersive chrome (phones/tablets) ─────────────────────────────────────────
+// The on-screen gamepad writes the live `touchBits` mask the game loop already reads each frame, so
+// input is frame-accurate. Multi-touch: the D-pad and face buttons each capture their own pointer,
+// so you can hold a direction AND press A/B together. Haptics + press states make it feel physical.
+const pbarEl = document.getElementById("pbar");
+let _barT = 0;
+function showBar() {                                    // float the bar, then fade it for max immersion
+  if (!document.body.classList.contains("touch")) return;
+  pbarEl.classList.remove("hidden");
+  clearTimeout(_barT); _barT = setTimeout(() => pbarEl.classList.add("hidden"), 3200);
+}
+function fitOutput() {                                  // super-res target that respects the phone's budget
+  if (!comp || !geom) return;
+  const dpr = window.devicePixelRatio || 1, touch = document.body.classList.contains("touch");
+  const dprEff = Math.min(dpr, touch ? 2 : 3), ceil = touch ? 1600 : profile.outputLongEdge;   // cap phones ≤1600px → 60fps
+  const targetLong = Math.min(profile.outputLongEdge, ceil, Math.round(Math.max(window.innerWidth, window.innerHeight, 720) * dprEff));
+  const k = Math.max(1, targetLong / Math.max(geom.width, geom.height));
+  comp.setOutputResolution(Math.round(geom.width * k), Math.round(geom.height * k));
+}
+let _fitT = 0;                                          // re-fit crisply on rotate / resize while playing
+addEventListener("resize", () => { if (!core) return; clearTimeout(_fitT); _fitT = setTimeout(() => { try { fitOutput(); } catch (e) {} }, 160); });
+(function touchControls() {
+  // Touch capability — NOT pointer:coarse alone. Some phones/tablets (and in-app webviews) report
+  // pointer:fine or no coarse match, which would hide the on-screen gamepad and leave the game
+  // unplayable. Trust any real touch signal: coarse pointer OR touch points OR a touch event API.
+  if (matchMedia("(pointer: coarse)").matches || (navigator.maxTouchPoints || 0) > 0 || "ontouchstart" in window) document.body.classList.add("touch");
+  const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+  const pad = document.getElementById("dpad");
+  let dpadBits = 0, btnBits = 0, dpadPid = null;
+  const sync = () => { touchBits = dpadBits | btnBits; };
+  function dpadFrom(e) {                                // zone-based: smooth, allows diagonals
+    const r = pad.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dx = e.clientX - cx, dy = e.clientY - cy, dead = r.width * 0.16;
+    let b = 0;
+    if (dx < -dead) b |= 1 << 6; else if (dx > dead) b |= 1 << 7;
+    if (dy < -dead) b |= 1 << 4; else if (dy > dead) b |= 1 << 5;
+    const prev = dpadBits; dpadBits = b; sync();
+    pad.dataset.dir = (b & (1 << 4) ? "U" : "") + (b & (1 << 5) ? "D" : "") + (b & (1 << 6) ? "L" : "") + (b & (1 << 7) ? "R" : "");
+    if (b && b !== prev) buzz(7);
+  }
+  if (pad) {
+    pad.addEventListener("pointerdown", (e) => { e.preventDefault(); startAudio(); dpadPid = e.pointerId; try { pad.setPointerCapture(e.pointerId); } catch (x) {} pad.classList.add("active"); dpadFrom(e); });
+    pad.addEventListener("pointermove", (e) => { if (e.pointerId !== dpadPid) return; e.preventDefault(); dpadFrom(e); });
+    const end = (e) => { if (e.pointerId !== dpadPid) return; dpadPid = null; dpadBits = 0; sync(); pad.classList.remove("active"); pad.dataset.dir = ""; };
+    pad.addEventListener("pointerup", end); pad.addEventListener("pointercancel", end); pad.addEventListener("lostpointercapture", end);
+  }
+  document.querySelectorAll("#touch .tb").forEach((btn) => {
+    const bit = 1 << (+btn.dataset.bit);
+    const down = (e) => { e.preventDefault(); startAudio(); try { btn.setPointerCapture(e.pointerId); } catch (x) {} btnBits |= bit; sync(); btn.classList.add("active"); buzz(9); };
+    const up = (e) => { e.preventDefault(); btnBits &= ~bit; sync(); btn.classList.remove("active"); };
+    btn.addEventListener("pointerdown", down);
+    btn.addEventListener("pointerup", up); btn.addEventListener("pointercancel", up); btn.addEventListener("lostpointercapture", up);
+  });
+  // tap the game itself to reveal / hide the floating bar
+  canvas.addEventListener("pointerup", () => { if (!document.body.classList.contains("touch")) return; pbarEl.classList.contains("hidden") ? showBar() : pbarEl.classList.add("hidden"); });
+})();
+
+await renderHome();   // open to the library
+</script>

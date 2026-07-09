@@ -1,0 +1,79 @@
+{
+  "id": "org.hologram.HoloMessenger",
+  "name": "Holo Messenger",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "Every messenger in one inbox. WhatsApp, Telegram, Discord, Slack and more stream into one familiar chat surface. Every message is verified and stays private on your device.",
+  "entry": "app.html",
+  "icon": "icon.svg",
+  "applicationCategory": "SocialNetworkingApplication",
+  "conforms": {
+    "specs": [
+      "holo-ui",
+      "holo-ux"
+    ]
+  },
+  "capabilities": {
+    "storage": [
+      "org.hologram.HoloMessenger"
+    ],
+    "channels": [
+      "share",
+      "holo-messenger"
+    ],
+    "permissions": [
+      "clipboard-write"
+    ]
+  },
+  "shared": [],
+  "engines": [],
+  "description": [
+    {
+      "p": "Other apps unify messengers by running a separate bridge server for each service. Holo Messenger needs none. Every platform already runs in a signed-in tab, so connecting one is just a small map of what to read. The same message seen twice, or on two apps with the same words, is recognized as one."
+    },
+    {
+      "p": "Each conversation is a signed, tamper-proof history. Every message is locked in order, so nothing can be dropped, reordered, or changed without the app noticing and refusing it. Messages move from tab to inbox instantly, no server sees inside, and every message is checked before it appears on screen."
+    },
+    {
+      "ul": [
+        "One familiar inbox for every platform: chat list, thread, and composer",
+        "Real time: a message shown in a platform tab appears here instantly, with no server",
+        "Verified: every message is checked before it shows; anything tampered with is refused, not shown",
+        "Private and yours: conversations are signed under your own key and encrypted on your device"
+      ]
+    }
+  ],
+  "categories": [
+    "Social",
+    "Communication"
+  ],
+  "keywords": [
+    "messenger",
+    "chat",
+    "unified inbox",
+    "whatsapp",
+    "telegram",
+    "discord",
+    "slack",
+    "beeper",
+    "content-addressed",
+    "holospace",
+    "uor"
+  ],
+  "developer": {
+    "id": "org.hologram",
+    "name": "Hologram Technologies"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Hologram-Technologies/hologram-os",
+  "releases": [
+    {
+      "version": "0.1",
+      "date": "2026-06-23",
+      "description": "The unified inbox. A familiar chat list, thread, and composer showing conversations from any platform. Messages are captured from each app, verified, and streamed in real time, and every message is checked before it appears. Sending back to each platform, with a secure approval step, and stronger encryption keys come next."
+    }
+  ],
+  "accent": "#00a884"
+}

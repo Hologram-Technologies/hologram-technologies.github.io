@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Holo Messenger</title>
+<!-- Discord Activity host: route external hosts through Discord's URL-mapping proxy. Classic + first so it
+     patches fetch/XHR/media-src before any module runs; strict no-op off *.discordsays.com. -->
+<script src="./holo-discord-proxy.js"></script>
+<!-- ── DISCORD ACTIVITY ENTRY (M1 — FIRST PAINT) ──────────────────────────────────────────────────────
+     The Holo Messenger runtime, hosted inside a Discord Activity iframe (origin <APP_ID>.discordsays.com).
+     This is a THIN host shell — a sibling of the native/CEF entry (app.html), NOT a fork of the runtime.
+     The runtime is the SAME modules under /apps/holo-messenger/**; only the host adapter differs.
+
+     Why a separate entry (not app.html): Discord injects a STRICT CSP that BLOCKS inline <script> (verified
+     2026-07). app.html's first-paint login panel is a load-bearing INLINE script → it would be blocked here.
+     So this entry carries ZERO inline scripts: a pure CSS/HTML splash for never-blank, one external module.
+
+     M1 scope: prove the runtime PAINTS in the sandbox. Device-stable identity (no Discord OAuth), bridges
+     disabled (localhost is unreachable + not serverless from an iframe), no service worker (Discord blocks
+     SW registration — OPFS/Cache work without it). Features/parity are later milestones. -->
+<link rel="stylesheet" href="./_vendor/ui/chat-ui.bundle.css?v=40315a86e1cf">
+<link rel="preload" as="image" href="./_vendor/wallpaper-default.jpg" fetchpriority="high">
+<style>
+  html,body{height:100%;margin:0;background:#0b141a;color-scheme:dark}
+  #root{height:100vh}
+  /* Never-blank splash — pure CSS/HTML (no JS, so no CSP inline-script dependency). The runtime replaces
+     #root's contents on mount; this only ever owns the frame until boot paints. */
+  #holo-splash{position:fixed;inset:0;z-index:10;display:grid;place-items:center;
+    background:#0b141a center/cover no-repeat url("./_vendor/wallpaper-default.jpg");
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:#e7edfa;}
+  #holo-splash::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 90% at 50% 42%,rgba(5,7,12,.32),rgba(5,7,12,.62));}
+  #holo-splash .s{position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;opacity:.9}
+  #holo-splash .ring{width:44px;height:44px;border-radius:50%;
+    border:3px solid rgba(125,239,201,.24);border-top-color:#34d3a6;animation:hs-spin .8s linear infinite}
+  #holo-splash .t{font-size:15px;font-weight:300;letter-spacing:.02em;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+  @keyframes hs-spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){#holo-splash .ring{animation:none}}
+  /* boot removes #holo-splash; if the adapter fatals it stays and reports (see adapter catch). */
+  body.holo-booted #holo-splash{opacity:0;pointer-events:none;transition:opacity .4s ease}
+</style>
+</head><body>
+<div id="root"></div>
+<div id="holo-splash"><div class="s"><div class="ring"></div><div class="t">Holo Messenger</div></div></div>
+
+<!-- External modules only (no inline script — Discord CSP blocks inline). discord-config sets the public
+     client id BEFORE the adapter; the adapter owns the Discord handshake + the runtime boot. -->
+<script type="module" src="./discord-config.mjs?v=m2"></script>
+<script type="module" src="./discord-activity-adapter.mjs?v=m2"></script>
+</body></html>

@@ -1,0 +1,73 @@
+<!doctype html><meta charset="utf-8"><title>Kokoro golden oracle (WASM)</title>
+<!-- kokoro.js imports these bare specifiers; map to the vendored copies (same as the OS frames + kokoro-holo-test) -->
+<script type="importmap">{"imports":{
+  "@huggingface/transformers":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/transformers/transformers.js",
+  "phonemizer":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/phonemizer.js",
+  "path":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/stub.js",
+  "fs":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/stub.js",
+  "fs/promises":"/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/stub.js"
+}}</script>
+<body style="font:13px ui-monospace,monospace;background:#0b0e16;color:#cdd6f4;padding:16px"><pre id="out">init…</pre></body>
+<script type="module">
+// GOLDEN ORACLE for the κ-native WGSL Kokoro port. Runs the PROVEN WASM engine on a FIXED (text, voice) and
+// captures BOTH the ground-truth graph inputs (input_ids, style[256], speed) AND the golden PCM waveform, so
+// the WGSL forward can be diffed sample-for-sample. fp32 (model.onnx) — matches the tensors onnx-tensors.mjs reads.
+import { KokoroTTS, env as kenv } from "/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/kokoro.js";
+import { env as TF } from "@huggingface/transformers";
+
+const out = document.getElementById("out"); const log = (s) => { out.textContent += "\n" + s; };
+const MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX";
+const MODELS_BASE = "/holo-os/system/os/usr/lib/holo/voice/vendor/models/";
+const FIXED = { text: "Hello.", voice: "af_heart", dtype: "fp32" };   // short → few phonemes → tiny waveform (fast kernel debug)
+
+// serve model files LOCALLY (no CDN): transformers reads from localModelPath; also map kokoro.js's hard-coded HF
+// voice-.bin URL to the local vendored copy so the style vector is local too. 100% serverless, deterministic.
+TF.allowRemoteModels = false; TF.allowLocalModels = true; TF.localModelPath = new URL(MODELS_BASE, location.href).href;
+TF.backends.onnx.wasm.wasmPaths = new URL("/holo-os/system/os/usr/lib/holo/voice/vendor/kokoro/transformers/", location.href).href;
+TF.backends.onnx.wasm.proxy = false;   // synchronous — we want deterministic capture, not a worker
+const _fetch = window.fetch.bind(window);
+window.fetch = (input, init) => {
+  const url = typeof input === "string" ? input : (input && input.url) || "";
+  const m = url.match(/Kokoro-82M-v1\.0-ONNX\/resolve\/main\/(voices\/[A-Za-z0-9_]+\.bin)/);
+  if (m) return _fetch(new URL(MODELS_BASE + MODEL + "/" + m[1], location.href).href, init);   // voice .bin → local
+  return _fetch(input, init);
+};
+
+(async () => {
+ try {
+  log(`loading Kokoro (${FIXED.dtype}, wasm) from local vendored files …`);
+  const t0 = performance.now();
+  const tts = await KokoroTTS.from_pretrained(MODEL, { dtype: FIXED.dtype, device: "wasm" });
+  log(`loaded in ${Math.round(performance.now() - t0)}ms`);
+
+  // capture the EXACT tensors the ONNX graph receives (the WGSL forward's ground-truth inputs).
+  const realModel = tts.model; let cap = null;
+  tts.model = (inputs) => { cap = inputs; return realModel(inputs); };
+
+  log(`synthesizing "${FIXED.text}" · voice ${FIXED.voice} …`);
+  const ts = performance.now();
+  const audio = await tts.generate(FIXED.text, { voice: FIXED.voice });
+  const synMs = Math.round(performance.now() - ts);
+
+  const ids = Array.from(cap.input_ids.data, Number);
+  const style = Array.from(cap.style.data);                       // 256 floats
+  const pcm = audio.audio;                                        // Float32Array @ 24kHz
+  let maxAbs = 0, sum = 0; for (let i = 0; i < pcm.length; i++) { const a = Math.abs(pcm[i]); if (a > maxAbs) maxAbs = a; sum += pcm[i]; }
+  const head = Array.from(pcm.slice(0, 16)), tail = Array.from(pcm.slice(-16));
+
+  window.__oracle = {
+    text: FIXED.text, voice: FIXED.voice, dtype: FIXED.dtype,
+    ids, idsLen: ids.length, styleIdx: 256 * Math.min(Math.max(ids.length - 2, 0), 509),
+    style, styleHead: style.slice(0, 8),
+    rate: audio.sampling_rate, n: pcm.length, durSec: +(pcm.length / audio.sampling_rate).toFixed(3),
+    maxAbs: +maxAbs.toFixed(5), sum: +sum.toFixed(4), head, tail,
+    synMs, pcm,   // full PCM kept in-page for Phase-1 WGSL diffing
+  };
+  log(`\nids [${ids.length}]: ${ids.join(" ")}`);
+  log(`style[256] head: ${window.__oracle.styleHead.map(x=>x.toFixed(4)).join(" ")} …`);
+  log(`PCM: ${pcm.length} samples @ ${audio.sampling_rate}Hz (${window.__oracle.durSec}s) · maxAbs ${window.__oracle.maxAbs} · synth ${synMs}ms`);
+  log(`\n✅ GOLDEN ORACLE READY → window.__oracle  (probeVoiceOK: ${maxAbs >= 0.05 && maxAbs <= 1.8})`);
+  try { const ac = new AudioContext(); const b = ac.createBuffer(1, pcm.length, audio.sampling_rate); b.getChannelData(0).set(pcm); const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(); } catch (e) {}
+ } catch (e) { window.__oracle = { error: String(e), stack: e && e.stack }; log("ERROR: " + e + "\n" + (e && e.stack || "")); }
+})();
+</script>

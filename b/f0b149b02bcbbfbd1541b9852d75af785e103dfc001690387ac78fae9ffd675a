@@ -1,0 +1,85 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home</title>
+<!-- THE LENS — the Hologram browser's front page: a holospace you DERIVE, not a page you fetch.
+     Composed entirely on-device from YOUR κ-graph (visit history + the app catalog) by the pure
+     module holo-front-page.mjs (Node-witnessed: deterministic, zero-network). The page has a κ —
+     same graph + same hour → same page — and it names what it knows in the seal. No third party
+     personalizes Hologram's front door. Google is one keystroke away in the box. (SEC-5/7.) -->
+<style>
+  :root{color-scheme:dark;--bg:#0b141a;--fg:#e8eef5;--dim:#93a4b8;--card:#121a24;--line:#1e2a38;--accent:#7b68ee;--accent2:#3b6ee0}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:820px;margin:0 auto;padding:clamp(1.6rem,6vh,4.2rem) 1.2rem 3rem}
+  .hello{text-align:center;margin-bottom:1.6rem}
+  .hello .hi{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:600;background:linear-gradient(135deg,#cfe0ff,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hello .sub{color:var(--dim);font-size:.85rem;margin-top:.3rem}
+  form{display:flex;gap:.5rem;max-width:640px;margin:0 auto 2rem}
+  input[type=search]{flex:1;padding:.95rem 1.2rem;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:1.02rem;outline:none;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  input[type=search]:focus{border-color:var(--accent)}
+  button.go{padding:.95rem 1.3rem;border-radius:14px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:600;cursor:pointer}
+  .row{margin:1.4rem 0 0}
+  .row .label{font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);font-weight:600;margin:0 .2rem .55rem}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.6rem}
+  a.tile{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.85rem .95rem;transition:transform .12s ease,border-color .12s ease}
+  a.tile:hover{transform:translateY(-2px);border-color:var(--accent)}
+  .tile .t{font-size:.95rem;color:#cfe0ff;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tile .h{color:#6f8db5;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tile .why{display:inline-block;margin-top:.45rem;font-size:.72rem;color:var(--dim);background:#0f1620;border:1px solid var(--line);border-radius:999px;padding:.08rem .5rem}
+  .seal{margin-top:2.6rem;text-align:center;color:var(--dim);font-size:.78rem;opacity:.75}
+  .seal .k{color:#6f8db5}
+  .empty{text-align:center;color:var(--dim);margin:2.5rem 0 0;font-size:.92rem}
+</style></head>
+<body><div class="wrap">
+  <div class="hello"><div class="hi" id="hi"></div><div class="sub" id="sub"></div></div>
+  <form id="f"><input type="search" id="q" autocomplete="off" spellcheck="false" placeholder="Search or type an address — web, apps, ipfs://, .eth, holo://"><button class="go" type="submit">Go</button></form>
+  <div id="rows"></div>
+  <div class="seal" id="seal"></div>
+</div>
+<script type="module">
+import { deriveFrontPage } from "./_shared/holo-front-page.mjs";
+
+const esc = (s) => String(s == null ? "" : s).replace(/[<&>"]/g, (c) => ({ "<": "&lt;", "&": "&amp;", ">": "&gt;", '"': "&quot;" }[c]));
+function nav(url) { try { window.parent.postMessage({ type: "holonav", url }, location.origin); } catch {} }
+
+// ── sources: ALL local. history from the browser's persisted graph; apps from the same-origin
+// catalog (mount-base aware — the assembler cannot rewrite the extensionless .jsonld literal). ──
+let history = []; try { const h = JSON.parse(localStorage.getItem("holo.browser.history.v1") || "[]"); if (Array.isArray(h)) history = h; } catch {}
+let APPS_BASE = location.pathname.replace(/\/apps\/browser\/[^/]*$/, "/apps/"); if (!/\/apps\/$/.test(APPS_BASE)) APPS_BASE = "/apps/";
+const MOUNT = APPS_BASE.replace(/apps\/$/, "");
+
+// paint IMMEDIATELY from history (the <200ms line) — the apps row joins when the catalog resolves.
+const now = Date.now(), hour = new Date(now).getHours();
+render(deriveFrontPage({ history, apps: [], hour, now }));
+fetch(APPS_BASE + "index.jsonld").then((r) => r.json()).then((j) => {
+  const ds = j["dcat:dataset"] || j.dataset || [];
+  const all = ds.map((d) => { const land = d["dcat:landingPage"] || d["schema:mainEntityOfPage"] || ""; return { url: land ? (MOUNT + String(land).replace(/^\/+/, "")) : "", title: d["schema:name"] || "" }; }).filter((a) => a.url && a.title);
+  // flagship doors first (deterministic: fixed preference order, then catalog order fills the rest)
+  const PREF = ["Holo Messenger", "Holo Money", "Holo Music", "Holo Video", "Q", "Holo Files", "Holo Player"];
+  const apps = PREF.map((n) => all.find((a) => a.title === n)).filter(Boolean).concat(all.filter((a) => !PREF.includes(a.title)));
+  render(deriveFrontPage({ history, apps, hour, now }));
+}).catch(() => {});
+
+async function render(model) {
+  document.getElementById("hi").textContent = model.greeting;
+  document.getElementById("sub").textContent = new Date(now).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const rows = document.getElementById("rows");
+  // one pinned sovereign entry so Holo Pass is discoverable (nav "holo://pass" → the demo/app)
+  const pinned = '<div class="row"><div class="label">Sovereign</div><div class="tiles">'
+    + '<a class="tile" href="holo://pass" data-url="holo://pass"><div class="t">✦ Your presence</div><div class="h">Passwords + wallet — try it, no sign-in</div><span class="why">One identity</span></a>'
+    + '</div></div>';
+  rows.innerHTML = pinned + model.rows.map((r) =>
+    '<div class="row"><div class="label">' + esc(r.label) + '</div><div class="tiles">' +
+    r.tiles.map((t) => '<a class="tile" href="' + esc(t.url) + '" data-url="' + esc(t.url) + '"><div class="t">' + esc(t.title) + '</div><div class="h">' + esc(t.host) + '</div><span class="why">' + esc(t.why) + "</span></a>").join("") +
+    "</div></div>").join("") || '<div class="empty">Browse a little — your front page derives itself from where you go. Nothing to configure.</div>';
+  for (const a of rows.querySelectorAll("a.tile")) a.addEventListener("click", (e) => { e.preventDefault(); nav(a.getAttribute("data-url")); });
+  // the page's own address: κ of the derivation (same graph + same hour → same κ). The seal says
+  // what this page is made of and that nothing left the device to make it.
+  let k = "";
+  try { const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(model.canonical)); k = [...new Uint8Array(buf)].slice(0, 6).map((b) => b.toString(16).padStart(2, "0")).join(""); } catch {}
+  document.getElementById("seal").innerHTML = "derived on this device from your own graph · zero egress · <span class=k>κ " + k + "</span>";
+}
+
+document.getElementById("f").addEventListener("submit", (e) => { e.preventDefault(); const q = document.getElementById("q").value.trim(); if (q) nav(q); });
+document.getElementById("q").focus();
+</script>
+</body></html>

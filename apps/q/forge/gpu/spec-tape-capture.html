@@ -1,0 +1,61 @@
+<!doctype html><html><head><meta charset=utf8><title>spec-tape-capture (init)</title>
+<style>body{font:14px/1.5 monospace;background:#0b0e14;color:#e6e9ef;padding:18px}pre{white-space:pre-wrap}#out{color:#7cffa0}</style>
+</head><body>
+<h3>Q spec-tape-capture — greedy tapes from the real 9B (WebGPU)</h3>
+<div id=log>booting…</div>
+<pre id=out></pre>
+<script type=module>
+// Captures real greedy token tapes from Qwen3.5-9B for spec-p0-eval.mjs. Uses the readback ORACLE
+// brain (step/argmax/newState/tok) exposed by loadQwen35Brain — correct greedy, a few sec/token.
+// Result is stashed on window.__tapes (JSON) and rendered; window.__progress tracks live state so a
+// driver can poll without blocking. document.title flips to DONE / ERROR at the end.
+import { loadQwen35Brain } from "./holo-qwen35-gpu-real.mjs";
+const $ = (s) => document.querySelector(s);
+const log = (m) => { $("#log").textContent = m; window.__progress = m; };
+const HOLO = new URL("../.models/qwen3.5-9b-thinking.holo", location.href).href;
+const EOS = new Set([248046, 248044]);
+const SYS = "You are Q, a concise, helpful thinking assistant.";
+const Q = new URLSearchParams(location.search);
+const MAXNEW = +(Q.get("new") || 48);
+const NCAP = +(Q.get("n") || 0);   // 0 = all served intents
+const SKIP = +(Q.get("skip") || 0);   // resume: skip the first N intents
+let PROMPTS = [
+  "The capital of France is",
+  "Write a Python function that returns the nth Fibonacci number.",
+  "Explain why the sky is blue in two sentences.",
+  "List the first five prime numbers and their sum.",
+];
+const frame = (msgs) => { let s = ""; for (const m of msgs) s += `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`; return s + "<|im_start|>assistant\n"; };
+
+window.__tapes = null; window.__progress = "boot";
+try {
+  if (!navigator.gpu) throw new Error("no WebGPU (need Chrome/Edge/CEF with WebGPU)");
+  const t0 = performance.now();
+  const loaded = await loadQwen35Brain({ holoUrl: HOLO, onProgress: (m, p) => log(`load: ${m} ${p ? Math.round(p * 100) + "%" : ""}`) });
+  window.__brain = loaded;
+  const R = loaded.resident || loaded;   // resident engine: step() returns the argmax token id directly, ~1 readback/token
+  const { tok, step, newState, D } = R;
+  try { const r = await fetch(new URL("../spec-intents.json", location.href)); if (r.ok) { const arr = await r.json(); if (Array.isArray(arr) && arr.length) { const s = arr.slice(SKIP); PROMPTS = NCAP ? s.slice(0, NCAP) : s; } } } catch (e) {}
+  log(`brain ready (${D.n_layer} layers, vocab ${D.vocab}, resident) in ${((performance.now() - t0) / 1000).toFixed(0)}s — capturing ${PROMPTS.length} intents × ${MAXNEW}…`);
+  let tapes = [];
+  try { const r0 = await fetch(new URL("../spec-tapes-live.json?t=" + Date.now(), location.href)); if (r0.ok) { const d0 = await r0.json(); if (d0 && Array.isArray(d0.tapes)) tapes = d0.tapes; } } catch (e) {}
+  const startIdx = tapes.length;   // RESUME: continue from what's already on disk (stable PROMPTS order)
+  log(`resuming from ${startIdx} existing tapes → capturing to ${PROMPTS.length}`);
+  for (let pi = startIdx; pi < PROMPTS.length; pi++) {
+    const text = PROMPTS[pi];
+    const prompt = tok.encode(frame([{ role: "system", content: SYS }, { role: "user", content: text }]), { addSpecial: false, parseSpecial: true });
+    const state = newState(); let next, pos = 0;
+    for (; pos < prompt.length; pos++) { next = await step(prompt[pos], pos, state); if (pos % 8 === 0) log(`tape ${pi + 1}/${PROMPTS.length}: prefill ${pos + 1}/${prompt.length}`); }
+    const greedy = [];
+    for (let n = 0; n < MAXNEW; n++) { if (EOS.has(next)) break; greedy.push(next); log(`tape ${pi + 1}/${PROMPTS.length}: gen ${n + 1}/${MAXNEW} (${greedy.length} tok)`); next = await step(next, pos++, state); }
+    tapes.push({ prompt, greedy, text });
+    window.__tapes = { model: "qwen3.5-9b-thinking", new: MAXNEW, tapes };   // publish incrementally
+    $("#out").textContent = tapes.length + " tapes captured";
+    try { await fetch(new URL("../spec-tapes-live.json", location.href), { method: "POST", body: JSON.stringify(window.__tapes) }); } catch (e) {}   // persist to disk (survives tab death)
+  }
+  log(`DONE — ${tapes.length} tapes, ${tapes.reduce((a, t) => a + t.greedy.length, 0)} greedy tokens`);
+  document.title = "DONE";
+} catch (e) {
+  log("ERROR: " + e.message); window.__error = e.message; document.title = "ERROR"; throw e;
+}
+</script></body></html>
