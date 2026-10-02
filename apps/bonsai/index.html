@@ -1,0 +1,665 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bonsai</title>
+<style>
+  /* Claude-desktop look: warm charcoal stage, 11% hairlines, 12-14px radii, serif display.
+     NEUTRAL accent (was Claude coral): a premium bone fill on the charcoal — mono, sharp, calm.
+     Type floor is 15px everywhere. Everything fits ONE viewport at 1280×800 AND 375×812 (dvh + clamp). */
+  :root { --bg:#262624; --ink:#eceae4; --muted:#b8b5ad; --faint:rgba(232,230,224,.45);
+          --hair:rgba(255,255,255,.11);
+          --accent:#ece9e3; --accent-ink:#20201e; --accent-hi:#f7f5ef; --focus:rgba(255,255,255,.4);
+          --coral:var(--accent); --coral-hi:var(--muted); --lav:rgba(255,255,255,.5); --r:13px;
+          --serif:"Tiempos Text","Charter","Iowan Old Style",Georgia,serif; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body { background:var(--bg); color:var(--ink); font:15px/1.55 system-ui,-apple-system,"Segoe UI",Inter,sans-serif;
+         -webkit-font-smoothing:antialiased; overflow:hidden; }
+  .num { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:15px; }
+  .stage { position:fixed; inset:0; height:100dvh; display:flex; flex-direction:column; align-items:center;
+           justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .6s ease; }
+  .stage.on { opacity:1; pointer-events:auto; }
+
+  /* ── arrival: full-bleed hologram canvas behind left-aligned copy ── */
+  #arrive { flex-direction:row; align-items:center; justify-content:flex-start; padding:0; }
+  #holo { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #arrive .copy { position:relative; z-index:1; max-width:620px; padding:0 clamp(24px,6vw,96px); }
+  #arrive h1 { font-family:var(--serif); font-weight:500; font-size:clamp(40px,7vw,84px); line-height:1.06;
+               letter-spacing:-.015em; text-wrap:balance; }
+  #arrive .sub { margin-top:22px; font-size:clamp(18px,1.6vw,20px); line-height:1.5; color:var(--muted); max-width:46ch; }
+  #arrive button { margin-top:34px; background:var(--accent); border:none; color:var(--accent-ink); border-radius:999px;
+                   padding:16px 34px; font:600 16px/1 system-ui,sans-serif; letter-spacing:-.01em; cursor:pointer;
+                   transition:transform .2s ease, background .2s ease; }
+  #arrive button:hover { background:var(--accent-hi); transform:translateY(-1px); }
+  #arrive button:disabled { filter:saturate(.3) brightness(.8); cursor:default; transform:none; }
+  #arrive .fine { margin-top:16px; font-size:15px; color:var(--faint); }
+  /* model picker: two pills on the welcome wall — the default 27B mind, or the fast 8B. Switching reloads. */
+  #arrive .pick { margin-top:22px; display:inline-flex; gap:6px; background:rgba(255,255,255,.04);
+                  border:1px solid var(--hair); border-radius:999px; padding:4px; }
+  #arrive .pick button { background:none; border:none; color:var(--muted); cursor:pointer; border-radius:999px;
+                         font:500 15px/1 system-ui,sans-serif; letter-spacing:-.005em; padding:10px 18px;
+                         transition:background .18s ease, color .18s ease; }
+  #arrive .pick button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); }
+  #arrive .pick button:hover:not([aria-pressed="true"]) { color:var(--ink); }
+  #arrive .picknote { margin-top:12px; font-size:15px; color:var(--faint); max-width:44ch; }
+  @media (max-width:760px) {          /* stacked: hologram floats in the upper half, copy anchors low */
+    #arrive { align-items:flex-end; }
+    #arrive .copy { padding-bottom:max(44px, env(safe-area-inset-bottom, 0px) + 36px); }
+  }
+
+  /* ── chat: the Claude-desktop room — serif greeting, ONE centered input card, quiet metrics ── */
+  #chat { justify-content:center; padding:0; }
+  #chat .col { display:flex; flex-direction:column; width:min(100%,760px); height:100%; padding:0 22px; justify-content:center; }
+  #chat .col.started { justify-content:flex-start; }
+  #hello { text-align:center; margin-bottom:26px; }
+  #hello .mark { display:inline-block; width:30px; height:30px; vertical-align:-4px; margin-right:12px; color:var(--coral); }
+  #hello h2 { display:inline; font-family:var(--serif); font-weight:500; font-size:clamp(30px,4.4vw,44px); letter-spacing:-.01em; }
+  .col.started #hello { display:none; }
+  #log { display:none; }
+  .col.started #log { display:block; flex:1; overflow-y:auto; padding:30px 4px 16px;
+                      scrollbar-width:none; -ms-overflow-style:none; }   /* the content scrolls; no chrome */
+  #log::-webkit-scrollbar { width:0; height:0; }
+  .msg { margin:0 0 22px; }
+  .msg .who { font-size:15px; color:var(--faint); margin-bottom:4px; }
+  .msg.user { display:flex; justify-content:flex-end; }                        /* Grok/Claude: user turn is a right bubble */
+  .msg.user .who { display:none; }
+  .msg.user .body { background:rgba(255,255,255,.05); border:1px solid var(--hair); border-radius:16px 16px 4px 16px;
+                    padding:11px 16px; max-width:78%; }
+  .msg .body { white-space:pre-wrap; font-size:16px; line-height:1.65; }
+  /* "Thought for Ns" — a quiet collapsible reasoning header (Grok's signature, in Claude's palette) */
+  details.think { margin:0 0 10px; }
+  details.think summary { list-style:none; cursor:pointer; font-size:15px; color:var(--faint);
+                          display:inline-flex; align-items:center; gap:7px; user-select:none; }
+  details.think summary::-webkit-details-marker { display:none; }
+  details.think summary .chev { transition:transform .2s ease; font-size:11px; }
+  details.think[open] summary .chev { transform:rotate(90deg); }
+  details.think .t { color:var(--faint); font-size:15px; line-height:1.6; white-space:pre-wrap; margin-top:8px;
+                     border-left:2px solid var(--hair); padding-left:12px; }
+  /* assistant action row: copy · regenerate (appears when the answer settles) */
+  .acts { display:flex; gap:4px; margin-top:8px; opacity:0; transition:opacity .25s ease; }
+  .msg:hover .acts, .acts.shown { opacity:1; }
+  .acts button { background:none; border:none; color:var(--faint); cursor:pointer; border-radius:8px;
+                 width:30px; height:30px; display:grid; place-items:center; transition:background .15s, color .15s; }
+  .acts button:hover { background:rgba(255,255,255,.06); color:var(--ink); }
+  .acts button svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.7; }
+  .acts .ok { color:var(--coral-hi); }
+  /* follow-up suggestions: Grok's placement — borderless rows stacked in the conversation flow */
+  .fu { display:flex; flex-direction:column; margin:14px 0 4px; }
+  .fu button { display:flex; align-items:center; gap:12px; background:none; border:none; border-top:1px solid transparent;
+               color:var(--muted); font-size:16px; text-align:left; padding:11px 6px; cursor:pointer;
+               border-radius:10px; transition:background .15s, color .15s; }
+  .fu button:hover { background:rgba(255,255,255,.045); color:var(--ink); }
+  .fu .arr { color:var(--faint); font-size:15px; flex:none; }
+  .note { text-align:center; font-size:15px; color:var(--faint); margin:6px 0 12px; }
+  #card { background:rgba(255,255,255,.03); border:1px solid var(--hair); border-radius:18px; padding:6px 8px 8px; }
+  #card:focus-within { border-color:var(--focus); }
+  #inp { width:100%; background:none; border:none; color:var(--ink); padding:14px 12px 10px;
+         font:16px/1.45 system-ui,sans-serif; outline:none; }
+  #cardrow { display:flex; align-items:center; gap:12px; padding:0 8px 4px 12px; }
+  #modelname { font-size:15px; color:var(--muted); }
+  #cardrow .grow { flex:1; }
+  #send { background:var(--accent); border:none; color:var(--accent-ink); border-radius:999px; width:38px; height:38px;
+          font:500 17px/1 system-ui,sans-serif; cursor:pointer; transition:background .2s ease; }
+  #send:hover { background:var(--accent-hi); }
+  #send:disabled { background:rgba(255,255,255,.06); color:var(--faint); cursor:default; }
+  #metrics { text-align:center; font-size:15px; color:var(--faint); padding:12px 0 16px; min-height:22px; }
+  #metrics b { color:var(--muted); font-weight:500; }
+  #err { color:#f87171; font-size:15px; padding:0 0 18px; text-align:center; white-space:pre-wrap; }
+  .spn { display:inline-block; width:1.1ch; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+         color:var(--coral-hi); margin-right:7px; }
+  /* CSS hologram (fallback when WebGL is unavailable/blocked): layered orb + scanlines + drift */
+  #holofb { position:absolute; width:min(46vw,520px); aspect-ratio:1; right:4vw; top:50%;
+            transform:translateY(-50%); border-radius:50%; pointer-events:none;
+            background:radial-gradient(circle at 38% 34%, rgba(255,255,255,.5), rgba(206,204,198,.22) 42%, rgba(255,255,255,.1) 72%, transparent 76%);
+            box-shadow:0 0 90px rgba(255,255,255,.14), inset 0 0 60px rgba(255,255,255,.12);
+            animation:holofloat 7s ease-in-out infinite; }
+  #holofb::before { content:""; position:absolute; inset:0; border-radius:50%;
+            background:repeating-linear-gradient(to bottom, rgba(255,255,255,.09) 0 2px, transparent 2px 7px);
+            mix-blend-mode:screen; animation:holoscan 2.6s linear infinite;
+            -webkit-mask:radial-gradient(circle, #000 70%, transparent 74%); mask:radial-gradient(circle, #000 70%, transparent 74%); }
+  #holofb::after { content:""; position:absolute; inset:-2%; border-radius:50%;
+            border:1px solid rgba(255,255,255,.25); filter:blur(.4px); }
+  @keyframes holofloat { 50% { transform:translateY(calc(-50% - 14px)); } }
+  @keyframes holoscan { to { background-position:0 7px; } }
+  @media (max-width:760px){ #holofb { right:50%; top:26%; transform:translate(50%,-50%); width:min(62vw,300px); }
+                            @keyframes holofloat { 50% { transform:translate(50%,calc(-50% - 10px)); } } }
+  @media (prefers-reduced-motion: reduce){ #holofb, #holofb::before { animation:none; } }
+</style>
+<body>
+
+<div class="stage on" id="arrive">
+  <canvas id="holo"></canvas>
+  <div id="holofb" hidden></div>
+  <div class="copy">
+    <h1>An AI<br>that&rsquo;s yours.</h1>
+    <p class="sub">It runs entirely on your device. Private, and works offline.</p>
+    <button id="go">Start chatting</button>
+    <div class="fine" id="fine">Free. No account, nothing to install.</div>
+    <div class="pick" id="pick" role="group" aria-label="Choose the model">
+      <button type="button" data-m="27b">Bonsai 27B</button>
+      <button type="button" data-m="8b">Bonsai 8B &middot; faster</button>
+    </div>
+    <p class="picknote" id="picknote"></p>
+  </div>
+</div>
+
+<div class="stage" id="chat">
+  <div class="col" id="col">
+    <div id="hello">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg><h2>Ready when you are.</h2>
+    </div>
+    <div id="log"></div>
+    <div id="card">
+      <input id="inp" placeholder="Ask anything" autocomplete="off">
+      <div id="cardrow">
+        <span id="modelname">Bonsai</span>
+        <span class="grow"></span>
+        <button id="send" aria-label="Send">&uarr;</button>
+      </div>
+    </div>
+    <div id="metrics">on your device</div>
+    <div id="err" hidden></div>
+  </div>
+</div>
+
+<script type="module">
+// ── the OS boot animation, verbatim look ─────────────────────────────────────────────────────
+// This is the SAME animation the OS greeter shows on its login screen (holo-plymouth.mjs): the
+// abstract_ring Plymouth theme — a dense torus of dark spheres cycling progress-0..40.png at
+// 25 fps — streamed progressively from the same public pack the OS streams from
+// (adi1090x/plymouth-themes, GPL-3.0 artwork), cached in the Cache API so every return visit
+// paints instantly and offline. Each frame's baked-black background is CHROMA-KEYED to
+// transparent on decode (the greeter's keyBlack, verbatim), so the emblem floats over the stage
+// with no black box — identical to the login screen.
+const cv = document.getElementById("holo");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+window.__holoOff = null;
+try {
+  const N = 41, FPS = 25;
+  const url = (i) => "https://raw.githubusercontent.com/adi1090x/plymouth-themes/master/pack_1/abstract_ring/progress-" + i + ".png";
+  const ctx = cv.getContext("2d");
+  const frames = new Array(N).fill(null);
+  let have = 0, dead = false, raf = 0;
+  // Plymouth sprites bake their black screen into the PNG; over the stage that black must be AIR.
+  // keyBlack (holo-plymouth.mjs, verbatim ramp) fades near-black pixels to transparent → the ring
+  // floats on the charcoal exactly like the greeter's emblem floats on the login wall.
+  const keyBlack = (bmp) => {
+    try {
+      const w = bmp.width, h = bmp.height; if (!w || !h) return bmp;
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const x = c.getContext("2d", { willReadFrequently: true });
+      x.drawImage(bmp, 0, 0);
+      const d = x.getImageData(0, 0, w, h), p = d.data;
+      for (let i = 0; i < p.length; i += 4) {
+        const v = Math.max(p[i], p[i + 1], p[i + 2]);
+        if (v < 48) p[i + 3] = Math.min(p[i + 3], Math.max(0, ((v - 12) / 36) * 255) | 0);
+      }
+      x.putImageData(d, 0, 0);
+      return c;
+    } catch { return bmp; }
+  };
+  const cachePromise = caches.open("holo-plymouth-v1").catch(() => null);
+  const loadFrame = async (i) => {
+    try {
+      const cache = await cachePromise;
+      let resp = cache && await cache.match(url(i));
+      if (!resp) { resp = await fetch(url(i)); if (cache && resp.ok) { try { await cache.put(url(i), resp.clone()); } catch {} } }
+      if (!resp || !resp.ok) return;
+      frames[i] = keyBlack(await createImageBitmap(await resp.blob()));
+      have++;
+    } catch {}
+  };
+  // frame 0 first (first paint), then the rest with small concurrency — plays as it arrives
+  await loadFrame(0);
+  (async () => { let i = 1; const w = async () => { while (i < N && !dead) { const k = i++; await loadFrame(k); } };
+                 await Promise.all([w(), w(), w(), w()]); })();
+  const size = () => { cv.width = innerWidth * Math.min(devicePixelRatio || 1, 2); cv.height = innerHeight * Math.min(devicePixelRatio || 1, 2); };
+  size(); addEventListener("resize", size);
+  let f = 0, last = 0;
+  const draw = (t) => {
+    if (dead) return;
+    raf = requestAnimationFrame(draw);
+    if (t - last < 1000 / FPS) return; last = t;
+    if (!reduced) { f = (f + 1) % N; }
+    let img = frames[f]; if (!img) { for (let k = 0; k < N; k++) if (frames[k]) { img = frames[k]; break; } }
+    if (!img) return;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const desktop = cv.width / cv.height > 0.92;
+    const s = Math.min(cv.width, cv.height) * (desktop ? 0.84 : 0.72) / Math.max(img.width, img.height);
+    const w = img.width * s, h = img.height * s;
+    const x = desktop ? cv.width * 0.72 - w / 2 : cv.width / 2 - w / 2;
+    const y = desktop ? cv.height / 2 - h / 2 : cv.height * 0.28 - h / 2;
+    ctx.drawImage(img, x, y, w, h);
+  };
+  raf = requestAnimationFrame(draw);
+  document.addEventListener("visibilitychange", () => { if (dead) return; if (document.hidden) cancelAnimationFrame(raf); else raf = requestAnimationFrame(draw); });
+  window.__holoFrame = () => cv.toDataURL("image/png");
+  window.__holoOff = () => { dead = true; cancelAnimationFrame(raf); window.__holoFrame = null; cv.remove(); };
+  setTimeout(() => { if (!dead && have === 0) { const fb = document.getElementById("holofb"); if (fb) fb.hidden = false; } }, 4000);   // no frames at all → CSS stand-in
+} catch (e) {
+  const fb = document.getElementById("holofb"); if (fb) fb.hidden = false;
+}
+</script>
+
+<script type="module">
+import init, { qvac_load_gpu, qvac_gpu_free } from "../q/pkg/holospaces_web.js";
+import { loadKappaObject } from "../q/holo-load2bit.mjs";
+import { createQvacGPU } from "../q/qvac-gpu.js?v=68";
+import { createEngine } from "../q/core/engine.js";
+import { loadBridge } from "./bonsai27-bridge.mjs";   // 27B hybrid engine, wrapped in the 8B engine shape
+
+const $ = (id) => document.getElementById(id);
+// braille pulse: one 80ms ticker animates every [data-spin] slot (loading, waking, thinking) —
+// a single interval, zero layout work, stops mattering the instant the last spinner is removed.
+const SPIN = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+let _sf = 0;
+setInterval(() => { const els = document.querySelectorAll("[data-spin]"); if (!els.length) return; const f = SPIN[_sf = (_sf + 1) % SPIN.length]; for (const el of els) el.textContent = f; }, 80);
+const spn = () => `<span class="spn" data-spin>${SPIN[0]}</span>`;
+const show = (id) => { for (const s of document.querySelectorAll(".stage")) s.classList.toggle("on", s.id === id); };
+const short = (k) => String(k).replace(/^(did:holo:)?sha256:/, "").slice(0, 12) + "…";
+
+// model source: ?src=<κ-object dir> for dev, HF mirror by default; ?m=27b flips to the 27B
+// κ-object (engine support for its hybrid layers lands separately — the guard below is honest).
+// Everything shown to the user (name, size) is READ FROM THE MANIFEST — swapping the κ URL is a
+// zero-code model change. The manifest pin is the Law-L5 anchor.
+const QS = new URLSearchParams(location.search);
+const SRC = QS.get("src");
+const DEFAULT_27B = true;                                  // the full 27B hybrid mind is the default (parity-verified via bonsai27-bridge.mjs)
+const MODEL_KEY = "bonsai.model.v1";                       // persisted user choice — "27b" | "8b"
+// choose the model: an explicit ?m= wins (and is remembered), else the saved choice, else the default.
+function pickModel() {
+  const q = QS.get("m");
+  if (q === "27b" || q === "8b") { try { localStorage.setItem(MODEL_KEY, q); } catch {} return q; }
+  let saved = null; try { saved = localStorage.getItem(MODEL_KEY); } catch {}
+  if (saved === "27b" || saved === "8b") return saved;
+  return DEFAULT_27B ? "27b" : "8b";
+}
+const MODEL = pickModel();
+const M27 = MODEL === "27b";
+const BASE = SRC || (M27 ? "https://huggingface.co/HOLOGRAMTECH/q-bonsai-27b/resolve/main" : "https://huggingface.co/HOLOGRAMTECH/q-bonsai-8b/resolve/main");
+const PIN = M27 ? "did:holo:sha256:00beea03509a79f6567879f019c04bb15dda8721f6320f8295d9ea1dd9ba54af" : "did:holo:sha256:a0dc81f26ec5ce98b28ee9c1fab620e91c20720f777e1de6bc416317f54d27e2";
+const CTX = M27 ? 1024 : 2048;   // the 27B ring-decode head caps context at 1024 (KV VRAM); the 8B keeps 2048
+
+let engine = null, gpu = null, rootK = "", warm = false, mind = [], thinkOpen = -1, thinkClose = -1;
+let modelName = "Bonsai";                                  // set from the manifest once loaded
+let story = [], memoryNote = "";                           // the WHOLE conversation + the folded memory of its older part
+const STORE = "bonsai.story.v1";
+// ── O(1) κ-ANSWER MEMO (the hologram-runtime thesis, applied honestly) ────────────────────────
+// Greedy decode is deterministic: the answer is a PURE FUNCTION of (model root κ, exact input token
+// ids). So the answer is itself content-addressable. Key = sha256(rootκ · ids) → cached reply. A hit
+// streams instantly and is BYTE-IDENTICAL to recomputing — repeated questions, and the model-authored
+// follow-ups other visitors also click, become 0-latency. Persisted; survives reloads and works offline.
+const MEMO = "bonsai.memo.v1";
+let memoMap = null;
+function memoLoad() { if (memoMap) return memoMap; try { memoMap = JSON.parse(localStorage.getItem(MEMO) || "{}"); } catch { memoMap = {}; } return memoMap; }
+async function memoKey(ids) {
+  const b = new TextEncoder().encode(rootK + ":" + ids.join(","));
+  const h = await crypto.subtle.digest("SHA-256", b);
+  return [...new Uint8Array(h)].slice(0, 16).map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+function memoSave(key, val) {
+  const m = memoLoad(); m[key] = val;
+  const ks = Object.keys(m); if (ks.length > 400) delete m[ks[0]];       // bounded FIFO
+  try { localStorage.setItem(MEMO, JSON.stringify(m)); } catch {}
+}
+function persistStory() {
+  try { localStorage.setItem(STORE, JSON.stringify({ story: story.slice(-200), memoryNote })); } catch {}
+}
+// fold everything so far into a compact memory the model writes for itself (bounded, abortable-free:
+// runs inside send() before the next turn, with the braille pulse narrating it)
+async function foldMemory() {
+  const recent = story.slice(-8).map((t) => `Q: ${t.q}
+A: ${t.a.slice(0, 300)}`).join("\n");
+  const prior = memoryNote ? "Earlier memory: " + memoryNote + "\n\n" : "";
+  const ask = prior + "Recent conversation:\n" + recent + "\n\nFold ALL of the above into one memory note under 130 words. Keep every name, number, decision and open question. Write only the note.";
+  const ids = engine.tokenize(engine.frameTurn(ask, false));
+  const res = await engine.generate(ids, { maxNew: 300 });
+  const seg = splitThink(res.outIds || []);
+  const text = (seg.ans.length ? engine.detokenize(seg.ans) : res.text || "").trim();
+  return text.slice(0, 1200);
+}
+
+let entered = false, streamStarted = false;
+// ── 27B path: the hybrid engine behind the SAME engine shape send() consumes (bonsai27-bridge.mjs). ──
+// The bridge does its own κ-verified load (loadKappaObject) and hands back { engine, modelName, rootK };
+// its engine.{tokenize,detokenize,frameTurn,generate} match the 8B contract, so send() is unchanged.
+async function stream27(t0, phase) {
+  let bytes = 0, done = 0, label = "";
+  const tick = () => {
+    const dt = (performance.now() - t0) / 1000;
+    if (warm) phase(`${spn()}Waking up · ${label || "loading"} · from your device`);
+    else phase(`${spn()}Loading <b>Bonsai 27B</b> · <b>${(bytes / 1e6).toFixed(0)} MB</b> · ${(bytes / 1e6 / Math.max(dt, .1)).toFixed(1)} MB/s · verified as it arrives`);
+  };
+  const iv = setInterval(tick, 400);
+  try {
+    const b = await loadBridge({
+      base: BASE, pin: SRC ? null : PIN,                    // ?src = loose dev object → unpinned; HF = κ-pinned
+      onProgress: (name, delta) => { bytes += delta || 0; done++; },
+      onStatus: (s) => { label = s; },
+    });
+    engine = b.engine;
+    modelName = String(b.modelName || "Bonsai 27B");
+    rootK = b.rootK || PIN;
+    $("modelname").textContent = modelName;
+    thinkOpen = engine.thinkOpen ?? -1; thinkClose = engine.thinkClose ?? -1;   // atomic <think>/</think> (248068/248069)
+  } finally { clearInterval(iv); }
+  phase(spn() + "Almost ready");
+  enterChat();
+}
+async function stream() {
+  if (entered) { show("chat"); $("inp").focus(); }         // welcome (and its living hologram) stays until the visitor enters
+  const t0 = performance.now();
+  const phase = (s) => { $("metrics").innerHTML = s; };
+  try {
+    if (!navigator.gpu) throw new Error("This browser has no WebGPU. Chrome or Edge 113+ required.");
+    // warm-load detect (honest offline copy): the κ-cache already holds the manifest → this visit is disk-speed.
+    try { const c = await caches.open("holo-kappa-v1"); warm = !!(await c.match(BASE + "/manifest.json")); } catch {}
+    phase(spn() + (warm ? "Waking up · from your device" : "Loading · verified as it arrives"));
+    await init();
+    if (M27) { await stream27(t0, phase); return; }   // the 27B hybrid mind loads through the bridge (its own engine + ring decode)
+    // PARALLEL κ-BLOCKS FIRST (the measured Netflix path on CDN origins): 399 content-addressed
+    // blocks race over 12 connections (HF cdn-lfs caps a single stream ~2 MB/s; the parallel parts
+    // path measured 6.8 MB/s on the same line). The ONE-file .holo stays as the fallback for
+    // origins that only host the wafer (and its OPFS warm store makes revisits 0-network either way).
+    let r, pinned = true, holo = false;
+    try {
+      r = await loadKappaObject(BASE, { expectKappa: PIN, blake3: false });
+    } catch (e1) {
+      try {
+        const hs = await import("../q/core/holo-stream-load.mjs");
+        r = await hs.openHoloKappa(BASE + "/q-bonsai-8b.v1.holo", {});
+        holo = true; warm = !!r.warm;
+      } catch (e) { if (!SRC) throw e; pinned = false; r = await loadKappaObject(BASE, { allowUnpinned: true, blake3: false }); }  // dev fallback only under ?src
+    }
+    rootK = (r.info && r.info.root) || PIN;
+    modelName = String((r.info && r.info.model) || "Bonsai").replace(/-/g, " ");
+    $("modelname").textContent = modelName;
+    // HONESTY GATE: the hybrid (27B) engine ships separately — never pretend to run what we can't.
+    if (r.manifest.hybrid) throw new Error(modelName + " uses a hybrid engine this build does not include yet. It is arriving; the 8B runs today.");
+    // progress = ONE quiet line under the input (per-tensor counters; no grid, no takeover)
+    const total = (r.manifest.tensors || []).length;
+    let done = 0, bytes = 0;
+    const tick = () => {
+      const dt = (performance.now() - t0) / 1000;
+      if (warm) phase(`${spn()}Waking up · ${Math.round(done / Math.max(total, 1) * 100)}%`);
+      else phase(`${spn()}Loading · <b>${(bytes / 1e6).toFixed(0)} MB</b> · ${(bytes / 1e6 / Math.max(dt, .1)).toFixed(1)} MB/s · verified as it arrives`);
+    };
+    const iv = setInterval(tick, 400);
+    const fetchT = async (name) => {                       // wrap fetchTensor: the progress driver
+      const b = await r.fetchTensor(name);
+      bytes += b.byteLength; done++;
+      return b;
+    };
+    // tokenizer header (arch + vocab) — embedded in the .holo (0 extra fetches), else same κ-object dir.
+    const hdr = r.tokenizerBytes || new Uint8Array(await (await fetch(BASE + "/tokenizer.gguf")).arrayBuffer());
+    const lr = JSON.parse(qvac_load_gpu(hdr));
+    if (lr.error) throw new Error("tokenizer: " + lr.error);
+    try { qvac_gpu_free(); } catch {}
+    r.manifest.kv4 = false;                                // exact f32 KV (the proven first-light config)
+    gpu = await createQvacGPU(r.manifest, fetchT, CTX, lr.eos ?? 2, false);
+    clearInterval(iv);
+    phase(spn() + "Almost ready");
+    const m = { fam: "Bonsai", name: modelName, size: "1.16 GB", fmt: "q1 1-bit κ", cap: 200, ctx: CTX, qwen: true, chat: true, rep: 1.05, gpu: true, gpuOnly: true };
+    engine = await createEngine(m, { gpu, info: lr, imageKappa: r.info.root });
+    // Qwen3 thinking markers are atomic tokens and clean() strips them from text — split by token id instead.
+    const o = engine.tokenize("<think>"), c2 = engine.tokenize("</think>");
+    thinkOpen = o.length === 1 ? o[0] : -1; thinkClose = c2.length === 1 ? c2[0] : -1;
+    enterChat();
+  } catch (e) {
+    $("metrics").textContent = ""; $("err").hidden = false;
+    $("err").textContent = String(e && e.message || e);
+    console.error(e);
+  }
+}
+
+// the ONLY chat metrics, one quiet line: model · time to first word · tok/s (operator spec)
+let lastTTFT = null, lastTokps = null;
+function metrics(state) {
+  const bits = [`<b>${modelName}</b>`];
+  if (lastTTFT != null) bits.push(`${lastTTFT.toFixed(1)}s to first word`);
+  if (lastTokps != null) bits.push(`<b>${lastTokps.toFixed(0)}</b> tokens a second`);
+  if (!lastTTFT && !lastTokps) bits.push(state || (warm ? "on your device · works offline" : "on your device"));
+  $("metrics").innerHTML = bits.join(" &nbsp;&middot;&nbsp; ");
+}
+let pendingQ = null, restored = false;
+function restoreStory() {
+  if (restored) return; restored = true;
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (!saved || !saved.story || !saved.story.length) return;
+    story = saved.story; memoryNote = saved.memoryNote || "";
+    $("col").classList.add("started");
+    for (const t of story.slice(-12)) {                    // the room re-fills; the model remembers ALL of it via the fold
+      msg("You", "user").body.textContent = t.q;
+      msg(modelName, "bot").body.textContent = t.a;
+    }
+    if (!memoryNote && story.length) memoryNote = story.slice(-6).map((t) => `${t.q} → ${t.a.slice(0, 120)}`).join("; ").slice(0, 1200);
+    note("picked up where you left off");
+    log.scrollTop = log.scrollHeight;
+  } catch {}
+}
+function enterChat() {
+  ready = true; $("send").disabled = false; restoreStory(); metrics();
+  if (pendingQ) { $("inp").value = pendingQ; pendingQ = null; send(); }
+  else if (entered) $("inp").focus();
+}
+
+const log = $("log");
+function msg(who, cls) {
+  const d = document.createElement("div"); d.className = "msg " + cls;
+  d.innerHTML = `<div class="who">${who}</div>`;
+  const think = document.createElement("details"); think.className = "think"; think.hidden = true;
+  think.innerHTML = `<summary><span class="chev">▸</span><span class="sum">thinking…</span></summary><div class="t"></div>`;
+  const body = document.createElement("div"); body.className = "body";
+  d.appendChild(think); d.appendChild(body);
+  let acts = null;
+  if (cls === "bot") { acts = document.createElement("div"); acts.className = "acts"; d.appendChild(acts); }
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return { d, body, think, acts, t: think.querySelector(".t") };
+}
+const ICON = {
+  copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  ok:   '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>',
+  regen:'<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>',
+};
+function iconBtn(html, title, fn) { const b = document.createElement("button"); b.type = "button"; b.title = title; b.innerHTML = html; b.onclick = fn; return b; }
+// action row: copy the answer + regenerate the last turn (Grok's row, Claude's restraint)
+function fitActions(ui, text, regen) {
+  if (!ui.acts) return; ui.acts.innerHTML = "";
+  const copy = iconBtn(ICON.copy, "Copy", async () => {
+    try { await navigator.clipboard.writeText(text); copy.classList.add("ok"); copy.innerHTML = ICON.ok;
+      setTimeout(() => { copy.classList.remove("ok"); copy.innerHTML = ICON.copy; }, 1200); } catch {}
+  });
+  ui.acts.appendChild(copy);
+  if (regen) ui.acts.appendChild(iconBtn(ICON.regen, "Regenerate", regen));
+  ui.acts.classList.add("shown");
+}
+// follow-ups AUTHORED BY THE MODEL about the actual exchange (Grok's behavior, done locally):
+// one bounded extra generation right after the answer; killed instantly if the user starts typing.
+let sugCtl = null;
+async function offerFollowups(lastQ, lastA, host) {
+  try { if (sugCtl) sugCtl.abort(); } catch {}
+  sugCtl = new AbortController();
+  const ask = `Here is a conversation:
+Question: ${lastQ}
+Answer: ${lastA.slice(0, 600)}
+
+Write exactly two short, sharp follow-up questions a curious person would ask next. One per line. No numbering, no preamble.`;
+  try {
+    const ids = engine.tokenize(engine.frameTurn(ask, false));
+    const res = await engine.generate(ids, { maxNew: 180, signal: sugCtl.signal });
+    const seg = splitThink(res.outIds || []);
+    const text = seg.ans.length ? engine.detokenize(seg.ans) : (res.text || "");
+    const qs = text.split(/\n+/).map((l) => l.replace(/^[-*\d.\s]+/, "").trim()).filter((l) => l.length > 8 && l.length < 140).slice(0, 2);
+    if (!qs.length || busy) return;
+    const box = document.createElement("div"); box.className = "fu";
+    for (const label of qs) {
+      const b = document.createElement("button"); b.type = "button";
+      b.innerHTML = `<span class="arr">↳</span>${label.replace(/[<>&]/g, "")}`;
+      b.onclick = () => { box.remove(); $("inp").value = label; send(); };
+      box.appendChild(b);
+    }
+    host.appendChild(box);
+    log.scrollTop = log.scrollHeight;
+  } catch {}                                              // aborted / out of room → no suggestions, no noise
+}
+function note(s) { const d = document.createElement("div"); d.className = "note"; d.textContent = s; log.appendChild(d); }
+
+// split streamed outIds into thinking + answer segments by the <think> token ids (robust: no
+// tags at position 0 → everything is answer; unclosed → everything so far is thinking).
+function splitThink(outIds) {
+  if (thinkOpen < 0 || outIds[0] !== thinkOpen) return { think: [], ans: outIds };
+  const c = outIds.indexOf(thinkClose);
+  if (c < 0) return { think: outIds.slice(1), ans: [] };
+  return { think: outIds.slice(1, c), ans: outIds.slice(c + 1) };
+}
+
+let busy = false, ready = false;
+async function send() {
+  const q = $("inp").value.trim();
+  if (!q || busy) return;
+  if (!ready || !engine) {                                 // the mind is still arriving: hold ONE question, it sends itself
+    pendingQ = q; $("inp").value = "";
+    $("col").classList.add("started");
+    msg("You", "user").body.textContent = q;
+    note("This sends as soon as Bonsai is ready.");
+    return;
+  }
+  busy = true; $("inp").value = ""; $("send").disabled = true;
+  $("col").classList.add("started");                       // the greeting yields to the conversation (Claude-room transition)
+  msg("You", "user").body.textContent = q;
+  let turn = engine.tokenize(engine.frameTurn(q, mind.length > 0));
+  if (mind.length + turn.length + 384 > CTX) {                                 // the window fills: the mind FOLDS its history, never drops it
+    $("metrics").innerHTML = spn() + "folding memory · nothing is forgotten";
+    try { memoryNote = await foldMemory(); persistStory(); } catch {}
+    mind = [];
+  }
+  let qEff = q;
+  if (!mind.length && memoryNote) qEff = `(What you remember of our conversation so far: ${memoryNote})
+
+${q}`;
+  if (!mind.length) turn = engine.tokenize(engine.frameTurn(qEff, false));
+  const ids = mind.concat(turn);
+  try { if (sugCtl) sugCtl.abort(); } catch {}
+  document.querySelectorAll(".fu").forEach((n) => n.remove());
+  const mindBefore = mind.slice();
+  const ui = msg(modelName, "bot"); ui.body.innerHTML = spn();
+  ui.think.querySelector("summary").innerHTML = spn() + `<span class="sum">thinking</span>`;
+  const tSend = performance.now(); let ttftSet = false, thoughtMs = 0;
+  lastTTFT = null; lastTokps = null;
+  // κ-MEMO HIT: identical (model, input) seen before → replay the exact answer, instantly. Honest:
+  // greedy is deterministic, so this is the same bytes recompute would produce, at O(1).
+  const mkey = await memoKey(ids);
+  const hit = memoLoad()[mkey];
+  if (hit) {
+    if (hit.think) { ui.think.hidden = false; ui.t.textContent = hit.think; }
+    ui.think.querySelector("summary").innerHTML = `<span class="chev">▸</span><span class="sum">Thought for ${hit.secs || 1}s</span>`;
+    ui.body.textContent = hit.ans;
+    mind = ids.concat(hit.ansIds || engine.tokenize(hit.ans));
+    story.push({ q, a: hit.ans }); persistStory();
+    lastTTFT = (performance.now() - tSend) / 1000; lastTokps = null;
+    $("metrics").innerHTML = `<b>${modelName}</b> &nbsp;&middot;&nbsp; from memory &nbsp;&middot;&nbsp; content-addressed &nbsp;&middot;&nbsp; instant`;
+    fitActions(ui, hit.ans, () => { if (!busy) { mind = mindBefore; $("inp").value = q; send(); } });
+    offerFollowups(q, hit.ans, ui.d);
+    busy = false; $("send").disabled = false; $("inp").focus();
+    log.scrollTop = log.scrollHeight;
+    return;
+  }
+  $("metrics").innerHTML = spn() + `<b>${modelName}</b> is thinking`;
+  try {
+    const res = await engine.generate(ids, {
+      maxNew: CTX - ids.length - 8,                        // the whole remaining KV window (eos stops early)
+      onToken: (t) => {
+        if (!ttftSet) { ttftSet = true; lastTTFT = (performance.now() - tSend) / 1000; }   // TTFT = send → first visible token
+        if (t.stats && t.stats.tokps) lastTokps = t.stats.tokps;
+        metrics();
+        const s = splitThink(t.outIds);
+        if (s.think.length) { ui.think.hidden = false; ui.t.textContent = engine.detokenize(s.think); }
+        if (s.ans.length && !thoughtMs) { thoughtMs = performance.now() - tSend;                                   // answer flowing: freeze "Thought for Ns"
+          const secs = Math.max(1, Math.round(thoughtMs / 1000));
+          ui.think.querySelector("summary").innerHTML = `<span class="chev">▸</span><span class="sum">Thought for ${secs}s</span>`; }
+        ui.body.textContent = s.ans.length ? engine.detokenize(s.ans) : (s.think.length ? "" : t.text);
+        log.scrollTop = log.scrollHeight;
+      },
+    });
+    const s = splitThink(res.outIds || []);
+    const secs = Math.max(1, Math.round((thoughtMs || (performance.now() - tSend)) / 1000));
+    ui.think.querySelector("summary").innerHTML = `<span class="chev">▸</span><span class="sum">Thought for ${secs}s</span>`;
+    if (s.think.length) { ui.think.hidden = false; ui.t.textContent = engine.detokenize(s.think); }
+    if (s.ans.length) {
+      const answer = engine.detokenize(s.ans);
+      ui.body.textContent = answer;
+      mind = ids.concat(s.ans);                            // history carries the ANSWER only (Qwen3 convention: prior-turn thinking dropped)
+      story.push({ q, a: answer }); persistStory();
+      memoSave(mkey, { ans: answer, ansIds: s.ans, think: s.think.length ? engine.detokenize(s.think) : "", secs });   // κ-memo: this exact (model,input)→answer is now O(1)
+      fitActions(ui, answer, () => { if (!busy) { mind = mindBefore; $("inp").value = q; send(); } });   // regenerate: rewind history, re-ask
+      offerFollowups(q, answer, ui.d);                     // the model writes its own follow-ups, in place
+    } else if (s.think.length) {
+      ui.body.textContent = "I ran out of room while thinking. Ask again, a bit shorter.";   // unclosed <think> at the window edge; turn not kept
+    } else {
+      ui.body.textContent = res.text;
+      mind = ids.concat(res.outIds || []);
+    }
+    if (res.stats && res.stats.tokps) lastTokps = res.stats.tokps;
+    metrics();
+  } catch (e) { ui.body.textContent = "Something broke: " + (e && e.message || e); }
+  busy = false; $("send").disabled = false; $("inp").focus();
+  log.scrollTop = log.scrollHeight;
+}
+
+$("go").addEventListener("click", () => {
+  entered = true;
+  try { if (window.__holoOff) { window.__holoOff(); window.__holoOff = null; } } catch {}   // hand the hologram off — ONLY now, as the visitor enters (a warm engine load must never kill the welcome ring)
+  show("chat"); $("inp").focus();
+  if (!streamStarted) { streamStarted = true; stream(); }
+});
+// model picker (welcome wall): reflect the active model; a switch persists the choice and reloads with it.
+(function initPicker() {
+  const pick = $("pick"), noteEl = $("picknote");
+  if (!pick) return;
+  const NOTE = {
+    "27b": "The full 27B mind. Deliberate and deep — watch 27 billion parameters think, on your device. Switch to 8B for speed.",
+    "8b": "Bonsai 8B. Fast and light — answers in a snap.",
+  };
+  for (const b of pick.querySelectorAll("button")) {
+    const m = b.dataset.m;
+    b.setAttribute("aria-pressed", String(m === MODEL));
+    b.addEventListener("click", () => {
+      if (m === MODEL) return;
+      try { localStorage.setItem(MODEL_KEY, m); } catch {}
+      const u = new URL(location.href); u.searchParams.set("m", m); location.href = u.toString();   // reload into the chosen model
+    });
+  }
+  if (noteEl) noteEl.textContent = NOTE[MODEL] || NOTE["27b"];
+})();
+$("send").disabled = true;                                  // until the mind is resident (early questions queue)
+(async () => {
+  try {
+    if (navigator.connection && navigator.connection.saveData) return;        // respect data saver
+    if (SRC) return;                                                          // dev override: no background pulls
+    if (M27) return;                                                          // 27B is resident — the live stream already owns it; only warm it from the 8B
+    const B27 = "https://huggingface.co/HOLOGRAMTECH/q-bonsai-27b/resolve/main";
+    const cache = await caches.open("holo-kappa-v1");
+    const man = await (await fetch(B27 + "/manifest.json")).json();
+    const urls = Object.values(man.tensors || {}).map((r) => B27 + "/b/" + String(r.kappa).replace(":", "_") + ".gz");
+    let i = 0;
+    const worker = async () => {
+      while (i < urls.length) {
+        const u = urls[i++];
+        if (await cache.match(u)) continue;
+        while (streamStarted && !ready) await new Promise((r) => setTimeout(r, 1500));   // the live stream owns the wire
+        try { const b = await (await fetch(u, { cache: "no-store" })).arrayBuffer(); await cache.put(u, new Response(b, { headers: { "Content-Type": "application/octet-stream" } })); } catch {}
+      }
+    };
+    Promise.all(Array.from({ length: 3 }, worker)).catch(() => {});
+  } catch {}
+})();
+(async () => {                                              // returning visitor: the mind wakes BEHIND the welcome screen
+  try { const c = await caches.open("holo-kappa-v1"); if (await c.match(BASE + "/manifest.json")) { streamStarted = true; stream(); } } catch {}
+})();
+$("send").addEventListener("click", send);
+$("inp").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+if (!navigator.gpu) { $("go").disabled = true; $("fine").textContent = "This browser has no WebGPU. Chrome or Edge 113 or newer required."; }
+</script>
+</body>

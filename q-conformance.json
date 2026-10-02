@@ -1,0 +1,10 @@
+{
+ "_": "HOLO-Q-FLAWLESS-GATE X5 — the Conformance Contract. The audit (holo audit) and the ship gate read THIS file to decide what a clean ledger means. Every allowlist entry MUST carry a why; the audit refuses the contract otherwise. Changing the standard = a reviewed edit here, never a silent gate-code change.",
+ "budgets": { "fcpColdDesktopMs": 1000, "fcpColdMobileMs": 2500, "fcpWarmMs": 400 },
+ "allowedFailures": [
+  { "pattern": "v3-cinemeta.strem.io/stream/", "why": "upstream uses 404 as 'no streams for this title' — a negative answer, not a defect (X4 lead: move probe from paint to intent)" },
+  { "pattern": "/signal?room=", "why": "documented fail-soft — calls ride Nostr rendezvous first on static origins; the origin relay probe only fires when zero relays connect (holo-call.mjs)" },
+  { "pattern": "github.io/Q/b/", "why": "rung-ladder fall-through by design — lean Q keeps CAS bodies on mirror/HF rungs; the origin b/ probe is the first rung's honest miss (NOTHING-GROWS)" },
+  { "pattern": "api.pluto.tv", "why": "KNOWN dead source (CORS-blocked on this origin) in the evicted player — removal queued for the player's next ship (X4); shelf fails soft to empty" }
+ ]
+}

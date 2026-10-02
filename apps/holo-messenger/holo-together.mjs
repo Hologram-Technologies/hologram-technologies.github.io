@@ -79,14 +79,17 @@ export async function parseSession(input) {
 
 // SYNC detect a Together link in a message body → { intent, url } for rendering the in-chat Join card. Display only
 // (integrity verified at the viewer, where you actually join). null if not a Together link.
-const _TOG_RE = /(https?:\/\/\S*together-view\.html#([A-Za-z0-9_-]+))|(holo:\/\/together\/\S*#([A-Za-z0-9_-]+))/;
+// matches the Together viewer AND the call door (call-view.html — 1:1 & group calls) so a call link in a
+// message renders as a proper in-chat card (WhatsApp-familiar), not a raw URL. The decoded intent's `kind`
+// (call/meet vs watch/doc/…) drives the card wording.
+const _TOG_RE = /(https?:\/\/\S*(?:together|call)-view\.html#([A-Za-z0-9_-]+))|(holo:\/\/together\/\S*#([A-Za-z0-9_-]+))/;
 export function togetherLinkInText(text) {
   const m = String(text || "").match(_TOG_RE); if (!m) return null;
   const payload = m[2] || m[4], url = m[0];
   try { const intent = _b64urlDecode(payload); if (intent && intent.v === TOGETHER_VERSION && intent.room) return { intent, url, payload }; } catch {}
   return null;
 }
-const _KIND = { watch: { verb: "watch", icon: "🎬", noun: "video" }, listen: { verb: "listen to", icon: "🎵", noun: "track" }, tab: { verb: "watch", icon: "🖥", noun: "screen" }, doc: { verb: "edit", icon: "📝", noun: "doc" }, game: { verb: "play", icon: "🎮", noun: "game" }, room: { verb: "join", icon: "✨", noun: "room" } };
+const _KIND = { watch: { verb: "watch", icon: "🎬", noun: "video" }, listen: { verb: "listen to", icon: "🎵", noun: "track" }, tab: { verb: "watch", icon: "🖥", noun: "screen" }, doc: { verb: "edit", icon: "📝", noun: "doc" }, game: { verb: "play", icon: "🎮", noun: "game" }, room: { verb: "join", icon: "✨", noun: "room" }, call: { verb: "join the call", icon: "📞", noun: "call" }, meet: { verb: "join the call", icon: "📹", noun: "call" } };
 export function describe(intent) {
   const k = _KIND[intent.kind] || _KIND.room;
   const who = intent.hostName || "Someone";

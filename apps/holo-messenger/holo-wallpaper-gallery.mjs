@@ -14,7 +14,7 @@
 // Rendering of the procedural κ-seeds (Original/Developer/Asanoha) stays a DESKTOP concern — picking one
 // here still selects it in holo:wallpapers (the native desktop adopts it), and apply() is told kind≠image.
 
-const WALL_KEY = "holo:wallpapers", WALL_DIR = "/usr/share/wallpapers/", SEED_V = 13;
+const WALL_KEY = "holo:wallpapers", WALL_DIR = new URL("../../usr/share/wallpapers/", import.meta.url).pathname, SEED_V = 13;
 const _wallMaxDim = (Math.max(screen.width || 0, screen.height || 0) || 1920) * (window.devicePixelRatio || 1);
 const WALL_SEED = WALL_DIR + (_wallMaxDim <= 2560 ? "uor-2560.jpg" : "uor-8k.jpg");
 const WALL_DEPTH = WALL_DIR + "uor-depth.png";
@@ -108,7 +108,7 @@ export function warmWallpaperGallery() {
 let _kappaRouteOk = null;
 async function kappaRouteWorks(k) {
   if (_kappaRouteOk !== null) return _kappaRouteOk;
-  try { const hex = String(k).split(":").pop(); const r = await fetch("/.holo/sha256/" + hex, { method: "HEAD" }); _kappaRouteOk = r.ok; } catch { _kappaRouteOk = false; }
+  try { const hex = String(k).split(":").pop(); const r = await fetch(new URL("../../.holo/sha256/", import.meta.url).pathname + hex, { method: "HEAD" }); _kappaRouteOk = r.ok; } catch { _kappaRouteOk = false; }
   return _kappaRouteOk;
 }
 async function persistValueFor(item) {

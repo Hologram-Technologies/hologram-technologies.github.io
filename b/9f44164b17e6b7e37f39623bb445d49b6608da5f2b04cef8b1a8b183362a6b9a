@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carry your world</title>
+<style>
+  :root{--bg:#0b0d12;--fg:#e9edf3;--dim:#8ea0bd;--line:rgba(255,255,255,.09);--accent:#9db4ff}
+  *{box-sizing:border-box;margin:0} html,body{height:100%}
+  body{background:radial-gradient(900px 600px at 50% 30%,#141a24,#0b0d12 65%);color:var(--fg);
+    font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;display:grid;place-items:center;padding:24px;color-scheme:dark}
+  main{max-width:440px;width:100%}
+  .tag{font:600 11px system-ui;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  h1{font-size:32px;line-height:1.12;font-weight:640;letter-spacing:-.01em;margin:.35em 0 .5em}
+  p{color:var(--dim);margin:0 0 1.4em}
+  .card{border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;background:#0f141dcc}
+  .card h2{font-size:15px;font-weight:640;margin:0 0 3px} .card small{color:var(--dim)}
+  label{display:block;font:600 11px system-ui;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px}
+  input[type=password],input[type=file]{width:100%;background:#0b0d12;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:11px 12px;font:14px system-ui}
+  button{width:100%;margin-top:14px;border:0;border-radius:11px;padding:12px;font:640 14px system-ui;cursor:pointer;color:#0b0d12;background:linear-gradient(180deg,#cdd9ff,#9db4ff)}
+  button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+  .msg{margin-top:12px;font:13px system-ui;color:var(--accent);word-break:break-all;min-height:1.2em}
+  .msg.err{color:#ff9d9d} .foot{color:var(--dim);font-size:12px;text-align:center;margin-top:8px}
+</style></head><body><main>
+  <div class="tag">Sovereign</div>
+  <h1>Carry your world</h1>
+  <p>Save everything that makes this your Hologram — your identity, settings and session — sealed into a single
+     file <b>only you</b> can open. No server holds it. Take it anywhere.</p>
+
+  <div class="card">
+    <h2>Back up my world</h2><small>Seals your world into one file you own.</small>
+    <label for="bp">A recovery phrase (remember this — it's the only key)</label>
+    <input id="bp" type="password" placeholder="e.g. correct horse battery staple" autocomplete="off">
+    <button id="backup">Seal &amp; download</button>
+    <div class="msg" id="bm"></div>
+  </div>
+
+  <div class="card">
+    <h2>Restore</h2><small>Bring your world back on this device.</small>
+    <label for="rf">Your <code>.holo</code> backup file</label>
+    <input id="rf" type="file" accept=".holo,application/json,text/plain">
+    <label for="rp">Your recovery phrase</label>
+    <input id="rp" type="password" placeholder="the phrase you sealed it with" autocomplete="off">
+    <button id="restore" class="ghost">Verify &amp; restore</button>
+    <div class="msg" id="rm"></div>
+  </div>
+  <div class="foot">Sealed with AES-256 under your key · self-verifying (BLAKE3) · nothing leaves this device unbidden.</div>
+
+<script type="module">
+  const S = await import("../../usr/lib/holo/holo-sovereign-seal.mjs");
+  const $ = (id) => document.getElementById(id);
+  const set = (el, t, err=false) => { el.textContent = t; el.className = "msg" + (err ? " err" : ""); };
+
+  $("backup").onclick = async () => {
+    const pass = $("bp").value.trim();
+    if (pass.length < 6) return set($("bm"), "Choose a phrase of at least 6 characters — it is your only key.", true);
+    try { const n = Object.keys(S.collectWorld()).length; const k = await S.downloadBackup(pass);
+      set($("bm"), `Sealed ${n} item(s) into my-hologram-world.holo · ${k.slice(0,22)}…`); }
+    catch (e) { set($("bm"), "Could not seal: " + e.message, true); }
+  };
+
+  $("restore").onclick = async () => {
+    const f = $("rf").files[0], pass = $("rp").value.trim();
+    if (!f) return set($("rm"), "Choose your .holo backup file first.", true);
+    if (!pass) return set($("rm"), "Enter the recovery phrase you sealed it with.", true);
+    try { const text = await f.text(); const n = await S.restoreFromText(text, pass);
+      set($("rm"), `Restored ${n} item(s) — verified. Reloading your world…`);
+      setTimeout(() => location.assign("../../"), 1200); }
+    catch (e) { set($("rm"), e.message.includes("wrong key") ? "Wrong phrase or tampered file — refused." : ("Could not restore: " + e.message), true); }
+  };
+</script></main></body></html>

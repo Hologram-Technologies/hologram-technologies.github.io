@@ -1,0 +1,76 @@
+{
+  "id": "org.hologram.Bonsai",
+  "name": "Bonsai",
+  "type": [
+    "schema:SoftwareApplication",
+    "schema:WebApplication"
+  ],
+  "summary": "A 27B-class 1-bit mind that streams into your browser like a film — serverless, content-addressed, yours offline forever.",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "applicationCategory": "ProductivityApplication",
+  "conforms": {
+    "specs": [
+      "verifiable-inference",
+      "kappa-disk",
+      "qvac-engine",
+      "law-l5"
+    ]
+  },
+  "engines": [
+    "qvac-gpu",
+    "holospaces-web-wasm"
+  ],
+  "loader": "index.html",
+  "description": [
+    {
+      "p": "Bonsai-8B (PrismML) is a language model trained at 1 bit per weight — 8.19 billion parameters in 1.16 GB, with the reasoning quality of models three times its size."
+    },
+    {
+      "p": "This app streams it into your browser as a content-addressed κ-object: every block is verified against its κ before it touches the GPU, and once resident it runs entirely on your device — no server, no account, no key."
+    },
+    {
+      "ul": [
+        "8.19B parameters at 1 bit — 1.16 GB total",
+        "Streams like a film: watch the 399 tensor blocks arrive and verify",
+        "100% on-device WebGPU inference, ~15 tok/s",
+        "Blocks persist in the browser cache — offline forever after the first visit",
+        "Apache-2.0 weights, Law-L5 pinned manifest"
+      ]
+    }
+  ],
+  "categories": [
+    "AI",
+    "Productivity"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "1-bit",
+    "bonsai",
+    "prismml",
+    "webgpu",
+    "browser-native",
+    "serverless",
+    "on-device",
+    "kappa-disk",
+    "content-addressing",
+    "did:holo",
+    "law-l5"
+  ],
+  "developer": {
+    "id": "org.hologram",
+    "name": "Hologram Technologies"
+  },
+  "license": "MIT",
+  "homepage": "https://hologram.os/apps/bonsai",
+  "bugtracker": "https://github.com/Hologram-Technologies/hologram-os/issues",
+  "releases": [
+    {
+      "version": "1.0",
+      "date": "2026-07-15",
+      "description": "First light: Bonsai-8B (PrismML, Apache-2.0) as a Law-L5 pinned κ-object streamed block-by-block into Q's WebGPU engine (native q1 binary kernels, 15.5 tok/s in Chrome). Cinematic arrival, per-tensor shard-grid verify film, thinking-mode chat, offline-capable via the persistent κ-cache."
+    }
+  ],
+  "accent": "#d97757"
+}

@@ -14,7 +14,13 @@
 // of the SAME key. Two standard names, one seed. L4 (web platform + vendored audited crypto, no
 // server), L5 (the seed κ re-derives identity + wallet + vault; unlock verifies by re-derivation).
 
-import { identity, createVault, openVault, vaultKappa, generateMnemonic, validateMnemonic, seedFromMnemonic, deriveAddress, CHAINS } from "./holo-wdk.js";
+// W2 (HOLO-INSTANT-RETURN, Law L3): the wallet engine loads at its PAGE FAULT — enroll/unlock/recover
+// are the intent seams, and every consumer below is already async. A static import here dragged the
+// whole chain zoo (wdk + wdk-crypto + ton-core + btc + eth + solana + tron, ~2.5MB) through the boot
+// hero of every COLD visit; the login document itself needs none of it to paint. `W` is the resolved
+// module — sync helpers (record, the principal's address closures) read it only after a caller awaited.
+let _wdkP = null, W = null;
+const wdk = () => (_wdkP ||= import("./holo-wdk.js").then((m) => (W = m)));
 import { addressOf } from "./holo-identity.mjs";
 import { mldsaFromSeed, mldsaSign } from "./holo-pqc.mjs";   // post-quantum co-key (ML-DSA-65), re-derived from the SAME seed
 
@@ -41,7 +47,8 @@ const wrapOf = (r) => r && (r.wrap || (r.cred ? "tee" : "phrase"));
 // holo-identity's openSession/verifySession (κ = did:holo:sha256(pub)); carries `did` (did:key) and
 // the wallet address helpers. The Ed25519 private key lives only in memory (non-extractable).
 export async function principalFromSeed(seed, label = "operator") {
-  const id = identity(seed);                                          // { did, publicKeyRaw, pkcs8 }
+  await wdk();
+  const id = W.identity(seed);                                          // { did, publicKeyRaw, pkcs8 }
   const priv = await SUB.importKey("pkcs8", id.pkcs8, { name: "Ed25519" }, false, ["sign"]);
   const kappa = await addressOf(id.publicKeyRaw);                     // did:holo:sha256 — Law L1 canonical
   // LAZY ML-DSA-65 co-key: the lattice keygen is the heaviest step in this function, yet the returning
@@ -56,14 +63,14 @@ export async function principalFromSeed(seed, label = "operator") {
     get pqAlg() { return pq().alg; }, get pqPub() { return pq().pubB64; },   // post-quantum half — computed on first read
     async sign(bytesOrStr) { const u8 = typeof bytesOrStr === "string" ? te.encode(bytesOrStr) : bytesOrStr; return b64(await SUB.sign({ name: "Ed25519" }, priv, u8)); },
     pqSign(bytesOrStr) { return mldsaSign(pq().sk, bytesOrStr); },    // ML-DSA co-signature (hybrid: classical ‖ PQC)
-    address(chain, index = 0) { return deriveAddress(chain, seed, index); },
-    addresses(index = 0) { const o = {}; for (const c of Object.keys(CHAINS)) o[c] = deriveAddress(c, seed, index); return o; },
+    address(chain, index = 0) { return W.deriveAddress(chain, seed, index); },
+    addresses(index = 0) { const o = {}; for (const c of Object.keys(W.CHAINS)) o[c] = W.deriveAddress(c, seed, index); return o; },
   };
 }
 
 function record(principal, vault, cred, credPub, credAlg) {
   return { kappa: principal.kappa, did: principal.did, label: principal.label, alg: "Ed25519", pub: principal.pub,
-    vault, vaultKappa: vaultKappa(vault), cred: cred || null,
+    vault, vaultKappa: W.vaultKappa(vault), cred: cred || null,
     wrap: cred ? "tee" : "phrase",                                      // S1: TEE-PRF wrap vs typed-secret wrap (recovery-only)
     credPub: credPub || null, credAlg: credAlg ?? null,                 // WebAuthn credential pubkey (SPKI b64u) + COSE alg — for payload-bound step-up verification
     avatar: avatarFor(principal.kappa), createdAt: new Date().toISOString() };
@@ -77,15 +84,16 @@ export async function enroll({ label = "operator", secret, cred, credPub, credAl
   // authenticator (or explicit headless `allowPhrase`) ⇒ phrase wrap is allowed. The greeter always passes
   // `cred`, so this never blocks a real first-run sign-in; it only closes the no-cred programmatic backdoor.
   if (!cred && !allowPhrase && await _teeAvailable()) throw new Error("Use your fingerprint or Face ID to create your account on this device.");
-  const mnemonic = generateMnemonic(12);
-  const vault = await createVault(mnemonic, await vaultKey(secret));
-  const principal = await principalFromSeed(seedFromMnemonic(mnemonic), label);
+  await wdk();
+  const mnemonic = W.generateMnemonic(12);
+  const vault = await W.createVault(mnemonic, await vaultKey(secret));
+  const principal = await principalFromSeed(W.seedFromMnemonic(mnemonic), label);
   const rec = record(principal, vault, cred, credPub, credAlg);
   // INVISIBLE first-run ceremony — self-issue the sovereign-knowledge claim set + open the social
   // graph (Holo ZK / Holo Privacy). Non-blocking: a hiccup here never blocks sign-in.
   try { const { firstRun } = await import("./holo-ceremony.mjs"); const c = await firstRun(principal); rec.knowledge = c.credential; rec.graph = c.graph; rec.sd = c.disclosures; } catch {}
   await store.put(rec);
-  return { principal, mnemonic, did: principal.did, vaultLink: "holo://" + vaultKappa(vault).split(":").pop() };
+  return { principal, mnemonic, did: principal.did, vaultLink: "holo://" + W.vaultKappa(vault).split(":").pop() };
 }
 
 // the operator's ceremony artefacts — { knowledge (signed claim credential), graph (social-graph log),
@@ -99,7 +107,8 @@ export async function ceremonyOf(kappa) {
 export async function unlock(kappa, secret) {
   const rec = await store.get(kappa);
   if (!rec) throw new Error("no such operator on this device");
-  const { seed } = openVault(rec.vault, await vaultKey(secret));      // throws on the wrong secret (AEAD)
+  await wdk();
+  const { seed } = W.openVault(rec.vault, await vaultKey(secret));    // throws on the wrong secret (AEAD)
   const principal = await principalFromSeed(seed, rec.label);
   if (principal.kappa !== kappa) throw new Error("identity failed re-derivation (Law L5)");
   return principal;
@@ -107,11 +116,12 @@ export async function unlock(kappa, secret) {
 
 // recover — on a new device, from the 12-word phrase → the SAME canonical identity + wallet.
 export async function recover({ mnemonic, secret, label = "operator", cred, credPub, credAlg } = {}) {
-  if (!validateMnemonic(mnemonic)) throw new Error("invalid recovery phrase");
-  const vault = await createVault(mnemonic, await vaultKey(secret));
-  const principal = await principalFromSeed(seedFromMnemonic(mnemonic), label);
+  await wdk();
+  if (!W.validateMnemonic(mnemonic)) throw new Error("invalid recovery phrase");
+  const vault = await W.createVault(mnemonic, await vaultKey(secret));
+  const principal = await principalFromSeed(W.seedFromMnemonic(mnemonic), label);
   await store.put(record(principal, vault, cred, credPub, credAlg));
-  return { principal, did: principal.did, vaultLink: "holo://" + vaultKappa(vault).split(":").pop() };
+  return { principal, did: principal.did, vaultLink: "holo://" + W.vaultKappa(vault).split(":").pop() };
 }
 
 // upgradeWrap(kappa, oldSecret, teeSecret, cred, credPub, credAlg) — S3: transparently move a phrase-wrapped
@@ -123,12 +133,13 @@ export async function upgradeWrap(kappa, oldSecret, teeSecret, cred, credPub, cr
   const rec = await store.get(kappa);
   if (!rec) throw new Error("no such operator on this device");
   if (wrapOf(rec) === "tee" && !cred) return rec;                     // already TEE-wrapped → nothing to do
-  const { mnemonic, seed } = openVault(rec.vault, await vaultKey(oldSecret));   // throws on the wrong old secret (AEAD)
+  await wdk();
+  const { mnemonic, seed } = W.openVault(rec.vault, await vaultKey(oldSecret));   // throws on the wrong old secret (AEAD)
   if ((await principalFromSeed(seed)).kappa !== kappa) throw new Error("re-wrap failed re-derivation (Law L5)");
-  const vault = await createVault(mnemonic, await vaultKey(teeSecret));
-  const check = openVault(vault, await vaultKey(teeSecret));          // the NEW vault must open with the TEE secret…
+  const vault = await W.createVault(mnemonic, await vaultKey(teeSecret));
+  const check = W.openVault(vault, await vaultKey(teeSecret));        // the NEW vault must open with the TEE secret…
   if ((await principalFromSeed(check.seed)).kappa !== kappa) throw new Error("re-wrapped vault failed verification"); // …to the SAME κ
-  const next = { ...rec, vault, vaultKappa: vaultKappa(vault), wrap: "tee",
+  const next = { ...rec, vault, vaultKappa: W.vaultKappa(vault), wrap: "tee",
     cred: cred || rec.cred, credPub: credPub ?? rec.credPub, credAlg: credAlg ?? rec.credAlg };
   await store.put(next);                                             // atomic swap (keyPath = kappa)
   return next;
@@ -142,7 +153,8 @@ export async function revealMnemonic(kappa, secret) {
   // S4: where the enclave is available, a phrase-wrapped vault must be upgraded (upgradeWrap) before its key
   // material is surfaced — a typed-secret vault is never a path to the seed/phrase on a TEE device.
   if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("Turn on your fingerprint or Face ID to unlock your backup phrase.");
-  return openVault(rec.vault, await vaultKey(secret)).mnemonic;       // throws on the wrong secret (AEAD)
+  await wdk();
+  return W.openVault(rec.vault, await vaultKey(secret)).mnemonic;     // throws on the wrong secret (AEAD)
 }
 // backed-up flag — drives the deferrable "secure your account" nudge (don't nag once they've saved it).
 export async function isBackedUp(kappa) { const r = await store.get(kappa); return !!(r && r.backedUp); }
@@ -156,7 +168,8 @@ export async function unlockSeed(kappa, secret) {
   // S4: on a TEE device, the wallet seed is reachable only from a TEE-wrapped vault — a phrase vault must be
   // upgraded (upgradeWrap) first. Off-device (no authenticator) it stays openable for recovery.
   if (wrapOf(rec) === "phrase" && await _teeAvailable()) throw new Error("Turn on your fingerprint or Face ID to use your wallet.");
-  return openVault(rec.vault, await vaultKey(secret)).seed;            // throws on the wrong secret (AEAD)
+  await wdk();
+  return W.openVault(rec.vault, await vaultKey(secret)).seed;          // throws on the wrong secret (AEAD)
 }
 
 // currentOperator — who is signed in on this device: the session's operator if present (skip guests,

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Holo Call</title>
+<!--
+  call-view.html — the ANY-BROWSER door into a Holo call (1:1 kind:"call" AND group kind:"meet").
+  Google-Meet-familiar: link → lobby (your name, live camera preview, mic/cam toggles) → Join → the same
+  N-tile grid surface the messenger itself uses (holo-meet-ui). 100% serverless: signaling rides the sealed
+  Nostr rendezvous on hosted origins (openSignal inside holo-call-mesh), media is E2E DTLS-SRTP P2P mesh.
+  NEW path on purpose (the M4 stale-SW rule): no service worker has ever cached this URL, so every visitor
+  gets fresh bytes; module imports carry ?v pins for the same reason.
+-->
+<style>
+  :root { --bg:#0b1014; --card:#121a21; --ink:#e9f1f5; --dim:#8aa0ad; --line:#1f2c35; --accent:#00d09c; --accent2:#7b5cff; --bad:#e76f6f; --warn:#e9c46a; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; }
+  body { background:radial-gradient(1200px 700px at 50% -10%, #1a2740 0%, var(--bg) 55%); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; display:flex; align-items:center; justify-content:center; padding:18px; min-height:100%; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:26px 24px 22px; box-shadow:0 24px 64px rgba(0,0,0,.5); text-align:center; width:100%; max-width:420px; }
+  .brand { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--dim); font-weight:600; font-size:13px; margin-bottom:16px; }
+  .brand .dot { width:18px; height:18px; border-radius:50%; background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--accent)); }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--dim); background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:999px; padding:4px 10px; margin-bottom:14px; }
+  .err { color:var(--bad); } .warnpill { color:var(--warn); border-color:rgba(233,196,106,.3); }
+  .headline { font-size:20px; font-weight:700; letter-spacing:-.2px; line-height:1.3; }
+  .sub { color:var(--dim); font-size:13px; margin-top:6px; }
+  .preview { position:relative; width:100%; aspect-ratio:16/10; background:#05080b; border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:16px; }
+  .preview video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .preview .off { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:13px; background:#0a1119; }
+  .togglerow { display:flex; gap:10px; justify-content:center; margin-top:12px; }
+  .tog { border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--ink); border-radius:12px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .tog.off { background:rgba(231,111,111,.16); border-color:rgba(231,111,111,.4); color:#f1b1b1; }
+  input[type=text] { width:100%; margin-top:14px; background:#0a1119; border:1px solid var(--line); border-radius:12px; color:var(--ink);
+    padding:12px 14px; font-size:15px; outline:none; text-align:center; }
+  input[type=text]:focus { border-color:rgba(0,208,156,.55); box-shadow:0 0 0 3px rgba(0,208,156,.12); }
+  .btn { display:block; width:100%; border:0; border-radius:14px; padding:15px; font-size:16px; font-weight:700; cursor:pointer; margin-top:14px;
+    background:linear-gradient(90deg,var(--accent),#1fd6ac); color:#04110d; transition:transform .08s ease; }
+  .btn:active { transform:scale(.985); } .btn:disabled { opacity:.6; cursor:default; }
+  .note { color:var(--dim); font-size:12px; margin-top:12px; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+  <div class="card" id="lobby">
+    <div class="brand"><span class="dot"></span> Holo Call</div>
+    <div class="pill" id="status">Reading invite…</div>
+    <div class="headline" id="headline"></div>
+    <div class="sub" id="sub"></div>
+    <div class="preview hide" id="preview"><video id="pv" autoplay muted playsinline></video><div class="off hide" id="pvOff">Camera is off</div></div>
+    <div class="togglerow hide" id="toggles">
+      <button class="tog" id="togMic">🎙 Mic on</button>
+      <button class="tog hide" id="togCam">📷 Camera on</button>
+    </div>
+    <input type="text" id="myName" class="hide" maxlength="40" placeholder="Your name" autocomplete="name" />
+    <button class="btn hide" id="join">Join</button>
+    <div class="note" id="note"></div>
+  </div>
+
+  <script type="module">
+    // ?v pins: this page is never SW-cached (new path), but these modules ARE cache-first — the pins force the
+    // exact shipped bytes. Keep them in lockstep with app.html's pins (the pin step of every ship).
+    import { parseMeet } from "./holo-call-mesh.mjs?v=f66ee9f7ce0f";
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (t, cls = "") => { const s = $("status"); s.textContent = t; s.className = "pill " + cls; };
+    const show = (id, on = true) => $(id).classList.toggle("hide", !on);
+    const qs = new URLSearchParams(location.search);
+
+    let media = null, micOn = true, camOn = true, video = false;
+
+    async function main() {
+      const frag = location.hash ? location.hash.slice(1) : "";
+      if (!frag) { setStatus("No call in this link", "err"); $("headline").textContent = "This link doesn't contain a call."; return; }
+      const res = await parseMeet(frag);
+      if (!res.ok) { setStatus("Unreadable link", "err"); $("headline").textContent = res.error || "Not a valid call link."; return; }
+      const it = res.intent;
+      if (!res.integrity) { setStatus("This link looks altered. Don't trust it", "err"); $("headline").textContent = "The call link may have been tampered with. Ask for a fresh one."; return; }
+      if (it.kind !== "call" && it.kind !== "meet") { setStatus("Not a call link", "err"); $("headline").textContent = "This is a Together link — open it from the chat."; return; }
+      if (res.expired) { setStatus("This call has ended", "warnpill"); $("headline").textContent = it.title || "The call is over."; $("sub").textContent = "Ask for a fresh link."; return; }
+
+      video = it.content === "video";
+      const host = it.hostName || "Someone";
+      $("headline").textContent = it.title || (it.kind === "meet" ? host + "'s call" : (video ? "Video call with " + host : "Voice call with " + host));
+      $("sub").textContent = "No account needed. Joins right here in your browser — private, peer-to-peer.";
+      setStatus(video ? "You're invited · video" : "You're invited · voice");
+
+      // lobby: name (remembered), live self-preview, mic/cam toggles — exactly the Meet ritual, nothing more.
+      const nameBox = $("myName");
+      nameBox.value = qs.get("name") || localStorage.getItem("holo.call.name") || localStorage.getItem("holo.direct.name") || "";
+      show("myName"); show("toggles"); show("join");
+      $("note").textContent = "🔒 End-to-end encrypted · nothing to install";
+      if (video) { show("togCam"); show("preview"); }
+
+      try { const { callMedia } = await import("./holo-call.mjs?v=930599a2417d"); media = await callMedia(video); } catch {}
+      if (media && video) { try { $("pv").srcObject = media; } catch {} }
+      else if (video) { $("pvOff").textContent = "Camera unavailable — you can still join"; show("pvOff"); }
+      if (!media) $("note").textContent = "Mic unavailable — you can join to listen.";
+
+      $("togMic").onclick = () => { micOn = !micOn; if (media) media.getAudioTracks().forEach((t) => (t.enabled = micOn)); $("togMic").textContent = micOn ? "🎙 Mic on" : "🔇 Mic off"; $("togMic").classList.toggle("off", !micOn); };
+      $("togCam").onclick = () => { camOn = !camOn; if (media) media.getVideoTracks().forEach((t) => (t.enabled = camOn)); $("togCam").textContent = camOn ? "📷 Camera on" : "📷 Camera off"; $("togCam").classList.toggle("off", !camOn); show("pvOff", !camOn); };
+
+      $("join").onclick = () => enter(it);
+      if (qs.get("auto") === "1") enter(it);   // witness/deep-link hook: straight into the room
+    }
+
+    async function enter(it) {
+      $("join").disabled = true;
+      let facing = "user";   // front camera default; flip toggles to the back on mobile
+      let _share = null;   // screen share — created once the mesh joins
+      const myName = ($("myName").value || "Guest").trim().slice(0, 40) || "Guest";
+      try { localStorage.setItem("holo.call.name", myName); } catch {}
+      const [{ joinMesh, canShareScreen, makeScreenShare }, { openMeetUI }] = await Promise.all([
+        import("./holo-call-mesh.mjs?v=f66ee9f7ce0f"),
+        import("./holo-meet-ui.mjs?v=84c8749a9751"),
+      ]);
+      $("lobby").classList.add("hide");
+      try { $("pv").srcObject = null; } catch {}   // release the lobby preview — the grid's self-tile is the ONE live view now
+      const ui = openMeetUI({
+        name: it.title || ((it.hostName || "Holo") + (it.kind === "meet" ? "'s call" : " · call")), video,
+        inviteLink: location.origin + location.pathname + location.hash,
+        onLeave: () => { try { mesh && mesh.leave(); } catch {} try { media && media.getTracks().forEach((t) => t.stop()); } catch {} setTimeout(() => { try { window.close(); } catch {} $("lobby").classList.remove("hide"); setStatus("You left the call", "warnpill"); $("join").disabled = false; }, 250); },
+        onToggleMute: (m) => { if (media) media.getAudioTracks().forEach((t) => (t.enabled = !m)); },
+        onToggleCamera: (off) => { if (media) media.getVideoTracks().forEach((t) => (t.enabled = !off)); },
+        onFlipCamera: video ? async () => {
+          const next = facing === "user" ? "environment" : "user";
+          let ns = null; try { ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: next } }, audio: false }); } catch {}
+          const track = ns && ns.getVideoTracks()[0]; if (!track) { try { ns && ns.getTracks().forEach((t) => t.stop()); } catch {} return; }
+          facing = next;
+          if (mesh && mesh.replaceVideoTrack) { try { await mesh.replaceVideoTrack(track); } catch {} }
+          ui.attachLocal(media, myName, facing === "user");
+        } : null,
+        onShareScreen: (video && canShareScreen()) ? () => _share && _share.toggle() : null,
+      });
+      ui.attachLocal(media, myName);
+      if (media) { media.getAudioTracks().forEach((t) => (t.enabled = micOn)); media.getVideoTracks().forEach((t) => (t.enabled = camOn)); }
+      ui.setPhase("connecting");
+      let mesh = null;   // let-before-await: signal callbacks can fire before the const would initialize (TDZ)
+      mesh = await joinMesh(it, {
+        media, displayName: myName,
+        onParticipant: (id, stream, nm) => { ui.addParticipant(id, stream, nm || (mesh && mesh.nameOf && mesh.nameOf(id)) || "Guest"); ui.setPhase("connected"); },
+        onName: (id, nm) => ui.setLabel(id, nm),
+        onParticipantLeave: (id) => ui.removeParticipant(id),
+        onActiveSpeaker: (id) => ui.setActiveSpeaker(id),
+        onState: (st) => { if (st && st.phase) ui.setPhase(st.phase); else if (st && st.peer && st.state) ui.setPeerState(st.peer, st.state === "reconnecting" ? "reconnecting" : "connected"); },
+      });
+      if (video && canShareScreen()) _share = makeScreenShare(mesh, { media, ui, name: myName, facing: () => facing });
+      window.__holoCallMesh = mesh;   // witness/debug handle
+    }
+
+    main().catch((e) => { setStatus("Something went wrong", "err"); $("headline").textContent = String((e && e.message) || e); });
+  </script>
+</body>
+</html>

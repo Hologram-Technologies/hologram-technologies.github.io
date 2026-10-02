@@ -29,6 +29,11 @@ export async function engineKappa() {
 export async function createEngine(modelEntry, loaded) {
   const { gpu, info, imageKappa } = loaded;
   const m = modelEntry;
+  // W2 (Q-WAFER): KV-commons blobs SEALED IN THE WAFER (minted once on a real GPU at forge time) —
+  // a fresh device restores the persona prefill instead of computing it. Matched by (layout, nIds,
+  // idsSha) so a blob only restores on the exact kv layout + token ids it was minted for.
+  const sealedKvc = (loaded.sealed && loaded.sealed.kvc) || null;
+  const idsSha = async (ids) => { try { const b = new TextEncoder().encode(ids.join(",")); return [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join(""); } catch { return null; } };
   const engineReady = engineKappa();
 
   // model κ: the κ-disk's VERIFIED image_kappa when present (a real content address of the
@@ -39,6 +44,11 @@ export async function createEngine(modelEntry, loaded) {
 
   const memo = new Map();
   let _drafter = null;   // learned speculative drafter (fn(seq,max)=>ids); null → standard decode. Set via setDrafter().
+  // D1 (Q-DERIVED-MIND) SPECULATIVE SELF: the spec path also arms by CATALOG opt-in (m.spec) with no
+  // learned drafter — gpu.setDrafter(null) keeps the gpu's internal n-gram drafter (prompt-lookup:
+  // drafts cost ~0 JS, greedy batched verify keeps output BYTE-IDENTICAL, SP.cold self-throttles on
+  // miss streaks). ?spec=0 kills, ?spec=1 forces — both for honest A/B on the ?stats ledger.
+  const _specQ = (() => { try { return typeof location !== "undefined" ? new URLSearchParams(location.search).get("spec") : null; } catch { return null; } })();
   let _pinLen = 0;       // KV-COMMONS prefix pin: length of the pinned shared prefix (0 = none). See pinPrefix/usePin below.
 
   const tokenize = (text) => { try { return JSON.parse(qvac_tokenize(text)).ids || []; } catch { return []; } };
@@ -56,8 +66,8 @@ export async function createEngine(modelEntry, loaded) {
       return (hasHistory ? "<|eot_id|>" : "") + `<|start_header_id|>user<|end_header_id|>\n\n${prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
     if (m.olmo)                                                    // OLMo/OLMoE: <|user|>/<|assistant|> role tags (each turn self-delimited; leading bos via m.bos)
       return `<|user|>\n${prompt}\n<|assistant|>\n`;
-    if (m.userWord)                                                // word-frame (Falcon-E: its ChatML template stalls EMPIRICALLY; "User:/Falcon:" answers — see q-falcon-templates sweep)
-      return (hasHistory ? "\n" : "") + "User: " + prompt + "\nFalcon:";
+    if (m.userWord)                                                // word-frame (Falcon-E: ChatML stalls EMPIRICALLY; "User:/<label>:" answers — measured sweep). asstLabel configurable ("Falcon" for 3B, "Assistant" for 1B-Instruct).
+      return (hasHistory ? "\n" : "") + "User: " + prompt + "\n" + (m.asstLabel || "Falcon") + ":";
     return "Question: " + prompt + "\nAnswer:";
   }
 
@@ -81,7 +91,8 @@ export async function createEngine(modelEntry, loaded) {
     // head, the drafter proposes and the target batch-verifies — output is BYTE-IDENTICAL to greedy decode
     // (greedy verify), streamed via onCommit. Any incompatibility/throw falls straight through to the standard
     // loop below, so default Q (no drafter) and unsupported models are completely unaffected.
-    if (!err && _drafter && gpu.specDecode && gpu.setDrafter) {
+    const _specOn = _specQ === "0" ? false : _specQ === "1" ? true : !!(_drafter || m.spec);
+    if (!err && _specOn && gpu.specDecode && gpu.setDrafter) {
       try {
         gpu.setDrafter(_drafter);
         const out = []; const t0 = _perf(); let ttft2 = 0, tokps2 = 0;
@@ -98,6 +109,36 @@ export async function createEngine(modelEntry, loaded) {
         if (m.stopText) { const ix = text.indexOf(m.stopText); if (ix >= 0) text = text.slice(0, ix); }
         return { text, outIds, ids: seq, stats: { ttft: ttft2, tokps: tokps2, msExec: gpu.timing ? gpu.timing.exec : 0, spec: gpu.specStats ? gpu.specStats() : null }, error: null };
       } catch (e) { try { gpu.setDrafter(null); } catch {} /* fall through to the standard decode loop */ }
+    }
+
+    // SINGLE-CALL STREAMING DECODE (the dataflow loop): one gpu.decode() call per turn — the engine
+    // keeps two batches in flight on the GPU (fence N overlaps compute N+1) and streams tokens back
+    // through the callback, so the JS/UI work never stalls the GPU. Measured 6× decode throughput vs
+    // the chunked loop below (which resubmits every 6 tokens and idles the GPU on each fence+detok).
+    // The first callback fires after 1 token (TTFT unchanged). Legacy loop remains the fallback.
+    if (!err && gpu.decode && gpu.decodeStreamed) {
+      try {
+        const outAcc = [];
+        const seq = await gpu.decode(ids.slice(), newCap, rep, (got) => {
+          if (signal && signal.aborted) return false;
+          if (first) { ttft = _perf() - tStart; decodeStart = _perf(); first = false; }
+          else { decodeTok += got.length; const dt = _perf() - decodeStart; if (dt > 0) tokps = decodeTok / (dt / 1000); }
+          const nOld = outAcc.length; outAcc.push(...got);
+          // incremental detokenize (same bounded-window scheme as the legacy loop — O(1) per step)
+          { const a = Math.max(0, outAcc.length - (got.length + 8)); const wf = detokenize(outAcc.slice(a)); const wp = a >= nOld ? "" : detokenize(outAcc.slice(a, nOld)); outText += wf.slice(wp.length); }
+          let text = outText, hitStop = false;
+          if (m.stopText) { const ix = text.indexOf(m.stopText); if (ix >= 0) { text = text.slice(0, ix); hitStop = true; } }
+          if (onToken) onToken({ text, ids: ids.slice(0, promptLen).concat(outAcc), outIds: outAcc.slice(), stats: { ttft, tokps, msExec, gpuBytes: gpu.gpuBytes } });
+          if (hitStop) return false;
+          if (text.length > 80 && /(.)\1{63}$/.test(text)) { err = new Error("degenerate repetition — stopped"); return false; }
+          return true;
+        });
+        ids = seq;
+        const outIds = ids.slice(promptLen);
+        let text = detokenize(outIds);
+        if (m.stopText) { const ix = text.indexOf(m.stopText); if (ix >= 0) text = text.slice(0, ix); }
+        return { text, outIds, ids, stats: { ttft, tokps, msExec: gpu.timing ? gpu.timing.exec : msExec }, error: err };
+      } catch (e) { err = null; /* engine without a healthy streamed head → legacy chunked loop below */ }
     }
 
     while (!err && !(signal && signal.aborted) && ids.length - promptLen < newCap && ids.length < kvCap - 1) {
@@ -196,6 +237,60 @@ export async function createEngine(modelEntry, loaded) {
     // usePin(): rewind the KV cursor to the pinned prefix right before a turn, so sync() reuses it. Returns reused length.
     usePin: () => { if (_pinLen > 0 && gpu.truncateTo) { try { return gpu.truncateTo(_pinLen); } catch (e) { return 0; } } return 0; },
     pinLen: () => _pinLen,
+    // ── DURABLE KV COMMONS (I1): the persona prefix K/V, prefilled ONCE EVER per device ─────────────
+    // Save: after a pin, dump the resident K/V and persist it κ-verified in OPFS (fire-and-forget).
+    // Load: on boot, restore those bytes instead of prefilling; the engine re-derives the LAST prefix
+    // token through the live step path (deterministic ⇒ byte-identical), so a valid restore is
+    // indistinguishable from a fresh prefill — and any store tamper is refused + purged (Law L5).
+    kvCommonsAvailable: !!(gpu.dumpState && gpu.restoreState && gpu.kvLayoutOf && typeof navigator !== "undefined" && navigator.storage && navigator.storage.getDirectory),
+    kvCommonsSave: async (ids) => {
+      try {
+        if (!gpu.dumpState || !ids || gpu.cachedLen < ids.length || ids.length < 2) return false;
+        const blob = await gpu.dumpState(ids.length);
+        if (!blob) return false;
+        const { commonsKey, save } = await import("./kv-commons.mjs");
+        const key = commonsKey(["kvc1", modelKappa, blob.layout, ids.join(",")]);
+        if (!key) return false;
+        await save(key, blob.bytes, { layout: blob.layout, L: blob.L, nIds: ids.length });
+        return true;
+      } catch (e) { return false; }
+    },
+    kvCommonsLoad: async (ids) => {
+      try {
+        if (!gpu.restoreState || !gpu.kvLayoutOf || !ids || ids.length < 2) return 0;
+        const layout = gpu.kvLayoutOf(ids.length);
+        // WAFER-FIRST (W2): a sealed blob matching this device's exact (layout, nIds, idsSha) restores
+        // with zero prior visits — the fresh-user path. Any failure falls through to OPFS untouched.
+        if (sealedKvc) {
+          try {
+            const want = sealedKvc.filter((e) => e.layout === layout && e.nIds === ids.length);
+            if (want.length) {
+              const sha = await idsSha(ids);
+              const hit = sha && want.find((e) => e.idsSha === sha);
+              if (hit) {
+                const bytes = await hit.get();               // κ-verified by the reader; throws on tamper
+                const resident = await gpu.restoreState(ids.slice(), { layout: hit.layout, L: hit.L, bytes });
+                if (resident) {
+                  await gpu.sync(ids.slice(), true);         // re-step the last prefix token (validates, resident logits)
+                  _pinLen = gpu.cachedLen;
+                  return _pinLen;
+                }
+              }
+            }
+          } catch (e) { try { gpu.reset(); } catch {} }      // sealed miss/tamper → clean slate, OPFS path below
+        }
+        const { commonsKey, load } = await import("./kv-commons.mjs");
+        const key = commonsKey(["kvc1", modelKappa, layout, ids.join(",")]);
+        if (!key) return 0;
+        const got = await load(key);
+        if (!got || got.meta.layout !== layout) return 0;
+        const resident = await gpu.restoreState(ids.slice(), { layout: got.meta.layout, L: got.meta.L, bytes: got.bytes });
+        if (!resident) return 0;
+        await gpu.sync(ids.slice(), true);           // re-step the last prefix token (validates + resident logits, no readback)
+        _pinLen = gpu.cachedLen;
+        return _pinLen;
+      } catch (e) { try { gpu.reset(); } catch {} _pinLen = 0; return 0; }
+    },
     memoKey, memoGet: (k) => memo.get(k), memoHas: (k) => memo.has(k), memoSet: (k, v) => memo.set(k, v),
     buildReceipt, verify: verifyIntegrity, reDerive,
     stats: () => gpu.timing, reset: () => { try { gpu.reset(); } catch {} }, destroy: () => { try { gpu.destroy(); } catch {} },

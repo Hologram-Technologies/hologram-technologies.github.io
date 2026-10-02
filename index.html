@@ -1,6 +1,78 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Holo Messenger</title><style>html,body{height:100%;margin:0;background:#0b141a}</style>
-<link rel="icon" href="./apps/holo-messenger/icon.svg">
-<script src="./root-door.mjs"></script>
-</head><body></body></html>
+<!doctype html><html lang="en">
+<head><meta charset="utf-8"><script>(function(){try{var g=navigator.gpu;if(!g)return;var uaP=(navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||navigator.userAgent||"";if(!/Win/i.test(uaP))return;var o0=g.requestAdapter;if(typeof o0!=="function"||o0.__holoPP)return;var wrap=function(opts){if(opts&&typeof opts==="object"&&"powerPreference" in opts){var o={};for(var k in opts)if(k!=="powerPreference")o[k]=opts[k];opts=o;}return o0.call(g,opts);};wrap.__holoPP=true;g.requestAdapter=wrap;}catch(e){}})();</script><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f1f1e">
+<title>Hologram · Build, run and share serverless AI applications</title>
+<meta name="description" content="Your personal internet supercomputer. Fast, free and private. Open one link and it verifies itself into existence in your browser. No server, no install, no account.">
+<!-- Propagation: paste this link into any feed or chat; it renders this card and boots for whoever opens it. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hologram">
+<meta property="og:url" content="https://hologram-technologies.github.io/hologram-os/">
+<meta property="og:title" content="Build, run and share serverless AI applications">
+<meta property="og:description" content="Your personal internet supercomputer, fast, free and private. Open one link and it verifies itself into existence in your browser. No server, no install, no account.">
+<meta property="og:image" content="https://hologram-technologies.github.io/hologram-apps/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Build, run and share serverless AI applications">
+<meta name="twitter:description" content="Open one link. It verifies itself into existence in your browser. No server, no install, no account.">
+<meta name="twitter:image" content="https://hologram-technologies.github.io/hologram-apps/og-card.png">
+<style>:root{--boot-ground:#1f1f1e}html,body{height:100%;margin:0;background:var(--boot-ground,#1f1f1e);color-scheme:dark}/* FIRST-PACKET (P1): the brand paints from the seed itself — one packet, zero further hops. */#hl-ignite{position:fixed;left:50%;transform:translateX(-50%);bottom:max(26px,2.6vh,env(safe-area-inset-bottom));z-index:1;pointer-events:none;display:inline-flex;align-items:center;gap:clamp(11px,1.4vw,16px);color:#f4f7fc}#hl-ignite svg{width:clamp(36px,4.2vw,44px);height:clamp(36px,4.2vw,44px);flex:0 0 auto;filter:drop-shadow(0 2px 18px rgba(0,0,0,.45));shape-rendering:geometricPrecision}#hl-ignite b{font:600 clamp(24px,3.6vw,36px)/1 "Bahnschrift","DIN Alternate","DIN Next","Roboto Condensed","Segoe UI",system-ui,sans-serif;letter-spacing:.26em;text-transform:uppercase;padding-left:.26em;color:rgba(231,237,250,.82);text-shadow:0 2px 18px rgba(0,0,0,.45);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:geometricPrecision}@media (max-height:520px){#hl-ignite{display:none}}</style>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+
+</head>
+<body><div id="hl-ignite" aria-label="Hologram"><svg viewBox="-104 -104 208 208" fill="currentColor" role="img" aria-label="Hologram"><g><circle cx="0.20" cy="-97.39" r="2.61"/><circle cx="-22.86" cy="-86.55" r="2.71"/><circle cx="22.54" cy="-86.32" r="2.81"/><circle cx="-0.03" cy="-76.01" r="2.71"/><circle cx="45.26" cy="-75.92" r="7.80"/><circle cx="-45.82" cy="-75.86" r="2.61"/><circle cx="68.34" cy="-65.13" r="7.70"/><circle cx="-68.83" cy="-65.00" r="2.61"/><circle cx="-22.91" cy="-64.90" r="2.61"/><circle cx="22.71" cy="-64.88" r="2.51"/><circle cx="91.24" cy="-54.34" r="2.61"/><circle cx="-45.94" cy="-54.25" r="7.83"/><circle cx="-91.17" cy="-54.19" r="2.71"/><circle cx="-0.03" cy="-54.19" r="2.71"/><circle cx="45.35" cy="-54.19" r="7.80"/><circle cx="-22.86" cy="-43.64" r="2.71"/><circle cx="22.71" cy="-43.49" r="2.51"/><circle cx="68.29" cy="-43.47" r="7.73"/><circle cx="-68.60" cy="-43.37" r="7.73"/><circle cx="-45.85" cy="-32.63" r="7.77"/><circle cx="45.36" cy="-32.60" r="7.80"/><circle cx="-91.26" cy="-32.55" r="2.71"/><circle cx="0.10" cy="-32.51" r="2.61"/><circle cx="91.24" cy="-32.51" r="2.61"/><circle cx="68.22" cy="-21.95" r="7.83"/><circle cx="22.67" cy="-21.84" r="7.87"/><circle cx="-22.86" cy="-21.82" r="2.71"/><circle cx="-68.57" cy="-21.80" r="7.80"/><circle cx="45.45" cy="-11.06" r="7.73"/><circle cx="-0.19" cy="-11.04" r="7.87"/><circle cx="91.35" cy="-11.01" r="2.81"/><circle cx="-91.54" cy="-10.97" r="2.51"/><circle cx="-45.87" cy="-10.87" r="7.73"/><circle cx="22.71" cy="-0.27" r="8.06"/><circle cx="-22.89" cy="-0.21" r="7.90"/><circle cx="68.28" cy="-0.15" r="7.87"/><circle cx="-68.62" cy="-0.11" r="8.00"/><circle cx="-0.06" cy="10.98" r="7.87"/><circle cx="45.54" cy="11.00" r="7.83"/><circle cx="-45.85" cy="11.02" r="7.77"/><circle cx="-91.26" cy="11.10" r="2.71"/><circle cx="91.24" cy="11.13" r="2.61"/><circle cx="22.71" cy="21.64" r="2.71"/><circle cx="-68.74" cy="21.66" r="7.87"/><circle cx="-22.86" cy="21.67" r="7.87"/><circle cx="68.28" cy="21.67" r="7.87"/><circle cx="-91.54" cy="32.46" r="2.61"/><circle cx="0.15" cy="32.46" r="2.71"/><circle cx="-45.72" cy="32.50" r="7.73"/><circle cx="45.54" cy="32.59" r="7.83"/><circle cx="91.35" cy="32.63" r="2.81"/><circle cx="-23.01" cy="43.23" r="2.61"/><circle cx="68.25" cy="43.31" r="7.83"/><circle cx="-68.71" cy="43.34" r="7.83"/><circle cx="22.71" cy="43.37" r="2.90"/><circle cx="91.39" cy="53.92" r="2.71"/><circle cx="45.48" cy="53.95" r="7.87"/><circle cx="-45.86" cy="53.97" r="7.80"/><circle cx="-91.34" cy="53.99" r="2.61"/><circle cx="0.20" cy="54.09" r="2.61"/><circle cx="-68.57" cy="64.90" r="7.80"/><circle cx="-22.86" cy="64.92" r="2.71"/><circle cx="68.28" cy="64.92" r="2.71"/><circle cx="22.54" cy="65.15" r="2.81"/><circle cx="-45.88" cy="75.56" r="7.80"/><circle cx="0.10" cy="75.62" r="2.61"/><circle cx="45.32" cy="75.62" r="2.61"/><circle cx="22.53" cy="86.47" r="2.71"/><circle cx="-22.86" cy="86.75" r="2.71"/><circle cx="-0.03" cy="97.29" r="2.71"/></g></svg><b>HOLOGRAM</b></div><script>try{sessionStorage.setItem("holo.ceremony.t0",String(Date.now()))}catch(e){}try{performance.mark("holo:ceremony:seed-paint")}catch(e){}</script></body>
+<!-- THE PORTAL SEED. Fast path: boot from the genesis pack — the whole static boot in ONE object, proven
+     by the browser's native SHA-256 against the signed pack κ (L5), no module graph, no service worker.
+     Fallback: the signed-pin boot, byte-for-byte today's. A stale/missing/tampered pack never breaks boot. -->
+<script type="module">
+const PACK_KAPPA = "faa0540f2a6979f57a9a8031ba4a9f48e37afd01cc35356bc2598a3baca5ad4b";
+const FALLBACK = "holo-portal.mjs";
+const okEntry = (e) => /^[a-z0-9._/-]+$/i.test(e) && !e.includes("..");
+const hex = (b) => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+const refuse = (why) => { document.body.innerHTML =
+  '<main style="max-width:640px;margin:12vh auto;padding:0 22px;color:#e9edef;font:15px/1.6 system-ui,sans-serif">'
+  + '<h1 style="font-size:19px;font-weight:600;margin:0 0 .5em">Hologram refused to boot</h1>'
+  + '<p style="color:#8696a0;margin:0">The first stage did not re-derive to its fingerprint. Reload — if it '
+  + 'persists, the source you reached is tampered or corrupt.</p></main>'; console.error("seed:", why); };
+(async () => {
+  // BYTE-ZERO (S0): the worker is registered from the seed's first tick and the boot is FENCED on
+  // control, collared — no arrival fetch outside this seed's own closure precedes the rescuer, and
+  // a browser without workers (or a hung install) folds to today's path after 1600ms, never hangs.
+  let fence = null;
+  try {
+    if ("serviceWorker" in navigator && !navigator.serviceWorker.controller) {
+      navigator.serviceWorker.register(new URL("root-sw.js", location.href), { type: "module" })
+        .catch(() => navigator.serviceWorker.register(new URL("root-sw-classic.js", location.href)).catch(() => {}));
+      fence = new Promise((res) => {
+        navigator.serviceWorker.addEventListener("controllerchange", () => res(1), { once: true });
+        setTimeout(res, 1600, 0);
+      });
+    }
+  } catch {}
+  // FAST PATH — the verified genesis pack (the pack lives same-origin next to this seed, so it is as
+  // available as this document itself; a byte that does not re-derive to the signed κ is refused → fallback).
+  try {
+    const r = await fetch(new URL("genesis-pack.mjs", location.href), { cache: "no-store" });
+    if (r.ok) { const b = await r.arrayBuffer();
+      if (hex(await crypto.subtle.digest("SHA-256", b)) === PACK_KAPPA) {
+        if (fence) await fence;                       // control (or the collar) precedes the first out-of-seed fetch
+        await import(URL.createObjectURL(new Blob([b], { type: "text/javascript" }))); return; } }
+  } catch (e) {}
+  // FALLBACK — the signed-pin boot (unchanged): read the boot pin from the SIGNED release, re-derive the
+  // first stage against it (L5), and unfold. Network-resilient; a missing pin boots the default entry.
+  let entry = FALLBACK, pin = null;
+  try {
+    const rel = await (await fetch(new URL("release.json", location.href), { cache: "no-cache" })).json();
+    const boot = rel && rel["holstr:payload"] && rel["holstr:payload"].boot;
+    if (boot && okEntry(String(boot.entry || "")) && /^[0-9a-f]{64}$/.test(boot.sha256 || "")) { entry = boot.entry; pin = boot.sha256; }
+  } catch {}
+  try {
+    const url = new URL(entry, location.href);
+    if (pin) { const bytes = await (await fetch(url, { cache: "no-cache" })).arrayBuffer();
+      if (hex(await crypto.subtle.digest("SHA-256", bytes)) !== pin) return refuse("fallback re-derive ≠ signed boot pin"); }
+    if (fence) await fence;
+    await import(url.href);
+  } catch (e) { refuse(String(e && e.message || e)); }
+})();
+</script>
+</html>

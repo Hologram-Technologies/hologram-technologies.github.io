@@ -75,8 +75,18 @@ export function makeHolowhatNet(Console, kappaFn, { fetchPumpBudget = 240 } = {}
 // (honestly NOT the P2P CN). The surface imports window.HoloNet and is identical against either.
 if (typeof window !== "undefined" && !window.HoloNet) {
   window.HoloNet = makeLocalNet();                  // safe default until the WASM loads
-  (async () => {
+  const _holoNetUpgrade = async () => {
     try {
+      // holowhat/ is an EVICTED tree on lean mounts — only the root-sw rescue serves it. On a slow cold
+      // boot this import can BEAT the SW's first controller and 404, silently downgrading the whole
+      // session to the local net. Wait (bounded) for control before importing; contexts without a SW
+      // (native/dev serve the path directly) proceed immediately.
+      if (typeof navigator !== "undefined" && navigator.serviceWorker && !navigator.serviceWorker.controller) {
+        await Promise.race([
+          new Promise((res) => { navigator.serviceWorker.addEventListener("controllerchange", res, { once: true }); navigator.serviceWorker.ready.then(() => setTimeout(res, 250)); }),
+          new Promise((res) => setTimeout(res, 10000)),
+        ]).catch(() => {});
+      }
       const hw = await import("./holowhat/holospaces_web.js");
       // wasm-bindgen ≥0.2.93 wants a single options object ({module_or_path}); older builds took the URL positionally.
       // Pass the object and fall back to positional so it's correct on both without the deprecation warning.
@@ -85,5 +95,17 @@ if (typeof window !== "undefined" && !window.HoloNet) {
       window.HoloNet.WebRtcLink = hw.WebRtcLink;     // for the rendezvous layer
       if (document.documentElement) document.documentElement.setAttribute("data-holo-net", "holowhat");
     } catch (e) { if (typeof document !== "undefined" && document.documentElement) document.documentElement.setAttribute("data-holo-net", "local"); }
-  })();
+  };
+  // MOBILE-LEAN (2026-07): the holowhat spine is a ~2.8 MB WASM compile that NOTHING at boot needs
+  // synchronously — window.HoloNet stays the functional local net until it lands (the only reader,
+  // holo-mirror.mjs, fail-softs to local), and Holo Direct P2P uses its OWN lazy spine
+  // (apps/holo-messenger/holo-net.mjs::makeSpine). So on phones we keep this heavy compile entirely off
+  // the first-paint critical path: warm it only once the main thread is idle AFTER load, and never under
+  // Save-Data (P2P CN mirror then arms on first real Holo Direct use). Desktop upgrades immediately, as before.
+  const _holoLeanMobile = (() => { try { return (matchMedia("(pointer:coarse)").matches && Math.min(innerWidth, innerHeight) <= 700) || navigator.connection?.saveData === true; } catch { return false; } })();
+  if (!_holoLeanMobile) { _holoNetUpgrade(); }
+  else if (navigator.connection?.saveData !== true) {
+    const _kick = () => (("requestIdleCallback" in window) ? requestIdleCallback(() => _holoNetUpgrade(), { timeout: 15000 }) : setTimeout(_holoNetUpgrade, 4000));
+    if (document.readyState === "complete") _kick(); else addEventListener("load", _kick, { once: true });
+  }
 }

@@ -6,7 +6,7 @@
 // (/apps/resolve/#<name>). A refusal shows one honest sentence, never a fake card.
 //
 // Embed the resolver into ANY holo app streamed in the messenger with ONE line:
-//     import "./holo-card.mjs";  then  <holo-card name="sha256:…"></holo-card>
+//     import "/usr/lib/holo/holo-card.mjs";  then  <holo-card name="sha256:…"></holo-card>
 // or imperatively:  HoloCard.mount(el, name).  Lean: shadow-scoped CSS, blob previews revoked on
 // disconnect, one shared resolver + one app-index load across every card on the page.
 
@@ -15,7 +15,7 @@ import { loadAppIndex, findApp } from "./holo-app-index.mjs";
 
 // bundle root from THIS module location (works at the OS root or a /Q/ subpath)
 const BASE = new URL("../../../", import.meta.url);       // /usr/lib/holo/holo-card.mjs -> bundle root
-const INSPECTOR = new URL("apps/resolve/", BASE).href;
+const INSPECTOR = BASE.href;                             // the resolver IS the root now (github.io/Q/#<name>)
 const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
 // ── pure core (Node-witnessable): sniff ANY common internet format by magic bytes, build the MODEL ────
@@ -106,6 +106,7 @@ export function cardModel(res, name, appIdx) {
   const size = res.size != null ? res.size : (res.bytes ? res.bytes.length : 0);
   const model = { ok: true, url, kappa: res.kappa, size, kind: app ? "holo app · " + app.dir : res.kind, app: app ? { title: app.title, desc: app.desc, url: app.url } : null };
   if (res.trust) model.trust = res.trust;                  // V5: how this proved itself (self-verifying / via a shown resolver)
+  if (res.trustLevel) model.trustLevel = res.trustLevel;   // 'self' → green "verified"; 'via' → amber "resolved via a shown source"
   if (res.author) model.author = res.author;
   if (res.pointsTo) model.pointsTo = res.pointsTo;         // V3: a resolved pointer that lands on another κ-name
   if (!app && res.bytes) {
@@ -126,6 +127,7 @@ a{color:inherit;text-decoration:none}
 .seal{display:flex;align-items:center;gap:9px;font-weight:650}
 .dot{width:9px;height:9px;border-radius:50%;background:#00a884;box-shadow:0 0 10px #00a884;flex:0 0 auto}
 .seal.bad .dot{background:#f15c6d;box-shadow:0 0 10px #f15c6d}
+.seal.via{color:#e0a83b}.seal.via .dot{background:#e0a83b;box-shadow:0 0 10px #e0a83b}
 .go{margin-left:auto;font-size:12px;color:#8696a0;font-weight:500}
 .app{margin-top:11px;background:#0d1f1a;border:1px solid #17493b;border-radius:11px;padding:11px 13px}
 .app-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -140,7 +142,7 @@ pre{margin-top:11px;background:#0d161c;border:1px solid #1f2c33;border-radius:9p
 @media(prefers-color-scheme:light){:host{color:#0b141a}.card{background:#fff;border-color:#e3e8eb}.kv .k,.go,.msg{color:#667781}pre{background:#f6f8f9;border-color:#e3e8eb;color:#3b4a54}.trust{background:#eafaf3;border-color:#bfe9d8;color:#0a6b4d}}`;
 
 let _R = null, _idxP = null;
-const resolver = () => (_R ||= makeHostResolver({ base: BASE.href, wasmGlue: new URL("apps/q/pkg/holospaces_web.js", BASE).href }));
+const resolver = () => (_R ||= makeHostResolver({ base: BASE.href, wasmGlue: () => import("./holo-runtime.mjs").then((m) => m.runtimeModule({ base: BASE.href })) }));   // runtime BY κ, not path (L4/L5)
 const appIndex = () => (_idxP ||= loadAppIndex({ base: BASE.href }).catch(() => null));
 
 const HoloCardEl = typeof HTMLElement !== "undefined" ? class extends HTMLElement {
@@ -165,7 +167,8 @@ const HoloCardEl = typeof HTMLElement !== "undefined" ? class extends HTMLElemen
     }
     else if (!m.ok) { card.innerHTML = `<a class="seal bad" href="${m.url}" target="_blank" rel="noopener"><span class="dot"></span>${esc(m.headline)}<span class="go">what is this? ↗</span></a>${m.msg ? `<div class="msg">${esc(m.msg)}</div>` : ""}`; }
     else {
-      let h = `<a class="seal" href="${m.url}" target="_blank" rel="noopener"><span class="dot"></span>verified<span class="go">details ↗</span></a>`;
+      const via = m.trustLevel === "via";                  // resolved through a shown, untrusted source — not self-proven
+      let h = `<a class="seal${via ? " via" : ""}" href="${m.url}" target="_blank" rel="noopener"><span class="dot"></span>${via ? "resolved" : "verified"}<span class="go">details ↗</span></a>`;
       if (m.app) h += `<div class="app"><div class="app-h"><span class="app-title">${esc(m.app.title)}</span><a class="open" href="${esc(m.app.url)}">Open →</a></div>${m.app.desc ? `<div class="msg" style="margin-top:6px">${esc(m.app.desc)}</div>` : ""}</div>`;
       if (m.pointsTo) h += `<div class="app"><div class="app-h"><span class="app-title">↳ resolves to</span><a class="open" href="${INSPECTOR}#${encodeURIComponent(m.pointsTo)}">Open →</a></div><div class="msg" style="margin-top:6px;font-family:ui-monospace,Consolas,monospace;font-size:11px;word-break:break-all">${esc(m.pointsTo)}</div></div>`;
       h += `<div class="kv">${m.kappa ? `<div class="k">κ</div><div class="v">${esc(m.kappa)}</div>` : ""}<div class="k">kind</div><div class="v">${esc(m.kind)}${m.binary ? " · " + esc(m.binary) : m.media ? " · " + esc(m.media.type) : ""}</div>${m.author ? `<div class="k">author</div><div class="v">${esc(m.author)}</div>` : ""}${m.size ? `<div class="k">size</div><div class="v">${m.size.toLocaleString()} bytes</div>` : ""}</div>`;

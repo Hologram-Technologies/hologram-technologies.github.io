@@ -58,6 +58,34 @@ export function classifyAction(text) {
   const s = q.match(/\b(?:summari[sz]e|tl;?dr|gist of|what'?s happening in|catch me up on)\s+(.+?)[.!?]*$/);
   if (s) return { tier: "REGULAR", kind: "summary", target: s[1] };
   if (/\b(?:pay|send|venmo|transfer|wire)\b[^?]*\$?\d/.test(q) && !/\?\s*$/.test(raw) && !/^\s*(should|can|could|would|how|do i)\b/i.test(raw)) return { tier: "MONEY" };
+  // ── Q DOES (HOLO-Q-DOES): the doing verbs — reversible, in-app, consent-tier REGULAR. PURE detection: the
+  // time is returned as a deterministic SHAPE (rel-minutes / abs h:m / tomorrow h:m), never resolved against a
+  // clock here (the executor owns "now"), so the classifier stays witness-able byte-for-byte.
+  if (/^(?:q[,!]?\s+)?cancel (?:my |the |that )?reminders?\b/.test(q)) return { tier: "REGULAR", kind: "remind-cancel" };
+  // Q EVOLVES (U3b) — governed self-evolution: reflect (propose) · show · APPROVE (the user's ratification — this
+  // verb coming from the user's OWN turn is what makes ratification injection-immune) · roll back.
+  if (/^(?:q[,!]?\s+)?(?:evolve|improve) your ?self\b/.test(q)) return { tier: "REGULAR", kind: "evolve" };
+  if (/^(?:q[,!]?\s+)?(?:show (?:me )?(?:your )?evolution|how have you evolved)\b/.test(q)) return { tier: "REGULAR", kind: "evolve-status" };
+  if (/^(?:q[,!]?\s+)?approve (?:the |that |your )?(?:revision|evolution|improvement|proposal)\b/.test(q)) return { tier: "REGULAR", kind: "evolve-approve" };
+  if (/^(?:q[,!]?\s+)?(?:roll ?back|revert) (?:the |that |your )?(?:evolution|revision|improvement)\b/.test(q)) return { tier: "REGULAR", kind: "evolve-rollback" };
+  const rm = q.match(/^(?:q[,!]?\s+)?remind me\b(?:\s+to\b)?\s*(.*)$/);
+  if (rm) {
+    let body = rm[1] || "", when = null;
+    const rel = body.match(/\bin\s+(\d{1,3})\s*(min(?:ute)?s?|m|hour?s?|hr?s?)\b/);
+    const abs = body.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
+    const tom = body.match(/\btomorrow\b(?:\s+(?:morning|at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?))?/);
+    if (rel) { const n = +rel[1]; when = { type: "rel", minutes: /h/.test(rel[2]) ? n * 60 : n }; body = body.replace(rel[0], ""); }
+    else if (tom) { const h = tom[1] ? +tom[1] : 9; when = { type: "tomorrow", h: (tom[3] === "pm" && h < 12) ? h + 12 : h, m: tom[2] ? +tom[2] : 0 }; body = body.replace(tom[0], ""); }
+    else if (abs) { let h = +abs[1]; if (abs[3] === "pm" && h < 12) h += 12; if (abs[3] !== "am" && abs[3] !== "pm" && h <= 7) h += 12; when = { type: "abs", h, m: abs[2] ? +abs[2] : 0 }; body = body.replace(abs[0], ""); }
+    const what = body.replace(/^\s*(?:to|that)\b/, "").replace(/\s+/g, " ").trim().replace(/[.!?]+$/, "");
+    if (when && what) return { tier: "REGULAR", kind: "remind", when, text: what.slice(0, 200) };
+    return { tier: "REGULAR", kind: "remind", when: null, text: what.slice(0, 200) };   // unparsed time → executor asks ONE clarifying question
+  }
+  const op = q.match(/^(?:q[,!]?\s+)?(?:open|show me|show|launch|go to)\s+(?:my\s+|the\s+)?(wallet|files?|holo ?tv|tv|games?|music|videos?|browser|web|apps?|hub)\b/);
+  if (op) { const t = op[1].replace(/\s/g, ""); const target = /^file/.test(t) ? "files" : /tv$/.test(t) ? "tv" : /^game/.test(t) ? "games" : /^video/.test(t) ? "video" : /^app/.test(t) ? "apps" : /^web|browser/.test(t) ? "browser" : t; return { tier: "REGULAR", kind: "open", target }; }
+  if (/^(?:q[,!]?\s+)?(?:call me|start (?:a |the )?(?:voice )?call|let'?s talk(?: out loud)?|talk to me out loud)[.!?]*$/.test(q)) return { tier: "REGULAR", kind: "call" };
+  const pl = q.match(/^(?:q[,!]?\s+)?play\s+(.+?)[.!?]*$/);
+  if (pl && !/\bgame\b/.test(pl[1])) return { tier: "REGULAR", kind: "play", query: pl[1].slice(0, 120) };
   return null;
 }
 
@@ -93,18 +121,36 @@ export function humanize(t) {
   return s;
 }
 
-// Split a reply into natural, message-sized beats — so Q talks in a few human messages, not one wall (multi-bubble
-// delivery, shared with the standalone). A normal answer stays ONE coherent beat; only a genuinely long paragraph
-// splits once, at a sentence boundary; capped at 3. Pure. The caller ingests each beat as its own message.
+// Split a reply into natural, WhatsApp-sized beats — Q talks in a few short human messages, not one wall. Each
+// bubble is a SELF-CONTAINED, complete point capped at 260 chars (Twitter-ish), so it reads like a person firing
+// off separate thoughts. We pack WHOLE sentences into each bubble (never cut mid-sentence) and start a new bubble
+// before a sentence would push it past the cap; a single over-long sentence is split at a clause, then a word,
+// boundary as a last resort. Pure. The caller ingests each beat as its own message.
+export const Q_BUBBLE_CAP = 260;
 export function splitReply(text) {
+  const CAP = Q_BUBBLE_CAP;
   const t = String(text || "").trim(); if (!t) return [t];
-  let parts = t.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean), out = [];
-  for (const p of parts) {
-    if (p.length <= 420) { out.push(p); continue; }
-    const sents = p.match(/[^.!?]+[.!?]+[\s"']?|[^.!?]+$/g) || [p]; let cur = "", split = false;
-    for (const s of sents) { cur += s; if (!split && cur.length >= p.length * 0.5) { out.push(cur.trim()); cur = ""; split = true; } }
-    if (cur.trim()) out.push(cur.trim());
+  const paras = t.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  const out = [];
+  for (const p of paras) {
+    const sents = p.match(/[^.!?]+[.!?]+[\s"'”’)]*|[^.!?]+$/g) || [p];
+    let cur = "";
+    const flush = () => { const s = cur.trim(); if (s) out.push(s); cur = ""; };
+    for (let s of sents) {
+      s = s.trim(); if (!s) continue;
+      if (((cur ? cur + " " : "") + s).length <= CAP) { cur = (cur ? cur + " " : "") + s; continue; }
+      flush();
+      if (s.length <= CAP) { cur = s; continue; }
+      // an over-long single sentence → break at a clause (, ;) then a space, near the cap; hard-cut only if forced
+      let rest = s;
+      while (rest.length > CAP) {
+        let cut = rest.lastIndexOf(", ", CAP); if (cut < CAP * 0.5) cut = rest.lastIndexOf("; ", CAP);
+        if (cut < CAP * 0.5) cut = rest.lastIndexOf(" ", CAP); if (cut < 1) cut = CAP;
+        out.push(rest.slice(0, cut).trim()); rest = rest.slice(cut).trim();
+      }
+      cur = rest;
+    }
+    flush();
   }
-  if (out.length > 3) { const head = out.slice(0, 2); head.push(out.slice(2).join(" ")); out = head; }
-  return out.length ? out : [t];
+  return out.length ? out : [t.slice(0, CAP)];
 }

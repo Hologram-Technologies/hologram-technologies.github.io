@@ -339,6 +339,12 @@ async function activeRealm() {
 // nothing readable by a same-origin app, nothing leaves the device. Returns { realm, cipher, operator }.
 export async function activeCipher() { return activeRealm(); }
 
+// deviceCipher — the DEVICE realm's cipher regardless of sign-in state (the guest/locked at-rest key, always
+// derivable from the persisted devkey). Lets a realm-keyed store (holo-memory) OPEN the guest blob during a
+// claim (guest → operator re-key at sign-in) exactly like session.claim() does — decrypt-with-old, seal-with-new,
+// nothing lost. Read-only helper: it mints no new authority (the device key already lives in localStorage).
+export async function deviceCipher() { const dev = await deviceId(); return { realm: guestRealm(dev), cipher: makeCipher(deviceKeyBytes()), operator: false }; }
+
 export async function saveSnapshot(state) {
   const core = await bound(); const { realm, cipher } = await activeRealm(); const device = await deviceId();
   const res = await core.save({ ...state, realm, device, cipher, tab: TAB_ID, expectSeq: _seq[realm] });

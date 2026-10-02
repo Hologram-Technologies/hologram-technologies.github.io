@@ -322,7 +322,7 @@ function buildApp({ React, C }) {
     const signalUnread = model.signalUnread != null ? model.signalUnread : convs.filter((c) => c.unread).length;
     const qs = q.trim().toLowerCase();
     const shown = convs.filter((c) => (filter === "All" || (c.network || c.platform) === filter) && (!qs || (c.name || "").toLowerCase().includes(qs) || (previewOf(model, c) || "").toLowerCase().includes(qs)));
-    const sub = conv.presence || (conv.isQ ? "online · on your device" : (conv.status || conv.network || conv.platform || ""));
+    const sub = conv.presence || (conv.isQ ? "online, on your device" : (conv.status || conv.network || conv.platform || ""));
     const runSearch = () => { const t = q.trim(); if (!t) return; try { if (model.qCommand) model.qCommand(t); else if (model.onNewChat) model.onNewChat(t); } catch {} };
 
     return h("div", { className: "wa" },

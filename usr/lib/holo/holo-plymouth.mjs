@@ -32,7 +32,7 @@ const PREVIEW = "https://raw.githubusercontent.com/adi1090x/files/master/plymout
 const DEFAULT_THEME = "circle_hud";
 // circle_hud frame-0, embedded so a FIRST-EVER boot paints the emblem with ZERO network (no cold CDN wait) —
 // first-time boot then feels as instant as a warm one. Seeded into holo.plymouth.v1 so boot #2 paints it at 0ms.
-const DEFAULT_FF = "data:image/png;base64,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";
+const DEFAULT_FF = "data:image/png;base64,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";
 
 // ── the catalog: all 80 themes, README order (= preview GIF numbering) — name:pack:frames:~KB ─────────
 const CATALOG = (
@@ -123,10 +123,33 @@ async function loadPack(theme, onFrame, cancelled) {
   }
   if (loaded < 5) return loaded ? { loaded, total: count } : null;
   try { if (kappas.slice(0, loaded).every(Boolean)) localStorage.setItem(FRK(theme), JSON.stringify(kappas.slice(0, loaded))); } catch {}
-  if (firstBytes && firstBytes.length < 80000) {                 // frame-0 → next boot's 0-ms baseline
-    try { const fr = new FileReader(); fr.onload = () => { const s = readState(); if (s.theme === theme) { s.firstFrame = fr.result; writeState(s); } }; fr.readAsDataURL(new Blob([firstBytes], { type: "image/png" })); } catch {}
-  }
+  if (firstBytes && firstBytes.length < 80000) sealFirstFrame(theme, firstBytes);  // frame-0 → next boot's 0-ms baseline
   return { loaded, total: count };
+}
+
+// Seals frame-0 KEYED (black → air, keyBlack's own ramp): the baseline layer paints it over the boot
+// ground (#1f1f1e), where a raw frame's baked-black rectangle would read as a darker box. Fail-open:
+// canvas trouble seals nothing and the previous seal (or DEFAULT_FF) stands.
+function sealFirstFrame(theme, bytes) {
+  try {
+    const img = new Image();
+    const u = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+    img.onload = () => {
+      try { URL.revokeObjectURL(u); } catch {}
+      try {
+        const keyed = keyBlack(img);
+        if (!keyed || !keyed.toDataURL) return;
+        const url = keyed.toDataURL("image/png");
+        if (url.length > 120000) return;
+        // ffKeyed stamps the seal as CHROMA-KEYED — the baseline paints ONLY stamped (or embedded-default)
+        // frames, so a legacy unkeyed seal can never put a baked-black square over the boot ground again
+        // (the ground and the login wall are ONE token, --boot-ground; this keeps the image honest too).
+        const s = readState(); if (s.theme === theme) { s.firstFrame = url; s.ffKeyed = true; writeState(s); }
+      } catch {}
+    };
+    img.onerror = () => { try { URL.revokeObjectURL(u); } catch {} };
+    img.src = u;
+  } catch {}
 }
 
 // ── frame loading: same-origin pack (default) → κ store (offline) → CDN stream + seal on a miss ────────
@@ -165,19 +188,13 @@ async function loadFrames(theme, onFrame, cancelled) {
     if (solid.length > 4) { try { localStorage.setItem(FRK(theme), JSON.stringify(solid)); } catch {} }
   }
   // cache frame-0 small → the NEXT cold boot paints the splash synchronously, before any module loads
-  if (firstBytes && firstBytes.length < 80000) {
-    try {
-      const fr = new FileReader();
-      fr.onload = () => { const s = readState(); if (s.theme === theme) { s.firstFrame = fr.result; writeState(s); } };
-      fr.readAsDataURL(new Blob([firstBytes], { type: "image/png" }));
-    } catch {}
-  }
+  if (firstBytes && firstBytes.length < 80000) sealFirstFrame(theme, firstBytes);
   return { loaded, total };
 }
 
 // ── styles — self-contained, px-based (immune to host font resets), injected once ─────────────────────
 const CSS = `
-#holo-login .hlp{position:fixed;inset:0;z-index:0;pointer-events:none;background:#000;opacity:0;transition:opacity .5s ease,background-color 1.1s ease}
+#holo-login .hlp{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--boot-ground,#1f1f1e);opacity:0;transition:opacity .5s ease,background-color 1.1s ease}
 #holo-login .hlp.on{opacity:1}
 #holo-login .hlp canvas{position:absolute;inset:0;width:100%;height:100%}
 /* greet: the black dissolves — your wallpaper IS the login; the splash lives on as your identity emblem */
@@ -190,11 +207,19 @@ const CSS = `
 #holo-login .hlp.done canvas{animation:none;filter:brightness(1.7);transition:filter .5s ease}
 #holo-login.hl-boot .hl-panel{opacity:0!important;pointer-events:none!important}
 #holo-login .hl-panel{transition:opacity .55s ease}
-/* ── BOOT REVEAL SYNC — during the 3s hero ALL login chrome (identity panel · Manifesto label · Hologram
-   wordmark · the ⋯ door) is hidden; it fades in TOGETHER the instant the emblem settles into its slot
-   (hl-boot removed), instead of each element popping in on its own separate timer. One coordinated reveal. */
-#holo-login.hl-boot .hl-manifesto, #holo-login.hl-boot .hl-brand, #holo-login.hl-boot .hlp-btn{opacity:0!important;animation:none!important;transition:opacity .55s ease}
-#holo-login:not(.hl-boot) .hl-manifesto, #holo-login:not(.hl-boot) .hl-brand, #holo-login:not(.hl-boot) .hlp-btn{opacity:1!important;animation:none!important;transition:opacity .55s ease .08s}
+/* ── BOOT REVEAL SYNC — during the hero ALL login chrome (identity panel · Manifesto label · the ⋯ door)
+   is hidden; it fades in TOGETHER the instant the emblem settles into its slot (hl-boot removed), instead
+   of each element popping in on its own separate timer. One coordinated reveal.
+   The BRAND (.hl-brand — H mark + wordmark) is deliberately NOT gated: it stands from the literal first
+   frame (the app.html baseline paints it with the black) and never blinks across the whole ceremony. */
+#holo-login.hl-boot .hl-manifesto, #holo-login.hl-boot .hlp-btn{opacity:0!important;animation:none!important;transition:opacity .55s ease}
+#holo-login:not(.hl-boot) .hl-manifesto, #holo-login:not(.hl-boot) .hlp-btn{opacity:1!important;animation:none!important;transition:opacity .55s ease .08s}
+#holo-login .hl-brand{opacity:1!important;animation:none!important}
+/* the panel's own reveal: an explicit fresh animation at hl-boot removal — the load-time hl-rise has long
+   finished (fill:both holds opacity 1), and a transition cannot interpolate an animation-supplied value,
+   so without this the panel would SNAP in while the rest fades (.hlp-reveal is added by endBoot). */
+@keyframes hlp-reveal{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
+#holo-login.hlp-reveal:not(.hl-boot):not(.unfog) .hl-panel{animation:hlp-reveal .6s cubic-bezier(.4,0,.2,1) both}
 /* the ⋯ door — the SAME quiet affordance the home screen wears, top-right: everything about how this
    computer looks and wakes lives behind it. One circle, no words. */
 #holo-login .hlp-btn{position:fixed;right:max(20px,env(safe-area-inset-right));top:max(18px,env(safe-area-inset-top));z-index:4;
@@ -255,7 +280,41 @@ const CSS = `
   border:1px solid var(--glass-border,rgba(255,255,255,.14));border-radius:999px;padding:10px 20px;font:var(--u,16px) "Segoe UI",system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.6);
   pointer-events:none;animation:hlp-toast 2.6s ease both}
 @keyframes hlp-toast{0%{opacity:0;transform:translate(-50%,8px)}10%,82%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){#holo-login .hlp,#holo-login .hlp canvas,#holo-login .hlp-btn,#holo-login .hlp-prev .hlp-shim{transition:none;animation:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){#holo-login .hlp,#holo-login .hlp canvas,#holo-login .hlp-btn,#holo-login .hlp-prev .hlp-shim{transition:none;animation:none;opacity:1}
+#holo-login.hlp-reveal:not(.hl-boot):not(.unfog) .hl-panel{animation:none}}
+/* CLAUDE-DESK ⤵ — appended overrides; base rules keep their anti-revert probes */
+#holo-login .hlp-btn{width:40px;height:40px;transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
+#holo-login .hlp-btn:hover{background:var(--field-bg,rgba(255,255,255,.12));border-color:var(--glass-border,rgba(255,255,255,.2));color:var(--ink,#fff)}
+#holo-login .hlp-btn:focus-visible{outline:2px solid var(--accent,#7defc9);outline-offset:2px}
+@media (pointer:coarse){#holo-login .hlp-btn{width:44px;height:44px}}
+#holo-login .hlp-sheet{border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+#holo-login .hlp-head{padding:18px 20px 12px}
+#holo-login .hlp-title{font-weight:600;letter-spacing:-.01em}
+#holo-login .hlp-x{background:transparent;border-radius:9px}
+#holo-login .hlp-x:hover{background:var(--field-bg,rgba(255,255,255,.08))}
+#holo-login .hlp-list{border-radius:12px}
+#holo-login .hlp-row{min-height:52px}
+#holo-login .hlp-srch input{border-radius:10px}
+#holo-login .hlp,#holo-login .hlp-sheet,#holo-login .hlp-scrim{-webkit-font-smoothing:antialiased}
+@media (max-width:560px){#holo-login .hlp-sheet{width:96vw;border-radius:16px}#holo-login .hlp-modes,#holo-login .hlp-list{margin-left:16px;margin-right:16px}}
+/* CLAUDE-DESK ⤴ */
+/* CLAUDE-READ ⤵ — Claude-premium panel content: softer segmented, calmer rows, muted footer link (appended) */
+#holo-login .hlp-modes{padding:5px;gap:5px;background:var(--field-bg,rgba(255,255,255,.05));border-color:var(--glass-border,rgba(255,255,255,.08))}
+#holo-login .hlp-modes button{font-weight:500;letter-spacing:-.005em;min-height:42px}
+#holo-login .hlp-modes button.on{background:#f5f5f2;color:#1a1a18;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.22)}
+#holo-login .hlp-row{gap:14px;min-height:54px}
+#holo-login .hlp-row .val{color:var(--muted,#8b949e);font-weight:450}
+#holo-login .hlp-row .ic,#holo-login .hlp-row .chev{color:var(--muted,#8b949e)}
+#holo-login .hlp-list{border-color:var(--glass-border,rgba(255,255,255,.08))}
+#holo-login .hlp-thumb{border-radius:9px}
+#holo-login .hlp-foot{color:var(--muted,#8b949e);font-size:13px}
+#holo-login .hlp-foot a{color:var(--ink-dim,rgba(231,237,250,.7));text-decoration:underline;text-decoration-color:rgba(255,255,255,.2);text-underline-offset:2px}
+/* CLAUDE-READ ⤴ */
+/* STAGE ⤵ — the hero emblem sits IN a space, not ON a flat: one key light above centre + an edge vignette (static gradients, GPU-composited, zero per-frame cost). Lit only while the boot holds the hero; dissolves with the ceremony. */
+#holo-login .hlp::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease;background:radial-gradient(42% 42% at 50% 46%,rgba(125,239,201,.04),transparent 70%),radial-gradient(62% 56% at 50% 46%,rgba(255,255,255,.05),transparent 72%),radial-gradient(130% 130% at 50% 50%,transparent 56%,rgba(0,0,0,.42) 100%)}
+#holo-login.hl-boot .hlp.on::before{opacity:1}
+#holo-login .hlp.greet::before,#holo-login .hlp.done::before{opacity:0}
+/* STAGE ⤴ */
 `;
 function injectCss() {
   try { if (document.getElementById("holo-plymouth-css")) return; const s = document.createElement("style"); s.id = "holo-plymouth-css"; s.textContent = CSS; document.head.appendChild(s); } catch {}
@@ -263,9 +322,58 @@ function injectCss() {
 
 const reducedMotion = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
 
+// ── DEVICE TIER — the ONE adaptive-quality authority (holo-device-tier.mjs), wired into the emblem. ────
+// The player renders at the DEVICE'S ceiling, not blindly at 3×: dprCap comes from the tier profile
+// (lite=1 · balanced=1.5 · high=2 · ultra=3), and a `lite`/Save-Data device wears the sealed frame-0 as a
+// STATIC POSTER (the device-tier doctrine: a still that feels chosen, not a dropped-frame animation).
+// Fail-open: no module → the previous behavior exactly (cap 3, always animate). The sync guess lands
+// before first paint; probe() refines async and the loop picks the new cap up on its next size check.
+let _tier = null;
+try {
+  import("./holo-device-tier.mjs").then((m) => {
+    try { _tier = m.get(); } catch {}
+    try { m.probe().then((p) => { if (p) _tier = p; }).catch(() => {}); } catch {}
+  }).catch(() => {});
+} catch {}
+// The emblem is ONE small sprite blit — cheap even at full native resolution — so it renders at the
+// device's TRUE pixel ratio (capped at 3), NOT the tier's conservative full-screen dprCap. A 3×-DPR phone
+// on the `balanced` tier was drawing the boot emblem at 1.5× and upscaling it to the screen → visibly soft.
+// Full native res is what makes it read as razor-sharp and high-resolution against the wallpaper.
+const emblemDpr = () => Math.min(window.devicePixelRatio || 1, 3);
+const emblemStill = () => !!(_tier && (_tier.renderPath === "static" || (_tier.compute && _tier.compute.saveData)));
+
+// ── CEREMONY BEATS — the boot's own beacons (HOLO-BOOT-CEREMONY-PROMPT B0). performance.mark always;
+// holo-life's strand when present. Fail-open no-ops everywhere — measurement never touches choreography. ──
+const beat = (n) => {
+  try { performance.mark("holo:ceremony:" + n); } catch {}
+  try { const L = window.HoloLife; if (L && L.mark) L.mark("ceremony:" + n); } catch {}
+};
+// FIRST-PACKET (P2): the hero pays for the device — watch the holo-pin cache from module eval; when a
+// worker CONTROLS and the SIGNED release + closure + world root are all device-pinned, this device boots
+// offline forever after -> beat "device-provisioned". Observability only: read-only probes, fail-soft,
+// the poller dies quietly at 60s; it never gates the reveal.
+(() => { try {
+  if (!("caches" in window) || !("serviceWorker" in navigator)) return;
+  let n = 0;
+  const iv = setInterval(async () => { try {
+    if (++n > 120) { clearInterval(iv); return; }
+    if (!navigator.serviceWorker.controller) return;
+    const pin = await caches.open("holo-pin");
+    const keys = await pin.keys();
+    const path = (k) => { try { return new URL(k.url).pathname; } catch { return ""; } };
+    const relKey = keys.find((k) => path(k).endsWith("/release.json"));
+    if (!relKey || !keys.some((k) => path(k).endsWith("/os-closure.json"))) return;
+    const rel = await (await pin.match(relKey)).json();
+    const wk = (rel["holstr:payload"] || {}).world;
+    if (/^[0-9a-f]{64}$/.test(wk || "") && !keys.some((k) => path(k).endsWith("/b/" + wk))) return;
+    clearInterval(iv);
+    beat("device-provisioned");
+  } catch {} }, 500);
+} catch {} })();
+
 // ── the player: ONE facade, two backends, the same choreography ────────────────────────────────────────
 // Poses are draw-space (crisp at any scale — CSS transforms would blur the canvas):
-//   boot   — dead-center, up to 62vmin: the machine booting, exactly like the metal
+//   boot   — dead-center HERO, up to 95vmin / 1.35× natural: the machine booting, larger than life
 //   greet  — the living emblem IS your identity: it lands on the avatar slot (anchored, a touch larger)
 //   verify — the emblem leans in slightly while the enclave checks you (CSS pulses brightness)
 // Anchored poses track the .hl-avatar rect live (the circle itself is hidden — the animation replaces it);
@@ -277,10 +385,23 @@ const reducedMotion = () => { try { return matchMedia("(prefers-reduced-motion: 
 // the display's own rate. dpr up to 3 for device-pixel sharpness. Probe-BEFORE-transfer (a transferred
 // canvas is consumed); any missing capability falls open to the proven 2D player below, byte-identical
 // behavior. Force a rung: ?emblem=gpu | ?emblem=2d.
+// ── THE φ TABLE — every ceremony constant, one place, one derivation (HOLO-BOOT-CEREMONY-PROMPT B2).
+//   φ = 1.618. Base unit u = clamp(16px, 1.7vmin, 19px) (holo-signin/app.html); g1 = u·φ; g2 = u·φ².
+//   identity line   61.8vh  = 100/φ        (the lower golden line — avatar centre)
+//   emblem centre   38.2vh  = 100/φ²       (the upper golden line — greet pose lands here by anchor math)
+//   hero            centre 50vh (power symmetry: boot and power-off share the screen's axis), cap .95vmin,
+//                   up 1.5 — bounded upscale (a touch past √φ for a more confident hero; a soft render
+//                   still never turns to mush). MUST agree with app.html's baseline min(800px,95vmin).
+//   emblem topGap   6vh ≈ 38.2/φ⁴          greet cap ≤ avatar.bottom − topGap, ≤ 90% width (anchorTarget)
+//   short screens   56vh ≈ 61.8·0.9        (identity lifts one notch when the column would overflow)
+//   beats           hold 5000–5600ms · glide ≈750ms (exp, k=dt·5.5) · reveal 600ms · defog 720ms · flare 620ms
 const POSES = {
-  boot:   { cx: 0.5, cy: 0.46, cap: 0.62 },
-  greet:  { cx: 0.5, cy: 0.36, cap: 0.50, anchor: true, mult: 8 },
-  verify: { cx: 0.5, cy: 0.36, cap: 0.54, anchor: true, mult: 8 },
+  // boot is the HERO: dead-centre of the screen, larger than life. `up` lets the sprite grow past its
+  // natural size (bounded, so a soft render never turns to mush) — both players EASE it like cap, so the
+  // hand-off to greet is ONE continuous shrink-and-glide, never a snap.
+  boot:   { cx: 0.5, cy: 0.5, cap: 0.95, up: 1.5 },
+  greet:  { cx: 0.5, cy: 0.36, cap: 0.50, anchor: true, mult: 10, up: 1.5 },
+  verify: { cx: 0.5, cy: 0.36, cap: 0.54, anchor: true, mult: 10, up: 1.5 },
 };
 // GOLDEN HERO: the emblem grows UPWARD from the identity slot (its bottom pinned just above the button) to
 // fill the upper golden-major section — its centre lands on the upper golden line (38.2vh) while the
@@ -292,8 +413,8 @@ function anchorTarget(overlay, p, fallback) {
     if (a) {
       const r = a.getBoundingClientRect();
       if (r.width) {
-        const topGap = Math.round(window.innerHeight * 0.06);        // golden breathing room above the emblem
-        const cap = Math.max(r.width, Math.min(r.width * (p.mult || 8), r.bottom - topGap, window.innerWidth * 0.9));
+        const topGap = Math.round(window.innerHeight * 0.05);        // golden breathing room above the emblem
+        const cap = Math.max(r.width, Math.min(r.width * (p.mult || 8), r.bottom - topGap, window.innerWidth * 0.9, window.innerHeight * 0.62));
         return { cx: r.left + r.width / 2, cy: r.bottom - cap / 2, cap };
       }
     }
@@ -322,28 +443,16 @@ function keyBlack(img, ink) {
     return c;
   } catch { return img; }
 }
-// ── LIVING MOTION — the emblem is a hologram suspended in space: it breathes with a slow autonomous float
-// and, on a device with a pointer, leans with your cursor (parallax). Both are tiny px offsets folded into
-// the pose TARGET, so the player's existing ease smooths them for free — no worker or shader surgery. Under
-// reduced motion it holds perfectly still. Works on both backends (GPU worker via send(), 2D via liveTarget). ─
-let _paraX = 0, _paraY = 0, _paraArmed = false;
-function armParallax() {
-  if (_paraArmed) return; _paraArmed = true;
-  if (reducedMotion()) return;
-  try {
-    addEventListener("pointermove", (e) => {
-      if (e.pointerType === "touch") return;                 // desktop hover only — touch has no idle hover
-      _paraX = -((((e.clientX / innerWidth) || 0.5) - 0.5)) * 26;   // ±13px, opposite the cursor → it floats in front of the glass
-      _paraY = -((((e.clientY / innerHeight) || 0.5) - 0.5)) * 20;  // ±10px
-    }, { passive: true });
-    addEventListener("blur", () => { _paraX = 0; _paraY = 0; }, { passive: true });
-  } catch {}
-}
+// ── LIVING MOTION — the emblem is a hologram suspended in space: it breathes with a slow AUTONOMOUS float,
+// a tiny px offset folded into the pose TARGET, so the player's existing ease smooths it for free. Under
+// reduced motion it holds perfectly still. Works on both backends (GPU worker via send(), 2D via liveTarget).
+// (Pointer parallax was REMOVED by request 2026-07-10: the emblem must never move in relation to the mouse —
+// its life is its own breath, not a reaction to the operator's hand.) ─
 function posOffset() {                                        // px offset added to an ANCHORED pose's centre
   if (reducedMotion()) return { x: 0, y: 0 };
   let fx = 0, fy = 0;
   try { const t = performance.now() / 1000; fx = Math.sin(t * 0.55) * 6; fy = Math.cos(t * 0.42) * 7.5; } catch {}
-  return { x: fx + _paraX, y: fy + _paraY };
+  return { x: fx, y: fy };
 }
 
 // ── the 2D floor: the proven player, unchanged physics (25 fps stepped, CPU key) — dpr up to 3 + high-quality
@@ -356,30 +465,67 @@ function make2dPlayer(overlay, layer, canvas, onLive) {
   let raf = 0, t0 = 0, alive = true, last = 0, started = false, inkOn = false;
   const pose = { ...POSES.boot };          // current, eased toward target every frame
   let target = POSES.boot;
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  function size() { canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr); }
+  let dpr = emblemDpr();        // tier-capped (lite=1 … ultra=3) — the loop picks up an async tier refine
+  let lastRect = null;          // last painted rect (CSS px) — the DIRTY RECT: clear only where the emblem was/is
+  let parked = false, settleN = 0;   // static-tier poster: once the pose settles, the loop PARKS (zero steady cost)
+  // MOBILE FLICKER FIX: a phone's dynamic address bar fires `resize` in a storm during boot, and setting
+  // canvas.width — even to the SAME value — instantly blanks the backing store (the wallpaper flashes
+  // through until the next rAF repaints). Guard: only reallocate when the backing dimensions actually
+  // change, so a no-op resize can never blank the emblem.
+  function size() {
+    const nd = emblemDpr(), w = Math.round(innerWidth * nd), h = Math.round(innerHeight * nd);
+    if (w === canvas.width && h === canvas.height && nd === dpr) return;
+    dpr = nd; canvas.width = w; canvas.height = h; lastRect = null; unpark();
+  }
   size(); addEventListener("resize", size);
+  function unpark() { if (parked && alive) { parked = false; settleN = 0; raf = requestAnimationFrame(loop); } }
   // anchored poses resolve to the avatar slot's live rect (panel rise/resize tracked every frame)
   function liveTarget() {
     if (!target.anchor) return target;
     const cw = canvas.width / dpr, ch = canvas.height / dpr, vmin = Math.min(cw, ch);
     const px = anchorTarget(overlay, target, null);
     if (!px) return target;
-    const o = posOffset();
+    const o = emblemStill() ? { x: 0, y: 0 } : posOffset();   // a static poster holds perfectly still (it must settle to park)
     return { cx: (px.cx + o.x) / cw, cy: (px.cy + o.y) / ch, cap: px.cap / vmin };
   }
-  function draw(idx) {
+  function draw(idx, nxt, phase) {
     const img = images[idx]; if (!img) return;
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
     const cw = canvas.width / dpr, ch = canvas.height / dpr;
     const vmin = Math.min(cw, ch);
-    // Plymouth centers the sprite at its natural size; the pose caps it (boot ≈ the metal, greet = emblem)
-    const s = Math.min(1, (vmin * pose.cap) / Math.max(iw, ih));
+    // Plymouth centers the sprite at its natural size; the pose caps it (boot = hero, greet = emblem).
+    // pose.up (eased) bounds how far past natural size the sprite may grow — 1 everywhere but the boot hero.
+    const s = Math.min(pose.up || 1, (vmin * pose.cap) / Math.max(iw, ih));
     const w = iw * s, h = ih * s;
     const cx = cw * pose.cx, cy = ch * pose.cy;
+    // DIRTY RECT: the wallpaper behind the emblem is static — clear only the union of the previous and the
+    // new sprite rect (a small box), never the whole viewport backing store. On a dpr-3 phone this is the
+    // difference between repainting ~9 Mpx and ~0.7 Mpx every frame — the measured mobile jank, gone.
+    const pad = 6;
+    const r = { x: cx - w / 2 - pad, y: cy - h / 2 - pad, w: w + pad * 2, h: h + pad * 2 };
+    // Clear in DEVICE pixels, snapped OUTWARD to whole pixels: a fractional-dpr clear (balanced tier = 1.5×)
+    // or the breathing sub-pixel drift would otherwise leave a 1px anti-aliased rim of the previous frame
+    // uncleared → a shifting shimmer at the emblem's edge. Whole-device-pixel bounds erase it cleanly.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (lastRect) {
+      const x0 = Math.min(r.x, lastRect.x), y0 = Math.min(r.y, lastRect.y);
+      const x1 = Math.max(r.x + r.w, lastRect.x + lastRect.w), y1 = Math.max(r.y + r.h, lastRect.y + lastRect.h);
+      const dx = Math.floor(x0 * dpr), dy = Math.floor(y0 * dpr);
+      ctx.clearRect(dx, dy, Math.ceil(x1 * dpr) - dx, Math.ceil(y1 * dpr) - dy);
+    } else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    lastRect = r;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cw, ch);
-    ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+    // The loop now always passes phase 0 (crossfade retired — it shimmered the moving dots). This optional
+    // two-frame blend path is kept as a no-op so `pose(name)` under reduced motion can still request it if
+    // ever needed; with phase 0 it collapses to a single crisp drawImage.
+    const nimg = (phase > 0 && nxt != null && nxt !== idx) ? images[nxt] : null;
+    if (nimg) {
+      ctx.globalAlpha = 1 - phase;
+      ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+      ctx.globalAlpha = phase;
+      ctx.drawImage(nimg, cx - w / 2, cy - h / 2, w, h);
+      ctx.globalAlpha = 1;
+    } else ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
   }
   function loop(now) {
     if (!alive) return;
@@ -387,21 +533,38 @@ function make2dPlayer(overlay, layer, canvas, onLive) {
     if (document.hidden || prefix === 0) { last = now; return; }
     if (!t0) t0 = now;
     const dt = Math.min((now - last) / 1000, 0.1); last = now;
+    if (dpr !== emblemDpr()) size();                       // async tier refine landed → re-cap the backing store
     // glide the pose toward its target (exp ease ≈ 750ms settle); reduced motion snaps
     const tgt = liveTarget();
     const k = reducedMotion() ? 1 : Math.min(1, dt * 5.5);
     pose.cx += (tgt.cx - pose.cx) * k;
     pose.cy += (tgt.cy - pose.cy) * k;
     pose.cap += (tgt.cap - pose.cap) * k;
-    const idx = Math.floor((now - t0) / (1000 / FPS)) % Math.max(prefix, 1);
-    draw(idx);
+    pose.up = (pose.up || 1) + ((tgt.up || 1) - (pose.up || 1)) * k;
+    // STATIC POSTER (tier `lite` / Save-Data): the sealed frame-0 stands as the emblem — no sprite cycle.
+    // Once the pose has settled the loop parks entirely; pose()/resize un-park it. Reduced-motion is NOT
+    // this gate (it keeps the contained in-place cycle — see the "static emblem on mobile" bug note above).
+    const still = emblemStill();
+    const tt = (now - t0) / (1000 / FPS);
+    const idx = still ? 0 : Math.floor(tt) % Math.max(prefix, 1);
+    // Play the TRUE 25 fps frames — no sub-frame crossfade. Averaging two frames of a sparse dot-torus
+    // renders any dot that moves between them at half opacity/brightness mid-phase, so every dot pulses at
+    // 25 Hz — a shimmer that reads as flicker (worst at low DPR, i.e. on mobile). Stepping is clean. Pose
+    // glide + the breathing float still move per-rAF, so the emblem's overall motion stays smooth.
+    draw(idx, idx, 0);
+    if (still) {
+      const eps = 0.0006;
+      if (Math.abs(tgt.cx - pose.cx) < eps && Math.abs(tgt.cy - pose.cy) < eps && Math.abs(tgt.cap - pose.cap) < eps * 8) {
+        if (++settleN > 12) { parked = true; cancelAnimationFrame(raf); }
+      } else settleN = 0;
+    }
   }
   function wake() {
     while (images[prefix]) prefix++;
     if (!started && prefix > 0) {                          // first drawable frame → the splash is alive
       started = true;
       try { onLive(); } catch {}
-      const t = liveTarget(); pose.cx = t.cx; pose.cy = t.cy; pose.cap = t.cap;   // snap to the current pose…
+      const t = liveTarget(); pose.cx = t.cx; pose.cy = t.cy; pose.cap = t.cap; pose.up = t.up || 1;   // snap to the current pose…
       draw(0);                                             // …and paint frame 0 NOW (instant first paint, even before rAF)
       // ALWAYS run the sprite cycle — a contained in-place loop, like a loading spinner. Under reduced motion
       // the loop SNAPS the pose (no glide across the screen), so the emblem still LIVES without jarring motion.
@@ -409,17 +572,30 @@ function make2dPlayer(overlay, layer, canvas, onLive) {
       raf = requestAnimationFrame(loop);
     }
   }
+  // KEYING BUDGET: chroma-keying (getImageData) is main-thread work. A warm boot delivers all ~156 frames
+  // near-instantly from the κ-store — keying them in one burst hitches the hero float. Queue decoded images
+  // and key ≤2 per animation frame instead: the playable prefix still grows far faster than the 25 fps
+  // playhead consumes it, and the hero never drops a beat. Frame 0 keys synchronously on arrival (first
+  // paint keeps its zero-delay path).
+  const keyQ = [];
+  let pumping = false;
+  function pump() {
+    if (!alive) { keyQ.length = 0; pumping = false; return; }
+    for (let n = 0; n < 2 && keyQ.length; n++) { const j = keyQ.shift(); images[j.i] = keyBlack(j.img, inkOn); }
+    wake();
+    if (keyQ.length) requestAnimationFrame(pump); else pumping = false;
+  }
   return {
     mode: "2d",
     frame(i, bytes) {
       const img = new Image();
-      img.onload = () => { try { URL.revokeObjectURL(img.src); } catch {} if (!alive) return; images[i] = keyBlack(img, inkOn); wake(); };
+      img.onload = () => { try { URL.revokeObjectURL(img.src); } catch {} if (!alive) return; keyQ.push({ i, img }); if (!pumping) { pumping = true; pump(); } };
       img.onerror = () => { try { URL.revokeObjectURL(img.src); } catch {} };
       img.src = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
     },
-    pose(name) { target = POSES[name] || POSES.greet; if (reducedMotion()) { const t = liveTarget(); pose.cx = t.cx; pose.cy = t.cy; pose.cap = t.cap; if (images[0]) draw(0); } },
+    pose(name) { target = POSES[name] || POSES.greet; unpark(); if (reducedMotion()) { const t = liveTarget(); pose.cx = t.cx; pose.cy = t.cy; pose.cap = t.cap; pose.up = t.up || 1; if (images[0]) draw(0); } },
     ink(on) { const flip = inkOn !== !!on; inkOn = !!on; return flip && started; },   // true → frames need a re-key (caller replays)
-    reset() { images.length = 0; prefix = 0; t0 = 0; started = false; },
+    reset() { images.length = 0; keyQ.length = 0; prefix = 0; t0 = 0; started = false; },
     destroy() { alive = false; cancelAnimationFrame(raf); removeEventListener("resize", size); },
   };
 }
@@ -433,7 +609,7 @@ const GPU_WORKER_SRC =
   "var dpr=1,reduced=false,cw=0,chh=0;\n" +
   "var tex=[],pend=[];\n" +
   "var prefix=0,started=false,t0=0,raf=0,last=0;\n" +
-  "var pose={cx:0,cy:0,cap:0},target=null,ink=0;\n" +
+  "var pose={cx:0,cy:0,cap:0,up:1},target=null,ink=0;\n" +
   "var WGSL=''+\n" +
   "'struct U { rect: vec4<f32>, misc: vec4<f32> };\\n'+\n" +
   "'@group(0) @binding(0) var<uniform> u: U;\\n'+\n" +
@@ -464,9 +640,9 @@ const GPU_WORKER_SRC =
   " if(d.t==='probe'){Promise.resolve().then(async function(){var ok=false;try{ok=!!(self.navigator&&navigator.gpu&&await navigator.gpu.requestAdapter());}catch(err){}self.postMessage({t:'probe',ok:ok});});}\n" +
   " else if(d.t==='init'){init(d).catch(function(err){self.postMessage({t:'err',m:String(err)});});}\n" +
   " else if(d.t==='frame'){frame(d.i,d.buf);}\n" +
-  " else if(d.t==='pose'){target={cx:d.cx,cy:d.cy,cap:d.cap};if(!pose.cap){pose.cx=d.cx;pose.cy=d.cy;pose.cap=d.cap;}if(reduced&&started){pose.cx=d.cx;pose.cy=d.cy;pose.cap=d.cap;render(0,0,0.016,0);}}\n" +
+  " else if(d.t==='pose'){target={cx:d.cx,cy:d.cy,cap:d.cap,up:d.up||1};if(!pose.cap){pose.cx=d.cx;pose.cy=d.cy;pose.cap=d.cap;pose.up=target.up;}if(reduced&&started){pose.cx=d.cx;pose.cy=d.cy;pose.cap=d.cap;pose.up=target.up;render(0,0,0.016,0);}}\n" +
   " else if(d.t==='ink'){ink=d.on?1:0;if(reduced&&started)render(0,0,0.016,0);}\n" +
- " else if(d.t==='resize'){dpr=d.dpr;cw=d.w;chh=d.h;if(canvas&&ctx){canvas.width=Math.max(1,Math.round(cw*dpr));canvas.height=Math.max(1,Math.round(chh*dpr));}}\n" +
+ " else if(d.t==='resize'){var nw=Math.max(1,Math.round(d.w*d.dpr)),nh=Math.max(1,Math.round(d.h*d.dpr));if(canvas&&(canvas.width!==nw||canvas.height!==nh)){dpr=d.dpr;cw=d.w;chh=d.h;canvas.width=nw;canvas.height=nh;}}\n" +
   " else if(d.t==='reset'){for(var i=0;i<tex.length;i++){if(tex[i]){try{tex[i].tex.destroy();}catch(err){}}}tex.length=0;pend.length=0;prefix=0;started=false;t0=0;}\n" +
   "};\n" +
   "async function init(d){\n" +
@@ -503,15 +679,14 @@ const GPU_WORKER_SRC =
   " var dt=Math.min((now-last)/1000,0.1);last=now;\n" +
   " var tt=(now-t0)/40;\n" +
   " var idx=Math.floor(tt)%prefix;\n" +
-  " var phase=tt-Math.floor(tt);\n" +
-  " render(idx,prefix>1?(idx+1)%prefix:idx,dt,phase);\n" +
+  " render(idx,idx,dt,0);\n" +
   "}\n" +
   "function render(idx,nxt,dt,phase){\n" +
   " var a=tex[idx];if(!a||!ctx||!pipeline)return;\n" +
   " var b=tex[nxt]||a;\n" +
   " if(target){var k=reduced?1:Math.min(1,(dt||0.016)*5.5);\n" +
-  "  pose.cx+=(target.cx-pose.cx)*k;pose.cy+=(target.cy-pose.cy)*k;pose.cap+=(target.cap-pose.cap)*k;}\n" +
-  " var s=Math.min(1,pose.cap/Math.max(a.w,a.h));\n" +
+  "  pose.cx+=(target.cx-pose.cx)*k;pose.cy+=(target.cy-pose.cy)*k;pose.cap+=(target.cap-pose.cap)*k;pose.up+=((target.up||1)-pose.up)*k;}\n" +
+  " var s=Math.min(pose.up||1,pose.cap/Math.max(a.w,a.h));\n" +
   " var w=a.w*s*dpr,h=a.h*s*dpr;\n" +
   " var u=new Float32Array([pose.cx*dpr,pose.cy*dpr,w,h,phase||0,canvas.width,canvas.height,ink]);\n" +
   " device.queue.writeBuffer(ubuf,0,u);\n" +
@@ -540,17 +715,17 @@ async function makeGpuPlayer(overlay, layer, canvas, onLive) {
   try { URL.revokeObjectURL(url); } catch {}
   if (!ok) { try { worker.terminate(); } catch {} return null; }
   const off = canvas.transferControlToOffscreen();       // point of no return — the worker owns the pixels
-  const dpr = () => Math.min(window.devicePixelRatio || 1, 3);
+  const dpr = () => emblemDpr();                          // tier-capped (holo-device-tier): high=2, ultra=3
   worker.postMessage({ t: "init", canvas: off, w: innerWidth, h: innerHeight, dpr: dpr(), reduced: reducedMotion() }, [off]);
   worker.addEventListener("message", (e) => { if (e.data && e.data.t === "first") { try { onLive(); } catch {} } });
   let target = POSES.boot, watch = 0, last = null;
   const send = () => {
     const p = target, cw = innerWidth, ch = innerHeight, vmin = Math.min(cw, ch);
-    let t = { cx: cw * p.cx, cy: ch * p.cy, cap: vmin * p.cap };
-    if (p.anchor) { t = anchorTarget(overlay, p, t); const o = posOffset(); t = { cx: t.cx + o.x, cy: t.cy + o.y, cap: t.cap }; }
-    if (!last || Math.abs(t.cx - last.cx) > 0.25 || Math.abs(t.cy - last.cy) > 0.25 || Math.abs(t.cap - last.cap) > 0.25) {
+    let t = { cx: cw * p.cx, cy: ch * p.cy, cap: vmin * p.cap, up: p.up || 1 };
+    if (p.anchor) { t = anchorTarget(overlay, p, t); const o = posOffset(); t = { cx: t.cx + o.x, cy: t.cy + o.y, cap: t.cap, up: 1 }; }
+    if (!last || Math.abs(t.cx - last.cx) > 0.25 || Math.abs(t.cy - last.cy) > 0.25 || Math.abs(t.cap - last.cap) > 0.25 || Math.abs((t.up || 1) - (last.up || 1)) > 0.001) {
       last = t;
-      try { worker.postMessage({ t: "pose", cx: t.cx, cy: t.cy, cap: t.cap }); } catch {}
+      try { worker.postMessage({ t: "pose", cx: t.cx, cy: t.cy, cap: t.cap, up: t.up || 1 }); } catch {}
     }
   };
   const tick = () => { watch = requestAnimationFrame(tick); send(); };   // one rect read per frame — nothing else
@@ -586,7 +761,6 @@ function isMobileLike() {
 // GPU backend that hasn't drawn a first frame within ~2s onto a FRESH-canvas 2D player, replaying the
 // early frames — so the emblem always ends up moving, on any device, even if WebGPU lies about working.
 function makePlayer(overlay, layer, onLive) {
-  armParallax();                                           // living motion: pointer-lean (desktop) + autonomous float
   let backend = null, queue = [], lastPose = null, lastInk = null, dead = false;
   let firstFired = false, watchdog = 0, early = [];        // early frame copies, for a fallback replay
   let forced = null; try { forced = new URLSearchParams(location.search).get("emblem"); } catch {}
@@ -688,7 +862,6 @@ function openGallery(overlay, current, onPick, host) {
         <div class="hlp-grid"></div>
       </div>
     </div>
-    <div class="hlp-foot">Animations by <a href="https://github.com/adi1090x/plymouth-themes" target="_blank" rel="noopener">adi1090x</a> · GPL 3.0</div>
   </div>`;
   const sheet = gal.querySelector(".hlp-sheet"), list = gal.querySelector(".hlp-list");
   const modes = gal.querySelector(".hlp-modes");
@@ -805,7 +978,7 @@ export function attachPlymouth(overlay, host) {
   const state = readState();
   // First-ever run: persist the default WITH the embedded frame-0, so the NEXT boot's 0-ms baseline paints
   // the emblem instantly (no cold CDN) — and this run feeds the same bytes below for an instant live paint.
-  try { if (!localStorage.getItem(KEY)) { if (state.theme === DEFAULT_THEME && !state.firstFrame) state.firstFrame = DEFAULT_FF; writeState(state); } } catch {}
+  try { if (!localStorage.getItem(KEY)) { if (state.theme === DEFAULT_THEME && !state.firstFrame) { state.firstFrame = DEFAULT_FF; state.ffKeyed = true; } writeState(state); } } catch {}
   try { if (!overlay.getAttribute("data-appearance")) overlay.setAttribute("data-appearance", themeMode()); } catch {}   // primitive overlays get the mode too
   let layer = null, player = null, gen = 0;
   let onEmblemLive = () => {};   // set by the boot-beat setup; fired the instant the emblem paints its first frame
@@ -820,6 +993,7 @@ export function attachPlymouth(overlay, host) {
     // beat can lift NOW (the panel rises the moment there is a real emblem to greet you with).
     player = makePlayer(overlay, layer, () => {
       try { layer.classList.add("on"); overlay.classList.add("hlp-anchor"); dropBaseline(); onEmblemLive(); } catch {}
+      beat("emblem-alive");
     });
     player.ink(isInk());
   }
@@ -837,16 +1011,21 @@ export function attachPlymouth(overlay, host) {
     const my = ++gen;
     player.reset();
     layer.classList.remove("done");
+    // The emblem IS the identity mark from the very first instant — the enclosed avatar circle never
+    // paints while a splash is on (any device). Frame-0 below makes the slot's paint immediate, so
+    // claiming it here never leaves it empty; only an explicit "Off" pick brings the circle back.
+    overlay.classList.add("hlp-anchor");
     // INSTANT first paint (zero network): feed the cached/seeded frame-0 the moment we start — so a first-EVER
     // boot's emblem materialises with the module (no wait for the cold CDN), then the streamed frames continue
     // the animation. The default theme falls back to the embedded DEFAULT_FF even before it is sealed.
+    let seeded = false;
     try {
       const s = readState();
       const ff = (s.theme === theme && s.firstFrame) ? s.firstFrame : (theme === DEFAULT_THEME ? DEFAULT_FF : null);
-      if (ff) { const b = Uint8Array.from(atob(ff.split(",").pop()), (c) => c.charCodeAt(0)); if (b.length) player.frame(0, b); }
+      if (ff) { const b = Uint8Array.from(atob(ff.split(",").pop()), (c) => c.charCodeAt(0)); if (b.length) { player.frame(0, b); seeded = true; } }
     } catch {}
     loadFrames(theme, (i, bytes) => { if (my === gen) player.frame(i, bytes); }, () => my !== gen)
-      .catch(() => { if (my === gen && state.on) { layer.classList.remove("on"); overlay.classList.remove("hlp-anchor"); } });   // no frames at all → wallpaper + circle stay
+      .catch(() => { if (my === gen && state.on && !seeded) { layer.classList.remove("on"); overlay.classList.remove("hlp-anchor"); } });   // NOTHING painted (no frame-0, no stream) → wallpaper + circle return; a seeded frame-0 keeps the emblem standing
   }
   // the host baseline (app.html) may have painted a synchronous frame-0 still; remove it once live
   function dropBaseline() { try { const b = document.getElementById("hl-plymouth-base"); if (b) { b.style.opacity = "0"; setTimeout(() => b.remove(), 900); } } catch {} }
@@ -855,22 +1034,53 @@ export function attachPlymouth(overlay, host) {
   // minimum flash and NEVER longer than a hard cap — no fixed multi-second wait. Skippable by any tap/key.
   // A supercomputer is ready when it is ready, not on a timer. Counted from the baseline's 0-ms frame
   // (window.__hlBootT0) so the beat measures REAL boot latency, not module-load time.
-  // A deliberate HERO: the emblem holds large, dead-centre, for ~3s, THEN glides into the identity slot as the
-  // whole login reveals together. (Was readiness-gated 320–1400ms, which made the emblem flick away instantly and
-  // the chrome pop in on its own separate timers.) Still skippable by a tap/key; hard cap protects a slow network.
-  const BOOT_MIN = 2800, BOOT_MAX = 3400;
-  const bootT0 = (() => { try { return window.__hlBootT0 || Date.now(); } catch { return Date.now(); } })();
+  // A deliberate HERO: the emblem holds large, dead-centre, for ~5s — a real machine powering up — THEN
+  // shrinks slightly and glides into the identity slot as the ENTIRE login (panel · Manifesto · wordmark ·
+  // the ⋯ door) reveals in one beat. Runs on every device (the hold is stillness, not motion — under
+  // reduced motion the pose SNAPS instead of gliding, so nothing sweeps the screen). Skippable by any
+  // tap/key; the hard cap protects a slow network from holding the machine hostage.
+  // LOCK HANDSHAKE (power symmetry, B7): a same-tab return from Lock & Sign Out plays a SHORT hero (~1.2s)
+  // — re-entering mid-sitting must be light; only a true cold boot earns the full five seconds. The power
+  // ritual stamps the flag (sessionStorage = per-tab, exactly the right lifetime); reading it clears it.
+  let shortHero = false;
+  try { shortHero = sessionStorage.getItem("holo.ceremony.short") === "1"; if (shortHero) sessionStorage.removeItem("holo.ceremony.short"); } catch {}
+  // RETURNING = RECOGNITION (INSTANT-RETURN W1, same law as ARRIVAL A3): an operator or guest this device
+  // already knows re-enters on the SHORT hero too — the full five seconds is the FIRST impression; the
+  // second visit is a greeting, not a ceremony. Skippability and the hard cap are unchanged.
+  // RETURNING = FAST (by request: as quick as possible for returning users): a device we already know
+  // re-enters on the SHORT hero (~1.2s) — the full 3-second hero is the FIRST impression only. First-timers
+  // still get the cinematic 3s; the same-tab Lock & Sign Out handshake stays short too.
+  try { if (!shortHero && (localStorage.getItem("holo.lastOperator") || localStorage.getItem("holo-messenger/id-secret"))) shortHero = true; } catch {}
+  const BOOT_MIN = shortHero ? 1200 : 3000, BOOT_MAX = shortHero ? 1600 : 3400;
+  // PHONE-INSTANT: a returning device on a PHONE compresses the hold further (500–900ms from the seed's
+  // first paint) — with a warm SW the hero effectively reveals at once. First visit keeps the full hold;
+  // desktop keeps the canonical clock above (witness law L2) on every path.
+  let _phFast = false; try { _phFast = shortHero && document.documentElement.hasAttribute("data-holo-phone"); } catch {}
+  const HOLD_MIN = _phFast ? 500 : BOOT_MIN, HOLD_MAX = _phFast ? 900 : BOOT_MAX;
+  // FIRST-PACKET (P1): the hero clock starts at the SEED's first paint (sessionStorage handshake) — the
+  // welcome already watched during the network chain counts toward the hold. Consume-on-read; a stamp that
+  // is stale (>15s) or from the future is ignored, so a direct app.html open keeps today's clock exactly.
+  const bootT0 = (() => { try {
+    let t0 = window.__hlBootT0 || Date.now();
+    try { const s = Number(sessionStorage.getItem("holo.ceremony.t0")); sessionStorage.removeItem("holo.ceremony.t0");
+      if (s > 0 && s <= t0 && (t0 - s) < 15000) t0 = s; } catch {}
+    return t0;
+  } catch { return Date.now(); } })();
   let bootDone = false, bootTimer = 0;
   const endBoot = () => {
     if (bootDone) return; bootDone = true; clearTimeout(bootTimer);
-    try { overlay.classList.remove("hl-boot"); if (layer) { layer.classList.add("greet"); player.pose("greet"); } dropBaseline(); } catch {}
+    try { overlay.classList.remove("hl-boot"); overlay.classList.add("hlp-reveal"); if (layer) { layer.classList.add("greet"); player.pose("greet"); } dropBaseline(); } catch {}
+    beat("gate-reveal");
   };
   const panelEl = overlay.querySelector("#holo-login-panel");
   const bootable = overlay.classList.contains("hl-boot") || !panelEl || !panelEl.childElementCount;
-  if (state.on && bootable && !reducedMotion()) {
+  if (state.on && bootable) {
     overlay.classList.add("hl-boot");
-    bootTimer = setTimeout(endBoot, Math.max(250, BOOT_MAX - (Date.now() - bootT0)));   // hard cap — never stall on a slow network
-    onEmblemLive = () => { if (bootDone) return; clearTimeout(bootTimer); bootTimer = setTimeout(endBoot, Math.max(0, BOOT_MIN - (Date.now() - bootT0))); };   // alive → rise after the min flash
+    // the module OWNS the beat from here — the host baseline's module-never-arrived fallback must not
+    // lift hl-boot mid-hero (it fired at 1.5s and popped the panel while the emblem was still centre-stage)
+    try { clearTimeout(window.__hlBootFallback); } catch {}
+    bootTimer = setTimeout(endBoot, Math.max(250, HOLD_MAX - (Date.now() - bootT0)));   // hard cap — never stall on a slow network
+    onEmblemLive = () => { if (bootDone) return; clearTimeout(bootTimer); bootTimer = setTimeout(endBoot, Math.max(0, HOLD_MIN - (Date.now() - bootT0))); };   // alive → hold the hero, then one reveal
     overlay.addEventListener("pointerdown", endBoot, { once: true, capture: true });
     document.addEventListener("keydown", endBoot, { once: true, capture: true });
   } else if (state.on) { setTimeout(endBoot, 0); }
@@ -903,7 +1113,7 @@ export function attachPlymouth(overlay, host) {
     // choreography hooks for the greeter — all fail-open no-ops when the splash is off
     verify() { try { if (layer) { layer.classList.add("verify"); player.pose("verify"); } } catch {} },
     calm() { try { if (layer) { layer.classList.remove("verify"); player.pose("greet"); } } catch {} },
-    complete() { try { endBoot(); if (layer) { layer.classList.remove("verify"); layer.classList.add("done"); } setTimeout(() => api.destroy(), 900); } catch {} },   // overlay is removed right after — stop the loop with it
+    complete() { try { endBoot(); if (layer) { layer.classList.remove("verify"); layer.classList.add("done"); } beat("boot-complete"); setTimeout(() => api.destroy(), 900); } catch {} },   // overlay is removed right after — stop the loop with it
     destroy() { gen++; try { player && player.destroy(); } catch {} },
   };
   try { window.HoloPlymouth = { open: () => btn.click(), set: (n) => api.setTheme(n), themes: CATALOG.map((t) => t.name), state: readState, mode: () => (player ? player.mode() : "none") }; } catch {}

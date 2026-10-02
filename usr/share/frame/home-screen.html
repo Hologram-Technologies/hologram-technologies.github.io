@@ -1,0 +1,2033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- Pre-paint: pin the canonical palette/immersive onto <html> so the home wears the operator's chosen
+     theme with no flash — one continuous appearance from login → home → app. -->
+<script src="../../../_shared/holo-appearance-boot.js"></script>
+<!-- map the orb's one bare dependency to the vendored same-origin copy, so Q's living orb (createOrb)
+     loads exactly as it does on the desktop. Must precede any module load. -->
+<script type="importmap">{ "imports": { "simplex-noise": "../../../_shared/voice/lib/simplex-noise.js" } }</script>
+<title>Hologram</title>
+<!--
+  HOLOGRAM HOME — the clean, abstracted home the operator lands on after sign-in.
+  One quiet surface: a clock ring whose arc is the share of the day that has passed, an appearance
+  toggle (Dark · Light · Immersive), a corner hamburger that opens the app drawer, and a focus timer
+  that asks how long you mean to spend before any app opens. Mobile-first, ≥16px, golden-ratio rhythm.
+  Self-contained: works served directly; rides window.HoloTheme + /apps/index.jsonld when present.
+-->
+<style>
+  /* ── GOLDEN-RATIO RHYTHM (shared with login/splash) ─────────────────────────────────────────────
+     One fluid unit --u (never below 16px — the readability floor) and powers of φ govern every size,
+     gap and control, so the whole home is one self-similar composition at any screen size. */
+  :root {
+    color-scheme: dark;
+    --phi: 1.618;
+    --ease: cubic-bezier(.4, 0, .2, 1);
+    --u: clamp(16px, 1.9vmin, 20px);
+    /* golden ladder — every gap, control and type size is var(--u) × a power of φ, nothing arbitrary */
+    --g0: calc(var(--u) * .618);   /* φ⁻¹ */
+    --g1: calc(var(--u) * 1.618);  /* φ   */
+    --g2: calc(var(--u) * 2.618);  /* φ²  */
+    --g3: calc(var(--u) * 4.236);  /* φ³  */
+    --g4: calc(var(--u) * 6.854);  /* φ⁴  */
+    /* type scale (same ladder): meta = base · greeting = φ · time = φ²+1 */
+    --t-meta: var(--u);
+    --t-greet: calc(var(--u) * 1.618);
+    /* the time is the hero of the surface — large enough that the ring hugs it (the reference proportion) */
+    --t-time: calc(var(--u) * 4);
+    /* one control size, golden + ≥48px touch floor — the hamburger, the orb and the toggle all share it */
+    --fab: max(48px, calc(var(--u) * 2.618));
+    --r: var(--g0);                /* corner radius rides the ladder too */
+    --accent: #7defc9; --accent-2: #34d3a6;
+    /* the OS brand SPECTRUM — the same 8 stops as the desktop omnibar outline & the Q orb wireframe */
+    --spectrum: #ff3b6b, #ff9e2c, #ffe24a, #46e08a, #2bd4ff, #5b8cff, #c77bff, #ff3b6b;
+    --ink: #f4f7fc; --ink-dim: rgba(231,237,250,.74); --ink-faint: rgba(231,237,250,.5);
+    --bg: #09090b;
+    --card: rgba(22,26,38,.92);
+    --line: rgba(255,255,255,.12);
+    --ctl: rgba(255,255,255,.08); --ctl-hi: rgba(255,255,255,.16);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased;
+    font-family: var(--holo-font-sans, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif);
+    color: var(--ink); background: var(--bg); }
+
+  /* ── BACKDROP ──────────────────────────────────────────────────────────────────────────────────
+     Dark/Light = a calm, glow-free wall. Immersive = a beautiful photo behind a legibility scrim. */
+  .wall { position: fixed; inset: 0; z-index: 0; background: var(--bg);
+    transition: background .5s var(--ease); }
+  .photo { position: fixed; inset: 0; z-index: 0; opacity: 0; transition: opacity .6s var(--ease);
+    background-size: cover; background-position: center; }
+  .scrim { position: fixed; inset: 0; z-index: 0; opacity: 0; transition: opacity .6s var(--ease);
+    background: linear-gradient(180deg, rgba(4,6,12,.32) 0%, rgba(4,6,12,.12) 38%, rgba(4,6,12,.55) 100%); }
+  :root[data-holo-immersive="on"] .photo,
+  :root[data-holo-immersive="on"] .scrim { opacity: 1; }
+  :root[data-holo-palette="light"] { --ink: #14171d; --ink-dim: rgba(20,23,29,.7); --ink-faint: rgba(20,23,29,.46);
+    --bg: #eceae4; --card: rgba(252,251,248,.96); --line: rgba(0,0,0,.1);
+    --ctl: rgba(0,0,0,.05); --ctl-hi: rgba(0,0,0,.1); --accent: #18a37b; --accent-2: #0f7a5a; }
+  :root[data-holo-palette="light"] .wall { background: radial-gradient(120% 120% at 20% 0%, #e6ecf5 0%, #ece9e3 60%, #f5f3ed 100%); }
+
+  /* ── BOOT-IN — the home rises out of the same surface the login frost cleared to ─────────────── */
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .clock { animation: rise .7s var(--ease) .05s both; }
+  /* M0 premium entrance — a calm cascade: clock → greeting → favourites settle one after another (each ≤300ms
+     of its own; the whole surface arrives in well under a second), reduce-motion turns it all off. */
+  .greeting { animation: rise .6s var(--ease) .16s both; }
+  .favs { animation: fade .5s var(--ease) .3s both; }
+  .fav-row { animation: rise .42s var(--ease) both; animation-delay: calc(.34s + var(--i, 0) * .05s); }
+  .corner { animation: fade .8s var(--ease) .28s both; }
+  @media (prefers-reduced-motion: reduce) { .clock, .greeting, .favs, .fav-row, .corner { animation: none !important; } }
+
+  /* ── CLOCK — sits high on the surface; the only adornment is a thin arc = the share of today elapsed.
+     Nothing else competes: time, then a short date. Crisp white on black (the reference). ─────────── */
+  /* the clock sits at the upper-golden node: empty space above ≈ 1/φ of the space below, so the eye rests
+     on the time first. Shifted down a touch from the very top, the golden --g2 gap holds time + greeting. */
+  main { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; gap: var(--g1); padding: calc(17vh + env(safe-area-inset-top)) var(--g2) 0; }
+  /* the ring is sized off the golden unit so the time/ring ratio is identical on phone and desktop — the
+     arc hugs the time the way the reference does (≈ φ× the widest time), never a big empty hoop. */
+  .clock { position: relative; width: min(60vw, 46vh, calc(var(--u) * 15.5)); aspect-ratio: 1; display: grid; place-items: center; }
+  .clock svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+  .ring-prog  { fill: none; stroke: var(--ink); stroke-width: 1.1; stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear; }
+  .face { display: flex; flex-direction: column; align-items: center; gap: var(--g0); text-align: center; }
+  .time { font-size: var(--t-time); font-weight: 400; line-height: 1; letter-spacing: -.005em;
+    font-variant-numeric: tabular-nums; }
+  .date { font-size: var(--t-meta); color: var(--ink-dim); font-weight: 400; letter-spacing: .01em; margin-top: calc(var(--u) * .1); }
+  /* time-of-day greeting with the operator's name — the one warm line, under the circle */
+  .greeting { font-size: var(--t-greet); font-weight: 300; letter-spacing: .005em; text-align: center; }
+  .greeting b { font-weight: 500; }
+  /* legibility shadows only when a photo sits behind (immersive); dark/light stay perfectly crisp */
+  :root[data-holo-immersive="on"] .time, :root[data-holo-immersive="on"] .date,
+  :root[data-holo-immersive="on"] .greeting { text-shadow: 0 2px 18px rgba(0,0,0,.55); }
+
+  /* ── Calm mode (grayscale) — the minimalist-phone quiet look. A pointer-through backdrop veil desaturates
+     the WHOLE phone (including the app iframe) without becoming a containing block for the fixed surfaces —
+     `filter` on <body>/<html> would re-root position:fixed and break the hero/appview. Q-toggleable
+     ("grayscale on" / "colour back") and auto-on for lite / data-saver devices. Cheap compositor shader. ── */
+  .holo-calm-veil { position: fixed; inset: 0; z-index: 2147483646; pointer-events: none; display: none;
+    -webkit-backdrop-filter: grayscale(1) contrast(1.015); backdrop-filter: grayscale(1) contrast(1.015); }
+  :root[data-holo-calm="on"] .holo-calm-veil { display: block; }
+
+  /* BOOT GATE — an opaque cover shown from the first paint so the calm home never flashes before the boot
+     ceremony + sign-in (signIn's own overlay takes over, then defogs onto the home). Removed instantly when a
+     session already exists (returning visitor → straight to the calm home). */
+  #boot-cover { position: fixed; inset: 0; z-index: 2147483644; background: var(--bg, #09090b); display: none; }
+  :root[data-boot-gate="on"] #boot-cover { display: block; }   /* shown only while the boot ceremony/login gates */
+
+  /* ── Favourites — the minimalist-phone calm list, under the greeting: plain text names, no icons, thumb
+     targets, tap to open (the session-timer friction is honoured via promptOpen). Your most-used apps by
+     default; edit persists in holo.favs.v1. ── */
+  .favs { display: flex; flex-direction: column; align-items: stretch; gap: 1px; width: min(340px, 80vw);
+    margin: calc(var(--u) * 1.5) auto 0; }
+  .favs[hidden] { display: none; }
+  .fav-row { appearance: none; -webkit-appearance: none; background: none; border: 0; color: inherit;
+    text-align: center; font: inherit; font-size: calc(var(--u) * 1.02); font-weight: 300; letter-spacing: .01em;
+    min-height: 48px; padding: 0 14px; border-radius: 12px; cursor: pointer; opacity: .92;
+    transition: background .15s ease, opacity .15s ease; }
+  .fav-row:hover { background: color-mix(in srgb, currentColor 8%, transparent); opacity: 1; }
+  .fav-row:active { background: color-mix(in srgb, currentColor 12%, transparent); }
+
+  /* ── Render view — a rendered block (HOLO-INTENT-RENDER R0) fills the screen in a SANDBOXED iframe;
+     "‹ Back" tears it down. Below the calm veil, above the home. ── */
+  #holo-renderview { position: fixed; inset: 0; z-index: 45; background: var(--bg, #0f0f10); display: none; flex-direction: column; }
+  #holo-renderview.on { display: flex; }
+  #holo-renderview .rv-bar { display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top) + 6px) 12px 6px; min-height: 48px; }
+  #holo-renderview .rv-back { appearance: none; -webkit-appearance: none; background: none; border: 0; color: inherit; font: inherit; min-height: 44px; padding: 0 10px; cursor: pointer; opacity: .85; }
+  #holo-renderview .rv-back:hover { opacity: 1; }
+  #holo-renderview .rv-title { opacity: .65; font-size: 14px; }
+  #holo-renderview .rv-host { flex: 1 1 auto; min-height: 0; }
+  #holo-renderview .rv-host iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+  /* ── CORNER FURNITURE — ONE set of four identical controls, one in each corner ───────────────────
+     Appearance (top-left), full-screen (top-right), apps (bottom-left), Q orb (bottom-right). Every
+     control is the SAME size (var(--fab)), the SAME golden inset (var(--g1)) and the SAME quiet stroke
+     language — crisp line glyphs, no filled chips (the reference look): subtle .5 at rest, full on touch,
+     with a legibility shadow only over an immersive photo. The Q orb takes its corner as the living orb. */
+  .corner { position: fixed; z-index: 3; }
+  .fab { width: var(--fab); height: var(--fab);
+    border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center; color: var(--ink);
+    background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
+    animation: none; opacity: .5; transition: opacity .18s, transform .12s; }   /* quiet resting state, reliably subtle */
+  .fab:hover, .fab:focus-visible { opacity: 1; }
+  .fab:active { transform: scale(.92); }
+  .fab svg { width: calc(var(--fab) * .46); height: calc(var(--fab) * .46); }   /* one glyph size for every control (golden fraction of the control) */
+  #menu       { left:  max(var(--g1), env(safe-area-inset-left));  bottom: max(var(--g1), env(safe-area-inset-bottom)); }
+  #appear     { top:   max(var(--g1), env(safe-area-inset-top));   left:   max(var(--g1), env(safe-area-inset-left)); }
+  #fullscreen { top:   max(var(--g1), env(safe-area-inset-top));   right:  max(var(--g1), env(safe-area-inset-right)); }
+  :root[data-holo-immersive="on"] .fab { filter: drop-shadow(0 1px 6px rgba(0,0,0,.55)); }   /* legible over a photo */
+
+  /* ── Q ORB (bottom-right) — the SAME living form as the desktop: a φ-native icosahedron wireframe
+     painted with the OS brand spectrum (createOrb, voice/holo-voice-orb.mjs). Same size as the
+     hamburger (var(--fab)). The conic-spectrum disc is the no-WebGL fallback — same shape & colours. */
+  #qorb { position: fixed; z-index: 4; width: var(--fab); height: var(--fab); border: 0; padding: 0;
+    background: transparent; cursor: pointer; border-radius: 50%; transition: transform .12s;
+    right: max(var(--g1), env(safe-area-inset-right)); bottom: max(var(--g1), env(safe-area-inset-bottom)); }
+  #qorb:active { transform: scale(.93); }
+  .q-canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; display: block; }
+  .q-fallback { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(from 0deg, var(--spectrum));
+    -webkit-mask: radial-gradient(circle, transparent 30%, #000 33%, #000 62%, transparent 66%);
+    mask: radial-gradient(circle, transparent 30%, #000 33%, #000 62%, transparent 66%);
+    box-shadow: 0 4px 22px rgba(91,140,255,.4); animation: q-spin 7s linear infinite; will-change: transform; }
+  #qorb.live .q-fallback { opacity: .22; }   /* real wireframe is up → the disc dims to a soft glow */
+  @keyframes q-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .q-fallback { animation: none; } }
+
+  /* the desktop orb is a spectrum icosahedron WIREFRAME (createOrb). When WebGL can't paint it, this is
+     the floor: an animated SVG wireframe SPHERE in the same brand spectrum — meridians sweep so it reads
+     as a living, rotating globe, not a flat disc. The real orb (canvas) overlays and hides this when up. */
+  .q-wire { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
+    filter: drop-shadow(0 3px 14px rgba(91,140,255,.32)); animation: q-breathe 4.2s ease-in-out infinite;
+    transition: opacity .35s var(--ease); }
+  #qorb.live .q-wire { opacity: 0; }   /* the real WebGL orb is up → hand off cleanly, no double image */
+  @keyframes q-breathe { 0%, 100% { transform: scale(.965); opacity: .9; } 50% { transform: scale(1.03); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .q-wire { animation: none; } }
+
+  /* Q orb right-click context MENU — a compact popup of quick actions (NOT the ask panel) */
+  .qmenu { position: fixed; z-index: 50; min-width: 172px; padding: 6px; border-radius: 12px;
+    background: rgba(16,18,28,.96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.10); box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    display: flex; flex-direction: column; gap: 2px; animation: qmenu-in .12s ease-out; }
+  @keyframes qmenu-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .qmenu button { all: unset; cursor: pointer; padding: .55rem .8rem; border-radius: 8px;
+    color: #e7e9ff; font: inherit; font-size: var(--holo-text-sm, 0.875rem); line-height: 1.2; }
+  .qmenu button:hover, .qmenu button:focus-visible { background: rgba(255,255,255,.08); }
+
+  /* Q ask panel */
+  .q-head { display: flex; align-items: center; gap: var(--u); margin-bottom: var(--g1); }
+  .q-mini { position: relative; width: 38px; height: 38px; flex: 0 0 auto; }
+  .q-ask { display: flex; gap: calc(var(--u) * .5); }
+  .q-ask input { flex: 1 1 auto; min-height: 52px; border: 1px solid var(--line); background: var(--ctl); color: var(--ink);
+    border-radius: var(--r); padding: 0 var(--u); font: inherit; font-size: var(--u); outline: none; }
+  .q-ask input:focus { border-color: var(--accent); }
+  .q-ask button { min-width: 52px; min-height: 52px; border: 0; border-radius: var(--r); cursor: pointer; color: #06140f;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; }
+  .q-ask button svg { width: 22px; height: 22px; }
+  .q-chips { display: flex; flex-wrap: wrap; gap: calc(var(--u) * .4); margin-top: var(--u); }
+  .q-chips button { border: 1px solid var(--line); background: transparent; color: var(--ink-dim); font: inherit;
+    font-size: calc(var(--u) * .95); border-radius: 99px; padding: calc(var(--u) * .5) var(--u); cursor: pointer; min-height: 44px; }
+  .q-chips button:hover { background: var(--ctl); color: var(--ink); }
+  .q-reply { margin-top: var(--g1); font-size: calc(var(--u) * .96); color: var(--ink-dim); line-height: 1.6; min-height: 1.6em; }
+
+  /* ── Q HERO — full-screen, voice-first Q. The orb is the whole interface; everything else is gone.
+     A deep void backdrop (the Star-Trek-computer feel), one large living orb centred, a single status
+     word and your spoken intent below it. WebGPU-rendered when the phone has it, at full DPR. ───────── */
+  #qhero { position: fixed; inset: 0; z-index: 40; display: none; opacity: 0; touch-action: none;
+    background: radial-gradient(120% 100% at 50% 42%, #0b0c12 0%, #060609 58%, #000 100%);
+    transition: opacity .42s var(--ease); }
+  #qhero.on { display: block; opacity: 1; animation: fade .42s var(--ease) both; }
+  /* the orb fills the screen's heart; the canvas is generous so the particle-aura halo blooms unclipped */
+  #qhero-canvas { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: min(86vw, 58vh); height: min(86vw, 58vh); display: block; cursor: pointer; }
+  .qhero-fallback { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: min(58vw, 39vh); height: min(58vw, 39vh); border-radius: 50%; pointer-events: none;
+    background: conic-gradient(from 0deg, var(--spectrum));
+    -webkit-mask: radial-gradient(circle, transparent 34%, #000 37%, #000 60%, transparent 64%);
+    mask: radial-gradient(circle, transparent 34%, #000 37%, #000 60%, transparent 64%);
+    animation: q-spin 7s linear infinite; opacity: .9; }   /* shown ONLY as the pre-render floor (no WebGPU/WebGL) */
+  #qhero.live .qhero-fallback { opacity: 0; }   /* the real orb is up → the disc is gone entirely (no stray glow/shadow) */
+  .qhero-x { position: absolute; top: max(var(--g1), env(safe-area-inset-top)); right: max(var(--g1), env(safe-area-inset-right)); z-index: 2; }
+  .qhero-stage { position: absolute; left: 0; right: 0; bottom: calc(var(--g3) + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; align-items: center; gap: var(--g0); padding: 0 var(--g2);
+    text-align: center; pointer-events: none; }
+  .qhero-status { font-size: var(--t-meta); letter-spacing: .22em; text-transform: uppercase; font-weight: 500;
+    color: var(--accent); animation: heroBreathe 2.6s ease-in-out infinite; }
+  @keyframes heroBreathe { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+  .qhero-text { font-size: var(--t-greet); font-weight: 300; line-height: 1.34; max-width: 20ch; min-height: 1.5em;
+    text-shadow: 0 2px 24px rgba(0,0,0,.65); }
+  .qhero-hint { position: absolute; left: 50%; bottom: calc(var(--g1) + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    border: 0; background: transparent; color: var(--ink-faint); font: inherit; font-size: calc(var(--u) * .9);
+    cursor: pointer; padding: var(--g0) var(--u); border-radius: 99px; opacity: .5; transition: opacity .18s, color .18s; }
+  .qhero-hint:hover, .qhero-hint:focus-visible { opacity: 1; color: var(--ink-dim); }
+  /* compose-on-the-fly: a κ surface (app/holospace) mounted INTO the hero. The orb shrinks to a living
+     corner presence while it's up; "back" / a tap on the orb dissolves it back to full Q. */
+  .qhero-surface { position: absolute; inset: 0; z-index: 1; display: none; flex-direction: column;
+    opacity: 0; transition: opacity .3s var(--ease); }
+  #qhero.composing .qhero-surface { display: flex; opacity: 1; }
+  #qhero.composing .qhero-stage, #qhero.composing .qhero-hint, #qhero.composing .qhero-x { opacity: 0; pointer-events: none; }
+  .qhero-surfbar { display: flex; align-items: center; gap: var(--u); flex: 0 0 auto; color: var(--ink);
+    padding: max(var(--g0), env(safe-area-inset-top)) var(--g1) var(--g0); }
+  .qhero-surfback { width: 42px; height: 42px; border: 0; border-radius: 50%; background: var(--ctl); color: var(--ink);
+    cursor: pointer; display: grid; place-items: center; flex: 0 0 auto; transition: background .12s; }
+  .qhero-surfback:hover { background: var(--ctl-hi); }
+  .qhero-surfback svg { width: 22px; height: 22px; }
+  .qhero-surftitle { font-size: var(--u); font-weight: 600; letter-spacing: .005em; }
+  #qhero-frame { flex: 1 1 auto; width: 100%; border: 0; background: var(--bg); border-radius: var(--g1) var(--g1) 0 0; }
+  /* the orb → a small, live, tappable PiP presence while a surface is composed (Q is still here) */
+  #qhero.composing #qhero-canvas { z-index: 2; left: auto; top: auto; transform: none;
+    right: max(var(--g1), env(safe-area-inset-right)); bottom: calc(var(--g1) + env(safe-area-inset-bottom));
+    width: calc(var(--fab) * 1.25); height: calc(var(--fab) * 1.25); filter: drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
+  @media (prefers-reduced-motion: reduce) { #qhero.on { animation: none; } .qhero-fallback { animation: none; } .qhero-status { animation: none; opacity: .9; } }
+
+  /* ── SHEETS (drawer · settings · timer) — one frosted card primitive that rises from the bottom ── */
+  .scrimsheet { position: fixed; inset: 0; z-index: 10; background: rgba(4,6,12,.5);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; pointer-events: none;
+    transition: opacity .25s var(--ease); }
+  .scrimsheet.on { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 50%; bottom: 0; z-index: 11; width: min(560px, 100vw);
+    transform: translate(-50%, 100%); transition: transform .34s var(--ease);
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); border-bottom: 0;
+    border-radius: var(--g1) var(--g1) 0 0; -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
+    box-shadow: 0 -24px 70px rgba(0,0,0,.5); padding: var(--g1) var(--g1) calc(var(--g1) + env(safe-area-inset-bottom));
+    max-height: 88vh; display: flex; flex-direction: column; }
+  .sheet.on { transform: translate(-50%, 0); }
+  .grab { width: 42px; height: 4px; border-radius: 99px; background: var(--ink-faint); opacity: .5;
+    margin: 0 auto var(--g1); flex: 0 0 auto; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--u); flex: 0 0 auto; }
+  .sheet-head h2 { margin: 0; font-size: calc(var(--u) * 1.15); font-weight: 600; }
+  .x { width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--ctl); color: inherit;
+    font-size: 1.4rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+  .x:hover { background: var(--ctl-hi); }
+  .sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  /* M1 — search-first: a calm search field atop the Apps sheet that live-filters the κ-index. 16px font
+     blocks iOS focus-zoom; ≥48px touch; quiet until focused. */
+  .app-search { display: block; width: 100%; margin: 0 0 var(--g0); padding: 0 var(--g1); min-height: var(--fab);
+    font: inherit; font-size: 16px; color: var(--ink); background: var(--ctl); border: 1px solid var(--line);
+    border-radius: var(--g0); outline: none; -webkit-appearance: none; appearance: none;
+    transition: border-color .18s var(--ease), background .18s var(--ease); }
+  .app-search::placeholder { color: var(--ink-faint); }
+  .app-search:focus { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: var(--ctl-hi); }
+  .app-ask .ic { opacity: .75; }
+
+  /* app drawer — an enclosed list, one crisp line per holo app */
+  .applist { list-style: none; margin: 0; padding: 0; }
+  .applist li { margin: 0; }
+  /* Casa — the promise, then your world grouped (parity with the desktop launcher). */
+  .casa-pulse { display: flex; align-items: center; gap: calc(var(--u) * .5); flex-wrap: wrap; margin: 0 0 calc(var(--u) * 1.1);
+    padding: calc(var(--u) * .7) calc(var(--u) * .85); border: 1px solid var(--line); border-radius: var(--r);
+    background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: calc(var(--u) * .9); color: var(--ink-dim); }
+  .casa-pulse .cp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); flex: 0 0 auto; }
+  .casa-pulse .cp-word { font-weight: 600; color: var(--ink); }
+  .casa-pulse .cp-seal { margin-left: auto; }
+  .group-head { padding: calc(var(--u) * .9) calc(var(--u) * .5) calc(var(--u) * .35); color: var(--ink-faint);
+    font-size: calc(var(--u) * .78); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+  /* Familiar — a quiet first-run band of the brands you know, above your apps. One tap into Hologram.
+     Recedes for good once dismissed. Marks are κ-streamed (holo-mirror), vector-sharp, sealed/offline. */
+  .familiar { margin: 0 0 calc(var(--u) * 1.2); }
+  .familiar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: calc(var(--u) * .55); }
+  .familiar-head span { color: var(--ink-faint); font-size: calc(var(--u) * .82); letter-spacing: .08em; text-transform: uppercase; }
+  .familiar-x { border: 0; background: transparent; color: var(--ink-faint); cursor: pointer; font-size: calc(var(--u) * 1.2); line-height: 1; padding: 0 calc(var(--u) * .3); }
+  .familiar-x:hover { color: var(--ink); }
+  .familiar-row { display: flex; gap: var(--g1); overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--u) * .3); scrollbar-width: none; }
+  .familiar-row::-webkit-scrollbar { display: none; }
+  .fam { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * .45); width: calc(var(--u) * 3.6); text-decoration: none; color: var(--ink-faint); }
+  .fam img { width: calc(var(--u) * 2.9); height: calc(var(--u) * 2.9); border-radius: calc(var(--u) * .72); display: block; box-shadow: 0 1px 4px rgba(0,0,0,.28); transition: transform .12s var(--ease); }
+  .fam:hover img { transform: translateY(-2px); }
+  .fam .fnm { font-size: calc(var(--u) * .82); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Scan the world — the camera membrane (holo-scan). One tap: point at a code → its holospace opens. */
+  .scanrow { display: flex; align-items: center; gap: var(--g1); width: 100%; border: 0; background: transparent; color: var(--ink); cursor: pointer; padding: calc(var(--u) * .7) calc(var(--u) * .3); border-radius: calc(var(--u) * .6); text-align: left; margin-bottom: calc(var(--u) * .4); }
+  .scanrow:hover { background: rgba(127,127,127,.08); }
+  .scanrow .ic { width: calc(var(--u) * 2.2); height: calc(var(--u) * 2.2); border-radius: calc(var(--u) * .6); display: grid; place-items: center; background: linear-gradient(135deg, var(--accent, #5b86ff), #8a4fd6); color: #fff; font-size: calc(var(--u) * 1.2); }
+  .scanrow .tx { display: flex; flex-direction: column; }
+  .scanrow .tx b { font-weight: 600; font-size: calc(var(--u) * 1.02); }
+  .scanrow .tx span { color: var(--ink-faint); font-size: calc(var(--u) * .82); }
+  .app { display: flex; align-items: center; gap: var(--g1); width: 100%; border: 0; background: transparent;
+    color: inherit; font: inherit; cursor: pointer; padding: calc(var(--u) * .7) calc(var(--u) * .5);
+    border-radius: var(--r); text-align: left; min-height: 56px; transition: background .12s; }
+  .app:hover, .app:focus-visible { background: var(--ctl); outline: none; }
+  .app:active { background: var(--ctl-hi); }
+  .app .ic { width: calc(var(--u) * 2.2); height: calc(var(--u) * 2.2); border-radius: calc(var(--u) * .6);
+    flex: 0 0 auto; display: grid; place-items: center; font-weight: 600; font-size: calc(var(--u) * .95);
+    color: #06140f; background: linear-gradient(140deg, var(--accent), var(--accent-2)); overflow: hidden; }
+  .app .ic img { width: 100%; height: 100%; object-fit: cover; }
+  .app .nm { font-size: calc(var(--u) * 1.02); font-weight: 500; }
+  .app .go { margin-left: auto; color: var(--ink-faint); opacity: 0; transition: opacity .12s; }
+  .app:hover .go { opacity: 1; }
+  /* Minimalist-phone app list: pure TEXT, airy, A-Z — no icons or chevrons (reduce visual stimulation). */
+  .applist .app .ic, .applist .app .go { display: none; }
+  .applist .app { padding: calc(var(--u) * .92) calc(var(--u) * .4); }
+  .applist .app .nm { font-size: calc(var(--u) * 1.24); font-weight: 400; letter-spacing: .004em; }
+  .applist .app.app-ask .ic { display: inline-flex; opacity: .7; margin-right: var(--g0); }
+  .alpha-head { padding: calc(var(--u) * 1.1) calc(var(--u) * .4) calc(var(--u) * .3); font-size: calc(var(--u) * .82);
+    font-weight: 600; color: var(--ink-faint); letter-spacing: .09em; }
+  /* A-Z fast-scroll strip on the right edge of the Apps sheet (tap a letter → jump to its section) */
+  .alpha-scrub { position: absolute; right: max(2px, env(safe-area-inset-right)); top: 50%; transform: translateY(-50%);
+    z-index: 3; display: flex; flex-direction: column; align-items: center; padding: 4px 6px; gap: 0;
+    font-size: calc(var(--u) * .72); color: var(--ink-dim); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .alpha-scrub[hidden] { display: none; }
+  .alpha-l { line-height: 1.04; padding: 1px 4px; cursor: pointer; font-weight: 500; }
+  .alpha-l.off { opacity: .26; pointer-events: none; }
+  .alpha-l:active { color: var(--accent); }
+  .drawer-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--u);
+    margin-top: var(--u); padding-top: var(--u); border-top: 1px solid var(--line); flex: 0 0 auto; }
+  .ghost { display: inline-flex; align-items: center; gap: calc(var(--u) * .5); border: 0; background: transparent;
+    color: var(--ink-dim); font: inherit; font-size: calc(var(--u) * .9); cursor: pointer; padding: calc(var(--u) * .5);
+    border-radius: var(--r); min-height: 44px; }
+  .ghost:hover { color: var(--ink); background: var(--ctl); }
+  .ghost svg { width: calc(var(--u) * 1.15); height: calc(var(--u) * 1.15); }
+
+  /* settings — grouped categories matching the OS appearance/focus axes */
+  .grp { padding: var(--u) 0; border-bottom: 1px solid var(--line); }
+  .grp:last-child { border-bottom: 0; }
+  .grp > label { display: block; font-size: calc(var(--u) * .9); color: var(--ink-dim); margin-bottom: calc(var(--u) * .6);
+    text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .seg { display: flex; gap: calc(var(--u) * .4); flex-wrap: wrap; }
+  .seg button { flex: 1 1 auto; min-height: 48px; border: 1px solid var(--line); background: transparent; color: inherit;
+    border-radius: var(--r); cursor: pointer; font: inherit; font-size: calc(var(--u) * .92); display: inline-flex;
+    align-items: center; justify-content: center; gap: calc(var(--u) * .4); transition: background .12s, border-color .12s; }
+  .seg button:hover { background: var(--ctl); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #06140f; border-color: transparent; font-weight: 600; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: var(--u); min-height: 48px; }
+  .row .lab { font-size: calc(var(--u) * .96); }
+  .row .hint { font-size: calc(var(--u) * .9); color: var(--ink-faint); margin-top: 2px; }
+  /* a clean toggle switch */
+  .sw { position: relative; width: 52px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 99px; cursor: pointer;
+    background: var(--ctl-hi); transition: background .18s; }
+  .sw[aria-checked="true"] { background: var(--accent); }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; transition: transform .18s var(--ease); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  .sw[aria-checked="true"]::after { transform: translateX(22px); }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 36px; }
+  .walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: calc(var(--u) * .5); }
+  .walls button { aspect-ratio: 1; border-radius: var(--r); border: 2px solid transparent; cursor: pointer; padding: 0;
+    background-size: cover; background-position: center; }
+  .walls button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .about { font-size: calc(var(--u) * .94); color: var(--ink-dim); line-height: 1.6; }
+
+  /* ── FOCUS TIMER — the gentle question before any app opens ──────────────────────────────────── */
+  .timer { text-align: center; }
+  .timer .orb { width: calc(var(--u) * 3.2); height: calc(var(--u) * 3.2); border-radius: 50%; margin: 0 auto var(--u);
+    display: grid; place-items: center; overflow: hidden;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: #06140f; font-weight: 700; font-size: calc(var(--u) * 1.3); }
+  .timer .orb img { width: 100%; height: 100%; object-fit: cover; }
+  .timer .ask { font-size: calc(var(--u) * 1.15); font-weight: 500; line-height: 1.35; margin: 0 auto var(--g1); max-width: 22ch; }
+  .mins { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * .6); }
+  .mins button { min-height: 60px; border: 1px solid var(--line); background: var(--ctl); color: inherit; border-radius: var(--r);
+    cursor: pointer; font: inherit; font-size: calc(var(--u) * 1.15); font-weight: 600; transition: background .12s, transform .1s; }
+  .mins button:hover { background: var(--ctl-hi); } .mins button:active { transform: scale(.97); }
+  .mins button.none { grid-column: 1 / -1; font-weight: 500; font-size: var(--u); color: var(--ink-dim); background: transparent; }
+  .more { display: none; }
+  .more.on { display: grid; }
+  .expand { display: block; margin: var(--u) auto 0; border: 0; background: transparent; color: var(--ink-faint); cursor: pointer;
+    width: 44px; height: 36px; }
+  .expand svg { width: 24px; height: 24px; transition: transform .2s; }
+  .expand.on svg { transform: rotate(180deg); }
+
+  /* ── Q PROACTIVE + INBOX — Q speaks unbidden, but only when EARNED: one quiet pill at a time (tap → Inbox),
+     never a nag. Letters live in the Inbox in three honest categories (action / update / letter). ───────── */
+  .qpill { position: fixed; z-index: 6; left: 50%; top: max(var(--g1), env(safe-area-inset-top)); transform: translate(-50%, -16px);
+    display: none; align-items: center; gap: calc(var(--u) * .55); max-width: min(92vw, 460px);
+    padding: calc(var(--u) * .5) calc(var(--u) * .55) calc(var(--u) * .5) calc(var(--u) * .85); border-radius: 999px;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    opacity: 0; transition: opacity .3s var(--ease), transform .3s var(--ease); cursor: pointer; }
+  .qpill.on { display: flex; opacity: 1; transform: translate(-50%, 0); }
+  .qpill .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--accent); }
+  .qpill.cat-action .dot { background: #ff9e2c; } .qpill.cat-update .dot { background: #5b8cff; }
+  .qpill .ptext { font-size: calc(var(--u) * .95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qpill .pclose { width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--ink-faint);
+    cursor: pointer; flex: 0 0 auto; display: grid; place-items: center; }
+  .qpill .pclose:hover { background: var(--ctl); color: var(--ink); } .qpill .pclose svg { width: 16px; height: 16px; }
+  /* an unread badge on the Inbox affordance */
+  .badge { display: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #06140f;
+    font-size: calc(var(--u) * .72); font-weight: 700; line-height: 18px; text-align: center; margin-left: calc(var(--u) * .4); }
+  .badge.on { display: inline-block; }
+  /* Inbox list */
+  .inbox-cats { display: flex; gap: calc(var(--u) * .4); margin-bottom: var(--u); flex: 0 0 auto; }
+  .inbox-cats button { flex: 1 1 auto; min-height: 44px; border: 1px solid var(--line); background: transparent; color: var(--ink-dim);
+    border-radius: var(--r); cursor: pointer; font: inherit; font-size: calc(var(--u) * .9); transition: background .12s; }
+  .inbox-cats button:hover { background: var(--ctl); }
+  .inbox-cats button[aria-pressed="true"] { background: var(--accent); color: #06140f; border-color: transparent; font-weight: 600; }
+  .inbox-list { list-style: none; margin: 0; padding: 0; }
+  .inbox-list li { padding: var(--u) calc(var(--u) * .4); border-bottom: 1px solid var(--line); display: flex; gap: var(--u); align-items: flex-start; }
+  .inbox-list li:last-child { border-bottom: 0; }
+  .inbox-list .idot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex: 0 0 auto; background: var(--accent); opacity: .35; }
+  .inbox-list li.unread .idot { opacity: 1; }
+  .inbox-list li.cat-action .idot { background: #ff9e2c; } .inbox-list li.cat-update .idot { background: #5b8cff; }
+  .inbox-list .ititle { font-size: calc(var(--u) * 1.02); font-weight: 600; margin-bottom: 3px; }
+  .inbox-list .ibody { font-size: calc(var(--u) * .92); color: var(--ink-dim); line-height: 1.5; }
+  .inbox-list .iwhen { font-size: calc(var(--u) * .8); color: var(--ink-faint); margin-top: 4px; }
+  .inbox-empty { color: var(--ink-faint); text-align: center; padding: var(--g2) 0; font-size: calc(var(--u) * .95); }
+  .inbox-foot { display: flex; justify-content: flex-end; margin-top: var(--u); flex: 0 0 auto; padding-top: var(--u); border-top: 1px solid var(--line); }
+
+  /* ── AUTHORITY (P5) — Q never performs an irreversible or outward action silently. A confirm card gates
+     the consequential; the prohibited (passwords, payments, trades) Q declines and defers to you. ─────── */
+  .confirm-scrim { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center;
+    padding: var(--g1); background: rgba(4,6,12,.6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    opacity: 0; transition: opacity .2s var(--ease); }
+  .confirm-scrim.on { display: flex; opacity: 1; }
+  .confirm-card { width: min(420px, 100%); background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    border-radius: var(--g1); padding: var(--g1); box-shadow: 0 24px 70px rgba(0,0,0,.5);
+    -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px); animation: rise .26s var(--ease) both; }
+  .confirm-icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; margin-bottom: var(--u);
+    background: rgba(229,72,77,.16); color: #ff6b6b; }
+  .confirm-icon svg { width: 24px; height: 24px; }
+  .confirm-title { font-size: calc(var(--u) * 1.2); font-weight: 600; margin-bottom: calc(var(--u) * .4); }
+  .confirm-body { font-size: calc(var(--u) * .96); color: var(--ink-dim); line-height: 1.5; }
+  .confirm-note { font-size: calc(var(--u) * .88); color: var(--ink-faint); margin-top: calc(var(--u) * .6); }
+  .confirm-actions { display: flex; gap: calc(var(--u) * .5); margin-top: var(--g1); }
+  .confirm-btn { flex: 1 1 auto; min-height: 52px; border-radius: var(--r); border: 1px solid var(--line); cursor: pointer;
+    font: inherit; font-size: var(--u); font-weight: 600; background: var(--ctl); color: var(--ink); transition: background .12s, opacity .12s; }
+  .confirm-btn.ghost { background: transparent; } .confirm-btn.ghost:hover { background: var(--ctl); }
+  .confirm-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #06140f; border-color: transparent; }
+  .confirm-btn.danger { background: #e5484d; color: #fff; border-color: transparent; }
+  .confirm-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── APP OVERLAY — the opened holospace fills the screen; the timer runs over it ──────────────── */
+  #appview { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: none; flex-direction: column;
+    will-change: transform; }
+  #appview.on { display: flex; }
+  /* S2 taste — edge swipe-back: a thin left-edge strip catches the gesture above the app iframe (the iframe
+     would otherwise swallow it); the surface drags away and, past threshold, closes. */
+  .app-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 22px; z-index: 6; touch-action: none;
+    background: transparent; }
+  .appbar { display: flex; align-items: center; gap: var(--u); padding: max(var(--u), env(safe-area-inset-top)) var(--u) var(--u);
+    flex: 0 0 auto; }
+  .appbar .back { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--ctl); color: var(--ink);
+    cursor: pointer; display: grid; place-items: center; } .appbar .back:hover { background: var(--ctl-hi); }
+  .appbar .title { font-size: var(--u); font-weight: 600; }
+  .appbar .left { font-size: calc(var(--u) * .9); color: var(--ink-dim); margin-left: auto; font-variant-numeric: tabular-nums;
+    display: inline-flex; align-items: center; gap: calc(var(--u) * .4); }
+  .appbar .left.warn { color: #ffcf8f; }
+  .appbar .left svg { width: calc(var(--u) * 1.05); height: calc(var(--u) * 1.05); }
+  /* S1 — the holospace STACK: iframes stack here, the top rendered, the rest parked (not composited). */
+  .app-frames { position: relative; flex: 1 1 auto; width: 100%; min-height: 0; }
+  .app-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+  .app-frame.parked { content-visibility: hidden; pointer-events: none; }   /* L-TEARDOWN: beneath the top = not rendered */
+  .nudge { position: fixed; left: 50%; bottom: calc(var(--g2) + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    z-index: 22; max-width: 90vw; opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: var(--g1);
+    padding: var(--u) var(--g1); box-shadow: 0 16px 50px rgba(0,0,0,.5); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+    display: flex; align-items: center; gap: var(--u); font-size: calc(var(--u) * .95); }
+  .nudge.on { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .nudge button { border: 0; background: var(--accent); color: #06140f; font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: var(--r); padding: calc(var(--u) * .5) var(--u); min-height: 40px; }
+  .nudge .secondary { background: var(--ctl); color: var(--ink); }
+
+  /* ── DESKTOP (≥1024px) — the same calm home, sized for a large screen ────────────────────────────
+     The whole surface is a self-similar golden composition driven by ONE unit (--u), capped at 20px so it
+     stays phone-right. On a wide screen that leaves the clock small and the space empty (reads as a blown-up
+     phone). Here we (1) raise --u so the entire composition — clock, time, greeting, controls — scales up as
+     one, and (2) open the app drawer as a WIDE multi-column grid instead of a narrow phone bottom-sheet.
+     Additive + gated at ≥1024px, so phone/tablet and the boot surface are byte-for-byte unchanged. */
+  @media (min-width: 1024px) {
+    :root { --u: clamp(23px, 2.5vmin, 28px); }
+    .sheet { width: min(1120px, 92vw); }
+    .applist { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      column-gap: var(--g1); row-gap: calc(var(--u) * .2); }
+  }
+</style>
+</head>
+<body>
+<div class="wall"></div>
+<div class="photo" id="photo"></div>
+<div class="scrim"></div>
+
+<main>
+  <div class="clock">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="ring-prog" id="arc-prog" cx="50" cy="50" r="46"/>
+    </svg>
+    <div class="face">
+      <div class="time" id="time"></div>
+      <div class="date" id="date"></div>
+    </div>
+  </div>
+  <p class="greeting" id="greeting"></p>
+  <!-- Favourites — the minimalist-phone calm list; tap a name to open it (session timer honoured) -->
+  <nav class="favs" id="favs" hidden aria-label="Favourites"></nav>
+</main>
+
+<!-- corner furniture -->
+<button class="fab corner" id="menu" aria-label="Open apps" title="Apps">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</button>
+<button class="fab corner" id="appear" aria-label="Appearance — Dark, Light or Immersive" title="Appearance"></button>
+<button class="fab corner" id="fullscreen" aria-label="Toggle full screen" title="Full screen"></button>
+
+<!-- Q — the living assistant: the desktop's icosahedron-wireframe orb in the brand spectrum.
+     The SVG is the no-WebGL floor (a living, rotating spectrum wireframe sphere); the canvas paints the
+     real desktop orb over it when WebGL is up. -->
+<button class="corner" id="qorb" aria-label="Ask Q" title="Q">
+  <svg class="q-wire" viewBox="0 0 64 64" aria-hidden="true">
+    <defs>
+      <linearGradient id="qwireg" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#ff3b6b"/><stop offset=".16" stop-color="#ff9e2c"/>
+        <stop offset=".32" stop-color="#ffe24a"/><stop offset=".48" stop-color="#46e08a"/>
+        <stop offset=".64" stop-color="#2bd4ff"/><stop offset=".80" stop-color="#5b8cff"/>
+        <stop offset=".92" stop-color="#c77bff"/><stop offset="1" stop-color="#ff3b6b"/>
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke="url(#qwireg)" stroke-width="1.3" stroke-linecap="round">
+      <circle cx="32" cy="32" r="29"/>
+      <line x1="32" y1="3" x2="32" y2="61"/>
+      <line x1="3" y1="32" x2="61" y2="32" opacity=".65"/>
+      <ellipse cx="32" cy="32" rx="29" ry="11" opacity=".7"/>
+      <ellipse cx="32" cy="32" rx="29" ry="21" opacity=".5"/>
+      <ellipse cx="32" cy="32" ry="29" rx="11"><animate attributeName="rx" values="29;2;29" dur="6s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="32" cy="32" ry="29" rx="21"><animate attributeName="rx" values="21;29;2;21" dur="6s" begin="-2s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="32" cy="32" ry="29" rx="2"><animate attributeName="rx" values="2;29;2" dur="6s" begin="-4s" repeatCount="indefinite"/></ellipse>
+    </g>
+  </svg>
+  <canvas class="q-canvas" id="qcanvas"></canvas>
+</button>
+
+<!-- Q's one quiet proactive pill — appears only when Q has something earned to say; tap → Inbox -->
+<div class="qpill" id="qpill" role="button" tabindex="0" aria-label="Open Q's inbox">
+  <span class="dot"></span><span class="ptext" id="qpill-text"></span>
+  <button class="pclose" id="qpill-x" aria-label="Dismiss"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
+<!-- sheets -->
+<div class="scrimsheet" id="scrim"></div>
+
+<aside class="sheet" id="drawer" role="dialog" aria-modal="true" aria-label="Apps">
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>Apps</h2><button class="x" data-close aria-label="Close">×</button></div>
+  <div class="sheet-body">
+    <div class="casa-pulse" id="casa-pulse"><span class="cp-dot"></span><span class="cp-word">Everything’s yours</span><span class="cp-count" id="cp-count"></span><span class="cp-seal">✓ untouched</span></div>
+    <div class="familiar" id="familiar" hidden>
+      <div class="familiar-head"><span>Familiar</span><button class="familiar-x" data-fam-close aria-label="Hide familiar">×</button></div>
+      <div class="familiar-row" id="familiar-row"></div>
+    </div>
+    <input class="app-search" id="app-search" type="text" inputmode="search" enterkeyhint="search" placeholder="Search apps…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search apps" />
+    <button class="scanrow" id="scanrow" type="button"><span class="ic">◎</span><span class="tx"><b>Scan the world</b><span>Point your camera at a code → open it</span></span></button>
+    <ul class="applist" id="applist"></ul>
+  </div>
+  <div class="alpha-scrub" id="alpha-scrub" hidden aria-hidden="true"></div>
+  <div class="drawer-foot">
+    <button class="ghost" id="open-settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4 15a1.6 1.6 0 0 0-1.5-1H2a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4 8.6a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1h.1a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg> Settings</button>
+    <button class="ghost" id="open-inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg> Inbox<span class="badge" id="inbox-badge"></span></button>
+  </div>
+</aside>
+
+<aside class="sheet" id="settings" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>Settings</h2><button class="x" data-close aria-label="Close">×</button></div>
+  <div class="sheet-body">
+    <div class="grp">
+      <label>Appearance</label>
+      <div class="seg" id="set-mode">
+        <button data-mode="dark">🌙 Dark</button>
+        <button data-mode="light">☀️ Light</button>
+        <button data-mode="immersive">🏞️ Immersive</button>
+      </div>
+    </div>
+    <div class="grp" id="grp-wall" hidden>
+      <label>Immersive wallpaper</label>
+      <div class="walls" id="walls"></div>
+    </div>
+    <div class="grp">
+      <label>Focus</label>
+      <div class="row">
+        <div><div class="lab">Ask before opening an app</div><div class="hint">A gentle check on how long you mean to stay.</div></div>
+        <button class="sw" id="sw-focus" role="switch" aria-checked="true" aria-label="Ask before opening an app"></button>
+      </div>
+      <div class="row" style="margin-top:calc(var(--u)*.6)">
+        <div class="lab">Default time</div>
+        <span class="hint" id="def-mins" style="font-size:var(--u);color:var(--ink)"></span>
+      </div>
+      <div class="seg" id="set-default" style="margin-top:calc(var(--u)*.4)">
+        <button data-min="5">5</button><button data-min="10">10</button>
+        <button data-min="15">15</button><button data-min="30">30</button>
+      </div>
+    </div>
+    <div class="grp">
+      <label>Voice</label>
+      <div class="row">
+        <div><div class="lab">Listen for “Q”</div><div class="hint">Hands-free — say “Q” to wake the assistant.</div></div>
+        <button class="sw" id="sw-wake" role="switch" aria-checked="false" aria-label="Listen for Q"></button>
+      </div>
+    </div>
+    <div class="grp">
+      <label>Text size</label>
+      <input type="range" id="set-text" min="0.85" max="1.4" step="0.05" />
+      <div class="hint" style="font-size:var(--u);color:var(--ink-dim)">The quick brown fox jumps over the lazy dog.</div>
+    </div>
+    <div class="grp">
+      <label>About</label>
+      <div class="about">Hologram OS — one quiet, self-checking home. Apps are verified apps; nothing here phones home.</div>
+    </div>
+  </div>
+</aside>
+
+<aside class="sheet" id="timer" role="dialog" aria-modal="true" aria-label="Focus timer">
+  <div class="grab"></div>
+  <div class="timer">
+    <div class="orb" id="timer-orb"></div>
+    <p class="ask" id="timer-ask">How much time do you want to spend now?</p>
+    <div class="mins" id="mins-quick">
+      <button data-min="1">1 min</button><button data-min="5">5 min</button>
+      <button data-min="10">10 min</button><button data-min="15">15 min</button>
+    </div>
+    <div class="mins more" id="mins-more">
+      <button data-min="30">30 min</button><button data-min="60">60 min</button>
+      <button data-min="0" class="none">No limit — just open it</button>
+    </div>
+    <button class="expand" id="timer-expand" aria-label="More options">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+  </div>
+</aside>
+
+<aside class="sheet" id="qsheet" role="dialog" aria-modal="true" aria-label="Q">
+  <div class="grab"></div>
+  <div class="q-head">
+    <span class="q-mini"><span class="q-fallback"></span></span>
+    <div><h2 style="margin:0;font-size:calc(var(--u)*1.15)">Q</h2><div class="hint" style="font-size:calc(var(--u)*.9);color:var(--ink-faint)">Your on-device assistant</div></div>
+    <button class="x" data-close aria-label="Close" style="margin-left:auto">×</button>
+  </div>
+  <div class="q-ask">
+    <input id="q-input" type="text" placeholder="Ask anything…" autocomplete="off" />
+    <button id="q-send" aria-label="Ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="q-chips" id="q-chips"></div>
+  <div class="q-reply" id="q-reply"></div>
+</aside>
+
+<aside class="sheet" id="inbox" role="dialog" aria-modal="true" aria-label="Inbox">
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>Inbox</h2><button class="x" data-close aria-label="Close">×</button></div>
+  <div class="inbox-cats" id="inbox-cats">
+    <button data-cat="all" aria-pressed="true">All</button>
+    <button data-cat="letter">Letters</button>
+    <button data-cat="update">Updates</button>
+    <button data-cat="action">Actions</button>
+  </div>
+  <div class="sheet-body">
+    <ul class="inbox-list" id="inbox-list"></ul>
+    <div class="inbox-empty" id="inbox-empty" hidden>Nothing here yet. Q will write when there's something worth your while.</div>
+  </div>
+  <div class="inbox-foot"><button class="ghost" id="inbox-clear">Clear all</button></div>
+</aside>
+
+<!-- opened app fills the screen; the focus timer runs in its bar -->
+<section id="appview" aria-label="App">
+  <div class="appbar">
+    <button class="back" id="app-back" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="app-title"></span>
+    <span class="left" id="app-left"></span>
+  </div>
+  <div class="app-frames" id="app-frames"></div>
+  <div class="app-edge" id="app-edge" aria-hidden="true"></div>
+</section>
+
+<div class="nudge" id="nudge">
+  <span id="nudge-msg"></span>
+  <button class="secondary" id="nudge-stay">Stay</button>
+  <button id="nudge-done">Done</button>
+</div>
+
+<!-- Q HERO — the full-screen, voice-first Q. The orb is the whole interface; tap it to talk, swipe down to leave. -->
+<section id="qhero" aria-label="Q" aria-hidden="true">
+  <canvas id="qhero-canvas" aria-label="Q"></canvas>
+  <span class="qhero-fallback" aria-hidden="true"></span>
+  <button class="fab qhero-x" id="qhero-x" aria-label="Close Q" title="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div class="qhero-stage">
+    <div class="qhero-status" id="qhero-status">Listening</div>
+    <div class="qhero-text" id="qhero-text"></div>
+  </div>
+  <button class="qhero-hint" id="qhero-hint" type="button">type instead</button>
+  <!-- AUTHORITY confirm card (P5) — gates any irreversible/outward action; rides above the hero (z 60) -->
+  <div class="confirm-scrim" id="confirm" aria-hidden="true">
+    <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="confirm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+      <div class="confirm-title" id="confirm-title"></div>
+      <div class="confirm-body" id="confirm-body"></div>
+      <div class="confirm-note" id="confirm-note" hidden></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn ghost" id="confirm-cancel">Not now</button>
+        <button class="confirm-btn danger" id="confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <!-- compose-on-the-fly — an intent mounts a κ surface (app/holospace) RIGHT HERE; the orb shrinks to a
+       living corner presence, and "back"/dismiss dissolves it. No pre-built dashboards. -->
+  <div class="qhero-surface" id="qhero-surface" aria-hidden="true">
+    <div class="qhero-surfbar">
+      <button class="qhero-surfback" id="qhero-surfback" aria-label="Back to Q" title="Back to Q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="qhero-surftitle" id="qhero-surftitle"></span>
+    </div>
+    <iframe id="qhero-frame" title="Q surface" referrerpolicy="no-referrer"></iframe>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+
+  // ── Calm mode (grayscale) — persisted, Q-toggleable, auto-on for lite / data-saver phones ──────────────
+  var CALM_KEY = "holo.calm.v1";
+  function calmGet() { try { return localStorage.getItem(CALM_KEY) === "on"; } catch (e) { return root.getAttribute("data-holo-calm") === "on"; } }
+  // Drive the veil's opacity INLINE — the CSS transition still animates it, and an inline value can't be
+  // out-specificity'd by the shell's other rules (the attribute rule alone proved flaky against them).
+  function calmApplyVeil(on) { try { var v = document.querySelector(".holo-calm-veil"); if (v) v.style.display = on ? "block" : "none"; } catch (e) {} }
+  function calmSet(on) { on = !!on; try { localStorage.setItem(CALM_KEY, on ? "on" : "off"); } catch (e) {} root.setAttribute("data-holo-calm", on ? "on" : "off"); calmApplyVeil(on); return on; }
+  (function initCalm() {
+    var saved = null; try { saved = localStorage.getItem(CALM_KEY); } catch (e) {}
+    var auto = false; try { auto = matchMedia("(pointer:coarse)").matches && !!(navigator.connection && navigator.connection.saveData === true); } catch (e) {}
+    calmSet(saved ? saved === "on" : auto);
+    // the veil is at the end of <body>; re-apply once it exists so the initial state paints correctly
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { calmApplyVeil(calmGet()); });
+    else calmApplyVeil(calmGet());
+  })();
+  // one small handle the phone (and Q) drive: window.HoloCalm.toggle() / .set(bool) / .get()
+  window.HoloCalm = { get: calmGet, set: calmSet, toggle: function () { return calmSet(!calmGet()); } };
+
+  // ── BOOT + SIGN-IN GATE — bring back the arrival ceremony + login before the calm home. The sovereign
+  //    signIn() renders the plymouth BOOT SPLASH + the "Sign in / Continue as guest" door and resolves once the
+  //    operator enters; then it defogs onto the calm home (already painted behind the glass). SKIPPED when a
+  //    session already exists → the returning visitor lands on the calm home instantly (lean). Fail-open: any
+  //    trouble loading the sign-in module just reveals the calm home. ?nogate / ?desktop opts out. ──────────────
+  (function bootGate() {
+    // Drive the cover via a SYNCHRONOUS <html> attribute — set before #boot-cover (end of <body>) is even parsed,
+    // so a returning visitor NEVER flashes the cover, and a first visitor is covered from the very first paint.
+    var off = function () { try { root.setAttribute("data-boot-gate", "off"); } catch (e) {} };
+    var params, inSession = false;
+    try { params = new URLSearchParams(location.search); } catch (e) { params = { has: function () { return false; } }; }
+    try { inSession = !!sessionStorage.getItem("holo.identity"); } catch (e) {}
+    if (inSession || params.has("nogate") || params.has("desktop")) { off(); return; }   // already in → calm home now
+    try { root.setAttribute("data-boot-gate", "on"); } catch (e) {}   // cover the calm home until the ceremony/login takes over
+    try {
+      import("../../../usr/lib/holo/holo-signin.mjs").then(function (m) {
+        if (!m || !m.signIn) { off(); return; }
+        var p; try { p = m.signIn({ app: "home", appName: "Hologram", nextPath: location.pathname }); } catch (e) { off(); return; }
+        off();   // signIn mounts its own overlay synchronously — its glass now covers, drop ours
+        p.then(function () { try { var t = JSON.parse(sessionStorage.getItem("holo.identity") || "null"); if (t && t.label) { NAME = t.label; renderGreeting(); } } catch (e) {} }).catch(function () {});
+      }).catch(function () { off(); });   // no sign-in module → just show the calm home
+    } catch (e) { off(); }
+  })();
+
+  // ── Appearance (Dark · Light · Immersive) ───────────────────────────────────────────────────
+  // Mirrors login's standalone logic and the canonical holo.theme.v1 the boot bootstrap reads, so
+  // the choice carries across the whole OS. When the theme engine is present we also drive it live.
+  var TKEY = "holo.theme.v1", ORDER = ["dark", "light", "immersive"];
+  // sharp, single-stroke line icons — the same vocabulary as the hamburger (no emoji, no colour)
+  var ICONS = {
+    dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.4A8 8 0 1 1 9.6 4 6.3 6.3 0 0 0 20 14.4z"/></svg>',
+    light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.4v2.3M12 19.3v2.3M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>',
+    immersive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.6"/><circle cx="8.6" cy="10" r="1.5"/><path d="M3.5 16.5 8 12l3 3 4-4 5.5 5.5"/></svg>'
+  };
+  var WALLPAPERS = [
+    { id: "mountain-lake", url: "../../../usr/share/wallpapers/mountain-lake.jpg" },
+    { id: "aurora",        url: "../../../usr/share/wallpapers/aurora.jpg" },
+    { id: "galaxy",        url: "../../../usr/share/wallpapers/galaxy.jpg" },
+    { id: "earth-nasa",    url: "../../../usr/share/wallpapers/earth-nasa.jpg" },
+    { id: "lioness",       url: "../../../usr/share/wallpapers/lioness.jpg" },
+    { id: "uor-native",    url: "../../../usr/share/wallpapers/uor-native.jpg" }
+  ];
+  // Milky Way (Tiago Ferreira, Unsplash) — the shared OS default immersive backdrop (matches login + messenger).
+  // Device-tiered like the OS `uor` default: a phone/1440p panel takes the 2560 rendition (≈1MB, instant + offline
+  // via the same-origin κ store); a 4K+/retina panel takes the 24MP master. The super-res lens projects either at
+  // the true device-pixel grid, so both read equally sharp.
+  var DEFAULT_WALL = "../../../usr/share/wallpapers/" +
+    (((Math.max(screen.width || 0, screen.height || 0) * (window.devicePixelRatio || 1)) > 2560) ? "galaxy-8k.jpg" : "galaxy-2560.jpg");
+
+  // Default appearance is Dark (the clean reference look) until the operator chooses otherwise.
+  function readTheme() { try { var s = JSON.parse(localStorage.getItem(TKEY) || "null"); return (s && typeof s === "object") ? s : { palette: "dark", immersive: false }; } catch (e) { return { palette: "dark", immersive: false }; } }
+  function writeTheme(s) { try { localStorage.setItem(TKEY, JSON.stringify(s)); } catch (e) {} }
+  function curMode(s) { return s.immersive ? "immersive" : (s.palette === "light" ? "light" : "dark"); }
+
+  function wallUrl(w) {
+    if (!w) return DEFAULT_WALL;
+    var m = String(w).match(/^(sha256|blake3|sha512):([0-9a-f]+)$/i);
+    return m ? "/.holo/" + m[1].toLowerCase() + "/" + m[2] : String(w);
+  }
+
+  function applyMode(mode) {
+    var s = readTheme();
+    if (mode === "light") { s.palette = "light"; s.immersive = false; }
+    else if (mode === "dark") { s.palette = "dark"; s.immersive = false; }
+    else { s.immersive = true; if (!s.palette || s.palette === "auto") s.palette = "dark"; }
+    if (s.immersive && !s.wallpaper) s.wallpaper = DEFAULT_WALL;   // prepopulate immersive with a photo
+    writeTheme(s);
+    paintTheme(s);
+    // Drive the live OS engine too, if it is on this surface.
+    try { if (window.HoloTheme) { window.HoloTheme.setMode(mode); if (s.wallpaper && mode === "immersive") window.HoloTheme.setWallpaper(s.wallpaper); } } catch (e) {}
+    reflectToggle(mode);
+  }
+  function paintTheme(s) {
+    var pal = (s.palette && s.palette !== "auto") ? s.palette : "dark";   // default Dark
+    root.setAttribute("data-holo-palette", pal); root.style.setProperty("color-scheme", pal);
+    root.setAttribute("data-holo-immersive", s.immersive ? "on" : "off");
+    var url = wallUrl(s.wallpaper);
+    if (s.immersive && url) $("photo").style.backgroundImage = 'url("' + url + '")';
+  }
+  function reflectToggle(mode) {
+    var b = $("appear"); if (b) { b.innerHTML = ICONS[mode] || ICONS.dark; b.title = "Appearance — " + mode.charAt(0).toUpperCase() + mode.slice(1); }
+    syncSettings();
+  }
+  paintTheme(readTheme());
+  reflectToggle(curMode(readTheme()));
+  $("appear").addEventListener("click", function () {
+    var now = curMode(readTheme());
+    applyMode(ORDER[(ORDER.indexOf(now) + 1) % ORDER.length]);
+  });
+
+  // ── Full-screen toggle (top-right) — quiet line glyph that mirrors the real fullscreen state ─────
+  // Same single-stroke vocabulary as the hamburger/appearance icons: arrows OUT to enter, IN to exit.
+  // Hidden entirely where the Fullscreen API is unavailable (e.g. iOS Safari) so it's never a dead control.
+  (function () {
+    var btn = $("fullscreen"); if (!btn) return;
+    var rde = document.documentElement;
+    var request = rde.requestFullscreen || rde.webkitRequestFullscreen || rde.msRequestFullscreen;
+    if (!request) { btn.remove(); return; }   // no API → no control
+    var exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+    var FS_OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+    var FS_IN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3a1 1 0 0 0 1-1V4M16 4v3a1 1 0 0 0 1 1h3M4 16h3a1 1 0 0 1 1 1v3M16 20v-3a1 1 0 0 1 1-1h3"/></svg>';
+    function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement); }
+    function reflect() { btn.innerHTML = isFs() ? FS_IN : FS_OUT; btn.title = isFs() ? "Exit full screen" : "Full screen"; }
+    btn.addEventListener("click", function () {
+      try { if (isFs()) { exit && exit.call(document); } else { request.call(rde); } } catch (e) {}
+    });
+    document.addEventListener("fullscreenchange", reflect);
+    document.addEventListener("webkitfullscreenchange", reflect);
+    reflect();
+  })();
+
+  // ── Clock — time + the day-progress arc ───────────────────────────────────────────────────────
+  var prog = $("arc-prog"), R = 46, C = 2 * Math.PI * R;
+  prog.style.strokeDasharray = C;
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+
+  // the operator's name for the greeting — from the signed session token (holo-identity openSession),
+  // resolved post-login; empty for guests / standalone. The async roster fills it in if the token lacks it.
+  var NAME = "";
+  (function resolveName() {
+    try { var t = JSON.parse(sessionStorage.getItem("holo.identity") || "null"); if (t && t.label) NAME = t.label; } catch (e) {}
+    if (!NAME) try {
+      var op = new URLSearchParams(location.search).get("operator");
+      if (op) import("../../../_shared/holo-identity.mjs").then(function (m) { return m.roster && m.roster(); }).then(function (rs) {
+        var u = (rs || []).filter(function (r) { return r.kappa === op; })[0]; if (u && u.label) { NAME = u.label; renderGreeting(); }
+      }).catch(function () {});
+    } catch (e) {}
+  })();
+  function renderGreeting() {
+    var h = new Date().getHours();
+    var g = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    var clean = (NAME && NAME.toLowerCase() !== "guest") ? NAME : "";
+    $("greeting").innerHTML = g + (clean ? ", <b>" + esc(clean) + "</b>" : "");
+  }
+  function tick() {
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    $("time").textContent = h12 + ":" + pad(m);                                 // clean H:MM, no meridiem clutter
+    $("date").textContent = now.toLocaleDateString(undefined, { month: "short" }) + " " + now.getDate();   // "Jun 16" (month then day)
+    var start = new Date(now); start.setHours(0, 0, 0, 0);
+    prog.style.strokeDashoffset = C * (1 - (now - start) / 86400000);           // arc = share of today elapsed
+    renderGreeting();
+  }
+  tick(); setInterval(tick, 1000 * 15);
+
+  // ── Q LIVING SIGNALS — shared by the corner orb AND the full-screen hero ─────────────────────────
+  // Q_VOICE is the live voice meter the hero fills from the microphone; both orbs read it, so Q visibly
+  // answers your voice. The signals are the desktop's vocabulary, self-contained so Q reads as alive and
+  // conscious even before the on-device brain is up.
+  var Q_VOICE = { level: 0, bass: 0, mid: 0, treble: 0, onset: 0, state: "idle", energy: 1, armed: false };
+  var cornerOrb = null;                                                          // the corner orb instance (paused while the hero is up)
+  function loadThree() {
+    return new Promise(function (res) {
+      if (window.THREE) return res(true);
+      var s = document.createElement("script"); s.src = "../../../_shared/voice/lib/three.min.js";
+      s.onload = function () { res(!!window.THREE); }; s.onerror = function () { res(false); };
+      (document.head || document.documentElement).appendChild(s);
+    });
+  }
+  // level — an ever-present breath + a slow ~13s "thinking" swell, with the live mic riding on top while Q
+  // listens (so the orb breathes with your voice). color — circadian warmth/dim + an attentive teal that
+  // brightens while Q is listening/thinking/speaking.
+  function liveLevel() {
+    var t = performance.now();
+    var breath = 0.06 * (0.6 + 0.4 * Math.sin(t / 700));
+    var think = 0.12 * Math.max(0, Math.sin(t / 13000 * Math.PI * 2 - 1.1));
+    var voice = Q_VOICE.level || 0;
+    try { var v = window.HoloVoice; if (v && typeof v.level === "number") voice = Math.max(voice, v.level); else if (window.Q && typeof window.Q.level === "number") voice = Math.max(voice, window.Q.level); } catch (e) {}
+    var st = Q_VOICE.state, active = (st === "listening" || st === "thinking" || st === "speaking" || st === "welcome");
+    var lvl = Math.min(1.4, breath + think * 0.6 + voice);
+    var energy = active ? 1 : (0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t / 5200)));
+    return { level: lvl, energy: energy, state: active ? st : (think > 0.05 ? "thinking" : "idle"),
+      bass: Q_VOICE.bass, mid: Math.max(breath * 0.6, Q_VOICE.mid), treble: Q_VOICE.treble, onset: Q_VOICE.onset, bright: think };
+  }
+  function liveColor() {
+    var t = performance.now(), hr = 12; try { var d = new Date(); hr = d.getHours() + d.getMinutes() / 60; } catch (e) {}
+    var night = (1 + Math.cos((hr / 24) * 2 * Math.PI)) / 2;                    // 1 at midnight, 0 at noon
+    var listening = (Q_VOICE.state === "listening");
+    var attn = (listening ? 0.16 : (Q_VOICE.armed ? 0.085 : 0.03)) + 0.03 * Math.sin(t / 1500);   // a faint steady teal when the wake word is armed
+    return { warm: night * 0.7, dim: night * 0.4, wake: Math.max(0, attn) };
+  }
+  // ── Q's MIND — the conversational brain behind both the hero and the text panel ────────────────────
+  // Preference order: (1) the live OS mux on this surface (window.HoloVoice.ask / window.Q) when Q is
+  // already running in the OS; (2) Q's OWN brain via the REAL mux faculties (holo-q-route → Mixture-of-
+  // Specialists: the coder for code, the text model otherwise, the coder silently upgrading in once loaded),
+  // STREAMED token-by-token and context-aware via a short rolling history; (3) the single text brain as a
+  // deeper floor; (4) the shell parent; (5) an honest "not awake yet". qBrain(text,{onDelta,signal})→Promise<string>.
+  var Q_SYS = "You are Q, the on-device assistant for Hologram OS. You run entirely on this device — private, no servers. Answer in a warm, concise, spoken style: a sentence or two, plain prose, no markdown or lists unless asked. If you don't know, say so plainly.";
+  var qHistory = [];                                                            // [{role,content}] rolling conversation
+  var qLLM = null, qLLMTried = false, qRouter = null, qRouterTried = false;
+  function ensureRouter() {                                                     // route through the real mux faculties
+    if (qRouterTried) return Promise.resolve(qRouter);
+    qRouterTried = true;
+    return import("../../../_shared/voice/holo-q-route.mjs").then(function (m) { qRouter = m.createQRouter({}); return qRouter; })
+      .catch(function () { qRouter = null; return null; });
+  }
+  function ensureLLM() {                                                        // the single-text-brain floor (if the mux can't load)
+    if (qLLMTried) return Promise.resolve(qLLM);
+    qLLMTried = true;
+    return import("../../../_shared/voice/holo-voice-llm.mjs").then(function (m) {
+      // WASM, NOT WebGPU: the q8 decoder hits an ORT WebGPU kernel bug on this stack (verified gibberish) → WASM is correct.
+      var llm = m.createLLM({ wasm: { model: "onnx-community/Qwen2.5-0.5B-Instruct", dtype: "q8" }, wasmFallback: { model: "onnx-community/Qwen2.5-0.5B-Instruct", dtype: "q8" }, preferWebGPU: false, maxTokens: 128 });
+      return llm.load().then(function () { qLLM = llm; return llm; });
+    }).catch(function () { qLLM = null; return null; });
+  }
+  function fallbackLLM(text, onDelta, o, convo) {
+    return ensureLLM().then(function (llm) {
+      if (!llm) {
+        if (window.parent && window.parent !== window) { try { window.parent.postMessage({ type: "holo-q-ask", text: text }, "*"); } catch (e) {} return "Sent to Q."; }
+        return "I come online with the OS — ask me again once I'm awake.";
+      }
+      var msgs = [{ role: "system", content: Q_SYS }].concat(convo);
+      var it = llm.generate(msgs, { maxTokens: 128, signal: o.signal }), acc = "";
+      function step() { return it.next().then(function (res) { if (res && !res.done) { acc += res.value; if (onDelta) onDelta(acc.trim()); return step(); } return acc.trim() || "…"; }); }
+      return step().catch(function () { return acc.trim() || "I couldn't answer that just now."; });
+    });
+  }
+  function qBrain(text, o) {
+    o = o || {}; text = (text || "").trim(); if (!text) return Promise.resolve("");
+    var onDelta = typeof o.onDelta === "function" ? o.onDelta : null;
+    // (1) the live OS mux on this surface
+    var brain = (window.HoloVoice && window.HoloVoice.ask) || (window.Q && (window.Q.ask || window.Q));
+    if (typeof brain === "function") {
+      return Promise.resolve(brain.call(window.HoloVoice || window.Q || window, text))
+        .then(function (r) { var s = (r && (r.text || r.answer)) || (typeof r === "string" ? r : "Done."); if (onDelta) onDelta(s); return s; })
+        .catch(function () { return "I couldn't answer that just now."; });
+    }
+    // (2) Q's own brain via the mux faculties — the router injects a faculty-appropriate system prompt, so
+    //     we pass just the conversation (history + this turn).
+    var convo = qHistory.slice(-8).concat([{ role: "user", content: text }]);
+    function remember(reply) { if (reply) { qHistory.push({ role: "user", content: text }); qHistory.push({ role: "assistant", content: reply }); if (qHistory.length > 16) qHistory = qHistory.slice(-16); } return reply || "…"; }
+    return ensureRouter().then(function (router) {
+      if (!router) return fallbackLLM(text, onDelta, o, convo).then(remember);
+      return router.ask(text, { messages: convo, onDelta: onDelta, signal: o.signal })
+        .then(function (r) { var reply = (r && r.text) || ""; if (!reply) return fallbackLLM(text, onDelta, o, convo).then(remember); return remember(reply); })
+        .catch(function () { return fallbackLLM(text, onDelta, o, convo).then(remember); });
+    });
+  }
+
+  // ── Q orb (corner) — the desktop's living form on the WebGL substrate; degrades to the CSS disc. ───
+  // MOBILE-LEAN (HOLO-PHONE): on phones/data-saver, DON'T eager-load Three.js + the voice-orb module at boot
+  // just to upgrade the corner wireframe — the animated SVG spectrum sphere (the fallback floor) is already
+  // beautiful and costs zero JS. Keeps the calm home's boot lean so it's fit to be the default phone home.
+  // Device-class truth: userAgentData.mobile is authoritative on Chromium — a touchscreen DESKTOP is
+  // coarse-pointer yet mobile:false, so trust it exclusively when present (only Safari/Firefox use the
+  // coarse+viewport fallback). data-saver stays an independent lean trigger — a metered desktop wants lean too.
+  var _homeLeanMobile = (function () { try {
+    var uad = (typeof navigator !== "undefined") ? navigator.userAgentData : null;
+    var dev = uad ? !!uad.mobile : (matchMedia("(pointer:coarse)").matches && Math.min(innerWidth, innerHeight) <= 700);
+    return dev || (typeof navigator !== "undefined" && navigator.connection && navigator.connection.saveData === true);
+  } catch (e) { return false; } })();
+  (function bootOrb() {
+    if (_homeLeanMobile) return;   // keep the SVG spectrum-disc; no Three.js on the phone home boot
+    var canvas = $("qcanvas"); if (!canvas) return;
+    loadThree().then(function (ok) {
+      if (!ok) return;                                                          // no THREE → keep the spectrum-disc fallback
+      import("../../../_shared/voice/holo-voice-orb.mjs").then(function (m) {
+        try {
+          if (m.orbSupported && !m.orbSupported()) return;                      // no WebGL → fallback stays
+          cornerOrb = m.createOrb(canvas, { detail: 8, level: liveLevel, color: liveColor,   // detail 8 = the reference wireframe density …
+            maxPixelRatio: 3, minPixelRatio: 2 });                                             // … supersampled (≥2×, up to 3× on Hi-DPI) so every edge is razor-sharp on ANY device
+          cornerOrb.start(); $("qorb").classList.add("live");
+          window.addEventListener("resize", function () { try { cornerOrb.resize(); } catch (e) {} });
+        } catch (e) {}
+      }).catch(function () {});
+    });
+  })();
+
+  // ── Q HERO — tap the orb and Q fills the screen: one large living orb, voice-first, everything else
+  //    gone. Native WebGPU when the phone has it (high-res raymarched orb), WebGL otherwise, the CSS disc
+  //    as the floor. Speak → your words surface as intent → Q answers aloud. Star-Trek-clean: the orb is
+  //    the whole interface. (Complexity abstracted away — one tap in, swipe down out.) ─────────────────
+  var Hero = (function () {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var el = null, orb = null, mounted = false, rec = null, listening = false, mic = {}, prevEnergy = 0, micRaf = 0;
+    function $h(id) { return document.getElementById(id); }
+    function setStatus(s) { var n = $h("qhero-status"); if (n) n.textContent = s; }
+    function setText(s) { var n = $h("qhero-text"); if (n) n.textContent = s; }
+
+    // ── compose-on-the-fly: resolve an utterance to a κ app and mount it INTO the hero ──────────────
+    function appCatalog() { try { return (typeof apps !== "undefined" && apps && apps.length) ? apps : CURATED; } catch (e) { return []; } }
+    var DISMISS = /\b(back|dismiss|close|done|home|exit|go back|never mind|nevermind|return|cancel)\b/i;
+    function resolveCompose(text) {
+      var t = (text || "").toLowerCase().replace(/[.?!,]/g, " ").replace(/\s+/g, " ").trim(); if (!t) return null;
+      var openVerb = /\b(open|launch|show|start|bring up|pull up|take me to|go to|goto|load|run|use)\b/.test(t);
+      var list = appCatalog(), best = null;
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i], nm = String(a.name || a.id || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim(); if (!nm) continue;
+        if (new RegExp("\\b" + nm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(t)) { if (!best || nm.length > best._n) best = { ref: a.kappa || a.id, name: a.name || a.id, _n: nm.length }; }
+      }
+      // require an open-ish verb OR a terse utterance (≤3 words: a bare "notes", "browser") so normal
+      // questions that merely mention an app name aren't hijacked.
+      if (best && (openVerb || t.split(" ").length <= 3)) return best;
+      return null;
+    }
+    function composeSurface(hit) {
+      var f = $h("qhero-frame"); if (!f) return;
+      $h("qhero-surftitle").textContent = hit.name;
+      // mount by CONTENT identity (Law L1): the κ → holospace.html sandboxes it. S0: the ONE audited door.
+      (window.HoloSpaceMount || function (r, h) { h.src = "../../../holospace.html?app=" + encodeURIComponent(r) + "&bare=1"; })(hit.ref, f);
+      el.classList.add("composing");
+      try { if (orb && orb.resize) setTimeout(function () { orb.resize(); }, 360); } catch (e) {}   // orb shrank → re-fit
+    }
+    function dissolveSurface() {
+      if (!el || !el.classList.contains("composing")) return false;
+      el.classList.remove("composing");
+      var f = $h("qhero-frame"); if (f) setTimeout(function () { try { f.src = "about:blank"; } catch (e) {} }, 320);
+      setText(""); Q_VOICE.state = "listening"; setStatus("Listening");
+      try { if (orb && orb.resize) setTimeout(function () { orb.resize(); }, 360); } catch (e) {}   // orb grew back → re-fit
+      return true;
+    }
+    // the one intent handler shared by the voice loop AND the browser fallback: dismiss → SAFETY → compose → answer.
+    function handleUtterance(t) {
+      if (el && el.classList.contains("composing") && DISMISS.test(t)) { dissolveSurface(); return Promise.resolve("Back to me."); }
+      // Calm mode by voice/text — Q drives the phone's grayscale (minimalist-phone quiet look).
+      if (/\b(grayscale|greyscale|calm mode|monochrome|black and white|desaturate)\b/i.test(t) || /\b(colou?r back|full colou?r|un-?calm)\b/i.test(t)) {
+        var calmOff = /\b(off|colou?r back|full colou?r|un-?calm|stop|disable|no)\b/i.test(t);
+        try { window.HoloCalm.set(!calmOff); } catch (e) {}
+        return Promise.resolve(calmOff ? "Colour's back." : "Calm mode on — the world in grayscale.");
+      }
+      // R0 (HOLO-INTENT-RENDER): a "make/build/create a <thing>" intent RENDERS a self-contained block, sealed
+      // to a κ and mounted sandboxed. R0 draws from the hand-authored library (no LLM yet); R1 lets Q author.
+      var rnd = t.match(/\b(make|render|create|new|build)\b[\s\S]*\b(timer|clock|note)\b/i);
+      if (rnd && window.HoloRender && window.HoloRender.LIBRARY && window.HoloRender.LIBRARY[rnd[2].toLowerCase()]) {
+        try { window.HoloRender.open(rnd[2].toLowerCase()); } catch (e) {}
+        return Promise.resolve("Here's a " + rnd[2].toLowerCase() + " — sealed and running on your device.");
+      }
+      // P5 authority: never act on a prohibited or irreversible/outward intent silently.
+      var risk = Authority.classify(t);
+      if (risk === "prohibited") return Promise.resolve(Authority.refusal());          // decline + defer to the human
+      if (risk === "confirm") return handleConsequential(t);                            // confirm before acting
+      var hit = resolveCompose(t);
+      if (hit) { composeSurface(hit); return Promise.resolve("Opening " + hit.name + "."); }
+      return qBrain(t, { onDelta: function (s) { setText(s); } });
+    }
+    // a consequential intent: gate the actions this surface can really perform (today: clearing the Inbox);
+    // anything else, Q recognises but won't do without your explicit go-ahead and the capability to do it.
+    function handleConsequential(t) {
+      if (/\b(clear|empty|delete|wipe)\b[^]*\b(inbox|letters|messages|notifications)\b/i.test(t)) {
+        return Authority.confirm({ title: "Clear your Inbox?", body: "This permanently removes all of Q's letters. It can't be undone.", ok: "Clear all", danger: true })
+          .then(function (yes) { if (yes) { try { Inbox.clear(); } catch (e) {} return "Done — your Inbox is clear."; } return "Left your Inbox as it is."; });
+      }
+      return Promise.resolve("That's something I'd only do with your explicit go-ahead — and I'm not wired to do it from here yet. Tell me the goal and I'll set it up properly.");
+    }
+
+    function mountOrb() {
+      var canvas = $h("qhero-canvas"); if (!canvas || mounted) return; mounted = true;
+      var prCap = Math.min(window.devicePixelRatio || 2, 3);
+      function webgl() {
+        loadThree().then(function (ok) { if (!ok) { mounted = false; return; }
+          import("../../../_shared/voice/holo-voice-orb.mjs").then(function (m) {
+            try { if (m.orbSupported && !m.orbSupported()) { mounted = false; return; }
+              orb = m.createOrb(canvas, { detail: 8, level: liveLevel, color: liveColor, maxPixelRatio: prCap });
+              orb.start(); $h("qhero").classList.add("live");
+            } catch (e) { mounted = false; }
+          }).catch(function () { mounted = false; });
+        });
+      }
+      if (window.navigator && navigator.gpu) {
+        import("../../../_shared/voice/holo-voice-orb-gpu.mjs").then(function (g) {
+          if (!(g.gpuSupported && g.gpuSupported())) return webgl();
+          g.createGpuOrb(canvas, { level: liveLevel, color: liveColor, maxPixelRatio: prCap })
+            .then(function (o) { orb = o; o.start(); $h("qhero").classList.add("live"); }, function () { webgl(); });
+        }).catch(function () { webgl(); });
+      } else webgl();
+    }
+
+    // mic → the orb's live level + bands (so it breathes with your voice). Permission-gated; if denied the
+    // orb still lives on its idle terms — never a dead stage.
+    function startMic() {
+      if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || mic.ctx) return;
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        mic.stream = stream; var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+        mic.ctx = new Ctx(); var src = mic.ctx.createMediaStreamSource(stream);
+        mic.an = mic.ctx.createAnalyser(); mic.an.fftSize = 256; mic.an.smoothingTimeConstant = 0.82; src.connect(mic.an);
+        var freq = new Uint8Array(mic.an.frequencyBinCount);
+        (function loop() {
+          if (!mic.an) return;
+          mic.an.getByteFrequencyData(freq);
+          var n = freq.length, third = (n / 3) | 0, sum = 0, b = 0, md = 0, tr = 0;
+          for (var i = 0; i < n; i++) { var vv = freq[i] / 255; sum += vv; if (i < third) b += vv; else if (i < 2 * third) md += vv; else tr += vv; }
+          var energy = sum / n, onset = Math.max(0, energy - prevEnergy) * 4; prevEnergy = energy;
+          Q_VOICE.level = Math.min(1.4, energy * 3.4);
+          Q_VOICE.bass = b / third; Q_VOICE.mid = md / third; Q_VOICE.treble = tr / Math.max(1, n - 2 * third); Q_VOICE.onset = Math.min(1, onset);
+          micRaf = requestAnimationFrame(loop);
+        })();
+      }).catch(function () {});
+    }
+    function stopMic() {
+      if (micRaf) cancelAnimationFrame(micRaf); micRaf = 0;
+      try { if (mic.stream) mic.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      try { if (mic.ctx) mic.ctx.close(); } catch (e) {}
+      mic = {}; Q_VOICE.level = 0; Q_VOICE.bass = Q_VOICE.mid = Q_VOICE.treble = Q_VOICE.onset = 0;
+    }
+
+    function startListen() {
+      if (!SR) { Q_VOICE.state = "idle"; setStatus("Q"); return; }
+      listening = true; Q_VOICE.state = "listening"; setStatus("Listening");
+      try { rec = new SR(); } catch (e) { listening = false; return; }
+      rec.lang = navigator.language || "en-US"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      rec.onresult = function (e) {
+        var txt = ""; for (var i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+        setText(txt);
+        if (e.results[e.results.length - 1].isFinal) { var f = txt.trim(); if (f) handleIntent(f); }
+      };
+      rec.onend = function () { if (listening && Q_VOICE.state === "listening") { try { rec.start(); } catch (e) {} } };
+      rec.onerror = function () {};
+      try { rec.start(); } catch (e) {}
+    }
+    function stopListen() { listening = false; if (rec) { try { rec.onend = null; rec.stop(); } catch (e) {} rec = null; } }
+
+    function handleIntent(text) {
+      Q_VOICE.state = "thinking"; setStatus("Thinking"); stopListen();
+      handleUtterance(text).then(function (reply) {
+        if (!el || !el.classList.contains("on")) return;
+        Q_VOICE.state = "speaking"; setStatus("Q"); setText(reply);
+        speak(reply, function () { if (el && el.classList.contains("on")) startListen(); });
+      });
+    }
+    function speak(text, done) {
+      try {
+        if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { if (done) done(); return; }
+        var u = new SpeechSynthesisUtterance(text); u.rate = 1.0; u.pitch = 1.0;
+        u.onend = function () { if (done) done(); }; u.onerror = function () { if (done) done(); };
+        speechSynthesis.cancel(); speechSynthesis.speak(u);
+      } catch (e) { if (done) done(); }
+    }
+    // ── Q's own on-device voice loop (Whisper ear + Kokoro voice + silero VAD, all serverless). PREFERRED;
+    //    if its weights/mic/graph aren't available it rejects and we keep the browser floor below. ───────
+    var qv = null, qvTried = false;
+    function ensureEngine() {
+      if (qvTried) return Promise.resolve(!!qv);
+      qvTried = true;
+      return import("../../../_shared/voice/holo-q-mobile.mjs").then(function (m) {
+        return m.createQVoice({
+          lang: (navigator.language || "en"),
+          signalSink: Q_VOICE,                                                  // mic + Q's voice → the orb, live
+          onState: function (s) { Q_VOICE.state = s; setStatus(s === "listening" ? "Listening" : s === "thinking" ? "Thinking" : s === "speaking" ? "Q" : "Tap to speak"); },
+          onText: function (t) { setText(t); },
+          onIntent: function (t) { return handleUtterance(t); }   // dismiss → compose a κ surface → else stream Q's reply
+        });
+      }).then(function (engine) { qv = engine; return true; }).catch(function () { qv = null; return false; });
+    }
+
+    function toggleListen() {
+      if (qv) { try { qv.toggle(); } catch (e) {} return; }
+      if (listening) { stopListen(); Q_VOICE.state = "idle"; setStatus("Tap to speak"); }
+      else { try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {} startListen(); }
+    }
+
+    // the post-wake words ("…open notes") run as the first utterance, so "Q, open notes" is one breath
+    function seedCommand(cmd) {
+      cmd = (cmd || "").trim(); if (!cmd) return;
+      setText(cmd); Q_VOICE.state = "thinking"; setStatus("Thinking");
+      handleUtterance(cmd).then(function (reply) {
+        if (!el || !el.classList.contains("on")) return;
+        Q_VOICE.state = "speaking"; setStatus("Q"); if (!el.classList.contains("composing")) setText(reply);
+        try { if (qv && qv.speak) qv.speak(reply); else if (window.speechSynthesis && window.SpeechSynthesisUtterance) { var u = new SpeechSynthesisUtterance(reply); speechSynthesis.cancel(); speechSynthesis.speak(u); } } catch (e) {}
+      });
+    }
+    function open(seed) {
+      el = $h("qhero"); if (!el) return;
+      if (typeof wakeStop === "function") { try { wakeStop(); } catch (e) {} }  // release the wake mic → the hero takes it
+      if (cornerOrb) { try { cornerOrb.stop(); } catch (e) {} }                 // one orb at a time — save power
+      document.body.style.overflow = "hidden";
+      el.classList.add("on"); el.setAttribute("aria-hidden", "false");
+      setText(""); setStatus("Waking");
+      mountOrb(); if (orb) { try { orb.start(); } catch (e) {} }
+      // pre-warm Q's brain while you speak your first words (only when the live mux isn't already here) →
+      // no cold hang on the first answer.
+      if (!((window.HoloVoice && window.HoloVoice.ask) || window.Q)) { try { ensureLLM(); } catch (e) {} }
+      ensureEngine().then(function (ok) {
+        if (!el.classList.contains("on")) { if (qv) try { qv.stop(); } catch (e) {} return; }   // closed before ready
+        if (ok && qv) { Q_VOICE.state = "listening"; setStatus("Listening"); try { qv.start(); } catch (e) {} }
+        else { setStatus(SR ? "Listening" : "Q"); startMic(); setTimeout(function () { if (el.classList.contains("on")) startListen(); }, 200); }   // browser floor
+        if (seed) setTimeout(function () { if (el.classList.contains("on")) seedCommand(seed); }, 350);   // hands-free one-breath command
+      });
+    }
+    function close() {
+      if (!el) el = $h("qhero"); if (!el) return;
+      if (qv) { try { qv.stop(); } catch (e) {} } else { stopListen(); stopMic(); try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {} }
+      Q_VOICE.state = "idle";
+      if (el.classList.contains("composing")) { el.classList.remove("composing"); var f = $h("qhero-frame"); if (f) try { f.src = "about:blank"; } catch (e) {} }   // tear down any composed surface
+      el.classList.remove("on"); el.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      if (orb) { try { orb.stop(); } catch (e) {} }                            // keep mounted for instant re-open
+      if (cornerOrb) { try { cornerOrb.start(); } catch (e) {} }
+      if (typeof wakeStart === "function") { try { wakeStart(); } catch (e) {} }   // re-arm the wake word (if enabled)
+    }
+
+    (function bind() {
+      el = $h("qhero"); if (!el) return;
+      // tap the orb → if a surface is composed, dissolve back to full Q; otherwise pause/resume listening
+      var canvas = $h("qhero-canvas"); if (canvas) canvas.addEventListener("click", function () { if (el.classList.contains("composing")) dissolveSurface(); else toggleListen(); });
+      var x = $h("qhero-x"); if (x) x.addEventListener("click", close);
+      var back = $h("qhero-surfback"); if (back) back.addEventListener("click", dissolveSurface);   // ← dissolve the κ surface
+      var type = $h("qhero-hint"); if (type) type.addEventListener("click", function () { close(); openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 300); });
+      var y0 = null;                                                            // swipe DOWN to return home
+      el.addEventListener("touchstart", function (e) { if (e.touches && e.touches.length === 1) y0 = e.touches[0].clientY; }, { passive: true });
+      el.addEventListener("touchmove", function (e) { if (y0 != null && e.touches[0].clientY - y0 > 90) { y0 = null; close(); } }, { passive: true });
+      el.addEventListener("touchend", function () { y0 = null; });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && el.classList.contains("on")) { if (el.classList.contains("composing")) dissolveSurface(); else close(); } });   // Esc: dissolve first, then leave
+    })();
+
+    return { open: open, close: close };
+  })();
+
+  // ── Hands-free wake word "Q" (P0) — opt-in, on-device, fail-closed ─────────────────────────────────
+  // When enabled (Settings → Voice), the home runs a low-duty wake loop (holo-q-wake.mjs). Say "Q" and the
+  // hero opens hands-free, carrying anything you said after it. The wake mic is released the moment the hero
+  // opens (the hero takes it) and re-armed when you leave. Default OFF — arming prompts for the mic.
+  var WKEY = "holo.wake.v1", wakeInst = null, wakeStarting = false;
+  function wakeEnabled() { try { return localStorage.getItem(WKEY) === "1"; } catch (e) { return false; } }
+  function setWakeEnabled(on) { try { localStorage.setItem(WKEY, on ? "1" : "0"); } catch (e) {} }
+  function wakeStart() {
+    if (!wakeEnabled()) return;
+    if ($("qhero") && $("qhero").classList.contains("on")) return;            // the hero owns the mic while it's open
+    if (wakeInst) { try { wakeInst.start(); } catch (e) {} Q_VOICE.armed = true; return; }
+    if (wakeStarting) return; wakeStarting = true;
+    import("../../../_shared/voice/holo-q-wake.mjs").then(function (m) {
+      return m.createWakeWord({ lang: (navigator.language || "en"), onWake: function (cmd) { try { Hero.open(cmd); } catch (e) {} } });
+    }).then(function (w) {
+      wakeInst = w; wakeStarting = false;
+      if (wakeEnabled() && !(($("qhero") && $("qhero").classList.contains("on")))) { try { w.start(); } catch (e) {} Q_VOICE.armed = true; }
+    }).catch(function () { wakeStarting = false; wakeInst = null; Q_VOICE.armed = false; });
+  }
+  function wakeStop() { Q_VOICE.armed = false; if (wakeInst) { try { wakeInst.stop(); } catch (e) {} } }
+
+  // ── Sheets ────────────────────────────────────────────────────────────────────────────────────
+  var scrim = $("scrim");
+  function openSheet(el) { closeSheets(); scrim.classList.add("on"); el.classList.add("on"); }
+  function closeSheets() { scrim.classList.remove("on"); ["drawer", "settings", "timer", "qsheet", "inbox"].forEach(function (id) { $(id).classList.remove("on"); }); }
+  scrim.addEventListener("click", closeSheets);
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeSheets); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheets(); });
+  $("menu").addEventListener("click", function () { var s = $("app-search"); if (s) s.value = ""; try { renderApps(""); } catch (e) {} openSheet($("drawer")); });
+  // M1 — search-first: type → live-filter (debounced); Enter opens the top hit (minimalist-phone search-to-open).
+  (function () {
+    var s = $("app-search"); if (!s) return; var t = null;
+    s.addEventListener("input", function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { try { renderApps(v); } catch (e) {} }, 60); });
+    s.addEventListener("keydown", function (e) { if (e.key === "Enter") { var first = document.querySelector("#applist .app"); if (first) { e.preventDefault(); first.click(); } } });
+  })();
+  $("open-settings").addEventListener("click", function () { openSheet($("settings")); });
+
+  // ── AUTHORITY (P5) — Q never performs an irreversible or outward action silently. It classifies an
+  //    intent, DECLINES the prohibited class (passwords · payments · trades · access control) and defers to
+  //    you, and CONFIRMS the consequential class (delete · send · share · sign-out · settings) — with a
+  //    best-effort device biometric for the sensitive subset — before anything happens. Mounted bytes are
+  //    already L5-verified (compose mounts by κ through holospace.html). The human always has the last word.
+  var Authority = (function () {
+    var PROHIBITED = /\b(password|passcode|\bpin\b|credit ?card|card number|\bcvv\b|\bssn\b|social security|seed phrase|private key|api key|recovery (phrase|code)|bank (login|password|account)|(send|transfer|wire|move)\s+(money|funds|cash|\$|\d)|\bpay(ing)?\b|purchase|buy (it|now|this|\d|\$)|\btrade\b|sell\s+(stock|shares|crypto|bitcoin)|withdraw|deposit)\b/i;
+    var CONFIRM = /\b(delete|erase|empty|wipe|clear\s+(my\s+|the\s+)?(inbox|letters|history|data|notifications)|send\s+(a|an|the|this|my)?\s*(message|email|text|dm|reply)|reply to|publish|\bpost\b|\bshare\b|forward|unsubscribe|sign\s*(me\s*)?out|log\s*(me\s*)?out|cancel\s+(my|the)|schedule|book|order|grant|revoke|change\s+(my\s+)?(password|settings|account))\b/i;
+    function classify(text) { var t = String(text || ""); if (PROHIBITED.test(t)) return "prohibited"; if (CONFIRM.test(t)) return "confirm"; return "safe"; }
+    function refusal() { return "For your safety I won't enter passwords, move money, or place trades — those are yours to do directly. Tell me the goal and I'll help with everything around it."; }
+    function biometric() {
+      try {
+        if (!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.get)) return Promise.resolve(false);
+        var ch = new Uint8Array(32); if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(ch);
+        return navigator.credentials.get({ publicKey: { challenge: ch, timeout: 60000, userVerification: "required", rpId: location.hostname } }).then(function () { return true; }, function () { return false; });
+      } catch (e) { return Promise.resolve(false); }
+    }
+    function confirm(o) {
+      o = o || {};
+      return new Promise(function (resolve) {
+        var scrim = $("confirm"); if (!scrim) return resolve(false);
+        $("confirm-title").textContent = o.title || "Confirm"; $("confirm-body").textContent = o.body || "";
+        var ok = $("confirm-ok"); ok.textContent = o.ok || "Confirm"; ok.className = "confirm-btn " + (o.danger ? "danger" : "primary"); ok.disabled = false;
+        var note = $("confirm-note");
+        if (o.biometric) { note.hidden = false; note.textContent = "Checking it's you…"; ok.disabled = true; biometric().then(function (v) { note.textContent = v ? "Verified — it's you." : "Couldn't verify on this device — confirm to continue."; ok.disabled = false; }); }
+        else { note.hidden = true; }
+        scrim.classList.add("on"); scrim.setAttribute("aria-hidden", "false");
+        function finish(v) { scrim.classList.remove("on"); scrim.setAttribute("aria-hidden", "true"); $("confirm-cancel").removeEventListener("click", onC); ok.removeEventListener("click", onOk); document.removeEventListener("keydown", onKey, true); resolve(v); }
+        function onC() { finish(false); } function onOk() { finish(true); } function onKey(e) { if (e.key === "Escape") finish(false); }
+        $("confirm-cancel").addEventListener("click", onC); ok.addEventListener("click", onOk); document.addEventListener("keydown", onKey, true);
+      });
+    }
+    return { classify: classify, refusal: refusal, confirm: confirm, biometric: biometric };
+  })();
+
+  // ── Q PROACTIVE + INBOX (P4) — ambient, but earned. Q surfaces a single quiet pill when it has a letter
+  //    worth your attention; tap it to read the Inbox. Letters are categorised (letter / update / action),
+  //    persist locally, and are written ONLY on the home (not over an app), at most one per day plus a
+  //    one-time welcome — Q speaks unbidden, never naggy. In the full OS this Inbox bridges to the real
+  //    autonomy-spine / +-ingest brief (holo-brief, holo-insight); standalone, these honest letters are the floor. ─
+  var Inbox = (function () {
+    var IKEY = "holo.inbox.v1", inboxFilter = "all", pillTimer = null;
+    function read() { try { var a = JSON.parse(localStorage.getItem(IKEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function write(a) { try { localStorage.setItem(IKEY, JSON.stringify(a.slice(0, 50))); } catch (e) {} }
+    function unread() { return read().filter(function (l) { return !l.read; }).length; }
+    function nid() { return "l" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+    function when(ts) {
+      var d = Math.max(0, Date.now() - ts), m = Math.floor(d / 60000), h = Math.floor(d / 3600000), dy = Math.floor(d / 86400000);
+      return dy > 0 ? dy + "d ago" : h > 0 ? h + "h ago" : m > 0 ? m + "m ago" : "just now";
+    }
+    function refreshBadge() { var b = $("inbox-badge"); if (!b) return; var n = unread(); b.textContent = n > 9 ? "9+" : String(n); b.classList.toggle("on", n > 0); }
+    function add(letter) {
+      var a = read();
+      letter.id = nid(); letter.ts = Date.now(); letter.read = false; letter.cat = letter.cat || "letter";
+      a.unshift(letter); write(a); refreshBadge();
+      if (canSpeak()) showPill(letter);
+      return letter.id;
+    }
+    function canSpeak() {   // only over the calm home — never over the hero, an app, or another sheet
+      try {
+        if ($("qhero") && $("qhero").classList.contains("on")) return false;
+        if ($("appview") && $("appview").classList.contains("on")) return false;
+        if (scrim && scrim.classList.contains("on")) return false;
+      } catch (e) {}
+      return true;
+    }
+    function showPill(letter) {
+      var p = $("qpill"); if (!p) return;
+      $("qpill-text").textContent = letter.title;
+      p.className = "qpill cat-" + (letter.cat || "letter") + " on";
+      clearTimeout(pillTimer); pillTimer = setTimeout(hidePill, 8500);   // auto-retreat — never lingers
+    }
+    function hidePill() { var p = $("qpill"); if (p) p.classList.remove("on"); clearTimeout(pillTimer); }
+    function render() {
+      var ul = $("inbox-list"), a = read().filter(function (l) { return inboxFilter === "all" || l.cat === inboxFilter; });
+      ul.innerHTML = "";
+      $("inbox-empty").hidden = a.length > 0;
+      a.forEach(function (l) {
+        var li = document.createElement("li"); li.className = (l.read ? "" : "unread ") + "cat-" + (l.cat || "letter");
+        li.innerHTML = '<span class="idot"></span><div><div class="ititle"></div><div class="ibody"></div><div class="iwhen"></div></div>';
+        li.querySelector(".ititle").textContent = l.title || "";
+        li.querySelector(".ibody").textContent = l.body || "";
+        li.querySelector(".iwhen").textContent = when(l.ts);
+        ul.appendChild(li);
+      });
+    }
+    function open() {
+      hidePill(); render(); openSheet($("inbox"));
+      var a = read(); var changed = false; a.forEach(function (l) { if (!l.read) { l.read = true; changed = true; } });
+      if (changed) { write(a); }                       // opening the Inbox = read
+      setTimeout(function () { render(); refreshBadge(); }, 400);   // reflect read-state after the open animation
+    }
+    // wiring
+    $("open-inbox").addEventListener("click", open);
+    $("qpill").addEventListener("click", open);
+    $("qpill-text").addEventListener("click", open);
+    $("qpill-x").addEventListener("click", function (e) { e.stopPropagation(); hidePill(); });   // dismiss the pill; the letter waits in the Inbox
+    document.querySelectorAll("#inbox-cats button").forEach(function (b) {
+      b.addEventListener("click", function () { inboxFilter = b.dataset.cat; document.querySelectorAll("#inbox-cats button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); render(); });
+    });
+    function clear() { write([]); render(); refreshBadge(); }
+    $("inbox-clear").addEventListener("click", function () {   // a real irreversible action → gated by Authority (P5)
+      Authority.confirm({ title: "Clear your Inbox?", body: "This permanently removes all of Q's letters. It can't be undone.", ok: "Clear all", danger: true }).then(function (yes) { if (yes) clear(); });
+    });
+    refreshBadge();
+    return { add: add, open: open, unread: unread, refreshBadge: refreshBadge, canSpeak: canSpeak, showPill: showPill, clear: clear };
+  })();
+
+  // the proactive cadence: a one-time welcome, then at most a single gentle daily brief — written in Q's
+  // voice, instant (no model), personal (your name + the time of day). Runs once on a calm home load.
+  (function proactive() {
+    function todayKey() { var d = new Date(); return "holo.brief." + d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+    function once(key) { try { if (localStorage.getItem(key)) return false; localStorage.setItem(key, "1"); return true; } catch (e) { return false; } }
+    function name() { return (NAME && NAME.toLowerCase() !== "guest") ? NAME : ""; }
+    function brief() {
+      var h = new Date().getHours(), part = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening", nm = name();
+      var open = "Good " + part + (nm ? ", " + nm : "") + ".";
+      var tips = [
+        "Tap the orb and just talk — I run on this device, so everything stays with you.",
+        "Try “Q, open notes” — say what you want and I’ll bring it up, no hunting for apps.",
+        "I’m here in the background whenever you need me. Ask me anything.",
+        "Before you dive in, you can tell me how long you mean to stay — I’ll keep time."
+      ];
+      return { cat: "letter", title: open + " A quiet note from Q", body: open + " " + tips[new Date().getDate() % tips.length] };
+    }
+    setTimeout(function () {
+      try {
+        if (once("holo.inbox.welcomed")) {
+          Inbox.add({ cat: "letter", title: "Hi, I’m Q", body: "Welcome to Hologram. I’m your assistant, and I live right here on your device — nothing leaves your phone. Tap the orb whenever you want to talk." });
+        } else if (once(todayKey())) {
+          Inbox.add(brief());
+        } else if (Inbox.unread() > 0 && Inbox.canSpeak()) {
+          var first = (function () { try { return JSON.parse(localStorage.getItem("holo.inbox.v1") || "[]")[0]; } catch (e) { return null; } })();
+          if (first && !first.read) Inbox.showPill(first);
+        }
+      } catch (e) {}
+    }, 1600);
+  })();
+
+  // ── Q — the living assistant. The orb opens a clean ask panel; a query is handed to the on-device
+  //    brain when it is present (window.HoloVoice / window.Q, or the shell parent), never faked. ───
+  (function () {
+    var CHIPS = ["What can I do here?", "Open my notes", "Summarize my day", "Start a 25-min focus"];
+    var chips = $("q-chips");
+    CHIPS.forEach(function (t) { var b = document.createElement("button"); b.type = "button"; b.textContent = t;
+      b.addEventListener("click", function () { $("q-input").value = t; ask(t); }); chips.appendChild(b); });
+    $("qorb").addEventListener("click", function () { Hero.open(); });   // tap the orb → Q fills the screen, voice-first
+    // Right-click the orb → a compact context MENU of quick actions; it must NOT open the right-side ask
+    // panel and must suppress the browser's native menu. Left-click still opens the panel.
+    (function () {
+      var orb = $("qorb"); if (!orb) return; var menu = null;
+      function close() { if (!menu) return; menu.remove(); menu = null; document.removeEventListener("pointerdown", onDoc, true); document.removeEventListener("keydown", onKey, true); }
+      function onDoc(e) { if (menu && !menu.contains(e.target)) close(); }
+      function onKey(e) { if (e.key === "Escape") close(); }
+      var ITEMS = [
+        ["Ask Q", function () { Hero.open(); }],
+        ["Type to Q", function () { openSheet($("qsheet")); setTimeout(function () { $("q-input").focus(); }, 280); }],
+        ["Apps", function () { openSheet($("drawer")); }],
+        ["Inbox", function () { Inbox.open(); }],
+        ["Focus timer", function () { openSheet($("timer")); }],
+        ["Settings", function () { openSheet($("settings")); }],
+      ];
+      orb.addEventListener("contextmenu", function (e) {
+        e.preventDefault(); e.stopPropagation(); close();
+        menu = document.createElement("div"); menu.className = "qmenu"; menu.setAttribute("role", "menu");
+        ITEMS.forEach(function (it) { var b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "menuitem"); b.textContent = it[0]; b.addEventListener("click", function () { close(); it[1](); }); menu.appendChild(b); });
+        document.body.appendChild(menu);
+        var r = orb.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;   // anchor above-left of the bottom-right orb, clamped to the viewport
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + "px";
+        menu.style.top = Math.max(8, r.top - mh - 8) + "px";
+        setTimeout(function () { document.addEventListener("pointerdown", onDoc, true); document.addEventListener("keydown", onKey, true); }, 0);
+      });
+    })();
+    $("q-send").addEventListener("click", function () { ask($("q-input").value); });
+    $("q-input").addEventListener("keydown", function (e) { if (e.key === "Enter") ask(this.value); });
+    function ask(text) {
+      text = (text || "").trim(); if (!text) { $("q-input").focus(); return; }
+      var reply = $("q-reply"); reply.textContent = "Thinking…";
+      function converse() { qBrain(text, { onDelta: function (s) { reply.textContent = s; } }).then(function (r) {
+        var ans = r || "Done."; reply.textContent = ans;
+        // REPLY-CAPTURE (mobile): a quiet 👍 stores THIS (prompt, reply) as a liked example so Q learns from it
+        // (reply-SFT). Same captureUpvote as desktop; private (encrypted memory), never shared. Fail-soft.
+        try { if (window.HoloLearning && window.HoloLearning.captureUpvote) { var up = document.createElement("button"); up.textContent = "👍"; up.title = "Good answer — Q learns from this"; up.style.cssText = "margin-left:8px;opacity:.5;background:none;border:none;cursor:pointer;font:inherit"; up.onclick = function () { up.disabled = true; up.style.opacity = "1"; up.textContent = "👍 learned"; try { window.HoloLearning.captureUpvote(text, ans); } catch (e) {} }; reply.appendChild(up); } } catch (e) {}
+      }); }
+      // ONE intent door (the SAME classifier the desktop shell uses via HoloResolve): an "open" intent LAUNCHES
+      // the app; every other intent converses via the brain. So "open music" behaves identically by voice or
+      // text, zero config. Falls back to converse if the classifier import or app-match misses (no regression).
+      import("../../../_shared/q/holo-q.js").then(function (m) {
+        var it = (m && m.classifyIntent) ? m.classifyIntent(text) : null;
+        if (it && it.kind === "open" && it.target && !/^(?:https?:|holo:|did:|ipfs:|www\.)/i.test(it.target)
+            && typeof window.__homeLaunch === "function" && window.__homeLaunch(it.target)) { reply.textContent = ""; return; }
+        converse();
+      }).catch(converse);
+    }
+  })();
+
+  // ── App catalog — the live OS directory (first 12), with a curated fallback ─────────────────────
+  var CURATED = [
+    { id: "browser", name: "Browser",  landing: "../../../apps/browser/index.html" },
+    { id: "search",  name: "Search",   landing: "../../../apps/search/index.html" },
+    { id: "docs",    name: "Docs",     landing: "../../../apps/docs/index.html" },
+    { id: "notepad", name: "Notes",    landing: "../../../apps/notepad/index.html" },
+    { id: "music",   name: "Music",    landing: "../../../apps/music/index.html" },
+    { id: "video",   name: "Video",    landing: "../../../apps/video/index.html" },
+    { id: "wallet",  name: "Wallet",   landing: "/wallet.html" },
+    { id: "meet",    name: "Meet",     landing: "../../../apps/meet/index.html" },
+    { id: "git",     name: "Git",      landing: "../../../apps/git/index.html" },
+    { id: "ipfs",    name: "IPFS",     landing: "../../../apps/ipfs/index.html" },
+    { id: "capture", name: "Capture",  landing: "../../../apps/capture/index.html" },
+    { id: "player",  name: "Player",   landing: "../../../apps/player/index.html" }
+  ];
+  // Float these everyday apps to the TOP of the drawer (in order); EVERY other app still lists below them,
+  // so the Apps sheet is the complete app drawer — nothing is hidden. Keyed by the landing-page slug
+  // (apps/<slug>/…), since the catalog's id is the full reverse-DNS identifier, not the short slug.
+  var PREFER = ["browser", "search", "docs", "notepad", "music", "video", "wallet", "meet", "git", "ipfs", "capture", "player"];
+  function slugOf(a) { return String(a.landing || "").split("/")[2] || String(a.id || ""); }
+  var apps = CURATED;
+
+  // PROFILE BOOST (zero-config): how well an app matches what you actually use (window.HoloProfile, distilled
+  // from your own encrypted local memory). 100% local; fail-soft (no profile → 0 → unchanged order).
+  function profileBoost(a) {
+    try {
+      var terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || [];
+      if (!terms.length) return 0;
+      var hay = (String(a.name || "") + " " + String(a.id || "") + " " + String(a.kw || "")).toLowerCase();
+      var s = 0; for (var i = 0; i < terms.length; i++) { var w = String(terms[i] || "").toLowerCase(); if (w.length > 2 && hay.indexOf(w) >= 0) s++; }
+      return s;
+    } catch (e) { return 0; }
+  }
+  function orderApps(list) {
+    if (!list || !list.length) return CURATED;
+    // PROFILE-FIRST: the apps you use float to the top, then the curated PREFER order, then catalog order.
+    // A fresh user (no profile) → unchanged PREFER+catalog order (no regression). The FULL catalog is
+    // returned — the drawer is the complete app list, so every app (Holo Games included) is reachable.
+    var idx = {}; list.forEach(function (a, i) { idx[a.id] = i; });
+    var pref = {}; PREFER.forEach(function (slug, i) { pref[slug] = PREFER.length - i; });
+    return list.slice().sort(function (a, b) {
+      var d = profileBoost(b) - profileBoost(a); if (d) return d;
+      var p = (pref[slugOf(b)] || 0) - (pref[slugOf(a)] || 0); if (p) return p;
+      return (idx[a.id] || 0) - (idx[b.id] || 0);
+    });
+  }
+  function iconFor(a) { return a.landing ? a.landing.replace(/[^/]+$/, "icon.svg") : ""; }
+  function initials(n) { return (String(n || "?").trim()[0] || "?").toUpperCase(); }
+
+  // Import an app icon as a κ-addressable STREAMING object (holo-brand.streamAsset): the icon's content
+  // address IS its identity in the κ fabric — verified (L5), deduped OS-wide, offline-durable, and
+  // fabric-shared. The sealed URL paints first (instant, already vector-sharp); the κ blob swaps in.
+  // Fail-soft: no holo-brand / a miss → the sealed URL stays. SVG stays vector → crisp at 8K/retina.
+  var _brandLib = null;
+  function brandLib() { if (!_brandLib) _brandLib = import("../../../usr/lib/holo/holo-brand.mjs").then(function (m) { return m.default || m; }).catch(function () { return null; }); return _brandLib; }
+  function kappaStreamIcons(root) {
+    brandLib().then(function (HB) {
+      if (!HB || !HB.streamAsset) return;
+      (root || document).querySelectorAll("img[data-kappa-src]").forEach(function (img) {
+        if (img.getAttribute("data-kappa-done")) return;
+        img.setAttribute("data-kappa-done", "1");
+        HB.streamAsset(img.getAttribute("data-kappa-src")).then(function (blob) { if (blob) img.src = blob; }).catch(function () {});
+      });
+    });
+  }
+  // CASA — bucket the live app list into meaningful groups; first-match wins, unmatched → "More".
+  // Same catalog the drawer already opens, calmly framed (parity with the desktop "Start here" launcher).
+  function casaGroups(list) {
+    var G = [
+      ["Your people", /messeng|\bmail\b|inbox|\bmeet\b|chat|\bhub\b|social|contact/],
+      ["Your money", /wallet|trade|market|\bpay\b|bank|finance|\bbtc\b|\bevm\b|coin|token|swap|etherscan/],
+      ["Your machines", /hypervisor|virt|\bvm\b|qemu|\bx86\b|linux|machine|proxmox|\bcloud\b|server|plasma/],
+      ["Your web", /browser|ipfs|\bgit\b|\bweb\b|explorer|\bdns\b/],
+      ["Your stuff", /file|\bnote|\bcode\b|music|player|video|game|\bdoc|jupyter|notebook|\bread\b|\bbook\b|photo|capture|draw|terminal|forge/],
+    ];
+    var out = G.map(function (g) { return [g[0], []]; }), more = [];
+    (list || []).forEach(function (a) {
+      var s = ((a.name || "") + " " + (a.id || "") + " " + (a.kw || "")).toLowerCase();
+      var idx = -1; for (var i = 0; i < G.length; i++) { if (G[i][1].test(s)) { idx = i; break; } }
+      if (idx < 0) more.push(a); else out[idx][1].push(a);
+    });
+    var res = out.filter(function (g) { return g[1].length; });
+    if (more.length) res.push(["More", more]);
+    return res;
+  }
+  function appRow(a) {
+    var li = document.createElement("li");
+    var b = document.createElement("button"); b.className = "app"; b.type = "button";
+    var ic = iconFor(a);
+    b.innerHTML = '<span class="ic"><img alt="" src="' + ic + '" data-kappa-src="' + ic + '" onerror="this.remove()"/>' + initials(a.name) + '</span>' +
+      '<span class="nm">' + (a.name || a.id) + '</span>' +
+      '<span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>';
+    b.addEventListener("click", function () { promptOpen(a); });
+    li.appendChild(b); return li;
+  }
+  // Minimalist-phone feel — the app list is a clean A-Z index; an alphabet strip on the right fast-scrolls it.
+  function alphaGroups(list) {
+    var by = {};
+    (list || []).filter(Boolean).forEach(function (a) {
+      var nm = String(a.name || a.id || "").trim(); if (!nm) return;
+      var c = nm.charAt(0).toUpperCase(); if (!/[A-Z]/.test(c)) c = "#";
+      (by[c] = by[c] || []).push(a);
+    });
+    return Object.keys(by).sort(function (x, y) { return x === "#" ? 1 : y === "#" ? -1 : (x < y ? -1 : 1); })
+      .map(function (c) { return [c, by[c].sort(function (a, b) { var an = String(a.name || a.id).toLowerCase(), bn = String(b.name || b.id).toLowerCase(); return an < bn ? -1 : an > bn ? 1 : 0; })]; });
+  }
+  function buildScrubber(present) {
+    var s = $("alpha-scrub"); if (!s) return;
+    var set = {}; (present || []).forEach(function (c) { set[c] = 1; });
+    s.innerHTML = "";
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("").forEach(function (c) {
+      var e = document.createElement("span"); e.className = "alpha-l" + (set[c] ? "" : " off"); e.textContent = c;
+      if (set[c]) e.addEventListener("click", function () {
+        var t = $("alpha-" + c); if (!t) return;
+        try { if (navigator.vibrate) navigator.vibrate(5); } catch (e2) {}
+        t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      });
+      s.appendChild(e);
+    });
+    s.hidden = false;
+  }
+  // M1 — the app list IS the resolver index, SEARCH-FIRST. Empty query → the calm A-Z list; typing
+  // live-filters to a flat list of matching κ-apps (fuzzy on name/id); no match offers Q (open / render / ask).
+  function renderApps(q) {
+    var ul = $("applist"); if (!ul) return; ul.innerHTML = "";
+    q = String(q == null ? (($("app-search") || {}).value || "") : q).trim().toLowerCase();
+    if (q) {
+      var _sc = $("alpha-scrub"); if (_sc) _sc.hidden = true;   // no A-Z scrubber while searching
+      var hits = (apps || []).filter(Boolean).filter(function (a) {
+        return String(a.name || a.id || "").toLowerCase().indexOf(q) >= 0 || String(a.id || "").toLowerCase().indexOf(q) >= 0;
+      });
+      hits.forEach(function (a) { ul.appendChild(appRow(a)); });
+      if (!hits.length) {
+        var li = document.createElement("li");
+        var b = document.createElement("button"); b.className = "app app-ask"; b.type = "button";
+        b.innerHTML = '<span class="ic">◆</span><span class="nm">Ask Q about “' + q.replace(/[<>&"]/g, "") + '”</span>' +
+          '<span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>';
+        b.addEventListener("click", function () {
+          try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
+          var qq = q; closeSheets();
+          var qi = $("q-input"); if (qi) { try { openSheet($("qsheet")); } catch (e) {} qi.value = qq; setTimeout(function () { try { qi.focus(); } catch (e) {} }, 240); }
+        });
+        li.appendChild(b); ul.appendChild(li);
+      }
+    } else {
+      var groups = alphaGroups(apps);
+      groups.forEach(function (grp) {
+        var hd = document.createElement("li"); hd.className = "group-head alpha-head"; hd.id = "alpha-" + grp[0]; hd.textContent = grp[0]; hd.setAttribute("aria-hidden", "true");
+        ul.appendChild(hd);
+        grp[1].forEach(function (a) { ul.appendChild(appRow(a)); });
+      });
+      buildScrubber(groups.map(function (g) { return g[0]; }));
+    }
+    var cc = $("cp-count"); if (cc) cc.textContent = apps.length + " apps · yours";
+    var _ac = $("appcount"); if (_ac) _ac.textContent = apps.length + " apps";
+    kappaStreamIcons(ul);   // upgrade the sealed icons to κ-streamed objects
+  }
+  // ── Favourites on the home — the minimalist-phone calm list. Text-first rows; a tap runs promptOpen so
+  //    the session-timer friction is honoured (never a raw launch). Persists in holo.favs.v1; default = your
+  //    most-used apps (already usage-ordered by orderApps). Fail-soft: any trouble → the list simply hides. ──
+  var FAVS_KEY = "holo.favs.v1";
+  function favApps() {
+    var list = (apps || []).filter(Boolean), ids = null;
+    try { var raw = JSON.parse(localStorage.getItem(FAVS_KEY) || "null"); if (Array.isArray(raw)) ids = raw; } catch (e) {}
+    var out = [];
+    if (ids && ids.length) ids.forEach(function (id) { var a = list.find(function (x) { return (x.id || x.kappa) === id; }); if (a) out.push(a); });
+    if (!out.length) out = list.slice(0, 4);   // default: your most-used apps (calm; clears the corner Q orb)
+    return out.slice(0, 5);
+  }
+  function renderFavs() {
+    try {
+      var host = $("favs"); if (!host) return;
+      host.innerHTML = "";
+      favApps().forEach(function (a, i) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "fav-row";
+        b.style.setProperty("--i", i);   // M0: drives the calm entrance stagger
+        b.textContent = a.name || a.id;
+        b.addEventListener("click", function () {
+          try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}   // L-HAPTIC: one soft tick on a launch (a meaningful action, not every tap)
+          try { promptOpen(a); } catch (e) {}
+        });
+        host.appendChild(b);
+      });
+      host.hidden = !host.children.length;
+    } catch (e) {}
+  }
+  renderApps();
+  renderFavs();
+  // health upgrade — NEVER faked: the promise word changes only if a real source (HoloSysHealth / Q) answers.
+  (function () { try { var src = window.HoloSysHealth || window.Q; var fn = src && (src.summary || src.health); if (!fn) return; Promise.resolve(fn.call(src)).then(function (r) { if (!r) return; var ok = r.ok === true || r.healthy === true || /\b(ok|good|healthy|green)\b/i.test(String(r.status || r.state || r.level || "")); var w = document.querySelector("#casa-pulse .cp-word"); if (w) w.textContent = ok === false ? "Needs a look" : "All good"; }).catch(function () {}); } catch (e) {} })();
+
+  // ── Familiar — a first-run band of the brands you know, above your apps. Automated (from the bundled
+  // brand set), seamless (in the drawer you already open), simple (one tap in; dismiss once → gone).
+  // Every mark is κ-streamed via holo-mirror (verified, deduped, offline, vector-sharp). Fail-soft.
+  function famStream(img, url, kappa) {
+    import("../../../usr/lib/holo/holo-mirror.mjs").then(function (m) {
+      var HM = m && (m.default || m); if (!HM || !HM.reflectURL) return;
+      HM.reflectURL(url, { kappa: kappa }).then(function (b) { if (b) img.src = b; }).catch(function () {});
+    }).catch(function () {});
+  }
+  // Default order for a fresh user with no profile yet — the broadly-recognizable everyday brands.
+  var FAM_CURATED = ["whatsapp", "youtube", "spotify", "instagram", "x", "gmail", "netflix", "telegram", "github", "discord", "reddit", "tiktok", "twitch", "messenger", "linkedin", "pinterest"];
+  var FAM_MAX = 16;
+  // REFLECTION (zero-config, on-device): score a brand against what you actually use
+  // (window.HoloProfile.terms(), distilled from your OWN encrypted local memory, never egressed). The
+  // brands that match your life float to the front — and a matching brand OUTSIDE the default set is
+  // pulled IN — so the strip becomes yours, not a fixed list. No profile → the curated order (no regression).
+  function famScore(b, terms) {
+    if (!terms || !terms.length) return 0;
+    var hay = (String(b.slug) + " " + String(b.title) + " " + String(b.domain)).toLowerCase();
+    var s = 0; for (var i = 0; i < terms.length; i++) { var w = String(terms[i] || "").toLowerCase(); if (w.length > 2 && hay.indexOf(w) >= 0) s++; }
+    return s;
+  }
+  function renderFamiliar() {
+    try { if (localStorage.getItem("holo.familiar.off")) return; } catch (e) {}
+    var wrap = $("familiar"), row = $("familiar-row"); if (!wrap || !row) return;
+    fetch("../../../usr/share/brands/brands.json", { cache: "force-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (doc) {
+      if (!doc || !doc.brands) return;
+      var by = {}; doc.brands.forEach(function (b) { by[b.slug] = b; });
+      var terms = []; try { terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || []; } catch (e) {}
+      var pref = {}; FAM_CURATED.forEach(function (s, i) { pref[s] = FAM_CURATED.length - i; });   // default rank
+      // candidate pool = curated ∪ any bundled brand you actually use
+      var pool = {}; FAM_CURATED.forEach(function (s) { if (by[s]) pool[s] = by[s]; });
+      doc.brands.forEach(function (b) { if (famScore(b, terms) > 0) pool[b.slug] = b; });
+      var picks = Object.keys(pool).map(function (s) { return pool[s]; });
+      picks.sort(function (a, b) {
+        var d = famScore(b, terms) - famScore(a, terms); if (d) return d;      // what you use, first
+        return (pref[b.slug] || 0) - (pref[a.slug] || 0);                       // then the curated order
+      });
+      picks = picks.slice(0, FAM_MAX);
+      if (!picks.length) return;
+      row.innerHTML = "";
+      picks.forEach(function (b) {
+        var a = document.createElement("a");
+        a.className = "fam"; a.href = "https://" + b.domain; a.target = "_blank"; a.rel = "noopener"; a.title = b.title;
+        var sealed = "../../../usr/share/brands/" + b.slug + ".svg";
+        a.innerHTML = '<img alt="" src="' + sealed + '" onerror="this.style.visibility=\'hidden\'"><span class="fnm">' + b.title + '</span>';
+        row.appendChild(a);
+        famStream(a.querySelector("img"), sealed, b.kappa);
+      });
+      wrap.hidden = false;
+    }).catch(function () {});
+  }
+  (function wireFamiliar() {
+    var x = document.querySelector("[data-fam-close]");
+    if (x) x.addEventListener("click", function () { try { localStorage.setItem("holo.familiar.off", "1"); } catch (e) {} var w = $("familiar"); if (w) w.hidden = true; });
+    var sc = $("scanrow");   // the camera membrane — open the Scan surface (scan.html sits beside this page)
+    if (sc) sc.addEventListener("click", function () { try { location.href = "scan.html"; } catch (e) {} });
+    renderFamiliar();
+  })();
+
+  fetch("../../../apps/index.jsonld", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (idx) {
+    if (!idx) return;
+    var list = (idx["dcat:dataset"] || []).map(function (a) {
+      return { id: a["schema:identifier"], name: a["schema:name"], kappa: a["@id"], kw: [].concat(a["schema:keywords"] || [], a["holo:categories"] || [], a["schema:applicationCategory"] || []).join(" ").toLowerCase(), landing: String(a["dcat:landingPage"] || "").replace(/^apps\//, "../../../apps/") };
+    }).filter(function (a) { return a.id && a.landing; });
+    if (list.length) {
+      apps = orderApps(list); renderApps();
+      // RE-PERSONALIZE once your profile is ready: the catalog fetch + the encrypted-memory load + distill are
+      // all async and may finish after this. Poll briefly for profile terms (race-proof; the holo-memory-ready
+      // event can fire before this handler exists), then re-pick + re-render. Stops as soon as it applies, or
+      // after a few seconds for a fresh user with no profile yet. 100% local, fail-soft.
+      var _pt = 0, _piv = setInterval(function () {
+        var terms = []; try { terms = (window.HoloProfile && window.HoloProfile.terms && window.HoloProfile.terms()) || []; } catch (e) {}
+        if (terms.length) { apps = orderApps(list); renderApps(); renderFamiliar(); clearInterval(_piv); }
+        else if (++_pt > 24) clearInterval(_piv);
+      }, 250);
+    }
+  }).catch(function () {});
+
+  // ── Settings ────────────────────────────────────────────────────────────────────────────────
+  var FKEY = "holo.focus.v1";
+  function readFocus() { try { return Object.assign({ ask: true, mins: 10 }, JSON.parse(localStorage.getItem(FKEY) || "{}")); } catch (e) { return { ask: true, mins: 10 }; } }
+  function writeFocus(f) { try { localStorage.setItem(FKEY, JSON.stringify(f)); } catch (e) {} }
+
+  function syncSettings() {
+    var s = readTheme(), mode = curMode(s), f = readFocus();
+    document.querySelectorAll("#set-mode button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.mode === mode)); });
+    $("grp-wall").hidden = mode !== "immersive";
+    $("sw-focus").setAttribute("aria-checked", String(!!f.ask));
+    $("def-mins").textContent = f.mins ? f.mins + " min" : "No limit";
+    document.querySelectorAll("#set-default button").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.min === f.mins)); });
+    var sw = $("sw-wake"); if (sw) sw.setAttribute("aria-checked", String(wakeEnabled()));
+    var ts = $("set-text"); if (ts && !ts._init) { ts.value = String(s.fontScale || 1); ts._init = 1; }
+  }
+  document.querySelectorAll("#set-mode button").forEach(function (b) { b.addEventListener("click", function () { applyMode(b.dataset.mode); }); });
+  document.querySelectorAll("#set-default button").forEach(function (b) { b.addEventListener("click", function () { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); syncSettings(); }); });
+  $("sw-focus").addEventListener("click", function () { var f = readFocus(); f.ask = !f.ask; writeFocus(f); syncSettings(); });
+  $("sw-wake").addEventListener("click", function () { var on = !wakeEnabled(); setWakeEnabled(on); syncSettings(); if (on) wakeStart(); else wakeStop(); });
+  if (wakeEnabled()) setTimeout(wakeStart, 800);   // re-arm the wake word on load if the operator left it on
+  $("set-text").addEventListener("input", function () {
+    var s = readTheme(); s.fontScale = parseFloat(this.value); writeTheme(s);
+    try { if (window.HoloTheme) window.HoloTheme.setFontScale(s.fontScale); } catch (e) {}
+  });
+  // wallpaper picker
+  (function () {
+    var host = $("walls");
+    WALLPAPERS.forEach(function (w) {
+      var b = document.createElement("button"); b.type = "button"; b.title = w.id;
+      b.style.backgroundImage = 'url("' + w.url + '")';
+      b.addEventListener("click", function () {
+        var s = readTheme(); s.wallpaper = w.url; s.immersive = true; writeTheme(s); paintTheme(s);
+        try { if (window.HoloTheme) { window.HoloTheme.setWallpaper(w.url); window.HoloTheme.setImmersive(true); } } catch (e) {}
+        document.querySelectorAll("#walls button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      });
+      host.appendChild(b);
+    });
+  })();
+
+  // ── Focus timer → open the app ────────────────────────────────────────────────────────────────
+  var pendingApp = null, countdownTimer = null;
+  function promptOpen(a) {
+    var f = readFocus();
+    if (!f.ask) { openApp(a, f.mins || 0); return; }
+    pendingApp = a;
+    $("timer-ask").textContent = "How much time do you want to spend on " + (a.name || "this") + " now?";
+    var orb = $("timer-orb"); orb.innerHTML = '<img alt="" src="' + iconFor(a) + '" onerror="this.remove()"/>' + initials(a.name);
+    $("mins-more").classList.remove("on"); $("timer-expand").classList.remove("on");
+    openSheet($("timer"));
+  }
+  // W4 (mobile intent door): launch an app BY NAME for the shared intent classifier — "open music" → Music.
+  // Exposed on window so the Q-input scope can reach it; returns true iff an app launched. Same κ-native
+  // openApp path (promptOpen → holospace.html?app=κ); no new launch logic, just a name→app match.
+  if (typeof window !== "undefined") window.__homeLaunch = function (name) {
+    var t = String(name || "").trim().toLowerCase(); if (!t) return false;
+    var app = (apps || []).filter(Boolean).find(function (a) {
+      return (a.name || "").toLowerCase() === t || (a.id || "").toLowerCase() === t
+          || (a.name || "").toLowerCase().indexOf(t) >= 0 || (a.id || "").toLowerCase().indexOf(t) >= 0; });
+    if (!app) return false; promptOpen(app); return true;
+  };
+  $("timer-expand").addEventListener("click", function () { $("mins-more").classList.toggle("on"); this.classList.toggle("on"); });
+  document.querySelectorAll("#mins-quick button, #mins-more button").forEach(function (b) {
+    b.addEventListener("click", function () { if (pendingApp) { var f = readFocus(); f.mins = +b.dataset.min; writeFocus(f); openApp(pendingApp, +b.dataset.min); } });
+  });
+
+  // S0 (HOLO-HOLOSPACE-STACK) — THE ONE DOOR every app-open routes through (L-ONE-DOOR). A κ-app mounts through
+  // holospace.html, which sandboxes it in its own isolated realm (fail-closed caps); a rendered block goes through
+  // R0's srcdoc sandbox (window.HoloRender). No app is EVER loaded into the home realm or a bare iframe. Audited.
+  function mountHolospace(ref, host) {
+    if (!host || ref == null) return false;
+    host.setAttribute("referrerpolicy", "no-referrer");
+    host.src = "../../../holospace.html?app=" + encodeURIComponent(ref) + "&bare=1";
+    return true;
+  }
+  if (typeof window !== "undefined") window.HoloSpaceMount = mountHolospace;   // the single audited choke point
+  // M1 — premium open: reveal the app surface via a same-doc View Transition (crossfade), feature-detected +
+  // reduce-motion-safe; instant everywhere it's unsupported. 150–300ms class of motion (L-MOTION).
+  function _withVT(fn) {
+    try { if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) { document.startViewTransition(fn); return; } } catch (e) {}
+    fn();
+  }
+  // ── S1 (HOLO-HOLOSPACE-STACK) — the holospace STACK. Every app opens as its OWN sandboxed surface pushed onto
+  //    a back-stack; only the TOP is rendered (the ones beneath PARK — content-visibility:hidden: state kept, not
+  //    composited); pop tears the top down and reveals the one beneath (L-TEARDOWN). Back button, edge swipe-back
+  //    and the OS back button each pop one level. An app may open a child κ (postMessage "holo:open") → same stack.
+  var appStack = [], STACK_MAX = 5, _ignoreNextPop = false;
+  var _clockSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function stackTop() { return appStack[appStack.length - 1] || null; }
+  function paintTimer() {
+    var t = stackTop(), left = $("app-left"); if (!left) return;
+    if (!t || !t.end) { left.className = "left"; left.innerHTML = ""; return; }
+    var ms = t.end - Date.now();
+    if (ms <= 0) { left.className = "left warn"; left.innerHTML = _clockSvg + "time's up"; if (!t._nudged) { t._nudged = true; showNudge({ name: t.name }); } return; }
+    var s = Math.ceil(ms / 1000), mm = Math.floor(s / 60), ss = s % 60;
+    left.className = "left" + (ms < 60000 ? " warn" : ""); left.innerHTML = _clockSvg + mm + ":" + pad(ss) + " left";
+  }
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(paintTimer, 1000);   // ONE interval paints the top surface's timer
+  function stackSync() {
+    for (var i = 0; i < appStack.length; i++) {
+      var e = appStack[i], top = (i === appStack.length - 1);
+      e.frame.classList.toggle("parked", !top);   // only the top renders; the rest are parked (state kept)
+      if (!top && (appStack.length - 1 - i) >= STACK_MAX && !e.freed) { try { e.frame.src = "about:blank"; e.freed = true; } catch (er) {} }
+    }
+    var t = stackTop(); $("app-title").textContent = t ? (t.name || "") : "";
+    paintTimer();
+  }
+  function stackPush(a, mins) {
+    closeSheets();
+    var ref = a.kappa || a.id, name = a.name || a.id;
+    var frame = document.createElement("iframe"); frame.className = "app-frame"; frame.setAttribute("title", name); frame.setAttribute("referrerpolicy", "no-referrer");
+    mountHolospace(ref, frame);                    // S0: the one door — holospace.html sandboxes each surface
+    $("app-frames").appendChild(frame);
+    appStack.push({ ref: ref, name: name, frame: frame, end: mins ? Date.now() + mins * 60000 : 0 });
+    try { history.pushState({ holoDepth: appStack.length }, ""); } catch (e) {}
+    // guard the async View-Transition callback: if a fast pop emptied the stack before it runs, stay closed
+    _withVT(function () { if (!appStack.length) { $("appview").classList.remove("on"); return; } $("appview").classList.add("on"); stackSync(); });
+  }
+  function stackPop() {
+    var e = appStack.pop(); if (!e) return false;
+    try { e.frame.src = "about:blank"; } catch (er) {}
+    try { e.frame.remove(); } catch (er) {}        // L-TEARDOWN: the popped surface is freed, not parked
+    if (!appStack.length) { $("appview").classList.remove("on"); $("nudge").classList.remove("on"); }
+    else stackSync();
+    return true;
+  }
+  function userPop() {                              // person tapped back / swiped / finished → pop + consume history
+    if (!appStack.length) return;
+    stackPop();
+    try { _ignoreNextPop = true; history.back(); } catch (e) { _ignoreNextPop = false; }
+  }
+  window.addEventListener("popstate", function () {
+    if (_ignoreNextPop) { _ignoreNextPop = false; return; }   // our own userPop's history.back — already popped
+    if (appStack.length) stackPop();                          // real OS back → pop one level
+  });
+  // an app may open a child κ — ONLY messages from our OWN mounted holospaces are honoured (a sandboxed capability).
+  window.addEventListener("message", function (e) {
+    try {
+      var d = e.data || {}; if (!d || (d.type !== "holo:open" && d.type !== "holo-open")) return;
+      var ref = d.ref || d.kappa || d.app; if (!ref) return;
+      if (!appStack.some(function (x) { return x.frame && x.frame.contentWindow === e.source; })) return;
+      stackPush({ kappa: ref, id: ref, name: d.name || "App" });
+    } catch (er) {}
+  });
+  function openApp(a, mins) { stackPush(a, mins); }   // every open = a push onto the stack
+  function showNudge(a) {
+    var n = $("nudge");
+    $("nudge-msg").textContent = "Your time on " + (a.name || "this app") + " is up.";
+    n.classList.add("on");
+    try { if (navigator.vibrate) navigator.vibrate([40, 60, 40]); } catch (e) {}
+  }
+  $("nudge-stay").addEventListener("click", function () { var t = stackTop(); if (t) { t.end = Date.now() + 5 * 60000; t._nudged = false; } $("nudge").classList.remove("on"); paintTimer(); });
+  $("nudge-done").addEventListener("click", function () { $("nudge").classList.remove("on"); userPop(); });
+  function backHome() { while (appStack.length) stackPop(); $("appview").classList.remove("on"); $("nudge").classList.remove("on"); }
+  $("app-back").addEventListener("click", userPop);
+  // S2 (HOLO-HOLOSPACE-STACK) — edge swipe-back: drag from the left edge to leave the app; past a threshold it
+  // closes (View-Transition class of motion + a soft haptic), else it springs back. The thin edge strip captures
+  // the gesture above the app iframe. Reduce-motion → an instant close, no drag.
+  (function () {
+    var view = $("appview"), edge = $("app-edge"); if (!view || !edge) return;
+    var reduce = function () { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+    var x0 = 0, dx = 0, dragging = false;
+    function setT(t) { view.style.transition = t; }
+    edge.addEventListener("pointerdown", function (e) {
+      if (!view.classList.contains("on")) return;
+      dragging = true; x0 = e.clientX; dx = 0; setT("none");
+      try { edge.setPointerCapture(e.pointerId); } catch (er) {}
+    });
+    edge.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      dx = Math.max(0, e.clientX - x0);
+      view.style.transform = "translateX(" + dx + "px)";
+      view.style.opacity = String(Math.max(.55, 1 - dx / (window.innerWidth * 1.5)));
+    });
+    function settle() {
+      if (!dragging) return; dragging = false;
+      var over = dx > Math.min(120, window.innerWidth * 0.3);
+      var clear = function () { setT(""); view.style.transform = ""; view.style.opacity = ""; };
+      if (over) {
+        try { if (navigator.vibrate) navigator.vibrate(8); } catch (er) {}   // L-HAPTIC: one tick on the pop
+        if (reduce()) { userPop(); clear(); return; }
+        setT("transform .19s var(--ease), opacity .19s var(--ease)");
+        view.style.transform = "translateX(100%)"; view.style.opacity = "0";
+        setTimeout(function () { userPop(); clear(); }, 185);
+      } else {
+        setT("transform .2s var(--ease), opacity .2s var(--ease)");
+        view.style.transform = ""; view.style.opacity = "";
+        setTimeout(function () { setT(""); }, 220);
+      }
+    }
+    edge.addEventListener("pointerup", settle);
+    edge.addEventListener("pointercancel", settle);
+  })();
+
+  syncSettings();
+})();
+</script>
+<!-- Decentralized boot + autonomous self-heal (ADR-0076 · decentralized-boot delta A): the mobile home
+     is the persistent session, so it carries the same #<root-CID> cold-boot + IPFS/mesh recovery the
+     desktop shell does. Re-derives every recovered byte (Law L5); the sealed anchor is never auto-healed.
+     Guarded — can never break boot. -->
+<script type="module" src="../../../holo-heal-boot.mjs"></script>
+<!-- Self-evolving personalization on the phone home: bind your encrypted memory + the profile seam so the
+     mobile launcher (orderApps) floats the apps you actually use to the top — the SAME magic as the desktop launcher,
+     off the SAME window.HoloProfile seam. 100% local; memory is AES-GCM at rest; nothing egresses. -->
+<script type="module" src="../../../_shared/holo-memory.mjs"></script>
+<script type="module" src="../../../_shared/holo-profile-context.mjs"></script>
+<script type="module" src="../../../_shared/holo-learning.mjs"></script>
+<!-- HOLO-INTENT-RENDER R0 — the block runtime: seal a self-contained block to a κ and mount it SANDBOXED.
+     window.HoloRender.open(name|html) renders it full-screen; the compose/intent door calls this too. -->
+<script type="module">
+  import { sealBlock, verifyBlock, mountBlock, mountKappa, putBlock, getBlock, LIBRARY, libNames } from "../../../_shared/holo-render-block.mjs";
+  var current = null;
+  function ensureOverlay() {
+    var o = document.getElementById("holo-renderview");
+    if (o) return o;
+    o = document.createElement("div"); o.id = "holo-renderview";
+    o.innerHTML = '<div class="rv-bar"><button class="rv-back" type="button" aria-label="Back to home">‹ Back</button><span class="rv-title"></span></div><div class="rv-host"></div>';
+    document.body.appendChild(o);
+    o.querySelector(".rv-back").addEventListener("click", closeRender);
+    return o;
+  }
+  function closeRender() {
+    if (current) { try { current.destroy(); } catch (e) {} current = null; }
+    var o = document.getElementById("holo-renderview"); if (o) o.classList.remove("on");
+  }
+  async function open(nameOrHtml, opts) {
+    opts = opts || {};
+    var isLib = LIBRARY[nameOrHtml] != null;
+    var html = isLib ? LIBRARY[nameOrHtml] : String(nameOrHtml || "");
+    var name = opts.name || (isLib ? (nameOrHtml.charAt(0).toUpperCase() + nameOrHtml.slice(1)) : "Rendered");
+    if (current) closeRender();
+    var o = ensureOverlay(); o.querySelector(".rv-title").textContent = name;
+    var host = o.querySelector(".rv-host"); host.innerHTML = "";
+    current = mountBlock(html, host, { name: name, grant: opts.grant });   // L-SANDBOX: allow-scripts only
+    o.classList.add("on");
+    try { await putBlock(html); } catch (e) {}   // seal + persist so it can relaunch / share by κ
+    return current.kappa;
+  }
+  window.HoloRender = { sealBlock: sealBlock, verifyBlock: verifyBlock, mountBlock: mountBlock, mountKappa: mountKappa, putBlock: putBlock, getBlock: getBlock, open: open, close: closeRender, LIBRARY: LIBRARY, libNames: libNames };
+</script>
+<!-- Boot gate: opaque cover shown until the boot ceremony + sign-in take over (or a session already exists) -->
+<div id="boot-cover" aria-hidden="true"></div>
+<!-- Calm mode: pointer-through backdrop veil that desaturates the whole phone (see .holo-calm-veil) -->
+<div class="holo-calm-veil" aria-hidden="true"></div>
+</body>
+</html>

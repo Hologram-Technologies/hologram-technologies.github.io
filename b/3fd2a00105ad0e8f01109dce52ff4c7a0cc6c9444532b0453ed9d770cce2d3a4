@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HOLOGRAM</title>
+<style>html,body{margin:0;height:100%;background:#101010;color:#eee;font:15px/1.5 system-ui,sans-serif}
+.boot{display:grid;place-items:center;height:100%;text-align:center;gap:.6rem}
+.boot small{color:#888}.boot b{font-size:1.1rem;font-weight:700}</style>
+<script>
+// The κ-Jellyfin wrapper (SHIP D1/D2/D3): register OUR Service Worker at THIS app's scope
+// (/Q/apps/jellyfin/ live · / in the harness) — it becomes the media server — then hand off to
+// jellyfin-web. Evict any foreign SW (jellyfin-web ships its own PWA worker at /web/ that would hijack
+// the scope). The built SW is a CLASSIC script (Firefox has no module SWs; evicted imports 404) — so no
+// { type:"module" } here. Same-origin only; degrades to a message if SWs are unavailable.
+(function () {
+  var base = location.pathname.replace(/index\.html$/, "");          // this app's root = the SW scope
+  var swUrl = base + "holo-jellyfin-sw.js";
+  var mine = function (u) { return /holo-jellyfin-sw/.test(u || ""); };
+  function fail(m) { document.title = "SW FAILED: " + m; var e = document.getElementById("msg"); if (e) e.textContent = "Couldn’t start the media server: " + m; }
+  if (!("serviceWorker" in navigator)) { return fail("this browser has no Service Workers"); }
+  var ctl = navigator.serviceWorker.controller;
+  if (ctl && mine(ctl.scriptURL)) { location.replace(base + "web/index.html"); return; }   // already ours → go
+  navigator.serviceWorker.getRegistrations()
+    .then(function (rs) { return Promise.all(rs.filter(function (r) { return !mine(r.active && r.active.scriptURL); }).map(function (r) { return r.unregister(); })); })
+    .then(function () { return navigator.serviceWorker.register(swUrl, { scope: base }); })
+    .then(function (reg) {
+      var go = function () { location.replace(base + "web/index.html"); };
+      if (reg.active && navigator.serviceWorker.controller) return go();
+      navigator.serviceWorker.addEventListener("controllerchange", go);
+      var w = reg.installing || reg.waiting || reg.active;
+      if (w) w.addEventListener("statechange", function (e) { if (e.target.state === "activated") setTimeout(go, 60); });
+      setTimeout(go, 2500);                                           // belt-and-braces: control usually lands < 1s
+    })
+    .catch(function (e) { fail(e && e.message || String(e)); });
+})();
+</script></head>
+<body><div class="boot"><b>HOLOGRAM</b><small id="msg">Starting your media server…</small></div></body></html>

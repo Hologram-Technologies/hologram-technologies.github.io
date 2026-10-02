@@ -1,10 +1,88 @@
 <!doctype html>
-<meta charset="utf-8">
-<title>Not found</title>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HOLOGRAM</title>
+<style>html,body{height:100%;margin:0;background:#1f1f1e;color:#e8e6e3;font:14px/1.5 system-ui,sans-serif}
+.c{height:100%;display:grid;place-items:center;text-align:center}.m{opacity:.7;letter-spacing:.02em}
+.r{display:none;margin-top:12px;padding:8px 18px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.06);color:#e8e6e3;font:inherit;cursor:pointer}
+.r:hover{background:rgba(255,255,255,.11)}</style>
+</head><body><div class="c"><div><div class="m" id="m">opening&hellip;</div><button class="r" id="r">Try again</button></div></div>
 <script>
-  // The Q repo was renamed to hologram-os; forward old /Q/ deep links.
-  var m = location.pathname.match(/^\/Q(\/.*)?$/i);
-  if (m) location.replace("/hologram-os" + (m[1] || "/") + location.search + location.hash);
-</script>
-<h1>404</h1>
-<p>File not found. <a href="/">Go to Hologram</a></p>
+/* HOLO-404-SELFHEAL v2 — the fall-through page when the rescue worker misses an evicted path.
+   Laws: (1) NEVER boot the OS inside an app iframe — a nested login screen inside Holo TV is worse
+   than an honest retry chip; (2) the landing count EXPIRES — a sticky sessionStorage "tried" once
+   sent every later click straight Home (the "TV opens the login screen" bug); (3) a second landing
+   on a provably-rescuable path replaces the registration wholesale (unregister + clear caches;
+   identity in localStorage/IndexedDB untouched) — a wedged or stale worker must never outlive the
+   click that exposed it. */
+(async () => {
+  // The Q repo was renamed to hologram-os; forward old /Q/ deep links there.
+  const q = location.pathname.match(/^\/Q(\/.*)?$/i);
+  if (q) return location.replace("/hologram-os" + (q[1] || "/") + location.search + location.hash);
+  const SITE = "/";
+  const key = "holo404:" + location.pathname + location.search;
+  const framed = (() => { try { return window.top !== window.self; } catch { return true; } })();
+  const msg = (t) => { const el = document.getElementById("m"); if (el) el.textContent = t; };
+  const rest = (why) => {            // the honest end state: Home at top level, a retry chip in a frame
+    if (!framed) return location.replace(SITE);
+    try { parent.postMessage({ type: "holo-app-404", path: location.pathname, why: why || "" }, "*"); } catch {}
+    msg("this app couldn’t open");
+    const b = document.getElementById("r");
+    if (b) { b.style.display = "inline-block"; b.onclick = () => { try { sessionStorage.removeItem(key); } catch {} location.reload(); }; }
+  };
+  let tried = 0;
+  try { const v = (sessionStorage.getItem(key) || "").split(":"); if (Date.now() - (+v[1] || 0) < 120000) tried = +v[0] || 0; } catch {}
+  if (!("serviceWorker" in navigator)) return rest("no-sw");
+  try { sessionStorage.setItem(key, (tried + 1) + ":" + Date.now()); } catch {}
+  const registerRoot = () => navigator.serviceWorker.register(SITE + "root-sw.js", { type: "module", scope: SITE })
+    .catch(() => navigator.serviceWorker.register(SITE + "root-sw-classic.js", { scope: SITE }));
+  const settle = async (reg) => {
+    const sw = (reg && (reg.installing || reg.waiting || reg.active)) || null;
+    if (!sw) return false;
+    if (sw.state !== "activated")
+      await Promise.race([
+        new Promise((r) => sw.addEventListener("statechange", () => sw.state === "activated" && r(1))),
+        new Promise((r) => setTimeout(r, 8000)),
+      ]);
+    return true;
+  };
+  try {
+    if (tried === 0) {
+      // first landing: ensure the worker exists AND is CURRENT — register() alone hands back a stale
+      // registration untouched; update() pulls fresh main-script bytes (the seal stamps them per module
+      // graph), so a superseded worker is replaced right here before the retry.
+      const reg = await registerRoot();
+      if (!reg) return rest("no-reg");
+      try { await Promise.race([reg.update(), new Promise((r) => setTimeout(r, 6000))]); } catch {}
+      if (!(await settle(reg))) return rest("no-worker");
+      return location.reload();      // controlled navigation now — the rescuer serves this path
+    }
+    if (tried === 1) {
+      // second landing: the worker missed a path its rescue map says it MUST serve → the registration
+      // itself is broken (wedged instance / stale graph / classic fallback without rescue). Prove the
+      // path is rescuable, then replace the registration wholesale. A HUNG map fetch is itself proof
+      // of a wedged worker (the 5s collar treats it as rescuable).
+      const ap = location.pathname.match(/\/apps\/([^/]+)\/(.*)$/);
+      let rescuable = false;
+      if (ap) {
+        const rel = ((ap[2] || "index.html").split("?")[0] || "index.html").replace(/\/$/, "");
+        let j = null;
+        try {
+          j = await Promise.race([
+            fetch(SITE + "apps/" + ap[1] + "/holo-evicted.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)),
+            new Promise((r) => setTimeout(() => r("wedged"), 5000)),
+          ]);
+        } catch {}
+        rescuable = j === "wedged" || !!(j && j.files && (j.files[rel] || j.files[rel + "/index.html"]));
+      }
+      if (!rescuable) return rest("not-rescuable");
+      msg("healing…");
+      try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch {}
+      try { for (const k of await caches.keys()) await caches.delete(k); } catch {}
+      await settle(await registerRoot());
+      return location.reload();
+    }
+    rest("exhausted");
+  } catch { rest("error"); }
+})();
+</script></body></html>

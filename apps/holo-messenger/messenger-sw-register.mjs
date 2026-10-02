@@ -32,7 +32,7 @@
     } catch {}
     // Module-relative registration: resolves to /apps/holo-messenger/ at the OS root and to <base>/apps/holo-messenger/
     // on a mounted static host (e.g. GitHub Pages /<repo>/) — one registrar, every mount point.
-    await navigator.serviceWorker.register(new URL("./holo-sw.js", import.meta.url), { type: "module", scope: new URL("./", import.meta.url).pathname });
+    await navigator.serviceWorker.register(new URL("./holo-sw.js", import.meta.url), { type: "module", updateViaCache: "none", scope: new URL("./", import.meta.url).pathname }).then((r) => { try { r && r.update(); } catch {} return r; });
     console.log("[msgr-sw] one worker active (push + shell cache) — repeat opens serve the shell network-free");
     // S3: verify the SIGNED release pointer off the critical path — the standing trust bar for the worker
     // (what an #m1 link used to grant, now on every open). Fail-soft here; fail-closed inside the module.

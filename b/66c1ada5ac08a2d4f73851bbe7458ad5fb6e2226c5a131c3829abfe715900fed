@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Encoded</title>
+<style>
+  :root{--bg:#0d1117;--fg:#e6edf3;--dim:#8b949e;--line:rgba(255,255,255,.09);--accent:#7c9cff}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       display:grid;place-items:center;padding:28px;color-scheme:dark}
+  main{max-width:560px;width:100%}
+  .tag{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  h1{font-size:40px;line-height:1.1;margin:.35em 0 .5em;font-weight:650;letter-spacing:-.01em}
+  p{margin:0 0 1.1em;color:var(--fg)}
+  .dim{color:var(--dim)}
+  ul{list-style:none;padding:0;margin:1.4em 0;border-top:1px solid var(--line)}
+  li{display:flex;gap:14px;padding:14px 2px;border-bottom:1px solid var(--line);align-items:baseline}
+  li b{font-weight:600;min-width:104px;color:var(--fg)}
+  li span{color:var(--dim)}
+  code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);word-break:break-all}
+  .k{margin-top:1.8em;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:rgba(124,156,255,.05)}
+  .k .lbl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .k code{display:block;margin-top:6px}
+</style></head>
+<body><main>
+  <div class="tag">Universal encoder · first light</div>
+  <h1>Hello. I'm an encoded experience.</h1>
+  <p>I was published by one command. I don't live on a server — I'm an <b>object addressed by what I am</b>,
+     streamed to your browser and checked against my own fingerprint before a single pixel drew. If my bytes
+     didn't match, you'd see nothing.</p>
+  <ul>
+    <li><b>Encoded</b><span>a folder became one verifiable address</span></li>
+    <li><b>Streamed</b><span>my bytes arrive on demand from the content store, never a host</span></li>
+    <li><b>Verified</b><span>re-derived to my fingerprint on arrival — trust the math, not the source</span></li>
+    <li><b>Isolated</b><span>I run in my own space; I can't touch anything else</span></li>
+    <li><b>Current</b><span>the engine beneath me updates upstream — I inherit it for free</span></li>
+  </ul>
+  <p class="dim">This is the whole idea, in one page: everything is a verifiable object.</p>
+  <div class="k"><span class="lbl">My address (BLAKE3)</span><code id="k">resolving…</code></div>
+</main>
+<script type="module">
+  // self-reference: read my own manifest and show the fingerprint of this very document — proof of content-addressing
+  try{
+    const m = await (await fetch(new URL('holo-evicted.json', location.href), {cache:'no-store'})).json();
+    const k = (m.files && m.files['index.html']) || '(unpinned)';
+    document.getElementById('k').textContent = 'blake3:' + k;
+  }catch{ document.getElementById('k').textContent = 'blake3:(resolve offline)'; }
+</script>
+</body></html>

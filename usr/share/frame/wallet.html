@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>My Wallet · Hologram</title>
+    <title>Wallet · Hologram</title>
     <meta name="description" content="Holo Wallet. One seed reaches every chain: Ethereum and every EVM network, Bitcoin, Solana. Self custodial, serverless, no password. Reads are open; every spend is approved by your biometrics on this device." />
-    <link rel="stylesheet" href="../../../_shared/holo-theme.css" data-holo-shared="holo-theme.css" />
-    <link rel="stylesheet" href="../../../_shared/holo-mobile.css" data-holo-shared="holo-mobile.css" />
+    <link rel="stylesheet" href="/.holo/sha256/c4414e9c61a6ae6b8c19145dddbbe24c68bea83784666434a94cf033b06cc483.css" data-holo-shared="holo-theme.css" />
+    <link rel="stylesheet" href="/.holo/sha256/b2bfa104b9ee8e3bb631dcd0ec0e6f7017b8898c4304666f5b3dfeeebc926eb9.css" data-holo-shared="holo-mobile.css" />
     <style>
       /* Holo Wallet — MetaMask exact, hologram native. The census, density and gestures match the
          MetaMask extension screen for screen (account pill → balance → Buy Swap Send Receive →
@@ -15,7 +15,7 @@
          no trusted explorer API — every spend's "what this does" is re-derived in THIS tab (Law L5)
          and stamped with a κ you can verify. Match the surface exactly; replace the root invisibly. */
       :root { color-scheme: dark;
-        --bg: #0d1117; --ink: #ffffff; --dim: #9aa4b2; --line: rgba(255,255,255,.07);   /* == the OS left nav rail (--holo-chrome): wallet and rail are ONE chrome, the seam disappears */
+        --bg: #1f1f1e; --ink: #ffffff; --dim: #9aa4b2; --line: transparent;   /* --bg == the OS left nav rail (--holo-chrome #1f1f1e): wallet and rail are ONE continuous chrome. --line transparent = NO divider lines, flat + immersive */
         --acc: var(--holo-accent); --acc-ink: #07101f; --acc2: color-mix(in srgb, var(--acc) 72%, var(--holo-ink));   /* --acc2 follows --acc so an ecosystem retint cascades */
         --good: var(--holo-ok); --bad: var(--holo-danger); --warn: var(--holo-warn);
         --surface: color-mix(in srgb, var(--holo-ink) 5%, transparent);
@@ -26,7 +26,7 @@
         /* type — bound to the Hologram-OS theme: the OS sans/mono families and the --holo-text ramp
            (16px floor, ADR-0057), so the whole wallet scales from the one --holo-font-scale lever and
            reads in the same voice as the shell. No sub-floor px/rem literals leak through. */
-        --font: var(--holo-font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+        --font: var(--font-ui, ui-sans-serif, -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif);
         --font-mono: var(--holo-font-mono, ui-monospace, "Cascadia Code", Menlo, Consolas, monospace);
         /* ONE type unit (--u, 16px floor per ADR-0057) on a φ scale, so the whole wallet reads at the
            OS desktop's size. Secondary text == body size (16px+); hierarchy comes from weight + colour,
@@ -286,11 +286,11 @@
   </head>
   <body>
     <div id="bar">
-      <span class="brand"><img class="mk-h" src="../icons/hologram-dark.svg" alt="Hologram" /> My Wallet</span>
+      <span class="brand"><img class="mk-h" src="../icons/hologram-dark.svg" alt="Hologram" /> Wallet</span>
       <span class="sp"></span>
       <button class="iconbtn hidden" id="settingsBtn" title="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <button class="iconbtn" id="fsBtn" title="Fullscreen (f)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
-      <button class="iconbtn" id="collapseBtn" title="Collapse panel" aria-label="Collapse panel" style="font-size:1.2rem; line-height:1">»</button>
+      <button class="iconbtn" id="collapseBtn" title="Close" aria-label="Close panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
 
     <main>
@@ -454,7 +454,7 @@
     </div>
 
     <div class="sheet" id="sheet-bridge"><div class="grab"></div>
-      <div class="head"><h2>Bridge</h2><span class="pill">USD₮0 · LayerZero</span><button class="iconbtn sheet-x" title="Close" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="head"><h2>Bridge</h2><span class="pill">USD₮0 on LayerZero</span><button class="iconbtn sheet-x" title="Close" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
       <label>From</label><select id="bridgeSrc" disabled><option value="arbitrum">Arbitrum</option></select>
       <label>To</label><select id="bridgeDst"></select>
       <label>Amount (USD₮0)</label><input id="bridgeAmt" inputmode="decimal" placeholder="0.0" />
@@ -514,15 +514,15 @@
 
     <div class="toast" id="toast"></div>
 
-    <script src="../../../_shared/teleport.js" data-holo-shared="teleport.js" defer></script>
+    <script src="/.holo/sha256/a0ebbc696bda5154727b76b42c11921231cbc652de3e705dd6b632456e6f34aa.js" data-holo-shared="teleport.js" defer></script>
     <script type="module">
-      import { HoloWallet, CHAINS, deriveAddress, history, priceUsd } from "../../../_shared/holo-wdk.js";
-      import { quote as jupQuote, MINTS } from "../../../_shared/holo-jupiter.js";
-      import { qrSvg } from "../../../_shared/btc-wallet/wallet.js";
-      import * as login from "../../../_shared/holo-login.mjs";
-      import { teeAvailable, teeAssert, teeEnroll } from "../../../_shared/holo-webauthn.mjs";
-      import { attachWindowSeam } from "../../../_shared/holo-wallet-resident.mjs";   // A1: the seam's answerer is RESIDENT now; this window defers to it
-      import { handleIntent, makeApprovals } from "../../../_shared/holo-intent-router.mjs";   // A2: chains disappear — intent → ONE card → bound legs
+      import { HoloWallet, CHAINS, deriveAddress, history, priceUsd } from "/_shared/holo-wdk.js";
+      import { quote as jupQuote, MINTS } from "/_shared/holo-jupiter.js";
+      import { qrSvg } from "/_shared/btc-wallet/wallet.js";
+      import * as login from "/_shared/holo-login.mjs";
+      import { teeAvailable, teeAssert, teeEnroll } from "/_shared/holo-webauthn.mjs";
+      import { attachWindowSeam } from "/_shared/holo-wallet-resident.mjs";   // A1: the seam's answerer is RESIDENT now; this window defers to it
+      import { handleIntent, makeApprovals } from "/_shared/holo-intent-router.mjs";   // A2: chains disappear — intent → ONE card → bound legs
 
       // Solana spot tokens for the Swap sheet (the live Jupiter Swidge provider).
       const TOKENS = {
@@ -628,7 +628,7 @@
         try {
           const op = currentOp || (typeof HoloSession !== "undefined" && HoloSession.signedInOperator && HoloSession.signedInOperator());
           if (!op || !op.kappa) { toast("no signed-in operator to authorise this"); return closeGate(false); }
-          const { enforce } = await import("../../../_shared/holo-stepup-gate.mjs");
+          const { enforce } = await import("/_shared/holo-stepup-gate.mjs");
           const action = { kind: "wallet." + (req.type || "send"), appId: "org.hologram.HoloWallet", operator: op.kappa,
             reason: ($("appPlain").textContent || "Confirm this wallet action").trim(),
             payload: { type: req.type || "send", chain: req.chain || null, to: req.to || null, amount: req.amount != null ? String(req.amount) : null, token: req.token || null, inputMint: req.inputMint || null, outputMint: req.outputMint || null, srcToken: req.srcToken || null, destToken: req.destToken || null, typedData: req.typedData || null, message: req.message || null, kappa: req.kappaBound || null } };
@@ -647,7 +647,7 @@
       //    the two reads never gate. holo-htlc.js drives a raw account, so we gate HERE. Live only where a HoloHTLC
       //    address is configured in the artifact (empty today → htlcConfigured false → callers stay custodial). ──
       let _htlcArt = null;
-      const htlcArt = async () => (_htlcArt ||= await fetch("../../../_shared/holo-htlc-artifact.json").then((r) => r.json()).catch(() => ({ addresses: {}, tokens: {} })));
+      const htlcArt = async () => (_htlcArt ||= await fetch("/_shared/holo-htlc-artifact.json").then((r) => r.json()).catch(() => ({ addresses: {}, tokens: {} })));
       const htlcToken = (asset, chain, art) => { const t = art?.tokens?.[chain]?.[asset]; if (t) return { addr: t.addr, decimals: t.decimals }; if (!asset || asset === CHAINS[chain]?.symbol) return { addr: null, decimals: CHAINS[chain]?.decimals || 18 }; return { addr: null, decimals: 6 }; };
 
       // ── ADOPT SESSION ── when hosted by an app that has ALREADY authenticated this session (the messenger's
@@ -731,7 +731,7 @@
         (async () => {
           try {
             if (!hi || !hi.operator) return;
-            const { resolvePortrait } = await import("../../../_shared/holo-portrait.mjs");
+            const { resolvePortrait } = await import("/_shared/holo-portrait.mjs");
             const p = await resolvePortrait({ operator: hi.operator, guest: !!hi.guest });
             if (p) $("acctAv").innerHTML = `<img src="${p.url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
           } catch {}
@@ -998,7 +998,7 @@
       let lastBridge = null;
       async function fillBridgeDst() {
         try {
-          const { USDT0 } = await import("../../../_shared/holo-bridge.mjs");
+          const { USDT0 } = await import("/_shared/holo-bridge.mjs");
           const dsts = Object.keys(USDT0).filter((k) => k !== "arbitrum");
           $("bridgeDst").innerHTML = dsts.map((k) => `<option value="${k}">${esc(CHAINS[k]?.name || k)}</option>`).join("");
         } catch { $("bridgeDst").innerHTML = ""; $("bridgeOut").textContent = "Bridging is unavailable here."; }
@@ -1051,7 +1051,7 @@
         if (banksMounted || !(currentOp && currentOp.kappa)) return;
         banksMounted = true;
         try {
-          const mod = await import("../../../_shared/holo-bank.mjs");
+          const mod = await import("/_shared/holo-bank.mjs");
           // if the local bank proxy is running + configured, banks go LIVE (real GoCardless); else demo data.
           let aggregator;
           try {
@@ -1169,7 +1169,7 @@
           const { credentialId, secret } = await teeEnroll({ name: "Hologram" });
           const { principal } = await login.enroll({ label: "operator", secret, cred: credentialId });
           // sign in to Hologram OS — persist the verifiable session token (best-effort; never blocks the wallet)
-          try { const { openSession, persistSession } = await import("../../../_shared/holo-identity.mjs"); await persistSession(await openSession(principal, { session: "primeos" }), secret); } catch {}
+          try { const { openSession, persistSession } = await import("/_shared/holo-identity.mjs"); await persistSession(await openSession(principal, { session: "primeos" }), secret); } catch {}
           currentOp = await login.currentOperator().catch(() => null);
           await wallet.openSeed(await login.unlockSeed(principal.kappa, secret));
           await enterWallet();
@@ -1208,7 +1208,7 @@
       async function signInOS(kappa, secret) {
         try {
           const principal = await login.unlock(kappa, secret);
-          const { openSession, persistSession } = await import("../../../_shared/holo-identity.mjs");
+          const { openSession, persistSession } = await import("/_shared/holo-identity.mjs");
           await persistSession(await openSession(principal, { session: "primeos" }), secret);
           try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "holo-identity", action: "session-refreshed" }, location.origin); } catch {}
         } catch {}
@@ -1265,7 +1265,7 @@
         },
       };
       async function intentCtx() {
-        if (!intentQuotes.usdt0) { try { intentQuotes.usdt0 = (await import("../../../_shared/holo-bridge.mjs")).USDT0; } catch { intentQuotes.usdt0 = {}; } }
+        if (!intentQuotes.usdt0) { try { intentQuotes.usdt0 = (await import("/_shared/holo-bridge.mjs")).USDT0; } catch { intentQuotes.usdt0 = {}; } }
         if (!Object.keys(prices).length) await loadPrices();
         if (!Object.keys(addresses).length) { try { addresses = await wallet.addresses(0); } catch {} }
         return { wallet, gate, approvals: intentApprovals, portfolio: async () => ({ balances, addresses, prices }), quotes: intentQuotes };
@@ -1274,7 +1274,7 @@
       // ── OS-wide signing seam: gate + reply; record + honor the connected-sites block list ──
       async function handleSignRequest(d, reply, origin) {
         if (!d || d.type !== "holo-wallet:sign-request") return;
-        if (!wallet.unlocked) return reply({ error: "wallet locked — open My Wallet and unlock" });
+        if (!wallet.unlocked) return reply({ error: "wallet locked — open Wallet and unlock" });
         const req = d.request || {};
         // ── AGENT (NPC) DELEGATION: if a grant is attached, the agent must be authorised to even ASK —
         //    verify it (hybrid Ed25519 ‖ ML-DSA, re-derived κ, unexpired — Law L5), check it isn't revoked,
@@ -1283,7 +1283,7 @@
         agentCtx = null;
         if (req.delegation) {
           try {
-            const { authorizeRequest } = await import("../../../_shared/holo-delegate.mjs");
+            const { authorizeRequest } = await import("/_shared/holo-delegate.mjs");
             const owner = (currentOp && currentOp.kappa) || (req.delegation.issuer);
             let revoked = []; try { revoked = JSON.parse(localStorage.getItem("holo.revoked:" + owner) || "[]"); } catch {}
             const auth = authorizeRequest(req.delegation, { kind: req.kind, revoked, nowIso: new Date().toISOString() });
@@ -1291,7 +1291,7 @@
             agentCtx = auth.agent;
             // AGENT PASSPORT (display): does this agent hold a dual-rooted, TEE-attested passport, or a basic
             // grant? attestationOf re-derives the HARDWARE root offline (the substrate root was just verified).
-            try { const { attestationOf } = await import("../../../_shared/holo-delegate.mjs"); agentCtx.attest = await attestationOf(req.delegation); } catch {}
+            try { const { attestationOf } = await import("/_shared/holo-delegate.mjs"); agentCtx.attest = await attestationOf(req.delegation); } catch {}
           } catch (e) { return reply({ error: "agent delegation error: " + (e && e.message) }); }
         }
         // reads (address) never gate. The connected-sites block + log applies to everything else. The
@@ -1328,16 +1328,16 @@
           else if (req.kind === "aaSend") { const r = await wallet.aaSend({ chain: req.chain || "ethereum", to: req.to, value: req.value, data: req.data, salt: req.salt, deploy: req.deploy }); reply({ ok: true, ...r }); } // gated: signs the userOpHash
           else if (req.kind === "aa7702") { const r = await wallet.aa7702({ chain: req.chain || "ethereum", implAddress: req.implAddress }); reply({ ok: true, ...r }); } // gated: signs the EIP-7702 authorization
           // ── Holo Pay HTLC settlement ──
-          else if (req.kind === "htlcConfigured") { const art = await htlcArt(); const { htlcAddressFor } = await import("../../../_shared/holo-htlc.js"); reply({ ok: true, configured: !!htlcAddressFor(req.chain, art) }); }   // read
+          else if (req.kind === "htlcConfigured") { const art = await htlcArt(); const { htlcAddressFor } = await import("/_shared/holo-htlc.js"); reply({ ok: true, configured: !!htlcAddressFor(req.chain, art) }); }   // read
           else if (req.kind === "htlcSwapExists") {   // read: is a live swap on-chain for this hashlock? (recipient auto-discovery)
-            const art = await htlcArt(); const { htlcAddressFor, readSwap } = await import("../../../_shared/holo-htlc.js");
+            const art = await htlcArt(); const { htlcAddressFor, readSwap } = await import("/_shared/holo-htlc.js");
             const chains = req.chain ? [req.chain] : Object.keys(art.addresses || {}).filter((k) => htlcAddressFor(k, art));
             let found = null;
             for (const ch of chains) { const h = htlcAddressFor(ch, art); if (!h) continue; if ((await readSwap({ rpcUrl: CHAINS[ch]?.rpc, htlc: h, hashlock: req.hashlock })).found) { found = ch; break; } }
             reply({ ok: true, found: !!found, chain: found });
           }
           else if (req.kind === "htlcFund" || req.kind === "htlcClaim" || req.kind === "htlcRefund") {   // gated: value moves
-            const art = await htlcArt(); const chain = req.chain || "base"; const { htlcAddressFor, htlcFund, htlcClaim, htlcRefund } = await import("../../../_shared/holo-htlc.js");
+            const art = await htlcArt(); const chain = req.chain || "base"; const { htlcAddressFor, htlcFund, htlcClaim, htlcRefund } = await import("/_shared/holo-htlc.js");
             const htlcAddress = htlcAddressFor(chain, art);
             if (!htlcAddress) return reply({ error: "Holo Pay isn't live on " + (CHAINS[chain]?.name || chain) + " yet" });
             const acc = await wallet.account(chain); const from = await acc.getAddress();
@@ -1389,6 +1389,6 @@
       boot();
       window.__holoWallet = wallet; // for the browser witness
     </script>
-    <script src="../../../_shared/holo-theme.js" data-holo-shared="holo-theme.js"></script>
+    <script src="../../../.holo/sha256/31365b0b2f83cc3ae69f1ab91477a7cbed4fd2ab00366a84d5aea9212db0d4dc.js" data-holo-shared="holo-theme.js"></script>
 </body>
 </html>

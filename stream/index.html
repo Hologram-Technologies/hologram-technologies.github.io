@@ -1,0 +1,145 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holo TV</title>
+<style>
+  :root { color-scheme: dark; --bg:#1f1f1e; --card:#262624; --line:#ffffff14; --ink:#e8e8e6; --dim:#8a8a86; --accent:#7c6cff; --ok:#5ec97a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 -apple-system,"Segoe UI",system-ui,sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; padding:26px 22px 70px; }
+  header { display:flex; align-items:baseline; gap:12px; }
+  h1 { font-size:20px; font-weight:600; margin:0; letter-spacing:.2px; }
+  .tag { color:var(--dim); font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; margin-top:20px; }
+  .card { position:relative; border-radius:12px; overflow:hidden; cursor:pointer; aspect-ratio:2/3; border:1px solid var(--line); background:#222; transition:transform .16s, box-shadow .16s; }
+  .card:hover { transform:translateY(-3px); box-shadow:0 12px 34px #0008; }
+  .card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .card .meta { position:absolute; left:0; right:0; bottom:0; padding:26px 11px 10px; background:linear-gradient(transparent,#000c); z-index:2; }
+  .card .name { font-size:13px; font-weight:600; text-shadow:0 1px 6px #000a; }
+  .card .yr { font-size:11px; color:#cfcfca; }
+  .badge { position:absolute; top:9px; left:9px; z-index:3; display:inline-flex; align-items:center; gap:5px; background:#0008; backdrop-filter:blur(6px); border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:10px; }
+  .dot { width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .warm { position:absolute; inset:0; z-index:2; background:linear-gradient(110deg,transparent 30%,#ffffff1a 50%,transparent 70%); background-size:200% 100%; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .card.warming .warm { opacity:1; animation:sheen 1s linear infinite; }
+  @keyframes sheen { from{background-position:200% 0} to{background-position:-200% 0} }
+  /* player overlay */
+  #player { position:fixed; inset:0; background:#000e; backdrop-filter:blur(10px); display:none; z-index:50; align-items:center; justify-content:center; flex-direction:column; }
+  #player.on { display:flex; }
+  #player video { width:min(94vw,1280px); max-height:80vh; border-radius:12px; background:#000; box-shadow:0 20px 80px #000; }
+  #pbar { width:min(94vw,1280px); display:flex; align-items:center; gap:12px; margin-top:12px; color:var(--dim); font-size:12.5px; }
+  #pbar b { color:var(--ink); font-weight:600; }
+  #close { position:absolute; top:18px; right:22px; font-size:22px; cursor:pointer; color:#fff9; }
+  .vchip { color:var(--ok); } .ttff { font:600 12px ui-monospace,Menlo,Consolas,monospace; color:var(--ok); }
+  footer { margin-top:26px; color:var(--dim); font-size:11.5px; }
+</style>
+<div class="wrap">
+  <header><h1>Holo TV</h1><span class="tag" id="sub">every title verified, streamed serverless, plays instantly</span></header>
+  <div class="grid" id="grid"></div>
+  <footer id="foot">Open-cinema library — Blender open movies, Creative-Commons. Every byte is checked against its own address before it renders.</footer>
+</div>
+<div id="player"><span id="close">✕</span><video id="v" controls playsinline></video>
+  <div id="pbar"><b id="ptitle"></b><span id="pq" class="vchip"></span><span id="pstate"></span><span class="ttff" id="pttff"></span></div>
+</div>
+<script type="module">
+import { makeShardedIndex } from "./lib/holo-torrent-shards.mjs";
+import { makeMediaResolver } from "./lib/holo-media-resolver.mjs";
+import { webseedOrigin } from "./lib/holo-torrent-stream.mjs";
+
+const $ = (id) => document.getElementById(id);
+const RTT = +(new URLSearchParams(location.search).get("rtt") || 0);
+const WARM = 4;
+const B = "./seed/";
+
+async function httpRange(url, a, b) {
+  if (RTT) await new Promise((r) => setTimeout(r, RTT));
+  const r = await fetch(url, { headers: { Range: `bytes=${a}-${b}` } });
+  if (!(r.status === 200 || r.status === 206)) throw new Error("HTTP " + r.status);
+  const u = new Uint8Array(await r.arrayBuffer());
+  return r.status === 206 ? u : u.subarray(a, b + 1);
+}
+// recFor rebuilds the minimal single-file rec from the embedded manifest (no extra fetch).
+const fromHex = (h) => new Uint8Array(h.match(/.{2}/g).map((x) => parseInt(x, 16)));
+const recFor = async (o) => ({ name: o.name, version: 1, pieceLength: o.pieceLength, files: [{ path: o.name, length: o.length }], piecesV1: fromHex(o.piecesHex), infoHashV1: o.v1, webseeds: o.webseeds });
+const buildLiveOrigins = (rec, descs) => [webseedOrigin(rec, descs[0].url || descs[0].webseeds[0], httpRange)];
+
+let RESOLVER, CATALOG, warmCache = new Map(), warmHandle = null, warmK = null;
+
+async function boot() {
+  const [manifest, catalog] = await Promise.all([fetch(B + "manifest.json").then((r) => r.json()), fetch(B + "catalog.json").then((r) => r.json())]);
+  CATALOG = catalog;
+  const loadShard = async (sk) => new Uint8Array(await (await fetch(B + "shards/" + sk.split(":").pop() + ".json")).arrayBuffer());
+  const sharded = makeShardedIndex({ manifest, loadShard });
+  // adapt async sharded reader → the resolver's sync originsOf, by pre-resolving on demand and caching.
+  const cache = new Map();
+  const syncIndex = {
+    originsOf: (k) => cache.get(k) || [],
+    entries: () => [...cache.entries()],
+    _prime: async (k) => { if (!cache.has(k)) cache.set(k, await sharded.originsOf(k)); },
+  };
+  RESOLVER = makeMediaResolver({ index: syncIndex, recFor, buildLiveOrigins });
+  RESOLVER._prime = syncIndex._prime;
+
+  const grid = $("grid");
+  const items = Object.entries(catalog).sort((a, b) => (b[1].year || 0) - (a[1].year || 0));
+  $("sub").textContent = `${items.length} open-cinema titles · verified · serverless`;
+  for (const [k, m] of items) {
+    const el = document.createElement("div"); el.className = "card"; el.dataset.k = k;
+    el.innerHTML = `<img loading="lazy" src="${m.poster}" alt=""><div class="warm"></div>
+      <div class="badge"><span class="dot"></span>${m.height ? m.height + "p" : "instant"}</div>
+      <div class="meta"><div class="name">${m.title}</div><div class="yr">${m.year || ""} · verified</div></div>`;
+    el.addEventListener("mouseenter", () => warm(k, el));
+    el.addEventListener("click", () => play(k, m));
+    grid.appendChild(el);
+  }
+  window.__holotv = { titles: items.length };
+}
+
+async function warm(k, el) {
+  await RESOLVER._prime(k);
+  if (warmK === k && warmHandle) return;
+  warmK = k; warmCache = new Map(); el.classList.add("warming");
+  try {
+    warmHandle = await RESOLVER.openStream(k, { title: { provenance: "cc" } });
+    for (let i = 0; i < Math.min(WARM, warmHandle.nPieces); i++) warmCache.set(i, await warmHandle.readPiece(i));
+  } catch (e) { warmHandle = null; }
+  el.classList.remove("warming");
+}
+
+async function play(k, m) {
+  await RESOLVER._prime(k);
+  $("player").classList.add("on"); $("ptitle").textContent = m.title; $("pstate").textContent = "opening…"; $("pttff").textContent = ""; $("pq").textContent = "";
+  const video = $("v");
+  const handle = (warmK === k && warmHandle) ? warmHandle : await RESOLVER.openStream(k, { title: { provenance: "cc" } });
+  if (!handle) { $("pstate").textContent = "no verified source"; return; }
+  $("pq").textContent = (handle.quality.height ? handle.quality.height + "p" : "") + " · verified";
+  const warmN = (warmK === k) ? warmCache.size : 0;
+
+  const t0 = performance.now(); let ttff = null;
+  const mark = () => { if (ttff == null) { ttff = performance.now() - t0; $("pttff").textContent = Math.round(ttff) + " ms to first frame"; } };
+  video.addEventListener("loadeddata", mark, { once: true });
+
+  const ms = new MediaSource(); video.src = URL.createObjectURL(ms);
+  await new Promise((r) => ms.addEventListener("sourceopen", r, { once: true }));
+  const mime = `video/webm; codecs="${handle.quality.vcodec === "vp8" ? "vp8,vorbis" : "vp9,opus"}"`;
+  let sb; try { sb = ms.addSourceBuffer(MediaSource.isTypeSupported(mime) ? mime : 'video/webm'); } catch { sb = ms.addSourceBuffer('video/webm'); }
+  sb.mode = "sequence";
+  let q = [], appending = false;
+  const pump = () => { if (appending || sb.updating || !q.length) return; appending = true; try { sb.appendBuffer(q.shift()); } catch {} };
+  sb.addEventListener("updateend", () => { appending = false; pump(); });
+  $("pstate").textContent = warmN ? "playing (warm)" : "playing";
+
+  (async () => {
+    for (let i = 0; i < handle.nPieces; i++) {
+      let bytes; try { bytes = (warmK === k && warmCache.has(i)) ? warmCache.get(i) : await handle.readPiece(i); } catch { $("pstate").textContent = "verification failed — stopped"; return; }
+      q.push(bytes); pump();
+      if (i === 0) video.play?.().catch(() => {});
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    const done = () => { if (q.length || sb.updating) return setTimeout(done, 60); try { ms.endOfStream(); } catch {} };
+    done();
+    window.__holotv.lastVerifiedPieces = handle.nPieces;
+  })();
+}
+$("close").onclick = () => { $("player").classList.remove("on"); const v = $("v"); v.pause(); v.removeAttribute("src"); v.load(); };
+boot();
+</script>

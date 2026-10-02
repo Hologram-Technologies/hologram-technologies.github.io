@@ -185,8 +185,10 @@
       ".hv-pill.dragging{cursor:grabbing;transition:none}",
       // artwork — a golden square; a soft accent ring; it breathes while playing (delight, not motion-sick spin)
       ".hv-pill-art{position:relative;flex:0 0 auto;width:55px;height:55px;border-radius:13px;overflow:hidden;",
+        "background:radial-gradient(120% 120% at 30% 22%, color-mix(in srgb,var(--holo-accent,#5b8cff) 55%, #12151c), #0b0d12 92%);",   // never a stark empty frame while artwork resolves
         "box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 0 0 1px color-mix(in srgb,var(--holo-accent,#5b8cff) 50%, rgba(255,255,255,.16));transition:box-shadow .4s}",
       ".hv-pill-art img{width:100%;height:100%;object-fit:cover;display:block}",
+      ".hv-pill-art img:not([src]){opacity:0}",                    // no src yet → let the gradient show, not a broken-image glyph
       ".hv-pill.playing .hv-pill-art{box-shadow:0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px var(--holo-accent,#5b8cff), 0 0 18px -3px color-mix(in srgb,var(--holo-accent,#5b8cff) 75%, transparent);animation:hv-pill-breathe 3.2s ease-in-out infinite}",
       "@keyframes hv-pill-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}",
       // text column
@@ -270,7 +272,7 @@
       (DOC.body || DOC.documentElement).appendChild(f);
       _scWdg = Widget(f);
       return new Promise(function (resolve) {
-        _scWdg.bind(Widget.Events.READY, function () { wireScEvents(Widget); resolve(_scWdg); });
+        _scWdg.bind(Widget.Events.READY, function () { wireScEvents(Widget); seedDefaultScArt(); resolve(_scWdg); });
       });
     });
     return _scWidgetP;
@@ -294,7 +296,7 @@
     try { w.audio.pause(); } catch (e) {}                            // never let the (silent) element and the widget both run
     ensureScWidget().then(function (wdg) {
       if (!wdg || _scOwner !== w) { if (!wdg) { toast("Couldn’t reach SoundCloud"); stop(w); } return; }
-      if (w._scUrl === t.url && w._scLoaded) { try { wdg.play(); } catch (e) {} setPlaying(w, true); return; }
+      if (w._scUrl === t.url && w._scLoaded) { try { wdg.play(); } catch (e) {} setPlaying(w, true); pullScArt(w); return; }
       w._scUrl = t.url; w._scLoaded = false; w._scPos = 0; w._scDur = 0; w._scSwitching = true;
       wdg.load(t.url, {
         auto_play: true, visual: false, show_comments: false, hide_related: true, single_active: true,
@@ -306,6 +308,7 @@
           try { wdg.getDuration(function (d) { w._scDur = (d || 0) / 1000; refreshWindow(w); }); } catch (e) {}
           try { wdg.play(); } catch (e) {}
           setPlaying(w, true);
+          pullScArt(w);                                            // paint the real artist cover the moment it streams
         }
       });
     });
@@ -314,6 +317,62 @@
   function scResume(w) { _scOwner = w; ensureScWidget().then(function (wdg) { if (wdg && _scOwner === w) { try { wdg.play(); } catch (e) {} setPlaying(w, true); } }); }
   function scPause(w) { if (_scWdg && _scOwner === w) { try { _scWdg.pause(); } catch (e) {} } }
   function scSeek(w, frac) { if (_scWdg && _scOwner === w && w._scDur) { try { _scWdg.seekTo(mClamp(frac, 0, 1) * w._scDur * 1000); } catch (e) {} } }
+
+  // ── the ORIGINAL artist artwork ─────────────────────────────────────────────────────────────
+  // SoundCloud's flat-playlist resolve carries no thumbnails and the static live site has no /sc backend, so a
+  // pasted set had NO cover → the pill's <img> got no src → an empty frame. The truth is already on-screen: the
+  // Widget knows the sound it is playing. getCurrentSound() hands us artwork_url — the real cover the artist
+  // uploaded — which we upscale and paint onto every surface (disc · dock · pill · mini · now-playing provider).
+  function scHiRes(u) {                                             // -large (100²) / -tNNNxNNN → crisp -t500x500
+    u = u || ""; return u.replace(/-(?:large|t\d+x\d+|badge|small|tiny|original|crop)(\.[a-z0-9]+)(?:\?[^]*)?$/i, "-t500x500$1");
+  }
+  function applyScArt(w, url) {
+    if (!w || !url) return false;
+    url = scHiRes(url);
+    var t = curTrack(w); if (t) t.art = url;                        // the track owns its cover now → survives repaints
+    var c = w.config;                                              // seed the set cover too, unless a real one is set
+    if (c && (!c.cover || c.cover === COVER_LOCAL || c.cover === COVER_REMOTE)) c.cover = url;
+    if (w.art && w.art.getAttribute("src") !== url) { w.art.src = url; w.art.style.display = ""; }   // spinning disc / dock tile
+    try { refreshMini(w); } catch (e) {}
+    try { refreshWindow(w); } catch (e) {}
+    try { npEmit(); } catch (e) {}
+    return true;
+  }
+  // At warm (the widget boots pre-loaded with the default opener) grab that cover once and retire the dead 404
+  // seed on every surface already showing the default — so the idle dock/pill carries real art from the start.
+  function seedDefaultScArt() {
+    if (!_scWdg) return;
+    try {
+      _scWdg.getCurrentSound(function (snd) {
+        var url = snd && (snd.artwork_url || (snd.user && snd.user.avatar_url));
+        if (!url) return; url = scHiRes(url);
+        if (!BENBOHMER.cover || BENBOHMER.cover === COVER_LOCAL || BENBOHMER.cover === COVER_REMOTE) BENBOHMER.cover = url;
+        try {
+          allPlayers().forEach(function (w) {
+            var c = w && w.config; if (!c || c.resolve !== BENBOHMER.resolve) return;
+            if (!c.cover || c.cover === COVER_LOCAL || c.cover === COVER_REMOTE) {
+              c.cover = url; if (w.art && w.art.getAttribute("src") !== url) { w.art.src = url; w.art.style.display = ""; }
+              try { refreshMini(w); } catch (e) {} try { refreshWindow(w); } catch (e) {}
+            }
+          });
+          npEmit();
+        } catch (e) {}
+      });
+    } catch (e) {}
+  }
+  // ask the widget for the playing sound's cover; the field can be null for a beat right after load, so retry.
+  function pullScArt(w, tries) {
+    if (!_scWdg || _scOwner !== w) return;
+    tries = tries == null ? 5 : tries;
+    try {
+      _scWdg.getCurrentSound(function (snd) {
+        if (_scOwner !== w) return;
+        var url = snd && (snd.artwork_url || (snd.user && snd.user.avatar_url));
+        if (url) applyScArt(w, url);
+        else if (tries > 0) setTimeout(function () { pullScArt(w, tries - 1); }, 350);
+      });
+    } catch (e) {}
+  }
 
   // keep the quick-preview INSIDE the canvas frame — ONE geometry with the pill/video (mediaBounds below),
   // so every floating music surface opens and moves only inside the visible canvas.
@@ -580,6 +639,11 @@
     }).catch(function () {});
   }
   function resolveSet(url) {
+    // /sc/resolve is the NATIVE host's SoundCloud bridge (holo:// or a dev localhost). On a static
+    // hosted origin (github.io) there is no bridge — the fetch would 404 at the ORIGIN ROOT every
+    // open. Skip it there: the seeded playlist + CDN art already carry the experience.
+    var isStaticHost = /^https?:$/.test(location.protocol) && !/^(127\.0\.0\.1|localhost|\[::1\])$/.test(location.hostname);
+    if (isStaticHost) return Promise.reject(new Error("no /sc bridge on a static origin"));
     return fetch("/sc/resolve?url=" + encodeURIComponent(url), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || j.error) throw new Error(j && j.error || "resolve failed");
       var entries = (j.entries || []).filter(function (e) { return e && (e.webpage_url || e.url); });

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>You're invited to Hologram</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<!-- SOCIAL PREVIEW — the portal card a shared invite renders on Discord / WhatsApp / Telegram. A crawler
+     fetches THIS page (never the #fragment, which stays on the human's device), reads these static tags,
+     and draws the card. The human's browser keeps the fragment and is forwarded into the sealed space. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hologram">
+<meta property="og:title" content="You're invited to Hologram">
+<meta property="og:description" content="A private, end-to-end encrypted space. One link — no signup, no server. Tap to connect.">
+<meta property="og:image" content="https://hologram-technologies.github.io/hologram-os/apps/holo-messenger/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://hologram-technologies.github.io/hologram-os/apps/holo-messenger/join/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="You're invited to Hologram">
+<meta name="twitter:description" content="A private, end-to-end encrypted space. One link — no signup, no server. Tap to connect.">
+<meta name="twitter:image" content="https://hologram-technologies.github.io/hologram-os/apps/holo-messenger/og.jpg">
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { background: radial-gradient(120% 90% at 50% 0%, #0d1418 0%, #05080a 62%, #04070a 100%);
+    color: #e9edf0; font: 400 16px/1.5 -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    display: grid; place-items: center; text-align: center; padding: 24px; -webkit-font-smoothing: antialiased; }
+  .card { max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 18px;
+    animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; }
+  .emblem { width: 76px; height: 76px; filter: drop-shadow(0 4px 30px rgba(0, 168, 132, .45)); }
+  .emblem circle { fill: #e8eaf0; }
+  h1 { font-size: 25px; font-weight: 600; letter-spacing: -.2px; }
+  .sub { color: #93a1a8; font-size: 15px; max-width: 300px; }
+  .go { margin-top: 6px; display: inline-flex; align-items: center; gap: 9px; padding: 13px 26px;
+    background: #00a884; color: #04110d; font-weight: 700; font-size: 15.5px; border: 0; border-radius: 24px;
+    text-decoration: none; cursor: pointer; transition: filter .15s ease, transform .1s ease; }
+  .go:hover { filter: brightness(1.06); } .go:active { transform: scale(.97); }
+  .badge { display: inline-flex; align-items: center; gap: 7px; color: #6f8088; font-size: 12.5px; margin-top: 4px; }
+  .badge b { color: #00d09c; font-weight: 600; } .dot { width: 5px; height: 5px; border-radius: 50%; background: #33424a; }
+  .spin { width: 15px; height: 15px; border: 2px solid rgba(4, 17, 13, .35); border-top-color: #04110d;
+    border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .card { animation: none; } .spin { animation-duration: 2s; } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="emblem" viewBox="-104 -104 208 208" aria-label="Hologram"><g id="dots"></g></svg>
+    <h1 id="title">You're invited</h1>
+    <p class="sub" id="sub">A private, end-to-end encrypted space. Tap to connect — no signup, no server.</p>
+    <a class="go" id="go" href="#"><span class="spin" id="spin"></span><span id="golabel">Opening…</span></a>
+    <div class="badge"><b>Sealed</b><span class="dot"></span>serverless<span class="dot"></span>forward-secret</div>
+  </div>
+<script>
+  // the canonical dot-halftone mark, drawn compactly (concentric rings of dots)
+  (function () {
+    const g = document.getElementById("dots"); if (!g) return;
+    const rings = [[0, 1], [26, 6], [52, 12], [78, 18]];
+    for (const [r, n] of rings) for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2, c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", (Math.cos(a) * r).toFixed(1)); c.setAttribute("cy", (Math.sin(a) * r).toFixed(1)); c.setAttribute("r", "7.5");
+      g.appendChild(c);
+    }
+  })();
+  // THE FORWARD: keep the #fragment (the sealed invite keys — never sent to a server or crawler) and the
+  // query, and drop the human into the messenger. A crawler runs no JS, so it only ever sees the card above.
+  (function () {
+    var hash = location.hash || "";
+    var isRoom = /(^|[#&])room=/.test(hash);
+    if (isRoom) { document.getElementById("title").textContent = "You're invited to a room";
+      document.getElementById("sub").textContent = "A private, forward-secret team space. Tap to join — no signup, no server."; }
+    // v2 compact invite carries the room name in-fragment (after 142 bytes of room+keys) — greet by name.
+    // The name is peer-controlled: textContent only, never markup. Crawlers run no JS → the card above stands.
+    try {
+      var rm = /[#&]room=v2\.([A-Za-z0-9_-]+)/.exec(hash);
+      if (rm) { var rs = atob(rm[1].replace(/-/g, "+").replace(/_/g, "/"));
+        var nm = rs.length > 142 ? decodeURIComponent(escape(rs.slice(142))) : "";
+        if (nm) document.getElementById("title").textContent = "You're invited to " + nm; }
+    } catch (e) {}
+    // ../app.html relative to /apps/holo-messenger/join/ → the messenger, fragment + query preserved.
+    var target = "../app.html" + (location.search || "") + hash;
+    var go = document.getElementById("go"); go.setAttribute("href", target);
+    // if there is NO invite fragment (a crawler-preview URL opened by a human, or a bare visit), still let
+    // them into the messenger — never a dead end.
+    function enter() { try { location.replace(target); } catch (e) { location.href = target; } }
+    go.addEventListener("click", function (e) { e.preventDefault(); enter(); });
+    // auto-forward the moment we're sure a human is here (a tick after paint, so the card is seen if cached)
+    setTimeout(enter, hash ? 650 : 1200);
+  })();
+</script>
+</body>
+</html>

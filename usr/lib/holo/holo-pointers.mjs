@@ -83,9 +83,48 @@ export async function resolveNostr(name, { sha256hex, WebSocket = null, timeout 
   if (!v.ok) return { ok: false, why: "a relay served a note that does not match its id (" + v.why + ") — refused" };
   return {
     ok: true, kappa: "sha256:" + d.id, bytes: new TextEncoder().encode(ev.content || ""), event: ev,
-    via: "nostr-relay", author: ev.pubkey,
+    via: "nostr-relay", author: ev.pubkey, trustLevel: "self",
     trust: "self-verifying — the note's id is a sha256 of the note itself (NIP-01); no relay was trusted",
   };
+}
+
+// ── Bluesky / atproto (V2 · resolved pointer) — at://<did|handle>/<collection>/<rkey>. handle→DID (DoH /
+//    well-known) → DID doc (plc.directory / did:web) → the account's OWN PDS → the record. B-via: anchored
+//    by the DID (the stable, self-owned identity); the PDS is the account's, not ours. ────────────────────
+async function resolveHandle(handle, fetchFn) {
+  // both legs raced with deadlines: well-known (HTTP, what bsky uses) + DoH _atproto TXT — first DID wins.
+  const wk = (async () => { try { const r = await fetchFn("https://" + handle + "/.well-known/atproto-did", TMO(6000)); if (r && r.ok) { const t = (await r.text()).trim(); if (/^did:/.test(t)) return t; } } catch {} return null; })();
+  const doh = (async () => { try { const r = await fetchFn("https://dns.google/resolve?name=_atproto." + handle + "&type=TXT", TMO(6000, { headers: { accept: "application/dns-json" } })); if (r && r.ok) { const j = await r.json(); for (const a of (j.Answer || [])) { const m = /did=(did:[a-z0-9:._%-]+)/i.exec(a.data || ""); if (m) return m[1]; } } } catch {} return null; })();
+  const [a, b] = await Promise.all([wk, doh]); return a || b;
+}
+async function resolveDID(did, fetchFn) {
+  try {
+    if (/^did:plc:/i.test(did)) { const r = await fetchFn("https://plc.directory/" + did, TMO(6000)); if (r && r.ok) return await r.json(); }
+    else if (/^did:web:/i.test(did)) { const host = did.slice(8).replace(/:/g, "/"); const r = await fetchFn("https://" + host + "/.well-known/did.json", TMO(6000)); if (r && r.ok) return await r.json(); }
+  } catch {}
+  return null;
+}
+export async function resolveBluesky(name, { fetchFn } = {}) {
+  const s = String(name).replace(/^at:\/\//i, "").replace(/^\/+/, "");
+  const [authority, collection, rkey] = s.split("/");
+  if (!authority) return { ok: false, why: "empty at:// name" };
+  let did = authority, handle = /^did:/i.test(authority) ? null : authority;
+  if (handle) { did = await resolveHandle(handle, fetchFn); if (!did) return { ok: false, why: "could not resolve the handle " + authority + " to a DID" }; }
+  const doc = await resolveDID(did, fetchFn);
+  if (!doc) return { ok: false, why: "could not resolve the DID document for " + did };
+  const pds = (doc.service || []).find((x) => /atproto_pds/i.test(x.id || "") || /PersonalDataServer/i.test(x.type || ""));
+  const alsoHandle = (doc.alsoKnownAs || []).map((a) => a.replace(/^at:\/\//, ""))[0] || handle;
+  if (collection && rkey) {
+    if (!pds) return { ok: false, why: "the DID document names no PDS to fetch the record from" };
+    const host = (() => { try { return new URL(pds.serviceEndpoint).host; } catch { return "the PDS"; } })();
+    const r = await fetchFn(pds.serviceEndpoint + "/xrpc/com.atproto.repo.getRecord?repo=" + encodeURIComponent(did) + "&collection=" + encodeURIComponent(collection) + "&rkey=" + encodeURIComponent(rkey), TMO(8000));
+    if (!r || !r.ok) return { ok: false, why: "the account's PDS (" + host + ") did not return this record" };
+    const rec = await r.json();
+    return { ok: true, kind: "atproto", bytes: new TextEncoder().encode(JSON.stringify(rec.value, null, 2)), cid: rec.cid, author: alsoHandle || did, via: "PDS " + host, trustLevel: "via",
+      trust: "resolved via the account's OWN PDS (" + host + "), located through its DID (" + did.slice(0, 28) + "…); the DID anchors which server speaks for this identity" };
+  }
+  return { ok: true, kind: "atproto", bytes: new TextEncoder().encode(JSON.stringify({ did, handle: alsoHandle, pds: pds && pds.serviceEndpoint }, null, 2)), author: alsoHandle || did, via: did.startsWith("did:plc") ? "plc.directory" : "did:web", trustLevel: "via",
+    trust: "identity resolved via its DID document; the DID is the stable, self-owned anchor for this account" };
 }
 
 // ── ENS (V3 · resolved pointer) — namehash (keccak256, LOCAL) → contenthash via an UNTRUSTED RPC → a CID
@@ -129,7 +168,7 @@ export async function resolveENS(name, { fetchFn, rpcs } = {}) {
   const dec = decodeContenthash(data);
   if (!dec || !dec.cid) return { ok: false, why: "unsupported contenthash protocol" };
   const host = (() => { try { return new URL(ch.via).host; } catch { return "an RPC"; } })();
-  return { ok: true, name, node, resolver, cid: dec.cid, proto: dec.proto, pointsTo: dec.proto + "://" + dec.cid, via: "ethereum RPC (" + host + ")",
+  return { ok: true, name, node, resolver, cid: dec.cid, proto: dec.proto, pointsTo: dec.proto + "://" + dec.cid, via: "ethereum RPC (" + host + ")", trustLevel: "via",
     trust: "name → content resolved via an UNTRUSTED Ethereum RPC (" + host + "); the content then verifies by its " + dec.proto.toUpperCase() + " address — nothing about the bytes is trusted" };
 }
 
@@ -170,18 +209,40 @@ export async function verifyIPNS(rec, pubkey) {
   try { const key = await crypto.subtle.importKey("raw", pubkey, { name: "Ed25519" }, false, ["verify"]); return (await crypto.subtle.verify("Ed25519", key, rec.sig, msg)) ? { ok: true } : { ok: false, why: "ed25519-verify-failed" }; }
   catch (e) { return { ok: false, why: "ed25519:" + String(e && e.message || e).slice(0, 24) }; }
 }
+// DNSLink (domain-style IPNS) → CID via DoH. dns.google exposes CORS (cloudflare-dns preflight-blocks in
+// the browser), so it leads. B-via: the DoH resolver is trusted for name→CID; the content then re-verifies.
+// a hanging leg must never wedge the card — every pointer HTTP fetch gets a hard deadline, failing fast
+// to the next source (fail-soft, SEC-8 in spirit). AbortSignal.timeout where available, else a no-op.
+const TMO = (ms, o = {}) => { try { return { ...o, signal: AbortSignal.timeout(ms) }; } catch { return o; } };
+
+async function resolveDNSLink(domain, fetchFn) {
+  const scan = (j) => { for (const a of (j && j.Answer || [])) { const m = /dnslink=(\/ip[fn]s\/[^"\\]+)/.exec(a.data || ""); if (m) return m[1]; } return null; };
+  try { const r = await fetchFn("https://dns.google/resolve?name=_dnslink." + domain + "&type=TXT", TMO(6000, { headers: { accept: "application/dns-json" } })); if (r && r.ok) { const l = scan(await r.json()); if (l) return { link: l, via: "dns.google" }; } } catch {}
+  try { const r = await fetchFn("https://cloudflare-dns.com/dns-query?name=_dnslink." + domain + "&type=TXT", TMO(6000, { headers: { accept: "application/dns-json" } })); if (r && r.ok) { const l = scan(await r.json()); if (l) return { link: l, via: "cloudflare-dns" }; } } catch {}
+  return null;
+}
 export async function resolveIPNS(name, { fetchFn, gateways } = {}) {
-  let pubkey; try { pubkey = decodeIPNSName(name); } catch (e) { return { ok: false, why: "unsupported IPNS key (only ed25519 k51… names): " + (e.message || e) }; }
   const clean = String(name).replace(/^ipns:\/\//i, "").replace(/^\/ipns\//i, "").split(/[/?#]/)[0];
-  const GW = gateways || ["https://trustless-gateway.link", "https://dweb.link", "https://ipfs.io"];
-  let rec = null;
-  for (const g of GW) { try { const r = await fetchFn(g + "/ipns/" + clean + "?format=ipns-record", { headers: { accept: "application/vnd.ipfs.ipns-record" } }); if (r && r.ok) { const p = pbScan(new Uint8Array(await r.arrayBuffer())); if (p.sig && p.data && p.value) { rec = p; break; } } } catch {} }
-  if (!rec) return { ok: false, why: "no gateway served the signed IPNS record" };
-  const v = await verifyIPNS(rec, pubkey);
-  if (!v.ok) return { ok: false, why: "the IPNS record's signature did not verify (" + v.why + ") — refused" };
-  const val = new TextDecoder().decode(rec.value); const m = /\/ipfs\/([A-Za-z0-9]+)/.exec(val);
-  if (!m) return { ok: false, why: "the signed IPNS record carries no /ipfs/ value" };
-  return { ok: true, cid: m[1], pointsTo: "ipfs://" + m[1], via: "ipns record (ed25519)", trust: "self-verifying — the IPNS record is signed by the ed25519 key the name IS; no gateway was trusted" };
+  let pubkey = null; try { pubkey = decodeIPNSName(clean); } catch {}
+  if (pubkey) {                                                      // key-based IPNS — self-authenticating (ed25519)
+    const GW = gateways || ["https://trustless-gateway.link", "https://dweb.link", "https://ipfs.io"];
+    let rec = null;
+    for (const g of GW) { try { const r = await fetchFn(g + "/ipns/" + clean + "?format=ipns-record", { headers: { accept: "application/vnd.ipfs.ipns-record" } }); if (r && r.ok) { const p = pbScan(new Uint8Array(await r.arrayBuffer())); if (p.sig && p.data && p.value) { rec = p; break; } } } catch {} }
+    if (!rec) return { ok: false, why: "no gateway served the signed IPNS record (public gateways block the record fetch by CORS today)" };
+    const v = await verifyIPNS(rec, pubkey);
+    if (!v.ok) return { ok: false, why: "the IPNS record's signature did not verify (" + v.why + ") — refused" };
+    const val = new TextDecoder().decode(rec.value); const m = /\/ipfs\/([A-Za-z0-9]+)/.exec(val);
+    if (!m) return { ok: false, why: "the signed IPNS record carries no /ipfs/ value" };
+    return { ok: true, cid: m[1], pointsTo: "ipfs://" + m[1], via: "ipns record (ed25519)", trustLevel: "self", trust: "self-verifying — the IPNS record is signed by the ed25519 key the name IS; no gateway was trusted" };
+  }
+  if (/\./.test(clean)) {                                            // domain-style IPNS → DNSLink via DoH (B-via)
+    const d = await resolveDNSLink(clean, fetchFn);
+    if (!d) return { ok: false, why: "no DNSLink TXT record found for " + clean };
+    const m = /^\/ipfs\/([A-Za-z0-9]+)/.exec(d.link);
+    if (m) return { ok: true, cid: m[1], pointsTo: "ipfs://" + m[1], via: "DNSLink via DoH (" + d.via + ")", trustLevel: "via", trust: "name → CID resolved via an untrusted DoH resolver (" + d.via + "); the content then verifies by its IPFS address" };
+    return { ok: true, pointsTo: "ipns://" + d.link.replace(/^\/ipns\//, ""), via: "DNSLink via DoH (" + d.via + ")", trustLevel: "via", trust: "DNSLink points at another IPNS name (" + d.via + ")" };
+  }
+  return { ok: false, why: "unsupported IPNS name (not an ed25519 key or a DNSLink domain)" };
 }
 
-export default { decodeNostr, nostrEventId, verifyNostrEvent, fetchNostrEvent, resolveNostr, DEFAULT_RELAYS, namehash, decodeContenthash, resolveENS, decodeIPNSName, verifyIPNS, resolveIPNS };
+export default { decodeNostr, nostrEventId, verifyNostrEvent, fetchNostrEvent, resolveNostr, DEFAULT_RELAYS, namehash, decodeContenthash, resolveENS, decodeIPNSName, verifyIPNS, resolveIPNS, resolveBluesky };

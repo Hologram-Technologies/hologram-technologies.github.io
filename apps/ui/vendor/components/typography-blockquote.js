@@ -1,1 +1,0 @@
-import{jsx as e}from"react/jsx-runtime";function o(){return e("blockquote",{className:"mt-6 border-l-2 pl-6 italic",children:`"After all," he said, "everyone enjoys a good joke, so it's only fair that they should pay for the privilege."`})}export{o as default};

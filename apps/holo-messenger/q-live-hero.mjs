@@ -4,16 +4,20 @@
 // The loop already does every hard part (token streaming, speak-as-generated clause pipeline, semantic
 // turn-taking, barge-in, speculative sub-second turns, latency metrics). This module is the thin surface weld:
 //   · a "Call" button in the hero (fixed sibling — React-reconciliation-proof, same idiom as the chips)
-//   · tap → arm() INSIDE the gesture (unlock audio) → start() the loop → a live-caption call overlay
-//   · bridge the loop's state + getLevel() → window `holo-q-state {mode,level}` so the hero orb reacts (it
-//     already listens); q-live emits on its own bus and does NOT dispatch the window event, so we do.
+//   · tap → arm() INSIDE the gesture (unlock audio) → start() the loop → an IMMERSIVE call overlay
+//   · a BEAUTIFUL, real-time voice visualization: a living radial aura + a scrolling voice-note waveform that
+//     BREATHE with the real audio level (live.getLevel()), so you SEE your own voice the instant you speak —
+//     WhatsApp-familiar, but immersive. State-aware colour (listening = mint · thinking = grey · speaking = blue).
+//   · bridge the loop's state + getLevel() → window `holo-q-state {mode,level}` so the hero orb reacts too.
 //   · each finished turn → window.HoloQ.liveIngest(role,text) → a real κ bubble in the ONE Q thread, which
 //     the summon layer's observer then seals to the BLAKE3 κ-chain. Call and chat are one conversation.
 //   · graceful ladder: no mic permission / no WebGPU → a clear message, chat still works. Never a hard fail.
 //
-// 100% serverless, on-device: Moonshine/Whisper ASR + BitNet + Kokoro TTS + Silero VAD, 0 egress at turn time.
+// 100% serverless, on-device: Moonshine/Whisper ASR + BitNet + Kokoro TTS + Silero VAD (weights stream by κ from
+// HF, per-block verified), 0 egress at turn time. Just talk — the Cerebras-voice experience with no backend.
 const DOC = document, HTML = DOC.documentElement;
 const $ = (s, r) => (r || DOC).querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const reduced = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
 
 // ── styles ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -31,18 +35,25 @@ css.textContent = `
 #q-call-btn:hover{transform:translateY(-1px);border-color:rgba(139,123,255,.7);box-shadow:0 6px 24px rgba(139,123,255,.35)}
 #q-call-btn:active{transform:scale(.96)}
 #q-call-btn svg{width:16px;height:16px}
-/* the call overlay — full-bleed over the hero: orb breathes (via holo-q-state), live caption, end button */
+/* the call overlay — full-bleed over the hero: the visualization is the star, calm dark ground, minimal chrome */
 #q-call{position:fixed;inset:0;z-index:330;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:22px;padding:32px 24px calc(env(safe-area-inset-bottom) + 32px);text-align:center;
-  background:radial-gradient(120% 100% at 50% 34%,rgba(9,11,18,.62),rgba(6,7,12,.86) 62%,rgba(0,0,0,.92));
-  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  opacity:0;transition:opacity .4s ease;pointer-events:none}
+  gap:0;padding:max(28px,env(safe-area-inset-top)) 22px calc(env(safe-area-inset-bottom) + 26px);text-align:center;
+  background:radial-gradient(120% 100% at 50% 30%,rgba(9,11,18,.72),rgba(6,7,12,.90) 60%,rgba(0,0,0,.96));
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  opacity:0;transition:opacity .45s ease;pointer-events:none}
 #q-call.on{opacity:1;pointer-events:auto}
-#q-call .qc-status{font:600 12.5px/1.3 -apple-system,"Segoe UI",sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#7defc9;min-height:1.2em}
-#q-call .qc-you{font:400 15px/1.5 -apple-system,"Segoe UI",sans-serif;color:rgba(231,237,250,.62);max-width:min(680px,86vw);min-height:1.5em;transition:opacity .2s ease}
-#q-call .qc-q{font:300 clamp(19px,3.1vh,28px)/1.42 -apple-system,"Segoe UI",sans-serif;color:#f4f7fc;max-width:min(720px,90vw);min-height:1.42em;text-shadow:0 2px 22px rgba(0,0,0,.6)}
-#q-call .qc-hint{font:400 12.5px/1.4 -apple-system,"Segoe UI",sans-serif;color:rgba(231,237,250,.42);max-width:340px}
-#q-call .qc-end{margin-top:6px;height:52px;padding:0 26px;border-radius:26px;border:0;cursor:pointer;
+/* the living visualization — a centred canvas that breathes with the voice */
+#q-call .qc-stage{position:relative;flex:0 0 auto;width:min(72vw,300px);height:min(72vw,300px);margin-top:2vh}
+#q-call .qc-viz{position:absolute;inset:0;width:100%;height:100%}
+/* the state label sits under the aura */
+#q-call .qc-status{margin-top:16px;font:600 12px/1.3 -apple-system,"Segoe UI",sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#7defc9;min-height:1.2em;transition:color .3s ease}
+/* what YOU said — a live, scrolling voice-note waveform + the transcript beneath it */
+#q-call .qc-wave{width:min(680px,84vw);height:34px;margin-top:14px;opacity:.9}
+#q-call .qc-you{margin-top:6px;font:400 15px/1.5 -apple-system,"Segoe UI",sans-serif;color:rgba(231,237,250,.62);max-width:min(680px,86vw);min-height:1.5em;transition:opacity .2s ease}
+/* what Q is saying — large, calm, the focus of the reply */
+#q-call .qc-q{margin-top:14px;font:300 clamp(19px,3vh,27px)/1.42 -apple-system,"Segoe UI",sans-serif;color:#f4f7fc;max-width:min(720px,90vw);min-height:1.42em;text-shadow:0 2px 22px rgba(0,0,0,.6)}
+#q-call .qc-hint{margin-top:auto;font:400 12.5px/1.4 -apple-system,"Segoe UI",sans-serif;color:rgba(231,237,250,.4);max-width:340px}
+#q-call .qc-end{margin-top:18px;height:52px;padding:0 26px;border-radius:26px;border:0;cursor:pointer;
   color:#fff;font:600 15px/1 -apple-system,"Segoe UI",sans-serif;display:inline-flex;align-items:center;gap:9px;
   background:linear-gradient(135deg,#ff5b7b,#e0245e);box-shadow:0 8px 26px rgba(224,36,94,.42);transition:transform .14s ease,filter .16s ease}
 #q-call .qc-end:hover{filter:brightness(1.06)}#q-call .qc-end:active{transform:scale(.96)}
@@ -61,20 +72,84 @@ function setStatus(t, err) { if (!callEl) return; const s = $(".qc-status", call
 function setYou(t) { if (callEl) { const e = $(".qc-you", callEl); if (e) e.textContent = t ? "“" + t + "”" : ""; } }
 function setQ(t) { if (callEl) { const e = $(".qc-q", callEl); if (e) e.textContent = t || ""; } }
 function orb(mode, level) { try { window.dispatchEvent(new CustomEvent("holo-q-state", { detail: { mode, level } })); } catch {} }
+
+// ── the living voice visualization — a canvas that BREATHES with the real audio level ────────────────────
+// Two layers, one presence: a radial AURA (bars in a ring + a soft core) that pulses with the level, and a
+// scrolling voice-note WAVEFORM (WhatsApp-familiar) fed by a rolling history of the level — you literally watch
+// your own voice as you speak. Colour tracks the phase so the whole thing shifts mood: mint while it listens,
+// grey while it thinks, blue while it speaks. Driven by the ONE rAF that already pumps the orb (no extra loops).
+const LVLN = 56;
+let lvlHist = new Float32Array(LVLN), lvlHead = 0, smoothL = 0, vizT = 0;
+const TINT = { listening: [125, 239, 201], speaking: [123, 140, 255], thinking: [150, 160, 190], idle: [120, 150, 180] };
+function fit(canvas) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  const ctx = canvas.__ctx || (canvas.__ctx = canvas.getContext("2d"));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+function drawAura(canvas, level, mode) {
+  const { ctx, w, h } = fit(canvas);
+  const cx = w / 2, cy = h / 2, t = vizT;
+  const [r, g, b] = TINT[mode] || TINT.idle;
+  const baseR = Math.min(w, h) * 0.17, amp = Math.min(w, h) * 0.15;
+  ctx.lineCap = "round";
+  // radial bars — each length driven by the level + a per-bar organic wobble (alive even at rest)
+  const N = 76;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const nz = 0.5 + 0.5 * Math.sin(t * 2.1 + i * 0.5) * Math.sin(t * 1.27 + i * 0.19);
+    const len = baseR + (0.30 + 0.70 * nz) * amp * (0.28 + level * 1.7);
+    const x1 = cx + Math.cos(a) * baseR, y1 = cy + Math.sin(a) * baseR;
+    const x2 = cx + Math.cos(a) * len, y2 = cy + Math.sin(a) * len;
+    ctx.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + (0.22 + 0.5 * nz).toFixed(3) + ")";
+    ctx.lineWidth = 2.3; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  }
+  // soft breathing core
+  const orbR = baseR * (0.66 + level * 0.55 + 0.05 * Math.sin(t * 1.6));
+  const grd = ctx.createRadialGradient(cx, cy, orbR * 0.08, cx, cy, orbR);
+  grd.addColorStop(0, "rgba(" + r + "," + g + "," + b + "," + (0.5 + level * 0.45).toFixed(3) + ")");
+  grd.addColorStop(0.6, "rgba(" + r + "," + g + "," + b + "," + (0.14 + level * 0.2).toFixed(3) + ")");
+  grd.addColorStop(1, "rgba(" + r + "," + g + "," + b + ",0)");
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(cx, cy, orbR, 0, Math.PI * 2); ctx.fill();
+}
+function drawWave(canvas, mode) {
+  const { ctx, w, h } = fit(canvas);
+  const [r, g, b] = TINT[mode] || TINT.idle;
+  const bars = LVLN, gap = w / bars, cy = h / 2, bw = Math.max(2, gap * 0.5);
+  for (let i = 0; i < bars; i++) {
+    const v = lvlHist[(lvlHead + i) % LVLN];
+    const bh = Math.max(2.5, v * h * 0.92);
+    const x = i * gap + gap * 0.5 - bw / 2;
+    ctx.fillStyle = "rgba(" + r + "," + g + "," + b + "," + (0.28 + 0.6 * v).toFixed(3) + ")";
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, cy - bh / 2, bw, bh, bw / 2); ctx.fill(); }
+    else ctx.fillRect(x, cy - bh / 2, bw, bh);
+  }
+}
 function pumpOrb() {
-  if (!live) return;
-  const lvl = (live.getLevel ? live.getLevel() : 0) || 0;
-  const mode = live.phase || "idle";
+  const lvl = clamp((live && live.getLevel ? live.getLevel() : 0) || 0, 0, 1);
+  const mode = (live && live.phase) || "thinking";
+  smoothL += (lvl - smoothL) * 0.30; vizT += 0.016;
   orb(mode, lvl);
+  lvlHist[lvlHead] = smoothL; lvlHead = (lvlHead + 1) % LVLN;   // rolling history for the voice-note waveform
+  if (callEl && callEl.classList.contains("on")) {
+    const az = $(".qc-viz", callEl); if (az) drawAura(az, smoothL, mode);
+    const wv = $(".qc-wave", callEl); if (wv) drawWave(wv, mode);
+  }
   rafId = requestAnimationFrame(pumpOrb);
 }
+function startViz() { if (!rafId) rafId = requestAnimationFrame(pumpOrb); }
+function stopViz() { cancelAnimationFrame(rafId); rafId = 0; }
 
 function overlay() {
   if (callEl) return callEl;
   callEl = DOC.createElement("div");
   callEl.id = "q-call";
   callEl.innerHTML =
+    '<div class="qc-stage"><canvas class="qc-viz"></canvas></div>' +
     '<div class="qc-status">connecting…</div>' +
+    '<canvas class="qc-wave"></canvas>' +
     '<div class="qc-you"></div>' +
     '<div class="qc-q"></div>' +
     '<div class="qc-hint">Just talk — Q hears you and answers out loud. Speak over it any time.</div>' +
@@ -124,10 +199,11 @@ async function startCall() {
   const el = overlay();
   requestAnimationFrame(() => el.classList.add("on"));
   setStatus("connecting…"); setYou(""); setQ(""); sealedYou = ""; lastQ = ""; _lastSealedQ = ""; _lastWarn = "";
-  orb("thinking", 0);   // the orb stirs THE INSTANT you tap Call — a live presence, before the loop loads
-  if (!_mod) { try { _mod = await import("../q/q-live.mjs"); } catch (e) { setStatus("voice unavailable", true); setQ("I couldn't load my voice just now — you can still type to me."); orb("idle", 0); return; } }
+  lvlHist.fill(0); lvlHead = 0; smoothL = 0;
+  orb("thinking", 0); startViz();   // the aura stirs THE INSTANT you tap Call — a live presence, before the loop loads
+  if (!_mod) { try { _mod = await import("../q/q-live.mjs"); } catch (e) { setStatus("voice unavailable", true); setQ("I couldn't load my voice just now — you can still type to me."); return; } }
   const inst = ensureLive();
-  if (!inst) { setStatus("voice unavailable", true); setQ("I couldn't start my voice just now — you can still type to me."); orb("idle", 0); return; }
+  if (!inst) { setStatus("voice unavailable", true); setQ("I couldn't start my voice just now — you can still type to me."); return; }
   if (!_armed) { try { inst.arm(); _armed = true; } catch {} }   // arm if the sync path couldn't (module loaded late)
   try {
     await inst.start();
@@ -140,19 +216,18 @@ async function startCall() {
       }
     } catch (e) {}
     setStatus("listening");
-    cancelAnimationFrame(rafId); rafId = requestAnimationFrame(pumpOrb);
   } catch (e) {
     const msg = (e && e.name === "NotAllowedError") ? "I'd love to hear you — allow microphone access and tap Call again."
       : (_lastWarn ? ("I couldn't get my voice going (" + _lastWarn.slice(0, 80) + "). You can still type to me.")
       : "I need a mic and a WebGPU browser (Chrome, Edge, or Brave) to talk out loud. You can still type to me.");
-    setStatus("can't start the call", true); setQ(msg); orb("idle", 0);
+    setStatus("can't start the call", true); setQ(msg);
   }
 }
 
 function endCall() {
   try { live && live.stop(); } catch {}
   live = null; _armed = false;   // a fresh instance next call needs a fresh arm(); module stays cached
-  cancelAnimationFrame(rafId); rafId = 0;
+  stopViz();
   orb("idle", 0);
   if (callEl) { callEl.classList.remove("on"); }
 }
@@ -182,6 +257,10 @@ const mo = new MutationObserver((muts) => {
 mo.observe(DOC.body, { childList: true, subtree: true });
 if ($(".holo-hero")) showButton();
 
-// debug surface
-window.QLiveHero = { start: startCall, end: endCall, active: () => !!live, get instance() { return live; }, version: 3 };
-try { console.info("[q-live-hero] ready — Call button rides the hero; reuses createQLive (apps/q/q-live.mjs)"); } catch {}
+// debug / verification surface — expose the visualization so it can be driven with synthetic levels headless
+window.QLiveHero = {
+  start: startCall, end: endCall, active: () => !!live, get instance() { return live; },
+  _viz: { open: () => { overlay().classList.add("on"); startViz(); }, feed: (v) => { try { live = live || { getLevel: () => 0, phase: "listening" }; live.getLevel = () => clamp(+v || 0, 0, 1); } catch {} } },
+  version: 4,
+};
+try { console.info("[q-live-hero] ready — Call rides the hero; realtime voice viz over createQLive (apps/q/q-live.mjs)"); } catch {}

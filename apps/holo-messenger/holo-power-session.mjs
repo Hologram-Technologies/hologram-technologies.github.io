@@ -98,8 +98,9 @@ css.textContent = `
   color:rgba(231,237,250,.6);background:transparent;transition:color .16s ease,background .16s ease}
 #holo-pwr-sheet .ps-stay:hover{color:#f4f7fc;background:rgba(255,255,255,.05)}
 
-/* ── power-down: a hologram collapse to a line, then dark, before the gate returns ── */
-#holo-pwr-veil{position:fixed;inset:0;z-index:2147483600;background:#04060b;opacity:0;pointer-events:none;transition:opacity .28s ease}
+/* ── power-down: a hologram collapse to a line, then dark, before the gate returns. The dark is the BOOT's
+   own black (#000, the splash layer) — power-off and power-on share one continuous darkness (B7). ── */
+#holo-pwr-veil{position:fixed;inset:0;z-index:2147483600;background:#000;opacity:0;pointer-events:none;transition:opacity .28s ease}
 html.holo-powering #holo-pwr-veil{opacity:1;pointer-events:auto}
 #holo-pwr-veil .beam{position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
   background:linear-gradient(90deg,transparent,#7defc9,#34d3a6,transparent);box-shadow:0 0 22px 4px rgba(52,211,166,.6);opacity:0}
@@ -110,7 +111,14 @@ html.holo-powering #holo-pwr-veil .beam{animation:holo-pwr-off .52s cubic-bezier
   #holo-pwr-sheet,#holo-pwr-sheet .ps{transition:opacity .18s ease}
   #holo-pwr-sheet .ps-ring{animation:none}
   html.holo-powering #holo-pwr-veil .beam{animation:none;opacity:0}
-}`;
+}
+
+/* ── BOOT GROUND (2026-07-10): the boot/login darkness moved to the Claude-desktop chrome #1f1f1e
+   (plymouth layer + app.html baseline). B7 still holds — the veil wears the SAME ground, appended
+   here so the original block above stays intact (anti-revert append discipline). ── */
+#holo-pwr-veil{background:#1f1f1e}
+/* BOOT GROUND is now ONE token, var(--boot-ground) (defined in app.html's head, the 0-ms frame): one hex recolors the whole cold-open, and B7 keeps this veil on it. Single-line so the gate probes the rule, not prose. */
+#holo-pwr-veil{background:var(--boot-ground,#1f1f1e)}`;
 DOC.head.appendChild(css);
 
 // ── the sheet ────────────────────────────────────────────────────────────────────────────────────────────
@@ -168,9 +176,14 @@ function onKey(e) { if (e.key === "Escape") { e.preventDefault(); close(); } }
 let powering = false;
 async function powerDown() {
   if (powering) return; powering = true;
+  try { performance.mark("holo:ceremony:power-down"); } catch {}
   ensureVeil();
   HTML.classList.add("holo-powering");
   try { sessionStorage.removeItem(T0_KEY); } catch {}
+  // LOCK HANDSHAKE (HOLO-BOOT-CEREMONY B7): the gate this lands on plays a SHORT hero (~1.2s) — a same-tab
+  // return from lock is a re-entry mid-sitting, not a cold boot. Per-tab sessionStorage is exactly the
+  // right lifetime: close the tab and the next open earns the full ceremony again.
+  try { sessionStorage.setItem("holo.ceremony.short", "1"); } catch {}
   try { if (window.holo && window.holo.signOut) await window.holo.signOut(); } catch {}
   const go = () => { try { location.replace(location.pathname); } catch { location.href = location.pathname; } };
   reduced() ? go() : setTimeout(go, 520);
@@ -190,7 +203,7 @@ function buildRailControl() {
   btn.type = "button";
   btn.className = "holo-rail-btn holo-pwr-btn";
   btn.title = "Lock & sign out";
-  btn.setAttribute("aria-label", "Power — lock and sign out");
+  btn.setAttribute("aria-label", "Lock or sign out");
   btn.innerHTML = PWR;
   btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); btn.classList.add("armed"); open(); });
   wrap.appendChild(btn);

@@ -124,10 +124,14 @@
     var s = DOC.createElement("style"); s.id = "holo-widgets-css";
     s.textContent = [
       ".hw-widget{position:fixed;z-index:62;width:var(--hw-w,260px);touch-action:none;user-select:none;cursor:grab;",
-        "color:var(--holo-ink,#f4f6fa);-webkit-tap-highlight-color:transparent;",
+        // AMBIENT INK — --hw-ink / --hw-shadow are set per-widget by the ambient-ink engine from the wallpaper
+        // luminance under this widget's footprint (dark ink+light halo over bright, light ink+dark halo over dark).
+        // Absent a sampled wallpaper they fall back to the fixed light ink + dark halo (unchanged behaviour).
+        "color:var(--hw-ink,var(--holo-ink,#f4f6fa));-webkit-tap-highlight-color:transparent;",
         // ONE typeface (the OS face) + the OS readability floor (--holo-font-min, 16px) — every widget inherits both
-        "font:var(--holo-weight-light,300) max(var(--holo-font-min,16px),16px)/1.4 var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif);",
-        "text-shadow:0 1px 18px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.55);transition:filter .2s}",
+        "font:var(--holo-weight-light,300) max(var(--holo-font-min,16px),16px)/1.4 var(--font-ui,var(--holo-font-sans,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif));",
+        // cross-fade ink/halo as the widget slides across a light↔dark boundary (never jarring)
+        "text-shadow:var(--hw-shadow,0 1px 18px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.55));transition:color .35s ease,text-shadow .35s ease,filter .2s}",
       ".hw-widget[hidden]{display:none}",
       ".hw-widget.dragging{cursor:grabbing}",
       // glide — applied only while the canvas reflows (a side panel opening/closing), so every object
@@ -140,6 +144,7 @@
         "backdrop-filter:blur(9px) saturate(1.15);box-shadow:0 20px 54px rgba(0,0,0,.4);transition:opacity .18s ease}",
       ".hw-widget:hover .hw-frame,.hw-widget.resizing .hw-frame,.hw-widget.editing .hw-frame{opacity:1}",
       ".hw-body{position:relative;z-index:1;text-shadow:inherit}",
+      ".hw-greeting, .hw-greeting .hw-body, .hw-greeting .hw-body *{font-family:var(--font-display,ui-serif,Georgia,serif)}",
       ".hw-widget.editing .hw-body{filter:blur(1.5px) brightness(.7);pointer-events:none}",
       // resize grip — bottom-right, revealed on hover, scales the whole object (persists)
       ".hw-grip{position:absolute;right:-8px;bottom:-8px;width:17px;height:17px;border-radius:50%;cursor:nwse-resize;z-index:4;opacity:0;transition:opacity .15s;",
@@ -220,7 +225,7 @@
     root.innerHTML =
       '<div class="hw-frame"></div>' +
       '<div class="hw-body"></div>' +
-      '<div class="hw-tools"><button class="edit" title="Edit">✎</button><button class="kap" title="Verify — derive this widget’s κ">⛎</button></div>' +
+      '<div class="hw-tools"><button class="edit" title="Edit"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2 2 0 0 0-3-3L5 17Z"/><path d="M14 7l3 3"/></svg></button><button class="kap" title="Check this hasn’t changed"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6Z"/><path d="M9 12l2 2 4-4"/></svg></button></div>' +
       '<div class="hw-grip" title="drag to resize"></div>';
     DOC.body.appendChild(root);
     w.el = root; w.body = root.querySelector(".hw-body"); w._subs = [];
@@ -235,6 +240,7 @@
     teardown(w);                                                  // drop old provider subscriptions before re-render
     w.body.innerHTML = "";
     try { sp.render(host(w)); } catch (e) { try { console.warn("HoloWidgets render", w.type, e); } catch (x) {} }
+    scheduleInk();                                                // a (re-)render may change size → re-read the light under it
   }
   function teardown(w) { (w._subs || []).forEach(function (u) { try { u(); } catch (e) {} }); w._subs = []; }
 
@@ -253,13 +259,105 @@
   }
   function applyAccent(w) { if (w.config && w.config.accent) w.el.style.setProperty("--holo-accent", w.config.accent); }
 
+  // ── AMBIENT INK — every widget reads the light behind it and picks its own ink ───────────────
+  // A floating widget is calm text ON the wallpaper (no plate — that is the whole aesthetic). Fixed
+  // light ink vanished over a bright sky. So each widget SAMPLES the wallpaper luminance under its
+  // own footprint and flips polarity: dark ink + a soft light halo over bright regions, light ink +
+  // a dark halo over dark ones — the same trick a premium lock screen uses. It re-evaluates live as
+  // a widget is dragged across a light↔dark boundary and whenever the wallpaper or viewport changes.
+  // Pure canvas + Web APIs, offline-first (the wallpaper is already in the cache the backdrop filled).
+  var THEME_KEY = "holo.theme.v1";
+  var _luma = null;                 // { sw, sh, data } — a tiny luminance thumbnail of the ON-SCREEN wallpaper
+  var _lumaKey = "";                // url@vw x vh — the thumbnail is rebuilt only when the wallpaper/viewport changes
+  var _inkRAF = 0, _lumaBusy = false;
+  var INK_DARK = "#0c0f16", INK_LIGHT = "#f4f6fa";
+  var SHADOW_ON_LIGHT = "0 0 2px rgba(255,255,255,.85),0 1px 12px rgba(255,255,255,.5)";   // a light glow lifts dark ink off a bright, textured sky
+  var SHADOW_ON_DARK = "0 1px 18px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.55)";              // the original dark halo (unchanged over dark)
+  function wallUrlOf(w) { if (!w) return ""; var m = String(w).match(/^(sha256|blake3|sha512):([0-9a-f]+)$/i); return m ? "/.holo/" + m[1].toLowerCase() + "/" + m[2] : String(w); }
+  function currentWall() {
+    try { var s = JSON.parse(W.localStorage.getItem(THEME_KEY) || "{}") || {}; var raw = String(s.wallpaper || "");
+      if (raw === "plain") return { kind: "none" };
+      if (/^live:/i.test(raw)) return { kind: "live" };
+      if (raw) return { kind: "photo", url: wallUrlOf(raw) };
+    } catch (e) {}
+    // The DEFAULT wallpaper lives ONLY in the --holo-wallpaper custom property (set pre-paint by
+    // holo-appearance-boot.js) for an operator who never explicitly picked one — localStorage.wallpaper is
+    // empty. Mirror holo-immersive-backdrop.mjs's resolver and read it here, else the default sky is unseen.
+    try {
+      var cv = getComputedStyle(DOC.documentElement).getPropertyValue("--holo-wallpaper").trim();
+      var m = cv.match(/url\(\s*["']?([^"')]+)["']?\s*\)/);
+      if (m && m[1]) return { kind: "photo", url: m[1] };
+    } catch (e) {}
+    return { kind: "none" };
+  }
+  // a plain (no-photo) desktop is a solid theme colour — read ITS luminance so ink still flips light/dark.
+  function themeBgLuma() {
+    try {
+      var el = DOC.querySelector(".wall") || DOC.body || DOC.documentElement;
+      var bg = getComputedStyle(el).backgroundColor || "";
+      var m = bg.match(/rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i); if (!m) return -1;
+      return 0.2126 * (+m[1] / 255) + 0.7152 * (+m[2] / 255) + 0.0722 * (+m[3] / 255);
+    } catch (e) { return -1; }
+  }
+  // Build the luminance thumbnail once per wallpaper/viewport. Mirrors the backdrop's cover-crop EXACTLY
+  // (holo-immersive-backdrop.mjs) so a viewport pixel maps 1:1 onto a thumbnail pixel. cb() runs when ready.
+  function buildLuma(cb) {
+    var wp = currentWall(), vw = innerWidth || 16, vh = innerHeight || 16;
+    var key = (wp.url || wp.kind) + "@" + vw + "x" + vh;
+    if (key === _lumaKey || _lumaBusy) { cb && cb(); return; }
+    if (wp.kind === "live") { _luma = null; _lumaKey = key; cb && cb(); return; }   // a live sim is cross-origin → can't sample; keep defaults
+    if (wp.kind === "none") { var lum = themeBgLuma(); _luma = lum >= 0 ? { sw: 1, sh: 1, data: [Math.round(lum * 255), Math.round(lum * 255), Math.round(lum * 255), 255] } : null; _lumaKey = key; cb && cb(); return; }
+    _lumaBusy = true;
+    fetch(wp.url, { cache: "force-cache" }).then(function (r) { return r.ok ? r.blob() : Promise.reject(); })
+      .then(function (b) { return createImageBitmap(b); })
+      .then(function (bmp) {
+        var SW = 96, SH = Math.max(1, Math.round(SW * vh / vw)), ar = vw / vh;         // small — mean luminance needs no resolution
+        var cw = bmp.width, ch = Math.round(bmp.width / ar);
+        if (ch > bmp.height) { ch = bmp.height; cw = Math.round(bmp.height * ar); }     // cover-crop to the viewport aspect, centred
+        var cx = Math.max(0, Math.round((bmp.width - cw) / 2)), cy = Math.max(0, Math.round((bmp.height - ch) / 2));
+        var cv = DOC.createElement("canvas"); cv.width = SW; cv.height = SH;
+        var g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(bmp, cx, cy, cw, ch, 0, 0, SW, SH);
+        try { bmp.close && bmp.close(); } catch (e) {}
+        try { _luma = { sw: SW, sh: SH, data: g.getImageData(0, 0, SW, SH).data }; } catch (e) { _luma = null; }
+        _lumaKey = key; _lumaBusy = false; cb && cb();
+      })
+      .catch(function () { _luma = null; _lumaKey = key; _lumaBusy = false; cb && cb(); });
+  }
+  // mean relative luminance (0..1) under a viewport rect — or -1 when there's nothing to sample (use defaults)
+  function lumaUnder(rect) {
+    var L = _luma; if (!L) return -1; var vw = innerWidth || 1, vh = innerHeight || 1;
+    var x0 = clamp(Math.floor(rect.left / vw * L.sw), 0, L.sw - 1), x1 = clamp(Math.ceil((rect.left + rect.width) / vw * L.sw), 1, L.sw);
+    var y0 = clamp(Math.floor(rect.top / vh * L.sh), 0, L.sh - 1), y1 = clamp(Math.ceil((rect.top + rect.height) / vh * L.sh), 1, L.sh);
+    if (x1 <= x0) x1 = x0 + 1; if (y1 <= y0) y1 = y0 + 1;
+    var sum = 0, n = 0;
+    for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) { var i = (y * L.sw + x) * 4; sum += 0.2126 * L.data[i] / 255 + 0.7152 * L.data[i + 1] / 255 + 0.0722 * L.data[i + 2] / 255; n++; }
+    return n ? sum / n : -1;
+  }
+  // Decide + apply this widget's ink from the light under it. Hysteresis (a dead-band around the flip point)
+  // keeps a widget that straddles an edge from flickering; the CSS transition cross-fades the actual change.
+  function applyInk(w) {
+    if (!w.el || w.hidden) return; var r; try { r = w.el.getBoundingClientRect(); } catch (e) { return; }
+    if (!r.width || !r.height) return;
+    var L = lumaUnder({ left: r.left, top: r.top, width: r.width, height: r.height });
+    if (L < 0) { w.el.style.removeProperty("--hw-ink"); w.el.style.removeProperty("--hw-shadow"); w._inkDark = undefined; return; }
+    var wantDark = w._inkDark === true ? (L > 0.48) : w._inkDark === false ? (L > 0.62) : (L > 0.55);
+    if (wantDark === w._inkDark) return;
+    w._inkDark = wantDark;
+    w.el.style.setProperty("--hw-ink", wantDark ? INK_DARK : INK_LIGHT);
+    w.el.style.setProperty("--hw-shadow", wantDark ? SHADOW_ON_LIGHT : SHADOW_ON_DARK);
+    try { w.el.setAttribute("data-hw-ink", wantDark ? "dark" : "light"); } catch (e) {}   // let a widget's own render read the polarity
+  }
+  function refreshInk() { buildLuma(function () { live.forEach(applyInk); }); }
+  function scheduleInk() { if (_inkRAF) return; try { _inkRAF = requestAnimationFrame(function () { _inkRAF = 0; refreshInk(); }); } catch (e) { _inkRAF = 0; refreshInk(); } }
+  function invalidateInk() { _lumaKey = ""; scheduleInk(); }   // the wallpaper (or a plain theme colour) changed → rebuild the thumbnail
+
   // ── resize ──────────────────────────────────────────────────────────────────────────────
   function wireResize(w) {
     var grip = w.el.querySelector(".hw-grip"); if (!grip) return;
     var sp = spec(w.type), min = (sp && sp.minW) || 90, max = (sp && sp.maxW) || 760, rz = null;
     grip.addEventListener("pointerdown", function (e) { if (w._snap) return; e.stopPropagation(); e.preventDefault(); rz = { x: e.clientX, w: w.w || w.el.offsetWidth }; w.el.classList.add("resizing"); try { grip.setPointerCapture(e.pointerId); } catch (x) {} });
     grip.addEventListener("pointermove", function (e) { if (!rz) return; w.w = clamp(Math.round(rz.w + (e.clientX - rz.x)), min, max); w.el.style.setProperty("--hw-w", w.w + "px"); });
-    grip.addEventListener("pointerup", function (e) { if (!rz) return; rz = null; w.el.classList.remove("resizing"); try { grip.releasePointerCapture(e.pointerId); } catch (x) {} var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; save(); });
+    grip.addEventListener("pointerup", function (e) { if (!rz) return; rz = null; w.el.classList.remove("resizing"); try { grip.releasePointerCapture(e.pointerId); } catch (x) {} var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; save(); applyInk(w); });
   }
 
   // ── pointer: drag vs single-tap vs double-tap(=edit) · right-click(=menu) ───────────────────
@@ -275,7 +373,7 @@
     w.el.addEventListener("pointermove", function (e) {
       if (!down) return; var dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (!moved && dx * dx + dy * dy > 25) { moved = true; w.el.classList.add("dragging"); showGrid(); }
-      if (moved) { var p = clampPos(w, down.ox + dx, down.oy + dy); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; var gg = guidesFor({ left: w.x, top: w.y, width: w.el.offsetWidth, height: w.el.offsetHeight }, w.el); showGuides(gg.v, gg.h); }
+      if (moved) { var p = clampPos(w, down.ox + dx, down.oy + dy); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; var gg = guidesFor({ left: w.x, top: w.y, width: w.el.offsetWidth, height: w.el.offsetHeight }, w.el); showGuides(gg.v, gg.h); applyInk(w); }
     });
     w.el.addEventListener("pointerup", function (e) {
       if (!down) return; var wasMoved = moved; w.el.classList.remove("dragging"); down = null; if (wasMoved) clearGuides();
@@ -391,8 +489,9 @@
           w.y = Math.max(b.minY, Math.min(w.y, Math.max(b.minY, b.maxY - w._dh)));
           w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
           var g = guidesFor({ left: w.x, top: w.y, width: w._dw, height: w._dh }, w.el); showGuides(g.v, g.h);
+          applyInk(w);                                                    // ink flips live as it crosses a light↔dark boundary
         },
-        end: function () { w.el.classList.remove("dragging"); if (w.type === "q") w._userMoved = true; clearGuides(); save(); },
+        end: function () { w.el.classList.remove("dragging"); if (w.type === "q") w._userMoved = true; clearGuides(); save(); applyInk(w); },
       },
       modifiers: [
         I.modifiers.snap({ targets: [vT, hT, I.snappers.grid({ x: SNAP_GRID, y: SNAP_GRID })], range: SNAP_RANGE, relativePoints: [{ x: 0, y: 0 }, { x: 0.5, y: 0.5 }, { x: 1, y: 1 }] }),
@@ -404,7 +503,7 @@
       listeners: {
         start: function () { w.el.classList.add("resizing"); },
         move: function (ev) { w.w = clamp(Math.round(ev.rect.width), min, max); w.el.style.setProperty("--hw-w", w.w + "px"); },
-        end: function () { w.el.classList.remove("resizing"); var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; save(); },
+        end: function () { w.el.classList.remove("resizing"); var p = clampPos(w, w.x, w.y); w.x = p.x; w.y = p.y; w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px"; save(); applyInk(w); },
       },
       modifiers: [
         I.modifiers.restrictSize({ min: { width: min, height: 1 }, max: { width: max, height: 1e6 } }),
@@ -430,8 +529,8 @@
     var tools = w.el.querySelector(".hw-tools"); if (!tools) return;
     tools.querySelector(".edit").addEventListener("click", function (e) { e.stopPropagation(); openEdit(w); });
     var kb = tools.querySelector(".kap");
-    kb.addEventListener("click", function (e) { e.stopPropagation(); sealOne(w).then(function (k) { clip("holo://" + k, "Copied this widget’s κ"); }); });
-    kb.addEventListener("mouseenter", function () { if (kb._v) return; kb._v = 1; sealOne(w).then(function (k) { kb.classList.add("ok"); kb.title = "Verified ✓ · holo://" + k.slice(0, 12) + "…"; }); });
+    kb.addEventListener("click", function (e) { e.stopPropagation(); sealOne(w).then(function (k) { clip("holo://" + k, "Widget link copied"); }); });
+    kb.addEventListener("mouseenter", function () { if (kb._v) return; kb._v = 1; sealOne(w).then(function (k) { kb.classList.add("ok"); kb.title = "Checked, unchanged"; }); });
   }
 
   // ── inline edit — a field panel generated from the type's declared schema ────────────────────
@@ -478,8 +577,8 @@
     if (SEL.length >= 2) { items.push(["⛓  Bundle " + SEL.length + " selected", groupSelected]); items.push(["—"]); }   // ≥2 shift-selected → fuse into one κ
     items = items.concat([
       ["✎  Edit…", function () { openEdit(w); }],
-      ["⛎  Copy widget κ", function () { sealOne(w).then(function (k) { clip("holo://" + k, "Copied this widget’s κ"); }); }],
-      ["⌗  Copy whole board κ", function () { sealAll().then(function (k) { clip("holo://" + k, "Copied a link to your whole widget board"); }); }],
+      ["⛎  Copy link to this widget", function () { sealOne(w).then(function (k) { clip("holo://" + k, "Widget link copied"); }); }],
+      ["⌗  Copy link to the whole board", function () { sealAll().then(function (k) { clip("holo://" + k, "Board link copied"); }); }],
       ["⎘  Duplicate", function () { duplicate(w); }],
       ["—"],
       ["⊖  Hide", function () { hide(w); }],
@@ -520,7 +619,7 @@
 
   // ── lifecycle ───────────────────────────────────────────────────────────────────────────
   function hide(w) { w.hidden = true; if (w.el) w.el.setAttribute("hidden", ""); teardown(w); save(); toast("Widget hidden · add it again from the desktop’s New menu"); }
-  function showW(w) { w.hidden = false; if (w.el) { w.el.removeAttribute("hidden"); render(w); try { w.el.animate([{ transform: "scale(.7)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.34,1.4,.5,1)" }); } catch (e) {} } save(); }
+  function showW(w) { w.hidden = false; if (w.el) { w.el.removeAttribute("hidden"); render(w); try { w.el.animate([{ transform: "scale(.7)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.34,1.4,.5,1)" }); } catch (e) {} } save(); scheduleInk(); }
   function remove(w) { teardown(w); if (w.el) w.el.remove(); var i = live.indexOf(w); if (i >= 0) live.splice(i, 1); selDrop(w.id); save(); toast("Widget removed"); }
   function duplicate(w) { add(w.type, JSON.parse(JSON.stringify(w.config)), { x: w.x + 24, y: w.y + 24 }); }
 
@@ -538,6 +637,7 @@
     if (w.type !== "q") { var cp = clearPlace(w.x, w.y, w.el.offsetWidth, w.el.offsetHeight); w.x = cp.x; w.y = cp.y; }   // land clear of any open window (the orb keeps its corner)
     w.el.style.left = w.x + "px"; w.el.style.top = w.y + "px";
     save();
+    scheduleInk();                                               // adopt the light under its landing spot
     try { w.el.animate([{ transform: "scale(.7)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.34,1.4,.5,1)" }); } catch (e) {}
     return w;
   }
@@ -806,6 +906,10 @@
   // ── boot ────────────────────────────────────────────────────────────────────────────────
   function boot() {
     W.addEventListener("resize", recenter);
+    W.addEventListener("resize", invalidateInk);                        // a new viewport → re-crop the luminance thumbnail
+    // the wallpaper changed on THIS surface (holo-theme-change) or in another same-origin tab (Storage) → re-read the light
+    try { DOC.documentElement.addEventListener("holo-theme-change", invalidateInk); } catch (e) {}
+    W.addEventListener("storage", function (e) { if (!e || e.key === null || e.key === THEME_KEY) invalidateInk(); });
     wireCanvasObserver();
     DOC.addEventListener("keydown", function (e) { if (e.key === "Escape" && SEL.length) selClear(); });   // Escape clears a bundling selection
     ensureInteract();                                                    // load the interact.js snap engine (graceful if absent)
@@ -819,6 +923,7 @@
     seedFirstRun(saved);
     try { var cm = currentModeName(); if (cm) DOC.documentElement.setAttribute("data-holo-mode", cm); } catch (e) {}   // reflect the restored mode so the shell re-dresses its chrome after reload (Clarity glass persists; fullscreen needs a fresh gesture)
     if (saved.length) settleMode();                               // a restored board → re-fit it to the CURRENT viewport (heals positions saved at a narrower boot size)
+    scheduleInk();                                                // first read of the light under every restored/seeded widget
   }
   // first run (no prior board): seed the "Welcome" scene so every NEW user lands on a warm, time-aware
   // greeting over the day-progress ring — the first face of the desktop — rather than an empty surface.
@@ -933,8 +1038,8 @@
           '<circle class="orb" cx="50" cy="' + (50 - R) + '" r="3.4" fill="currentColor" style="transition:cx .5s ease,cy .5s ease,r .8s ease,opacity .8s ease"></circle>' +
         '</svg>' +
         '<div class="lab" style="position:absolute;text-align:center;line-height:1.05;pointer-events:none">' +
-          '<div class="big" style="font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:-.01em;font-size:clamp(22px,calc(var(--hw-w,190px)*.2),60px)"></div>' +
-          '<div class="sub" style="margin-top:.5em;font-size:clamp(12px,calc(var(--hw-w,190px)*.074),18px);letter-spacing:.06em;opacity:.6"></div>' +
+          '<div class="big" style="font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:-.01em;font-size:clamp(24px,calc(var(--hw-w,190px)*.225),68px)"></div>' +
+          '<div class="sub" style="margin-top:.5em;font-size:clamp(13px,calc(var(--hw-w,190px)*.084),20px);letter-spacing:.06em;opacity:.6"></div>' +
         '</div>';
       host.body.appendChild(ring);
       var prog = ring.querySelector(".prog"), orb = ring.querySelector(".orb"), big = ring.querySelector(".big"), sub = ring.querySelector(".sub");
@@ -952,7 +1057,9 @@
         var a = (-90 + frac * 360) * Math.PI / 180;                    // an orb rides the leading edge — sun by day, moon by night
         orb.setAttribute("cx", (50 + R * Math.cos(a)).toFixed(2)); orb.setAttribute("cy", (50 + R * Math.sin(a)).toFixed(2));
         orb.setAttribute("r", isDay ? "3.6" : "2.8"); orb.style.opacity = isDay ? "1" : ".7";
-        ring.style.color = isDay ? "" : "#9db4d6";                     // a cool, calm tint settles over the night face
+        // a cool, calm tint settles over the night face — but BLENDED with the ambient ink so it stays legible
+        // over a bright sky too (dark→slate-blue over light, light→pale-blue over dark). By day it just inherits.
+        ring.style.color = isDay ? "" : "color-mix(in srgb, var(--hw-ink, #cdd9ee) 60%, #7f9ecb)";
         if (st.showTime) { var hh = c.h24 ? String(H).padStart(2, "0") : String(((H % 12) || 12)); big.textContent = hh + ":" + String(d.getMinutes()).padStart(2, "0"); sub.textContent = monthDay(d); }
         else { big.textContent = Math.round(frac * 100) + "%"; sub.textContent = isDay ? "of your day" : "of the night"; }
       }
@@ -970,12 +1077,28 @@
     render: function (host) {
       var c = host.config;
       var hi = DOC.createElement("div");
-      hi.style.cssText = "text-align:center;font-weight:300;letter-spacing:-.012em;font-size:clamp(26px,calc(var(--hw-w,560px)*.092),64px);line-height:1.1;opacity:.97";
+      hi.style.cssText = "text-align:center;font-weight:300;letter-spacing:-.012em;font-size:clamp(26px,calc(var(--hw-w,560px)*.092),64px);line-height:1.14;opacity:.97";
+      // The greeting, then the operator's name (name = HoloIdentity, or "Explorer" for a guest). On a phone the
+      // name drops to its OWN centred line ("Good morning," / "Explorer.", a touch heavier); on desktop the pair
+      // stays on ONE row ("Good morning, Explorer."). matchMedia keeps it live across a resize.
+      var l1 = DOC.createElement("span"), sep = DOC.createTextNode(" "), l2 = DOC.createElement("span");
+      hi.appendChild(l1); hi.appendChild(sep); hi.appendChild(l2);
       host.body.appendChild(hi);
+      var mq = W.matchMedia("(max-width: 640px)");
+      function applyStack() {
+        var stacked = mq.matches;                                             // mobile → break; desktop → one row
+        l2.style.display = stacked ? "block" : "inline";
+        l2.style.fontWeight = stacked ? "400" : "inherit";
+        sep.textContent = stacked ? "" : " ";
+      }
+      applyStack();
+      try { mq.addEventListener ? mq.addEventListener("change", applyStack) : mq.addListener(applyStack); } catch (e) {}
+      host.cleanup(function () { try { mq.removeEventListener ? mq.removeEventListener("change", applyStack) : mq.removeListener(applyStack); } catch (e) {} });
       host.subscribe("time", function (d) {
         d = d || new Date();
         var nm = (c.name || whoAmI() || "Explorer").trim();
-        hi.textContent = greetWord(d.getHours()) + ", " + nm + ".";
+        l1.textContent = greetWord(d.getHours()) + ",";
+        l2.textContent = nm + ".";
       });
     },
   });
@@ -1421,10 +1544,12 @@
         greetW = Math.round(clamp(Math.min(W_, H_) * 0.62, 340, 640));
       }
       var gap = Math.round(ringW * 0.3);                                       // a tighter gap → greeting sits a little higher
-      // greeting height for CENTERING: the name line can wrap to two lines on a phone, so estimate ~1.5 lines of
-      // its width-derived type (font ≈ greetW*0.092, line-height 1.1). Under-counting here let the pair drift low.
-      var total = ringW + gap + Math.round(greetW * 0.15);                     // ring (≈square) + gap + greeting block
-      var lift = Math.round((H_ - top) * 0.06);                                // nudge the pair slightly above true centre
+      // greeting height for CENTERING must match the line count the widget actually renders: on a phone
+      // (viewport ≤ 640, matching the greeting's own matchMedia) the name drops to a SECOND line, so count two
+      // lines (≈ greetW*0.21) and lift a touch more; on desktop it's one row (≈ greetW*0.15), the original placement.
+      var stacked = W_ <= 640;
+      var total = ringW + gap + Math.round(greetW * (stacked ? 0.21 : 0.15));  // ring (≈square) + gap + greeting block
+      var lift = Math.round((H_ - top) * (stacked ? 0.10 : 0.06));             // phone: a little higher; desktop: original
       var startY = Math.round(top + Math.max(m, ((H_ - top) - total) / 2 - lift)); // centre the pair, lifted a touch higher
       return [
         { type: "dayring",  config: {}, w: ringW,  x: CX(W_, ringW),  y: startY },

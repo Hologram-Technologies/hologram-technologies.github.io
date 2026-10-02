@@ -13,16 +13,28 @@ import { blake3hex } from "../holo-blake3.mjs";
 const DB = "holo-kstore", STORE = "kappa";
 const hexOf = (k) => String(k).split(":").pop();
 let _db = null;
+// SELF-HEALING open: an IndexedDB open that never settles (queued behind a blocked upgrade/delete,
+// storage-backend stall at SW start) used to wedge this memo — and with it EVERY κ-store read in this
+// context — for the worker's whole life. Bound the open, reset the memo on failure (the next call
+// retries), close+reset on versionchange so an upgrade/delete can never deadlock the origin.
+// Callers already fail soft to the network rungs.
 function db() {
   return _db || (_db = new Promise((res, rej) => {
+    let dead = false;
+    const bail = setTimeout(() => { dead = true; _db = null; rej(new Error("kstore open timed out")); }, 4000);
     const r = indexedDB.open(DB, 1);
     r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE); };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
+    r.onsuccess = () => { if (dead) { try { r.result.close(); } catch {} return; } clearTimeout(bail); const d = r.result; d.onversionchange = () => { try { d.close(); } catch {} _db = null; }; res(d); };
+    r.onerror = () => { clearTimeout(bail); _db = null; rej(r.error); };
   }));
 }
 function reqP(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
-async function withStore(mode, fn) { const d = await db(); const t = d.transaction(STORE, mode); const out = await fn(t.objectStore(STORE)); return out; }
+async function withStore(mode, fn) {
+  let d = await db(), t = null;
+  try { t = d.transaction(STORE, mode); }
+  catch { _db = null; d = await db(); t = d.transaction(STORE, mode); }   // a closed/idle-reaped connection self-heals with ONE reopen
+  const out = await fn(t.objectStore(STORE)); return out;
+}
 
 export async function kput(kappa, bytes) { const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes); await withStore("readwrite", (s) => reqP(s.put(u, hexOf(kappa)))); return kappa; }
 export async function kget(kappa) { return withStore("readonly", (s) => reqP(s.get(hexOf(kappa)))); }   // Uint8Array | undefined

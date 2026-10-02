@@ -55,8 +55,35 @@ export function openCallUI({ mode = "outgoing", name = "Someone", video = false,
   }
   overlay.append(card); document.body.append(overlay);
 
-  function startTimer() { if (timer) return; connected = true; const set = () => statusEl.textContent = (video ? "" : "Voice call · ") + fmt(secs); if (!video) set(); timer = setInterval(() => { secs++; if (!video) statusEl.textContent = "Voice call · " + fmt(secs); else statusEl.textContent = fmt(secs); }, 1000); if (video) statusEl.textContent = "00:00"; if (card._ring) card._ring.style.display = "none"; }
-  function close() { try { clearInterval(timer); } catch {} try { remoteAudio.srcObject = null; remoteVideo.srcObject = null; localVideo.srcObject = null; } catch {} try { overlay.remove(); } catch {} }
+  function startTimer() { if (timer) return; connected = true; stopRing(); const set = () => statusEl.textContent = (video ? "" : "Voice call · ") + fmt(secs); if (!video) set(); timer = setInterval(() => { secs++; if (!video) statusEl.textContent = "Voice call · " + fmt(secs); else statusEl.textContent = fmt(secs); }, 1000); if (video) statusEl.textContent = "00:00"; if (card._ring) card._ring.style.display = "none"; }
+  function close() { stopRing(); try { clearInterval(timer); } catch {} try { remoteAudio.srcObject = null; remoteVideo.srcObject = null; localVideo.srcObject = null; } catch {} try { overlay.remove(); } catch {} }
+
+  // ── THE RING (WhatsApp's identity is the sound) — WebAudio-generated, zero bytes shipped, fully fail-soft. ──
+  // incoming = a warm two-tone "ding-dong" every 2s + vibration; outgoing = the classic soft ringback (1s on/3s off).
+  // Autoplay policy may keep the context suspended until a gesture → resume() is retried on first pointer/keydown;
+  // the visual ring + vibration never depend on the sound. Everything stops the instant the call connects or ends.
+  let _ac = null, _ringTimer = null, _vibTimer = null, _resumeHook = null;
+  function _beep(freq, at, dur, gain) { try { const o = _ac.createOscillator(), g = _ac.createGain(); o.type = "sine"; o.frequency.value = freq; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(gain, at + 0.02); g.gain.setValueAtTime(gain, at + dur - 0.06); g.gain.linearRampToValueAtTime(0, at + dur); o.connect(g).connect(_ac.destination); o.start(at); o.stop(at + dur + 0.02); } catch {} }
+  function startRing(kind) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      _ac = new AC();
+      const kick = () => { try { _ac.resume && _ac.resume().catch(() => {}); } catch {} };
+      kick();
+      if (_ac.state === "suspended") { _resumeHook = () => kick(); document.addEventListener("pointerdown", _resumeHook, { once: true }); document.addEventListener("keydown", _resumeHook, { once: true }); }
+      const cycle = kind === "incoming"
+        ? () => { const t = _ac.currentTime + 0.03; _beep(784, t, 0.32, 0.14); _beep(587, t + 0.36, 0.4, 0.14); }        // G5→D5 ding-dong
+        : () => { const t = _ac.currentTime + 0.03; _beep(425, t, 1.0, 0.05); };                                          // soft ringback
+      cycle(); _ringTimer = setInterval(cycle, kind === "incoming" ? 2000 : 4000);
+      if (kind === "incoming" && navigator.vibrate) { const vib = () => { try { navigator.vibrate([400, 240, 400]); } catch {} }; vib(); _vibTimer = setInterval(vib, 2000); }
+    } catch {}
+  }
+  function stopRing() {
+    try { clearInterval(_ringTimer); clearInterval(_vibTimer); _ringTimer = _vibTimer = null; } catch {}
+    try { navigator.vibrate && navigator.vibrate(0); } catch {}
+    try { if (_resumeHook) { document.removeEventListener("pointerdown", _resumeHook); document.removeEventListener("keydown", _resumeHook); _resumeHook = null; } } catch {}
+    try { if (_ac) { _ac.close(); _ac = null; } } catch {}
+  }
 
   function renderInCall() {
     btnRow.innerHTML = "";
@@ -69,18 +96,23 @@ export function openCallUI({ mode = "outgoing", name = "Someone", video = false,
   if (mode === "incoming") {
     const declineBtn = mkBtn("#e76f6f", "#0b1014", "Decline");
     const acceptBtn = mkBtn("#00d09c", "#04110d", "Accept");
-    declineBtn.onclick = () => { onDecline(); close(); };
-    acceptBtn.onclick = () => { statusEl.textContent = "Connecting…"; renderInCall(); onAccept(); };
+    declineBtn.onclick = () => { stopRing(); onDecline(); close(); };
+    acceptBtn.onclick = () => { stopRing(); statusEl.textContent = "Connecting…"; renderInCall(); onAccept(); };
     btnRow.append(declineBtn, acceptBtn);
-  } else renderInCall();
+    startRing("incoming");
+  } else { renderInCall(); startRing("outgoing"); }
 
   return {
     overlay,
     setPhase(phase) {
       if (phase === "connecting") statusEl.textContent = "Connecting…";
-      else if (phase === "connected") startTimer();
-      else if (phase === "ended" || phase === "failed" || phase === "disconnected") { statusEl.textContent = phase === "failed" ? "Call failed" : "Call ended"; setTimeout(close, 900); }
-      else if (phase === "declined") { statusEl.textContent = "Declined"; setTimeout(close, 900); }
+      else if (phase === "connected") { const wasReconn = connected && timer; startTimer(); if (wasReconn && video) statusEl.textContent = ""; }
+      // a network change (Wi-Fi↔cellular) → the mesh/peer restarts ICE under us. Show it, never auto-close.
+      else if (phase === "reconnecting" || phase === "disconnected") { statusEl.textContent = "Reconnecting…"; }
+      else if (phase === "ended" || phase === "failed") { statusEl.textContent = phase === "failed" ? "Call failed" : "Call ended"; setTimeout(close, 900); }
+      else if (phase === "declined") { stopRing(); statusEl.textContent = "Declined"; setTimeout(close, 900); }
+      else if (phase === "no-answer") { stopRing(); statusEl.textContent = "No answer"; setTimeout(close, 1200); }
+      else if (phase === "missed") { stopRing(); statusEl.textContent = "Missed call"; setTimeout(close, 1200); }
     },
     attachRemote(stream) { try { remoteAudio.srcObject = stream; remoteAudio.play && remoteAudio.play().catch(() => {}); if (video) { remoteVideo.srcObject = stream; remoteVideo.play && remoteVideo.play().catch(() => {}); } } catch {} },
     attachLocal(stream) { try { localVideo.srcObject = stream; } catch {} },

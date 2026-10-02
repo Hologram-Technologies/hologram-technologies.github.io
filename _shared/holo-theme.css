@@ -41,11 +41,19 @@
      *    --holo-font-scale drives the ROOT font-size, so every rem-based size and the
      *    --holo-text* ramp (holo-mobile.css, authored in rem) scale from ONE lever. */
     --holo-font-scale: 1;                         /* 0.85 … 1.4, set live by the engine */
-    /* Default OS typeface: Helvetica Neue (the iPhone's face) — a system font on Apple
-     * devices; falls back to Helvetica/Arial elsewhere. (Not vendored; it's proprietary.) */
-    --holo-font-sans: "Helvetica Neue", Helvetica, Arial, "Segoe UI", Roboto, system-ui, sans-serif;
-    --holo-font-serif: ui-serif, Georgia, "Times New Roman", serif;
-    --holo-font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    /* ── THE CLAUDE FEEL — the ONE experience law, promoted to the OS kernel (HOLO-ONE-UI-EVERY-ROOM I1).
+     *    Defined ONCE here so every room that consumes the kernel tokens is Claude-correct for free. The six
+     *    φ sizes + font pair + radii are the shell's law (whatsapp-theme.css); this makes them OS-wide. */
+    --font-ui: ui-sans-serif, -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-display: ui-serif, Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, Consolas, monospace;
+    --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px; --fs-lg: 16px; --fs-xl: 20px; --fs-hero: 34px;
+    --r-card: 10px; --r-control: 8px; --r-pill: 999px;
+    /* The OS typeface now IS --font-ui (one family everywhere, matching the shell). Legacy consumers of
+     * --holo-font-* upgrade automatically. Radius stays 12 here; per-room sweeps flip to --r-card verified. */
+    --holo-font-sans: var(--font-ui);
+    --holo-font-serif: var(--font-display);
+    --holo-font-mono: var(--font-mono);
 
     /* ── Density — multiplies UI spacing; immersive mode tightens it. */
     --holo-density: 1;

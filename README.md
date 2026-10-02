@@ -1,25 +1,33 @@
-# Holo Messenger — serverless
+# Hologram OS — the universal resolver
 
-Every messenger in one inbox — running 100% in your browser. No backend, no account, no phone number:
-your identity lives on your device (TEE biometric — Windows Hello / Touch ID), every shell byte is
-content-addressed and verified before it paints, and repeat opens work fully offline.
+**[Open it →](https://hologram-technologies.github.io/hologram-os)** · one link verifies itself into a whole
+operating system, in any browser, no server, no install, no account.
 
-**Open it:** serve this tree from any static host (GitHub Pages works as-is, root or subpath) and visit
-`apps/holo-messenger/app.html` — or the root `index.html`, which forwards there.
-Instant ephemeral tour, no biometric: append `?guest=1`.
+> This is the `main` branch — the tree GitHub Pages serves. For the human introduction, see the
+> [**cover on `home`**](https://github.com/Hologram-Technologies/hologram-os).
 
-## What holds it together
-- **κ-verified shell (Law L5).** `apps/holo-messenger/shell-manifest.json` commits the SHA-256 of every
-  shell byte (aggregate κ `a7801bc7f1fdf961…`). The service worker refuses any byte that does not
-  re-derive to its committed κ, and can recover the whole shell from the content-addressed store in `b/`
-  — the origin is untrusted plumbing.
-- **Sovereign identity.** Sign-in is your device's authenticator; fail-closed, nothing confidential paints
-  before identity. Guest sessions persist nothing.
-- **Serverless by construction.** Assembled by dependency-closure inclusion from the Hologram OS tree —
-  dev servers, platform bridges, and credentials are structurally absent. Platform connections are made
-  by each user, from their own browser, private to their device.
-- **Offline after first open.** The worker precaches the verified shell; the second open needs zero
-  network bytes to paint.
+## One law
 
-Assembled by `assemble-q-bundle.mjs` in the Hologram monorepo — do not edit files here by hand;
-regenerate the bundle from canonical source.
+**A thing's name is the hash of its bytes.** Nothing is fetched by location — everything by identity,
+and re-derived on arrival. A byte that doesn't equal its name doesn't exist. Everything else — leanness,
+security, offline, portability — follows from that.
+
+Ask for something and it streams the bytes from wherever it can reach them (this origin, a mirror, the
+IPFS network, a peer), checks each against its fingerprint, and shows them only if they match. So it never
+has to trust any single host to be online, or honest. Take every host away but one, and it still resolves.
+
+## What this branch is
+
+The whole tree GitHub Pages serves. The front door is `index.html`; it reads a name or link as an object
+and unfolds it. The apps, the runtime, and the history mostly **aren't here as bytes** — they stream on
+demand, verified, from the [content store](https://github.com/Hologram-Technologies/hologram-apps) and the
+open web. What stays is the seed and the machinery that resolves and proves.
+
+## Run it
+
+Serve this tree from any static host — GitHub Pages as-is, root or subpath, or copy it anywhere and it
+boots byte-identically. No backend. Try it without signing in: `?guest=1`. The engine updates upstream
+from [holospaces](https://github.com/Hologram-Technologies/holospaces) — improvements arrive with nothing
+to install.
+
+<sub>MIT · verify by re-derivation, or refuse.</sub>

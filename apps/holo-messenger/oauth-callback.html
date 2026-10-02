@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connecting…</title>
+<style>
+  html,body{margin:0;height:100%;background:#1f1f1e;color:#e7e7e5;font:14px/1.5 system-ui,-apple-system,sans-serif}
+  .wrap{height:100%;display:grid;place-items:center;text-align:center;padding:24px}
+  .dot{width:26px;height:26px;border-radius:50%;border:2px solid #4b4b48;border-top-color:#a78bfa;margin:0 auto 14px;animation:s 1s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .sub{opacity:.6;font-size:12px;margin-top:6px}
+</style>
+<div class="wrap"><div>
+  <div class="dot"></div>
+  <div id="msg">Connecting your account…</div>
+  <div class="sub" id="sub">This window will close automatically.</div>
+</div></div>
+<script>
+// OAuth redirect target for the serverless Gmail connector (gmail-serverless.mjs). Google redirects here with
+// ?code&state (or ?error). We hand the code back to the opener (SAME ORIGIN → postMessage) and close. No token
+// exchange happens here — the opener does that (PKCE, code_verifier never left the opener). Nothing is stored here.
+(function () {
+  var p = new URLSearchParams(location.search);
+  var payload = { type: "holo-gmail-oauth", code: p.get("code") || null, state: p.get("state") || null, error: p.get("error") || null };
+  var ok = false;
+  try { if (window.opener && !window.opener.closed) { window.opener.postMessage(payload, location.origin); ok = true; } } catch (e) {}
+  // fallback for a full-page redirect flow (no opener): stash for the app to pick up, then return to the messenger
+  if (!ok) { try { sessionStorage.setItem("holo.gmail.oauth", JSON.stringify(payload)); } catch (e) {} }
+  var m = document.getElementById("msg"), s = document.getElementById("sub");
+  if (payload.error) { m.textContent = "Sign-in was cancelled."; s.textContent = "You can close this window."; }
+  else if (ok) { m.textContent = "Connected — finishing up…"; try { setTimeout(function(){ window.close(); }, 300); } catch (e) {} }
+  else { m.textContent = "Returning to Hologram…"; try { location.replace("/hologram-os/apps/holo-messenger/app.html"); } catch (e) {} }
+})();
+</script>

@@ -105,7 +105,28 @@ export function makeMemory({ backend = null, now = () => "1970-01-01T00:00:00Z",
     return { ok: true, target, records: records.slice() };
   }
 
-  return { ready, remember, recent, feedback, affinity, summary, forget, export: exportModel, verify };
+  // adopt — merge records from ANOTHER realm into this one (the memory half of a guest→operator claim: what you
+  // taught Q before signing in is re-keyed into your sovereign realm, nothing lost). Dedup by sealed id (Law L5
+  // makes ids content-true), keep time order, respect the cap, persist under THIS realm's cipher.
+  async function adopt(recs) {
+    await ready();
+    if (!Array.isArray(recs) || !recs.length) return 0;
+    const have = new Set(records.map((r) => r && r.id).filter(Boolean));
+    let added = 0;
+    for (const r of recs) { if (r && r.id && !have.has(r.id)) { records.push(r); have.add(r.id); added++; } }
+    if (added) {
+      records.sort((a, b) => String(a["prov:generatedAtTime"] || "").localeCompare(String(b["prov:generatedAtTime"] || "")));
+      if (records.length > cap) records = records.slice(-cap);
+      await persist();
+    }
+    return added;
+  }
+
+  // rehydrate — reload from the durable backend (the realm changed: sign-in/unlock swapped the at-rest cipher,
+  // so what load() can open is DIFFERENT now). Without this, a hydrate-while-locked pins recall to [] all session.
+  async function rehydrate() { hydrated = false; await ready(); return records.length; }
+
+  return { ready, remember, recent, feedback, affinity, summary, forget, adopt, rehydrate, export: exportModel, verify };
 }
 
 export { verify };
@@ -114,30 +135,37 @@ export { verify };
 // writes through here so feedback + intents SURVIVE reload, and Q.briefing/recall can read the user model.
 // Law L1 private-first, L2 one canonical wire. Fail-soft (a fresh in-memory model) if storage is unavailable.
 if (typeof window !== "undefined") {
-  const idbBackend = () => {
-    const KEY = "holo.memory.v1", DB = "holo-memory", STORE = "kv";
-    const open = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-    const tx = async (mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction(STORE, mode); const s = t.objectStore(STORE); const rq = fn(s); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); }); };
-    // AT-REST ENCRYPTION (privacy by construction): records are AES-GCM sealed under the operator's sovereign
-    // vault key (holo-session.activeCipher) before they touch IndexedDB — a same-origin app reads only
-    // ciphertext, never your memory; nothing leaves the device. Fail-CLOSED: no cipher (locked) → DON'T persist
-    // plaintext. Legacy v1 plaintext arrays are read once, then re-sealed on the next save (transparent migrate).
-    const te = new TextEncoder(), td = new TextDecoder();
-    const cipher = async () => { try { const m = await import("./holo-session.mjs"); return m.activeCipher ? (await m.activeCipher()).cipher : null; } catch (e) { return null; } };
-    return {
-      load: async () => {
-        const raw = await tx("readonly", (s) => s.get(KEY)); if (!raw) return [];
-        if (Array.isArray(raw)) return raw;                                       // v1 plaintext → migrated on next save
-        if (raw.v === 2 && raw.blob) { const c = await cipher(); if (!c) return []; try { const pt = await c.open(raw.blob); return pt ? JSON.parse(td.decode(pt)) : []; } catch (e) { return []; } }
-        return [];
-      },
-      save: async (recs) => {
-        const c = await cipher(); if (!c) return null;                            // locked / no key → never write plaintext
-        const blob = await c.seal(te.encode(JSON.stringify(recs)));
-        return tx("readwrite", (s) => s.put({ v: 2, blob }, KEY));
-      },
-    };
+  const DB = "holo-memory", STORE = "kv", LEGACY = "holo.memory.v1";
+  const openDb = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const tx = async (mode, fn) => { const db = await openDb(); return new Promise((res, rej) => { const t = db.transaction(STORE, mode); const s = t.objectStore(STORE); const rq = fn(s); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); }); };
+  const te = new TextEncoder(), td = new TextDecoder();
+  const session = async () => { try { return await import("./holo-session.mjs"); } catch (e) { return null; } };
+  const realmKey = (realm) => LEGACY + ":" + String(realm || "device");
+  const openBlob = async (raw, cipher) => {
+    if (!raw) return null;
+    if (Array.isArray(raw)) return raw;                                            // v1 plaintext (pre-encryption era)
+    if (raw.v === 2 && raw.blob && cipher) { try { const pt = await cipher.open(raw.blob); return pt ? JSON.parse(td.decode(pt)) : null; } catch (e) { return null; } }
+    return null;
   };
+  // REALM-KEYED at-rest store (the memory half of the session's realm discipline). Records are AES-GCM sealed
+  // under the ACTIVE realm's cipher and stored at THAT realm's key — a guest/locked save can no longer clobber
+  // the operator's blob (the old single-key store overwrote whichever realm saved last: the orphaning bug).
+  // Legacy single-key blobs are adopted into the current realm when they open under its cipher. Fail-CLOSED:
+  // no cipher → never persist plaintext.
+  const idbBackend = () => ({
+    load: async () => {
+      const m = await session(); const a = m && m.activeCipher ? await m.activeCipher() : null; if (!a) return [];
+      const mine = await openBlob(await tx("readonly", (s) => s.get(realmKey(a.realm))), a.cipher);
+      if (mine) return mine;
+      const legacy = await openBlob(await tx("readonly", (s) => s.get(LEGACY)), a.cipher);   // pre-realm blob: adopt if it opens under THIS cipher (or v1 plaintext)
+      return legacy || [];
+    },
+    save: async (recs) => {
+      const m = await session(); const a = m && m.activeCipher ? await m.activeCipher() : null; if (!a || !a.cipher) return null;
+      const blob = await a.cipher.seal(te.encode(JSON.stringify(recs)));
+      return tx("readwrite", (s) => s.put({ v: 2, blob }, realmKey(a.realm)));
+    },
+  });
   const wire = async () => {
     try {
       // bind once, wherever holo-memory is LOADED. It is included only in operator SURFACES (the shell + the
@@ -149,6 +177,30 @@ if (typeof window !== "undefined") {
       const mem = makeMemory({ backend, now: () => new Date().toISOString(), conscience: window.HoloConscience || null });
       await mem.ready();
       window.HoloMemory = mem;
+      // ── THE RELATIONSHIP SURVIVES SIGN-IN (U1 of Q-ONE). Watch the realm; when it changes (unlock/sign-in/
+      // lock), REHYDRATE (what load() can open changed) — and on a guest→operator transition, CLAIM: open the
+      // guest blob with the always-derivable device cipher, adopt its records into the operator realm (sealed
+      // under the vault key), then consume the guest blob — write-new-THEN-delete-old, like session.claim().
+      let lastRealm = null;
+      const watch = async () => {
+        try {
+          const m = await session(); if (!m || !m.activeCipher) return;
+          const a = await m.activeCipher();
+          if (a.realm === lastRealm) return;
+          const was = lastRealm; lastRealm = a.realm;
+          if (was === null) return;                                   // first observation, not a change
+          await mem.rehydrate();
+          if (a.operator && m.deviceCipher) {
+            const d = await m.deviceCipher();
+            const guest = await openBlob(await tx("readonly", (s) => s.get(realmKey(d.realm))), d.cipher);
+            if (guest && guest.length) {
+              const n = await mem.adopt(guest);                       // persists under the OPERATOR realm
+              if (n >= 0) { try { await tx("readwrite", (s) => s.delete(realmKey(d.realm))); } catch (e) {} }
+            }
+          }
+        } catch (e) { /* fail-soft — memory stays usable in the current realm */ }
+      };
+      watch(); setInterval(watch, 3000);                              // cheap: a realm-string compare per tick
       if (document.documentElement) document.documentElement.dispatchEvent(new Event("holo-memory-ready"));
     } catch (e) { /* leave unset; callers fail-soft */ }
   };

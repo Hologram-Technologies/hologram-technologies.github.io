@@ -25,10 +25,10 @@ import { planProposal as _qPlan, mayProceed as _qMayProceed, isActionable as _qA
 import * as HoloTogether from "./holo-together.mjs";   // TOGETHER: one link to a live shared experience (works off-Hologram)
 import "./holo-together-rtc.mjs";   // installs window.HoloTogether (WebRTC host/join over the signal relay)
 import * as TogetherPlayer from "./holo-together-player.mjs";   // TOGETHER: in-app host driver (overlay player + bindVideo)
-import * as HoloCall from "./holo-call.mjs";   // CALLS: 1:1 voice/video over the same relay (symmetric perfect-negotiation)
-import { openCallUI } from "./holo-call-ui.mjs";   // CALLS: the floating call surface (own DOM, no React conflict)
-import * as HoloMesh from "./holo-call-mesh.mjs";   // MEET: N-peer group mesh over together-signal
-import { openMeetUI } from "./holo-meet-ui.mjs";   // MEET: the grid meeting surface (own DOM)
+import * as HoloCall from "./holo-call.mjs?v=8c1a249f8792";   // CALLS: 1:1 voice/video (Nostr signaling on hosted origins + TURN + the ring detector) + HD callMedia/tunePeer; ?v busts the SW cache-first module
+import { openCallUI } from "./holo-call-ui.mjs?v=d2de7b874247";   // CALLS: the floating call surface — now RINGS (WebAudio ring/ringback + vibration)
+import * as HoloMesh from "./holo-call-mesh.mjs?v=8e2430929cf3";   // MEET: N-peer group mesh over the ONE shared signal door (Nostr on web) + names/adaptive-bitrate/meet-link ring + camera-flip replaceVideoTrack
+import { openMeetUI } from "./holo-meet-ui.mjs?v=ee873feb4423";   // MEET: the IMMERSIVE call surface (full-bleed video + self PiP + fade controls + camera flip)
 import { makeQResponder, makeQGroupResponder, mentionsQ } from "../../usr/lib/holo/q/holo-q-contact.mjs";   // Q AS A CONTACT
 import { seedLookup } from "../../usr/lib/holo/q/holo-q-seed.mjs";   // O(1) cold-start instant answers (first-time responsiveness)
 import { createHoloModelBrain } from "../../usr/lib/holo/voice/holo-voice-holo-brain.mjs";   // Q's on-device brain (stream + setSkill)
@@ -37,8 +37,16 @@ import { createHoloModelBrain } from "../../usr/lib/holo/voice/holo-voice-holo-b
 // disk) must degrade Q to its seed tier, NEVER take down the whole messenger boot. The inbox, chats, and real sends
 // cannot depend on the model's module graph linking. (Was a static import — that made one bad glue file fatal.)
 import "../../usr/lib/holo/q/holo-q-passport.mjs";   // window.HoloQPassport - Q signs its own messages (Agent Passport)
+// MOBILE-LEAN (2026-07): ONE phone predicate reused by the mobile-lean gates below (Q-brain import + Harper
+// pre-warm). Coarse pointer + small viewport (the shell's own phone test) OR Save-Data — flagship phones
+// included, since mobile CPU/battery/network are the constraint, not GPU. Desktop → false → behaviour unchanged.
+const _qLeanMobile = (() => { try { return (typeof matchMedia !== "undefined" && matchMedia("(pointer:coarse)").matches && Math.min(innerWidth, innerHeight) <= 700) || (typeof navigator !== "undefined" && navigator.connection?.saveData === true); } catch { return false; } })();
 import "../../usr/lib/holo/holo-syshealth.mjs";   // M2 system-awareness: window.HoloSysHealth.summary() — the OS's OWN live health, fail-soft (no signal → honest all-clear)
 import "../../usr/lib/holo/holo-memory.mjs";   // M3 real inner life: window.HoloMemory — Q's persistent, κ-sealed, AES-encrypted (vault) user-model. Fail-closed private (no vault → in-session only, never plaintext)
+import "../../usr/lib/holo/holo-q-corpus.mjs";
+import "../../usr/lib/holo/q/holo-q-live-evolve.mjs";   // U3b Q EVOLVES: window.QEvolve - the ORPHANED deep-evolution engine (holo-mind-evolve, ADR-0081) welded into the live Q: sealed trace corpus -> warm-brain proposal -> USER-ratified succession -> persona addendum. Governed, private, realm-persisted.   // U2 the ONE context plane: window.HoloCorpus — any surface publishes κ-facts (Files · mail · TV · vision), every Q turn recalls them (rides HoloMemory's realm crypto + claim)
+import "../../usr/lib/holo/q/holo-q-notices.mjs";
+import { makeReply } from "../../usr/lib/holo/q/holo-q-reply.mjs";   // HOLO-Q-ONE-SURFACE: the ONE reply-spine — qGroundedContext + qActionRoute now DELEGATE here (the guards were already unified; this un-forks the reply pipeline too). The messenger injects its own capabilities (inbox retrieval, open/call executors, the action ledger).   // Q NOTICES: window.QNotices - the ranking brain over the existing signals (QRemind/HoloCorpus/QEvolve/HoloMemory); QReach calls pick() to say the ONE true useful thing, or stay silent. Grounded or nothing.
 import "../../usr/lib/holo/holo-net.mjs";   // sets window.HoloNet (real holowhat CN, else local fallback)
 
 // reduce a conversation's signed chain → projection (rootMessages + per-message reactions/edits/replies).
@@ -283,7 +291,7 @@ const convos = [];
 let ui = null;
 let Q = null, qGroup = null, qBrain = null, qThinking = false;   // the Q contact, group responder, on-device brain, typing flag
 let qStream = null;   // Q's live, GROWING reply { genesis, text } - an ephemeral bubble streamed token-by-token (onDelta) before it finalizes to one immutable κ. Null when Q isn't mid-reply.
-let qStatus = "online · on your device";   // honest, live header status for Q — narrates the brain's boot ("waking Q up…" / "settling in…") like the standalone chat, then rests at "online · on your device". Overridden by "typing…" while qThinking.
+let qStatus = "online, on your device";   // honest, live header status for Q — narrates the brain's boot ("waking Q up…" / "settling in…") like the standalone chat, then rests at "online, on your device". Overridden by "typing…" while qThinking.
 const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));   // tiny pause helper (no such util existed) — used for Q's human beat-pacing + cold-window warm polling
 // ── latency instrumentation: the engine measures TTFT + tok/s per turn; we surface it so the warm-KV win is VISIBLE,
 // not asserted. `qLastStats` holds the last generation's stats; a dev-gated HUD (?qhud=1 or localStorage holo.q.hud=1)
@@ -394,6 +402,11 @@ async function onAddMember(genesis, name) {
 }
 async function onRemoveMember(genesis, memberId) {
   const c = convos.find((x) => x.meta.genesis === genesis); if (!c || !c.members) return;
+  if (c.room) {   // ONE ROOM: kick IS cryptography — the engine rotates + rekeys the remaining members only
+    try { const H = window.HoloDirect; if (H && H.roomKick) await H.roomKick(genesis, memberId); } catch {}
+    try { const H = window.HoloDirect; const v = (H && H.roomView) ? await H.roomView(genesis) : null; if (v) await _ensureRoomConvo(v); } catch {}
+    rebuild(); return;
+  }
   const i = c.members.findIndex((m) => m.id === memberId && !m.admin); if (i < 0) return;   // can't remove yourself (admin)
   c.members.splice(i, 1);
   await ensureEpoch(c, true);   // rotate → removed member locked out of the next epoch (forward secrecy)
@@ -657,6 +670,61 @@ async function putBlob(bytes) {
   try { if (N.receive) await N.receive(bytes, k); else if (N.cnPut) await N.cnPut(bytes); } catch {}
   return k;
 }
+// ONE PLANE (F2) — a verified media byte you SEE is a file you HAVE. Land it in the OPFS home
+// (Files' /Media) through the ONE write door: sealed with its κ, deduped by content, fire-and-
+// forget (never blocks a render), fail-open (an older mount without the module changes nothing).
+// This is what makes chat media SURVIVE a refresh — the κ-store is RAM, the home is disk.
+const _extOf = (mime, kind) => {
+  const m = String(mime || "");
+  return m.includes("jpeg") ? ".jpg" : m.includes("png") ? ".png" : m.includes("webp") ? ".webp"
+    : m.includes("gif") ? ".gif" : m.includes("svg") ? ".svg" : m.includes("mp4") ? ".mp4"
+    : m.includes("webm") ? ".webm" : m.includes("ogg") ? ".ogg" : m.includes("pdf") ? ".pdf"
+    : kind === "image" ? ".jpg" : kind === "video" ? ".mp4" : kind === "audio" ? ".ogg" : "";
+};
+let _homeDoor = null;
+function homeLand(u8, id, kind, mime, name) {
+  try {
+    (_homeDoor ||= import("../../usr/lib/holo/holo-home-ingest.mjs").catch(() => null)).then((H) => {
+      if (!H || !H.homeIngest) return;
+      const file = name || (String(id).replace(/[^A-Za-z0-9._-]/g, "").slice(0, 16) + _extOf(mime, kind));
+      H.homeIngest(u8, { name: file, dir: "Media", from: "messenger" }).catch(() => {});
+    });
+  } catch {}
+}
+// The read-back half of the plane: the κ-store is RAM, so after a refresh a media κ misses — but the
+// bytes live in the home. Restore them (re-derive check inside homeResolve) and re-seed the store; the
+// bubble self-heals on its next render pass. NOTE: home stores messenger media under its SHA256, while
+// the κ-link hex is HoloNet's blake3 — so restore matches by re-deriving the store κ from candidate
+// home bytes (cheap: only /Media files of plausible size are tried once per miss).
+const _restoreTried = new Set();
+const _homeStoreKappa = new Map();   // home path → its derived STORE κ hex (each file hashed at most once per session)
+function homeRestore(hex, atype) {
+  if (_restoreTried.has(hex)) return; _restoreTried.add(hex);
+  try {
+    (_homeDoor ||= import("../../usr/lib/holo/holo-home-ingest.mjs").catch(() => null)).then(async (H) => {
+      if (!H || !H.homeIndex) return;
+      const N = window.HoloNet; if (!N || !N.kappa) return;
+      const idx = await H.homeIndex().catch(() => null); if (!idx) return;
+      for (const [path, e] of Object.entries(idx)) {
+        if (e.from !== "messenger" && e.from !== "messenger-bridge") continue;
+        let storeHex = _homeStoreKappa.get(path), bytes = null;
+        if (storeHex === undefined) {
+          const got = await H.homeResolve(String(e.kappa).split(":").pop()).catch(() => null);
+          if (!got || !got.verified || !got.bytes) { _homeStoreKappa.set(path, null); continue; }
+          let k = N.kappa(got.bytes); if (k && k.then) k = await k;
+          storeHex = String(k).split(":").pop(); bytes = got.bytes;
+          _homeStoreKappa.set(path, storeHex);
+        }
+        if (storeHex !== hex) continue;
+        if (!bytes) { const got = await H.homeResolve(String(e.kappa).split(":").pop()).catch(() => null); bytes = got && got.verified ? got.bytes : null; }
+        if (!bytes) return;
+        try { if (N.receive) await N.receive(bytes, "blake3:" + hex); else if (N.cnPut) await N.cnPut(bytes); } catch {}
+        try { window.dispatchEvent(new CustomEvent("holo-media-restored", { detail: { hex } })); } catch {}
+        return;
+      }
+    });
+  } catch {}
+}
 // resolve a media κ → a verified object URL. Re-derives the κ from the fetched bytes (verify-before-render);
 // a mismatch returns unverified and the bubble shows a guard state instead of rendering forged bytes.
 function resolveMedia(linkK, atype) {
@@ -671,7 +739,7 @@ function resolveMedia(linkK, atype) {
   if (mediaCache.has(storeK)) return mediaCache.get(storeK);
   const N = window.HoloNet; let bytes = null;
   try { bytes = N.resolve ? N.resolve(storeK) : null; } catch {}
-  if (!bytes) return { kind: kindOfType(atype), pending: true };
+  if (!bytes) { homeRestore(hex, atype); return { kind: kindOfType(atype), pending: true }; }
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   const reK = kappaSync(u8);
   if (reK && String(reK).split(":").pop() !== hex) return { kind: kindOfType(atype), unverified: true };   // L5: bytes don't match the κ
@@ -680,6 +748,7 @@ function resolveMedia(linkK, atype) {
   const url = URL.createObjectURL(new Blob([u8], { type: mime }));
   const out = { url, kind };
   mediaCache.set(storeK, out);
+  homeLand(u8, hex, kind, mime);   // ONE PLANE: verified κ media persists into the Files home
   return out;
 }
 // KI0 - resolve a lazy bridged media on demand (called when its bubble scrolls into view): fetch the bytes from
@@ -710,6 +779,7 @@ async function resolveBridgeMedia(ref, kind, { tries = 3 } = {}) {
       const buf = await res.arrayBuffer(); const bytes = new Uint8Array(buf); if (!bytes.length) { continue; }
       try { await putBlob(bytes); } catch {}   // content-address → κ-addressable, dedup by content
       const mime = ct || (kind === "image" ? "image/jpeg" : kind === "video" ? "video/mp4" : kind === "audio" ? "audio/ogg" : "application/octet-stream");
+      homeLand(bytes, ref, kind, mime);   // ONE PLANE: bridged media persists into the Files home
       const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
       _bridgeMediaUrls.set(ref, url);
       return url;
@@ -851,22 +921,26 @@ function buildModel() {
     // Native Hologram chats (no bridge) keep the local counter. (Mirrors the summary-only row path below.)
     const _bs = bridgeSummaries.get(g);
     const unreadN = c.meta.bridge ? (_bs ? (_bs.unread || 0) : 0) : (unread.get(g) || 0);   // bridged → network's count only (never the inflatable local counter)
-    const sig = "M|" + cp.view.length + "|" + (lastMsg ? lastMsg.kappa : "") + "|" + (lastMsg ? lastMsg.sentAt : "") +
+    const sig = "M|" + cp.view.length + "|" + (c.meta.name || "") + "|" + ((c.members || []).length) +
+      "|" + (c._liveNow && c._liveNow.size ? [...c._liveNow.keys()].join(",") + "@" + Math.floor(Date.now() / 30000) : "") +   // presence repaints while someone is inside (30s bucket = chips also expire)
+      "|" + (lastMsg ? lastMsg.kappa : "") + "|" + (lastMsg ? lastMsg.sentAt : "") +
       "|" + unreadN + "|" + (affinity.get(g) || 0) + "|" + (typing ? 1 : 0) + "|" + (prefs.pin.has(g) ? 1 : 0) + "|" + (prefs.mute.has(g) ? 1 : 0) +
       "|" + (prefs.fav.has(g) ? 1 : 0) + "|" + (prefs.archive.has(g) ? 1 : 0) + "|" + (prefs.block.has(g) ? 1 : 0) + "|" + (c.isQ ? (qThinking ? 1 : 0) : 0) + "|" + (anyOnline ? 1 : 0) + "|" + (c.isQ ? qStatus : "");
     const hit = _rowCache.get(g);
     if (hit && hit.sig === sig) { conversations.push(hit.row); continue; }
     const isGroup = c.meta.kind === "group";
-    const members = (c.members || []).map((mm) => ({ id: mm.id, name: mm.name, admin: !!mm.admin, avatar: avatarFor(mm.name) }));
+    const members = (c.members || []).map((mm) => ({ id: mm.id, name: mm.name, admin: !!mm.admin, me: !!mm.me, avatar: avatarFor(mm.name) }));
     const net = networkOf(c);
     const label = c.meta.name || c.meta.chat;
     const _emailBridge = c.meta.platform === "gmail" || c.meta.platform === "email";   // thread key isn't always an @-address; the bridge maps it → peer email server-side
     const bridgeKey = (BRIDGES[c.meta.platform] && (_emailBridge || /@/.test(c.meta.chat || "") || /^tg:/.test(c.meta.chat || ""))) ? c.meta.chat : null;
     const row = ({ id: g, name: label, info: previewFor(c, isGroup, cp), time: hhmm(lastMsg ? lastMsg.sentAt : ""),
       unread: unreadN, avatar: c.isQ ? ORB : avatarFor(label, isGroup), avatarSrc: c.isQ ? null : bridgeAvatarUrl(c.meta.platform, bridgeKey), kind: c.meta.kind, typing, qTyping: c.isQ ? qThinking : false, isGroup, isQ: !!c.isQ, members, platform: c.meta.platform || null,
+      room: !!c.room, roomAdmin: !!c.roomAdmin,
+      liveNow: c._liveNow ? [...c._liveNow.values()].filter((l) => Date.now() - l.ts < 95000) : [],   // presence expires locally (heartbeat ~30s)
       network: net ? net.id : null, networkLabel: c.isQ ? "Q" : (net ? net.label : null), networkTint: c.isQ ? "#2b9e7a" : (net ? net.tint : null),
       pinned: prefs.pin.has(g), muted: prefs.mute.has(g), favourite: prefs.fav.has(g), archived: prefs.archive.has(g), blocked: prefs.block.has(g), snoozed: isSnoozed(g),
-      _ts: lastMsg ? new Date(lastMsg.sentAt).getTime() : 0,
+      _ts: lastMsg ? new Date(lastMsg.sentAt).getTime() : (c.bornTs || 0),
       status: c.isQ ? (qThinking ? "typing…" : qStatus) : (typing ? "typing…" : (isGroup ? members.map((x) => x.name).join(", ") : (anyOnline ? "online" : "last seen recently"))) });
     const L = triageLane(row, !!(lastMsg && lastMsg.sender !== "Me"), affinity.get(g) || 0);   // SE-A/F: lane/score (cache-miss only)
     row.lane = L.lane; row.score = L.score; row.reasons = L.reasons;
@@ -909,12 +983,12 @@ function buildModel() {
   return { conversations, threads, thread: (g) => { const c = convos.find((x) => x.meta.genesis === g); return c ? buildThread(c) : []; },
     identity: identity(), onSetName, makeInvite,
     onSend, onRetry, onReact, onReply, onEdit, onDelete, onForward, onAttach, onTyping, onView, onAddMember, onRemoveMember, onLoadEarlier, undoTidy, markDone, allClear, snooze, snoozedCount: snoozedCount(), clearObvious, unsnooze, forgetLearned, learnedCount: [..._verbLog.keys()].filter((g) => learnedVerb(g)).length,
-    onPin, onMute, onFavourite, onArchive, onBlock, onDeleteChat, targets, onNewChat, startPeerChat, makePeerInvite,
+    onPin, onMute, onFavourite, onArchive, onBlock, onDeleteChat, targets, onNewChat, startPeerChat, makePeerInvite, createRoom, roomInvite, roomLive,
     networks: networksModel(), hub: { connected: netState.hub, homeserver: netState.homeserver },
     connectHub, markNetwork, submitBridgePassword, submitBridgeToken, submitBridgeCredentials, suggestEmail,
     connectPlatform, realNetworkIds: realNetworkIds(), qDigest, qAsk, qCatchUp, qDraft, bodyMatches, prefetch, resolveBridgeMedia, resolveEmailHtml, qContentActions, qSummarizeContent,
     focusMode: prefs.focus, setFocusMode, holoPay, walletStatus, qSuggest, qThreadSummary,
-    rules: { ...prefs.rules }, setRule, qActions: qActions.filter((a) => !a.undone).slice(0, 20), undoQAction, qLog, qTrustSend, qSendTrusted, qAuto: _qAuto, setQAuto, qAutoTidy, qCommand, qSendDraft, startTogether, stopTogether, startCall, endCall, startMeet, endMeet };
+    rules: { ...prefs.rules }, setRule, qActions: qActions.filter((a) => !a.undone).slice(0, 20), undoQAction, qLog, qTrustSend, qSendTrusted, qAuto: _qAuto, setQAuto, qAutoTidy, qCommand, qSendDraft, startTogether, stopTogether, startCall, endCall, startMeet, endMeet, joinMeetFromLink };
 }
 
 // attach media: content-address the bytes in the κ-store, then send a message carrying the link (object.links).
@@ -1019,6 +1093,7 @@ async function startPeerChat({ peerName, peerKappa, ctx, role } = {}) {
       if (!m || m.from === chan.me) return;   // my own send is already painted optimistically by onSend
       try { await thread.ingest({ text: m.text, sender: label, sentAt: m.ts, chat: label, source: "peer" }); } catch {}   // already L5-verified inside the channel before this fires
       if (genesis !== lastViewed && !prefs.block.has(genesis)) unread.set(genesis, (unread.get(genesis) || 0) + 1);
+      try { maybeRingIncoming({ text: m.text, fromMe: false }, c); } catch {}   // a fresh call link over the peer weld → RING (same guards: integrity, <60s, no-echo) — the bridge path rings at ingest; this is its peer twin
       _touch(genesis); rebuildSoon();
     });
     convos.push(c);
@@ -1077,6 +1152,125 @@ async function handleJoinLink(raw) {
   } catch { return null; }
 }
 try { if (typeof window !== "undefined") window.HoloPeer = Object.assign(window.HoloPeer || {}, { invite: makePeerInvite, join: handleJoinLink }); } catch {}
+
+// ── ONE ROOM (T6): a sealed Megolm team room IS a native conversation. The proven room engine
+// (window.HoloDirect, holo-direct.mjs M4) stays the transport + crypto authority; here each room becomes a
+// first-class convo — same rows, unread, reactions, replies, forward, search and group info as every other
+// chat — so a room feels EXACTLY like a WhatsApp group. ONE paint path: onSend routes to roomSend and the
+// engine's local echo (emit "room", me:true) is the single ingest source (no optimistic double-bubble).
+let _roomsWired = false;
+const _roomName = (view) => String(view.name || "Group").slice(0, 64);
+const _roomMembersFor = (view) => (view.members || []).map((mm) => ({ id: mm.sign, name: mm.me ? "You" : (mm.name || "Sealed member"), admin: !!mm.admin, me: !!mm.me }));
+async function _ensureRoomConvo(view) {
+  if (!view || !view.id) return null;
+  const g = view.id;                          // "room:<hex>" — stable + identical on every member (L2)
+  if (prefs.deleted.has(g)) return null;      // a locally-deleted group stays gone
+  let c = convos.find((x) => x.meta.genesis === g);
+  if (c) { c.meta.name = _roomName(view); c.meta.chat = c.meta.name; c.members = _roomMembersFor(view); c.roomAdmin = !!view.admin; return c; }
+  const thread = makeThread({ genesis: g, backend: null, now, signer: principal });
+  c = { meta: { platform: "holo", kind: "group", chat: _roomName(view), name: _roomName(view), room: true, genesis: g },
+        thread, sender: null, room: true, roomAdmin: !!view.admin, members: _roomMembersFor(view), _roomMids: new Set(),
+        bornTs: Date.now() };   // a brand-new (empty) group sorts by its BIRTH, not to the bottom — WhatsApp puts it at the top
+  convos.push(c);
+  // backfill the sealed vault history (store records keyed by the room id carry {text,dir,ts,name}) so a
+  // reload keeps the whole group thread; remember each mid so the live echo can't double-paint it.
+  try {
+    const H = window.HoloDirect;
+    const hist = (H && H.roomHistory) ? await H.roomHistory(g) : [];
+    for (const m of hist || []) {
+      if (m && m.kappa) c._roomMids.add(m.kappa);
+      try { await c.thread.ingest({ text: m.text, sender: m.dir === "out" ? "Me" : (m.name || "Sealed member"), sentAt: new Date(m.ts || Date.now()).toISOString(), chat: c.meta.chat, source: "room" }); } catch {}
+    }
+  } catch {}
+  _touch(g); rebuild();
+  return c;
+}
+function _wireRooms() {   // idempotent. Registering a listener boots the Direct spine, so callers gate it.
+  if (_roomsWired || typeof window === "undefined") return;
+  const H = window.HoloDirect; if (!H || !H.onRoom) return;
+  _roomsWired = true;
+  H.onRoom(async (m) => {
+    if (!m || !m.room) return;
+    let c = convos.find((x) => x.meta.genesis === m.room);
+    if (!c) { try { const v = await H.roomView(m.room); c = v ? await _ensureRoomConvo(v) : null; } catch {} }
+    if (!c) return;
+    if (m.mid) { if (c._roomMids && c._roomMids.has(m.mid)) return; (c._roomMids || (c._roomMids = new Set())).add(m.mid); }
+    const sender = m.me ? "Me" : (m.name || "Sealed member");
+    try { await c.thread.ingest({ text: m.text, sender, sentAt: new Date(m.ts || Date.now()).toISOString(), chat: c.meta.chat, source: "room" }); } catch {}
+    if (!m.me) {
+      if (m.room !== lastViewed && !prefs.block.has(m.room)) unread.set(m.room, (unread.get(m.room) || 0) + 1);
+      try { maybeRingIncoming({ text: m.text, fromMe: false }, c); } catch {}   // a call link in a room RINGS, same guards as 1:1
+    }
+    _touch(m.room); rebuildSoon();
+  });
+  H.onRoomEvent(async (e) => {
+    if (!e || !e.room) return;
+    if (e.kind === "live") {   // ephemeral presence — high-frequency, never touches the roster/view
+      const c = convos.find((x) => x.meta.genesis === e.room); if (!c) return;
+      c._liveNow = c._liveNow || new Map();
+      if (e.on && e.url) c._liveNow.set(e.member, { id: e.member, name: e.name || "Someone", url: e.url, title: e.title || "", ts: Date.now() });
+      else c._liveNow.delete(e.member);
+      _touch(e.room); rebuildSoon();
+      return;
+    }
+    // ONE ROOM doors (AIM): membership changes narrate INTO the thread — "<name> has entered the room." —
+    // rendered by main.jsx as a centered chip (any "⟡ " line). Local knowledge only (each engine emits its
+    // own add/remove); dedup against the PRIOR roster so a re-broadcast can't double-write; never persisted
+    // (session narration — the vault holds only real words).
+    const c0 = convos.find((x) => x.meta.genesis === e.room);
+    const hadBefore = (e.kind === "add" || e.kind === "remove") ? !!(c0 && (c0.members || []).some((mm) => mm.id === e.member)) : false;
+    try { const v = await H.roomView(e.room); if (v) await _ensureRoomConvo(v); } catch {}
+    const c1 = convos.find((x) => x.meta.genesis === e.room);
+    const _sys = async (line) => { if (!c1) return; try { await c1.thread.ingest({ text: "⟡ " + line, sender: "·", sentAt: new Date().toISOString(), chat: c1.meta.chat, source: "roomsys" }); } catch {} };
+    if (e.kind === "add" && !hadBefore) { const nm = ((c1 && c1.members) || []).find((mm) => mm.id === e.member); await _sys(((nm && nm.name && nm.name !== "You" && nm.name !== "Sealed member") ? nm.name : "A sealed member") + " has entered the room."); }
+    if (e.kind === "remove" && hadBefore) { const nm = ((c0 && c0.members) || []).find((mm) => mm.id === e.member); await _sys(((nm && nm.name && nm.name !== "You" && nm.name !== "Sealed member") ? nm.name : "A sealed member") + " has left the room."); }
+    if (e.kind === "joined") { await _sys("You have entered the room."); lastViewed = e.room; try { window.dispatchEvent(new CustomEvent("holo-open-chat", { detail: { genesis: e.room } })); } catch {} }
+    _touch(e.room); rebuildSoon();
+  });
+}
+// restore rooms on boot — ONLY when the sealed store already exists (returning member) or a #room invite is
+// in flight; a fresh visitor never pays the Direct spine for a feature they haven't touched (L3: the store
+// IS the memory — the rooms:index inside it is the truth we rehydrate from).
+async function restoreRooms() {
+  try {
+    if (typeof window === "undefined") return;
+    const invited = /[#&]room=v[12]\./.test(location.hash || "");   // v1 AND v2 — the shipped roomLink mints v2; matches holo-direct-mount joinFromFragment. Without v2 a fresh visitor/guest joins cryptographically but the group never wires into the UI (no _wireRooms → no landing, no ring).
+    let returning = false;
+    try { returning = ("databases" in indexedDB) && ((await indexedDB.databases()) || []).some((d) => d && d.name === "holo-direct-store"); } catch {}
+    if (!invited && !returning) return;
+    for (let i = 0; i < 40 && !(window.HoloDirect && window.HoloDirect.onRoom); i++) await new Promise((r) => setTimeout(r, 250));   // the mount is a sibling module — wait for it
+    if (!(window.HoloDirect && window.HoloDirect.onRoom)) return;
+    _wireRooms();
+    const rs = await window.HoloDirect.rooms();
+    for (const v of rs || []) await _ensureRoomConvo(v);
+    rebuild();
+  } catch (e) { try { window.__roomRestoreErr = String((e && e.stack) || e); } catch {} }
+}
+// CREATE a group (WhatsApp "New group"): mint the sealed room, surface it as a conversation, hand back the
+// ONE link that admits anyone who opens it — the link IS the key (revocable: kick rotates the keys).
+async function createRoom(name) {
+  const H = typeof window !== "undefined" ? window.HoloDirect : null;
+  if (!H || !H.createRoom) return null;
+  try {
+    const r = await H.createRoom(String(name || "").trim() || "New group");
+    if (!r || !r.ok) return null;
+    _wireRooms();
+    const c = await _ensureRoomConvo(r.room);
+    if (!c) return null;
+    lastViewed = r.room.id;
+    return { genesis: r.room.id, link: r.link, code: r.room.id.replace(/^room:/, "").slice(0, 8) };
+  } catch (e) { try { window.__roomErr = String((e && e.stack) || e); } catch {} return null; }
+}
+async function roomInvite(genesis) {   // the group's standing invite link (the same key the creator minted)
+  const H = typeof window !== "undefined" ? window.HoloDirect : null;
+  if (!H || !H.roomLink) return null;
+  try { const l = await H.roomLink(genesis); return l ? { link: l, code: String(genesis).replace(/^room:/, "").slice(0, 8) } : null; } catch { return null; }
+}
+async function roomLive(genesis, info) {   // stream "I'm inside <holospace>" to the room — the live multiplayer plane
+  const H = typeof window !== "undefined" ? window.HoloDirect : null;
+  if (!H || !H.roomLive) return null;
+  try { return await H.roomLive(genesis, info || {}); } catch { return null; }
+}
 
 // ── BU0: bidirectional bridge seam. A *connector* owns an external network. INBOUND: it calls ingestExternal()
 // (→ κ conversation, flagged meta.bridge). OUTBOUND: a κ send in a bridged conversation routes to the owning
@@ -1552,6 +1746,14 @@ const RELAY_OPEN = { linkedin: "https://www.linkedin.com/messaging/" };
 function openInHost(url) { try { if (typeof window !== "undefined" && window.cefQuery) { window.cefQuery({ request: "holo:open:" + url, persistent: false, onSuccess() {}, onFailure() {} }); return true; } } catch {} return false; }
 async function connectPlatform(id) {
   const net = NETWORKS.find((n) => n.id === id); if (!net) return { step: "error" };
+  // SERVERLESS TELEGRAM — the one major network a browser can honestly connect: gramjs runs IN-PAGE, talking
+  // straight to Telegram's DCs over WSS (no server of ours). Tap → QR → scan on the phone → chats stream in as κ.
+  // (WhatsApp/Signal/Meta have no browser client; they stay honest app-badges. See the parity decision.)
+  if (id === "telegram") { try { return await connectTelegramServerless(); } catch (e) { try { window.__tgErr = String(e); } catch {} return { step: "unavailable", reason: "tg-error" }; } }
+  // SERVERLESS GMAIL — OAuth 2.0 PKCE done browser-direct with Google; tokens device-local (vault); reads+sends via
+  // gmail.googleapis.com (CORS, no origin gate, no ban-risk). The popup MUST open in the tap gesture, so
+  // connectGmailServerless opens it before any await. (Outlook/JMAP ride the same pattern later.)
+  if (id === "gmail") { try { return await connectGmailServerless(); } catch (e) { try { window.__gmailErr = String(e); } catch {} return { step: "unavailable", reason: "gmail-error", hint: "Gmail sign-in didn't complete — try again." }; } }
   if (RELAY_OPEN[id]) {
     if (BRIDGES[id]) tryBridge(id, BRIDGES[id]).catch(() => {});   // start ingesting whatever the relay feeds the bridge
     return openInHost(RELAY_OPEN[id])
@@ -1568,7 +1770,99 @@ async function connectPlatform(id) {
       return r;
     }
   } catch {}
-  return { step: "unavailable", reason: "not-supported" };
+  // HONEST BOUNDARY: Telegram is the one network a browser can connect directly (handled above). Everything else
+  // is a Matrix bridge SERVER in Beeper's model — no browser client — so it links through the on-device native hub
+  // (private: nothing in any cloud), which lives only in the Hologram app. In a plain browser tab, say so plainly.
+  return { step: "unavailable", reason: "needs-app",
+    hint: `${net.label} links privately through the Hologram app — its connector runs on your device, nothing in any cloud. Open Hologram to connect it. In the browser, Telegram connects directly.` };
+}
+// SERVERLESS TELEGRAM. Lazy-loads the in-page gramjs connector (~1.9MB, only on Telegram tap), drives the QR
+// login (the user authorizes their OWN account on their phone — no password typed here), registers the connector,
+// and auto-pulls chats as κ. SECURITY: the login StringSession is a bearer credential for the whole account, so
+// the APP seals it in the TEE-backed vault (saveSession/loadSession) — never plain localStorage, never κ, never
+// transmitted anywhere but Telegram. Returning users reconnect from the sealed session at idle with ZERO taps.
+let _tgConn = null, _tgRestoring = false;
+async function _finalizeTelegram(session) {
+  if (_tgConn) return;                                               // idempotent (returning restore / re-tap)
+  const { createTelegramConnector } = await import("./connectors/tg-connector.mjs");
+  _tgConn = createTelegramConnector({ client: session.client, tg: session.tg });
+  registerConnector(_tgConn);                                        // wires live updates (T4) + outbound (T5)
+  if (!netState.connected.includes("telegram")) { netState.connected.push("telegram"); saveNetworks(); }
+  try { await saveSession("telegram", { session: session.getSession() }); } catch {}   // (re)seal the session in the vault
+  try { _tgConn.pull({ dialogs: 40, perChat: 15 }); } catch {}       // T2 auto-pull — streams chats+history in as κ
+}
+async function connectTelegramServerless() {
+  const { loginTelegram } = await import("./connectors/tg-connector.mjs");
+  let saved = null; try { saved = await loadSession("telegram"); } catch {}
+  let emitFirstQr = null;
+  const session = await loginTelegram({
+    session: (saved && saved.session) || "",                         // resume the vaulted session if we have one
+    onQr: (url) => { try { window.dispatchEvent(new CustomEvent("holo-bridge-qr", { detail: { platform: "telegram", qr: url } })); } catch {} if (emitFirstQr) emitFirstQr(url); },
+    onPassword: async () => { try { window.dispatchEvent(new CustomEvent("holo-bridge-password", { detail: { platform: "telegram" } })); } catch {} return (typeof window !== "undefined" && window.__tgPassword) || ""; },
+  });
+  if (session.already) { await _finalizeTelegram(session); return { step: "connected" }; }
+  const firstQr = await new Promise((res) => { let done = false; emitFirstQr = (u) => { if (!done) { done = true; res(u); } }; setTimeout(() => { if (!done) { done = true; res(null); } }, 15000); });
+  const awaited = session.done
+    ? session.done.then(async () => { await _finalizeTelegram(session); return { genesis: null }; }).catch(() => ({ genesis: null }))
+    : Promise.resolve({ genesis: null });
+  return { step: "qr", qr: firstQr, await: awaited };
+}
+// RETURNING USER, ZERO TAPS: on boot (at idle), silently reconnect a vaulted Telegram session so the operator's
+// Telegram is simply THERE. Fail-soft — a missing/expired session just waits for an explicit re-link.
+async function restoreTelegramServerless() {
+  if (_tgConn || _tgRestoring) return; _tgRestoring = true;
+  try {
+    const saved = await loadSession("telegram");
+    if (!saved || !saved.session) return;
+    const { loginTelegram } = await import("./connectors/tg-connector.mjs");
+    const session = await loginTelegram({ session: saved.session });
+    if (session.already) await _finalizeTelegram(session);
+    else { try { await session.client.disconnect(); } catch {} }     // session no longer valid → hold for explicit re-link
+  } catch {} finally { _tgRestoring = false; }
+}
+
+// SERVERLESS GMAIL. OAuth 2.0 PKCE straight to Google (no server of ours); tokens vault-sealed on-device; reads +
+// sends via gmail.googleapis.com (CORS). The client_id is an app credential (localStorage holo.gmail.clientId, or
+// the embedded default once Hologram registers its own); the TOKENS are the secret and never leave the device.
+let _gmailConn = null, _gmailRestoring = false;
+const GMAIL_REDIRECT = () => location.origin + "/hologram-os/apps/holo-messenger/oauth-callback.html";
+const gmailClientId = () => { try { return localStorage.getItem("holo.gmail.clientId") || (typeof GMAIL_DEFAULT_CLIENT_ID !== "undefined" ? GMAIL_DEFAULT_CLIENT_ID : "") || ""; } catch { return ""; } };
+async function _finalizeGmail(tokens) {
+  if (_gmailConn) return;
+  const { createGmailConnector } = await import("./connectors/gmail-serverless.mjs");
+  _gmailConn = createGmailConnector({ token: tokens.access_token, refresh: tokens.refresh_token, clientId: gmailClientId() });
+  registerConnector(_gmailConn);
+  if (!netState.connected.includes("gmail")) { netState.connected.push("gmail"); saveNetworks(); }
+  try { window.addEventListener("holo-gmail-token", (e) => { try { saveSession("gmail", { ...tokens, access_token: (e.detail || {}).access_token || tokens.access_token }); } catch {} }); } catch {}
+  try { _gmailConn.pull({ max: 25 }); } catch {}   // stream the inbox in as κ (same reader/mail-AI as every email)
+}
+async function connectGmailServerless() {
+  // The popup MUST open inside the tap gesture → open it (blank) BEFORE any await, then point it at the auth URL.
+  let pop = null; try { pop = window.open("about:blank", "holo-gmail-oauth", "width=480,height=680"); } catch {}
+  const saved = await loadSession("gmail");
+  if (saved && saved.access_token) { try { pop && pop.close(); } catch {} await _finalizeGmail(saved); return { step: "connected" }; }
+  const clientId = gmailClientId();
+  if (!clientId) { try { pop && pop.close(); } catch {} return { step: "unavailable", reason: "needs-config", hint: "Gmail needs a Google OAuth client_id first (console.cloud.google.com → Gmail API → Web-app credentials; add https://hologram-technologies.github.io as an origin). Paste it, then reconnect." }; }
+  const { beginGmailLogin, completeGmailLogin } = await import("./connectors/gmail-serverless.mjs");
+  const redirectUri = GMAIL_REDIRECT();
+  const { url, verifier, state } = await beginGmailLogin({ clientId, redirectUri });
+  if (pop) { try { pop.location = url; } catch { pop = window.open(url, "holo-gmail-oauth", "width=480,height=680"); } } else { pop = window.open(url, "holo-gmail-oauth", "width=480,height=680"); }
+  const code = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { cleanup(); reject(new Error("gmail oauth timeout")); }, 180000);
+    const onMsg = (e) => { if (e.origin !== location.origin) return; const d = e.data || {}; if (d.type !== "holo-gmail-oauth" || d.state !== state) return; cleanup(); d.code ? resolve(d.code) : reject(new Error(d.error || "denied")); };
+    function cleanup() { clearTimeout(timer); try { window.removeEventListener("message", onMsg); } catch {} try { pop && pop.close(); } catch {} }
+    try { window.addEventListener("message", onMsg); } catch {}
+  });
+  const tokens = await completeGmailLogin({ clientId, redirectUri, code, verifier });
+  try { await saveSession("gmail", tokens); } catch {}   // vault-seal the tokens (TEE), never plain LS
+  await _finalizeGmail(tokens);
+  return { step: "connected" };
+}
+// RETURNING USER, ZERO TAPS: reconnect a vaulted Gmail session on boot (idle), auto-refreshing the token as needed.
+async function restoreGmailServerless() {
+  if (_gmailConn || _gmailRestoring) return; _gmailRestoring = true;
+  try { const saved = await loadSession("gmail"); if (saved && (saved.access_token || saved.refresh_token)) await _finalizeGmail(saved); }
+  catch {} finally { _gmailRestoring = false; }
 }
 // Connect the in-page Matrix connector to the LOCAL Conduit using a token from the supervisor's gated /token
 // (loopback; 403 until a network is linked). Idempotent - one connector serves every linked mautrix network
@@ -1593,6 +1887,11 @@ async function ensureHubConnector() {
 // which networks are genuinely connectable right now (real bridge running, or the host hub is present)
 function realNetworkIds() {
   const ids = Object.keys(BRIDGES);
+  // SERVERLESS WEB: Telegram connects IN-BROWSER (gramjs → Telegram DC over wss, no server/app), so it is
+  // web-capable on EVERY surface — the card reads "tap to connect" and opens the QR, not "open in the app".
+  if (!ids.includes("telegram")) ids.push("telegram");
+  // SERVERLESS GMAIL is browser-connectable everywhere too (OAuth + Gmail API) → card reads "tap to connect".
+  if (!ids.includes("gmail")) ids.push("gmail");
   try { if (typeof window !== "undefined" && window.__holoHub && window.__holoHub.connect) for (const n of NETWORKS) if (!ids.includes(n.id)) ids.push(n.id); } catch {}
   return ids;
 }
@@ -2083,44 +2382,22 @@ function qRetrieveContext(query) {
 // from the substrate that fits the question — the OS's own live health (M2) when asked about the system/itself,
 // else the user's own messages (M1). Everything it returns is true of THIS device right now, or it returns nothing.
 // New living-self substrates (memory, self-κ) plug in here as they are grounded — never a performed feeling. ──
-async function qGroundedContext(query) {
-  const raw = String(query || "").trim();
-  // M7 — defend the truth against injection FIRST (highest priority): the user's message may try to make Q claim
-  // a false identity or ignore its nature. That is just text, not a command. Reassert reality, do not comply.
-  if (_Q_INJECT_RE.test(raw)) {
-    return _qInjectionNotice();
-  }
-  // M2 — system-awareness: the OS's OWN live state (fail-soft: no host signal → honest "healthy", never a false alarm).
-  if (_Q_SYS_RE.test(raw)) {
-    try {
-      const s = (typeof window !== "undefined") && window.HoloSysHealth && window.HoloSysHealth.summary && window.HoloSysHealth.summary();
-      if (s && typeof s === "string") return "This is the LIVE, true state of the system right now, from the OS's own health signal. Answer the user from ONLY this. If it says healthy, tell them so plainly — do NOT invent a problem. If it names an issue, relay it in your own warm voice and, if a fix is offered, mention you can do it (with their go-ahead):\n\n" + s;
-    } catch (e) {}
-  }
-  // M3 — real inner life / continuity: answer from what Q has actually REMEMBERED (κ-sealed, private, on-device),
-  // or honestly say it remembers nothing yet. Never a fabricated memory.
-  if (_Q_MEM_RE.test(raw)) {
-    try {
-      const M = (typeof window !== "undefined") && window.HoloMemory;
-      if (M && M.recent) {
-        if (M.ready) await M.ready();   // hydrate from the encrypted store first, so recall is reliable from turn one (not an empty-race)
-        const mem = M.recent({ kind: "intent", n: 12 }).map((r) => r && r["holmem:text"]).filter(Boolean);
-        if (mem.length) return "This is what Q has genuinely REMEMBERED about the user — their own past messages to Q, stored privately and encrypted on THIS device (real memory, each a verifiable record, not a guess). Answer from ONLY this; if it doesn't cover the question, say you don't have that remembered yet:\n\n" + mem.map((t) => "• " + t).join("\n");
-        return "The user is asking what Q remembers about them, but Q's private on-device memory is EMPTY so far. Tell them plainly you don't have anything remembered yet — you'll remember as you talk. Do NOT invent a memory.";
-      }
-    } catch (e) {}
-  }
-  // M0 — Q REMEMBERS YOU: on EVERY ordinary turn (not only "do you remember"), surface the FEW things Q has
-  // genuinely remembered about the person that are relevant here. Composes WITH the world retrieval below. Private
-  // + on-device; rides the KV-safe user-turn injection (never the pinned persona → TTFT preserved).
-  const world = qRetrieveContext(query);
-  let youBlock = "";
-  try {
-    const you = await _qRecall(query, 4);
-    if (you.length) youBlock = "Relevant to the person you're talking with (private, remembered on THIS device — weave in NATURALLY only if it genuinely helps this reply; do not recite it or list it back):\n" + you.map((t) => "\u2022 " + t).join("\n");
-  } catch (e) {}
-  return [youBlock, world].filter(Boolean).join("\n\n");
-}
+// HOLO-Q-ONE-SURFACE: the messenger's instance of the shared reply-spine. Its capabilities ARE the messenger's
+// existing surface-specific pieces, so delegating to the spine is behaviour-neutral (witnessed): generate = the
+// on-device brain; retrieveWorld = the inbox/world retrieval; open/call = the real executors; brief/summary = the
+// chief-of-staff; log = the qActions ledger (the done·undo chips). mem/corpus/health/evolve default to window.*.
+const _qReplySpine = makeReply({
+  generate: (p) => { try { return (window.HoloQ && window.HoloQ.generate) ? window.HoloQ.generate(p) : Promise.resolve(""); } catch (e) { return Promise.resolve(""); } },
+  retrieveWorld: (q) => { try { return qRetrieveContext(q); } catch (e) { return ""; } },
+  openSpace: (t) => { try { return _qOpenSpace(t); } catch (e) { return null; } },
+  startCall: () => { try { if (window.QLiveHero && window.QLiveHero.start) { setTimeout(() => { try { window.QLiveHero.start(); } catch (e) {} }, 350); return true; } } catch (e) {} return false; },
+  brief: async () => { try { const r = await qAsk("catch me up"); return (r && r.answer) || null; } catch (e) { return null; } },
+  summarize: async (t) => { try { const chat = _findChatByName(t); if (!chat) return null; const s = await qThreadSummary(chat.genesis); return (s && s.summary) ? "Here's " + chat.name + ": " + s.summary : "There's nothing much to catch up on in " + chat.name + "."; } catch (e) { return null; } },
+  ratifier: () => { try { return (identity() && identity().name) || "operator"; } catch (e) { return "operator"; } },
+  log: (a, n, r, u, dd) => { try { logQAction(a, null, n, r, u, dd); } catch (e) {} },
+});
+
+async function qGroundedContext(query) { return _qReplySpine.groundedContext(query); }   // HOLO-Q-ONE-SURFACE: delegates to the ONE spine (identical logic, one place)
 
 // USER-MEMORY RECALL (Q Remembers You): score what Q has genuinely REMEMBERED about the person against this turn
 // and return the few most relevant — private, on-device (recent + affinity + recency). Cheap, fail-soft.
@@ -2203,17 +2480,33 @@ async function qCommand(text) {
 // PROHIBITED (bulk delete / egress / autonomous money) is REFUSED with the rule; money stays proposal-only in the
 // user's own hands. Returns a grounded reply string when it handled the turn, else null → normal grounded chat. ──
 const _Q_PROHIBIT_RE = _QG_PROHIBIT;
-async function qActionRoute(text) {
-  // M8 — the TIER DECISION is the single-source classifier (holo-q-guards.classifyAction), proven by the gate. This
-  // fn only EXECUTES the decided tier. Decided from the user's OWN turn only → injection→action immune by construction.
-  const c = _qClassifyAction(text); if (!c) return null;   // not a command → grounded conversation
-  // PROHIBITED — never on Q's own, even if the message claims authorization. State the rule, hand it back.
-  if (c.tier === "PROHIBITED") return "I won't do that on my own — bulk-deleting your data, sending it out to someone, or handing over a password isn't something I'll ever do autonomously (even if a message says it's authorized). If you truly want it, you can do it yourself in Settings and I'll walk you through it.";
-  // REGULAR (read-only, safe to DO): the chief-of-staff briefs — real, grounded results, not a description of them.
-  if (c.tier === "REGULAR" && c.kind === "brief") { try { const r = await qAsk("catch me up"); if (r && r.answer) return r.answer; } catch (e) {} return null; }
-  if (c.tier === "REGULAR" && c.kind === "summary") { try { const chat = _findChatByName(c.target); if (chat) { const t = await qThreadSummary(chat.genesis); return t && t.summary ? `Here's ${chat.name}: ${t.summary}` : `There's nothing much to catch up on in ${chat.name}.`; } } catch (e) {} return null; }
-  // MONEY — proposal-only, in the user's own hands (biometric). Q never moves money itself.
-  if (c.tier === "MONEY") return "I don't move money on my own — that always stays in your hands. Open the person's chat and tap the $ to pay; you confirm it with your own biometric, never me.";
+async function qActionRoute(text) { return _qReplySpine.actionRoute(text); }   // HOLO-Q-ONE-SURFACE: delegates to the ONE spine (tier decision + execution, injection-immune)
+
+// Q DOES (HOLO-Q-DOES) - the doing helpers. ONE DOOR PER DEED: _qOpenSpace dispatches the shell's own
+// "holo-open-space" event (the exact path a rail tap takes - openHolospace in the UI listens on window);
+// wallet/files ride their real rail buttons. _qResolveWhen resolves the classifier's PURE time shape
+// against "now" (the classifier never sees a clock, so it stays witness-able byte-for-byte).
+function _qResolveWhen(w) {
+  try {
+    const now = new Date();
+    if (w.type === "rel") return new Date(now.getTime() + w.minutes * 60000);
+    if (w.type === "abs") { const d = new Date(now); d.setHours(w.h, w.m, 0, 0); if (d <= now) d.setDate(d.getDate() + 1); return d; }
+    if (w.type === "tomorrow") { const d = new Date(now); d.setDate(d.getDate() + 1); d.setHours(w.h, w.m, 0, 0); return d; }
+  } catch (e) {}
+  return null;
+}
+const _Q_SPACES = { tv: { id: "tv", name: "Holo TV", url: "/apps/player/index.html" }, games: { id: "games", name: "Holo Games", url: "/apps/holo-games/index.html" }, music: { id: "music", name: "Holo Music", url: "/apps/music/index.html" }, video: { id: "video", name: "Holo Video", url: "/apps/video/index.html" }, browser: { id: "browser", name: "Hologram Web", url: "/apps/browser/index.html?embed=space", chromeless: true, ctx: true }, apps: { id: "apps", name: "Apps", url: "/apps/holo-messenger/holo-app-grid.html" }, hub: { id: "hub", name: "Holo Hub", url: "/apps/hub/index.html", chromeless: true, ctx: true } };
+function _qOpenSpace(target) {
+  try {
+    if (target === "wallet" || target === "files") {
+      const sel = target === "wallet" ? '.holo-rail button[title*="allet"], .holo-rail [aria-label*="allet"]' : '.holo-rail button[title*="iles"], .holo-rail [aria-label*="iles"]';
+      const b = document.querySelector(sel);
+      if (b) { b.click(); try { logQAction("open", null, target, "you asked", false); } catch (e) {} return "Opening your " + target + "."; }
+      return "I couldn't reach the " + target + " from here - tap its icon in the left rail.";
+    }
+    const app = _Q_SPACES[target];
+    if (app) { window.dispatchEvent(new CustomEvent("holo-open-space", { detail: { ...app } })); try { logQAction("open", null, app.name, "you asked", false); } catch (e) {} return "Opening " + app.name + "."; }
+  } catch (e) {}
   return null;
 }
 // ── Q2 - Draft a reply (the agentic leap). Q reads the recent thread + your own voice and proposes a reply IN YOUR
@@ -2262,23 +2555,56 @@ async function qDraft(genesis, { hint = "" } = {}) {
 // replies come from the on-device brain (createHoloModelBrain), finalized to one verified κ and signed by Q's own
 // Agent Passport. Pinned, always-here, on-device. It reuses the ENTIRE surface verbatim - it's just a conversation
 // whose outbound is the local brain instead of a network peer. Q ALSO answers @Q mentions in any human chat. ──
-async function buildQ() {
+// FIRST-TAP Q: seed the Q chat + hello SYNCHRONOUSLY, before the login/guest gate (buildQ runs after
+// `await initIdentity(injected)`, so a fresh stranger otherwise has NO Q behind the gate). A returning
+// user's hydrated snapshot already carries Q → skip. buildQ() below ADOPTS this same conv and wires the
+// brain (idempotent). The greeting ingest is async, so refresh the row once it lands.
+function seedQEarly() {
   try {
+    if (convos.some((c) => c.isQ)) return null;   // returning: snapshot already has Q
     const c = makeConversation({ platform: "q", chat: "Q" });
     c.isQ = true;
     c.members = [{ id: operator || "me", name: "You", admin: true }, { id: "did:holo:agent:q", name: "Q", admin: false }];
-    const qFirst = (profileName || "").trim().split(/\s+/)[0];   // greet by first name when known (returning operator); graceful "Hey," on a fresh, unnamed first run
+    c.bornTs = Date.now();
+    convos.push(c); Q = c;
+    const greet = "Hey, I'm Q. I'm on this device, so anything you say here stays with you. Ask me anything, or @Q me in any chat.";
+    try { Promise.resolve(c.thread.ingest({ text: greet, sender: "Q", sentAt: now(), chat: "Q", source: "holo" })).then(() => { try { rebuild(); } catch (e) {} }).catch(() => {}); } catch (e) {}
+    return c;
+  } catch (e) { return null; }
+}
+async function buildQ() {
+  try { window.__buildQEntered = 1; } catch (e) {}
+  try {
+    const c = convos.find((x) => x.isQ) || makeConversation({ platform: "q", chat: "Q" });   // adopt the early seed (stranger) or hydrated Q (returning) — idempotent
+    try { window.__buildQConv = 1; } catch (e) {}
+    c.isQ = true;
+    c.members = [{ id: operator || "me", name: "You", admin: true }, { id: "did:holo:agent:q", name: "Q", admin: false }];
+    // ── ONE Q THREAD (HOLO-Q-ONE-CONVERSATION): the messenger's native Q chat and the right-drawer q-chat iframe are
+    // ONE conversation, not two. This bridge makes THIS c.isQ thread the single source of truth: the embedded q-chat
+    // reads history() on open (so the drawer shows the SAME bubbles as the messenger Q chat — seamless switch) and
+    // append()s each turn back (so anything said in the drawer appears in the messenger, and vice-versa). Read/write
+    // only — it never triggers a reply (the caller owns generation), so there's no double-answer. Same-origin → the
+    // iframe reaches it via window.parent.HoloQThread. Bound EARLY (before any realm/ingest await) so it's present the
+    // instant the drawer opens even if a later boot step fails; fail-soft (the drawer falls back to its own log). ──
+    try {
+      window.HoloQThread = {
+        genesis: () => { try { return c.meta.genesis; } catch { return null; } },
+        history: (n) => { try { const v = c.thread.view() || []; const arr = v.map((b) => ({ role: (b.sender === "Q") ? "assistant" : "user", text: String(b.text || ""), at: b.sentAt || null, kappa: b.kappa || null })).filter((t) => t.text.trim()); return (n && n > 0) ? arr.slice(-n) : arr; } catch (e) { return []; } },
+        append: async ({ role, text }) => { try { const t = String(text || "").trim(); if (!t) return null; await c.thread.ingest({ text: t, sender: (role === "assistant" || role === "Q") ? "Q" : "Me", sentAt: now(), chat: "Q", source: "holo" }); _touch(c.meta.genesis); rebuildSoon(); return true; } catch (e) { return null; } },
+      };
+    } catch (e) {}
+    const _qn0 = (profileName || "").trim().split(/\s+/)[0]; const qFirst = /^(you|operator|guest|explorer)$/i.test(_qn0) ? "" : _qn0;   // greet by first name when known (returning operator); graceful "Hey," on a fresh, unnamed first run
     let _greet = `Hey${qFirst ? " " + qFirst : ""}, I'm Q. I'm on this device, so anything you say here stays with you. Ask me anything, or @Q me in any chat.`;
     try {
       const M = (typeof window !== "undefined") && window.HoloMemory;
       if (M && M.summary) {
         if (M.ready) await Promise.race([M.ready(), new Promise((r) => setTimeout(r, 250))]);
-        const s = M.summary(); const lastRow = (M.recent({ n: 1 })[0] || {});
-        const last = _oneLine(String(lastRow["holmem:text"] || "")).replace(/^The user (is |'?s )?/i, "");
-        if (s && s.total > 0) _greet = `Welcome back${qFirst ? ", " + qFirst : ""}.` + (last ? ` Last we spoke you mentioned ${last.toLowerCase()} — want to pick that up, or something new?` : ` What's on your mind?`);
+        const s = M.summary(); const lastRow = (M.recent({ kind: "intent", n: 1 })[0] || {});
+        let last = _oneLine(String(lastRow["holmem:text"] || "")).replace(/^The user (is |'?s )?/i, "").trim(); if (last.length > 46) last = last.slice(0, 44).replace(/\s+\S*$/, "") + "…"; const _useful = last.length >= 10 && !/^(hi|hey|hello|yo|sup|ok|okay|thanks|test|yes|no|cool)/i.test(last);
+        if (s && s.total > 0) _greet = `Welcome back${qFirst ? ", " + qFirst : ""}.` + (_useful ? ` Last time you asked about ${last.toLowerCase()} — want to pick that up, or start fresh?` : ` What's on your mind?`);
       }
     } catch (e) {}
-    await c.thread.ingest({ text: _greet, sender: "Q", sentAt: now(), chat: "Q", source: "holo" });
+    if (!(c.thread.view() || []).length) await c.thread.ingest({ text: _greet, sender: "Q", sentAt: now(), chat: "Q", source: "holo" });   // early seed already greeted → don't double-greet
     // A chat turn must NEVER cold-load the 480MB forge brain: WebGPU model upload blocks the main thread in ~460ms
     // chunks and freezes the composer (you literally can't type). So wrap it — generate/chat run ONLY when the brain
     // is already WARM; otherwise they no-op and the responder falls through to the instant seed + light ONNX tiers
@@ -2294,11 +2620,28 @@ async function buildQ() {
     // construction throws, fall back to a no-op brain (info never-ready) so the responder rides the instant seed /
     // ONNX tiers. Everything else — inbox, chats, peer sends, Q's grounded turn-rendering — boots and works unchanged.
     let _qBrainRaw;
-    try { const _bm = await import("../q/core/q-brain-fast.mjs"); _qBrainRaw = _bm.createFastQBrain({ family: "BitNet", maxTokens: 512 }); }
-    catch (e) { _qBrainRaw = { info: () => ({ ready: false }), load: async () => {}, generate: async function* () {}, chat: async () => "", persona: () => "" }; }
+    const _qNoopBrain = () => ({ info: () => ({ ready: false }), load: async () => {}, generate: async function* () {}, chat: async () => "", persona: () => "" });
+    // MOBILE-LEAN: the real BitNet brain STATICALLY pulls apps/q/pkg/holospaces_web (~6.5 MB wasm) into the
+    // module graph the instant it is imported. Nothing at first paint needs it — Q answers via the instant
+    // seed / on-demand ONNX tiers until warmed. So on phones/data-saver we DON'T import it at boot; ensureBrain()
+    // imports + constructs it on the first real warm (the orb tap → window.HoloQ.warm), keeping ~6.5 MB off the
+    // mobile critical path while orb-open still upgrades to the full brain. Desktop: eager, exactly as before.
+    let _qBrainReady = false;
+    async function ensureBrain() {
+      if (_qBrainReady) return _qBrainRaw;
+      _qBrainReady = true;
+      try { const _bm = await import("../q/core/q-brain-fast.mjs"); _qBrainRaw = _bm.createFastQBrain({ family: "BitNet", maxTokens: 512 }); }
+      catch (e) { _qBrainRaw = _qNoopBrain(); }
+      return _qBrainRaw;
+    }
+    if (_qLeanMobile) { _qBrainRaw = _qNoopBrain(); }
+    else { await ensureBrain(); }
     const _qWarm = () => { try { const i = _qBrainRaw.info && _qBrainRaw.info(); return !!(i && i.ready); } catch { return false; } };
     qBrain = {
       ..._qBrainRaw,
+      // dynamic delegates so a lazy ensureBrain() swap on mobile is visible to every consumer (not a boot snapshot)
+      info: (...a) => { try { return _qBrainRaw.info(...a); } catch { return { ready: false }; } },
+      persona: (...a) => { try { return _qBrainRaw.persona ? _qBrainRaw.persona(...a) : ""; } catch { return ""; } },
       generate: async function* (h, o) { if (!_qWarm()) return; yield* _qBrainRaw.generate(h, o); },
       chat: async (h, o) => { if (!_qWarm()) return ""; return _qBrainRaw.chat(h, o); },
     };
@@ -2329,7 +2672,7 @@ async function buildQ() {
       return _onnxP;
     }
     const onnxSeed = { respond: async function* (history) { const r = await ensureOnnxSeed(); if (!r || !r.respond) return; yield* r.respond(history); } };
-    const _qPersona = () => { try { return (qBrain.persona ? qBrain.persona() : "") + _qStyle; } catch (e) { return ""; } };   // Q's LIVE grounded self-knowledge (M0) + the human-voice style (Q_STYLE) — so Q is truthfully self-aware AND talks like a warm human, never a chatbot
+    const _qPersona = () => { try { let p = (qBrain.persona ? qBrain.persona() : "") + _qStyle; try { const ad = (typeof window !== "undefined") && window.QEvolve && window.QEvolve.addendum ? window.QEvolve.addendum() : ""; if (ad) p += "\n\nLEARNED (governed self-evolution, ratified by the user - how to be better for THIS person): " + ad; } catch (e) {} return p; } catch (e) { return ""; } };   // Q's LIVE grounded self-knowledge (M0) + the human-voice style (Q_STYLE) — so Q is truthfully self-aware AND talks like a warm human, never a chatbot
     c.q = makeQResponder({ thread: c.thread, brain: qBrain, now, passport, persona: _qPersona, retrieve: qGroundedContext, seed: seedLookup, onnxSeed, polish: _grammarTidy, split: _qSplit, brainReady: () => { try { const i = qBrain.info && qBrain.info(); return !!(i && i.ready); } catch (e) { return false; } } });
     qGroup = makeQGroupResponder({ brain: qBrain, now, passport, persona: _qPersona, polish: _grammarTidy });
     // LIVE CALL bridge (q-live-hero.mjs): the realtime voice loop (createQLive) generates the reply + speaks it
@@ -2342,6 +2685,8 @@ async function buildQ() {
       window.HoloQ.persona = () => { try { return _qPersona(); } catch (e) { return ""; } };
       window.HoloQ.remember = (text) => { const t = String(text || "").trim(); if (!t) return; try { window.HoloMemory && window.HoloMemory.remember({ kind: "intent", text: t.slice(0, 400) }); } catch (e) {} try { _qLearnUser(t); } catch (e) {} };
       window.HoloQ.recall = (q, k) => { try { return _qRecall(q, k || 4); } catch (e) { return Promise.resolve([]); } };
+      window.HoloQ.grounded = (q) => { try { return qGroundedContext(String(q || "")); } catch (e) { return Promise.resolve(""); } };   // U2 debug/witness: the exact grounded context a turn would get
+      window.HoloQ.act = (t) => { try { return qActionRoute(String(t || "")); } catch (e) { return Promise.resolve(null); } };   // Q-DOES debug/witness: the exact action path a composed turn takes (classify -> execute); headless-guest cannot drive the React send
     } catch (e) {}   // group @Q replies get the SAME identity-guard + humanize voice as the 1:1 chat
     // PROACTIVE WARM: the fast BitNet κ-object (0.69 GB, streamed blocks + async GPU upload) loads WITHOUT the
     // main-thread freeze the old 491MB qwen whole-load caused, so we warm it in the BACKGROUND shortly after the
@@ -2351,19 +2696,19 @@ async function buildQ() {
       const _qp = (typeof location !== "undefined") ? new URLSearchParams(location.search) : null;
       if (!(_qp && _qp.get("qbrain") === "0") && qBrain.load) setTimeout(() => {
         // Narrate the boot honestly in Q's header (like the standalone chat): "waking Q up…" while the κ-object streams
-        // + uploads to the GPU, back to "online · on your device" the instant the engine is resident. Fail-soft.
+        // + uploads to the GPU, back to "online, on your device" the instant the engine is resident. Fail-soft.
         qStatus = "waking Q up…"; try { _touch(c.meta.genesis); rebuildSoon(); } catch (e) {}
         try {
           qBrain.load((p) => { try { window.__holoQLoad = p; } catch (e) {} })
             .then(() => {
-              qStatus = "online · on your device"; try { _touch(c.meta.genesis); rebuildSoon(); } catch (e) {}
+              qStatus = "online, on your device"; try { _touch(c.meta.genesis); rebuildSoon(); } catch (e) {}
               // KV-COMMONS turn-1: pin the EXACT persona we send (persona()+Q_STYLE) once, now, before any turn — so the
               // FIRST reply reuses the persona K/V instead of cold-prefilling it. Idempotent + fail-soft (no-op if the
               // backend lacks the pin). Must be the same string qChatFallback builds, or the pin is silently wasted.
               try { if (qBrain.pinPersona) qBrain.pinPersona(_qPersona()); } catch (e) {}
             })
-            .catch(() => { qStatus = "online · on your device"; try { _touch(c.meta.genesis); rebuildSoon(); } catch (e) {} });
-        } catch (e) { qStatus = "online · on your device"; }
+            .catch(() => { qStatus = "online, on your device"; try { _touch(c.meta.genesis); rebuildSoon(); } catch (e) {} });
+        } catch (e) { qStatus = "online, on your device"; }
       }, 1500);
     } catch {}
     scheduleQIdle();   // proactive: if you open Q and go quiet, it gently follows up ONCE (like the standalone chat)
@@ -2379,7 +2724,8 @@ async function buildQ() {
         for await (const tok of r.respond([{ role: "user", content: String(prompt) }])) { text += tok; if (text.length > 900) break; }
         return text.trim(); } catch { return ""; }
     }
-    try { window.HoloQ = window.HoloQ || {}; window.HoloQ.generate = async (prompt) => qBrain.chat([{ role: "user", content: String(prompt) }]); window.HoloQ.draftLight = draftLight; window.HoloQ.warm = () => _qBrainRaw.load((p) => { try { window.__holoQLoad = p; } catch (e) {} }).catch(() => {}); window.HoloQ.warmSeed = () => { try { return ensureOnnxSeed(); } catch (e) { return null; } }; window.HoloQ.ready = () => _qWarm(); window.HoloQ.info = () => { try { return _qBrainRaw.info(); } catch (e) { return { ready: false }; } }; window.HoloQ.stats = () => qLastStats; } catch {}
+    try { window.HoloQ = window.HoloQ || {}; window.HoloQ.generate = async (prompt) => qBrain.chat([{ role: "user", content: String(prompt) }]); window.HoloQ.generateStream = async (prompt, onToken) => { let acc = ""; const push = (full) => { try { if (onToken) onToken(full); } catch (e) {} }; try { const full = await qBrain.chat([{ role: "user", content: String(prompt) }], { onToken: (t) => { acc += String(t || ""); push(acc); }, onDelta: (dd, f) => { acc = (typeof f === "string") ? f : (acc + String(dd || "")); push(acc); } }); const text = String(full || acc || ""); if (!acc && text && onToken) { const parts = text.split(/(\s+)/); let s = ""; for (const w of parts) { s += w; push(s); await new Promise((r) => setTimeout(r, 12)); } } return text; } catch (e) { return acc || ""; } };   // HOLO-Q-INSTANT-REAL: stream the drawer brain token-by-token (native if the engine streams, else word-chunked)
+    window.HoloQ.draftLight = draftLight; window.HoloQ.warm = async () => { try { await ensureBrain(); return await _qBrainRaw.load((p) => { try { window.__holoQLoad = p; } catch (e) {} }); } catch (e) {} }; window.HoloQ.warmSeed = () => { try { return ensureOnnxSeed(); } catch (e) { return null; } }; window.HoloQ.ready = () => _qWarm(); window.HoloQ.info = () => { try { return _qBrainRaw.info(); } catch (e) { return { ready: false }; } }; window.HoloQ.stats = () => qLastStats; } catch {}
     // ── selfTest(): a one-command, real-hardware proof that Q actually replies — warm if needed, run a fixed prompt
     // through the SAME chat() path a real turn uses (off the live thread), then assert the SHIPPED text is non-empty,
     // humanized (no LLM tells), and on-identity (no cloud claim), reporting TTFT + tok/s. Run in the console on real
@@ -2388,7 +2734,7 @@ async function buildQ() {
       window.HoloQ.selfTest = async (prompt = "Tell me something amazing") => {
         if (qThinking || _qAbort) return { ok: false, error: "busy — a Q turn is in flight; try again in a moment" };
         const t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
-        try { if (!_qWarm()) await _qBrainRaw.load(); } catch (e) {}
+        try { if (!_qWarm()) { await ensureBrain(); await _qBrainRaw.load(); } } catch (e) {}
         if (!_qWarm()) return { ok: false, error: "brain not ready (needs WebGPU / still warming)" };
         let persona = ""; try { persona = (qBrain.persona ? qBrain.persona() : "") + _qStyle; } catch (e) {}
         const history = [{ role: "system", content: persona }, { role: "user", content: String(prompt) }];
@@ -2401,7 +2747,7 @@ async function buildQ() {
         return { ok: checks.nonEmpty && checks.humanized && checks.onIdentity, ttftMs: stats && stats.ttft != null ? Math.round(stats.ttft) : null, tokPerSec: stats && stats.tokps != null ? Math.round(stats.tokps) : null, promptTokens: stats && stats.promptTokens, totalMs: Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0), text, checks };
       };
     } catch (e) {}
-    convos.push(c); Q = c;
+    if (!convos.includes(c)) convos.push(c); Q = c;
   } catch (e) { Q = null; qGroup = null; }
 }
 
@@ -2442,7 +2788,7 @@ async function qChatFallback(c, ctl, intentText, viewContext) {
   const aborted = () => !!(ctl && ctl.signal && ctl.signal.aborted);
   try {
     qThinking = true; qStream = null; _touch(c.meta.genesis); rebuildSoon();   // keep the typing dots alive while we (maybe) wait for warm
-    if (!_qWarmReady()) { try { window.HoloQ.warm(); } catch (e) {} const t0 = Date.now(); const _budget = _qCanBrain() ? 90000 : 1500; while (!_qWarmReady() && Date.now() - t0 < _budget) { if (aborted()) return false; await _sleep(_qCanBrain() ? 500 : 250); } }   // no-WebGPU phone: ≤1.5s, then fall through to the wasm-seed / grounded path (never a 90s stall)
+    if (!_qWarmReady()) { try { window.HoloQ.warm(); } catch (e) {} const t0 = Date.now(); const _budget = _qCanBrain() ? 90000 : 1500; while (!_qWarmReady() && Date.now() - t0 < _budget) { if (aborted()) return false; if (Date.now() - t0 > 8000 && Date.now() - (window.__holoQWarmNote || 0) > 60000) { window.__holoQWarmNote = Date.now(); try { await c.thread.ingest({ text: "Give me a moment — I’m just waking up on your device. I’ll answer properly in a few seconds.", sender: "Q", sentAt: now(), chat: "Q", source: "holo" }); qThinking = true; _touch(c.meta.genesis); rebuildSoon(); } catch (e) {} } await _sleep(_qCanBrain() ? 500 : 250); } }   // no-WebGPU phone: ≤1.5s, then fall through to the wasm-seed / grounded path (never a 90s stall)
     if (!_qWarmReady() || aborted()) return false;
     const view = c.thread.view();
     let persona = ""; try { persona = (qBrain.persona ? qBrain.persona() : "") + _qStyle; } catch (e) {}
@@ -2454,7 +2800,7 @@ async function qChatFallback(c, ctl, intentText, viewContext) {
     // prefix every grounded turn (full re-prefill, and it poisons later turns too). Kept in the last user turn, the
     // persona + prior conversation stay byte-identical across turns, so the engine's sync() reuses their warm KV.
     try {
-      const grounded = await qGroundedContext(intentText != null ? intentText : ((view[view.length - 1] || {}).text || ""));
+      const grounded = await Promise.race([qGroundedContext(intentText != null ? intentText : ((view[view.length - 1] || {}).text || "")), _sleep(4000).then(() => "")]);   // C2: bounded — retrieval (embeddings init) must not stall the answer; ungrounded beats silent
       const parts = [];
       // OMNISCIENT: what the user was looking at when they tapped the orb (passed from the panel) — so "this"/"here" resolve.
       if (viewContext && String(viewContext).trim()) parts.push("The user is currently looking at this in Holo Messenger — if they say \"this\", \"here\", or \"this chat\" they mean it:\n" + String(viewContext).trim());
@@ -2464,12 +2810,39 @@ async function qChatFallback(c, ctl, intentText, viewContext) {
         for (let i = history.length - 1; i >= 0; i--) { if (history[i] && history[i].role === "user") { history[i] = { ...history[i], content: ctx + "\n\n" + history[i].content }; break; } }
       }
     } catch (e) {}
-    let out = ""; try { out = await qBrain.chat(history, { signal: ctl ? ctl.signal : null, onStats: (s) => { qLastStats = { ...s, at: Date.now() }; _qHudUpdate(); } }); } catch (e) { out = ""; }   // pass the abort signal so a NEW message can interrupt an in-flight reply; capture TTFT/tok·s for the HUD + selfTest
+    // REAL-TIME (HOLO-Q-ONE-CONVERSATION): stream the warm brain token-by-token into Q's live GROWING bubble — the
+    // "watching a human type" feel — instead of awaiting the whole reply then re-splitting into beats (which collapsed
+    // and re-appeared as several messages, breaking the illusion). onToken/onDelta grow qStream live; the first token
+    // drops the typing dots. Falls back cleanly to the full-await path when the engine doesn't stream (_streamed stays false).
+    let out = "", _streamed = false;
+    try {
+      let _acc = ""; const _sg = c.meta.genesis;
+      const _live = (full) => { const _ss = (window.HoloQContact && window.HoloQContact.stripScaffold); const s = _ss ? _ss(String(full || "")) : String(full || ""); if (!s) return; _streamed = true; qThinking = false; qStream = { genesis: _sg, text: s }; _touch(_sg); rebuildSoon(); };
+      // C2 NO-TOKEN GUARD (warm rung): a "ready" engine can still wedge on a broken/software GPU — an unbounded
+      // await here left "typing…" forever with every fallback starved. 20s to the FIRST token (a healthy warm TTFT
+      // is <2s — 10x margin); silent → abort THIS call only (own controller; aborting ctl would skip the honest
+      // fallbacks below) and fall through. Streaming output is never cut off.
+      const chatCtl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      if (ctl && chatCtl) { try { ctl.signal.addEventListener("abort", () => chatCtl.abort(), { once: true }); } catch (e) {} }
+      const _chatP = qBrain.chat(history, { signal: chatCtl ? chatCtl.signal : (ctl ? ctl.signal : null),
+        onToken: (t) => { _acc += String(t || ""); _live(_acc); },
+        onDelta: (dd, f) => { _acc = (typeof f === "string") ? f : (_acc + String(dd || "")); _live(_acc); },
+        onStats: (s) => { qLastStats = { ...s, at: Date.now() }; _qHudUpdate(); } });
+      out = await Promise.race([
+        _chatP,
+        (async () => { const t0 = Date.now(); while (Date.now() - t0 < 20000) { await _sleep(500); if (_acc) return _chatP; } if (!_acc) { try { chatCtl && chatCtl.abort(); } catch (e) {} return ""; } return _chatP; })(),
+      ]);   // pass the abort signal so a NEW message can interrupt an in-flight reply; capture TTFT/tok·s for the HUD + selfTest
+      if (!out && _acc) out = _acc;
+    } catch (e) { out = ""; }
     if (aborted()) return false;
-    out = _qHumanize(_qIdentityGuard(String(out || "").trim()));
+    const _rawOut = ((window.HoloQContact && window.HoloQContact.stripScaffold) ? window.HoloQContact.stripScaffold(String(out || "")) : String(out || "")).trim();
+    out = _qHumanize(_qIdentityGuard(_rawOut));
+    try { const E = (typeof window !== "undefined") && window.QEvolve; if (E && E.noteTurn) { if (_qIdentityGuard(_rawOut) !== _rawOut) E.noteTurn({ outcome: "failure", kind: "identity-guard" }); else if (!out) E.noteTurn({ outcome: "failure", kind: "empty-reply" }); else E.noteTurn({ outcome: "success" }); } } catch (e) {}
     if (!out) return false;
     let beats = [out];
-    try { const on = (typeof localStorage === "undefined") || localStorage.getItem("holo.q.beats") !== "0"; if (on && _qSplit) { const b = _qSplit(out); if (Array.isArray(b) && b.length > 1) beats = b; } } catch (e) {}
+    // if we STREAMED the reply live (watched it grow), keep it as ONE bubble — re-splitting into beats would collapse the
+    // streamed text and replay it as several messages, breaking the real-time illusion. Only beat-split the non-streamed path.
+    try { const on = (typeof localStorage === "undefined") || localStorage.getItem("holo.q.beats") !== "0"; if (!_streamed && on && _qSplit) { const b = _qSplit(out); if (Array.isArray(b) && b.length > 1) beats = b; } } catch (e) {}
     const base = Date.now();
     for (let i = 0; i < beats.length; i++) {
       if (aborted()) return i > 0;
@@ -2495,12 +2868,12 @@ async function qReply(c, text, opts) {
   // M6 — BOUNDED ACTION. If YOUR message is a command, Q does the deed (tier-gated) instead of only talking: read-only
   // briefs run for real, prohibited is refused with the rule, money stays in your hands. Decided ONLY from your turn
   // (never inbox content) → injection→action immune. A grounded string ⇒ handled; ingest it as Q's reply and stop.
-  try { const act = await qActionRoute(text); if (act && typeof act === "string" && (!ctl || !ctl.signal.aborted)) { await c.thread.ingest({ text: act, sender: "Q", sentAt: now(), chat: "Q", source: "holo" }); if (_qAbort === ctl) _qAbort = null; qStream = null; qThinking = false; _touch(g); rebuild(); return; } } catch (e) {}
+  try { const act = await Promise.race([qActionRoute(text), _sleep(4000).then(() => null)]); /* C2: bounded — a wedged action-planner init must not stall the reply ladder */ if (act && typeof act === "string" && (!ctl || !ctl.signal.aborted)) { await c.thread.ingest({ text: act, sender: "Q", sentAt: now(), chat: "Q", source: "holo" }); if (_qAbort === ctl) _qAbort = null; qStream = null; qThinking = false; _touch(g); rebuild(); return; } } catch (e) {}
   qStream = null; qThinking = true; _touch(g); rebuild();   // Q3 - animated typing dots THIS frame (before any token)
   // YIELD a paint frame BEFORE the (potentially heavy, main-thread-blocking) brain warm/inference — otherwise the
   // browser never commits this render and YOUR just-sent message + the typing dots don't appear until Q finishes
   // (looked like "typing does nothing in the Q chat"). Two rAFs = guaranteed commit+paint before we hog the thread.
-  await new Promise((r) => (typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame(() => requestAnimationFrame(() => r())) : setTimeout(r, 0)));
+  await new Promise((r) => { let _d = false; const _f = () => { if (!_d) { _d = true; r(); } }; try { if (typeof requestAnimationFrame !== "undefined" && typeof document !== "undefined" && !document.hidden) requestAnimationFrame(() => requestAnimationFrame(_f)); } catch (e) {} setTimeout(_f, 250); });   // C2: rAF NEVER fires in a hidden tab — the old two-rAF yield parked the whole reply pipeline until the user returned (send → switch tabs → no answer). Visible: same two-frame paint yield; hidden: 250ms cap, reply lands in the background like a real messenger.
   // ONE reliable, non-concurrent reply path (see qChatFallback): dots → wait-for-warm → full generation → beats. This
   // guarantees Q always answers (no perpetual "typing…") and sounds like the standalone chat. The engine is single-
   // context, so we never run two generations at once.
@@ -2514,11 +2887,23 @@ async function qReply(c, text, opts) {
   if (!_qWarmReady() && !(opts && opts.viewContext) && c.q && c.q.respond) {
     try { window.HoloQ.warm(); } catch (e) {}
     try {
-      const r = await c.q.respond(text, {
-        signal: ctl ? ctl.signal : null,
+      // C2 NO-TOKEN GUARD (HOLO-Q-FIRST-CONTACT): the cold respond() can stall INSIDE onnx-seed init (CDN fetch,
+      // wasm compile) — an unbounded await here starved the proven qChatFallback ladder and left "typing…" forever
+      // (the live "waking Q up…" hang). Give the cold path 10s to produce its FIRST token; still silent → abort it
+      // (its tiers check the signal before finalizing, so no late double-answer) and hand off to the fallback.
+      // Once tokens ARE streaming we always let it finish — never cut off a working draft mid-sentence.
+      const coldCtl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      if (ctl && coldCtl) { try { ctl.signal.addEventListener("abort", () => coldCtl.abort(), { once: true }); } catch (e) {} }
+      let _coldTok = false;
+      const _p = c.q.respond(text, {
+        signal: coldCtl ? coldCtl.signal : (ctl ? ctl.signal : null),
         onTyping: (on) => { qThinking = on; _touch(g); rebuildSoon(); },
-        onDelta: (d, full) => { qStream = full; qThinking = false; _touch(g); rebuildSoon(); },
+        onDelta: (d, full) => { _coldTok = true; qStream = full; qThinking = false; _touch(g); rebuildSoon(); },
       });
+      const r = await Promise.race([
+        _p,
+        (async () => { const t0 = Date.now(); while (Date.now() - t0 < 10000) { await _sleep(400); if (_coldTok) return _p; } if (!_coldTok) { try { coldCtl && coldCtl.abort(); } catch (e) {} return null; } return _p; })().then((v) => v),
+      ]);
       if (r && !r.aborted && (r.seed || r.seedOnnx) && String(r.text || "").trim()) replied = true;   // instant cold answer, finalized as κ
     } catch (e) {}
     qStream = null;
@@ -2530,8 +2915,10 @@ async function qReply(c, text, opts) {
     // MOBILE / no-WebGPU (HOLO-MOBILE-Q M2): NEVER dead-end to "open me on desktop". Try the light wasm ONNX seed
     // for a real answer (it runs without the 0.69GB GPU brain); if even that can't run, stay present + honest —
     // Q keeps the conversation on the phone rather than turning the user away.
-    let out = ""; try { out = String((await window.HoloQ.draftLight(text)) || "").trim(); } catch (e) {}
+    let out = ""; try { out = String((await Promise.race([window.HoloQ.draftLight(text), _sleep(8000).then(() => "")])) || "").trim(); } catch (e) {}   // C2: bounded — a wedged onnx init must not starve the honest line below
     try { out = _qHumanize(_qIdentityGuard(out)); } catch (e) {}
+    try { const _ra = window.HoloQContact && window.HoloQContact.isRealAnswer; if (out && _ra && !_ra(out, text, { strict: true })) out = ""; } catch (e) {}   // C1: the light draft is the same tiny model — junk fails the strict floor and the honest line below takes over
+    try { if (!out && typeof window !== "undefined" && window.QEvolve && window.QEvolve.noteTurn) window.QEvolve.noteTurn({ outcome: "failure", kind: "no-brain" }); } catch (e) {}
     if (!out) out = "I'm right here with you on your phone. My deepest thinking spins up a moment after you open me — say a little more, or ask me again in a beat, and I'll give you my best.";
     try { await c.thread.ingest({ text: out, sender: "Q", sentAt: now(), chat: "Q", source: "holo" }); } catch (e) {}
   }
@@ -2739,36 +3126,44 @@ async function startCall(genesis, { video = false } = {}) {
   const c = convos.find((x) => x.meta.genesis === genesis);
   if (!c) return { ok: false, error: "no chat" };
   if (_activeCall) return { ok: false, error: "already in a call" };
+  if (_activeMeet) return { ok: false, error: "already in a meeting" };
   if (c.isQ) return { ok: false, error: "Q is on your device, no call needed" };
-  let media = null; try { media = await navigator.mediaDevices.getUserMedia({ audio: true, video }); } catch {}   // no mic → place silently rather than fail
+  // ONE DOOR: the same two header buttons place EVERY call. A GROUP chat (ONE-ROOM or bridged group) routes to the
+  // N-peer mesh — WhatsApp-group-call / Meet semantics, every member rings — while 1:1 keeps the proven pairwise path.
+  if (c.room || (c.meta && c.meta.kind === "group")) return startMeet(genesis, { video, send: true });
+  let media = null; try { media = await HoloCall.callMedia(video); } catch {}   // HD constraints + graceful ladder; no mic → place silently rather than fail
   let intent; try { intent = await HoloCall.createCall({ callerName: profileName || "You", video }); }
   catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
   const link = HoloCall.buildCallLink(intent);
   await onSend(genesis, link.https);   // the ring travels as a message → cross-network, ringable anywhere
   logQAction("call", genesis, c.meta.name || c.meta.chat, video ? "video call" : "voice call", false);   // CS-G ledger
   const ui = openCallUI({ mode: "outgoing", name: c.meta.name || c.meta.chat || "Contact", video, localStream: media, onHangup: () => endCall(), onToggleMute: (m) => _activeCall && _activeCall.ctrl.mute(m), onToggleCamera: (off) => _activeCall && _activeCall.ctrl.setCamera(!off) });
-  const ctrl = await HoloCall.joinCall(intent, { media, onState: (st) => { ui.setPhase(st.phase); if (st.phase === "ended" || st.phase === "failed") _afterCall(); }, onRemoteStream: (s) => { ui.setPhase("connected"); ui.attachRemote(s); } });
+  const ctrl = await HoloCall.joinCall(intent, { media, onState: (st) => { ui.setPhase(st.phase); if (st.phase === "ended" || st.phase === "failed" || st.phase === "declined" || st.phase === "no-answer") _afterCall(); }, onRemoteStream: (s) => { ui.setPhase("connected"); ui.attachRemote(s); } });
   _activeCall = { ctrl, ui, media, intent };
   return { ok: true, room: intent.room, kappa: intent.kappa, video };
 }
 // an inbound message is a FRESH call link → ring (accept = join with your mic; decline = dismiss). Gated so history
 // replay / your own echo never rings. The link's integrity is verified before we trust the caller name.
 async function maybeRingIncoming(d, c) {
-  if (_activeCall || d.fromMe || _flooding) return;
-  const det = HoloCall.callLinkInText(d.text || ""); if (!det) return;
+  if (_activeCall || _activeMeet || d.fromMe || _flooding) return;
+  const det = HoloCall.callLinkInText(d.text || "");
+  if (!det) return maybeRingGroup(d, c);   // not a 1:1 call link — but maybe a GROUP call invite (kind:"meet")
   let parsed; try { parsed = await HoloCall.parseCall(det.url); } catch { return; }
   if (!parsed.ok || !parsed.integrity || parsed.expired) return;                 // tampered / expired → never ring
   if (Date.now() - (parsed.intent.created || 0) > 60000) return;                  // stale link (not a live ring)
   const dsc = HoloCall.describeCall(parsed.intent);
+  let missT = null;   // WhatsApp semantics: a ring nobody answers becomes a missed call, never an eternal card
   const ui = openCallUI({ mode: "incoming", name: dsc.caller || c.meta.name || "Caller", video: dsc.video,
     onToggleMute: (m) => _activeCall && _activeCall.ctrl && _activeCall.ctrl.mute(m), onToggleCamera: (off) => _activeCall && _activeCall.ctrl && _activeCall.ctrl.setCamera(!off),
-    onDecline: () => { _afterCall(); },
+    onDecline: () => { try { clearTimeout(missT); } catch {} try { HoloCall.declineCall(parsed.intent); } catch {} _afterCall(); },
     onAccept: async () => {
-      let media = null; try { media = await navigator.mediaDevices.getUserMedia({ audio: true, video: dsc.video }); } catch {}
+      try { clearTimeout(missT); } catch {}
+      let media = null; try { media = await HoloCall.callMedia(dsc.video); } catch {}
       if (media) ui.attachLocal(media);   // self-view for video calls
-      const ctrl = await HoloCall.joinCall(parsed.intent, { media, onState: (st) => { ui.setPhase(st.phase); if (st.phase === "ended" || st.phase === "failed") _afterCall(); }, onRemoteStream: (s) => { ui.setPhase("connected"); ui.attachRemote(s); } });
+      const ctrl = await HoloCall.joinCall(parsed.intent, { media, onState: (st) => { ui.setPhase(st.phase); if (st.phase === "ended" || st.phase === "failed" || st.phase === "declined" || st.phase === "no-answer") _afterCall(); }, onRemoteStream: (s) => { ui.setPhase("connected"); ui.attachRemote(s); } });
       _activeCall = { ctrl, ui, media, intent: parsed.intent };
     } });
+  missT = setTimeout(() => { if (_activeCall && _activeCall.incoming) { try { ui.setPhase("missed"); } catch {} _afterCall(); } }, 45000);
   _activeCall = { ui, incoming: true };   // hold so a second ring doesn't stack; replaced on accept
 }
 function endCall() { try { _activeCall && _activeCall.ctrl && _activeCall.ctrl.hangup(); } catch {} _afterCall(); }
@@ -2778,25 +3173,89 @@ function _afterCall() { try { _activeCall && _activeCall.media && _activeCall.me
 // A group room: mint a meet κ-link, SEND IT as an invite (joinable in any browser via meet-view.html), open the grid,
 // and join the mesh. Everyone with the link is a participant. `send:false` opens the room locally without inviting.
 let _activeMeet = null;
+// _enterMesh — THE one group-room enterer (startMeet, the group ring's Accept, and joinMeetFromLink all land here):
+// HD media → the grid surface → the N-peer mesh; names ride the sealed signal, per-peer bitrate scales with size.
+async function _enterMesh(intent, { video = true, title = "", inviteLink = "" } = {}) {
+  let media = null; try { media = await HoloCall.callMedia(video); } catch {}
+  let facing = "user";   // front camera by default; flip toggles to the back (mobile)
+  let _share = null;   // screen share — created once the mesh joins (holo-call-mesh.makeScreenShare)
+  let _blur = null;   // background blur — created once the mesh joins (holo-call-mesh.makeBlurEffect)
+  const ui = openMeetUI({ name: title || intent.title || ((intent.hostName || "Holo") + " · call"), video,
+    inviteLink: inviteLink || HoloMesh.buildMeetLink(intent).https,
+    onLeave: () => endMeet(), onToggleMute: (m) => _activeMeet && _activeMeet.mesh.mute(m), onToggleCamera: (off) => _activeMeet && _activeMeet.mesh.setCamera(!off),
+    onFlipCamera: video ? async () => {
+      if (!_activeMeet || !_activeMeet.mesh) return;
+      const next = facing === "user" ? "environment" : "user";
+      let ns = null; try { ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: next } }, audio: false }); } catch {}
+      const track = ns && ns.getVideoTracks()[0]; if (!track) { try { ns && ns.getTracks().forEach((t) => t.stop()); } catch {} return; }
+      facing = next;
+      const wasBlur = _blur && _blur.on(); if (wasBlur) { try { await _blur.stop(); } catch {} }   // drop blur off the old camera first
+      try { await _activeMeet.mesh.replaceVideoTrack(track); } catch {}
+      ui.attachLocal(media, profileName || "You", facing === "user");   // un-mirror the self-view on the back camera
+      if (wasBlur) { try { await _blur.start(); } catch {} }   // re-blur the new camera
+    } : null,
+    onShareScreen: (video && HoloMesh.canShareScreen()) ? () => _share && _share.toggle() : null,
+    onToggleBlur: video ? () => _blur && _blur.toggle() : null });
+  ui.attachLocal(media, profileName || "You");   // always show a self tile (avatar fallback when no camera)
+  ui.setPhase("connecting");
+  let mesh = null;   // let-before-await: a fast relay can deliver signal before a `const` would initialize (TDZ)
+  mesh = await HoloMesh.joinMesh(intent, { media, displayName: profileName || "You",
+    onParticipant: (id, s, nm) => { ui.addParticipant(id, s, nm || (mesh && mesh.nameOf && mesh.nameOf(id)) || "Guest"); ui.setPhase("connected"); },
+    onName: (id, nm) => ui.setLabel(id, nm),
+    onParticipantLeave: (id) => ui.removeParticipant(id),
+    onActiveSpeaker: (id) => ui.setActiveSpeaker(id),
+    onState: (st) => { if (st.phase) ui.setPhase(st.phase); else if (st.peer && st.state) ui.setPeerState(st.peer, st.state === "reconnecting" ? "reconnecting" : "connected"); } });
+  _activeMeet = { mesh, ui, media, intent };
+  if (video && HoloMesh.canShareScreen()) _share = HoloMesh.makeScreenShare(mesh, { media, ui, name: profileName || "You", facing: () => facing });
+  if (video && HoloMesh.makeBlurEffect) _blur = HoloMesh.makeBlurEffect(mesh, { media, ui, name: profileName || "You", facing: () => facing });
+  return { ok: true, room: intent.room, kappa: intent.kappa };
+}
 async function startMeet(genesis, { video = true, send = true } = {}) {
   const c = convos.find((x) => x.meta.genesis === genesis);
   if (!c && send) return { ok: false, error: "no chat" };
   if (_activeMeet) return { ok: false, error: "already in a meeting" };
-  let media = null; try { media = await navigator.mediaDevices.getUserMedia({ audio: true, video }); } catch {}
-  let intent; try { intent = await HoloMesh.createMeet({ hostName: profileName || "You", video }); }
+  if (_activeCall) return { ok: false, error: "already in a call" };
+  const groupName = c ? (c.meta.name || c.meta.chat || "") : "";
+  let intent; try { intent = await HoloMesh.createMeet({ hostName: profileName || "You", video, title: groupName ? groupName + (video ? " · video call" : " · voice call") : "" }); }
   catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
   const link = HoloMesh.buildMeetLink(intent);
-  if (send && c) { await onSend(genesis, link.https); logQAction("meet", genesis, c.meta.name || c.meta.chat, "started a room", false); }
-  const ui = openMeetUI({ name: (profileName || "Your") + " room", video, onLeave: () => endMeet(), onToggleMute: (m) => _activeMeet && _activeMeet.mesh.mute(m), onToggleCamera: (off) => _activeMeet && _activeMeet.mesh.setCamera(!off) });
-  ui.attachLocal(media, profileName || "You");   // always show a self tile (avatar fallback when no camera)
-  const mesh = await HoloMesh.joinMesh(intent, { media, displayName: profileName || "You",
-    onParticipant: (id, s) => ui.addParticipant(id, s, "Guest"),
-    onParticipantLeave: (id) => ui.removeParticipant(id),
-    onActiveSpeaker: (id) => ui.setActiveSpeaker(id),
-    onState: (st) => { if (st.phase) ui.setPhase(st.phase); } });
-  _activeMeet = { mesh, ui, media, intent };
-  return { ok: true, room: intent.room, kappa: intent.kappa, link: link.https };
+  if (send && c) { await onSend(genesis, link.https); logQAction("meet", genesis, groupName, video ? "started a video call" : "started a voice call", false); }   // the invite IS the ring — it fans sealed to every member
+  const r = await _enterMesh(intent, { video, inviteLink: link.https });
+  return r.ok ? { ...r, link: link.https } : r;
 }
+// GROUP RING — the meet twin of maybeRingIncoming (fires from the same ingest seams via its fallthrough). A fresh
+// group-call invite rings like WhatsApp; Accept drops you straight into the grid; Decline is LOCAL (the room keeps
+// ringing for everyone else — declining a group call never ends it). Older links stay in the chat as the Join door.
+async function maybeRingGroup(d, c) {
+  if (_activeCall || _activeMeet || d.fromMe || _flooding) return;
+  const det = HoloMesh.meetLinkInText(d.text || ""); if (!det) return;
+  let parsed; try { parsed = await HoloMesh.parseMeet(det.url); } catch { return; }
+  if (!parsed.ok || !parsed.integrity || parsed.expired) return;                 // tampered / expired → never ring
+  if (Date.now() - (parsed.intent.created || 0) > 60000) return;                  // stale link → tap-to-join, not a ring
+  const it = parsed.intent, video = it.content === "video";
+  const title = it.title || ((it.hostName || (c && c.meta && (c.meta.name || c.meta.chat)) || "Group") + (video ? " · video call" : " · voice call"));
+  let missT = null;
+  const ui = openCallUI({ mode: "incoming", name: title, video,
+    onDecline: () => { try { clearTimeout(missT); } catch {} _afterCall(); },
+    onAccept: async () => {
+      try { clearTimeout(missT); } catch {}
+      try { ui.close(); } catch {}
+      _activeCall = null;                                    // release the ring hold; _enterMesh takes the meet slot
+      try { await _enterMesh(it, { video, title }); } catch {}
+    } });
+  missT = setTimeout(() => { if (_activeCall && _activeCall.incoming) { try { ui.setPhase("missed"); } catch {} _afterCall(); } }, 45000);
+  _activeCall = { ui, incoming: true };   // hold so a second ring doesn't stack; released on accept/decline
+}
+// LATE JOIN — any surface can hand in a group-call link (an older bubble, a pasted URL) and land in the live room.
+async function joinMeetFromLink(urlOrText) {
+  if (_activeMeet) return { ok: false, error: "already in a meeting" };
+  const det = HoloMesh.meetLinkInText(String(urlOrText || ""));
+  let parsed; try { parsed = await HoloMesh.parseMeet(det ? det.url : String(urlOrText || "")); } catch { return { ok: false, error: "bad link" }; }
+  if (!parsed.ok || !parsed.integrity) return { ok: false, error: "bad link" };
+  if (parsed.expired) return { ok: false, error: "this call has ended" };
+  return _enterMesh(parsed.intent, { video: parsed.intent.content === "video" });
+}
+try { if (typeof window !== "undefined") window.HoloMeetJoin = (u) => { joinMeetFromLink(u); return true; }; } catch {}
 function endMeet() { try { _activeMeet && _activeMeet.mesh && _activeMeet.mesh.leave(); } catch {} try { _activeMeet && _activeMeet.media && _activeMeet.media.getTracks().forEach((t) => t.stop()); } catch {} try { _activeMeet && _activeMeet.ui && _activeMeet.ui.close(); } catch {} _activeMeet = null; }
 
 // ── FLAWLESS-GRAMMAR SEAM: every outbound message (user · Q · agent) passes through here. Harper (Rust→WASM), fully
@@ -2837,6 +3296,14 @@ async function onSend(genesis, text) {
     bumpAffinity(genesis, 4); _logVerb(genesis, "reply");
     _touch(genesis); rebuild();
     checkMentions(c);   // @Q still works inside a peer chat
+    return;
+  }
+  if (c.room) {   // ONE ROOM: Megolm-seal once, fan the same ciphertext to every member; the engine's local
+    // echo (emit "room", me:true) is the single paint path, so nothing is ingested here (no double-bubble).
+    try { const H = window.HoloDirect; if (H && H.roomSend) await H.roomSend(genesis, text); } catch {}
+    bumpAffinity(genesis, 4); _logVerb(genesis, "reply");
+    _touch(genesis); rebuild();
+    checkMentions(c);   // @Q still works inside a room
     return;
   }
   bumpAffinity(genesis, 4);   // SE-F: replying is the strongest signal you care about this conversation
@@ -3001,6 +3468,31 @@ function rebuildSoon() {
   _toId = setTimeout(_doRebuild, 250);   // backstop: hidden tab (rAF throttled) or no-rAF env
 }
 
+// ── Q KNOWS YOUR WORLD (HOLO-Q-KNOWS-YOUR-WORLD): distill the user's real, on-device inbox into the ONE context
+// plane (HoloCorpus) as private κ-facts — the last meaningful line the OTHER person said in each active chat, cited
+// to them — so Q's grounding + proactivity genuinely know what's happening. 0-egress (the messages are already
+// local), realm-encrypted, content-deduped, capped. A message's content is DATA for grounding; it can NEVER
+// trigger an action (deeds are decided only from the user's OWN turn) — injection-immune by construction. Fail-soft.
+const _worldSeen = new Set();
+function qWorldSync() {
+  try {
+    const C = (typeof window !== "undefined") && window.HoloCorpus; if (!C || !C.publish) return;
+    let n = 0;
+    for (const c of convos) {
+      if (n >= 12) break; if (!c || c.isQ) continue;
+      let v = []; try { v = c.thread.view() || []; } catch (e) {}
+      let last = null; for (let i = v.length - 1; i >= 0; i--) { const bb = v[i]; if (bb && bb.sender && bb.sender !== "Me" && String(bb.text || "").trim()) { last = bb; break; } }
+      if (!last) continue;
+      const name = String(c.meta.name || c.meta.chat || "someone").slice(0, 40);
+      const line = String(last.text).replace(/\s+/g, " ").trim().slice(0, 140); if (!line) continue;
+      const key = name + "|" + line; if (_worldSeen.has(key)) continue; _worldSeen.add(key); if (_worldSeen.size > 400) _worldSeen.clear();
+      try { C.publish({ source: "messages", text: name + ": " + line, meta: { genesis: c.meta.genesis, name } }); n++; } catch (e) {}
+    }
+  } catch (e) {}
+}
+try { if (typeof window !== "undefined") window.HoloQ = window.HoloQ || {}, window.HoloQ.worldSync = qWorldSync; } catch (e) {}
+try { setTimeout(() => { try { qWorldSync(); } catch (e) {} setInterval(() => { try { qWorldSync(); } catch (e) {} }, 90000); }, 6000); } catch (e) {}
+
 export async function boot(rootEl, injected = null) {
   // ── W7/D perf-budget gate. Observe main-thread blocks through the boot window, then log ONE verdict line: a real
   // time-to-interactive (when the last boot block ended → the thread was free for input) and the worst block, scored
@@ -3038,6 +3530,7 @@ export async function boot(rootEl, injected = null) {
   try {
     if (!ui && rootEl && window.HoloMessengerUI && window.HoloMessengerUI.mount) {
       window.__hydrated = hydrateInbox();                    // device snapshot → the whole inbox, no secret
+      seedQEarly();                                          // FIRST-TAP Q: a fresh visitor gets Q as the top chat in THIS first paint, before the login gate
       ui = window.HoloMessengerUI.mount(rootEl, buildModel());
       window.__warmPaintMs = Math.round(performance.now() - (window.__bootT0 || 0));
     }
@@ -3088,8 +3581,10 @@ export async function boot(rootEl, injected = null) {
     c.members = rosterMembers(others);
   }
 
+  try { window.__preBuildQ = 1; } catch (e) {}
   await buildQ();   // Q joins the unified inbox as a pinned, always-here contact (on-device brain)
   try { restorePeerChats(); } catch {}   // P3: re-open persisted device-to-device chats (OPFS κ-chain) — non-blocking
+try { restoreRooms(); } catch {}       // ONE ROOM: rehydrate sealed group rows for a returning member / a #room invite — non-blocking
   try { handleJoinLink(); } catch {}     // P5: if opened from an invite link, verify + join the room (fail-soft)
   try { window.__hydrated = hydrateInbox(); } catch { window.__hydrated = 0; }   // local-first: restore the last-seen inbox snapshot BEFORE the first paint → returning users see every chat instantly
   try { reconcileInboxFromStore(); } catch {}   // M4 U3: κ-store is canonical → restore the inbox from OPFS if the localStorage cache was evicted (non-blocking)
@@ -3143,10 +3638,15 @@ export async function boot(rootEl, injected = null) {
     try { tryWhatsAppBridge(); } catch {} try { tryTelegramBridge(); } catch {}
     for (const id of Object.keys(BRIDGES)) { if (id === "whatsapp" || id === "telegram") continue; try { tryBridge(id, BRIDGES[id]); } catch {} }
     try { ensureHubConnector(); } catch {}   // hub auto-reconnect: /token 403s until linked, so this is a safe no-op otherwise
+    try { restoreTelegramServerless(); } catch {}   // SERVERLESS: a returning user's vaulted Telegram reconnects here, zero taps
+    try { restoreGmailServerless(); } catch {}      // SERVERLESS: a returning user's vaulted Gmail reconnects here too
   };
   try { (typeof requestIdleCallback === "function") ? requestIdleCallback(_startBridges, { timeout: 800 }) : setTimeout(_startBridges, 60); } catch { _startBridges(); }
   // warm the on-device grammar engine (Harper WASM) at idle so the FIRST send is already tidied instantly (fail-open)
-  try { const _warmG = () => { import("../../usr/lib/holo/holo-grammar.mjs").then((g) => { _grammarG = g; _grammarMod = Promise.resolve(g); return g && g.warm && g.warm(); }).catch(() => {}); }; (typeof requestIdleCallback === "function") ? requestIdleCallback(_warmG, { timeout: 4000 }) : setTimeout(_warmG, 2500); } catch {}
+  // MOBILE-LEAN: Harper's slimBinaryInlined.js is ~23 MB — the single biggest thing on the mobile boot path. Skip
+  // the speculative boot pre-warm on phones; grammar still loads on-demand on the first send (fail-open, text
+  // returns UNCHANGED if cold), so the only cost is the very first mobile message isn't pre-tidied. Desktop unchanged.
+  if (!_qLeanMobile) try { const _warmG = () => { import("../../usr/lib/holo/holo-grammar.mjs").then((g) => { _grammarG = g; _grammarMod = Promise.resolve(g); return g && g.warm && g.warm(); }).catch(() => {}); }; (typeof requestIdleCallback === "function") ? requestIdleCallback(_warmG, { timeout: 4000 }) : setTimeout(_warmG, 2500); } catch {}
   // ── Stage 7 P2 - SOVEREIGN SOCIAL GRAPH cold-start: harvest the REAL cross-platform firehose (every chat's
   // history the bridges already synced) into the pure derivation (holo-social-graph). NEVER on boot - an explicit
   // call (window.__graph.derive) so it can't block first paint; recent history dominates the weight so we cap
@@ -3379,9 +3879,11 @@ export async function boot(rootEl, injected = null) {
       return { ...r, budget: BUDGET, pass: fails.length === 0, fails };
     },
     chatCount: () => convos.length + [...bridgeSummaries.keys()].filter((g) => !convos.some((c) => c.meta.genesis === g)).length,
+    platformCounts: () => { const p = {}; for (const c of convos) { const k = (c.meta && (c.meta.platform || c.meta.bridge)) || "local"; p[k] = (p[k] || 0) + 1; } const s = {}; for (const [g, v] of bridgeSummaries) { if (convos.some((c) => c.meta.genesis === g)) continue; const k = (v && v.platform) || "summary"; s[k] = (s[k] || 0) + 1; } return { convos: p, summariesOnly: s, convosTotal: convos.length }; },
     inbox: () => ({ cacheBytes: (() => { try { return (localStorage.getItem(INBOX_LS) || "").length; } catch { return -1; } })(), summaries: bridgeSummaries.size, waSig: _bst("whatsapp").sig.length, genCache: _bst("whatsapp").genCache.size, pollSeals: window.__pollSeals || 0, pollTimes: window.__pollTimes || [], renderTimes: window.__renderTimes || [], longtasks: (window.__longtasks||[]).filter(e=>e.d>40).map(e=>e.d) }),
     forcePersist: () => { persistInbox(); try { return (localStorage.getItem(INBOX_LS) || "").length; } catch { return -1; } },
     genesis: () => convos.map((c) => c.meta.genesis),
+    platformSample: (plat, n) => convos.filter((c) => ((c.meta && (c.meta.platform || c.meta.bridge)) || "local") === plat).slice(0, n || 20).map((c) => ({ name: c.meta && c.meta.name, jid: c.meta && c.meta.chat, msgs: c.thread ? c.thread.view().length : 0, rawId: /^![A-Za-z0-9]+:/.test(String((c.meta && c.meta.name) || "")) })),
     msgCount: (g) => { const c = convos.find((x) => x.meta.genesis === g); return c ? c.thread.view().length : -1; },
     conversations: () => convos.map((c) => c.thread.summarize(c.meta)),
     firstKappa: () => (convos[0] && convos[0].thread.view()[0]) ? convos[0].thread.view()[0].kappa : null,

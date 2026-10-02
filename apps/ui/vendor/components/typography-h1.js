@@ -1,1 +1,0 @@
-import{jsx as e}from"react/jsx-runtime";function t(){return e("h1",{className:"scroll-m-20 text-center text-4xl font-extrabold tracking-tight text-balance",children:"Taxing Laughter: The Joke Tax Chronicles"})}export{t as default};
