@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Not found</title>
+<script>
+  // The Q repo was renamed to hologram-os; forward old /Q/ deep links.
+  var m = location.pathname.match(/^\/Q(\/.*)?$/i);
+  if (m) location.replace("/hologram-os" + (m[1] || "/") + location.search + location.hash);
+</script>
+<h1>404</h1>
+<p>File not found. <a href="/">Go to Hologram</a></p>
